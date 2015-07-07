@@ -1,0 +1,296 @@
+# keyframes for several pick files for actor 3 and 4
+pick_001_3.bvh
+first 630 771
+second 771 925
+
+pick_002_3.bvh
+first 621 777
+second 777 963
+
+pick_003_4.bvh
+first 485 607
+second 607 729
+
+pick_005_4.bvh
+first 539 662
+second 662 801
+
+pick_007_3.bvh
+first 568 673
+second 673 796
+
+pick_008_3.bvh
+first 634 759
+second 759 899
+
+pick_009_3.bvh
+first 661 773
+second 773 892
+
+pick_010_4.bvh
+first 572 649
+second 649 750
+
+pick_012_3.bvh
+first 472 548
+second 548 653
+
+pick_014_3.bvh
+first 491 648
+second 648 884
+
+pick_015_4.bvh
+first 545 653
+second 653 779
+
+pick_016_3.bvh
+first 542 681
+second 681 814
+
+pick_019_3.bvh
+first 610 686
+second 686 820
+
+pick_021_4.bvh
+first 612 689
+second 689 811
+
+pick_024_4.bvh
+first 496 576
+second 576 675
+
+pick_027_4.bvh
+first 559 638
+second 638 754
+
+pick_029_3.bvh
+first 603 712
+second 712 838
+
+pick_030_4.bvh
+first 425 532
+second 532 643
+
+pick_031_4.bvh
+first 557 653
+second 653 806
+
+pick_033_4.bvh
+first 585 687
+second 687 771
+
+pick_035_4.bvh
+first 589 692
+second 692 793
+
+pick_036_3.bvh
+first 606 702
+second 702 836
+
+pick_040_3.bvh
+first 629 724
+second 724 846
+
+pick_043_3.bvh
+first 619 704
+second 704 837
+
+pick_048_4.bvh
+first 632 736
+second 736 865
+
+pick_049_4.bvh
+first 599 683
+second 683 790
+
+pick_051_4.bvh
+first 591 664
+second 664 756
+
+pick_052_4.bvh
+first 602 688
+second 688 798
+
+pick_054_4.bvh
+first 541 619
+second 619 752
+
+pick_055_3.bvh
+first 572 680
+second 680 790
+
+pick_056_4.bvh
+first 495 581
+second 581 667
+
+pick_060_3.bvh
+first 563 656
+second 656 806
+
+pick_061_4.bvh
+first 518 614
+second 614 740
+
+pick_065_4.bvh
+first 541 610
+second 610 727
+
+pick_066_4.bvh
+first 545 650
+second 650 757
+
+pick_069_4.bvh
+first 496 582 
+second 582 670
+
+pick_070_3.bvh
+first 551 694
+second 694 821
+
+pick_073_3.bvh
+first 640 778
+second 778 908
+
+pick_079_4.bvh
+first 526 591
+second 591 679
+
+pick_080_3.bvh
+first 586 689
+second 689 865
+
+pick_083_4.bvh
+first 584 657
+second 657 796
+
+pick_086_3.bvh
+first 731 871
+second 871 1011
+
+pick_092_4.bvh
+first 492 558
+second 558 653
+
+pick_093_3.bvh
+first 693 828
+second 828 964
+
+pick_095_4.bvh
+first 526 608
+second 608 709
+
+pick_096_3.bvh
+first 501 669
+second 669 871
+
+pick_099_3.bvh
+first 399 513
+second 513 725
+
+pick_102_3.bvh
+first 637 779
+second 779 943
+
+pick_107_3.bvh
+first 516 630
+second 630 730
+
+pick_109_3.bvh
+first 653 812
+second 812 969
+
+pick_113_3.bvh
+first 629 721
+second 721 838
+
+pick_116_4.bvh
+first 585 683 
+second 683 813
+
+pick_120_4.bvh
+first 516 604
+second 604 746
+
+pick_121_3.bvh
+first 521 643
+second 643 794
+
+pick_122_3.bvh
+first 587 689
+second 689 806
+
+pick_123_3.bvh
+first 537 620
+second 620 741
+
+pick_124_3.bvh
+first 494 597 
+second 597 747
+
+pick_125_3.bvh
+first 597 744
+second 744 866
+
+pick_126_3.bvh
+first 589 674
+second 674 839
+
+pick_127_3.bvh
+first 581 691
+second 691 814
+
+pick_128_3.bvh
+first 415 512
+second 512 656
+
+pick_129_3.bvh
+first 555 645
+second 645 769
+
+pick_130_3.bvh
+first 524 586 
+second 586 705
+
+pick_131_3.bvh
+first 412 502
+second 502 633
+
+pick_132_3.bvh
+first 475 578 
+second 578 746
+
+pick_133_3.bvh
+first 490 625 
+second 625 783
+
+pick_134_3.bvh
+first 418 508
+second 508 615
+
+pick_135_3.bvh
+first 293 328
+second 328 381
+
+pick_136_3.bvh
+first 550 640
+second 640 774
+
+pick_137_3.bvh
+first 476 579
+second 579 677
+
+pick_138_3.bvh
+first 665 778
+second 778 954
+
+pick_139_3.bvh
+first 488 577
+second 577 721
+
+pick_140_3.bvh
+first 477 585
+second 585 708
+
+pick_141_3.bvh
+first 453 557
+second 557 726

@@ -1,0 +1,35 @@
+{
+    "apply_smoothing": true, 
+    "trajectory_following_settings": {
+        "use_dir_vector_constraints": true, 
+        "step_length_factor": 0.8, 
+        "use_position_constraints": true, 
+        "method": "arc_length", 
+        "use_frame_constraints": true
+    }, 
+    "use_constrained_gmm": false, 
+    "optimization_settings": {
+        "error_scale_factor": 1, 
+        "kinematic_epsilon": 0.0, 
+        "quality_scale_factor": 0, 
+        "optimize_theta": false, 
+        "tolerance": 0.05, 
+        "method": "Nelder-Mead", 
+        "max_iterations": 150
+    }, 
+    "activate_cluster_search": true, 
+    "constrained_gmm_settings": {
+        "sample_size": 100, 
+        "precision": {
+            "smooth": 5, 
+            "rot": 0.15, 
+            "pos": 1
+        }, 
+        "max_bad_samples": 1000, 
+        "strict": false
+    }, 
+    "use_transition_model": false, 
+    "use_optimization": false, 
+    "activate_parameter_check": false, 
+    "use_constraints": true
+}

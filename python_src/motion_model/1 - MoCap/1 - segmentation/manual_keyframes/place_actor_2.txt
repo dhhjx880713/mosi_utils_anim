@@ -1,0 +1,184 @@
+# keyframes for all place files for actor 2
+place_002_2.bvh
+first 725 783
+second 783 879
+
+place_004_2.bvh
+first 693 834
+second 834 941
+
+place_007_2.bvh
+first 704 799
+second 799 866
+
+place_012_2.bvh
+first 898 1009
+second 1009 1090
+
+place_038_2.bvh
+first 535 624
+second 624 769
+
+place_040_2.bvh
+first 691 802
+second 802 876
+
+place_044_2.bvh
+first 627 695
+second 695 793
+
+place_047_2.bvh
+first 495 606
+second 606 669
+
+place_054_2.bvh
+first 703 780
+second 780 859
+
+place_055_2.bvh
+first 842 885
+second 885 968
+
+place_065_2.bvh
+first 
+second 
+
+place_070_2.bvh
+first
+second
+
+place_075_2.bvh
+first
+second
+
+place_082_2.bvh
+first
+second
+
+place_095_2.bvh
+first
+second
+
+place_101_2.bvh
+first
+second
+
+place_105_2.bvh
+first
+second
+
+place_110_2.bvh
+first
+second
+
+place_112_2.bvh
+first
+second
+
+place_121_2.bvh
+first
+second
+
+place_122_2.bvh
+first
+second
+
+place_123_2.bvh
+first
+second
+
+place_124_2.bvh
+first
+second
+
+place_125_2.bvh
+first
+second
+
+place_126_2.bvh
+first
+second
+
+place_127_2.bvh
+first
+second
+
+place_128_2.bvh
+first
+second
+
+place_129_2.bvh
+first
+second
+
+place_130_2.bvh
+first
+second
+
+place_131_2.bvh
+first
+second
+
+place_132_2.bvh
+first
+second
+
+place_133_2.bvh
+first
+second
+
+place_134_2.bvh
+first
+second
+
+place_135_2.bvh
+first
+second
+
+place_136_2.bvh
+first
+second
+
+place_137_2.bvh
+first
+second
+
+place_138_2.bvh
+first
+second
+
+place_139_2.bvh
+first
+second
+
+place_140_2.bvh
+first
+second
+
+place_141_2.bvh
+first
+second
+
+place_142_2.bvh
+first
+second
+
+place_143_2.bvh
+first
+second
+
+place_144_2.bvh
+first
+second
+
+place_145_2.bvh
+first
+second
+
+place_146_2.bvh
+first
+second
+
+place_147_2.bvh
+first
+second

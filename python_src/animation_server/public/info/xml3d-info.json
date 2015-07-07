@@ -1,0 +1,75 @@
+{
+    "animations": [],
+    "armatures": [],
+    "assets": [
+        {
+            "name": "assets-0.xml",
+            "size": 4880872,
+            "url": "C:\\Users\\herrmann\\Documents\\INTERACT\\scene_data\\export\\pilotcase_elux\\assets\\assets-0.xml"
+        },
+        {
+            "name": "assets-6.xml",
+            "size": 686451,
+            "url": "C:\\Users\\herrmann\\Documents\\INTERACT\\scene_data\\export\\pilotcase_elux\\assets\\assets-6.xml"
+        },
+        {
+            "name": "assets-7.xml",
+            "size": 2175935,
+            "url": "C:\\Users\\herrmann\\Documents\\INTERACT\\scene_data\\export\\pilotcase_elux\\assets\\assets-7.xml"
+        },
+        {
+            "name": "assets-3.xml",
+            "size": 3259509,
+            "url": "C:\\Users\\herrmann\\Documents\\INTERACT\\scene_data\\export\\pilotcase_elux\\assets\\assets-3.xml"
+        },
+        {
+            "name": "assets-1.xml",
+            "size": 5104923,
+            "url": "C:\\Users\\herrmann\\Documents\\INTERACT\\scene_data\\export\\pilotcase_elux\\assets\\assets-1.xml"
+        },
+        {
+            "name": "assets-2.xml",
+            "size": 476374,
+            "url": "C:\\Users\\herrmann\\Documents\\INTERACT\\scene_data\\export\\pilotcase_elux\\assets\\assets-2.xml"
+        },
+        {
+            "name": "assets-4.xml",
+            "size": 2596422,
+            "url": "C:\\Users\\herrmann\\Documents\\INTERACT\\scene_data\\export\\pilotcase_elux\\assets\\assets-4.xml"
+        },
+        {
+            "name": "assets-5.xml",
+            "size": 2888002,
+            "url": "C:\\Users\\herrmann\\Documents\\INTERACT\\scene_data\\export\\pilotcase_elux\\assets\\assets-5.xml"
+        }
+    ],
+    "groups": 16,
+    "lights": 2,
+    "materials": [
+        {
+            "name": "shared-materials.xml",
+            "size": 4321
+        }
+    ],
+    "meshes": [],
+    "scene": {
+        "name": "pilotcase_elux.html",
+        "size": 8841
+    },
+    "textures": [],
+    "views": 0,
+    "warnings": [
+        {
+            "category": "camera",
+            "issue": null,
+            "message": "Scene 'Scene' has no active camera set.",
+            "object": null
+        },
+        {
+            "category": "lamp",
+            "issue": 4,
+            "message": "Lamp 'Area' is of type 'AREA', which is not (yet) supported. Skipped lamp.",
+            "object": null
+        }
+    ]
+}

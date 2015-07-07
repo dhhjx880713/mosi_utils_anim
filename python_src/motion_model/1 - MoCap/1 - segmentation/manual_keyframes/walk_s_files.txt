@@ -1,0 +1,107 @@
+# keyframes for some S-Curve files
+walk_s_004.bvh
+beginLeftStance 116 170
+rightStance 170 217 
+leftStance 217 271
+rightStance 271 330
+leftStance 330 376
+rightStance 376 427
+leftStance 427 475
+rightStance 475 530
+leftStance 530 584
+rightStance 584 636
+leftStance 636 684
+endRightStance 684 746
+
+walk_s_006.bvh
+beginRightStance 141 242
+leftStance 242 298
+rightStance 298 353
+leftStance 353 409
+rightStance 409 473
+leftStance 473 528
+endRightStance 528 589
+
+walk_s_007.bvh
+beginRightStance 124 214
+leftStance 214 271
+rightStance 271 324
+leftStance 324 387
+rightStance 387 441
+leftStance 441 494
+rightStance 494 558
+leftStance 558 608
+endRightStance 608 667
+
+walk_s_008.bvh
+beginRightStance 171 268
+leftStance 268 322
+rightStance 322 373
+leftStance 373 437
+rightStance 437 485
+leftStance 485 538
+rightStance 538 590
+leftStance 590 638
+rightStance 638 701
+leftStance 701 759
+rightStance 759 808 
+leftStance 808 866 
+endRightStance  866 965
+
+walk_s_009.bvh
+beginRightStance 171 268
+leftStance 268 324
+rightStance 324 376
+leftStance 376 438
+rightStance 438 489
+leftStance 489 541
+rightStance 541 594
+leftStance 594 646
+rightStance 646 713
+leftStance 713 762
+rightStance 762 815
+leftStance 815 867
+endRightStance 867 970
+
+walk_s_011.bvh
+beginLeftStance 142 228
+rightStance 228 281
+leftStance 281 340
+rightStance 340 392
+leftStance 392 449
+rightStance 449 504
+leftStance 504 562
+rightStance 562 629
+leftStance 629 687
+rightStance 687 744
+leftStance 744 799
+endRightStance 799 861
+
+walk_s_012.bvh
+beginLeftStance 205 251
+rightStance 251 299
+leftStance 299 355
+rightStance 355 405
+leftStance 405 456
+rightStance 456 506
+leftStance 506 554
+rightStance 554 612
+leftStance 612 674
+rightStance 674 724
+endLeftStance 724 800
+
+walk_s_016.bvh
+beginLeftStance 164 214
+rightStance 214 263
+leftStance 263 314
+rightStance 314 362
+leftStance 362 411
+rightStance 411 464
+leftStance 464 512
+rightStance 512 564
+leftStance 564 623
+rightStance 623 661
+endLeftStance 661 740
+
+
+

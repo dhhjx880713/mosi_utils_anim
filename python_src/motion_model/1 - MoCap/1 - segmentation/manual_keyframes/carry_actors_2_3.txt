@@ -1,0 +1,120 @@
+# manual keyframes for carry motions for actor 2 and 3.
+carry_027_2.bvh
+beginRightStance 660 734
+leftStance 734 785
+rightStance 785 824
+leftStance 824 874
+rightStance 874 920
+leftStance 920 969
+rightStance 969 1013
+endLeftStance 1013 1160
+
+carry_030_2.bvh
+beginRightStance 617 692
+leftStance 692 741
+rightStance 741 789
+leftStance 789 829
+rightStance 829 880
+leftStance 880 932
+endRightStance 932 1030
+
+carry_037_2.bvh
+beginLeftStance 343 435
+rightStance 435 482
+leftStance 482 523
+rightStance 523 572
+leftStance 572 616
+rightStance 616 660
+endLeftStance 660 749
+
+carry_037_3.bvh
+beginRightStance 470 548
+leftStance 548 598 
+rightStance 598 656
+leftStance 656 715
+rightStance 715 762 
+leftStance 762 818
+rightStance 818 867
+leftStance 867 919
+rightStance 919 972
+endLeftStance 972 1028
+
+carry_074_2.bvh
+beginLeftStance 374 451
+rightStance 451 506
+leftStance 506 548
+rightStance 548 592
+leftStance 592 642
+rightStance 642 693
+leftStance 693 743
+endRightStance 743 856
+
+carry_084_3.bvh
+beginRightStance 446 503
+leftStance 503 559
+rightStance 559 614
+leftStance 614 668
+rightStance 668 720
+leftStance 720 773
+rightStance 773 830
+leftStance 830 889
+endRightStance 889 1000
+
+carry_007_2.bvh
+beginRightStance 624 683
+leftStance 683 724
+rightStance 724 771
+leftStance 771 813
+rightStance 813 863
+endLeftStance 863 967
+
+carry_020_2.bvh
+beginRightStance 499 552
+leftStance 552 602
+rightStance 602 649
+leftStance 649 695
+rightStance 695 740
+leftStance 740 789
+rightStance 789 835
+endLeftStance 835 899
+
+carry_025_2.bvh
+beginLeftStance 785 863
+rightStance 863 907
+leftStance 907 951
+rightStance 951 994
+leftStance 994 1043
+rightStance 1043 1089
+endLeftStance 1089 1160
+
+carry_049_2.bvh
+beginLeftStance 406 468
+rightStance 468 512
+leftStance 512 562
+rightStance 562 605
+leftStance 605 652 
+rightStance 652 700
+endLeftStance 700 800
+
+carry_086_3.bvh
+beginRightStance 490 552
+leftStance 552 611
+rightStance 611 657
+leftStance 657 714
+rightStance 714 766
+leftStance 766 822
+rightStance 822 875
+leftStance 875 929
+rightStance 929 977
+endLeftStance 977 1086
+
+carry_091_2.bvh
+beginLeftStance 498 608
+leftStance 608 656
+rightStance 656 703
+leftStance 703 752
+rightStance 752 799
+leftStance 799 851
+rightStance 851 901
+leftStance 901 953
+endRightStance 953 1067

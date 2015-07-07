@@ -1,0 +1,180 @@
+# keyframes for several place files for actor 3 and 4
+place_002_3.bvh
+first 824 1001
+second 1001 1141
+
+place_004_3.bvh
+first 924 1108
+second 1108 1297
+
+place_007_3.bvh
+first 847 994
+second 994 1114
+
+place_012_3.bvh
+first 854 980
+second 980 1108
+
+place_038_3.bvh
+first 847 985
+second 985 1110
+
+place_040_3.bvh
+first 902 1027
+second 1027 1159
+
+place_044_3.bvh
+first 813 919 
+second 919 1036
+
+place_047_3.bvh
+first 839 937
+second 937 1104
+
+place_054_3.bvh
+first 800 948
+second 948 1054
+
+place_065_3.bvh
+first 811 1001
+second 1001 1178
+
+place_070_3.bvh
+first 837 980 
+second 980 1116
+
+place_075_3.bvh
+first 759 937
+second 937 1054
+
+place_082_3.bvh
+first 672 825
+second 825 957
+
+place_095_3.bvh
+first 816 914
+second 914 1007
+
+place_101_3.bvh
+first 973 1149
+second 1149 1278
+
+place_105_3.bvh
+first 776 877
+second 877 1031
+
+place_110_3.bvh
+first 861 1037
+second 1037 1163
+
+place_112_3.bvh
+first 905 1006
+second 1006 1162
+
+place_121_3.bvh
+first 907 1074
+second 1074 1191
+
+place_122_3.bvh
+first 927 1071
+second 1071 1183
+
+place_123_3.bvh
+first 815 927
+second 927 1095
+
+place_124_3.bvh
+first 758 913
+second 913 1064
+
+place_125_3.bvh
+first 725 866
+second 866 989
+
+place_126_3.bvh
+first 784 907
+second 907 1052
+
+place_127_3.bvh
+first 874 972
+second 972 1086
+
+place_128_3.bvh
+first 885 988
+second 988 1074
+
+place_129_3.bvh
+first 896 984
+second 984 1072
+
+place_130_3.bvh
+first 867 993
+second 993 1082
+
+place_131_3.bvh
+first 827 943
+second 943 1032
+
+place_132_3.bvh
+first 878 996
+second 996 1093
+
+place_133_3.bvh
+first 799 909
+second 909 1008
+
+place_134_3.bvh
+first 896 999
+second 999 1111
+
+place_135_3.bvh
+first 826 943
+second 943 1075
+
+place_136_3.bvh
+first 837 957
+second 957 1094
+
+place_137_3.bvh
+first 835 952
+second 952 1057
+
+place_138_3.bvh
+first 861 986
+second 986 1128
+
+place_139_3.bvh
+first 762 931
+second 931 1038
+
+place_140_3.bvh
+first 829 1023
+second 1023 1151
+
+place_141_3.bvh
+first 921 1162
+second 1162 1210
+
+place_142_3.bvh
+first 882 1084
+second 1084 1226
+
+place_143_3.bvh
+first 917 1060
+second 1060 1196
+
+place_144_3.bvh
+first 812 991
+second 991 1080
+
+place_145_3.bvh
+first 859 1026
+second 1026 1188
+
+place_146_3.bvh
+first 900 1074
+second 1074 1226
+
+place_147_3.bvh
+first 921 1050
+second 1050 1212

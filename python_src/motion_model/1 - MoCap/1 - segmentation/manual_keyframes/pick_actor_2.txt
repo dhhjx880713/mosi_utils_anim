@@ -1,0 +1,197 @@
+# keyframes for all pick files for actor 2
+
+pick_002_2.bvh
+first 653 738
+second 738 825
+
+pick_007_2.bvh
+first 571 658
+second 658 739
+
+pick_008_2.bvh
+first 616 719
+second 719 816
+
+pick_009_2.bvh
+first 566 645
+second 645 695
+
+pick_012_2.bvh
+first 656 777
+second 777 841
+
+pick_014_2.bvh
+first 380 507
+second 507 615
+
+pick_016_2.bvh
+first 466 589
+second 589 684
+
+pick_019_2.bvh
+first 346 437
+second 437 521
+
+pick_029_2.bvh
+first 359 452
+second 452 521
+
+pick_036_2.bvh
+first 330 413
+second 413 500
+
+pick_039_2.bvh
+first
+second
+
+pick_040_2.bvh
+first
+second
+
+pick_043_2.bvh
+first
+second
+
+pick_055_2.bvh
+first
+second
+
+pick_060_2.bvh
+first
+second
+
+pick_070_2.bvh
+first
+second
+
+pick_073_2.bvh
+first
+second
+
+pick_076_2.bvh
+first
+second
+
+pick_080_2.bvh
+first
+second
+
+pick_086_2.bvh
+first
+second
+
+pick_090_2.bvh
+first
+second
+
+pick_093_2.bvh
+first
+second
+
+pick_096_2.bvh
+first
+second
+
+pick_102_2.bvh
+first
+second
+
+pick_104_2.bvh
+first
+second
+
+pick_107_2.bvh
+first
+second
+
+pick_109_2.bvh
+first
+second
+
+pick_113_2.bvh
+first
+second
+
+pick_121_2.bvh
+first
+second
+
+pick_122_2.bvh
+first
+second
+
+pick_123_2.bvh
+first
+second
+
+pick_124_2.bvh
+first
+second
+
+pick_125_2.bvh
+first
+second
+
+pick_126_2.bvh
+first
+second
+
+pick_127_2.bvh
+first
+second
+
+pick_128_2.bvh
+first
+second
+
+pick_129_2.bvh
+first
+second
+
+pick_130_2.bvh
+first
+second
+
+pick_131_2.bvh
+first
+second
+
+pick_132_2.bvh
+first
+second
+
+pick_133_2.bvh
+first
+second
+
+pick_134_2.bvh
+first
+second
+
+pick_135_2.bvh
+first
+second
+
+pick_136_2.bvh
+first
+second
+
+pick_137_2.bvh
+first
+second
+
+pick_138_2.bvh
+first
+second
+
+pick_139_2.bvh
+first
+second
+
+pick_140_2.bvh
+first
+second
+
+pick_141_2.bvh
+first
+second
