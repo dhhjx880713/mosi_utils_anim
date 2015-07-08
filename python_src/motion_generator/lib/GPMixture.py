@@ -13,7 +13,6 @@ import json
 import zipfile
 import GPy
 from sklearn import mixture
-import gmm_math
 
 class GPMixture(object):
     """ Mixture of GPs

@@ -4,16 +4,17 @@ Created on Tue Jun 23 18:34:12 2015
 
 @author: erhe01
 """
-import numpy as np
 import zipfile
 import json
 import cPickle#pickle
 import time
-from space_partitioning import ClusterTree
-
-
 
 def read_graph_data_from_zip(zip_path,pickle_objects=False):
+    """ Extracts the data from the files stored in the zip file and 
+        returns it in a dictionary for easier parsing. The space partitioning 
+        data structure is also deserialized into an object.
+        If pickle_objects is False the space partitioning is ignored.
+    """
     graph_definition = None
     structure_desc = {}
     graph_data = {}
@@ -85,7 +86,7 @@ def main():
     print zip_path
     start = time.clock()
     graph_data = read_graph_data_from_zip(zip_path)
-    print graph_data["subgraphs"]["pick"]["nodes"].keys()#["pick"]["stats"]
+    print graph_data["subgraphs"]["pick"]["nodes"].keys()
     print "finished reading data in",time.clock()-start,"seconds"
     #print  graph_data     
     

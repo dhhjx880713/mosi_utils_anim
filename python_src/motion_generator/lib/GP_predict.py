@@ -10,10 +10,7 @@ import os
 import json
 import zipfile
 from sklearn import mixture
-from lib.load import load_gmm
-from lib import gmm_math
-#os.sys.path.append(os.sep.join(('..', '4 - Transition model')))
-from lib.GPMixture import GPMixture
+from GPMixture import GPMixture
 
 
 def load_gpm_from_path(filepath):
@@ -32,19 +29,6 @@ def load_gpm_from_path(filepath):
         gp = GPy.load(f)
         gpm.gps.append(gp)
         os.remove(f)
-    return gpm
-
-
-def load_gpm(action1, prim1, action2, prim2):
-    """ loads the gpm file from data folder and also the input and output gmms
-    """
-    filepath_prefix = os.sep.join(('..', '..', 'data', '4 - Transition model',
-                                  'output'))
-    filename = "%s_%s_to_%s_%s.GPM" % (action1, prim1, action2, prim2)
-
-    gpm = load_gpm_from_path(os.sep.join((filepath_prefix, filename)))
-    gpm.gmm = load_gmm(action1, prim1)
-    gpm.output_gmm = load_gmm(action2, prim2)
     return gpm
 
 
@@ -85,29 +69,3 @@ def predict(gpm, Xnew):
     return gmm
 
 
-def load_all_gpm():
-    """yields a dict with transition and the corresponding GPM"""
-    gpms = {}
-    primitives = [('walk', 'leftStance'), ('walk', 'rightStance'),
-                  ('walk', 'beginLeftStance'), ('walk', 'beginRightStance'),
-                  ('walk', 'endLeftStance'), ('walk', 'endRightStance'),
-                  ('carry', 'leftStance'), ('carry', 'rightStance'),
-                  ('carry', 'beginLeftStance'), ('carry', 'beginRightStance'),
-                  ('carry', 'endLeftStance'), ('carry', 'endRightStance'),
-                  ('pick', 'first'), ('pick', 'second'), ('place', 'first'),
-                  ('place', 'second')]
-    for action1, prim1 in primitives:
-        for action2, prim2 in primitives:
-            try:
-                gpms["%s_%s_to_%s_%s" % (action1, prim1, action2, prim2)] \
-                    = load_gpm(action1, prim1, action2, prim2)
-            except IOError:
-                continue
-    return gpms
-
-
-def main():
-    raise NotImplementedError
-
-if __name__ == '__main__':
-    main()

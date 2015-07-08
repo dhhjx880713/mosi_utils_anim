@@ -64,8 +64,8 @@ if __name__ == "__main__":
     
     # set the path to the parent of the data directory TODO set as configuration file parameter
     global_path_dict["data_root"] = "E:\\projects\\INTERACT\\repository\\"
-    
-    os.chdir(sys.path[0])  # change working directory to the file directory
+    dirname, filename = os.path.split(os.path.abspath(__file__))
+    os.chdir(dirname)  # change working directory to the file directory
     local_path = os.path.dirname(__file__)
     globalpath = global_path_dict["data_root"] + r"BestFitPipeline\CNL-GUI\*.json"
     print globalpath

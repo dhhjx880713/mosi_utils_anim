@@ -10,7 +10,7 @@ import sklearn.mixture as mixture
 from lib.gmm_math import mul
 from lib.evaluation_methods import check_sample_validity
 from constrain_gmm import ConstrainedGMM
-import GP_predict
+from lib import GP_predict
 from optimize_motion import run_optimization,\
                     generate_optimization_settings
 from lib.graph_walk_extraction import get_step_length_for_sample

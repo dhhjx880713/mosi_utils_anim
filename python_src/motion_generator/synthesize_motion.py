@@ -8,16 +8,11 @@ json input file. Runs the optimization sequentially and creates constraints
 
 @author: Erik Herrmann, Han Du, Fabian Rupp, Markus Mauer
 """
-import os
+
 import copy
 import numpy as np
-from lib.bvh2 import BVHReader, create_filtered_node_name_map
-from lib.morphable_graph import MorphableGraph,NODE_TYPE_STANDARD,NODE_TYPE_END
-from lib.helper_functions import get_morphable_model_directory,\
-                                 get_transition_model_directory,\
-                                 load_json_file, \
-                                 export_quat_frames_to_bvh, \
-                                 merge_two_dicts
+from lib.morphable_graph import NODE_TYPE_STANDARD,NODE_TYPE_END
+from lib.helper_functions import merge_two_dicts
 from lib.motion_editing import convert_quaternion_to_euler, \
                                 get_cartesian_coordinates2, \
                                 transform_quaternion_frames, \
@@ -26,7 +21,6 @@ from lib.graph_walk_extraction import create_trajectory_from_constraint,\
                                     extract_all_keyframe_constraints,\
                                     extract_trajectory_constraint,\
                                     extract_key_frame_constraint,\
-                                    extract_keyframe_annotations,\
                                     transform_point_from_cad_to_opengl_cs
 from constrain_motion import get_optimal_parameters,\
                              generate_algorithm_settings,\
@@ -455,6 +449,70 @@ def extract_constraints_of_elementary_action(bvh_reader, morphable_subgraph, con
                                                                              keyframe_constraints)
     return trajectory,unconstrained_indices, keyframe_constraints
     
+    
+def get_random_start_state(morphable_graph,elementary_action, prev_action_name, prev_mp_name):
+    """ Get random start state based on edge from previous elementary action if possible
+    """
+    next_state = ""
+    if prev_action_name in morphable_graph.subgraphs.keys() and \
+           prev_mp_name in morphable_graph.subgraphs[prev_action_name].nodes.keys():
+                               
+       to_key = morphable_graph.subgraphs[prev_action_name]\
+                       .nodes[prev_mp_name].generate_random_action_transition(elementary_action)
+       if to_key is not None:
+           next_state = to_key.split("_")[1]
+           return next_state
+       else:
+           return None
+       print "generate start from transition of last action", prev_action_name, prev_mp_name, to_key
+       
+    # if there is no previous elementary action or no action transition
+    #  use transition to random start state
+    if next_state == "" or next_state not in morphable_graph.subgraphs[elementary_action].nodes.keys():
+        print next_state,"not in", elementary_action,prev_action_name,prev_mp_name
+        next_state = morphable_graph.subgraphs[elementary_action].get_random_start_state()
+        print "generate random start",next_state
+    return next_state
+    
+def get_random_transition_state(morphable_subgraph, prev_state, prev_frames, trajectory, travelled_arc_length, arc_length_of_end):
+    """ Get next state of the elementary action based on previous iteration.
+    """
+    if trajectory is not None :
+            
+         #test end condition for trajectory constraints
+        if not check_end_condition(morphable_subgraph,prev_frames,trajectory,\
+                                travelled_arc_length,arc_length_of_end) :            
+
+            #make standard transition to go on with trajectory following
+            next_state_type = NODE_TYPE_STANDARD
+        else:
+            # threshold was overstepped. remove previous step before 
+            # trying to reach the goal using a last step
+            #TODO replace with more efficient solution or optimization
+#                    deleted_state,deleted_travelled_arc_length,deleted_number_of_frames = mp_sequence.pop(-1)
+#                    current_state,travelled_arc_length,prev_number_of_frames = mp_sequence.pop(-1)
+#                    euler_frames = euler_frames[:prev_number_of_frames]
+#                    print "deleted data for state",deleted_state
+            next_state_type = NODE_TYPE_END
+            
+        print "generate",next_state_type,"transition from trajectory"
+    else:
+        n_standard_transitions = len([e for e in morphable_subgraph.nodes[prev_state].outgoing_edges.keys() if morphable_subgraph.nodes[prev_state].outgoing_edges[e].transition_type == "standard"])
+        if n_standard_transitions > 0:
+            next_state_type = NODE_TYPE_STANDARD
+        else:
+            next_state_type = NODE_TYPE_END
+        print "generate",next_state_type,"transition without trajectory",n_standard_transitions
+
+    to_key = morphable_subgraph.nodes[prev_state].generate_random_transition(next_state_type)
+    
+    if to_key is not None:
+        current_state = to_key.split("_")[1]
+        return current_state, next_state_type
+    else:
+        return None, next_state_type
+       
+    
 
 def convert_elementary_action_to_motion(elementary_action,
                                         constraint_list,
@@ -532,69 +590,24 @@ def convert_elementary_action_to_motion(elementary_action,
     temp_step = 0
     travelled_arc_length = 0.0
     print "start converting elementary action",elementary_action
-    while current_state_type != "end":
+    while current_state_type != NODE_TYPE_END:
 
         if max_step > -1 and step_count + temp_step > max_step:
             print "reached max step"
             break
         #######################################################################
         # Get motion primitive = extract from graph based on previous last step + heuristic
-        if temp_step == 0:
-            # get next state based on edge from previous elementary action if possible
-            if prev_action_name in morphable_graph.subgraphs.keys() and \
-               prev_mp_name in morphable_graph.subgraphs[prev_action_name].nodes.keys():
-                                   
-               to_key = morphable_graph.subgraphs[prev_action_name]\
-                               .nodes[prev_mp_name].generate_random_action_transition(elementary_action)
-               if to_key is not None:
-                   current_state = to_key.split("_")[1]
-               else:
-                   print "Error: Could not find a transition of type action_transition from ",prev_action_name,prev_mp_name ," to state",current_state
-                   break
-               print "generate start from transition of last action", prev_action_name, prev_mp_name, to_key
-            # if there is no previous elementary action or no action transition
-            #  use transition to random start state
-            if current_state not in morphable_subgraph.nodes.keys():
-                print current_state,"not in", elementary_action,prev_action_name,prev_mp_name
-                current_state = morphable_subgraph.get_random_start_state()
-                print "generate random start",current_state
-            
+        if temp_step == 0:  
+             current_state = get_random_start_state(morphable_graph,elementary_action, prev_action_name, prev_mp_name)
+             if current_state is None:
+                 print "Error: Could not find a transition of type action_transition from ",prev_action_name,prev_mp_name ," to state",current_state
+                 break
         elif len(morphable_subgraph.nodes[current_state].outgoing_edges) > 0:
-            #test end condition for trajectory constraints
-            if trajectory is not None :
-            
-
-                if not check_end_condition(morphable_subgraph,quat_frames,trajectory,\
-                                        travelled_arc_length,arc_length_of_end) :            
-
-                    #make standard transition to go on with trajectory following
-                    current_state_type = NODE_TYPE_STANDARD
-                else:
-                    # threshold was overstepped. remove previous step before 
-                    # trying to reach the goal using a last step
-                    #TODO replace with more efficient solution or optimization
-#                    deleted_state,deleted_travelled_arc_length,deleted_number_of_frames = mp_sequence.pop(-1)
-#                    current_state,travelled_arc_length,prev_number_of_frames = mp_sequence.pop(-1)
-#                    euler_frames = euler_frames[:prev_number_of_frames]
-#                    print "deleted data for state",deleted_state
-                    current_state_type = NODE_TYPE_END
-                    
-                print "generate",current_state_type,"transition from trajectory"
-            else:
-                n_standard_transitions = len([e for e in morphable_subgraph.nodes[current_state].outgoing_edges.keys() if morphable_subgraph.nodes[current_state].outgoing_edges[e].transition_type == "standard"])
-                if n_standard_transitions > 0:
-                    current_state_type = NODE_TYPE_STANDARD
-                else:
-                    current_state_type = NODE_TYPE_END
-                print "generate",current_state_type,"transition without trajectory",n_standard_transitions
-
-            to_key = morphable_subgraph.nodes[current_state].generate_random_transition(current_state_type)
-            
-            if to_key is not None:
-                current_state = to_key.split("_")[1]
-            else:
-                print "Error: Could not find a transition of type",current_state_type,"from state",current_state
-                break
+            prev_state = current_state
+            current_state, current_state_type = get_random_transition_state(morphable_subgraph, prev_state, quat_frames, trajectory, travelled_arc_length, arc_length_of_end)
+            if current_state is None:
+                 print "Error: Could not find a transition of type",current_state_type,"from state",prev_state
+                 break
         else:
             print "Error: Could not find a transition from state",current_state
             break
@@ -610,7 +623,7 @@ def convert_elementary_action_to_motion(elementary_action,
         try: 
             constraints, temp_arc_length, use_optimization = create_constraints_for_motion_primitive(morphable_subgraph,\
                       current_state,trajectory,travelled_arc_length,prev_pos,unconstrained_indices,trajectory_following_settings,\
-                      bvh_reader.root,quat_frames,bvh_reader,node_name_map,keyframe_constraints,is_last_step=(current_state_type == "end") )
+                      bvh_reader.root,quat_frames,bvh_reader,node_name_map,keyframe_constraints,is_last_step=(current_state_type == NODE_TYPE_END) )
         except PathSearchError as e:
                 print "moved beyond end point using parameters",
                 str(e.search_parameters)
