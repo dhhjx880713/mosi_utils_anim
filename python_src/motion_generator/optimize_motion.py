@@ -209,9 +209,9 @@ def error_func(s,data):
     #print "s-vector",optimize_theta
     error_scale_factor = data[-1]
     quality_scale_factor = data[-2]
-    prior_knowledge = -data[0].gmm.score([s,])[0]
-    print "naturalness is: " + str(prior_knowledge)
-    error = error_scale_factor * kinematic_error + prior_knowledge * quality_scale_factor
+    n_log_likelihood = -data[0].gmm.score([s,])[0]
+    print "naturalness is: " + str(n_log_likelihood)
+    error = error_scale_factor * kinematic_error + n_log_likelihood * quality_scale_factor
     print "error",error
     return error
   

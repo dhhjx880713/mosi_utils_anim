@@ -6,10 +6,10 @@ Created on Tue Jun 23 18:34:12 2015
 """
 import zipfile
 import json
-import cPickle#pickle
+import cPickle
 import time
 
-def read_graph_data_from_zip(zip_path,pickle_objects=False):
+def read_graph_data_without_transition_models_from_zip(zip_path,pickle_objects=False):
     """ Extracts the data from the files stored in the zip file and 
         returns it in a dictionary for easier parsing. The space partitioning 
         data structure is also deserialized into an object.
@@ -85,7 +85,7 @@ def main():
     zip_path = "C:\\Users\\herrmann\\repository2\\data\\3 - Motion primitives\\motion_primitives_quaternion_PCA95.zip"
     print zip_path
     start = time.clock()
-    graph_data = read_graph_data_from_zip(zip_path)
+    graph_data = read_graph_data_without_transition_models_from_zip(zip_path)
     print graph_data["subgraphs"]["pick"]["nodes"].keys()
     print "finished reading data in",time.clock()-start,"seconds"
     #print  graph_data     

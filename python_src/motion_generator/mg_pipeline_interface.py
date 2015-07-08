@@ -34,14 +34,15 @@ def run_pipeline(input_file, output_dir, output_filename, config_file):
     """Creates an instance of the morphable graph and runs the synthesis
        algorithm with the input_file and standard parameters.
     """
-    morphable_graph = load_morphable_graph()
-    verbose = False
-
+    
     max_step = -1
     if os.path.isfile(config_file):
         options = load_json_file(config_file)
     else:
         options = generate_algorithm_settings()
+    morphable_graph = load_morphable_graph(use_transition_model=options["use_transition_model"])
+    verbose = False
+
     result_tuple = morphable_graph.synthesize_motion(input_file,options=options,
                                                       max_step=max_step,
                                                       verbose=verbose,

@@ -412,7 +412,6 @@ def extract_gmm_from_motion_primitive(pipeline_parameters):
     # Get prior gaussian mixture model from node
     graph_node = morphable_graph.subgraphs[action_name].nodes[mp_name]
     gmm = graph_node.mp.gmm
-
     # Perform manipulation based on settings and the current state.
     if options["use_transition_model"] and prev_parameters is not None:
         if options["use_constrained_gmm"]:
@@ -440,6 +439,18 @@ def extract_gmm_from_motion_primitive(pipeline_parameters):
 
     return gmm
 
+def get_random_parameters(pipeline_parameters):
+    morphable_graph,action_name,mp_name,constraints,\
+    options, prev_action_name, prev_mp_name, prev_frames, prev_parameters, \
+    bvh_reader, node_name_map, \
+    start_pose,verbose = pipeline_parameters
+    if options["use_transition_model"] and prev_parameters is not None and morphable_graph.subgraphs[prev_action_name].nodes[prev_mp_name].has_transition_model(to_key):
+         to_key = action_name+"_"+mp_name
+         parameters = morphable_graph.subgraphs[prev_action_name].nodes[prev_mp_name].predict_parameters(to_key,prev_parameters)
+    else:
+        parameters = morphable_graph.subgraphs[action_name].nodes[mp_name].sample_parameters()
+    return parameters
+    
 
 def get_optimal_parameters(morphable_graph,action_name,mp_name,constraints,\
                          options, prev_action_name="", prev_mp_name="", prev_frames=None, prev_parameters=None, \
@@ -471,6 +482,10 @@ def get_optimal_parameters(morphable_graph,action_name,mp_name,constraints,\
             Low dimensional parameters for the morphable model
         """
 
+        pipeline_parameters = morphable_graph,action_name,mp_name,constraints,\
+                         options, prev_action_name, prev_mp_name, prev_frames, prev_parameters, \
+                         bvh_reader, node_name_map, \
+                         start_pose,verbose
         sample_size = options["constrained_gmm_settings"]["sample_size"]
         precision = options["constrained_gmm_settings"]["precision"]
 
@@ -478,10 +493,7 @@ def get_optimal_parameters(morphable_graph,action_name,mp_name,constraints,\
             graph_node = morphable_graph.subgraphs[action_name].nodes[mp_name]
             
             #  1) get gmm and modify it based on the current state and settings
-            pipeline_parameters = morphable_graph,action_name,mp_name,constraints,\
-                         options, prev_action_name, prev_mp_name, prev_frames, prev_parameters, \
-                         bvh_reader, node_name_map, \
-                         start_pose,verbose
+           
             gmm = extract_gmm_from_motion_primitive(pipeline_parameters)
 
             #  2) sample parameters based on constraints and make sure
@@ -492,11 +504,11 @@ def get_optimal_parameters(morphable_graph,action_name,mp_name,constraints,\
                 parameters = search_for_best_sample(graph_node,constraints,prev_frames,start_pose,\
                                         bvh_reader, node_name_map,\
                                          verbose=verbose)
-                optimization_needed = True
-                #optimization_needed = False
+                close_to_optimum = True
+                #close_to_optimum = False
             else: 
                 # pick new random samples from the Gaussian Mixture Model
-                parameters,optimization_needed = sample_and_pick_best(graph_node,gmm,\
+                parameters,close_to_optimum = sample_and_pick_best(graph_node,gmm,\
                                         constraints,prev_frames,start_pose,\
                                         bvh_reader, node_name_map,\
                                         precision= precision,\
@@ -504,19 +516,21 @@ def get_optimal_parameters(morphable_graph,action_name,mp_name,constraints,\
                                         activate_parameter_check=options["activate_parameter_check"],verbose=verbose)
                 
             #3) optimize sampled parameters as initial guess if the constraints were not reached
-            if  options["use_optimization"] and not optimization_needed:
+            if  options["use_optimization"] and not close_to_optimum:
                 verbose = True
                 bounding_boxes = (graph_node.parameter_bb, graph_node.cartesian_bb)
-                parameters = run_optimization(graph_node.mp, gmm, constraints,
-                                                parameters, bvh_reader, node_name_map,
-                                                optimization_settings=options["optimization_settings"], bounding_boxes=bounding_boxes,
-                                                prev_frames=prev_frames, start_pose=start_pose, verbose=verbose)
+                try:
+                    initial_guess = parameters
+                    parameters = run_optimization(graph_node.mp, gmm, constraints,
+                                                    initial_guess, bvh_reader, node_name_map,
+                                                    optimization_settings=options["optimization_settings"], bounding_boxes=bounding_boxes,
+                                                    prev_frames=prev_frames, start_pose=start_pose, verbose=verbose)
+                except ValueError as e:
+                    print e.message
+                    parameters = initial_guess
+ 
 
         else: # generate random parameters
-            
-            if options["use_transition_model"] and prev_parameters is not None:
-                to_key = action_name+"_"+mp_name
-                parameters = morphable_graph.subgraphs[prev_action_name].nodes[prev_mp_name].predict_parameters(to_key,prev_parameters)
-            else:
-                parameters = morphable_graph.subgraphs[action_name].nodes[mp_name].sample_parameters()
+            parameters = get_random_parameters(pipeline_parameters)
+         
         return parameters

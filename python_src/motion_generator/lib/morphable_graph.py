@@ -20,7 +20,7 @@ from GPMixture import GPMixture
 from motion_editing import align_frames, convert_quaternion_to_euler
 from math import sqrt
 from space_partitioning import ClusterTree
-from zip_io import read_graph_data_from_zip
+from zip_io import read_graph_data_without_transition_models_from_zip
 
 
 NODE_TYPE_START = "start"
@@ -252,6 +252,8 @@ class GraphNode(object):
             self.average_step_length = np.median(sample_lengths)
         
  
+    def has_transition_model(self, to_key):
+        return to_key in self.outgoing_edges.keys() and self.outgoing_edges[to_key].transition_model is not None
     def predict_parameters(self, to_key, current_parameters):
         """ Predicts parameters for a transition using the transition model.
         
@@ -290,7 +292,10 @@ class GraphNode(object):
         * gmm: sklearn.mixture.GMM
         \tThe predicted Gaussian Mixture Model.
         """
-        return self.outgoing_edges[to_key].transition_model.predict(current_parameters)
+        if self.outgoing_edges[to_key].transition_model is not None:
+            return self.outgoing_edges[to_key].transition_model.predict(current_parameters)
+        else:
+            return self.mp.gmm
 
  
 class MorphableSubgraph(object):
@@ -320,7 +325,7 @@ class MorphableSubgraph(object):
         self.mp_annotations = {}
         self.loaded_from_dict = False
    
-    def init_from_dict(self, subgraph_desc, graph_definition):
+    def init_from_dict(self, subgraph_desc, graph_definition, transition_model_directory=None, load_transition_models=False):
         self.loaded_from_dict = True
         self.elementary_action_name = subgraph_desc["name"]
 
@@ -332,11 +337,11 @@ class MorphableSubgraph(object):
             self._set_meta_information(subgraph_desc["info"])
         else:
             self._set_meta_information() 
-        self._set_transitions_from_dict(graph_definition)
+        self._set_transitions_from_dict(graph_definition, transition_model_directory, load_transition_models)
         self._update_attributes(update_stats=False)
         return
 
-    def init_from_directory(self,elementary_action_name, morphable_model_directory,transition_model_directory, load_transition_models= False, update_stats=False):
+    def init_from_directory(self,elementary_action_name, morphable_model_directory,transition_model_directory, load_transition_models=False, update_stats=False):
         self.loaded_from_dict = False
         self.elementary_action_name = elementary_action_name
         self.nodes = {}
@@ -400,7 +405,7 @@ class MorphableSubgraph(object):
                     
         return
         
-    def _set_transitions_from_dict(self,graph_definition, transition_model_directory= None, load_transition_models=False):
+    def _set_transitions_from_dict(self,graph_definition, transition_model_directory=None, load_transition_models=False):
         """Define transitions  and load transiton models
             TODO split once into tuples when loaded
             TODO factor out into its own class
@@ -625,7 +630,7 @@ class MorphableGraph(object):
         self.subgraphs = collections.OrderedDict()
         zip_path = morphable_model_directory+".zip"
         if os.path.isfile(zip_path):
-            self.init_from_zip_file(zip_path)
+            self.init_from_zip_file(zip_path, transition_model_directory, load_transition_models)
         else:
             self.init_from_directory(morphable_model_directory
                                     ,transition_model_directory, 
@@ -633,15 +638,15 @@ class MorphableGraph(object):
                                     update_stats=update_stats)
         return
         
-    def init_from_zip_file(self,zip_path):
-        graph_data =read_graph_data_from_zip(zip_path,pickle_objects=True)
+    def init_from_zip_file(self,zip_path, transition_model_directory, load_transition_models):
+        graph_data =read_graph_data_without_transition_models_from_zip(zip_path,pickle_objects=True)
         graph_definition = graph_data["transitions"]
         subgraph_desc = graph_data["subgraphs"]
         for el_action in subgraph_desc.keys():
             self.subgraphs[el_action] = MorphableSubgraph()
-            self.subgraphs[el_action].init_from_dict(subgraph_desc[el_action],graph_definition)
+            self.subgraphs[el_action].init_from_dict(subgraph_desc[el_action],graph_definition, transition_model_directory, load_transition_models)
             #for m_primitive in subgraph_desc[el_action].keys():
-        self._set_transitions_from_dict(graph_definition)          
+        self._set_transitions_from_dict(graph_definition,transition_model_directory, load_transition_models)          
         
     def init_from_directory(self,morphable_model_directory,transition_model_directory, load_transition_models=False, update_stats=False):
         """ Initializes the class
@@ -703,7 +708,7 @@ class MorphableGraph(object):
                                 transition_model_file = transition_model_directory\
                                 +os.sep+node_key+"_to_"+to_key+".GPM"
                                 if  os.path.isfile(transition_model_file):
-                                    output_gmm =  self.nodes[to_motion_primitive_name].mp.gmm
+                                    output_gmm =  self.subgraphs[to_action_name].nodes[to_motion_primitive_name].mp.gmm
                                     transition_model = GPMixture.load(transition_model_file,\
                                     self.subgraphs[from_action_name].nodes[from_motion_primitive_name].mp.gmm,output_gmm)
                                 else:
