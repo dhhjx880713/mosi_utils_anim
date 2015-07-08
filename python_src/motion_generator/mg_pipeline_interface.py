@@ -8,6 +8,7 @@ Note the loading of transition models can take up to 2 minutes
 @author: erhe01
 """
 
+import sys
 import os
 import glob
 from controllable_morphable_graph import ControllableMorphableGraph, export_synthesis_result
@@ -64,7 +65,7 @@ if __name__ == "__main__":
     # set the path to the parent of the data directory TODO set as configuration file parameter
     global_path_dict["data_root"] = "E:\\projects\\INTERACT\\repository\\"
     
-    #os.chdir(sys.path[0])  # change working directory to the file directory
+    os.chdir(sys.path[0])  # change working directory to the file directory
     local_path = os.path.dirname(__file__)
     globalpath = global_path_dict["data_root"] + r"BestFitPipeline\CNL-GUI\*.json"
     print globalpath
