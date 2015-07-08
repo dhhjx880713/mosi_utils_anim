@@ -22,7 +22,7 @@ from lib.custom_transformations import vector_distance
 from lib.transformations import rotation_matrix
 
 global_counter_dict = {}
-global_counter_dict["evaluations"] = 0#{} counter for calls of the objective function
+global_counter_dict["evaluations"] = 0# counter for calls of the objective function
 global_counter_dict["motionPrimitveErrors"] = []# holds errors of individual motion primitives
 
 def find_aligned_quaternion_frames(mm, s, prev_frames, start_pose, bvh_read,

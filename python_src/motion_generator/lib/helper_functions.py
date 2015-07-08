@@ -16,8 +16,10 @@ from motion_editing import transform_euler_frames, \
 from bvh2 import BVHWriter
 import numpy as np
 
-ROOT_DIR = os.sep.join([".."] * 2)
+#ROOT_DIR = os.sep.join([".."] * 2)
 
+global_path_dict = {}
+global_path_dict["data_root"] = ''# path to parent of data directory
 
 
 def write_to_logfile(path,time_string,data):
@@ -113,7 +115,7 @@ def get_morphable_model_directory(morphable_model_type = "motion_primitives_quat
     """
     data_dir_name = "data"
     process_step_dir_name = "3 - Motion primitives"
-    mm_dir = os.sep.join([ROOT_DIR,
+    mm_dir = os.sep.join([global_path_dict["data_root"] ,
                           data_dir_name,
                           process_step_dir_name,
                           morphable_model_type])
@@ -127,7 +129,7 @@ def get_motion_primitive_directory(elementary_action):
     data_dir_name = "data"
     process_step_dir_name = "3 - Motion primitives"
     morphable_model_type = "motion_primitives_quaternion_PCA95"
-    mm_path = os.sep.join([ROOT_DIR,
+    mm_path = os.sep.join([global_path_dict["data_root"] ,
                            data_dir_name,
                            process_step_dir_name,
                            morphable_model_type,
@@ -142,7 +144,7 @@ def get_motion_primitive_path(elementary_action,
     data_dir_name = "data"
     process_step_dir_name = "3 - Motion primitives"
     morphable_model_type = "motion_primitives_quaternion_PCA95"
-    mm_path = os.sep.join([ROOT_DIR,
+    mm_path = os.sep.join([global_path_dict["data_root"] ,
                            data_dir_name,
                            process_step_dir_name,
                            morphable_model_type,
@@ -157,7 +159,7 @@ def get_motion_primitive_path(elementary_action,
 def get_transition_model_directory():
     data_dir_name = "data"
     process_step_dir_name = "4 - Transition model"
-    transition_dir = os.sep.join([ROOT_DIR,
+    transition_dir = os.sep.join([global_path_dict["data_root"] ,
                           data_dir_name,
                           process_step_dir_name,"output"])
     return transition_dir

@@ -7,11 +7,11 @@ Note the loading of transition models can take up to 2 minutes
 
 @author: erhe01
 """
-import sys
+
 import os
 import glob
 from controllable_morphable_graph import ControllableMorphableGraph, export_synthesis_result
-from lib.helper_functions import get_morphable_model_directory, get_transition_model_directory
+from lib.helper_functions import global_path_dict, get_morphable_model_directory, get_transition_model_directory
 from constrain_motion import generate_algorithm_settings
 from lib.helper_functions import load_json_file
 
@@ -60,11 +60,15 @@ if __name__ == "__main__":
     """
     import warnings
     warnings.simplefilter("ignore")
-    os.chdir(sys.path[0])  # change working directory to the file directory
+    
+    # set the path to the parent of the data directory TODO set as configuration file parameter
+    global_path_dict["data_root"] = "E:\\projects\\INTERACT\\repository\\"
+    
+    #os.chdir(sys.path[0])  # change working directory to the file directory
     local_path = os.path.dirname(__file__)
-    globalpath = local_path + r"\..\..\BestFitPipeline\CNL-GUI\*.json"
+    globalpath = global_path_dict["data_root"] + r"BestFitPipeline\CNL-GUI\*.json"
     print globalpath
     input_file = glob.glob(globalpath)[-1]
-    output_dir = local_path + r"\..\..\BestFitPipeline\_Results"
+    output_dir = global_path_dict["data_root"] + r"BestFitPipeline\_Results"
     output_filename = "MGresult"
     run_pipeline(input_file, output_dir, output_filename, CONFIG_FILE)
