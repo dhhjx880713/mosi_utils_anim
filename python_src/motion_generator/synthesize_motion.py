@@ -11,7 +11,7 @@ json input file. Runs the optimization sequentially and creates constraints
 
 import copy
 import numpy as np
-from lib.morphable_graph import NODE_TYPE_STANDARD,NODE_TYPE_END
+from lib.morphable_graph import NODE_TYPE_START, NODE_TYPE_STANDARD,NODE_TYPE_END
 from lib.helper_functions import merge_two_dicts
 from lib.motion_editing import convert_quaternion_to_euler, \
                                 get_cartesian_coordinates2, \
@@ -512,7 +512,7 @@ def get_random_transition_state(morphable_subgraph, prev_state, prev_frames, tra
     else:
         return None, next_state_type
        
-    
+
 
 def convert_elementary_action_to_motion(elementary_action,
                                         constraint_list,
@@ -599,6 +599,7 @@ def convert_elementary_action_to_motion(elementary_action,
         # Get motion primitive = extract from graph based on previous last step + heuristic
         if temp_step == 0:  
              current_state = get_random_start_state(morphable_graph,elementary_action, prev_action_name, prev_mp_name)
+             current_state_type = NODE_TYPE_START
              if current_state is None:
                  print "Error: Could not find a transition of type action_transition from ",prev_action_name,prev_mp_name ," to state",current_state
                  break

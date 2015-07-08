@@ -6,18 +6,12 @@ Created on Wed Mar 10 17:15:22 2015
 """
 
 import time
-import numpy as np 
-
+import numpy as np
 from lib.motion_editing import convert_quaternion_to_euler, \
                                 find_aligning_transformation, \
                                 get_cartesian_coordinates2, \
                                 transform_euler_frames,\
-                                pose_orientation, \
-                                align_frames, \
-                                calculate_frame_distance,\
-                                transform_quaternion_frames,\
                                 get_orientation_vec, \
-                                align_quaternion_frames,\
                                 convert_quaternion_frame_to_cartesian_frame,\
                                 get_cartesian_coordinates_from_quaternion2,\
                                 get_joint_weights,\
@@ -25,18 +19,11 @@ from lib.motion_editing import convert_quaternion_to_euler, \
 #                                compute_heading
 from lib.custom_transformations import transform_point,\
                                 create_transformation
-from lib.constraint import obj_error_sum
+from lib.constraint import obj_error_sum, constraint_distance
 from scipy.optimize import minimize
-from lib.constraint import constraint_distance, find_aligned_quaternion_frames
 from sklearn.mixture.gmm import _log_multivariate_normal_density_full
 from scipy.optimize.optimize import approx_fprime
-from lib.bvh2 import BVHReader, BVHWriter,  create_filtered_node_name_map
 import os
-from lib.motion_primitive import MotionPrimitive
-ROOT_DIR = os.sep.join(['..']*2)
-
-    
-
                                  
 def get_aligning_transformation_matrix(bvh_reader,euler_frames_a,euler_frames_b,node_name_map):        
     """
@@ -218,7 +205,7 @@ def error_func(s,data):
 #    error_scale_factor, bvh_reader,prev_frames, node_name_map, bounding_boxes,\
 #    start_transformation,epsilon = data  # the pre_frames are quaternion frames
     #kinematic_error = kinematic_error_func(s,data)
-    kinematic_error = obj_error_sum(s,data[:-2])
+    kinematic_error = obj_error_sum(s,data[:-2])# ignore the kinematic factor and quality factor
     #print "s-vector",optimize_theta
     error_scale_factor = data[-1]
     quality_scale_factor = data[-2]
@@ -261,11 +248,7 @@ def run_optimization(motion_primitive,gmm,constraints,initial_guess, bvh_reader,
           optimal low dimensional motion parameter vector
     """
 
-    method = optimization_settings["method"] #"BFGS"
-    max_iterations = optimization_settings["max_iterations"]
-    quality_scale_factor = optimization_settings["quality_scale_factor"]#0.001 #1/100
-    error_scale_factor = optimization_settings["error_scale_factor"] #0.01
-    tolerance = optimization_settings["tolerance"]#0.05#0.01
+
 #    optimize_theta = optimization_settings["optimize_theta"]    
 #    kinematic_epsilon = optimization_settings["kinematic_epsilon"] #0.0# 0.25
 #    
@@ -273,37 +256,34 @@ def run_optimization(motion_primitive,gmm,constraints,initial_guess, bvh_reader,
 #        start_transformation = create_transformation(start_pose["orientation"],start_pose["position"])
 #    else:
 #        start_transformation = np.eye(4)
-    
+#    
     if initial_guess == None:
         s0 = np.ravel(gmm.sample())#sample initial guess
     else:
         s0 = initial_guess
-        
-#    if optimize_theta:
-#        s0 = np.concatenate( ([0,],s0) )
-    #print len(s0)
+
     # convert prev_frames to euler frames
 #    if prev_frames is not None:
 #        prev_frames = convert_quaternion_to_euler(prev_frames)
     data = motion_primitive, constraints, prev_frames,start_pose, bvh_reader, node_name_map,{"pos":1,"rot":1,"smooth":1}, \
-           error_scale_factor, quality_scale_factor     #precision
+           optimization_settings["error_scale_factor"], optimization_settings["quality_scale_factor"]     #precision
 #    data = motion_primitive, gmm, constraints, quality_scale_factor, \
 #          error_scale_factor,  bvh_reader,prev_frames, node_name_map,bounding_boxes, \
 #          start_transformation,kinematic_epsilon
 
-    options = {'maxiter': max_iterations, 'disp' : verbose}
+    options = {'maxiter': optimization_settings["max_iterations"], 'disp' : verbose}
     
     if verbose: 
         start = time.clock()
-        print "Start optimization using", method,max_iterations
+        print "Start optimization using", optimization_settings["method"],optimization_settings["max_iterations"]
 #    jac = error_function_jac(s0, data)
 
     result = minimize(error_func,#
                       s0,
                       args = (data,),
-                      method=method, 
+                      method=optimization_settings["method"], 
                       #jac = error_function_jac, 
-                      tol =tolerance,
+                      tol = optimization_settings["tolerance"],
                       options=options)
     if verbose:
         print "Finished optimization in ",time.clock()-start,"seconds"
@@ -505,233 +485,3 @@ def run_optimization_multiple_primitives(motion_primitives,gmm,constraints,initi
         print "Finished optimization in ",time.clock()-start,"seconds"
     return result.x
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-def get_motion_primitive_folder(elementary_action):       
-    '''
-    Return folder path without trailing os.sep
-    '''
-    data_dir_name = 'data'
-    motion_primitives_dir = '3 - Motion primitives'
-    model_type = 'motion_primitives_quaternion_PCA95'
-    elementary_motion_type = 'elementary_action_' + elementary_action
-    input_dir = os.sep.join([ROOT_DIR,
-                             data_dir_name,
-                             motion_primitives_dir,
-                             model_type,
-                             elementary_motion_type])
-    return input_dir  
-    
-def test_run_optimization():
-    elementary_action = 'walk'
-    primitive_type = 'leftStance'
-    motion_primitive_folder = get_motion_primitive_folder(elementary_action)
-    feature = 'quaternion'
-    filename = '%s_%s_%s_mm.json' % (elementary_action,
-                                     primitive_type,
-                                     feature)
-    filepath = motion_primitive_folder + os.sep + filename
-    motion_primitive = MotionPrimitive(filepath)
-    gmm = motion_primitive.gmm
-    bvh_reader = BVHReader(os.sep.join(['lib', 'skeleton.bvh']))
-    node_name_map = create_filtered_node_name_map(bvh_reader)
-    initial_guess = motion_primitive.sample(return_lowdimvector=True)
-#    constraints = [{"joint": "LeftHand", 
-#                    "position": [-50, 80, -45],
-#                    "semanticAnnotation": {"firstFrame": True, "lastFrame": None}},
-#                   {"joint": "RightHand",
-#                    "position": [50, 80, -45],
-#                    "semanticAnnotation": {"firstFrame": True, "lastFrame": None}}]
-    constraints = [{"joint": "Hips",
-                    "position": [-100, None, -155],
-                    "semanticAnnotation": {"firstFrame": False, "lastFrame": True}}]
-                    
-    start = time.clock()                
-    optimized_parameters = run_optimization(motion_primitive,
-                           gmm,
-                           constraints,
-                           initial_guess, 
-                           bvh_reader, 
-                           node_name_map , 
-                           optimization_settings = generate_optimization_settings(error_scale_factor=1),
-                           bounding_boxes=None,
-                           prev_frames = None,
-                           start_pose=None,
-                           verbose=False)
-    end = time.clock()
-    print "optimization is finished in: " + str(end-start)                      
-    synthesized_motion = motion_primitive.back_project(optimized_parameters) 
-#    synthesized_motion.get_motion_vector()
-#    for frame in synthesized_motion.frames:
-#        frame[2] = frame[2] - 155
-    synthesized_motion.save_motion_vector('synthesized_motion.bvh')                      
-#    filename = 'synthesized_motion.bvh'
-#    BVHWriter(filename, bvh_reader, synthesized_motion.frames, frame_time=0.013889,
-#              is_quaternion=True)  
-             
-def test_orientation_constraint():
-    elementary_action = 'carryRight'
-    primitive_type = 'endRightStance'
-    motion_primitive_folder = get_motion_primitive_folder(elementary_action)
-    feature = 'quaternion'
-    filename = '%s_%s_%s_mm.json' % (elementary_action,
-                                     primitive_type,
-                                     feature)
-    filepath = motion_primitive_folder + os.sep + filename
-    motion_primitive = MotionPrimitive(filepath) 
-    # get orientation constraint from an example
-    constraint_file_folder = r'../5 - Elementary action breakdown/controlled_walk/endLeftStance'   
-    constraint_file = constraint_file_folder + os.sep + 'constraint_motion4.bvh'
-    bvh_reader = BVHReader(constraint_file) 
-#    constraint_dir_vec = get_orientation_vec(bvh_reader.keyframes) 
-    constraint_dir_vec = np.asarray([0, -1])
-#    print 'orientation constraint is: '
-#    print constraint_dir_vec
-#    euler_frames = bvh_reader.keyframes
-    # print all root position 2d
-    
-    node_name_map = create_filtered_node_name_map(bvh_reader)
-#    motion_sample = motion_primitive.sample()
-#    motion_sample.get_motion_vector()
-##    quat_frame = motion_sample.frames[-1]
-#    euler_frames = convert_quaternion_to_euler(motion_sample.frames.tolist())
-#    orientation = get_orientation_vec(euler_frames)
-    # generate a random sample motion, and check the initial orientaion of the motion 
-    
-#    new_sample = motion_primitive.sample()
-#    new_sample.get_motion_vector()
-#    euler_frames = new_sample.frames
-#    orientation = get_orientation_vec(euler_frames)
-#    print "orientation: "
-#    print orientation
-#    new_sample.save_motion_vector('random_sample_walking.bvh')
-    
-#    motion_sample.save_motion_vector('orientation_constraint_0.bvh')
-    
-    # get trajectory direction from last 5 root points
-#    points_2d = np.array([[euler_frames[-5][0], euler_frames[-5][2]],
-#                          [euler_frames[-4][0], euler_frames[-4][2]],
-#                          [euler_frames[-3][0], euler_frames[-3][2]],
-#                          [euler_frames[-2][0], euler_frames[-2][2]],
-#                          [euler_frames[-1][0], euler_frames[-1][2]]])
-#    trajectory_dir = get_trajectory_dir_from_2d_points(points_2d)
-#    print "trajectory direction: ", trajectory_dir
-#    heading_vec = compute_heading(euler_frames[-1],
-#                                  trajectory_dir, 
-#                                  bvh_reader, 
-#                                  node_name_map)
-#    print "heading: ", heading_vec
-    # rotate orientation constraint vector
-    rotation_angle = 0
-    rad = np.deg2rad(rotation_angle)
-    rot_mat = np.eye(2)
-    rot_mat[0,0] = np.cos(rad)
-    rot_mat[0,1] = -np.sin(rad)
-    rot_mat[1,0] = np.sin(rad)
-    rot_mat[1,1] = np.cos(rad)
-    rotated_vec = np.dot(rot_mat, constraint_dir_vec)
-    print rotated_vec
-    constraints = [{"dir_vector": [rotated_vec[0], 0, rotated_vec[1]]}]
-    initial_guess = motion_primitive.sample(return_lowdimvector=True)
-    gmm = motion_primitive.gmm
-
-    optimized_parameters = run_optimization(motion_primitive,
-                                            gmm,
-                                            constraints,
-                                            initial_guess, 
-                                            bvh_reader, 
-                                            node_name_map , 
-                                            optimization_settings = generate_optimization_settings(max_iterations= 25),
-                                            bounding_boxes=None,
-                                            prev_frames = None,
-                                            start_pose=None,
-                                            verbose=True)   
-    synthesized_motion = motion_primitive.back_project(optimized_parameters) 
-    synthesized_motion.save_motion_vector('orientation_constraint_0.bvh')
-
-def test_frame_constraint():
-    first_elementary_action = 'carry'
-    first_primitive_type = 'leftStance'
-    second_elementary_action = 'carry'
-    second_primitive_type = 'rightStance'
-    motion_primitive_folder1 = get_motion_primitive_folder(first_elementary_action)
-    motion_primitive_folder2 = get_motion_primitive_folder(second_elementary_action)
-    feature = 'quaternion'
-    filename1 = '%s_%s_%s_mm.json' % (first_elementary_action,
-                                      first_primitive_type,
-                                      feature)
-    filename2 = '%s_%s_%s_mm.json' % (second_elementary_action,
-                                      second_primitive_type,
-                                      feature)                                  
-    filepath1 = motion_primitive_folder1 + os.sep + filename1
-    first_motion_primitive = MotionPrimitive(filepath1)     
-    filepath2 = motion_primitive_folder2 + os.sep + filename2
-    second_motion_primitive = MotionPrimitive(filepath2)    
-    bvh_reader = BVHReader(os.sep.join(['lib', 'skeleton.bvh']))
-    node_name_map = create_filtered_node_name_map(bvh_reader)
-    """
-    Step 1: generate a random sample from first motion primitve as input
-    Step 2: generate 100 sample from next motion primitive, and find the closest
-            one to the input
-    Step 3: concatenate two motion samples by alignment and smoothing
-    """
-#    print first_motion_primitive.name
-    current_motion_primitive = first_motion_primitive                                    
-    input_sample = current_motion_primitive.sample()
-    input_sample.get_motion_vector()
-    input_euler_frames = convert_quaternion_to_euler(input_sample.frames.tolist())    
-    N = 100
-    Steps = 20
-    current_step = 'left'
-    threshold = 1.5
-    for i in xrange(Steps):
-        if current_step == 'left':
-            next_motion_primitive = second_motion_primitive
-            current_step = 'right'
-        else:
-            next_motion_primitive = first_motion_primitive
-            current_step = 'left'
-        dists = []
-        output_samples = []
-        dist = 5    
-        max_bad_samples = 300
-        counter = 0
-        while dist > threshold and counter < max_bad_samples:
-            output_sample = next_motion_primitive.sample()
-            output_sample.get_motion_vector()
-            output_samples.append(output_sample)
-            output_euler_frames = convert_quaternion_to_euler(output_sample.frames.tolist())
-            dist = calculate_frame_distance(bvh_reader,
-                                                input_euler_frames[-1],
-                                                output_euler_frames[0],
-                                                node_name_map)
-            counter += 1                                    
-#            print dist                                    
-            dists.append(dist)
-        print "step_" + str(i)
-        if counter == max_bad_samples:
-            min_index = min(xrange(len(dists)), key = dists.__getitem__)
-            print 'minimal distance: ', dists[min_index]                         
-            output_sample = output_samples[min_index] 
-            
-        optimal_output_euler_frames = convert_quaternion_to_euler(output_sample.frames.tolist())
-        input_euler_frames = align_frames(bvh_reader, 
-                                         input_euler_frames,
-                                         optimal_output_euler_frames,
-                                         node_name_map)
-                                   
-    filename = 'synthesized_motion.bvh'
-    BVHWriter(filename, bvh_reader, input_euler_frames, frame_time=0.013889,
-              is_quaternion=False)   
-                                          
-if __name__ == '__main__':
-#    test_run_optimization()        
-    test_orientation_constraint()
-#    test_frame_constraint()
