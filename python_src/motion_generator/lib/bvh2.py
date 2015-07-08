@@ -13,14 +13,11 @@ Biovision file format classes for reading and writing.
 
 """
 
-import numpy
 from collections import OrderedDict
-
-#  from morphable_graph import create_filtered_node_name_map
 import collections
 import numpy as np
-from cgkit.cgtypes import quat
 from math import degrees
+from cgkit.cgtypes import quat #TODO replace with transformations.py
 
 def create_filtered_node_name_map(bvh_reader):
     """
@@ -145,7 +142,7 @@ class BVHReader(object):
             line_split = line.strip().split()
             frames.append(map(float, line_split))
 
-        self.frames = numpy.array(frames)
+        self.frames = np.array(frames)
 
     def read(self, infile):
         """Reads BVH file infile

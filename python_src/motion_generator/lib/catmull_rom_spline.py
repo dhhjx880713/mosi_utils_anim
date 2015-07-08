@@ -152,7 +152,8 @@ class CatmullRomSpline():
     #http://hawkesy.blogspot.de/2010/05/catmull-rom-spline-curve-implementation.html
     #http://pages.cpsc.ucalgary.ca/~jungle/587/pdf/5-interpolation.pdf
     '''
-    def __init__(self,control_points,dimensions,granularity = 1000):
+    def __init__(self,control_points,dimensions,granularity = 1000, verbose=False):
+        self.verbose = verbose
         self.granularity = granularity
         #http://algorithmist.net/docs/catmullrom.pdf
         #base matrix to calculate one component of a point on the spline based on the influence of control points
@@ -165,7 +166,7 @@ class CatmullRomSpline():
         self.initiated = False
         self.control_points = []
         self.number_of_segments = 0
-        if len (control_points) >0:
+        if len(control_points) > 0:
             self._initiate_control_points(control_points)
             self.initiated = True
 
@@ -177,9 +178,10 @@ class CatmullRomSpline():
         self.number_of_segments = len(control_points)-1
         #as a workaround add multiple points at the end instead of one
         self.control_points = [control_points[0]]+control_points+[control_points[-1],control_points[-1]]
-        print "length of control point list ",len(self.control_points)
-        print "number of segments ",self.number_of_segments
-        print "number of dimensions",self.dimensions
+        if self.verbose:
+            print "length of control point list ",len(self.control_points)
+            print "number of segments ",self.number_of_segments
+            print "number of dimensions",self.dimensions
         self._update_relative_arc_length_mapping_table()
         return
 
@@ -243,8 +245,8 @@ class CatmullRomSpline():
                 self.full_arc_length += np.sum(delta)#(point-last_point).length()
                 #print self.full_arc_length
             self._relative_arc_length_map.append([accumulated_step,self.full_arc_length])
-            number_of_evalulations+=1
-            last_point= point
+            number_of_evalulations += 1
+            last_point = point
 
         #normalize values
         if self.full_arc_length > 0 :

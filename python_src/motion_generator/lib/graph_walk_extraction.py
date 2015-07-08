@@ -7,7 +7,6 @@ Implements functions used for the elementary action breakdown
 
 import json
 import collections
-import datetime
 from math import sqrt
 import numpy as np
 from morphable_graph import MorphableGraph
@@ -18,6 +17,8 @@ from catmull_rom_spline import CatmullRomSpline, plot_splines
 from motion_editing import euler_to_quaternion
 from cgkit.cgtypes import quat
 import copy
+
+TRAJECTORY_DIM = 3 # spline in cartesian space
 
 def transform_point_from_cad_to_opengl_cs(point):
     """ Transforms a 3d point represented as a list from left handed to the 
@@ -435,7 +436,7 @@ def convert_trajectory_to_graph_walk(mg_input_filename,morphable_graph,elementar
     
 
     
-def create_trajectory_from_constraint(trajectory_constraint,scale_factor = 1.0,first_action = False):
+def create_trajectory_from_constraint(trajectory_constraint,scale_factor = 1.0):
     """ Create a spline based on a trajectory constraint. 
         Components containing None are set to 0, but marked as ignored in the unconstrained_indices list.
         Note all elements in constraints_list must have the same dimensions constrained and unconstrained.
@@ -446,8 +447,7 @@ def create_trajectory_from_constraint(trajectory_constraint,scale_factor = 1.0,f
     \t Defines a list of control points
     * scale_factor: float
     \t Scaling applied on the control points
-    * first_action : bool
-    \t When this is true the origin is added to the control points
+    
     Returns
     -------
     * trajectory: CatmullRomSpline
@@ -469,19 +469,17 @@ def create_trajectory_from_constraint(trajectory_constraint,scale_factor = 1.0,f
     unconstrained_indices = transform_unconstrained_indices_from_cad_to_opengl_cs(unconstrained_indices)
     #create control points by setting constrained dimensions to 0
     control_points = []
-#    if first_action:
-#        control_points.append([0,0,0])
+
     for c in trajectory_constraint:
-        
         point = [ p*scale_factor if p!= None else 0 for p in c["position"] ]# else 0  where the array is None set it to 0
         point = transform_point_from_cad_to_opengl_cs(point)
         control_points.append(point)
-    print "####################################################"
-    print "control points are: "
-    print control_points
-    trajectory =  CatmullRomSpline(control_points,3)
+    #print "####################################################"
+    #print "control points are: "
+    #print control_points
+    trajectory =  CatmullRomSpline(control_points, TRAJECTORY_DIM)
     
-    return trajectory,unconstrained_indices
+    return trajectory, unconstrained_indices
     
 def convert_trajectory_constraint_to_graph_walk(morphable_subgraph, trajectory_constraint, \
     elementary_action, joint_name, start_transformation = np.eye(4), first_action = False,verbose=False):       
@@ -508,7 +506,7 @@ def convert_trajectory_constraint_to_graph_walk(morphable_subgraph, trajectory_c
     \tEach entry contains the keys "elementaryAction", "motionPrimitive", "constraints"
     """
 
-    trajectory,unconstrained_indices = create_trajectory_from_constraint(trajectory_constraint,first_action=first_action)
+    trajectory,unconstrained_indices = create_trajectory_from_constraint(trajectory_constraint)
  
     graph_walk = generate_navigation_graph_walk(morphable_subgraph,joint_name,trajectory,unconstrained_indices=unconstrained_indices,start_transformation=start_transformation,verbose=verbose)
     return graph_walk
@@ -520,8 +518,7 @@ def extract_trajectory_constraint(constraints,joint_name = "Hips"):
     """
     for c in constraints:
         if joint_name == c["joint"]: 
-            if "trajectoryConstraints" in c.keys():# there are trajectory constraints
-                print "extract trajectory"
+            if "trajectoryConstraints" in c.keys():
                 return c["trajectoryConstraints"]
     return None
     

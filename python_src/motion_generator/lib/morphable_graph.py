@@ -13,7 +13,6 @@ import datetime
 from bvh import BVHReader, BVHWriter
 from helper_functions import get_morphable_model_directory, \
                              get_transition_model_directory, \
-                             gen_file_paths, \
                              load_json_file, \
                              write_to_json_file
 from motion_primitive import MotionPrimitive
@@ -22,6 +21,11 @@ from motion_editing import align_frames, convert_quaternion_to_euler
 from math import sqrt
 from space_partitioning import ClusterTree
 from zip_io import read_graph_data_from_zip
+
+
+NODE_TYPE_START = "start"
+NODE_TYPE_STANDARD = "standard"
+NODE_TYPE_END = "end"
 
 def extract_root_positions(euler_frames):
     roots_2D = []
@@ -83,7 +87,8 @@ def get_step_length(motion_primitive,method = "arc_length"):
 class GraphEdge(object):
     """ Contains a transition model. 
     """
-    def __init__(self,from_action,from_motion_primitive,to_action,to_motion_primitive,transition_type = "standard",transition_model = None):
+    def __init__(self,from_action,from_motion_primitive,to_action,to_motion_primitive,
+                 transition_type=NODE_TYPE_STANDARD,transition_model=None):
         self.from_action = from_action
         self.to_action = to_action
         self.from_motion_primitive = from_motion_primitive
@@ -109,7 +114,7 @@ class GraphNode(object):
     def __init__(self):
 
         self.outgoing_edges = {}
-        self.node_type = "standard"
+        self.node_type = NODE_TYPE_STANDARD
         self.n_standard_transitions = 0
         self.parameter_bb = None
         self.cartesian_bb = None
@@ -122,7 +127,7 @@ class GraphNode(object):
         self.cluster_tree = None 
 
         
-    def init_from_file(self, action_name, primitive_name, motion_primitive_filename, node_type="standard"):
+    def init_from_file(self, action_name, primitive_name, motion_primitive_filename, node_type=NODE_TYPE_STANDARD):
                 
         self.outgoing_edges = {}
         self.node_type = node_type
@@ -136,8 +141,8 @@ class GraphNode(object):
         self.primitive_name = primitive_name
         self.mp = MotionPrimitive(motion_primitive_filename)
         
-        self.cluster_tree = None #)ClusterTree()
-        cluster_file_name =  motion_primitive_filename[:-7]#mm.json 
+        self.cluster_tree = None
+        cluster_file_name =  motion_primitive_filename[:-7]
         self._construct_space_partition(cluster_file_name)
         
     def init_from_dict(self,action_name,desc):
@@ -170,11 +175,27 @@ class GraphNode(object):
             #self.cluster_tree.save_to_file(cluster_file_name+"tree")
             self.cluster_tree.save_to_file_pickle(cluster_file_name+"cluster_tree.pck")
                 
-    def search_best_sample(self,obj,data,n_candidates=2):#5
+    def search_best_sample(self,obj,data,n_candidates=2):
+        """ Searches the best sample from a space partition data structure.
+        Parameters
+        ----------
+        * obj : function
+            Objective function returning a scalar of the form obj(x,data).
+        * data : anything usually tuple
+            Additional parameters for the objective function.
+        * n_candidates: Integer
+            Maximum number of candidates for each level when traversing the
+            space partitioning data structure.
+        
+        Returns
+         -------
+         * parameters: numpy.ndarray
+         \tLow dimensional motion parameters.
+        """
         return self.cluster_tree.find_best_example_exluding_search_candidates_knn(obj, data, n_candidates)#_boundary
         
     def sample_parameters(self):
-         """ Samples a low dimensional vector.
+         """ Samples a low dimensional vector from statistical model.
          Returns
          -------
          * parameters: numpy.ndarray
@@ -183,7 +204,7 @@ class GraphNode(object):
          """
          return self.mp.sample(return_lowdimvector=True)
         
-    def generate_random_transition(self, transition_type ="standard"):
+    def generate_random_transition(self, transition_type=NODE_TYPE_STANDARD):
         """ Returns the key of a random transition.
 
         Parameters
@@ -221,7 +242,7 @@ class GraphNode(object):
     def update_attributes(self):
         """ Updates attributes for faster look up
         """
-        self.n_standard_transitions = len([e for e in self.outgoing_edges.keys() if self.outgoing_edges[e].transition_type == "standard"])
+        self.n_standard_transitions = len([e for e in self.outgoing_edges.keys() if self.outgoing_edges[e].transition_type == NODE_TYPE_STANDARD])
         n_samples = 50 
         sample_lengths = [get_step_length(self.mp)for i in xrange(n_samples)]
         method = "median"
@@ -381,6 +402,8 @@ class MorphableSubgraph(object):
         
     def _set_transitions_from_dict(self,graph_definition, transition_model_directory= None, load_transition_models=False):
         """Define transitions  and load transiton models
+            TODO split once into tuples when loaded
+            TODO factor out into its own class
         """
         transition_dict = graph_definition["transitions"]
         for node_key in transition_dict:
@@ -404,7 +427,7 @@ class MorphableSubgraph(object):
                             else:
                                 print "did not find transition model file",transition_model_file
                             
-                        if self.nodes[to_motion_primitive_name].node_type in ["start","standard"]: 
+                        if self.nodes[to_motion_primitive_name].node_type in [NODE_TYPE_START,NODE_TYPE_STANDARD]: 
                             transition_type = "standard"
                         else:
                             transition_type = "end"
@@ -448,10 +471,10 @@ class MorphableSubgraph(object):
         print "elementary_action",self.elementary_action_name     
         print "start states",self.start_states
         for k in self.start_states:
-            self.nodes[k].node_type = "start"
+            self.nodes[k].node_type = NODE_TYPE_START
         print "end states",self.end_states
         for k in self.end_states:
-            self.nodes[k].node_type = "end"
+            self.nodes[k].node_type = NODE_TYPE_END
              
         return
                       
@@ -524,7 +547,7 @@ class MorphableSubgraph(object):
             while count < number_of_steps:
                 #sample transition
                 #print current_state
-                to_key = self.nodes[current_state].generate_random_transition("standard") 
+                to_key = self.nodes[current_state].generate_random_transition(NODE_TYPE_STANDARD) 
                 next_parameters = self.generate_next_parameters(current_state,current_parameters,to_key,use_transition_model)
                 #add entry to graph walk
                 to_action  = to_key.split("_")[0]
@@ -536,7 +559,7 @@ class MorphableSubgraph(object):
                 count += 1
             
         #add end state
-        to_key = self.nodes[current_state].generate_random_transition("end")
+        to_key = self.nodes[current_state].generate_random_transition(NODE_TYPE_END)
         next_parameters = self.generate_next_parameters(current_state,current_parameters,to_key,use_transition_model)
         to_action  = to_key.split("_")[0]
         to_motion_primitive  = to_key.split("_")[1]

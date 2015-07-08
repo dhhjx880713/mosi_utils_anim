@@ -7,12 +7,12 @@ Created on Mon Jan 26 14:11:11 2015
 
 import numpy as np
 import json
-from sklearn import mixture
+from sklearn import mixture # statistical model
 import rpy2.robjects.numpy2ri as numpy2ri
 import rpy2.robjects as robjects
 
 from motion_sample import MotionSample
-import scipy.interpolate as si
+import scipy.interpolate as si # b-spline definition and evaluation
 
 class MotionPrimitive(object):
     """ Represent a motion primitive which can be sampled
@@ -48,12 +48,12 @@ class MotionPrimitive(object):
     """
     def __init__(self, filename):
         self.filename = filename
-        self.name = ""#useful for identifying the data source
-        self.gmm = None #gaussian mixture model
-        self.s_pca ={} #pca result on spatial data
-        self.t_pca ={} #pca result on time data
+        self.name = ""   # useful for identifying the data source
+        self.gmm = None  # gaussian mixture model
+        self.s_pca ={}
+        self.t_pca ={}
 
-        #information about the motion necessary for the reconstruction
+        # information about the motion necessary for the reconstruction
         self.n_canonical_frames =0
         self.translation_maxima = np.array([1.0,1.0,1.0])
         self.has_time_parameters = True
@@ -76,7 +76,8 @@ class MotionPrimitive(object):
             tmp = json.load(infile)
             infile.close()
             self._initialize_from_json(tmp)
-
+            
+            
     def _initialize_from_json(self,data):
         """ Load morphable model parameters from a dictionary and initialize
             the fda library and the Gaussian Mixture model.
@@ -88,26 +89,51 @@ class MotionPrimitive(object):
 
         """
 
-        #initialize fda for later operations
-        robjects.r('library("fda")')
-
-        #load additional data
+        robjects.r('library("fda")')  #initialize fda for later operations
+        
+        #load name data and canonical frames of the motion
         if 'name' in data.keys():
             self.name = data['name']
         self.n_canonical_frames = data['n_canonical_frames']
-        self.translation_maxima = np.array(data['translation_maxima'])
+        self.canonical_time_range = np.arange(0,self.n_canonical_frames)
+        
+        # initialize parameters for the motion sampling and back projection
+        
+        self._init_gmm_from_json(data)    
+        self._init_spatial_parameters_from_json(data)
+        if 'eigen_vectors_time' in data.keys():      
+             self._init_time_parameters_from_json(data)
+        else:   
+             self.has_time_parameters = False
 
 
-        # initialize gmm
+    def _init_gmm_from_json(self, data):
+        """ Initialize the Gaussian Mixture model.
+
+        Parameters
+        ----------
+        * data: dictionary
+        \tThe dictionary must contain all parameters for the Gaussian Mixture Model.
+
+        """
         n_components = len(np.array(data['gmm_weights']))
         self.gmm = mixture.GMM(n_components,covariance_type = 'full')
         self.gmm.weights_ = np.array(data['gmm_weights'])
         self.gmm.means_ = np.array(data['gmm_means'])
         self.gmm.converged_ = True
         self.gmm.covars_ = np.array(data['gmm_covars'])
+        
 
+    def _init_spatial_parameters_from_json(self, data):
+        """  Set the parameters for the _inverse_spatial_pca function.
 
-        #load spatial parameters
+        Parameters
+        ----------
+        * data: dictionary
+        \tThe dictionary must contain all parameters for the spatial pca.
+
+        """
+        self.translation_maxima = np.array(data['translation_maxima'])
         self.s_pca = {}
         self.s_pca["eigen_vectors"] = np.array(data['eigen_vectors_spatial'])
         self.s_pca["mean_vector"] = np.array(data['mean_spatial_vector'])
@@ -122,30 +148,36 @@ class MotionPrimitive(object):
         """% ( self.s_pca["n_basis"],self.n_canonical_frames)
         robjects.r(rcode)
         self.s_pca["basis_function"] = robjects.globalenv['basisobj']
-        self.s_pca["knots"] = np.asarray(robjects.r['knots'](self.s_pca["basis_function"],False)).tolist()
-        
-        #load time parameters
-        if 'eigen_vectors_time' not in data.keys():
-            self.has_time_parameters = False
-        else:
-            self.t_pca = {}
-            self.t_pca["eigen_vectors"] = np.array(data['eigen_vectors_time'])
-            self.t_pca["mean_vector"]= np.array(data['mean_time_vector'])
-            self.t_pca["n_basis"]= int(data['n_basis_time'])
-            self.t_pca["n_dim"] = 1
-            self.t_pca["n_components"]= len(self.t_pca["eigen_vectors"].T)
+        self.s_pca["knots"] = np.asarray(robjects.r['knots'](self.s_pca["basis_function"],False))
 
-            rcode ="""
-                n_basis = %d
-                n_frames = %d
-                basisobj = create.bspline.basis(c(0, n_frames - 1), nbasis = n_basis)
-            """% ( self.t_pca["n_basis"],self.n_canonical_frames)
-            robjects.r(rcode)
-            self.t_pca["basis_function"] = robjects.globalenv['basisobj']
-            self.t_pca["knots"] = np.asarray(robjects.r['knots'](self.t_pca["basis_function"],False)).tolist()
-            self.t_pca["eigen_coefs"] =zip(* self.t_pca["eigen_vectors"])
 
-        self.canonical_time_range = np.arange(0,self.n_canonical_frames).tolist()
+
+    def _init_time_parameters_from_json(self, data):
+        """  Set the parameters for the _inverse_temporal_pca function.
+
+        Parameters
+        ----------
+        * data: dictionary
+        \tThe dictionary must contain all parameters for the spatial pca.
+
+        """
+        self.t_pca = {}
+        self.t_pca["eigen_vectors"] = np.array(data['eigen_vectors_time'])
+        self.t_pca["mean_vector"]= np.array(data['mean_time_vector'])
+        self.t_pca["n_basis"]= int(data['n_basis_time'])
+        self.t_pca["n_dim"] = 1
+        self.t_pca["n_components"]= len(self.t_pca["eigen_vectors"].T)
+
+        rcode ="""
+            n_basis = %d
+            n_frames = %d
+            basisobj = create.bspline.basis(c(0, n_frames - 1), nbasis = n_basis)
+        """% ( self.t_pca["n_basis"],self.n_canonical_frames)
+        robjects.r(rcode)
+        self.t_pca["basis_function"] = robjects.globalenv['basisobj']
+        self.t_pca["knots"] = np.asarray(robjects.r['knots'](self.t_pca["basis_function"],False))
+        self.t_pca["eigen_coefs"] =zip(* self.t_pca["eigen_vectors"])
+            
 
     def sample(self, return_lowdimvector=False):
         """ Sample the motion primitive and return a motion sample
@@ -168,7 +200,7 @@ class MotionPrimitive(object):
             return self.back_project(low_dimensional_vector)
 
 
-    def back_project(self,low_dimensional_vector,use_time_parameters = True):
+    def back_project(self,low_dimensional_vector,use_time_parameters=True):
         """ Return a motion sample based on a low dimensional motion vector.
 
         Parameters
@@ -215,12 +247,18 @@ class MotionPrimitive(object):
         return coefs
 
     def _mean_temporal(self):
+        """Evaluates the mean time b-spline for the canonical time range.
+        Returns
+        -------
+        * mean_t: np.ndarray
+            Discretized mean time function.
+        """
         mean_tck = (self.t_pca["knots"], self.t_pca["mean_vector"], 3)
         return si.splev(self.canonical_time_range,mean_tck)
 
     def _inverse_temporal_pca(self, gamma):
         """ Backtransform a lowdimensional vector gamma to the timewarping
-        function t'(t).
+        function t(t') and inverse it to t'(t).
 
         Parameters
         ----------
@@ -235,15 +273,15 @@ class MotionPrimitive(object):
         # step 1:backtransform gamma to a discrete timefunction 
         #1.1: reconstruct t by evaluating the harmonics and the mean
 
-        mean_si = self._mean_temporal()
+        mean_t = self._mean_temporal()
         
         n_latent_dim = len(self.t_pca["eigen_coefs"])
         eigen_tck = [(self.t_pca["knots"],self.t_pca["eigen_coefs"][i],3) for i in xrange(n_latent_dim)]
-        eigen_si =np.array([ si.splev(self.canonical_time_range,tck) for tck in eigen_tck]).T
+        eigen_t =np.array([ si.splev(self.canonical_time_range,tck) for tck in eigen_tck]).T
 
         t=[0,]
         for i in xrange(self.n_canonical_frames):
-            t.append(t[-1] + np.exp(mean_si[i] + np.dot(eigen_si[i], gamma)))
+            t.append(t[-1] + np.exp(mean_t[i] + np.dot(eigen_t[i], gamma)))
 
         #1.2: undo step from timeVarinaces.transform_timefunction during alignment
         t = np.array(t[1:])

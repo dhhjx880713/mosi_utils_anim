@@ -12,17 +12,15 @@ import time
 from datetime import datetime
 from lib.bvh2 import BVHReader, create_filtered_node_name_map
 from lib.helper_functions import load_json_file, write_to_json_file,\
-                                 export_euler_frames_to_bvh,\
                                  get_morphable_model_directory,\
                                  get_transition_model_directory, \
                                  write_to_logfile, \
                                  export_quat_frames_to_bvh
 from lib.graph_walk_extraction import elementary_action_breakdown,\
                                       write_graph_walk_to_file,\
-                                      extract_keyframe_annotations
-from lib.motion_editing import transform_quaternion_frames                                      
+                                      extract_keyframe_annotations                                    
 from lib.morphable_graph import MorphableGraph
-from synthesize_motion import convert_graph_walk_to_motion
+from synthesize_motion_v1 import convert_graph_walk_to_motion
 from synthesize_motion_v2 import convert_elementary_action_list_to_motion
 from constrain_motion import generate_algorithm_settings
 from synthesize_motion_v3 import convert_elementary_action_list_to_motion as \
@@ -31,6 +29,32 @@ import numpy as np
 from lib.constraint import global_counter_dict
 LOG_FILE = "log.txt"
 CONFIG_FILE = "config.json"
+
+
+
+def export_synthesis_result(input_data, output_dir, output_filename, bvh_reader, quat_frames, frame_annotation, action_list, add_time_stamp=False):
+      """ Saves the resulting animation frames, the annotation and actions to files. 
+      Also exports the input file again to the output directory, where it is 
+      used as input for the constraints visualization by the animation server.
+      """
+      write_to_json_file(output_dir + os.sep + output_filename + ".json", input_data) 
+      write_to_json_file(output_dir + os.sep + output_filename + "_actions"+".json", action_list)
+      
+      frame_annotation["events"] = []
+      for keyframe in action_list.keys():
+        for event_desc in action_list[keyframe]:
+            event = {}
+            event["jointName"] = event_desc["parameters"]["joint"]
+            event_type = event_desc["event"]
+            target = event_desc["parameters"]["target"]
+            event[event_type] = target
+        
+            event["frameNumber"] = int(keyframe)
+            
+            frame_annotation["events"].append(event)
+
+      write_to_json_file(output_dir + os.sep + output_filename + "_annotations"+".json", frame_annotation)
+      export_quat_frames_to_bvh(output_dir, bvh_reader, quat_frames, prefix=output_filename, start_pose=None, time_stamp=add_time_stamp)                
 
 class ControllableMorphableGraph(MorphableGraph):
     """
@@ -59,7 +83,7 @@ class ControllableMorphableGraph(MorphableGraph):
         return
         
         
-    def synthesize_motion(self, mg_input_filename, options=None, version=3, max_step=-1, verbose=False, output_dir="output",out_name="", export=True):
+    def synthesize_motion(self, mg_input_filename, options=None, version=3, max_step=-1, verbose=False, output_dir="output", output_filename="", export=True):
         """
         Converts a json input file with a list of elementary actions and constraints into a BVH file.
         Calls either the function convert_elementary_action_list_to_motion or the function convert_graph_walk_to_motion 
@@ -92,7 +116,7 @@ class ControllableMorphableGraph(MorphableGraph):
            Activates debug output to the console.
         * output_dir : string
             directory for the generated bvh file.
-        * out_name : string
+        * output_filename : string
            name of the file and its annotation
         * export : bool
             If set to True the generated motion is exported as BVH together 
@@ -139,14 +163,11 @@ class ControllableMorphableGraph(MorphableGraph):
                              max_step=max_step, start_pose=start_pose, keyframe_annotations=keyframe_annotations,\
                              verbose=verbose)
             elif version == 3:
-#                euler_frames, frame_annotation, action_list = convert_elementary_action_list_to_motion2(self,\
-#                             elementary_action_list, options, self.bvh_reader, self.node_name_map,\
-#                             max_step=max_step, start_pose=start_pose, keyframe_annotations=keyframe_annotations,\
-#                             verbose=verbose)
+
                 quat_frames, frame_annotation, action_list = convert_elementary_action_list_to_motion2(self,\
-                             elementary_action_list, options, self.bvh_reader, self.node_name_map,\
-                             max_step=max_step, start_pose=start_pose, keyframe_annotations=keyframe_annotations,\
-                             verbose=verbose)                             
+                                                     elementary_action_list, options, self.bvh_reader, self.node_name_map,\
+                                                     max_step=max_step, start_pose=start_pose, keyframe_annotations=keyframe_annotations,\
+                                                     verbose=verbose)                             
             else:
                 print "Error: version parameter has unsupported value"
                 return
@@ -162,49 +183,19 @@ class ControllableMorphableGraph(MorphableGraph):
         ################################################################################
         # export the motion to a bvh file if export == True
         if export:
-            if out_name == "" and "session" in mg_input.keys():
-                out_name = mg_input["session"]
+            if output_filename == "" and "session" in mg_input.keys():
+                output_filename = mg_input["session"]
                 frame_annotation["sessionID"] = mg_input["session"]
-#            if euler_frames is not None:
-#                # save frames + the annotation and actions to file
-#                time_stamp = unicode(datetime.now().strftime("%d%m%y_%H%M%S"))
-#                prefix = out_name + "_" + time_stamp
-#                write_to_json_file(output_dir + os.sep + out_name +".json", frame_annotation)
-#                write_to_json_file(output_dir + os.sep + out_name + "_actions"+".json", action_list)
-#                write_to_logfile(output_dir + os.sep + LOG_FILE, prefix, options)
-#                export_euler_frames_to_bvh(output_dir, self.bvh_reader, euler_frames, prefix=prefix, start_pose=None, time_stamp=False)
+
             if quat_frames is not None:
-                # save frames + the annotation and actions to file
-                # shift the motion to ground by fixed value
-#                rotation = [0, 0, 0]
-#                translation = np.array([0, -10, 0])
-#                quat_frames = transform_quaternion_frames(quat_frames,
-#                                                          rotation,
-#                                                          translation)
                 time_stamp = unicode(datetime.now().strftime("%d%m%y_%H%M%S"))
-                prefix = out_name + "_" + time_stamp
-                write_to_json_file(output_dir + os.sep + out_name +".json", frame_annotation)
-                write_to_json_file(output_dir + os.sep + out_name + "_actions"+".json", action_list)
-                frame_annotation["events"] = []
-                for keyframe in action_list.keys():
-                    for event_desc in action_list[keyframe]:
-                        event = {}
-                        #if "joint" in action_list[keyframe]["parameters"].keys():
-                        event["jointName"] = event_desc["parameters"]["joint"]
-                        event_type = event_desc["event"]
-                        target = event_desc["parameters"]["target"]
-                        event[event_type] = target
-                    
-                        event["frameNumber"] = int(keyframe)
-                        
-                        frame_annotation["events"].append(event)
-            
-                write_to_json_file(output_dir + os.sep + out_name + "_annotations"+".json", frame_annotation)
+                prefix = output_filename + "_" + time_stamp
+                
                 write_to_logfile(output_dir + os.sep + LOG_FILE, prefix, options)
-                export_quat_frames_to_bvh(output_dir, self.bvh_reader, quat_frames, prefix=prefix, start_pose=None, time_stamp=False)                
+                export_synthesis_result(mg_input, output_dir, output_filename, self.bvh_reader, quat_frames, frame_annotation, action_list, add_time_stamp=True)
             else:
                 print "Error: failed to generate motion data"
-#        return euler_frames, frame_annotation, action_list
+
         return quat_frames, frame_annotation, action_list                
 
     

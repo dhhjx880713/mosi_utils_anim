@@ -12,23 +12,19 @@ import os
 import copy
 import numpy as np
 from lib.bvh2 import BVHReader, create_filtered_node_name_map
-from lib.morphable_graph import MorphableGraph
+from lib.morphable_graph import MorphableGraph,NODE_TYPE_STANDARD,NODE_TYPE_END
 from lib.helper_functions import get_morphable_model_directory,\
                                  get_transition_model_directory,\
                                  load_json_file, \
-                                 export_euler_frames_to_bvh,\
                                  export_quat_frames_to_bvh, \
                                  merge_two_dicts
-from lib.motion_editing import convert_quaternion_to_euler, align_frames, \
-                                transform_euler_frames, \
+from lib.motion_editing import convert_quaternion_to_euler, \
                                 get_cartesian_coordinates2, \
                                 transform_quaternion_frames, \
-                                fast_quat_frames_alignment,\
-                                align_quaternion_frames
+                                fast_quat_frames_alignment
 from lib.graph_walk_extraction import create_trajectory_from_constraint,\
                                     extract_all_keyframe_constraints,\
                                     extract_trajectory_constraint,\
-                                    get_step_length,\
                                     extract_key_frame_constraint,\
                                     extract_keyframe_annotations,\
                                     transform_point_from_cad_to_opengl_cs
@@ -36,10 +32,7 @@ from constrain_motion import get_optimal_parameters,\
                              generate_algorithm_settings,\
                              print_options
 from constrain_gmm import ConstraintError
-from lib.custom_transformations import vector_distance,\
-                                       get_aligning_transformation2,\
-                                       transform_point,\
-                                       create_transformation
+
 
 
 class SynthesisError(Exception):
@@ -343,7 +336,7 @@ def check_end_condition(morphable_subgraph,prev_frames,trajectory,travelled_arc_
 
 def create_constraints_for_motion_primitive(morphable_subgraph,current_state,trajectory,
                                                  last_arc_length,last_pos,unconstrained_indices,
-                                                 settings,joint_name,prev_frames = None,
+                                                 settings,root_joint_name,prev_frames = None,
                                                  bvh_reader = None,node_name_map = None,
                                                  keyframe_constraints={},semantic_annotation=None,
                                                  is_last_step = False):
@@ -398,13 +391,13 @@ def create_constraints_for_motion_primitive(morphable_subgraph,current_state,tra
                 pos_semantic_annotation={"firstFrame":None,"lastFrame":True}
             else:
                 pos_semantic_annotation={"firstFrame":None,"lastFrame":True}
-            pos_constraint = {"joint":joint_name,"position":goal,
+            pos_constraint = {"joint":root_joint_name,"position":goal,
                       "semanticAnnotation":pos_semantic_annotation}
             constraints.append(pos_constraint)
 
         if settings["use_dir_vector_constraints"] :
             rot_semantic_annotation={"firstFrame":None,"lastFrame":True}
-            rot_constraint = {"joint":joint_name, "dir_vector":dir_vector,
+            rot_constraint = {"joint":root_joint_name, "dir_vector":dir_vector,
                           "semanticAnnotation":rot_semantic_annotation}
             constraints.append(rot_constraint)
 
@@ -425,10 +418,48 @@ def create_constraints_for_motion_primitive(morphable_subgraph,current_state,tra
 
 
 
+def extract_trajectory_from_constraint_list(constraint_list,joint_name):
+    """ Extract the trajectory information from the constraints and constructs
+        a trajectory as an CatmullRomSpline instance.
+    Returns:
+    -------
+    * trajectory: CatmullRomSpline
+        Spline parameterized by arc length.
+    * unconstrained_indices: list of indices
+        Lists of indices of degrees of freedom to ignore in the constraint evaluation.
+    """
+    trajectory_constraint = extract_trajectory_constraint(constraint_list,joint_name)
+    if  trajectory_constraint is not None:
+        #print "found trajectory constraint"
+        return create_trajectory_from_constraint(trajectory_constraint)
+    else:
+        return None, None
+
+def extract_constraints_of_elementary_action(bvh_reader, morphable_subgraph, constraint_list):
+    """ Extracts keyframe and trajectory constraints from constraint_list
+    Returns:
+    -------
+    * trajectory: CatmullRomSpline
+        Spline parameterized by arc length.
+    * unconstrained_indices: list of indices
+        lists of indices of degrees of freedom to ignore in the constraint evaluation.
+    * keyframe_constraints: dict of lists
+        Lists of constraints for each motion primitive in the subgraph.
+    """
+    root_joint_name = bvh_reader.root# currently only trajectories on the Hips joint are supported
+    trajectory, unconstrained_indices = extract_trajectory_from_constraint_list(constraint_list, root_joint_name)
+
+    keyframe_constraints = extract_all_keyframe_constraints(constraint_list,
+                                                            morphable_subgraph)
+    keyframe_constraints = prepare_keyframe_constraints_for_motion_primitves(morphable_subgraph,
+                                                                             keyframe_constraints)
+    return trajectory,unconstrained_indices, keyframe_constraints
+    
+
 def convert_elementary_action_to_motion(elementary_action,
                                         constraint_list,
                                         morphable_graph,
-                                        options = None,
+                                        options=None,
                                         prev_action_name="",
                                         prev_mp_name="",
                                         prev_frames=None,
@@ -488,19 +519,8 @@ def convert_elementary_action_to_motion(elementary_action,
     quat_frames = prev_frames
     morphable_subgraph = morphable_graph.subgraphs[elementary_action]
     trajectory_following_settings = options["trajectory_following_settings"]#  TODO move trajectory_following_settings to different key of the options
-    
-    joint_name = "Hips"#currently only trajectories on the Hips joint are supported
-    trajectory = None
-    unconstrained_indices = None
-    trajectory_constraint = extract_trajectory_constraint(constraint_list,joint_name)
 
-    if  trajectory_constraint != None:
-        trajectory,unconstrained_indices = create_trajectory_from_constraint(trajectory_constraint,first_action=(quat_frames is None))
-#        print "found trajectory constraint"
-        
-    keyframe_constraints = extract_all_keyframe_constraints(constraint_list,
-                                                            morphable_subgraph)
-    keyframe_constraints = prepare_keyframe_constraints_for_motion_primitves(morphable_subgraph,keyframe_constraints)
+    trajectory,unconstrained_indices, keyframe_constraints = extract_constraints_of_elementary_action(bvh_reader, morphable_subgraph, constraint_list)
     arc_length_of_end = morphable_subgraph.nodes[morphable_subgraph.get_random_end_state()].average_step_length
 #    number_of_standard_transitions = len([n for n in \
 #                                 morphable_subgraph.nodes.keys() if morphable_subgraph.nodes[n].node_type == "standard"])
@@ -548,7 +568,7 @@ def convert_elementary_action_to_motion(elementary_action,
                                         travelled_arc_length,arc_length_of_end) :            
 
                     #make standard transition to go on with trajectory following
-                    current_state_type = "standard"
+                    current_state_type = NODE_TYPE_STANDARD
                 else:
                     # threshold was overstepped. remove previous step before 
                     # trying to reach the goal using a last step
@@ -557,15 +577,15 @@ def convert_elementary_action_to_motion(elementary_action,
 #                    current_state,travelled_arc_length,prev_number_of_frames = mp_sequence.pop(-1)
 #                    euler_frames = euler_frames[:prev_number_of_frames]
 #                    print "deleted data for state",deleted_state
-                    current_state_type = "end"
+                    current_state_type = NODE_TYPE_END
                     
                 print "generate",current_state_type,"transition from trajectory"
             else:
                 n_standard_transitions = len([e for e in morphable_subgraph.nodes[current_state].outgoing_edges.keys() if morphable_subgraph.nodes[current_state].outgoing_edges[e].transition_type == "standard"])
                 if n_standard_transitions > 0:
-                    current_state_type = "standard"
+                    current_state_type = NODE_TYPE_STANDARD
                 else:
-                    current_state_type = "end"
+                    current_state_type = NODE_TYPE_END
                 print "generate",current_state_type,"transition without trajectory",n_standard_transitions
 
             to_key = morphable_subgraph.nodes[current_state].generate_random_transition(current_state_type)
@@ -590,7 +610,7 @@ def convert_elementary_action_to_motion(elementary_action,
         try: 
             constraints, temp_arc_length, use_optimization = create_constraints_for_motion_primitive(morphable_subgraph,\
                       current_state,trajectory,travelled_arc_length,prev_pos,unconstrained_indices,trajectory_following_settings,\
-                      joint_name,quat_frames,bvh_reader,node_name_map,keyframe_constraints,is_last_step=(current_state_type == "end") )
+                      bvh_reader.root,quat_frames,bvh_reader,node_name_map,keyframe_constraints,is_last_step=(current_state_type == "end") )
         except PathSearchError as e:
                 print "moved beyond end point using parameters",
                 str(e.search_parameters)
@@ -630,6 +650,15 @@ def convert_elementary_action_to_motion(elementary_action,
                                         travelled_arc_length,arc_length_of_end)
     return quat_frames, prev_action_name, mp_sequence[-1][0], prev_parameters, step_count, action_list
 
+
+def transform_from_left_to_right_handed_cs(start_pose):
+    """ Transform transition and rotation of the start pose from CAD to Opengl 
+        coordinate system.
+    """
+    start_pose_copy = copy.copy(start_pose)
+    start_pose["orientation"] = transform_point_from_cad_to_opengl_cs(start_pose_copy["orientation"])
+    start_pose["position"] = transform_point_from_cad_to_opengl_cs(start_pose_copy["position"])
+    return start_pose
 
 def convert_elementary_action_list_to_motion(morphable_graph,elementary_action_list,\
     options=None, bvh_reader=None,node_name_map=None, \
@@ -678,14 +707,10 @@ def convert_elementary_action_list_to_motion(morphable_graph,elementary_action_l
     if verbose:
         print_options(options)
         print "max_step", max_step
-
-    #  transform from cad to opengl coordinate system
-    start_pose_copy = copy.copy(start_pose)
     if start_pose is not None:
-       start_pose["orientation"] = transform_point_from_cad_to_opengl_cs(start_pose_copy["orientation"])
-       start_pose["position"] = transform_point_from_cad_to_opengl_cs(start_pose_copy["position"])
-       print "transform start pose",start_pose
-       
+        start_pose = transform_from_left_to_right_handed_cs(start_pose)
+        print "transform start pose",start_pose
+        
     action_list = {}
     frame_annotation = {}
     frame_annotation['elementaryActionSequence'] = []
@@ -693,9 +718,6 @@ def convert_elementary_action_list_to_motion(morphable_graph,elementary_action_l
     prev_parameters = None
     prev_action_name = ""
     prev_mp_name = ""
-    
-
-    
     step_count = 0
     for action_index in range(len(elementary_action_list)):
         if max_step > -1 and step_count > max_step:
@@ -738,76 +760,3 @@ def convert_elementary_action_list_to_motion(morphable_graph,elementary_action_l
     return quat_frames, frame_annotation, action_list
 
 
-
-def run_pipeline(mg_input_filename, output_dir="output", max_step=-1, options=None, verbose=False):
-    """Converts a file with a list of elementary actions to a bvh file
-    """
-
-    mm_directory = get_morphable_model_directory()
-    transition_directory = get_transition_model_directory()
-    if "use_transition_model" in options.keys():
-        use_transition_model = options["use_transition_model"]
-    else:
-        use_transition_model = False
-    morphable_graph = MorphableGraph(mm_directory, transition_directory, use_transition_model)
-    skeleton_path = "lib" + os.sep + "skeleton.bvh"
-    bvh_reader = BVHReader(skeleton_path)
-    node_name_map = create_filtered_node_name_map(bvh_reader)
-
-    mg_input = load_json_file(mg_input_filename)
-    elementary_action_list = mg_input["elementaryActions"]
-    start_pose = mg_input["startPose"]
-    keyframe_annotations = extract_keyframe_annotations(elementary_action_list)
-    
-    quat_frames, frame_annotation, action_list = convert_elementary_action_list_to_motion(morphable_graph,\
-                    elementary_action_list,options, bvh_reader, node_name_map,\
-                     max_step=max_step,start_pose=start_pose,keyframe_annotations=keyframe_annotations,verbose = verbose)
-    if "session" in mg_input.keys():
-        session = mg_input["session"]
-    else:
-        session = ""
-    if quat_frames is not None:
-        export_quat_frames_to_bvh(output_dir, bvh_reader, quat_frames,
-                                   prefix=session, start_pose=None)
-    else:
-        print "failed to generate motion data"
-
-def main():
-
-    #input_file = "mg_input_test001.json"
-    testset_dir = "electrolux_test_set"
-    input_file = testset_dir+os.sep+"right_pick_and_right_place simple.path"
-    max_step = -1
-    verbose = False
-
-    options = generate_algorithm_settings(use_constraints=True,
-                                          use_optimization=False,
-                                          use_transition_model=False,
-                                          use_constrained_gmm=False,
-                                          activate_parameter_check=False,
-                                          apply_smoothing=True,
-                                          sample_size=100,
-                                          constrained_gmm_pos_precision=1,
-                                          constrained_gmm_rot_precision=0.15,
-                                          constrained_gmm_smooth_precision=5,
-                                          strict_constrained_gmm=False,
-                                          constrained_gmm_max_bad_samples=1000,
-                                          optimization_method="BFGS",
-                                          max_optimization_iterations=50,
-                                          optimization_quality_scale_factor=1,
-                                          optimization_error_scale_factor=1,
-                                          optimization_tolerance=0.05, 
-                                          optimization_kinematic_epsilon=0.0, 
-                                          trajectory_extraction_method="arc_length",#"distance",
-                                          trajectory_step_length_factor=0.8,
-                                          trajectory_use_position_constraints=True,
-                                          trajectory_use_dir_vector_constraints=True,
-                                          trajectory_use_frame_constraints=False)
-    run_pipeline(input_file, max_step=max_step, options=options, verbose=verbose)
-
-
-    return
-
-
-if __name__ == "__main__":
-    main()

@@ -317,10 +317,10 @@ class KDTreeWrapper(object):
     def find_best_example(self,obj,data):
         return self.kdtree.find_best_example(obj,data,1)[0]
 
-    def knn_interpolation(self,obj,data):
+    def knn_interpolation(self, obj, data, k=50):
         
-        results = self.kdtree.find_best_example(obj,data,50)
-        if len(results)>1:
+        results = self.kdtree.find_best_example(obj, data, k)#50
+        if len(results)>1:#K
             distances, points = zip(*results)
             #distances, points = self.kdtree.query(target, )
         
@@ -427,7 +427,7 @@ class ClusterTreeNode(object):
         else:
             n_samples = len(indices)
             self.mean = np.mean(X[indices],axis=0)
-        if n_samples > 4:# at least 4 samples are required for kmeans
+        if n_samples > self.N:#number of samples at least equal to the number of clusters required for kmeans
             ## create subdivision
             self.kmeans = cluster.KMeans(n_clusters=self.N)
             if indices is None:
@@ -499,24 +499,29 @@ class ClusterTreeNode(object):
             
                 
 #        return labels, clusters
-    def knn_interpolation(self,obj,data):
+                
+    def find_best_example_knn(self, obj, data, k=50):
+        """Return the best example based on the evaluation using an objective function.
+            Interpolates the best k results.
+        """
         if self.leaf:
             result_queue = []
             for i in xrange(len(self.clusters)):#kdtree
 
 #                try:
-                result = self.clusters[i].knn_interpolation(obj,data)
+                result = self.clusters[i].knn_interpolation(obj, data, k)
                 #print result
                 heapq.heappush(result_queue,result)
                 
             return heapq.heappop(result_queue)
         return
         
-    def find_best_example(self,obj,data):   
-   
+    def find_best_example(self, obj, data):   
+        """Return the best example based on the evaluation using an objective function.
+        """
         if self.leaf:
             result_queue = []
-            for i in xrange(len(self.clusters)):#kdtree
+            for i in xrange(len(self.clusters)):
 
 #                try:
                 result = self.clusters[i].find_best_example(obj,data)
@@ -533,7 +538,7 @@ class ClusterTreeNode(object):
         else:
             best_value = np.inf
             best_index = 0
-            for cluster_index in xrange(len(self.clusters) ):
+            for cluster_index in xrange(len(self.clusters)):
 #                len_samples = len(self.clusters[cluster_index].samples)
 #                indices = range(len_samples)
 #                random_sample_index = discrete_sample(self.indices,self.probabilities)
@@ -545,8 +550,17 @@ class ClusterTreeNode(object):
                     best_value = cluster_value
             return self.clusters[best_index].find_best_example(obj,data)
             
-    def find_best_cluster(self,obj,data,use_mean=False):   
-        """ Return the best cluster based on the evaluation using an objective function
+    def find_best_cluster(self, obj, data, use_mean=False):   
+        """ Return the best cluster based on the evaluation using an objective function.
+
+        Parameters
+        ----------
+        * obj: function
+            Objective function of the form: scalar = obj(x,data).
+        * data: Tuple
+            Additional parameters for the objective function.
+        * n_candidates: Integer
+            Maximum number of candidates
         """
  
         best_value = np.inf
@@ -568,25 +582,22 @@ class ClusterTreeNode(object):
         return best_index,best_value
         
 
-            
-#        for cluster in self.clusters:
-#            #TODO evaluate each cluster based on first node and then search only using 
-#            #the best tree
-#            result = kdtree.find_best_example(obj,data)
-#            print result
-#            heapq.heappush(result_queue,result)
 
         
     def find_best_cluster_canditates(self,obj,data,n_candidates):
         """Return the clusters with the least cost based on 
-            an evaluation using an objective
-            function.
+        an evaluation using an objective
+        function.
+        
+        Parameters
+        ----------
         * obj: function
             Objective function of the form: scalar = obj(x,data).
         * data: Tuple
             Additional parameters for the objective function.
         * n_candidates: Integer
             Maximum number of candidates
+            
         Returns
         -------
         * best_candidates: list of (value, ClusterTreeNode) tuples.
@@ -858,7 +869,7 @@ class ClusterTree(object):
             print "#################failed to find a good result"
             return np.inf, self.X[0]
         
-    def find_best_example_exluding_search_candidates_knn(self, obj, data, n_candidates=1):
+    def find_best_example_exluding_search_candidates_knn(self, obj, data, n_candidates=1, K=20):
         """ Traverses the cluster hierarchy iteratively by evaluating the means
             of the clusters at each level based on the objective function. 
             At the last level the method find_best_example for a KNN Interpolation is used.
@@ -881,7 +892,7 @@ class ClusterTree(object):
                     #heapq.heappush(results,(value,node.clusters[0].root.point) )
                     #kdtree_result = node.find_best_example(obj,data)
   
-                    kdtree_result = node.knn_interpolation(obj,data)
+                    kdtree_result = node.find_best_example_knn(obj, data, k=50)
              
                     heapq.heappush(results,kdtree_result)
             

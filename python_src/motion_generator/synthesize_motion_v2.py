@@ -570,7 +570,7 @@ def convert_trajectory_and_keyframe_constraints_to_motion(morphable_graph, traje
     if options == None: 
         options = generate_algorithm_settings()
 
-    trajectory,unconstrained_indices = create_trajectory_from_constraint(trajectory_constraint,first_action=first_action)
+    trajectory,unconstrained_indices = create_trajectory_from_constraint(trajectory_constraint)
  
     result = generate_navigation_motion(morphable_graph,elementary_action,joint_name,\
                                                                 trajectory,keyframe_constraints,unconstrained_indices=unconstrained_indices,\

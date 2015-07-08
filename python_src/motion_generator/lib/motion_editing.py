@@ -5,73 +5,20 @@ Created on Thu Feb 12 20:11:35 2015
 @author: Erik, Han, Markus
 """
 
-#import types
 import numpy as np
-from math import sqrt, radians, sin, cos, degrees, isnan
-from cgkit.cgtypes import vec3, quat
+from math import sqrt, radians, sin, cos, isnan
 import fk3
 from itertools import izip
 from copy import deepcopy
 import time
-#import cProfile
-from transformations import euler_from_quaternion, quaternion_matrix
-from scipy import stats
-from bvh2 import BVHReader, BVHWriter, get_joint_weights
+from scipy import stats # linear regression
+
+from bvh2 import  get_joint_weights
 from transformations import quaternion_matrix, euler_from_matrix, \
                             quaternion_from_matrix, euler_matrix, \
                             quaternion_multiply                           
-#from motion_primitive import MotionPrimitive
-#import matplotlib.pyplot as plt
 
 
-
-#def euler_to_quaternion(euler_angles,rotation_order = \
-#                    ['Xrotation','Yrotation','Zrotation'], filter_values = True):
-#    '''Converts a rotation represented using euler angles into a
-#    quaternion (w,x,y,z) using the cgkit library
-#
-#    Parameters
-#    ----------
-#
-#     * euler_angles: Iteratable
-#    \t  an ordered list of length 3 with the rotation angles given in degrees
-#    * rotation_order: Iteratable
-#    \t a list that specifies the rotation axis corresponding to the values in euler_angles
-#    * filter_values: Bool
-#    \t enforce a unique rotation representation
-#
-#    '''
-#    current_axis = 0
-#    quaternion= 0
-#    while current_axis < len(rotation_order):
-#        rad = radians(euler_angles[current_axis])
-#        if rotation_order[current_axis] == 'Xrotation':
-#            temp_quaternion = quat()
-#            temp_quaternion.fromAngleAxis(rad, vec3(1.0,0.0,0.0))
-#            if quaternion != 0:
-#                quaternion = quaternion*temp_quaternion
-#            else:
-#                quaternion = temp_quaternion
-#        elif rotation_order[current_axis] == 'Yrotation':
-#            temp_quaternion = quat()
-#            temp_quaternion.fromAngleAxis(rad, vec3(0.0,1.0,0.0))
-#            if quaternion != 0:
-#                quaternion = quaternion*temp_quaternion
-#            else:
-#                quaternion = temp_quaternion
-#        elif rotation_order[current_axis] == 'Zrotation':
-#            temp_quaternion = quat()
-#            temp_quaternion.fromAngleAxis(rad, vec3(0.0,0.0,1.0))
-#            if quaternion != 0:
-#                quaternion = quaternion*temp_quaternion
-#            else:
-#                quaternion = temp_quaternion
-#        current_axis +=1
-#    if filter_values :# see http://physicsforgames.blogspot.de/2010/02/quaternions.html
-#        dot = quaternion.x + quaternion.y + quaternion.z + quaternion.w#dot product with [1,1,1,1]
-#        if dot < 0:#flip
-#            quaternion = -quaternion
-#    return quaternion.w,quaternion.x ,quaternion.y,quaternion.z
 
 def euler_to_quaternion(euler_angles, rotation_order= \
                         ['Xrotation', 'Yrotation', 'Zrotation'],
@@ -135,42 +82,6 @@ def euler_to_quaternion(euler_angles, rotation_order= \
             q = -q
     return q[0], q[1], q[2], q[3]                     
 
-#def quaternion_to_euler(q, rotation_order=None):
-#    if rotation_order is None:
-#        rotation_order = ['Xrotation','Yrotation','Zrotation']
-#    try:
-#        q = quat(*q)
-#    except TypeError:
-#        q = quat(q.w, q.x, q.y, q.z)
-#    q = q.normalize()
-#
-#    return _matrix_to_euler(q.toMat3(),rotation_order)
-#
-#def _matrix_to_euler(matrix,rotation_channel_order):
-#    """ Wrapper around the matrix to euler angles conversion implemented in
-#        cgkit. The channel order gives the rotation order around
-#        the X,Y and Z axis. For each rotation order a different method is
-#        provided by cgkit.
-#        TODO: Use faster code by Ken Shoemake in Graphic Gems 4, p.222
-#        http://thehuwaldtfamily.org/jtrl/math/Shoemake,%20Euler%20Angle%20Conversion,%20Graphic%27s%20Gems%20IV.pdf
-#        https://d3cw3dd2w32x2b.cloudfront.net/wp-content/uploads/2012/07/euler-angles1.pdf
-#    """
-#    if rotation_channel_order[0] =='Xrotation':
-#          if rotation_channel_order[1] =='Yrotation':
-#              euler = matrix.toEulerXYZ()
-#          elif rotation_channel_order[1] =='Zrotation':
-#              euler = matrix.toEulerXZY()
-#    elif rotation_channel_order[0] =='Yrotation':
-#        if rotation_channel_order[1] =='Xrotation':
-#             euler = matrix.toEulerYXZ()
-#        elif rotation_channel_order[1] =='Zrotation':
-#             euler = matrix.toEulerYZX()
-#    elif rotation_channel_order[0] =='Zrotation':
-#        if rotation_channel_order[1] =='Xrotation':
-#            euler = matrix.toEulerZXY()
-#        elif rotation_channel_order[1] =='Yrotation':
-#            euler = matrix.toEulerZYX()
-#    return [degrees(e) for e in euler]
 
 def quaternion_to_euler(q, rotation_order=['Xrotation',
                                            'Yrotation',

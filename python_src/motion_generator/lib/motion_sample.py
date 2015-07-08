@@ -5,9 +5,6 @@ Created on Mon Jan 26 13:51:36 2015
 @author: mamauer,erhe01
 """
 import numpy as np
-#import rpy2.robjects as robjects
-#from rpy2.robjects import numpy2ri
-import os
 from bvh import BVHReader, BVHWriter
 import scipy.interpolate as si
 
@@ -56,35 +53,11 @@ class MotionSample(object):
     \tThe times where to evaluate the motion in the new timeline
     """
     def __init__(self, canonical_motion, canonical_frames, time_function, knots):
-        # initialize fda library
-#        robjects.r('library("fda")')
-#
-#        # define basis object
-#        n_basis = canonical_motion.shape[0]
-#        rcode = """
-#            n_basis = %d
-#            n_frames = %d
-#            basisobj = create.bspline.basis(c(0, n_frames - 1),
-#                                            nbasis = n_basis)
-#        """ % (n_basis, canonical_frames)
-#        robjects.r(rcode)
-#        self.basis = robjects.globalenv['basisobj']
-#
-#        # create fd object
-#        fd = robjects.r['fd']
-#        coefs = numpy2ri.numpy2ri(canonical_motion)
-#        self.canonical_motion = fd(coefs, self.basis)
 
-        # save time function
-        self.time_function = time_function.tolist()
-
-        # save number of frames in canonical timeline
+        self.time_function = time_function
         self.canonical_frames = canonical_frames
-
         self.frames = None
-        
         n_dim = len(canonical_motion[0][0])
-
         canonical_motion_coefs = canonical_motion.T
         self.canonical_motion_splines = [(knots,canonical_motion_coefs[i],3) for i in xrange(n_dim)]
         
@@ -103,19 +76,11 @@ class MotionSample(object):
         """
         if usebuffer and self.frames is not None:
             return self.frames
+            
+        temp_frames = [ si.splev(self.time_function,spline_def) for spline_def in self.canonical_motion_splines]
+        self.frames  = np.asarray(temp_frames).T
 
-#        eval_fd = robjects.r['eval.fd']
-#
-#        self.frames = []
-#        for t_i in self.time_function:
-#            t_i_r = numpy2ri.numpy2ri(np.float(t_i))
-#            frame_r = eval_fd(t_i_r, self.canonical_motion)
-#            frame = np.array(frame_r)
-#            self.frames.append(frame)
-#        self.frames_rpy2 = np.array(eval_fd(self.time_function, self.canonical_motion))
-        self.frames  = np.array([ si.splev(self.time_function,spline_def) for spline_def in self.canonical_motion_splines]).T
-#        print self.frames_rpy2 == self.frames
-        # nested array
+        # Change the result from a 3D array into a 2D array. example: change 47x1x79 to 47x79
         self.frames = np.reshape(self.frames, (self.frames.shape[0],
                                                self.frames.shape[-1]))
 

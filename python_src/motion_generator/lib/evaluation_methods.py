@@ -6,9 +6,6 @@ Created on Tue Feb 17 15:39:02 2015
 """
 
 import collections
-from math import degrees
-from copy import copy, deepcopy
-from cgkit.cgtypes import quat    
 import numpy as np
 from motion_editing import convert_euler_frames_to_cartesian_frames, \
                                 convert_quaternion_to_euler,\

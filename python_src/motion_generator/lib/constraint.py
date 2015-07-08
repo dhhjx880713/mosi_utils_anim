@@ -377,52 +377,50 @@ def evaluate_list_of_constraints(motion_primitive,s,constraints,prev_frames,star
     
     Returns
     -------
-    * min_distance : float
+    * sum_error : float
     \tThe sum of the errors for all constraints
     * sucesses : list of bool
     \tSets for each entry in the constraints list wether or not a given precision was reached
 
     """
-    min_distance = 0
+    error_sum = 0
     successes = []
-    
-    
+
     #find aligned frames once for all constraints
     aligned_frames  = find_aligned_quaternion_frames(motion_primitive, s, prev_frames,
                                                      start_pose, bvh_reader,
                                                      node_name_map)
 
     for c in constraints:
-         #constraint = (c['joint'], c['position'], c['orientation'])
          firstFrame = c["semanticAnnotation"]["firstFrame"] 
          lastFrame = c["semanticAnnotation"]["lastFrame"] 
-         ok,failed = check_constraint(aligned_frames,c, bvh_reader,node_name_map=node_name_map,
+         good_frames, bad_frames = check_constraint(aligned_frames, c,
+                                          bvh_reader,
+                                          node_name_map=node_name_map,
                                           precision=precision, 
                                           firstFrame=firstFrame,
                                           lastFrame=lastFrame,
                                           verbose=verbose)
 
                                           
-         if len(ok)>0:               
-            c_min_distance = min((zip(*ok))[1])
-            #print "min distance",min_distance
+         if len(good_frames)>0:               
+            c_min_distance = min((zip(*good_frames))[1])
             successes.append(True)
          else:
-            c_min_distance =  min((zip(*failed))[1])
-            #print "min distance",min_distance
+            c_min_distance =  min((zip(*bad_frames))[1])
             successes.append(False)
              
-         min_distance+=c_min_distance
-    return min_distance,successes
+         error_sum+=c_min_distance
+    return error_sum,successes
     
 
 def obj_error_sum(s,data):
     s = np.asarray(s)
     motion_primitive, constraints, prev_frames,start_pose, bvh_reader, node_name_map,precision = data
-    min_distance, successes = evaluate_list_of_constraints(motion_primitive,s,constraints,prev_frames,start_pose,bvh_reader,node_name_map,
+    error_sum, successes = evaluate_list_of_constraints(motion_primitive,s,constraints,prev_frames,start_pose,bvh_reader,node_name_map,
                                                            precision=precision,verbose=False)
     global_counter_dict["evaluations"] += 1
-    return min_distance
+    return error_sum
 
 
 
