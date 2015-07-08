@@ -36,7 +36,7 @@ def run_pipeline(input_file, output_dir, output_filename, config_file):
     """
     morphable_graph = load_morphable_graph()
     verbose = False
-    version = 3
+
     max_step = -1
     if os.path.isfile(config_file):
         options = load_json_file(config_file)
@@ -44,7 +44,7 @@ def run_pipeline(input_file, output_dir, output_filename, config_file):
         options = generate_algorithm_settings()
     result_tuple = morphable_graph.synthesize_motion(input_file,options=options,
                                                       max_step=max_step,
-                                                      version=version,verbose=verbose,
+                                                      verbose=verbose,
                                                       output_dir=output_dir,
                                                       output_filename=output_filename,
                                                       export=False)

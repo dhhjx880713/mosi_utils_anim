@@ -20,11 +20,8 @@ from lib.graph_walk_extraction import elementary_action_breakdown,\
                                       write_graph_walk_to_file,\
                                       extract_keyframe_annotations                                    
 from lib.morphable_graph import MorphableGraph
-from synthesize_motion_v1 import convert_graph_walk_to_motion
-from synthesize_motion_v2 import convert_elementary_action_list_to_motion
 from constrain_motion import generate_algorithm_settings
-from synthesize_motion_v3 import convert_elementary_action_list_to_motion as \
-                             convert_elementary_action_list_to_motion2
+from synthesize_motion import convert_elementary_action_list_to_motion
 import numpy as np
 from lib.constraint import global_counter_dict
 LOG_FILE = "log.txt"
@@ -54,7 +51,17 @@ def export_synthesis_result(input_data, output_dir, output_filename, bvh_reader,
             frame_annotation["events"].append(event)
 
       write_to_json_file(output_dir + os.sep + output_filename + "_annotations"+".json", frame_annotation)
-      export_quat_frames_to_bvh(output_dir, bvh_reader, quat_frames, prefix=output_filename, start_pose=None, time_stamp=add_time_stamp)                
+      export_quat_frames_to_bvh(output_dir, bvh_reader, quat_frames, prefix=output_filename, start_pose=None, time_stamp=add_time_stamp)        
+
+def print_runtime_statistics(seconds):
+    minutes = int(seconds/60)
+    seconds = seconds % 60
+    total_time_string = "finished synthesis in "+ str(minutes) + " minutes "+ str(seconds)+ " seconds"
+    evaluations_string = "total number of objective evaluations "+ str(global_counter_dict["evaluations"])
+    error_string = "average error for "+ str(len(global_counter_dict["motionPrimitveErrors"])) +" motion primitives: " + str(np.average(global_counter_dict["motionPrimitveErrors"],axis=0))
+    print total_time_string
+    print evaluations_string
+    print error_string        
 
 class ControllableMorphableGraph(MorphableGraph):
     """
@@ -83,7 +90,7 @@ class ControllableMorphableGraph(MorphableGraph):
         return
         
         
-    def synthesize_motion(self, mg_input_filename, options=None, version=3, max_step=-1, verbose=False, output_dir="output", output_filename="", export=True):
+    def synthesize_motion(self, mg_input_filename, options=None, max_step=-1, verbose=False, output_dir="output", output_filename="", export=True):
         """
         Converts a json input file with a list of elementary actions and constraints into a BVH file.
         Calls either the function convert_elementary_action_list_to_motion or the function convert_graph_walk_to_motion 
@@ -107,9 +114,7 @@ class ControllableMorphableGraph(MorphableGraph):
             constrained_gmm_settings : position and orientation precision + sample size                
             If set to None default settings are used.
 
-        * version : int
-            decides which version of the algorithm to use. 
-            Can have the value 1, 2 or 3. Standard is 3.
+
         * max_step : integer
             Maximum number of motion primitives to be converted into a motion. If set to -1 this parameter is ignored
         * verbose : bool 
@@ -125,9 +130,9 @@ class ControllableMorphableGraph(MorphableGraph):
         Returns
         -------
         * concatenated_frames : np.ndarray
-           A list of euler frames representing a motion.
+           A list of quaternion frames representing a motion.
          * frame_annotation : dict
-           Associates the euler frames with the elementary actions
+           Associates the quaternion frames with the elementary actions
         * action_list : dict of dicts
            Contains actions/events for some frames based on the keyframe_annotations 
         """
@@ -136,50 +141,25 @@ class ControllableMorphableGraph(MorphableGraph):
         start = time.clock()
         if options is None:
             options = generate_algorithm_settings()
-        print "use version", version
+
         ################################################################################
-        # run the algorithm based on the selected version
-        if version == 1:
-            # short description:
-            # first generate constraints for each motion primitive and
-            #then optimize the parameters of all steps
-            graph_walk,start_pose, keyframe_annotations = elementary_action_breakdown(mg_input_filename,self,verbose=verbose)
-            tmp_file = "tmp.path"
-            write_graph_walk_to_file(tmp_file,graph_walk,start_pose, keyframe_annotations)
-            euler_frames, frame_annotation, action_list = convert_graph_walk_to_motion(self,\
-                            graph_walk, options, self.bvh_reader, self.node_name_map,\
-                            max_step=max_step, start_pose=start_pose, verbose=verbose)        
-        else:
-            # short description:
-            # generate constraints based on the optimal parameters for the previous steps
-            # and optimize for individual steps
-            elementary_action_list = mg_input["elementaryActions"]
-            start_pose = mg_input["startPose"]
+        # run the algorithm  
+        # short description:
+        # generate constraints based on the optimal parameters for the previous steps
+        # and optimize for individual steps
+        elementary_action_list = mg_input["elementaryActions"]
+        start_pose = mg_input["startPose"]
 
-            keyframe_annotations = extract_keyframe_annotations(elementary_action_list)
-            if version == 2:
-                euler_frames, frame_annotation, action_list = convert_elementary_action_list_to_motion(self,\
-                             elementary_action_list, options, self.bvh_reader ,self.node_name_map,\
-                             max_step=max_step, start_pose=start_pose, keyframe_annotations=keyframe_annotations,\
-                             verbose=verbose)
-            elif version == 3:
+        keyframe_annotations = extract_keyframe_annotations(elementary_action_list)
 
-                quat_frames, frame_annotation, action_list = convert_elementary_action_list_to_motion2(self,\
-                                                     elementary_action_list, options, self.bvh_reader, self.node_name_map,\
-                                                     max_step=max_step, start_pose=start_pose, keyframe_annotations=keyframe_annotations,\
-                                                     verbose=verbose)                             
-            else:
-                print "Error: version parameter has unsupported value"
-                return
+        quat_frames, frame_annotation, action_list = convert_elementary_action_list_to_motion(self,\
+                                             elementary_action_list, options, self.bvh_reader, self.node_name_map,\
+                                             max_step=max_step, start_pose=start_pose, keyframe_annotations=keyframe_annotations,\
+                                             verbose=verbose)
+                                             
         seconds = time.clock() - start
-        minutes = int(seconds/60)
-        seconds = seconds % 60
-        total_time_string = "finished synthesis in "+ str(minutes) + " minutes "+ str(seconds)+ " seconds"#,euler_frames[0][:3]
-        evaluations_string = "total number of objective evaluations "+ str(global_counter_dict["evaluations"])
-        error_string = "average error for "+ str(len(global_counter_dict["motionPrimitveErrors"])) +" motion primitives: " + str(np.average(global_counter_dict["motionPrimitveErrors"],axis=0))
-        print total_time_string
-        print evaluations_string
-        print error_string
+        print_runtime_statistics(seconds)
+        
         ################################################################################
         # export the motion to a bvh file if export == True
         if export:
@@ -217,14 +197,13 @@ def main():
     #np.random.seed(2000)
     verbose = False
     export = True
-    version = 3
     max_step = -1
     
     options = None
     if os.path.isfile(CONFIG_FILE):
          options = load_json_file(CONFIG_FILE)
     cmg.synthesize_motion(input_file, options=options, max_step=max_step,
-                          version=version, verbose=verbose, output_dir=testset_dir, export=export)
+                          verbose=verbose, output_dir=testset_dir, export=export)
 
 if __name__ == "__main__":
     main()
