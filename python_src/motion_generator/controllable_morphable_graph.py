@@ -212,56 +212,17 @@ def main():
                                      use_transition_model)
     print "finished construction from file in",time.clock()-start,"seconds"
     testset_dir = "electrolux_test_set"
-    # input_file = "mg_input_test001 short.json"
-    #  input_file = "mg_input_test001.path"
 
-    #input_file = "mg_input_test002.path"
-
-    # input_file = "mg_input_test002 with other pick constraints.json"
-    # input_file = "mg_input_test003.json"
-    # input_file = "mg_input_test004.json"
-    # input_file = "mg_input_test002 straight.json"
-    # input_file = "mg_input_pick.json"
-    # input_file = "mg_input_place.json"
-    # input_file = "walking01.json"
-    # input_file = "2015-04-13-08-33-13-cnl-breakdown.json"
-    # input_file = "pilot_elux-pick_part_5026B4M03_place_at_trolley01.json"
-    # input_file = "pilot_elux-pick_part_515665501_place_at_trolley02_MOD01.json"
-    #    input_file = "pilot_elux-pick_part_515665501_place_at_trolley02_MOD02.json"
-    testset_dir = "electrolux_test_set"
-    #input_file = "pilot_elux-pick_part_515665501_place_at_trolley02_MOD02.json"
-    
-#    input_file = testset_dir+os.sep+"walk_test.path"
-#    input_file = testset_dir+os.sep+"pick_test.path"
-#    input_file = testset_dir+os.sep+"pick_and_place.path"
-    input_file = testset_dir+os.sep+"right_pick_and_right_place_simple.path"
-#    input_file = testset_dir+os.sep+"left_pick_and_left_place.path"
-    #input_file = testset_dir+os.sep+"walk_test.path"
-    #input_file = testset_dir+os.sep+"pick_test.path"
-    #input_file = testset_dir+os.sep+"pick_and_place.path"
-    #input_file = testset_dir+os.sep+"right_pick_and_right_place.path"
-    #input_file = testset_dir+os.sep+"left_pick_and_left_place.path"
-    #input_file = test_set_dir+os.sep+"both_pick_and_both_place.path"
-
-    #input_file = testset_dir+os.sep+"left_pick_and_left_place straight.path"
-    #input_file = "error.path"
-#    input_file = testset_dir+os.sep+"left_pick_and_left_place simple.path"
-    #input_file = testset_dir+os.sep+"right_carry_right_place.path"    
-    
-    #input file that causes a right turn after pick
-#    input_file = testset_dir+os.sep+"right_pick_and_right_place simple.path"
     input_file = testset_dir+os.sep+"right_pick_and_right_place_improved.path"
     #np.random.seed(2000)
     verbose = False
     export = True
     version = 3
-    max_step = -1#10#030
-     
+    max_step = -1
+    
+    options = None
     if os.path.isfile(CONFIG_FILE):
          options = load_json_file(CONFIG_FILE)
-    else:
-        options = generate_algorithm_settings()
-   
     cmg.synthesize_motion(input_file, options=options, max_step=max_step,
                           version=version, verbose=verbose, output_dir=testset_dir, export=export)
 
