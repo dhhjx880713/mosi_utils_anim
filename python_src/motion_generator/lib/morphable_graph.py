@@ -254,6 +254,7 @@ class GraphNode(object):
  
     def has_transition_model(self, to_key):
         return to_key in self.outgoing_edges.keys() and self.outgoing_edges[to_key].transition_model is not None
+        
     def predict_parameters(self, to_key, current_parameters):
         """ Predicts parameters for a transition using the transition model.
         

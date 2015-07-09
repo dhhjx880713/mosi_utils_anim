@@ -11,6 +11,7 @@ Note the loading of transition models can take up to 2 minutes
 import sys
 import os
 import glob
+import time
 from controllable_morphable_graph import ControllableMorphableGraph, export_synthesis_result
 from lib.helper_functions import global_path_dict, get_morphable_model_directory, get_transition_model_directory
 from constrain_motion import generate_algorithm_settings
@@ -40,7 +41,11 @@ def run_pipeline(input_file, output_dir, output_filename, config_file):
         options = load_json_file(config_file)
     else:
         options = generate_algorithm_settings()
+
+    start = time.clock()
     morphable_graph = load_morphable_graph(use_transition_model=options["use_transition_model"])
+    print "finished construction from file in",time.clock()-start,"seconds"
+    
     verbose = False
 
     result_tuple = morphable_graph.synthesize_motion(input_file,options=options,

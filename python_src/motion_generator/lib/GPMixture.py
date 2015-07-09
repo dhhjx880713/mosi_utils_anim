@@ -122,14 +122,14 @@ class GPMixture(object):
         covars_ = []
         weights_ = []
 
-        i = self.gmm.predict(Xnew[None, :])[0]
+        cluster_index = self.gmm.predict(Xnew)[0]  # self.gmm.predict(Xnew[None, :])[0] suspected to cause problems
         for c, gp in enumerate(self.gps):
-            if self.weights_[i][c] != 0:
+            if self.weights_[cluster_index][c] != 0:
 
                 p = gp.predict(Xnew, full_cov=True)
                 means_.append(np.ravel(p[0]))
                 covars_.append(p[1])
-                weights_.append(self.weights_[i][c])
+                weights_.append(self.weights_[cluster_index][c])
 
         gmm = mixture.GMM(len(weights_), covariance_type='full')
         gmm.weights_ = np.array(weights_)
@@ -140,6 +140,8 @@ class GPMixture(object):
             (len(weights_), len(self.gmm.weights_))
 
         return gmm
+
+
 
     def save(self, filepath):
         """Saves a GPMixture object to zip file

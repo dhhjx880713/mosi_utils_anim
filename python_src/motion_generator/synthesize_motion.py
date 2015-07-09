@@ -23,8 +23,7 @@ from lib.graph_walk_extraction import create_trajectory_from_constraint,\
                                     extract_key_frame_constraint,\
                                     transform_point_from_cad_to_opengl_cs
 from constrain_motion import get_optimal_parameters,\
-                             generate_algorithm_settings,\
-                             print_options
+                             generate_algorithm_settings
 from constrain_gmm import ConstraintError
 
 
@@ -168,9 +167,8 @@ def get_optimal_motion(morphable_graph,
         raise SynthesisError(prev_frames,e.bad_samples)
 
 
-    #back project to euler frames#TODO implement FK based on quaternions
+    #back project to quaternion frames
     tmp_quat_frames = morphable_graph.subgraphs[action_name].nodes[mp_name].mp.back_project(parameters, use_time_parameters=True).get_motion_vector()
-#    tmp_euler_frames = convert_quaternion_to_euler(quaternion_frames.tolist())
 
     #concatenate with frames from previous steps
     if prev_frames is not None:
@@ -178,12 +176,6 @@ def get_optimal_motion(morphable_graph,
     else:
         frame_offset = 0
     if prev_parameters is not None:
-#        euler_frames = align_frames(bvh_reader,prev_frames,tmp_euler_frames, node_name_map,apply_smoothing)
-#        quat_frames = align_quaternion_frames(bvh_reader, 
-#                                              prev_frames,
-#                                              tmp_quat_frames,
-#                                              node_name_map,
-#                                              apply_smoothing)
         quat_frames = fast_quat_frames_alignment(prev_frames,
                                               tmp_quat_frames,
                                               apply_smoothing)
@@ -719,7 +711,8 @@ def convert_elementary_action_list_to_motion(morphable_graph,elementary_action_l
     if options is None:
         options = generate_algorithm_settings()
     if verbose:
-        print_options(options)
+        for key in options.keys():
+            print key,options[key]
         print "max_step", max_step
     if start_pose is not None:
         start_pose = transform_from_left_to_right_handed_cs(start_pose)

@@ -2,6 +2,8 @@
 """
 Created on Wed Mar 10 17:15:22 2015
 
+Wrapper around scipy minimize and error function definition.
+
 @author: erhe01,hadu01
 """
 
@@ -23,7 +25,6 @@ from lib.constraint import obj_error_sum, constraint_distance
 from scipy.optimize import minimize
 from sklearn.mixture.gmm import _log_multivariate_normal_density_full
 from scipy.optimize.optimize import approx_fprime
-import os
                                  
 def get_aligning_transformation_matrix(bvh_reader,euler_frames_a,euler_frames_b,node_name_map):        
     """

@@ -12,22 +12,15 @@ import time
 from datetime import datetime
 from lib.bvh2 import BVHReader, create_filtered_node_name_map
 from lib.helper_functions import load_json_file, write_to_json_file,\
-                                 get_morphable_model_directory,\
-                                 get_transition_model_directory, \
                                  write_to_logfile, \
                                  export_quat_frames_to_bvh
-from lib.graph_walk_extraction import elementary_action_breakdown,\
-                                      write_graph_walk_to_file,\
-                                      extract_keyframe_annotations                                    
+from lib.graph_walk_extraction import extract_keyframe_annotations                                    
 from lib.morphable_graph import MorphableGraph
 from constrain_motion import generate_algorithm_settings
 from synthesize_motion import convert_elementary_action_list_to_motion
 import numpy as np
 from lib.constraint import global_counter_dict
 LOG_FILE = "log.txt"
-CONFIG_FILE = "config.json"
-
-
 
 def export_synthesis_result(input_data, output_dir, output_filename, bvh_reader, quat_frames, frame_annotation, action_list, add_time_stamp=False):
       """ Saves the resulting animation frames, the annotation and actions to files. 
@@ -45,9 +38,7 @@ def export_synthesis_result(input_data, output_dir, output_filename, bvh_reader,
             event_type = event_desc["event"]
             target = event_desc["parameters"]["target"]
             event[event_type] = target
-        
             event["frameNumber"] = int(keyframe)
-            
             frame_annotation["events"].append(event)
 
       write_to_json_file(output_dir + os.sep + output_filename + "_annotations"+".json", frame_annotation)
@@ -179,31 +170,3 @@ class ControllableMorphableGraph(MorphableGraph):
         return quat_frames, frame_annotation, action_list                
 
     
-def main():
-    """ Demonstration of the ControllableMorphableGraph class"""
-    mm_directory = get_morphable_model_directory()
-    transition_directory = get_transition_model_directory()
-    skeleton_path = "lib"+os.sep + "skeleton.bvh"
-    use_transition_model = False
-    start = time.clock()
-    cmg = ControllableMorphableGraph(mm_directory,
-                                     transition_directory,
-                                     skeleton_path,
-                                     use_transition_model)
-    print "finished construction from file in",time.clock()-start,"seconds"
-    testset_dir = "electrolux_test_set"
-
-    input_file = testset_dir+os.sep+"right_pick_and_right_place_improved.path"
-    #np.random.seed(2000)
-    verbose = False
-    export = True
-    max_step = -1
-    
-    options = None
-    if os.path.isfile(CONFIG_FILE):
-         options = load_json_file(CONFIG_FILE)
-    cmg.synthesize_motion(input_file, options=options, max_step=max_step,
-                          verbose=verbose, output_dir=testset_dir, export=export)
-
-if __name__ == "__main__":
-    main()

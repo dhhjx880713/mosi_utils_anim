@@ -10,72 +10,13 @@ import sklearn.mixture as mixture
 from lib.gmm_math import mul
 from lib.evaluation_methods import check_sample_validity
 from constrain_gmm import ConstrainedGMM
-from lib import GP_predict
 from optimize_motion import run_optimization,\
                     generate_optimization_settings
 from lib.graph_walk_extraction import get_step_length_for_sample
 from lib.constraint import obj_error_sum,evaluate_list_of_constraints,\
                             global_counter_dict
 
-def check_constrained_hands(constraints):
-    """ Returns a string describing which hands are used
-    """
-    constrained_hands = "None"
-    for c in constraints:
-        if c["joint"] in ["leftHand", "righHand"]:
-            if constrained_hands == "None":
-                constrained_hands = c["joint"]
-            else:
-                constrained_hands = "two_hands"
-    return constrained_hands
-    
-def extract_clusters_from_gmm(gmm,clusters):
-    """Returns a GMM with a reduced set of clusters
-    """
 
-    means_ = [gmm.means_[i] for i in clusters]
-    covars_= [gmm.covars_[i] for i in clusters]
-    weights_ = [gmm.weights_[i] for i in clusters]
-
-    new_gmm = mixture.GMM(len(weights_), covariance_type='full')
-    new_gmm.weights_ = np.array(weights_)
-    new_gmm.means_ = np.array(means_)
-    new_gmm.covars_ = np.array(covars_)
-    new_gmm.converged_ = True
-    return new_gmm
-
-
-def select_clusters_based_on_constraints(graph_node,constraints):
-    """In case a GMM contains multiple variations. This function decides which 
-        motion variation to choose and creates a new GMM only with clusters that 
-        fit the identified motion type. This is necessary for carry, pick and place
-        which has variations with one hand and two hands.
-    Returns
-    -------
-    new_gmm : sklearn.mixture.gmm
-        A GMM with a reduced set of clusters 
-    """
-    gmm = graph_node.mp.gmm
-    cluster_annotation = graph_node.cluster_annotation
-    if len(constraints) > 0 and cluster_annotation is not None:
-        hand_annotation = check_constrained_hands(constraints)
-        if hand_annotation in cluster_annotation.keys():
-            clusters = cluster_annotation[hand_annotation]
-            gmm = extract_clusters_from_gmm(gmm, clusters)
-    return gmm
-    
-    
-
-
-
-
-def print_options(options):
-    for key in options.keys():
-        print key,options[key]
-    return
-
-
-        
           
 def generate_algorithm_settings(use_constraints=True,
                             use_optimization=True,
@@ -248,7 +189,7 @@ def create_next_motion_distribution(first_s, first_primitive, second_primitive,s
 
     """
 
-    predict_gmm = GP_predict.predict(gpm, first_s[None, :])
+    predict_gmm = gpm.predict(first_s)
     if constraints:
         cgmm = multiple_constrain_primitive(second_primitive, second_gmm,constraints,
                                             prev_frames,start_pose, bvh_reader,node_name_map, size, precision,verbose=verbose)
@@ -417,16 +358,19 @@ def extract_gmm_from_motion_primitive(pipeline_parameters):
         if options["use_constrained_gmm"]:
             transition_key = action_name +"_"+mp_name
             
-            gpm = morphable_graph.subgraphs[prev_action_name].nodes[prev_mp_name].outgoing_edges[transition_key].transition_model 
-            prev_primitve = morphable_graph.subgraphs[prev_action_name].nodes[prev_mp_name].mp
-
-            gmm = create_next_motion_distribution(prev_parameters, prev_primitve,\
-                                                graph_node,gmm,\
-                                                gpm, prev_frames, start_pose,\
-                                                bvh_reader, node_name_map,\
-                                                constraints,sample_size,\
-                                                 options["constrained_gmm_settings"],\
-                                                verbose=verbose)
+            #only proceed the GMM prediction if the transition model was loaded
+            if morphable_graph.subgraphs[prev_action_name].nodes[prev_mp_name].has_transition_model(transition_key):
+                gpm = morphable_graph.subgraphs[prev_action_name].nodes[prev_mp_name].outgoing_edges[transition_key].transition_model 
+                prev_primitve = morphable_graph.subgraphs[prev_action_name].nodes[prev_mp_name].mp
+    
+                gmm = create_next_motion_distribution(prev_parameters, prev_primitve,\
+                                                    graph_node,gmm,\
+                                                    gpm, prev_frames, start_pose,\
+                                                    bvh_reader, node_name_map,\
+                                                    constraints,sample_size,\
+                                                     options["constrained_gmm_settings"],\
+                                                    verbose=verbose)
+                                                    
         else:
             to_key = action_name+"_"+mp_name
             gmm = morphable_graph.subgraphs[prev_action_name].nodes[prev_mp_name].predict_gmm(to_key,prev_parameters)

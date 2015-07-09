@@ -19,7 +19,7 @@
     }, 
     "activate_cluster_search": true, 
     "constrained_gmm_settings": {
-        "sample_size": 100, 
+        "sample_size": 300, 
         "precision": {
             "smooth": 5, 
             "rot": 0.15, 
