@@ -6,7 +6,6 @@ Created on Wed Mar 10 17:15:22 2015
 """
 import time
 import numpy as np
-import sklearn.mixture as mixture
 from lib.gmm_math import mul
 from lib.evaluation_methods import check_sample_validity
 from constrain_gmm import ConstrainedGMM

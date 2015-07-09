@@ -5,7 +5,6 @@ Implements functions used for the elementary action breakdown
 @author: erhe01
 """
 
-import json
 import collections
 from math import sqrt
 import numpy as np
@@ -13,7 +12,6 @@ from helper_functions import load_json_file
 from catmull_rom_spline import CatmullRomSpline, plot_splines
 from motion_editing import euler_to_quaternion
 from cgkit.cgtypes import quat
-import copy
 
 TRAJECTORY_DIM = 3 # spline in cartesian space
 
@@ -58,24 +56,6 @@ def transform_point(transformation_matrix,point):
     """
     return np.dot(transformation_matrix,np.array(point+[1,]))[:3].tolist()   
 
-
-def bring_point_into_local_coordinate_system(coordinate_system_transformation,point):
-    """ Brings a 3d point represented as a list into a local coordinate system 
-        represented by a numpy transformation
-    
-    Parameters
-    ----------
-    *transformation_matrix: np.ndarray
-    \tGlobal transformation of the coordinate system
-    *point: list
-    \tCartesian coordinates
-    
-    Returns
-    -------
-    * point: list
-    \tThe transformed point as a list
-    """   
-    return transform_point(np.linalg.inv(coordinate_system_transformation), point)
 
     
 def extract_start_transformation(mg_input) :   
@@ -668,193 +648,4 @@ def extract_key_frame_constraint(joint_name,constraint,morphable_subgraph,time_i
     semanticAnnotation["lastFrame"] = last_frame
     constraint_desc = {"joint":joint_name,"position":position,"orientation":orientation,"semanticAnnotation": semanticAnnotation}
     return constraint_desc
-    
-def add_key_frame_constraints_to_graph_walk(keyframe_constraints,graph_walk,morphable_subgraph):
-    """ Adds keyframe constraints to an existing graph walk
-    Paramaters
-    ----------
-    * keyframe_constraints : dict of dict of lists
-    \t A dictionary that contains a list of constraints for different annotations
-    
-    * graph_walk : list of dict
-    \t Each entry needs to contain the keys "elementaryAction", "motionPrimitive", "constraints"
-    
-    *morphable_subgraph : MorphableSubgraph
-    \t graph representing an elementary action
-    """
-    print "add keyframe constraints"
-    for label in keyframe_constraints.keys():#iterate over labels
-         print "label",label
-         if len(keyframe_constraints[label]) > 0:#add constraints to labels
-             state = morphable_subgraph.annotation_map[label]#
-             index = get_index_of_state(graph_walk,state)
-             for joint_name in keyframe_constraints[label].keys():
-                 joint_constraint_list = keyframe_constraints[label][joint_name]
-                 for constraint in joint_constraint_list:
-                    time_information = morphable_subgraph.mp_annotations[state][label]
-                    #copy constraints
-                    constraint_desc = extract_key_frame_constraint(joint_name,constraint,morphable_subgraph,time_information)
-                    graph_walk[index]["constraints"].append(constraint_desc)
-            
 
-def convert_elementary_action_to_graph_walk(action_name,constraint_list,morphable_graph,start_transformation = np.eye(4),first_action = False,verbose=False):
-    """Convert an entry in the elementary action list to a graph walk. Note only one trajectory constraint per elementary action is currently supported
-    and it should be for the Hip joint.
-    
-    If there is a trajectory constraint it is used otherwise a random graph walk is used
-    
-    if there is a keyframe constraint it is assigned to the motion primitves
-    in the graph walk
-    
-    Paramaters
-    ---------
-    * action_name : string
-    \t the identifier of the elementary action
-    
-    * constraint_list : list of dict
-    \t the constraints element from the elementary action list entry
-    
-    * morphable_graph : MorphableGraph
-    \t An instance of the MorphableGraph.
-    
-    * start_transformation : np.ndarray
-    \tHomogenous 4x4 transformation matrix
-    
-    * first_action : bool
-    \t When this is true the origin is added to the control points of trajectory constraints
-    
-    Returns
-    -------
-    *graph_walk: list of dict
-    \t Each entry contains the keys "elementaryAction", "motionPrimitive", "constraints"
-    """
-    graph_walk = []
-    joint_name = "Hips"
-    morphable_subgraph = morphable_graph.subgraphs[action_name]
-
-    trajectory_constraint = extract_trajectory_constraint(constraint_list,joint_name)
-
-    #create a graph walk based on a trajectory or randomly with a fixed maximum
-    # number of transitions derived from the number and types of motion primitives
-    if trajectory_constraint != None:
-        graph_walk += convert_trajectory_constraint_to_graph_walk(morphable_subgraph,\
-                       trajectory_constraint,action_name,joint_name,start_transformation,first_action,verbose=verbose)
-  
-    else:
-        graph_walk = generate_random_graph_walk(morphable_subgraph)
-#    print graph_walk
-#    add keyframe constraints to the graph walk
-    key_frame_constraints = extract_all_keyframe_constraints(constraint_list,morphable_subgraph)
-#
-    add_key_frame_constraints_to_graph_walk(key_frame_constraints,graph_walk,morphable_subgraph)
-##    print '##############################################'
-
-    if action_name == 'pick' or action_name == 'place':
-#        label = 'start_contact'
-#        state = 'second'
-#        index = get_index_of_state(graph_walk,state)
-##        print '##################################'
-##        print index
-#        for joint_name in key_frame_constraints[label].keys():
-#            joint_constraint_list = key_frame_constraints[label][joint_name]
-#            for constraint in joint_constraint_list:
-##               time_information = morphable_subgraph.mp_annotations[state][label]
-#               #copy constraints
-#               constraint_desc = extract_key_frame_constraint(joint_name,constraint,morphable_subgraph, "firstFrame")
-#
-#               graph_walk[-1]["constraints"].append(constraint_desc)   
-        graph_walk[-1]["constraints"] = copy.deepcopy(graph_walk[0]["constraints"])
-        for constraint in graph_walk[-1]["constraints"]:
-            constraint["semanticAnnotation"]["lastFrame"] = None
-            constraint["semanticAnnotation"]["firstFrame"] = True
-           
-    return graph_walk
-    
-def elementary_action_breakdown(mg_input_filename, morphable_graph,verbose=False):
-    """Converts the json input file into a graph walk defining a constraint for each motion primitive.
-    
-    Parameters
-    ----------
-    * mg_input_filename: string
-    \tThe path to the json file with the elementary action list.
-    * morphable_graph: MorphableGraph
-    \tInstance of a morphable graph.
-    
-    Returns
-    -------
-    * graph_walk: list of dict
-    \tEach entry contains the keys "actionIndex","elementaryAction", "motionPrimitive", "constraints", "firstFrame" and "lastFrame"
-    * start_pose: dict
-    \tContains entry position and orientation each as a list with three components
-    *keyframe_annotations : list of dicts
-    \tContains a list of events/actions associated with certain keyframes
-    """
-    graph_walk = []
-    mg_input = load_json_file(mg_input_filename)
-    elementary_action_list = mg_input["elementaryActions"]
-    #elementary_action_dict = extract_elementary_actions(mg_input)
-    start_transformation = extract_start_transformation(mg_input)
-    keyframe_annotations = extract_keyframe_annotations(elementary_action_list)
-
-    for action_index in range(len(elementary_action_list)) :
-        action = elementary_action_list[action_index]["action"]
-        if verbose:
-            print "convert",action,"to graph walk"
-        first_action = len(graph_walk) == 0
-        constraints = elementary_action_list[action_index]["constraints"]
-        temp_graph_walk = convert_elementary_action_to_graph_walk(action,constraints,morphable_graph,start_transformation,first_action,verbose=verbose)
-        
-        for entry in temp_graph_walk:
-            entry["actionIndex"] = action_index
-        graph_walk += temp_graph_walk
-        
-    return graph_walk, mg_input["startPose"],keyframe_annotations
-    
-
-def write_graph_walk_to_file(filename,graph_walk,start_pose,keyframe_annotations=None ):
-    """Exports the graph walk as a json file
-    
-    Parameters
-    ----------
-    *filename: string
-    \tOutput file path
-    *graph_walk: list of dict
-    \tDefines the graph walk as a list of motion primitives with constraints
-    *start_pose: dict
-    \tContains entry position and orientation each as a list with three components
-     *keyframe_annotations : list of dicts
-    \tContains a list of events/actions associated with certain keyframes
-    """
-    with open(filename, 'wb') as outfile:
-        temp = {"startPose":start_pose,"graphWalk":graph_walk}
-        if keyframe_annotations != None:
-            temp["keyframeAnnotations"] = keyframe_annotations
-        temps = json.dumps(temp, indent=4)
-        outfile.write(temps)
-        outfile.close()
-
-def main():
-    print transform_point_from_cad_to_opengl_cs([ 530.11027526855469, 268.85130405426025, 0.0])
-#    mm_directory = get_morphable_model_directory()
-#    transition_directory = get_transition_model_directory()
-#    mg = MorphableGraph(mm_directory,transition_directory,False)
-#    #print_morphable_graph_structure(mg)
-#    mg_input_filename = "walk_test.json"
-##    mg_input_filename = "mg_input_pick.json"
-#    #plot_scale_factor = 0.1
-#    #plot_trajectory_from_mg_input_file(mg_input_filename,plot_scale_factor)
-#    
-#    #graph_walk = convert_trajectory_to_graph_walk(mg_input_filename,mg,"walk","Hips")
-#    graph_walk,start_pose,keyframe_annotation = elementary_action_breakdown(mg_input_filename,mg)
-#
-#    time_code = unicode(datetime.datetime.now().strftime("%d%m%y_%H%M%S"))
-##    outfile = ROOT_DIR +os.sep+"data"+ os.sep+"5 - Elementary action breakdown"+os.sep+time_code+"_"+"graph_walk.json"
-#    outfile = 'walk_test.path'    
-##    outfile = "mg_input_pick.path"    
-#    write_graph_walk_to_file(outfile,graph_walk,start_pose,keyframe_annotation)
-#    
-    return
-    
-if __name__ == "__main__":
-    
-    main()
