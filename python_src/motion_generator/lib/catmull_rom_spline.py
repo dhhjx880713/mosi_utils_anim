@@ -26,6 +26,7 @@ def sign(value):
         return 1
     else:
         return  -1
+
 def get_magnitude(vector):
     magnitude = 0
     for v in vector:
@@ -33,72 +34,6 @@ def get_magnitude(vector):
     magnitude = sqrt(magnitude)
     return magnitude
     
-def normalize(vector):
-    """
-    Parameters
-    ----------
-    * vector : np.ndarray
-    Returns
-    -------
-
-    """
-    assert len(vector)>0
-    normalized_vector = copy(vector)
-    magnitude = get_magnitude(vector)
-    normalized_vector = normalized_vector/magnitude
-    return normalized_vector
-
-class Circle2D():
-    """ 2D circle class to be used for the piecewise-intersection with a spline
-    """
-    def __init__(self,position,radius):
-        self.position = position
-        self.radius = radius
-        self.r_2 = self.radius**2
-
-    def intersect_with_line(self,line):
-        """
-        src: http://mathworld.wolfram.com/Circle-LineIntersection.html
-        Parameters
-        ---------
-        * line : list
-          Contains two 2d points on the line, each defined as a np.ndarray
-        Returns
-        ------
-        * intersections : list
-           An array of up to two intersection points, each defined as np.ndarray
-        """
-        #center line
-        p1 = line[0]-self.position
-        p2 = line[1]-self.position
-
-        #calculate the intersection
-        dx = p2[0] - p1[0]
-        dy = p2[1] - p1[1]
-        dr_2 = dx**2 + dy**2
-        #dr = sqrt(dr_2)
-        D = p1[0] * p2[1] -  p2[0] * p1[1]
-        delta = self.r_2 * dr_2 - D**2
-        s = sign(dy)
-        print s,D * dy,D
-        if delta > 0:#two intersections = secant line
-            sqrt_delta = sqrt(delta)
-            i_1 = np.array([0,0])
-            i_1[0] = (D * dy + sign(dy)*dx*sqrt_delta)/dr_2 + self.position[0]
-            i_1[1] = (-D * dx + np.abs(dy)*sqrt_delta)/dr_2 + self.position[1]
-            i_2 = np.array([0,0])
-            i_2[0] = (D * dy - sign(dy)*dx*sqrt_delta)/dr_2 + self.position[0]
-            i_2[1] = (-D * dx - np.abs(dy)*sqrt_delta)/dr_2 + self.position[1]
-            return [i_1,i_2]
-
-        elif delta == 0:#one intersection = tangent line
-            i_1 = np.array([0,0])
-            i_1[0] = (D * dy )/dr_2  + self.position[0]
-            i_1[1] = (-D * dx )/dr_2 + self.position[1]
-            return [i_1]
-        else: #no intersection \ irrational intersection points
-            return []
-
 
 def get_closest_lower_value(arr,left,right,value,getter= lambda A,i : A[i]):
     '''
@@ -152,11 +87,12 @@ class CatmullRomSpline():
     #http://hawkesy.blogspot.de/2010/05/catmull-rom-spline-curve-implementation.html
     #http://pages.cpsc.ucalgary.ca/~jungle/587/pdf/5-interpolation.pdf
     '''
-    def __init__(self,control_points,dimensions,granularity = 1000, verbose=False):
+    def __init__(self, control_points, dimensions, granularity=1000, verbose=False):
         self.verbose = verbose
         self.granularity = granularity
         #http://algorithmist.net/docs/catmullrom.pdf
-        #base matrix to calculate one component of a point on the spline based on the influence of control points
+        # base matrix to calculate one component of a point on the spline based
+        # on the influence of control points
         self._catmullrom_basemat = np.array( [[-1.0,3.0,-3.0,1.0], \
                                              [2.0,-5.0,4.0,-1.0],\
                                              [-1.0,0.0,1.0,0.0],\
@@ -192,14 +128,12 @@ class CatmullRomSpline():
         #add point replace auxiliary control points
         if  self.initiated:
             del self.control_points[-2:]
-            self.number_of_segments = len(self.control_points)-1#"-2 + 1
+            self.number_of_segments = len(self.control_points)-1
             self.control_points += [point,point,point]
-            #print self.control_points
 
             #update arc length mapping
             self._update_relative_arc_length_mapping_table()
         else:
-            #print "here",point
             self._initiate_control_points([point,])
             self.initiated = True
 
@@ -328,9 +262,7 @@ class CatmullRomSpline():
             #raise ValueError('%f exceeded arc length %f' % (absolute_arc_length,self.full_arc_length))
         return point
 
-
-
-    def query_point_by_relative_arc_length(self,relative_arc_length):
+    def map_relative_arc_length_to_parameter(self, relative_arc_length):
         """
         #see slide 30 b
          http://pages.cpsc.ucalgary.ca/~jungle/587/pdf/5-interpolation.pdf
@@ -343,6 +275,14 @@ class CatmullRomSpline():
             u = floorP+alpha*(ceilP-floorP)
         else:
             u = floorP
+        return u
+
+
+    def query_point_by_relative_arc_length(self,relative_arc_length):
+        """Converts relative arc length into a spline parameter between 0 and 1
+            and queries the spline for the point.
+        """
+        u = self.map_relative_arc_length_to_parameter(relative_arc_length)
         return self.query_point_by_parameter(u)
 
 

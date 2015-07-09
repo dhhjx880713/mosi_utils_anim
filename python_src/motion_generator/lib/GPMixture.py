@@ -7,12 +7,11 @@ Created on Wed Feb 18 11:53:40 2015
 import numpy as np
 from GPMulti import GPMulti
 import os
-
 from motion_primitive import MotionPrimitive
+from sklearn import mixture
 import json
 import zipfile
-import GPy
-from sklearn import mixture
+import cPickle as pickle
 
 class GPMixture(object):
     """ Mixture of GPs
@@ -188,10 +187,9 @@ class GPMixture(object):
         for f in zfile.namelist():
             if f == 'weights.json':
                 continue
-            zfile.extract(f)
-            gp = GPy.load(f)
+            data = zfile.read(f)
+            gp = pickle.loads(data)
             gpm.gps.append(gp)
-            os.remove(f)
         return gpm
 
 

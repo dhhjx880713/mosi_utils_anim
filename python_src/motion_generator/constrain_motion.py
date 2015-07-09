@@ -460,7 +460,7 @@ def get_optimal_parameters(morphable_graph,action_name,mp_name,constraints,\
                                         activate_parameter_check=options["activate_parameter_check"],verbose=verbose)
                 
             #3) optimize sampled parameters as initial guess if the constraints were not reached
-            if  options["use_optimization"] and not close_to_optimum:
+            if  not options["use_transition_model"] and options["use_optimization"] and not close_to_optimum:
                 verbose = True
                 bounding_boxes = (graph_node.parameter_bb, graph_node.cartesian_bb)
                 try:
