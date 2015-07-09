@@ -5,7 +5,7 @@ Created on Mon Jan 26 13:51:36 2015
 @author: mamauer,erhe01
 """
 import numpy as np
-from bvh2 import BVHReader, BVHWriter
+from bvh import BVHReader, BVHWriter
 import scipy.interpolate as si
 
 class MotionSample(object):

@@ -8,11 +8,9 @@ Created on Mon Jan 26 14:11:11 2015
 import numpy as np
 import json
 from sklearn import mixture # statistical model
-import rpy2.robjects.numpy2ri as numpy2ri
 import rpy2.robjects as robjects
-
 from motion_sample import MotionSample
-import scipy.interpolate as si # b-spline definition and evaluation
+import scipy.interpolate as si # B-spline definition and evaluation
 
 class MotionPrimitive(object):
     """ Represent a motion primitive which can be sampled

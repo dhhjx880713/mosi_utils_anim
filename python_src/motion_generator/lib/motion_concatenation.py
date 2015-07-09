@@ -6,10 +6,9 @@ Created on Wed Feb 18 13:38:46 2015
 """
 from motion_sample import MotionSample
 from motion_primitive import MotionPrimitive
-import numpy as np
 import os
-from bvh2 import BVHReader, BVHWriter
-from motion_editing_2 import concatenate_frames
+from bvh import BVHReader, BVHWriter
+from motion_editing import concatenate_frames
 from kinematic import _convert_frames_to_bvh_frames
 
 SKELETONFILE = os.sep.join(('lib', 'skeleton.bvh'))

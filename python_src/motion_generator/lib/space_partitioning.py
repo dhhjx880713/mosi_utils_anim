@@ -13,28 +13,10 @@ import uuid
 import json
 import cPickle as pickle
 
-class AABB():
-    """Axis aligned bounding box. Can be used to construct a space partition grid. 
-    """
-    def __init__(self,coord,bb_min,bb_max):
 
-        self.min = bb_min
-        self.max = bb_max
-        self.n_dim = bb_min.shape[0]
-        
-        
-    def inside(self,x):
-        #x.shape[1]
-        for d in xrange(self.n_dim):
-            if x[d] < self.min[d]:
-                return False
-            if x[d] > self.max[d]:
-                return False
-        return True
-        
 def discrete_sample(values,probabilities):
     """ Returns a sample from a discrete probability distribution
-        sources: 
+        Sources: 
         http://dept.stat.lsa.umich.edu/~jasoneg/Stat406/lab5.pdf
         http://stackoverflow.com/questions/11373192/generating-discrete-random-variables-with-specified-weights-using-scipy-or-numpy
     """

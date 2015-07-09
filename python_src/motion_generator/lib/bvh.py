@@ -1,15 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-#BVH Reader by Martin Manns
-#BVH Writer by Erik Herrmann
-
 """
 
 BVH
 ===
 
 Biovision file format classes for reading and writing.
+BVH Reader by Martin Manns
+BVH Writer by Erik Herrmann
 
 """
 

@@ -68,14 +68,22 @@ if __name__ == "__main__":
     import warnings
     warnings.simplefilter("ignore")
     
-    # set the path to the parent of the data directory TODO set as configuration file parameter
+    # set the path to the parent of the data directory 
+    # TODO set as configuration file parameter
     global_path_dict["data_root"] = "E:\\projects\\INTERACT\\repository\\"
+    
+    # change working directory to the script file directory
     dirname, filename = os.path.split(os.path.abspath(__file__))
-    os.chdir(dirname)  # change working directory to the file directory
+    os.chdir(dirname)
+    
+    # select input file as latest file from a fixed input directory
     local_path = os.path.dirname(__file__)
     globalpath = global_path_dict["data_root"] + r"BestFitPipeline\CNL-GUI\*.json"
-    print globalpath
     input_file = glob.glob(globalpath)[-1]
+    
+    # set output parameters to a fixed directory that is observed by an
+    # animation server
     output_dir = global_path_dict["data_root"] + r"BestFitPipeline\_Results"
     output_filename = "MGresult"
+    
     run_pipeline(input_file, output_dir, output_filename, CONFIG_FILE)

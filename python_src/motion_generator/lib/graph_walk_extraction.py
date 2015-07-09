@@ -9,10 +9,7 @@ import json
 import collections
 from math import sqrt
 import numpy as np
-from morphable_graph import MorphableGraph
-from helper_functions import get_morphable_model_directory,\
-                            get_transition_model_directory,\
-                            load_json_file
+from helper_functions import load_json_file
 from catmull_rom_spline import CatmullRomSpline, plot_splines
 from motion_editing import euler_to_quaternion
 from cgkit.cgtypes import quat

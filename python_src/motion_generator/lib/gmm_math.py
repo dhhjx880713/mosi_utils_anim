@@ -15,10 +15,9 @@ Optimal Mixture Approximation of the Product of Mixtures
 
 """
 import numpy as np
-import scipy as sp
-import scipy.linalg
 from gaussian import Gaussian
 import sklearn.mixture as mixture
+
 
 def _cluster_mul(gmm1, gmm2):
     """ Multiply two Gaussian Mixtures by multipling each component of gmm1 \

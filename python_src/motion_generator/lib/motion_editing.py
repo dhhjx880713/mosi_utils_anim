@@ -12,8 +12,7 @@ from itertools import izip
 from copy import deepcopy
 import time
 from scipy import stats # linear regression
-
-from bvh2 import  get_joint_weights
+from bvh import  get_joint_weights
 from transformations import quaternion_matrix, euler_from_matrix, \
                             quaternion_from_matrix, euler_matrix, \
                             quaternion_multiply                           

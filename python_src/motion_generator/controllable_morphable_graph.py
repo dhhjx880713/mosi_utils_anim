@@ -44,6 +44,7 @@ def export_synthesis_result(input_data, output_dir, output_filename, bvh_reader,
       write_to_json_file(output_dir + os.sep + output_filename + "_annotations"+".json", frame_annotation)
       export_quat_frames_to_bvh(output_dir, bvh_reader, quat_frames, prefix=output_filename, start_pose=None, time_stamp=add_time_stamp)        
 
+
 def print_runtime_statistics(seconds):
     minutes = int(seconds/60)
     seconds = seconds % 60
@@ -54,9 +55,10 @@ def print_runtime_statistics(seconds):
     print evaluations_string
     print error_string        
 
+
 class ControllableMorphableGraph(MorphableGraph):
     """
-    Class that extends MorphableGraph with a method to synthesize a motion based on a json input file
+    Extends MorphableGraph with a method to synthesize a motion based on a json input file
     Parameters
     ----------
     * morphable_model_directory: string
@@ -83,9 +85,8 @@ class ControllableMorphableGraph(MorphableGraph):
         
     def synthesize_motion(self, mg_input_filename, options=None, max_step=-1, verbose=False, output_dir="output", output_filename="", export=True):
         """
-        Converts a json input file with a list of elementary actions and constraints into a BVH file.
-        Calls either the function convert_elementary_action_list_to_motion or the function convert_graph_walk_to_motion 
-        depending on the version parameter.
+        Converts a json input file with a list of elementary actions and constraints 
+        into a motion saved to a BVH file.
         
         Parameters
         ----------        
@@ -107,7 +108,8 @@ class ControllableMorphableGraph(MorphableGraph):
 
 
         * max_step : integer
-            Maximum number of motion primitives to be converted into a motion. If set to -1 this parameter is ignored
+            Debug parameter for the maximum number of motion primitives to be converted before stopping.
+            If set to -1 this parameter is ignored
         * verbose : bool 
            Activates debug output to the console.
         * output_dir : string
@@ -133,16 +135,10 @@ class ControllableMorphableGraph(MorphableGraph):
         if options is None:
             options = generate_algorithm_settings()
 
-        ################################################################################
-        # run the algorithm  
-        # short description:
-        # generate constraints based on the optimal parameters for the previous steps
-        # and optimize for individual steps
+        # run the algorithm
         elementary_action_list = mg_input["elementaryActions"]
         start_pose = mg_input["startPose"]
-
         keyframe_annotations = extract_keyframe_annotations(elementary_action_list)
-
         quat_frames, frame_annotation, action_list = convert_elementary_action_list_to_motion(self,\
                                              elementary_action_list, options, self.bvh_reader, self.node_name_map,\
                                              max_step=max_step, start_pose=start_pose, keyframe_annotations=keyframe_annotations,\
@@ -151,7 +147,6 @@ class ControllableMorphableGraph(MorphableGraph):
         seconds = time.clock() - start
         print_runtime_statistics(seconds)
         
-        ################################################################################
         # export the motion to a bvh file if export == True
         if export:
             if output_filename == "" and "session" in mg_input.keys():
