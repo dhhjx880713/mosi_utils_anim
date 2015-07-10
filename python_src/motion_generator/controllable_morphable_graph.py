@@ -7,10 +7,12 @@ Motion Graphs interface for further integration
 
 @author: erhe01
 """
+import sys
+sys.path.append('..')
 import os
 import time
 from datetime import datetime
-from lib.bvh2 import BVHReader, create_filtered_node_name_map
+from utilities.bvh import BVHReader, create_filtered_node_name_map
 from lib.helper_functions import load_json_file, write_to_json_file,\
                                  write_to_logfile, \
                                  export_quat_frames_to_bvh

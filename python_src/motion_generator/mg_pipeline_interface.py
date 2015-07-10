@@ -8,8 +8,12 @@ Note the loading of transition models can take up to 2 minutes
 @author: erhe01
 """
 
+
 import sys
 import os
+ # change working directory to the script file directory
+dirname, filename = os.path.split(os.path.abspath(__file__))
+os.chdir(dirname)
 import glob
 import time
 from controllable_morphable_graph import ControllableMorphableGraph, export_synthesis_result
@@ -72,9 +76,7 @@ if __name__ == "__main__":
     # TODO set as configuration file parameter
     global_path_dict["data_root"] = "E:\\projects\\INTERACT\\repository\\"
     
-    # change working directory to the script file directory
-    dirname, filename = os.path.split(os.path.abspath(__file__))
-    os.chdir(dirname)
+   
     
     # select input file as latest file from a fixed input directory
     local_path = os.path.dirname(__file__)

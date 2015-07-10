@@ -10,14 +10,14 @@ import collections
 import random
 import numpy as np
 import datetime
-from bvh2 import BVHReader, BVHWriter
+from utilities.bvh import BVHReader, BVHWriter
 from helper_functions import get_morphable_model_directory, \
                              get_transition_model_directory, \
                              load_json_file, \
                              write_to_json_file
 from motion_primitive import MotionPrimitive
 from GPMixture import GPMixture
-from motion_editing import align_frames, convert_quaternion_to_euler
+from utilities.motion_editing import align_frames, convert_quaternion_to_euler
 from math import sqrt
 from space_partitioning import ClusterTree
 from zip_io import read_graph_data_without_transition_models_from_zip

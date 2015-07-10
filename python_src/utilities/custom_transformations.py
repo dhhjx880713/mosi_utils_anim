@@ -10,7 +10,7 @@ from motion_editing import euler_to_quaternion
 from cgkit.cgtypes import quat
 from scipy.optimize import minimize
 from motion_editing import euler_substraction
-from transformations import euler_matrix,  euler_from_matrix
+from external.transformations import euler_matrix,  euler_from_matrix
 from motion_editing import convert_quaternion_to_euler, \
                                 transform_euler_frames,\
                                 find_aligning_transformation

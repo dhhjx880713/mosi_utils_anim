@@ -12,9 +12,9 @@ import json
 import collections
 from datetime import datetime
 import numpy as np
-from motion_editing import transform_euler_frames, \
+from utilities.motion_editing import transform_euler_frames, \
                            transform_quaternion_frames
-from bvh import BVHWriter
+from utilities.bvh import BVHWriter
 
 global_path_dict = {}
 global_path_dict["data_root"] = ''# path to parent of data directory

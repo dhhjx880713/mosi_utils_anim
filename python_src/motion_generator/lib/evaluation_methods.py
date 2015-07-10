@@ -7,7 +7,7 @@ Created on Tue Feb 17 15:39:02 2015
 
 import collections
 import numpy as np
-from motion_editing import convert_euler_frames_to_cartesian_frames, \
+from utilities.motion_editing import convert_euler_frames_to_cartesian_frames, \
                                 convert_quaternion_to_euler,\
                                          euler_substraction
 

@@ -9,7 +9,7 @@ Wrapper around scipy minimize and error function definition.
 
 import time
 import numpy as np
-from lib.motion_editing import convert_quaternion_to_euler, \
+from utilities.motion_editing import convert_quaternion_to_euler, \
                                 find_aligning_transformation, \
                                 get_cartesian_coordinates2, \
                                 transform_euler_frames,\
@@ -19,7 +19,7 @@ from lib.motion_editing import convert_quaternion_to_euler, \
                                 get_joint_weights,\
                                 align_point_clouds_2D
 #                                compute_heading
-from lib.custom_transformations import transform_point,\
+from utilities.custom_transformations import transform_point,\
                                 create_transformation
 from lib.constraint import obj_error_sum, constraint_distance
 from scipy.optimize import minimize

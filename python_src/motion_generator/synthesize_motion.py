@@ -13,7 +13,7 @@ import copy
 import numpy as np
 from lib.morphable_graph import NODE_TYPE_START, NODE_TYPE_STANDARD,NODE_TYPE_END
 from lib.helper_functions import merge_two_dicts
-from lib.motion_editing import convert_quaternion_to_euler, \
+from utilities.motion_editing import convert_quaternion_to_euler, \
                                 get_cartesian_coordinates2, \
                                 transform_quaternion_frames, \
                                 fast_quat_frames_alignment

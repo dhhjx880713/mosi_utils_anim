@@ -9,7 +9,7 @@ Provides all funktionality to check how good a constraint is met
 """
 
 import numpy as np
-from lib.motion_editing import convert_quaternion_frame_to_cartesian_frame,\
+from utilities.motion_editing import convert_quaternion_frame_to_cartesian_frame,\
                     get_cartesian_coordinates_from_quaternion2,\
                     align_point_clouds_2D,\
                     transform_quaternion_frames,\
@@ -17,9 +17,9 @@ from lib.motion_editing import convert_quaternion_frame_to_cartesian_frame,\
                     transform_point_cloud,\
                     calculate_point_cloud_distance,\
                     fast_quat_frames_transformation
-from lib.bvh2 import get_joint_weights
-from lib.custom_transformations import vector_distance
-from lib.transformations import rotation_matrix
+from utilities.bvh import get_joint_weights
+from utilities.custom_transformations import vector_distance
+from external.transformations import rotation_matrix
 
 global_counter_dict = {}
 global_counter_dict["evaluations"] = 0# counter for calls of the objective function
