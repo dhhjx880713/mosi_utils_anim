@@ -9,7 +9,7 @@ import collections
 from math import sqrt
 import numpy as np
 from helper_functions import load_json_file
-from catmull_rom_spline import CatmullRomSpline, plot_splines
+from parameterized_spline import ParameterizedSpline, plot_splines
 from motion_editing import euler_to_quaternion
 from cgkit.cgtypes import quat
 
@@ -159,7 +159,7 @@ def extract_trajectory_constraints_for_plotting(mg_input,action_index,scale_fact
 
 def construct_trajectories_for_plotting(mg_input,scale_factor):
     """Calls extract_trajectory_constraints for each action in the input 
-    and creates a spline using the CatmullRomSpline class
+    and creates a spline using the ParameterizedSpline class
     """
     elementary_action_dict = extract_elementary_actions(mg_input)
     
@@ -169,7 +169,7 @@ def construct_trajectories_for_plotting(mg_input,scale_factor):
         #print control_points        
         traj_constraints[key] = {}
         for joint_name in control_points.keys():
-            traj_constraints[key][joint_name] = CatmullRomSpline(control_points[joint_name],2)        
+            traj_constraints[key][joint_name] = ParameterizedSpline(control_points[joint_name],2)        
     return traj_constraints
 
 def plot_trajectory_from_mg_input_file(filename,scale_factor = 1.0):
@@ -219,7 +219,7 @@ def extract_trajectory_constraints(constraints_list,scale_factor= 1.0):
     """
     unconstrained_indices = {}
   
-    #create a control point list that can be used as input for the CatmullRomSpline class   
+    #create a control point list that can be used as input for the ParameterizedSpline class   
     control_points = {}
     for entry in constraints_list:
         joint_name = entry["joint"]
@@ -325,7 +325,7 @@ def generate_navigation_graph_walk(morphable_subgraph,joint_name, trajectory,unc
     \tRepresents an elementary action.
     *elementary_action: string
     \tIdentifier of the subgraph of the elementary action.
-    *trajectory: CatmullRomSpline
+    *trajectory: ParameterizedSpline
     \tThe trajectory that should be followed. It needs to start at the origin.
 
     Returns
@@ -401,7 +401,7 @@ def convert_trajectory_to_graph_walk(mg_input_filename,morphable_graph,elementar
     action_index = elementary_action_dict[elementary_action]
     control_points,unconstrained_indices = extract_trajectory_constraints(mg_input["elementaryActions"][action_index]["constraints"]) 
     #start_transformation = extract_start_transformation(mg_input)   
-    trajectory =  CatmullRomSpline(control_points[joint_name],3)
+    trajectory =  ParameterizedSpline(control_points[joint_name],3)
     #trajectory.transform_by_matrix(np.linalg.inv(start_transformation) )
         
 
@@ -427,7 +427,7 @@ def create_trajectory_from_constraint(trajectory_constraint,scale_factor = 1.0):
     
     Returns
     -------
-    * trajectory: CatmullRomSpline
+    * trajectory: ParameterizedSpline
     \t The trajectory defined by the control points from the trajectory_constraint
     * unconstrained_indices : list
     \t List of indices of unconstrained dimensions
@@ -454,7 +454,7 @@ def create_trajectory_from_constraint(trajectory_constraint,scale_factor = 1.0):
     #print "####################################################"
     #print "control points are: "
     #print control_points
-    trajectory =  CatmullRomSpline(control_points, TRAJECTORY_DIM)
+    trajectory =  ParameterizedSpline(control_points, TRAJECTORY_DIM)
     
     return trajectory, unconstrained_indices
     

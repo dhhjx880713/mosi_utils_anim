@@ -40,9 +40,7 @@ def generate_algorithm_settings(use_constraints=True,
                             trajectory_use_position_constraints=True,
                             trajectory_use_dir_vector_constraints=True,
                             trajectory_use_frame_constraints=True,
-                            activate_cluster_search=True
-                            ):
-                                
+                            activate_cluster_search=True):               
     """Should be used to generate a dict containing all settings for the algorithm
     Returns
     ------

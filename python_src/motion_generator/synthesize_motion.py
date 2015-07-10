@@ -406,10 +406,10 @@ def create_constraints_for_motion_primitive(morphable_subgraph,current_state,tra
 
 def extract_trajectory_from_constraint_list(constraint_list,joint_name):
     """ Extract the trajectory information from the constraints and constructs
-        a trajectory as an CatmullRomSpline instance.
+        a trajectory as an ParameterizedSpline instance.
     Returns:
     -------
-    * trajectory: CatmullRomSpline
+    * trajectory: ParameterizedSpline
         Spline parameterized by arc length.
     * unconstrained_indices: list of indices
         Lists of indices of degrees of freedom to ignore in the constraint evaluation.
@@ -425,7 +425,7 @@ def extract_constraints_of_elementary_action(bvh_reader, morphable_subgraph, con
     """ Extracts keyframe and trajectory constraints from constraint_list
     Returns:
     -------
-    * trajectory: CatmullRomSpline
+    * trajectory: ParameterizedSpline
         Spline parameterized by arc length.
     * unconstrained_indices: list of indices
         lists of indices of degrees of freedom to ignore in the constraint evaluation.
