@@ -102,8 +102,8 @@ def constraint_distance(constraint, target_position=None,
     * rotation_distance : float
     \tThe frobenius difference of the rotation matrices
     """
-    position_distance = 0
-    rotation_distance = 0
+    position_distance = 0.0
+    rotation_distance = 0.0
 
     if "position" in constraint.keys() and target_position is not None:
         position_distance = vector_distance(constraint["position"],

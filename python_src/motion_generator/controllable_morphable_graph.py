@@ -27,50 +27,6 @@ from lib.constraint import global_counter_dict
 LOG_FILE = "log.txt"
 SKELETON_FILE = "lib" + os.sep + "skeleton.bvh"
 
-def load_morphable_graph(use_transition_model=False, skeleton_file=SKELETON_FILE):
-    mm_directory = get_morphable_model_directory()
-    transition_directory = get_transition_model_directory()
-    cmg = ControllableMorphableGraph(mm_directory,
-                                     transition_directory,
-                                     skeleton_file,
-                                     use_transition_model)
-    return cmg
-
-
-def export_synthesis_result(input_data, output_dir, output_filename, bvh_reader, quat_frames, frame_annotation, action_list, add_time_stamp=False):
-      """ Saves the resulting animation frames, the annotation and actions to files. 
-      Also exports the input file again to the output directory, where it is 
-      used as input for the constraints visualization by the animation server.
-      """
-      write_to_json_file(output_dir + os.sep + output_filename + ".json", input_data) 
-      write_to_json_file(output_dir + os.sep + output_filename + "_actions"+".json", action_list)
-      
-      frame_annotation["events"] = []
-      for keyframe in action_list.keys():
-        for event_desc in action_list[keyframe]:
-            event = {}
-            event["jointName"] = event_desc["parameters"]["joint"]
-            event_type = event_desc["event"]
-            target = event_desc["parameters"]["target"]
-            event[event_type] = target
-            event["frameNumber"] = int(keyframe)
-            frame_annotation["events"].append(event)
-
-      write_to_json_file(output_dir + os.sep + output_filename + "_annotations"+".json", frame_annotation)
-      export_quat_frames_to_bvh(output_dir, bvh_reader, quat_frames, prefix=output_filename, start_pose=None, time_stamp=add_time_stamp)        
-
-
-def print_runtime_statistics(seconds):
-    minutes = int(seconds/60)
-    seconds = seconds % 60
-    total_time_string = "finished synthesis in "+ str(minutes) + " minutes "+ str(seconds)+ " seconds"
-    evaluations_string = "total number of objective evaluations "+ str(global_counter_dict["evaluations"])
-    error_string = "average error for "+ str(len(global_counter_dict["motionPrimitveErrors"])) +" motion primitives: " + str(np.average(global_counter_dict["motionPrimitveErrors"],axis=0))
-    print total_time_string
-    print evaluations_string
-    print error_string        
-
-
 class ControllableMorphableGraph(MorphableGraph):
     """
     Extends MorphableGraph with a method to synthesize a motion based on a json input file
@@ -180,4 +136,48 @@ class ControllableMorphableGraph(MorphableGraph):
 
         return quat_frames, frame_annotation, action_list                
 
+
+
+
+def export_synthesis_result(input_data, output_dir, output_filename, bvh_reader, quat_frames, frame_annotation, action_list, add_time_stamp=False):
+      """ Saves the resulting animation frames, the annotation and actions to files. 
+      Also exports the input file again to the output directory, where it is 
+      used as input for the constraints visualization by the animation server.
+      """
+      write_to_json_file(output_dir + os.sep + output_filename + ".json", input_data) 
+      write_to_json_file(output_dir + os.sep + output_filename + "_actions"+".json", action_list)
+      
+      frame_annotation["events"] = []
+      for keyframe in action_list.keys():
+        for event_desc in action_list[keyframe]:
+            event = {}
+            event["jointName"] = event_desc["parameters"]["joint"]
+            event_type = event_desc["event"]
+            target = event_desc["parameters"]["target"]
+            event[event_type] = target
+            event["frameNumber"] = int(keyframe)
+            frame_annotation["events"].append(event)
+
+      write_to_json_file(output_dir + os.sep + output_filename + "_annotations"+".json", frame_annotation)
+      export_quat_frames_to_bvh(output_dir, bvh_reader, quat_frames, prefix=output_filename, start_pose=None, time_stamp=add_time_stamp)        
+
+
+def print_runtime_statistics(seconds):
+    minutes = int(seconds/60)
+    seconds = seconds % 60
+    total_time_string = "finished synthesis in "+ str(minutes) + " minutes "+ str(seconds)+ " seconds"
+    evaluations_string = "total number of objective evaluations "+ str(global_counter_dict["evaluations"])
+    error_string = "average error for "+ str(len(global_counter_dict["motionPrimitveErrors"])) +" motion primitives: " + str(np.average(global_counter_dict["motionPrimitveErrors"],axis=0))
+    print total_time_string
+    print evaluations_string
+    print error_string
     
+
+def load_morphable_graph(use_transition_model=False, skeleton_file=SKELETON_FILE):
+    mm_directory = get_morphable_model_directory()
+    transition_directory = get_transition_model_directory()
+    cmg = ControllableMorphableGraph(mm_directory,
+                                     transition_directory,
+                                     skeleton_file,
+                                     use_transition_model)
+    return cmg

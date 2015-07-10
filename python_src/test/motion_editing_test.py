@@ -7,16 +7,11 @@ Created on Tue Mar 10 12:56:09 2015
 
 import os
 import sys
-
 import numpy as np
-
+from math import sqrt
 from libtest import params, pytest_generate_tests
-
-TESTPATH = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-1]) + os.sep
-sys.path.insert(1, TESTPATH)
-sys.path.insert(1, TESTPATH + (os.sep + os.pardir))
-
-from motion_editing import convert_quaternion_to_euler
+sys.path.append("..")
+from utilities.motion_editing import convert_quaternion_to_euler
 
 
 param_convert_quaternion_to_euler = [
@@ -32,7 +27,9 @@ def test_convert_quaternion_to_euler(quat, res):
 
     for r, e in zip(res, convert_quaternion_to_euler(quat)):
         for rr, ee in zip(r, e):
-            assert np.isclose(rr, ee)
+            a = rr**2
+            b = ee**2
+            assert np.isclose(a-b, 0.0)
 
 
 #from motion_editing import *

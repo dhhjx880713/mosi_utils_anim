@@ -180,7 +180,7 @@ class MorphableGraphsRESTfulInterface(object):
     
 def main():
     
-    ##TODO place into server conficuration file
+    ##TODO place into server configuration file
     global_path_dict["data_root"] = "E:\\projects\\INTERACT\\repository\\"
     global_path_dict["output_dir"] = global_path_dict["data_root"] + r"BestFitPipeline\_Results"
     global_path_dict["output_filename"] = "MGresult"

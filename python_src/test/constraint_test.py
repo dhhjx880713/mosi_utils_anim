@@ -7,14 +7,10 @@ Created on Mon Mar 16 13:21:41 2015
 
 import os
 import sys
-
 from libtest import params, pytest_generate_tests
+sys.path.append("..")
 
-TESTPATH = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-1]) + os.sep
-sys.path.insert(1, TESTPATH)
-sys.path.insert(1, TESTPATH + (os.sep + os.pardir))
-
-from constraint import constraint_distance
+from motion_generator.lib  import constraint 
 
 
 
@@ -38,9 +34,13 @@ def test_constraint_distance(constraints,
                              target_position, 
                              target_orientation,
                              res):
-    """Unit test for constraint distance
+    """Unit test for constraint distance.
     """
-    dist = constraint_distance(constraints, 
+    dist = constraint.constraint_distance(constraints, 
                                target_position,
                                target_orientation)
-    assert round(dist, 3) == res
+    assert round(sum(dist), 3) == res
+    
+if __name__ == "__main__":
+    test_constraint_distance(constraints, [20, 30, 40], [None, None, None], 0.0)
+    
