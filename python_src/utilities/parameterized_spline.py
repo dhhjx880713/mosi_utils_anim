@@ -755,58 +755,7 @@ def test_plot_spline():
     plot_spline(spline)
 
 
-def compare_result(spline,input_arc_length):
-    """
-    query a point by the given arc length
-    then find the closest point on the spline to this queried point
-    then calculate and print the arc length of this closest point
-    """
-    print "test #############"
-    point = spline.query_point_by_absolute_arc_length(input_arc_length)
-    print "in",input_arc_length,point
-    closest_point,distance = spline.find_closest_point(point)
-    print "closest point",closest_point,distance
-    # plot_spline(spline)
-    arc_length,eval_point = spline.get_absolute_arc_length_of_point(closest_point)
 
-    print "out",arc_length,eval_point
-
-def test_find_closest_point():
-    control_points = [[0,0],
-                      [1,3],
-                      [0,6],
-                      [0,12]
-
-                     ]
-    dimensions = 2
-    granularity = 1000
-    spline =  ParameterizedSpline(control_points,dimensions,granularity)
-    input_arc_length = 3.0
-    compare_result(spline,input_arc_length)
-    input_arc_length = 0.5
-    compare_result(spline,input_arc_length)
-    input_arc_length = 0.8
-    compare_result(spline,input_arc_length)
-    input_arc_length = 1.8
-    compare_result(spline,input_arc_length)
-    input_arc_length = 0.6#9.8
-    compare_result(spline,input_arc_length)
-    input_arc_length = 8.0
-    compare_result(spline,input_arc_length)
-    input_arc_length = 5.0
-    compare_result(spline,input_arc_length)
-    input_arc_length = 10.0
-    compare_result(spline,input_arc_length)
-    input_arc_length = 11.0
-    compare_result(spline,input_arc_length)
-    input_arc_length = 12.0
-    compare_result(spline,input_arc_length)
-#    point = np.array([1.0,1.2])
-
-#    print "full arc length",arc_length,spline.get_full_arc_length()
-#    print "parameter",spline.query_point_by_parameter(arc_length)
-#    arc_length = arc_length* spline.get_full_arc_length()
-#    print "arc length",spline.query_point_by_absolute_arc_length(arc_length)
 
 def main():
     verify_spline()

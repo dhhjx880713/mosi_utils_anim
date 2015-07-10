@@ -43,7 +43,7 @@ class MGInputHandler(tornado.web.RequestHandler):
             try:
                 data = json.loads(self.request.body)
             except:
-                error_string = "Could not decode request body as JSON."
+                error_string = "Error: Could not decode request body as JSON."
                 self.write(error_string)
                 return
                 
@@ -53,7 +53,7 @@ class MGInputHandler(tornado.web.RequestHandler):
             else:
                 print data
                 self.application.morphable_graph.print_information()
-                error_string = "Did not find expected keys in the input data."
+                error_string = "Error: Did not find expected keys in the input data."
                 self.write(error_string)
    
 
@@ -82,7 +82,7 @@ class MGInputHandler(tornado.web.RequestHandler):
                 result_list = [bvh_string, result_tuple[1], result_tuple[2]]
                 self.write(json.dumps(result_list))#send result back
         else:
-            error_string = "failed to generate motion data"
+            error_string = "Error: Failed to generate motion data."
             print error_string
             self.write(error_string)
         
@@ -151,7 +151,8 @@ class MorphableGraphsRESTfulInterface(object):
     formatted input as body.
     Example with urllib2 when output_mode is answer_request:
     request = urllib2.Request(mg_server_url, mg_input_data)
-    bvh_string, annoation_string, action_string = request.read()
+    handler = urllib2.urlopen(request)
+    bvh_string, annoations, actions = json.loads(handler.read())
     """
     def __init__(self, config_file, port=8888, output_mode="file_output"):
  

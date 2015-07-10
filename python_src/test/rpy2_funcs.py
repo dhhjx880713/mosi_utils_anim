@@ -22,7 +22,7 @@ import scipy.interpolate as si
 TESTPATH = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-1]) + os.sep
 sys.path.insert(1, TESTPATH)
 sys.path.insert(1, TESTPATH + (os.sep + os.pardir))
-from motion_primitive import MotionPrimitive
+
 
 
 def rpy2_temporal_mean(m):
@@ -46,7 +46,7 @@ def rpy2_temporal_mean(m):
 
     mean_coefs = numpy2ri.numpy2ri(m.t_pca["mean_vector"])
     meanfd = fd(mean_coefs, basis)
-    return np.array(fdeval(m.canonical_time_range, meanfd))
+    return np.array(fdeval(m.canonical_time_range.tolist(), meanfd))
 
 
 def rpy2_temporal(m, gamma):
@@ -128,19 +128,19 @@ def rpy2_spatial(m, alpha):
     return np.array(canonical_motion)
 
 
-def main():
-    mm_file = 'walk_leftStance_quaternion_mm.json'
-    m = MotionPrimitive(mm_file)
-
-    s = m.sample(return_lowdimvector=True)
-    alpha = s[:m.s_pca["n_components"]]
-    gamma = s[m.s_pca["n_components"]:]
-
-    t_rpy2 = rpy2_temporal(m, gamma)
-    t_scipy = m._inverse_temporal_pca(gamma)
-    assert np.allclose(np.ravel(t_rpy2), np.ravel(t_scipy))
-
-
-if __name__ == '__main__':
-    main()
+#def main():
+#    mm_file = 'walk_leftStance_quaternion_mm.json'
+#    m = MotionPrimitive(mm_file)
+#
+#    s = m.sample(return_lowdimvector=True)
+#    alpha = s[:m.s_pca["n_components"]]
+#    gamma = s[m.s_pca["n_components"]:]
+#
+#    t_rpy2 = rpy2_temporal(m, gamma)
+#    t_scipy = m._inverse_temporal_pca(gamma)
+#    assert np.allclose(np.ravel(t_rpy2), np.ravel(t_scipy))
+#
+#
+#if __name__ == '__main__':
+#    main()
 

@@ -114,3 +114,4 @@ request = urllib2.Request(mg_server_url, data)
 print "send message and wait for answer..."
 handler = urllib2.urlopen(request)
 print handler.read()
+

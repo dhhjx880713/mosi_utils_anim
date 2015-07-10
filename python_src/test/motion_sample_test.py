@@ -8,21 +8,17 @@ Created on Tue Jun 30 18:56:13 2015
 import os
 import sys
 
+sys.path.append("..")
 import numpy as np
 import rpy2.robjects.numpy2ri as numpy2ri
 import rpy2.robjects as robjects
 from libtest import params, pytest_generate_tests
 from rpy2_funcs import rpy2_temporal_mean, rpy2_temporal
+from motion_generator.lib import motion_primitive
 
-TESTPATH = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-1]) + os.sep
-sys.path.insert(1, TESTPATH)
-sys.path.insert(1, TESTPATH + (os.sep + os.pardir))
-
-MOTIONFILE = TESTPATH + \
-    "/data/MotionPrimitive/walk_leftStance_quaternion_mm.json"
-
-from motion_primitive import MotionPrimitive
-
+TESTPATH = os.sep.join([".."]*2+ ["test_data"])
+MP_FILE = os.sep.join([TESTPATH,"walk_leftStance_quaternion_mm.json"])
+#print MP_FILE
 
 def params(funcarglist):
     """Test function parameter decorator
@@ -82,7 +78,7 @@ class TestMotionPrimitive(object):
 
     def setup_class(self):
         """Class setup method"""
-        self.m = MotionPrimitive(MOTIONFILE)
+        self.m = motion_primitive.MotionPrimitive(MP_FILE)
         self.s = self.m.sample(return_lowdimvector=True)
 
     def test_temporal_mean_vector(self):
@@ -96,7 +92,7 @@ class TestMotionPrimitive(object):
         """ Test if the motion primitive and the rpy2 function give the same
         vector for temporal component """
         gamma = self.s[self.m.s_pca["n_components"]:]
-        t_rpy2 = rpy2_temporal(m, gamma)
+        t_rpy2 = rpy2_temporal(self.m, gamma)
         t_scipy = self.m._inverse_temporal_pca(gamma)
         assert np.allclose(np.ravel(t_rpy2), np.ravel(t_scipy))
 
@@ -104,9 +100,7 @@ class TestMotionPrimitive(object):
 def test_compare_get_motion_vector_with_r():
     """ Compares the result of get_motion_vector with a reference implementation using R.
     """
-    mm_file = 'walk_leftStance_quaternion_mm.json'
-
-    m = MotionPrimitive(mm_file)
+    m = motion_primitive.MotionPrimitive(MP_FILE)
     N = 100
     for i in xrange(N):
 
