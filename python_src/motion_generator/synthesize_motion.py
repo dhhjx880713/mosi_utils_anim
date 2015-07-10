@@ -189,38 +189,20 @@ def get_optimal_motion(morphable_graph,
                                               apply_smoothing)
     else:
         if start_pose is not None:
-            #rotate euler frames so the transformation can be found using alignment
-#            print "transform euler frames using start pose",start_pose
-#            euler_frames = transform_euler_frames(tmp_euler_frames,start_pose["orientation"],start_pose["position"])
-           #print "transform quaternion frames using start pose", start_pose
+            #rotate quat frames so the transformation can be found using alignment
            quat_frames = transform_quaternion_frames(tmp_quat_frames, 
                                                      start_pose["orientation"], 
                                                      start_pose["position"])
            #print "resulting start position",quat_frames[0][:3]
         else:
-
-#            euler_frames = tmp_euler_frames
             quat_frames = tmp_quat_frames
-#            print 'length of euler frames in get optimal motion from no previous frames: ' + str(len(euler_frames))
-    #associate keyframe annotation to euler_frames
+#            print 'length of quat frames in get optimal motion from no previous frames: ' + str(len(quat_frames))
+    #associate keyframe annotation to quat_frames
     if mp_name in  morphable_graph.subgraphs[action_name].mp_annotations.keys():
         time_information = morphable_graph.subgraphs[action_name].mp_annotations[mp_name]
     else:
         time_information = {}
-#    action_list = get_action_list(tmp_euler_frames,time_information,constraints,keyframe_annotations,offset =frame_offset)
-    action_list = get_action_list(tmp_quat_frames,time_information,constraints,keyframe_annotations,offset =frame_offset)        
-#    print "#########################################################################"
-#    target_dir = np.array([constraints[1]["dir_vector"][0], constraints[1]["dir_vector"][2]])
-#    target_dir = target_dir/np.linalg.norm(target_dir)
-#    print "constraint direction: "
-#    print target_dir
-#    last_transformation = create_transformation(euler_frames[-1][3:6],[0, 0, 0])
-#    motion_dir = transform_point(last_transformation,[0,0,1])
-#    motion_dir = np.array([motion_dir[0], motion_dir[2]])
-#    motion_dir = motion_dir/np.linalg.norm(motion_dir)    
-#    print "current orientation: "
-#    print motion_dir
-#    return euler_frames,parameters,action_list
+    action_list = get_action_list(tmp_quat_frames,time_information,constraints,keyframe_annotations,offset=frame_offset)
     return quat_frames, parameters, action_list
 
 def get_point_and_orientation_from_arc_length(trajectory,arc_length,unconstrained_indices):
