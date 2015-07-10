@@ -122,14 +122,29 @@ class WebSocketApplication(tornado.web.Application):
         return
         
 
-            
+        
+class IndexHandler(tornado.web.RequestHandler):
+    """Regular HTTP handler to serve the web page
+       Note there are two ways to display a web page using tornado: dynamic (self.render(filename)) and static (self.redirect(filename) + registered StaticFileHandler)
+       Only the static method works for xml3d  without problems"""
+       
+    def get(self):
+        #self.render('animation-player.xhtm')
+        #self.redirect('test_scene.xhtml')
+        self.redirect('pilotcase_elux.xhtml')
+        #self.redirect('male.xhtml')
+
+
             
 class AnimationServer(WebSocketApplication):
     '''
     creates WebSocketApplication that provides an animation scene and creates one AnimationWebSocketHandler instance for Web Socket connections 
     '''
     def __init__(self,controller):
-        WebSocketApplication.__init__(self,[(r"/", IndexHandler) ,(r"/websocket",AnimationWebSocketHandler ) , (r"/(.+)", tornado.web.StaticFileHandler, {"path": os.path.join(os.path.dirname(__file__), "public")}) ])
+        WebSocketApplication.__init__(self,[(r"/", IndexHandler),
+                                            (r"/websocket",AnimationWebSocketHandler ),
+                                             (r"/(.+)", tornado.web.StaticFileHandler, {"path": os.path.join(os.path.dirname(__file__), "public")})
+                                             ])
         self.animationController = controller
     
     #     def toggleAnimation(self):
@@ -176,19 +191,5 @@ class ServerThread(threading.Thread):
         tornado.ioloop.IOLoop.instance().stop()
 
         
-        
-        
-class IndexHandler(tornado.web.RequestHandler):
-    """Regular HTTP handler to serve the web page
-       Note there are two ways to display a web page using tornado: dynamic (self.render(filename)) and static (self.redirect(filename) + registered StaticFileHandler)
-       Only the static method works for xml3d  without problems"""
-       
-    def get(self):
-        #self.render('animation-player.xhtm')
-        #self.redirect('test_scene.xhtml')
-        self.redirect('pilotcase_elux.xhtml')
-        #self.redirect('male.xhtml')
-
-
-      
+  
      

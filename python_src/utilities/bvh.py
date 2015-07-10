@@ -220,13 +220,14 @@ class BVHWriter(object):
         self.frame_time = frame_time
         self.is_quaternion = is_quaternion
         if filename != None:
-            self._write(filename,self.generate_bvh_string())
+            self.write(filename)
             
        
        
-    def _write(self, filename,bvh_string):
+    def write(self, filename):
         """ Write the hierarchy string and the frame parameter string to file
         """
+        bvh_string = self.generate_bvh_string()
         if filename[-4:] == '.bvh':
             filename = filename
         else:

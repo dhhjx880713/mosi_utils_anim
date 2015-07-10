@@ -15,23 +15,13 @@ dirname, filename = os.path.split(os.path.abspath(__file__))
 os.chdir(dirname)
 import glob
 import time
-from controllable_morphable_graph import ControllableMorphableGraph, export_synthesis_result
-from lib.helper_functions import global_path_dict, get_morphable_model_directory, get_transition_model_directory
+from controllable_morphable_graph import load_morphable_graph, export_synthesis_result
+from lib.helper_functions import global_path_dict
 from constrain_motion import generate_algorithm_settings
 from lib.helper_functions import load_json_file
 
 CONFIG_FILE = "config.json"
-SKELETON_FILE = "lib" + os.sep + "skeleton.bvh"
 
-
-def load_morphable_graph(use_transition_model=False, skeleton_file=SKELETON_FILE):
-    mm_directory = get_morphable_model_directory()
-    transition_directory = get_transition_model_directory()
-    cmg = ControllableMorphableGraph(mm_directory,
-                                     transition_directory,
-                                     skeleton_file,
-                                     use_transition_model)
-    return cmg
 
 
 def run_pipeline(input_file, output_dir, output_filename, config_file):

@@ -201,8 +201,8 @@ def export_euler_frames_to_bvh( output_dir,bvh_reader,euler_frames,prefix = "",s
     print filepath
     BVHWriter(filepath,bvh_reader, euler_frames,bvh_reader.frame_time,is_quaternion=False)
 
-def export_quat_frames_to_bvh(output_dir,bvh_reader,quat_frames,prefix = "",
-                              start_pose = None,time_stamp = True):
+def export_quat_frames_to_bvh(output_dir, bvh_reader, quat_frames,prefix="",
+                              start_pose=None, time_stamp=True):
     """ Exports a list of quat frames to a bvh file after transforming the 
     frames to the start pose.
 
@@ -232,8 +232,37 @@ def export_quat_frames_to_bvh(output_dir,bvh_reader,quat_frames,prefix = "",
     print "#####################################"
     print type(quat_frames)
     print quat_frames.shape
-    BVHWriter(filepath,bvh_reader, quat_frames,bvh_reader.frame_time,
+    
+    bvh_writer = BVHWriter(None, bvh_reader, quat_frames, bvh_reader.frame_time,
+                           is_quaternion=True)
+    bvh_writer.write(filepath)
+   
+              
+              
+def convert_quat_frames_to_bvh_string(bvh_reader, quat_frames, start_pose=None):
+    """ Exports a list of quat frames to a bvh file after transforming the 
+    frames to the start pose.
+
+    Parameters
+    ---------
+
+    * bvh_reader : BVHRreader
+        contains joint hiearchy information
+    * quat_frames : np.ndarray
+        Represents the motion
+    * start_pose : dict
+        Contains entry position and orientation each as a list with three components
+
+    """
+    if start_pose != None:
+        quat_frames = transform_quaternion_frames(quat_frames,
+                                                  start_pose["orientation"],
+                                                  start_pose["position"])
+
+
+    bvh_writer = BVHWriter(None, bvh_reader, quat_frames,bvh_reader.frame_time,
               is_quaternion=True)
+    return bvh_writer.generate_bvh_string()
 
 
 def trajectory_len(frames):

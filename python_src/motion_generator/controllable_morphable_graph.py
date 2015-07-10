@@ -15,7 +15,9 @@ from datetime import datetime
 from utilities.bvh import BVHReader, create_filtered_node_name_map
 from lib.helper_functions import load_json_file, write_to_json_file,\
                                  write_to_logfile, \
-                                 export_quat_frames_to_bvh
+                                 export_quat_frames_to_bvh,\
+                                 get_morphable_model_directory,\
+                                 get_transition_model_directory
 from lib.input_processing import extract_keyframe_annotations                                    
 from lib.morphable_graph import MorphableGraph
 from constrain_motion import generate_algorithm_settings
@@ -23,6 +25,17 @@ from synthesize_motion import convert_elementary_action_list_to_motion
 import numpy as np
 from lib.constraint import global_counter_dict
 LOG_FILE = "log.txt"
+SKELETON_FILE = "lib" + os.sep + "skeleton.bvh"
+
+def load_morphable_graph(use_transition_model=False, skeleton_file=SKELETON_FILE):
+    mm_directory = get_morphable_model_directory()
+    transition_directory = get_transition_model_directory()
+    cmg = ControllableMorphableGraph(mm_directory,
+                                     transition_directory,
+                                     skeleton_file,
+                                     use_transition_model)
+    return cmg
+
 
 def export_synthesis_result(input_data, output_dir, output_filename, bvh_reader, quat_frames, frame_annotation, action_list, add_time_stamp=False):
       """ Saves the resulting animation frames, the annotation and actions to files. 
@@ -85,15 +98,15 @@ class ControllableMorphableGraph(MorphableGraph):
         return
         
         
-    def synthesize_motion(self, mg_input_filename, options=None, max_step=-1, verbose=False, output_dir="output", output_filename="", export=True):
+    def synthesize_motion(self, mg_input, options=None, max_step=-1, verbose=False, output_dir="output", output_filename="", export=True):
         """
         Converts a json input file with a list of elementary actions and constraints 
         into a motion saved to a BVH file.
         
         Parameters
         ----------        
-        * mg_input_filename : string
-            Path to json file that contains a list of elementary actions with constraints.
+        * mg_input_filename : string or dict
+            Dict or Path to json file that contains a list of elementary actions with constraints.
         * options : dict
             Contains options for the algorithm.
             When set to None generate_algorithm_settings() is called with default settings
@@ -132,7 +145,8 @@ class ControllableMorphableGraph(MorphableGraph):
            Contains actions/events for some frames based on the keyframe_annotations 
         """
         global_counter_dict["evaluations"] = 0
-        mg_input = load_json_file(mg_input_filename)
+        if type(mg_input) != dict:
+            mg_input = load_json_file(mg_input)
         start = time.clock()
         if options is None:
             options = generate_algorithm_settings()
