@@ -16,9 +16,8 @@ os.chdir(dirname)
 import glob
 import time
 from controllable_morphable_graph import load_morphable_graph, export_synthesis_result
-from lib.helper_functions import global_path_dict
+from lib.io_helper_functions import load_json_file, global_path_dict
 from constrain_motion import generate_algorithm_settings
-from lib.helper_functions import load_json_file
 
 CONFIG_FILE = "config.json"
 

@@ -12,7 +12,6 @@ json input file. Runs the optimization sequentially and creates constraints
 import copy
 import numpy as np
 from lib.morphable_graph import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END
-from lib.helper_functions import merge_two_dicts
 from utilities.motion_editing import convert_quaternion_to_euler, \
                                 get_cartesian_coordinates2, \
                                 transform_quaternion_frames, \
@@ -41,6 +40,15 @@ class PathSearchError(Exception):
         self.search_parameters = parameters
         message = "Error in the navigation goal generation"
         super(PathSearchError, self).__init__(message)
+
+
+def merge_two_dicts(x, y):
+    '''Given two dicts, merge them into a new dict as a shallow copy.
+    source: http://stackoverflow.com/questions/38987/how-can-i-merge-two-python-dictionaries-in-a-single-expression
+    '''
+    z = x.copy()
+    z.update(y)
+    return z
 
 
 def get_action_list(quat_frames, time_information, constraints, keyframe_annotations, offset=0):

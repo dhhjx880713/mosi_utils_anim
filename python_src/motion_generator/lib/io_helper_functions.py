@@ -51,14 +51,6 @@ def write_to_logfile2(path,time_string,data_string):
         with open(path,"a") as file_handle:
             file_handle.write(line)
 
-def merge_two_dicts(x, y):
-    '''Given two dicts, merge them into a new dict as a shallow copy.
-    source: http://stackoverflow.com/questions/38987/how-can-i-merge-two-python-dictionaries-in-a-single-expression
-    '''
-    z = x.copy()
-    z.update(y)
-    return z
-
 
 
 def load_json_file(filename, use_ordered_dict = False):
@@ -264,46 +256,3 @@ def convert_quat_frames_to_bvh_string(bvh_reader, quat_frames, start_pose=None):
               is_quaternion=True)
     return bvh_writer.generate_bvh_string()
 
-
-def trajectory_len(frames):
-    """Compute the trajectory length of a list of frames
-    
-    Parameters
-    ----------
-    *frames: list
-    \tFrames can be euler frames or quaternion frame
-    
-    Return
-    ------
-    *trajectory_len: float
-    \tLength of trajectory
-
-    """
-    assert type(frames) is list, "frames should be a list object"
-    tra_len = 0
-    for i in xrange(len(frames)-1):
-        tra_len += np.sqrt((frames[i+1][2] - frames[i][2])**2 + (frames[i+1][0] - frames[i][0])**2)
-    return tra_len    
-
-def point_distance(point1, point2):
-    """Compute Euclidean distance of two points
-       if the point contains None value, then it is regards as 0
-    Parameters
-    ----------
-    * point1: list
-    * point1: list
-    """
-    assert len(point1) == len(point2)
-    dist = 0
-    for i in xrange(len(point1)):
-        if point1[i] is not None and point2[i] is not None:
-            dist += (point1[i] - point2[i]) ** 2
-    return np.sqrt(dist)
-
-def main():
-    point1 = [0, None, 0]
-    point2 = [1,1,None]
-    print point_distance(point1, point2)
-
-if __name__ == "__main__":
-    main()

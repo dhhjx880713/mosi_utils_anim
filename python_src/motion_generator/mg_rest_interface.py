@@ -19,7 +19,7 @@ import threading
 import time
 from controllable_morphable_graph import load_morphable_graph, export_synthesis_result
 from constrain_motion import generate_algorithm_settings
-from lib.helper_functions import load_json_file, global_path_dict, convert_quat_frames_to_bvh_string
+from lib.io_helper_functions import load_json_file, global_path_dict, convert_quat_frames_to_bvh_string
 
 CONFIG_FILE = "config.json"
 

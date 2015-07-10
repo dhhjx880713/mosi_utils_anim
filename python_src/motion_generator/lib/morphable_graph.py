@@ -11,7 +11,7 @@ import random
 import numpy as np
 import datetime
 from utilities.bvh import BVHReader, BVHWriter
-from helper_functions import get_morphable_model_directory, \
+from io_helper_functions import get_morphable_model_directory, \
                              get_transition_model_directory, \
                              load_json_file, \
                              write_to_json_file
