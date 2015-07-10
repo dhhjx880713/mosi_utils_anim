@@ -9,7 +9,6 @@ Note the loading of transition models can take up to 2 minutes
 """
 
 
-import sys
 import os
  # change working directory to the script file directory
 dirname, filename = os.path.split(os.path.abspath(__file__))

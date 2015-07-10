@@ -16,7 +16,7 @@ from utilities.bvh import BVHReader, create_filtered_node_name_map
 from lib.helper_functions import load_json_file, write_to_json_file,\
                                  write_to_logfile, \
                                  export_quat_frames_to_bvh
-from lib.graph_walk_extraction import extract_keyframe_annotations                                    
+from lib.input_processing import extract_keyframe_annotations                                    
 from lib.morphable_graph import MorphableGraph
 from constrain_motion import generate_algorithm_settings
 from synthesize_motion import convert_elementary_action_list_to_motion

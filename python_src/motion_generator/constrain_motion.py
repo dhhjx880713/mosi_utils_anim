@@ -11,7 +11,7 @@ from lib.evaluation_methods import check_sample_validity
 from constrain_gmm import ConstrainedGMM
 from optimize_motion import run_optimization,\
                     generate_optimization_settings
-from lib.graph_walk_extraction import get_step_length_for_sample
+from lib.input_processing import get_step_length_for_sample
 from lib.constraint import obj_error_sum,evaluate_list_of_constraints,\
                             global_counter_dict
 

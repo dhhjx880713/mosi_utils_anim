@@ -17,7 +17,7 @@ from utilities.motion_editing import convert_quaternion_to_euler, \
                                 get_cartesian_coordinates2, \
                                 transform_quaternion_frames, \
                                 fast_quat_frames_alignment
-from lib.graph_walk_extraction import create_trajectory_from_constraint,\
+from lib.input_processing import create_trajectory_from_constraint,\
                                     extract_all_keyframe_constraints,\
                                     extract_trajectory_constraint,\
                                     extract_key_frame_constraint,\
