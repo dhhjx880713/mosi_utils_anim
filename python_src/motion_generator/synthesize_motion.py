@@ -93,11 +93,11 @@ def transform_from_left_to_right_handed_cs(start_pose):
     start_pose["position"] = transform_point_from_cad_to_opengl_cs(start_pose_copy["position"])
     return start_pose
 
-def get_action_list(quat_frames, time_information, constraints, keyframe_annotations, offset=0):
+def get_action_list(quat_frames, time_information, constraints, keyframe_annotations, start_frame, last_frame):
     """Associates annotations to frames
     Parameters
     ----------
-    *euler_frames : np.ndarray
+    *quat_frames : np.ndarray
       motion
     * time_information : dict
       maps keyframes to frame numbers
@@ -121,9 +121,9 @@ def get_action_list(quat_frames, time_information, constraints, keyframe_annotat
             for key_label in c["semanticAnnotation"]:  # can also contain lastFrame and firstFrame
                 if key_label in keyframe_annotations.keys() and key_label in time_information.keys():
                     if time_information[key_label] == "lastFrame":
-                        key_frame = len(quat_frames)-1+offset
+                        key_frame = last_frame
                     elif time_information[key_label] == "firstFrame":
-                        key_frame = offset
+                        key_frame = start_frame
                         
                     if "annotations" in keyframe_annotations[key_label].keys():
                         key_frame_label_pairs.add((key_frame,key_label))
@@ -222,12 +222,15 @@ def get_optimal_motion(morphable_graph,
             prev_action_name = prev_motion.graph_walk[-1].action_name
             prev_mp_name =  prev_motion.graph_walk[-1].motion_primitive_name
             prev_parameters =  prev_motion.graph_walk[-1].parameters
-            prev_frames = prev_motion.quat_frames
+
         else:
             prev_action_name = ""
             prev_mp_name =  ""
             prev_parameters =  None
-            prev_frames = None
+        if prev_motion.quat_frames is not None:
+            start_frame = len(prev_motion.quat_frames)
+        else:
+            start_frame = 0
         parameters = get_optimal_parameters(morphable_graph,
                                             action_name,
                                             mp_name,
@@ -235,7 +238,7 @@ def get_optimal_motion(morphable_graph,
                                             algorithm_config=algorithm_config,
                                             prev_action_name=prev_action_name,
                                             prev_mp_name=prev_mp_name,
-                                            prev_frames=prev_frames,
+                                            prev_frames=prev_motion.quat_frames,
                                             prev_parameters=prev_parameters,
                                             bvh_reader=bvh_reader,
                                             node_name_map=node_name_map,
@@ -243,27 +246,25 @@ def get_optimal_motion(morphable_graph,
                                             verbose=verbose)
     except  ConstraintError as e:
         print "Exception",e.message
-        raise SynthesisError(prev_frames,e.bad_samples)
+        raise SynthesisError(prev_motion.quat_frames,e.bad_samples)
         
         
-    if prev_frames is not None:
-        frame_offset = len(prev_frames)
-    else:
-        frame_offset = 0
+
         
     use_time_parameters = True
     quat_frames = get_aligned_frames(morphable_graph, action_name, mp_name,
-                                     parameters, prev_frames, start_pose,
+                                     parameters, prev_motion.quat_frames, start_pose,
                                      use_time_parameters, apply_smoothing)
 
 #            print 'length of quat frames in get optimal motion from no previous frames: ' + str(len(quat_frames))
     #associate keyframe annotation to quat_frames
-            
+    
+    last_frame = len(quat_frames)-1
     if mp_name in morphable_graph.subgraphs[action_name].mp_annotations.keys():
         time_information = morphable_graph.subgraphs[action_name].mp_annotations[mp_name]
     else:
         time_information = {}
-    action_list = get_action_list(quat_frames,time_information,constraints,keyframe_annotations,offset=frame_offset)
+    action_list = get_action_list(quat_frames, time_information, constraints, keyframe_annotations, start_frame, last_frame)
     return quat_frames, parameters, action_list
 
 def get_point_and_orientation_from_arc_length(trajectory,arc_length,unconstrained_indices):
@@ -607,13 +608,7 @@ def convert_elementary_action_to_motion(action_name,
 
     Returns
     -------
-   *  quat_frames : np.ndarray
-    * last_action_name : string
-    * last_mp_name : string
-    * last_parameters : np.ndarray
-    * step_count : integer
-    * action_list : dict of lists of dict
-     \t euler_frames + information for the transiton to another elementary action
+    * motion: AnnotatedMotion
     """
     
     #motion = prev_motion
