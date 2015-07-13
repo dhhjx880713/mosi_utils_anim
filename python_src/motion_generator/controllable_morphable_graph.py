@@ -111,7 +111,7 @@ class ControllableMorphableGraph(MorphableGraph):
         elementary_action_list = mg_input["elementaryActions"]
         start_pose = mg_input["startPose"]
         keyframe_annotations = extract_keyframe_annotations(elementary_action_list)
-        quat_frames, frame_annotation, action_list = convert_elementary_action_list_to_motion(self,\
+        motion = convert_elementary_action_list_to_motion(self,\
                                              elementary_action_list, options, self.bvh_reader, self.node_name_map,\
                                              max_step=max_step, start_pose=start_pose, keyframe_annotations=keyframe_annotations,\
                                              verbose=verbose)
@@ -123,19 +123,19 @@ class ControllableMorphableGraph(MorphableGraph):
         if export:
             if output_filename == "" and "session" in mg_input.keys():
                 output_filename = mg_input["session"]
-                frame_annotation["sessionID"] = mg_input["session"]
 
-            if quat_frames is not None:
+                motion.frame_annotation["sessionID"] = mg_input["session"]
+
+            if motion.quat_frames is not None:
                 time_stamp = unicode(datetime.now().strftime("%d%m%y_%H%M%S"))
                 prefix = output_filename + "_" + time_stamp
                 
                 write_to_logfile(output_dir + os.sep + LOG_FILE, prefix, options)
-                export_synthesis_result(mg_input, output_dir, output_filename, self.bvh_reader, quat_frames, frame_annotation, action_list, add_time_stamp=True)
+                export_synthesis_result(mg_input, output_dir, output_filename, self.bvh_reader, motion.quat_frames, motion.frame_annotation, motion.action_list, add_time_stamp=True)
             else:
                 print "Error: failed to generate motion data"
 
-        return quat_frames, frame_annotation, action_list                
-
+        return motion
 
 
 

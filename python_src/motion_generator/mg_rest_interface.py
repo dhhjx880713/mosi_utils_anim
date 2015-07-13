@@ -49,8 +49,8 @@ class MGInputHandler(tornado.web.RequestHandler):
                 
             # start algorithm if predefined keys were found
             if "elementaryActions" in mg_input.keys():
-                mg_result_tuple = self.application.synthesize_motion(mg_input)
-                self._handle_result(mg_input, mg_result_tuple, self.application.use_file_output_mode, self.application.service_config, self.application.morphable_graph.bvh_reader)
+                motion = self.application.synthesize_motion(mg_input)
+                self._handle_result(mg_input, motion, self.application.use_file_output_mode, self.application.service_config, self.application.morphable_graph.bvh_reader)
             else:
                 print mg_input
                 self.application.morphable_graph.print_information()
@@ -59,20 +59,19 @@ class MGInputHandler(tornado.web.RequestHandler):
    
 
  
-    def _handle_result(self, mg_input, mg_result_tuple, use_file_output_mode, service_config, bvh_reader):
+    def _handle_result(self, mg_input, motion, use_file_output_mode, service_config, bvh_reader):
         """Sends the result back as an answer to a post request.
         """
-        if mg_result_tuple[0] is not None:  # checks for quat_frames in result_tuple
+        if motion.quat_frames is not None:  # checks for quat_frames in result_tuple
             if use_file_output_mode:
                 export_synthesis_result(mg_input, service_config["output_dir"], service_config["output_filename"], \
-                                        bvh_reader, \
-                                        *mg_result_tuple, add_time_stamp=False)
+                                        bvh_reader, motion.quat_frames, motion.frame_annotation, motion.action_list, add_time_stamp=False)
                 self.write("succcess")
             else:
-                quat_frames = mg_result_tuple[0]
-                bvh_writer = get_bvh_writer(bvh_reader, quat_frames)
+
+                bvh_writer = get_bvh_writer(bvh_reader, motion.quat_frames )
                 bvh_string = bvh_writer.generate_bvh_string()
-                result_list = [bvh_string, mg_result_tuple[1], mg_result_tuple[2]]
+                result_list = [bvh_string, motion.frame_annotation, motion.action_list]
                 self.write(json.dumps(result_list))#send result back
         else:
             error_string = "Error: Failed to generate motion data."
@@ -117,16 +116,16 @@ class ServerThread(threading.Thread):
         #do something else
         time.sleep(1)
     '''
-    def __init__(self, webApplication, port=8889):
+    def __init__(self, web_application, port=8889):
         threading.Thread.__init__(self)
-        self.webApplication = webApplication
+        self.web_application = web_application
         self.port = port
     
  
                
     def run(self):
         print "starting server"
-        self.webApplication.listen(self.port)       
+        self.web_application.listen(self.port)       
         tornado.ioloop.IOLoop.instance().start() 
 
     def stop(self):
@@ -177,14 +176,16 @@ class MorphableGraphsRESTfulInterface(object):
 
         #  Create server thread
         self.port = service_config["port"]
-        self.server = ServerThread(self.application, self.port)
+#        self.server = ServerThread(self.application, self.port)
 
         
     def start(self):
-        self.server.start()
-        while True:
-            time.sleep(1)
-            #print "run"
+        self.application.listen(self.port)
+        tornado.ioloop.IOLoop.instance().start() 
+#        self.server.start()
+#        while True:
+#            time.sleep(1)
+#            #print "run"
   
     
 def main():

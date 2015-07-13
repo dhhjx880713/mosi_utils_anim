@@ -40,16 +40,16 @@ def run_pipeline(root_directory, input_file, output_dir, output_filename, config
     
     verbose = False
 
-    result_tuple = morphable_graph.synthesize_motion(input_file,options=options,
+    motion = morphable_graph.synthesize_motion(input_file,options=options,
                                                       max_step=max_step,
                                                       verbose=verbose,
                                                       output_dir=output_dir,
                                                       output_filename=output_filename,
                                                       export=False)
 
-    if result_tuple[0] is not None:  # checks for quat_frames in result_tuple
+    if motion.quat_frames is not None:  # checks for quat_frames in result_tuple
         mg_input = load_json_file(input_file)
-        export_synthesis_result(mg_input, output_dir, output_filename, morphable_graph.bvh_reader, *result_tuple, add_time_stamp=False)
+        export_synthesis_result(mg_input, output_dir, output_filename, morphable_graph.bvh_reader, motion.quat_frames, motion.frame_annotation, motion.action_list, add_time_stamp=False)
     else:
         print "Error: Failed to generate motion data."
 

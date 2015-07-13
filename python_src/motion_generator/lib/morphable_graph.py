@@ -787,14 +787,7 @@ class MorphableGraph(object):
                 print "\t##########"       
                 
                 
-def test_path():
-    path = get_morphable_model_directory()
-    print next(os.walk(path))[1]
-    paths = []
-    for root, dirs, files in  os.walk(path):
-        for mm_file in files:
-            paths.append(root+os.sep+mm_file)
-    print paths
+
 
 def print_morphable_graph_structure(morphable_graph):
     for s in morphable_graph.subgraphs.keys():
@@ -882,12 +875,11 @@ def test_morphable_graph(load_transition_models = False):
     #morphable_graph = MorphableGraph(mm_directory,transition_directory)
     print_morphable_graph_structure(morphable_graph)
     print "loaded the morphable graph in",time.time()-start,"seconds"
-    text_input = raw_input("Enter Data: ")
 
     n_steps = 10
     elementary_action = "walk"
-    #graph_walk = morphable_graph.generate_random_walk(elementary_action,n_steps,load_transition_models)
-    #export_graph_walk_to_bvh(bvh_reader, graph_walk, morphable_graph, True, True, prefix = "smoothed_",out_dir="random_walks")
+    graph_walk = morphable_graph.generate_random_walk(elementary_action,n_steps,load_transition_models)
+    export_graph_walk_to_bvh(bvh_reader, graph_walk, morphable_graph, True, True, prefix = "smoothed_",out_dir="random_walks")
     #export_graph_walk_to_bvh(bvh_reader, graph_walk, morphable_graph, True, False, prefix = "",out_dir="random_walks")
     
 def load_subgraph(elementary_action = "walk",load_transition_models = True):
@@ -935,17 +927,10 @@ def test_morphable_subgraph(elementary_action = "walk",load_transition_models = 
         export_graph_walk_to_bvh(bvh_reader, graph_walk, morphable_graph, True, apply_smoothing, prefix = prefix,out_dir="random_walks")
     
 def main():
-    #test_morphable_graph(load_transition_models=False)
-    
-    elementary_action= "pick"#"pick"
-    load_transition_models = False
-    apply_smoothing = True
-    #test_morphable_subgraph(elementary_action,load_transition_models,apply_smoothing)
-    test_morphable_graph(load_transition_models)
+    test_morphable_graph(False)
 
 
 if __name__ ==  "__main__":
-    #test_path()
     main()
     
     

@@ -152,7 +152,7 @@ def extract_trajectory_constraints_for_plotting(mg_input,action_index,scale_fact
             control_points[joint_name].append([0,0,0])#add origin as point
             for c in entry["trajectoryConstraints"]:
                 #point = [ p*scale_factor  for p in c["position"] if p!= None]
-                point = [ p*scale_factor if p!= None else 0 for p in c["position"] ]
+                point = [ p*scale_factor if p is not None else 0 for p in c["position"] ]
                 point = transform_point(inv_start_transformation,point)
                 point = [point[0],point[2]]
                 control_points[joint_name].append(point)

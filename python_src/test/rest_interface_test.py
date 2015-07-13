@@ -20,8 +20,9 @@ def test_rest_inteface():
     request = urllib2.Request(mg_server_url, data)
     print "send message and wait for answer..."
     handler = urllib2.urlopen(request)
-    print handler.read()
-    assert handler.read()=="success"
+    result = handler.read()
+    print result
+    assert str(result)=="success"
     
 if __name__ == "__main__":
     test_rest_inteface()
