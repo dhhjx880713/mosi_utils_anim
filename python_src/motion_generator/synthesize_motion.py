@@ -688,7 +688,7 @@ def convert_elementary_action_to_motion(action_name,
         
         #update arc length based on new closest point
         if trajectory is not None:
-            if motion.step_count > 0:
+            if len(motion.graph_walk) > 0:
                 min_arc_length = motion.graph_walk[-1].arc_length
             else:
                 min_arc_length = 0.0
