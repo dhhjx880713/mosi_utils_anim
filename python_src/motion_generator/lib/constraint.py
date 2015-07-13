@@ -21,9 +21,15 @@ from utilities.bvh import get_joint_weights
 from utilities.custom_transformations import vector_distance
 from external.transformations import rotation_matrix
 
+POSITION_ERROR_FACTOR = 1  # importance of reaching position constraints
+ROTATION_ERROR_FACTOR = 10  # importance of reaching rotation constraints
+RELATIVE_HUERISTIC_RANGE = 0.10  # used for setting the search range relative to the number of frames of motion primitive
+
 global_counter_dict = {}
 global_counter_dict["evaluations"] = 0# counter for calls of the objective function
 global_counter_dict["motionPrimitveErrors"] = []# holds errors of individual motion primitives
+
+
 
 def find_aligned_quaternion_frames(mm, s, prev_frames, start_pose, bvh_read,
                                    node_name_map):
@@ -132,7 +138,7 @@ def constraint_distance(constraint, target_position=None,
     return position_distance, rotation_distance
 
 
-def check_constraint_one_frame(frame, constraint, bvh_reader,
+def check_pos_and_rot_constraint_one_frame(frame, constraint, bvh_reader,
                                node_name_map=None,
                                precision={"pos":1,"rot":1},
                                verbose=False):
@@ -190,6 +196,135 @@ def check_constraint_one_frame(frame, constraint, bvh_reader,
         return False,np.inf
 
 
+def check_dir_constraint(quat_frames, constraint, precision):
+    
+          
+
+        # get motion orientation
+#        motion_dir = get_orientation_vec(frames)
+        motion_dir = pose_orientation(quat_frames[-1])
+#        last_transformation = create_transformation(frames[-1][3:6],[0, 0, 0])
+#        motion_dir = transform_point(last_transformation,[0,0,1])
+#        motion_dir = np.array([motion_dir[0], motion_dir[2]])
+#        motion_dir = motion_dir/np.linalg.norm(motion_dir)
+        target_dir = np.array([constraint[0], constraint[2]])
+        target_dir = target_dir/np.linalg.norm(target_dir)
+        
+        r_distance = abs(target_dir[0] - motion_dir[0]) + \
+                     abs(target_dir[1] - motion_dir[1])
+        if r_distance < precision:
+            success = True
+        else:
+            success = False
+
+        r_distance = r_distance * ROTATION_ERROR_FACTOR
+        # to check the last frame pass rotation and trajectory constraint or not
+        # put higher weights for orientation constraint
+        n_frames = len(quat_frames) 
+        if success:
+            return [(n_frames-1, r_distance)], []
+        else:
+            return [], [(n_frames - 1,r_distance)]
+
+
+
+def check_frame_constraint(quat_frames, constraint, precision, bvh_reader, node_name_map):
+
+        # get point cloud of first frame
+        point_cloud = convert_quaternion_frame_to_cartesian_frame(bvh_reader,quat_frames[0],
+                                                             node_name_map)
+
+        constraint_point_cloud = []
+        for joint in node_name_map.keys():
+            constraint_point_cloud.append(constraint[joint])
+        weights = get_joint_weights(bvh_reader,node_name_map)
+
+        theta, offset_x, offset_z = align_point_clouds_2D(constraint_point_cloud,
+                                                          point_cloud,
+                                                          weights)
+        t_point_cloud = transform_point_cloud(point_cloud, theta, offset_x, offset_z)
+
+        error = calculate_point_cloud_distance(constraint_point_cloud,t_point_cloud)
+        if error < precision:
+            success = True
+        else:
+            success = False
+        if success:
+            return [(0, error)], []
+        else:
+            return [], [(0,error)]
+
+
+def convert_annotation_to_indices(constrain_first_frame, constrain_last_frame):
+        start_stop_dict = {
+            (None, None): (None, None),
+            (True, None): (None, 1),
+            (False, None): (1, None),
+            (None, True): (-1, None),
+            (None, False): (None, -1),
+            (True, False): (None, 1),
+            (False, True): (-1, None),
+            (False, False): (1, -1)
+        }
+        start, stop = start_stop_dict[(constrain_first_frame, constrain_last_frame)]
+        return start, stop
+
+
+
+
+
+def check_pos_and_rot_constraint(quat_frames, constraint, precision, bvh_reader, node_name_map, annotation, verbose=False):
+    #        print "position constraint is called"
+        constrain_first_frame, constrain_last_frame = annotation
+        n_frames = len(quat_frames) 
+        #check specific frames
+        last_frame_quat =quat_frames[-1]
+        first_frame_quat = quat_frames[0]
+        #last_frame_euler = np.ravel(convert_quaternion_to_euler([quat_frames[-1]]))
+        if constrain_first_frame and constrain_last_frame:  # special case because of and
+
+            first,f_distance = check_pos_and_rot_constraint_one_frame(first_frame_quat, 
+                                                          constraint, 
+                                                          bvh_reader,
+                                                          node_name_map,
+                                                          precision,
+                                                          verbose)
+
+            last,l_distance = check_pos_and_rot_constraint_one_frame(last_frame_quat,
+                                                         constraint,  
+                                                         bvh_reader,
+                                                         node_name_map,
+                                                         precision,
+                                                         verbose)        
+            if first+last:
+                return [(0,f_distance), (n_frames - 1,l_distance )],[]
+            else:
+                return [],[(0,f_distance), (n_frames - 1,l_distance )]
+
+
+    
+        start, stop = convert_annotation_to_indices(constrain_first_frame, constrain_last_frame)
+
+        n_frames = len(quat_frames)
+
+        heuristic_range = RELATIVE_HUERISTIC_RANGE * n_frames
+
+        filtered_frames = quat_frames[-heuristic_range:]
+        filtered_frame_nos = range(n_frames)
+
+        ok = []
+        failed = []
+        for frame_no, frame in zip(filtered_frame_nos, filtered_frames):#_euler
+            success ,distance = check_pos_and_rot_constraint_one_frame(frame, constraint,  bvh_reader,node_name_map,
+                                          precision,verbose)
+            if success:
+                ok.append((frame_no,distance))
+            else:
+                failed.append( (frame_no,distance))
+
+        return ok,failed
+  
+
 
 def check_constraint(quat_frames,constraint,
                      bvh_reader,
@@ -198,8 +333,8 @@ def check_constraint(quat_frames,constraint,
                      node_name_map=None,
                      start_pose=None,
                      precision={"pos":1,"rot":1,"smooth":1},
-                     firstFrame=None,
-                     lastFrame=None,
+                     constrain_first_frame=None,
+                     constrain_last_frame=None,
                      verbose=False):
     """ Main function of the modul. Check whether a sample fullfiles the
     constraint with the given precision or not. 
@@ -237,137 +372,23 @@ def check_constraint(quat_frames,constraint,
         together with the distance to the constraint calculated using l2 norm ignoring None
     """
 
-    start_stop_dict = {
-        (None, None): (None, None),
-        (True, None): (None, 1),
-        (False, None): (1, None),
-        (None, True): (-1, None),
-        (None, False): (None, -1),
-        (True, False): (None, 1),
-        (False, True): (-1, None),
-        (False, False): (1, -1)
-    }
+
 
 #    frames = find_aligned_frames(mm, s, prev_frames, start_pose,
 #                                 bvh_reader, node_name_map)
-    n_frames = len(quat_frames)             
+          
     #handle the different types of constraints
-
-    if "dir_vector" in constraint.keys() and lastFrame: # orientation constraint on last frame
-#        print "direction constraint is called"
-        # get motion orientation
-#        motion_dir = get_orientation_vec(frames)
-        motion_dir = pose_orientation(quat_frames[-1])
-#        last_transformation = create_transformation(frames[-1][3:6],[0, 0, 0])
-#        motion_dir = transform_point(last_transformation,[0,0,1])
-#        motion_dir = np.array([motion_dir[0], motion_dir[2]])
-#        motion_dir = motion_dir/np.linalg.norm(motion_dir)
-        target_dir = np.array([constraint["dir_vector"][0], constraint["dir_vector"][2]])
-        target_dir = target_dir/np.linalg.norm(target_dir)
-        
-        r_distance = abs(target_dir[0] - motion_dir[0]) + \
-                     abs(target_dir[1] - motion_dir[1])
-        if r_distance < precision["rot"]:
-            success = True
-        else:
-            success = False
-        r_distance = r_distance * 10
-        # to check the last frame pass rotation and trajectory constraint or not
-        # put higher weights for orientation constraint
-        if success:
-            return [(n_frames-1, r_distance)], []
-        else:
-            return [], [(n_frames - 1,r_distance)]
-
+    if "dir_vector" in constraint.keys() and constrain_last_frame: # orientation constraint on last frame
+        return check_dir_constraint(quat_frames, constraint["dir_vector"], precision["rot"])
     elif "frame_constraint" in  constraint.keys():
-#        print "frame constraint is called"
-        #print "check frame constraint"
-        # get point cloud of first frame
-        point_cloud = convert_quaternion_frame_to_cartesian_frame(bvh_reader,quat_frames[0],
-                                                             node_name_map)
-#        first_frame_euler = np.ravel(convert_quaternion_to_euler([quat_frames[0]]))
-#        point_cloud = convert_euler_frame_to_cartesian_frame(bvh_reader,
-#                                                             first_frame_euler,
-#                                                             node_name_map)
-#        point_cloud = convert_euler_frame_to_cartesian_frame(bvh_reader,
-#                                                             frames[0],
-#                                                             node_name_map)
-        constraint_point_cloud = []
-        for joint in node_name_map.keys():
-            constraint_point_cloud.append(constraint["frame_constraint"][joint])
-        weights = get_joint_weights(bvh_reader,node_name_map)
-
-        theta, offset_x, offset_z = align_point_clouds_2D(constraint_point_cloud,
-                                                          point_cloud,
-                                                          weights)
-        t_point_cloud = transform_point_cloud(point_cloud, theta, offset_x, offset_z)
-
-        error = calculate_point_cloud_distance(constraint_point_cloud,t_point_cloud)
-        if error < precision["smooth"]:
-            success = True
-        else:
-            success = False
-        if success:
-            return [(0, error)], []
-        else:
-            return [], [(0,error)]
-
+        return check_frame_constraint(quat_frames, constraint["frame_constraint"], precision["smooth"], bvh_reader, node_name_map)
     elif "position" or "orientation" in constraint.keys():
-#        print "position constraint is called"
-        #check specific frames
-        last_frame_quat =quat_frames[-1]
-        first_frame_quat = quat_frames[0]
-        #last_frame_euler = np.ravel(convert_quaternion_to_euler([quat_frames[-1]]))
-        if firstFrame and lastFrame:  # special case because of and
-#            first,f_distance = check_constraint_one_frame(frames[0], constraint, bvh_reader,node_name_map,
-#                                            precision,verbose)
-#
-#            last,l_distance = check_constraint_one_frame(frames[-1], constraint,  bvh_reader,node_name_map,
-#                                           precision,verbose)
-            first,f_distance = check_constraint_one_frame(first_frame_quat, 
-                                                          constraint, 
-                                                          bvh_reader,
-                                                          node_name_map,
-                                                          precision,
-                                                          verbose)
-
-            last,l_distance = check_constraint_one_frame(last_frame_quat,
-                                                         constraint,  
-                                                         bvh_reader,
-                                                         node_name_map,
-                                                         precision,
-                                                         verbose)        
-            if first+last:
-                return [(0,f_distance), (n_frames - 1,l_distance )],[]
-            else:
-                return [],[(0,f_distance), (n_frames - 1,l_distance )]
-
-        start, stop = start_stop_dict[(firstFrame, lastFrame)]
-
-
-
-        heuristic_range = 0.10 * n_frames
-
-#        filtered_frames = frames[-heuristic_range:]
-        filtered_frames = quat_frames[-heuristic_range:]
-        #filtered_frames_euler = convert_quaternion_to_euler(filtered_frames)
-        filtered_frame_nos = range(n_frames)
-
-        ok = []
-        failed = []
-        for frame_no, frame in zip(filtered_frame_nos, filtered_frames):#_euler
-            success ,distance = check_constraint_one_frame(frame, constraint,  bvh_reader,node_name_map,
-                                          precision,verbose)
-            if success:
-                ok.append((frame_no,distance))
-            else:
-                failed.append( (frame_no,distance))
-
-        return ok,failed
+        return check_pos_and_rot_constraint(quat_frames, constraint, precision, bvh_reader, node_name_map, (constrain_first_frame, constrain_last_frame), verbose=verbose)
     else:
-        print "no constraint type specified"
+        print "Error: Constraint type not reconginized"
         return [],[(0,10000)]
 
+        
 
 def evaluate_list_of_constraints(motion_primitive,s,constraints,prev_frames,start_pose,bvh_reader,node_name_map=None,\
                         precision = {"pos":1,"rot":1,"smooth":1},verbose=False):
@@ -392,14 +413,12 @@ def evaluate_list_of_constraints(motion_primitive,s,constraints,prev_frames,star
                                                      node_name_map)
 
     for c in constraints:
-         firstFrame = c["semanticAnnotation"]["firstFrame"] 
-         lastFrame = c["semanticAnnotation"]["lastFrame"] 
          good_frames, bad_frames = check_constraint(aligned_frames, c,
                                           bvh_reader,
                                           node_name_map=node_name_map,
                                           precision=precision, 
-                                          firstFrame=firstFrame,
-                                          lastFrame=lastFrame,
+                                          constrain_first_frame=c["semanticAnnotation"]["firstFrame"] ,
+                                          constrain_last_frame=c["semanticAnnotation"]["lastFrame"] ,
                                           verbose=verbose)
 
                                           
