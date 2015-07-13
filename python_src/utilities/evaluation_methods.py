@@ -7,7 +7,7 @@ Created on Tue Feb 17 15:39:02 2015
 
 import collections
 import numpy as np
-from utilities.motion_editing import convert_euler_frames_to_cartesian_frames, \
+from motion_editing import convert_euler_frames_to_cartesian_frames, \
                                 convert_quaternion_to_euler,\
                                          euler_substraction
 
@@ -452,10 +452,10 @@ def check_average_velocity(bvh_reader, euler_frames, average_velocity, eps=4, bi
             i += 1
     return True
 
-def check_sample_validity(graph_node,sample,bvh_reader,node_name_map=None,eps =4):
+def check_sample_validity(graph_node, sample, bvh_reader, node_name_map=None, eps=4):
     valid = True
     parameter_bb = graph_node.parameter_bb
-    if parameter_bb != None:
+    if parameter_bb is not None:
         quaternion_frames = graph_node.mp.back_project(sample).get_motion_vector().tolist()
         euler_frames = convert_quaternion_to_euler(quaternion_frames)
         valid = check_parameter_bounding_box2(euler_frames,parameter_bb,eps,update_bb = False)

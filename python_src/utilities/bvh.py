@@ -219,7 +219,7 @@ class BVHWriter(object):
         self.frame_data = frame_data
         self.frame_time = frame_time
         self.is_quaternion = is_quaternion
-        if filename != None:
+        if filename is not None:
             self.write(filename)
             
        

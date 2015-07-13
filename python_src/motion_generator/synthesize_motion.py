@@ -354,7 +354,7 @@ def create_constraints_for_motion_primitive(morphable_subgraph,current_state,tra
 
 
 
-        if settings["use_frame_constraints"] and  prev_frames != None and bvh_reader != None and node_name_map != None:
+        if settings["use_frame_constraints"] and  prev_frames is not None and bvh_reader is not None and node_name_map is not None:
             frame_constraint= create_frame_constraint(bvh_reader,node_name_map,prev_frames)
             constraints.append(frame_constraint)
             pose_constraint_set = True
@@ -384,7 +384,7 @@ def create_constraints_for_motion_primitive(morphable_subgraph,current_state,tra
             
         # generate frame constraints for the last step basd on the previous state
         # if not already done for the trajectory following
-        if not pose_constraint_set and is_last_step and prev_frames != None:
+        if not pose_constraint_set and is_last_step and prev_frames is not None:
             frame_constraint= create_frame_constraint(bvh_reader,node_name_map,prev_frames)
             constraints.append(frame_constraint)
   

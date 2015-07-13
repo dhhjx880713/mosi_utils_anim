@@ -26,21 +26,6 @@ def discrete_sample(values,probabilities):
     return values[index]
 
 
-def uniquifyList(seq, key=lambda x: x):
-    """ Removes duplicate elements preserving the order
-        http://www.peterbe.com/plog/uniqifiers-benchmark
-    """
-
-    seen = {}
-    result = []
-    for item in seq:
-        marker = tuple(key(item))
-        if marker in seen:
-            continue
-        seen[marker] = 1
-        result.append(item)
-    return result
-
 
 class Node(object):
     """
@@ -214,9 +199,9 @@ class KDTree(object):
             node = node_stack.pop(-1)
             print element_count, node.index, node.point
             if node.type == "inner":
-                if node.left != None:
+                if node.left is not None:
                     node_stack.append(node.left)
-                if node.right != None:
+                if node.right is not None:
                     node_stack.append(node.right)
             element_count += 1
         
@@ -238,9 +223,9 @@ class KDTree(object):
             heapq.heappush(result_queue,(obj(node.point,data),node.point) )
             print element_count# node.point
             if node.type == "inner":
-                if node.left != None:
+                if node.left is not None:
                     node_stack.append(node.left)
-                if node.right != None:
+                if node.right is not None:
                     node_stack.append(node.right)
             element_count += 1
         if len(result_queue) > 0:

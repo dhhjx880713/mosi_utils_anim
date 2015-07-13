@@ -16,7 +16,7 @@ os.chdir(dirname)
 import glob
 import time
 from controllable_morphable_graph import load_morphable_graph, export_synthesis_result
-from lib.io_helper_functions import load_json_file
+from utilities.io_helper_functions import load_json_file
 from constrain_motion import generate_algorithm_settings
 
 
@@ -47,7 +47,7 @@ def run_pipeline(root_directory, input_file, output_dir, output_filename, config
                                                       output_filename=output_filename,
                                                       export=False)
 
-    if result_tuple[0] != None:  # checks for quat_frames in result_tuple
+    if result_tuple[0] is not None:  # checks for quat_frames in result_tuple
         mg_input = load_json_file(input_file)
         export_synthesis_result(mg_input, output_dir, output_filename, morphable_graph.bvh_reader, *result_tuple, add_time_stamp=False)
     else:
@@ -61,11 +61,10 @@ if __name__ == "__main__":
     warnings.simplefilter("ignore")
     
     if os.path.isfile(SERVICE_CONFIG_FILE):
-        service_config = load_json_file(SERVICE_CONFIG_FILE)    
+        service_config = load_json_file(SERVICE_CONFIG_FILE) 
+        
         # select input file as latest file from a fixed input directory
         globalpath = service_config["input_dir"] + os.sep + "*.json"
-        print globalpath
-
         input_file = glob.glob(globalpath)[-1]
         
         run_pipeline(service_config["data_root"], input_file, service_config["output_dir"], service_config["output_filename"], ALGORITHM_CONFIG_FILE)

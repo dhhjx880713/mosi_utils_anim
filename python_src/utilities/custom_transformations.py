@@ -281,7 +281,7 @@ def vector_distance(a,b):
     d_sum = 0
     #print a,b
     for i in xrange(len(a)):
-        if a[i] != None and b[i]!=None:
+        if a[i] is not None and b[i] is not None:
             d_sum += (a[i]-b[i])**2
     return sqrt(d_sum)
 

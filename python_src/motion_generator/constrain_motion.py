@@ -7,7 +7,7 @@ Created on Wed Mar 10 17:15:22 2015
 import time
 import numpy as np
 from utilities.gmm_math import mul
-from lib.evaluation_methods import check_sample_validity
+from utilities.evaluation_methods import check_sample_validity
 from constrain_gmm import ConstrainedGMM
 from optimize_motion import run_optimization,\
                     generate_optimization_settings

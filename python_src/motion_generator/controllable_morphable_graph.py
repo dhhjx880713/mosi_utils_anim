@@ -13,7 +13,7 @@ import os
 import time
 from datetime import datetime
 from utilities.bvh import BVHReader, create_filtered_node_name_map
-from lib.io_helper_functions import load_json_file, write_to_json_file,\
+from utilities.io_helper_functions import load_json_file, write_to_json_file,\
                                  write_to_logfile, \
                                  export_quat_frames_to_bvh_file,\
                                  get_morphable_model_directory,\

@@ -10,8 +10,8 @@ import collections
 import random
 import numpy as np
 import datetime
-from utilities.bvh import BVHReader, BVHWriter
-from io_helper_functions import get_morphable_model_directory, \
+from utilities.bvh import BVHReader, BVHWriter, create_filtered_node_name_map
+from utilities.io_helper_functions import get_morphable_model_directory, \
                              get_transition_model_directory, \
                              load_json_file, \
                              write_to_json_file
@@ -43,7 +43,7 @@ def get_arc_length_from_points(points):
     arc_length = 0.0
     last_p = None
     for p in points:
-        if last_p != None:
+        if last_p is not None:
             delta = p - last_p
             #print delta
             arc_length += sqrt( delta[0]**2 + delta[1]**2 +delta[2]**2) #-arcLength
@@ -666,7 +666,7 @@ class MorphableGraph(object):
         
         #load graphs representing elementary actions including transitions between actions
         self.subgraphs = collections.OrderedDict()
-        if morphable_model_directory != None:
+        if morphable_model_directory is not None:
             self.morphable_model_directory = morphable_model_directory
             
             for key in next(os.walk(morphable_model_directory))[1]:
@@ -839,7 +839,7 @@ def convert_graph_walk_to_euler_frames(bvh_reader, morphable_graph, graph_walk, 
         parameters = entry["parameters"]
         quaternion_frames = morphable_graph.subgraphs[subgraph].nodes[state].mp.back_project(parameters).get_motion_vector()
         euler_frames = convert_quaternion_to_euler(quaternion_frames.tolist())
-        if concatenated_frames != None:
+        if concatenated_frames is not None:
             concatenated_frames = align_frames(bvh_reader,concatenated_frames,euler_frames, node_name_map,smooth) 
         else:
             concatenated_frames = euler_frames
@@ -907,7 +907,7 @@ def load_subgraph(elementary_action = "walk",load_transition_models = True):
             break
     
     
-    if subgraph != None:
+    if subgraph is not None:
         print "loaded the morphable sub graph for", elementary_action,"in",time.time()-start,"seconds"
     else:
         print elementary_action, "not found"
@@ -920,7 +920,7 @@ def test_morphable_subgraph(elementary_action = "walk",load_transition_models = 
     bvh_reader = BVHReader(skeleton_file)
     subgraph = load_subgraph(elementary_action,load_transition_models)
     n_steps = 2
-    if subgraph != None:
+    if subgraph is not None:
         start_state = subgraph.get_random_start_state()
        
         graph_walk = subgraph.generate_random_walk(start_state,n_steps,load_transition_models)

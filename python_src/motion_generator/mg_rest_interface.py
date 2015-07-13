@@ -19,7 +19,7 @@ import threading
 import time
 from controllable_morphable_graph import load_morphable_graph, export_synthesis_result
 from constrain_motion import generate_algorithm_settings
-from lib.io_helper_functions import load_json_file, convert_quat_frames_to_bvh_string
+from utilities.io_helper_functions import load_json_file, get_bvh_writer
 
 ALGORITHM_CONFIG_FILE = "algorithm_config.json"
 SERVICE_CONFIG_FILE = "service_config.json"
@@ -50,7 +50,7 @@ class MGInputHandler(tornado.web.RequestHandler):
             # start algorithm if predefined keys were found
             if "elementaryActions" in mg_input.keys():
                 mg_result_tuple = self.application.synthesize_motion(mg_input)
-                self._handle_result(mg_input, mg_result_tuple, self.application.use_file_output_mode, self.application.service_config)
+                self._handle_result(mg_input, mg_result_tuple, self.application.use_file_output_mode, self.application.service_config, self.application.morphable_graph.bvh_reader)
             else:
                 print mg_input
                 self.application.morphable_graph.print_information()
@@ -59,18 +59,19 @@ class MGInputHandler(tornado.web.RequestHandler):
    
 
  
-    def _handle_result(self, mg_input, mg_result_tuple, use_file_output_mode, service_config):
+    def _handle_result(self, mg_input, mg_result_tuple, use_file_output_mode, service_config, bvh_reader):
         """Sends the result back as an answer to a post request.
         """
-        if mg_result_tuple[0] != None:  # checks for quat_frames in result_tuple
+        if mg_result_tuple[0] is not None:  # checks for quat_frames in result_tuple
             if use_file_output_mode:
                 export_synthesis_result(mg_input, service_config["output_dir"], service_config["output_filename"], \
-                                        self.application.morphable_graph.bvh_reader, \
+                                        bvh_reader, \
                                         *mg_result_tuple, add_time_stamp=False)
                 self.write("succcess")
             else:
                 quat_frames = mg_result_tuple[0]
-                bvh_string = convert_quat_frames_to_bvh_string(self.application.morphable_graph.bvh_reader, quat_frames)
+                bvh_writer = get_bvh_writer(bvh_reader, quat_frames)
+                bvh_string = bvh_writer.generate_bvh_string()
                 result_list = [bvh_string, mg_result_tuple[1], mg_result_tuple[2]]
                 self.write(json.dumps(result_list))#send result back
         else:
@@ -159,19 +160,22 @@ class MorphableGraphsRESTfulInterface(object):
     """
     def __init__(self, service_config_file, algorithm_config_file):
   
+        #  Load configurtation files
         service_config = load_json_file(SERVICE_CONFIG_FILE)    
-        start = time.clock()
-        morphable_graph = load_morphable_graph(service_config["data_root"])
-        print "finished construction from file in", time.clock()-start, "seconds"
         if os.path.isfile(algorithm_config_file):
             algorithm_config = load_json_file(algorithm_config_file)
         else:
             algorithm_config = generate_algorithm_settings()
-
+            
+        #  Construct morphable graph from files
+        start = time.clock()
+        morphable_graph = load_morphable_graph(service_config["data_root"])
+        print "finished construction from file in", time.clock()-start, "seconds"
         self.application = MGRestApplication(morphable_graph, service_config, algorithm_config, 
                                              [(r"/runmorphablegraphs",MGInputHandler)
                                               ])
-                                              
+
+        #  Create server thread
         self.port = service_config["port"]
         self.server = ServerThread(self.application, self.port)
 
@@ -184,12 +188,9 @@ class MorphableGraphsRESTfulInterface(object):
   
     
 def main():
-    
-
     if os.path.isfile(SERVICE_CONFIG_FILE) and os.path.isfile(ALGORITHM_CONFIG_FILE):  
         mg_service = MorphableGraphsRESTfulInterface(SERVICE_CONFIG_FILE, ALGORITHM_CONFIG_FILE)
         mg_service.start()
-    
     else:
         print "Error: could not open service or algorithm configuration file"
     return

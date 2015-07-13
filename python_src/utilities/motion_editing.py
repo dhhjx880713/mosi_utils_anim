@@ -241,9 +241,6 @@ def euler_addition(theta1, theta2):
 
 
 
-#   constraints = [c for c in c_list if c["keyframe"] == "start_contact"]
-#   constraints = [c for c in c_list if c["jointName"] == "leftHand"]
-
 fk_funcs = [
     fk3.one_joint_fk,
     fk3.two_joints_fk,

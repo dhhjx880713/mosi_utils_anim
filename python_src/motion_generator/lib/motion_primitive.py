@@ -190,7 +190,7 @@ class MotionPrimitive(object):
         \tThe sampled motion as object of type MotionSample or numpy.ndarray \
         (Depending on parameter)
         """
-        assert self.gmm != None, "Motion primitive not initialized."
+        assert self.gmm is not None, "Motion primitive not initialized."
         low_dimensional_vector = np.ravel(self.gmm.sample())
         if return_lowdimvector:
             return low_dimensional_vector
