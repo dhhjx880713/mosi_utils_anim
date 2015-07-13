@@ -19,17 +19,17 @@ import threading
 import time
 from controllable_morphable_graph import load_morphable_graph, export_synthesis_result
 from constrain_motion import generate_algorithm_settings
-from lib.io_helper_functions import load_json_file, global_path_dict, convert_quat_frames_to_bvh_string
+from lib.io_helper_functions import load_json_file, convert_quat_frames_to_bvh_string
 
-CONFIG_FILE = "config.json"
-
+ALGORITHM_CONFIG_FILE = "algorithm_config.json"
+SERVICE_CONFIG_FILE = "service_config.json"
 
 class MGInputHandler(tornado.web.RequestHandler):
     """Handles HTTP POST Requests to a registered server url.
         Starts the morphable graphs algorithm if an input file 
         is detected in the request body.
     """
-    def __init__(self,application, request, **kwargs ):
+    def __init__(self, application, request, **kwargs ):
         tornado.web.RequestHandler.__init__(self,application, request, **kwargs)
         self.application = application
         
@@ -41,45 +41,37 @@ class MGInputHandler(tornado.web.RequestHandler):
     def post(self):
             #  try to decode message body
             try:
-                data = json.loads(self.request.body)
+                mg_input = json.loads(self.request.body)
             except:
                 error_string = "Error: Could not decode request body as JSON."
                 self.write(error_string)
                 return
                 
             # start algorithm if predefined keys were found
-            if "elementaryActions" in data.keys():
-                self._run_algorithm(data,self.application.options)
+            if "elementaryActions" in mg_input.keys():
+                mg_result_tuple = self.application.synthesize_motion(mg_input)
+                self._handle_result(mg_input, mg_result_tuple, self.application.use_file_output_mode, self.application.service_config)
             else:
-                print data
+                print mg_input
                 self.application.morphable_graph.print_information()
                 error_string = "Error: Did not find expected keys in the input data."
                 self.write(error_string)
    
 
  
-    def _run_algorithm(self,mg_input,options):
-        max_step = -1
-        verbose = False
-        result_tuple = self.application.morphable_graph.synthesize_motion(mg_input,options=options,
-                                                          max_step=max_step,
-                                                          verbose=verbose,
-                                                          output_dir=global_path_dict["output_dir"],
-                                                          output_filename=global_path_dict["output_filename"],
-                                                          export=False)
-                                                          
-        
-
-        if result_tuple[0] != None:  # checks for quat_frames in result_tuple
-            if self.application.output_mode == "file_output":
-                export_synthesis_result(mg_input, global_path_dict["output_dir"], global_path_dict["output_filename"], \
+    def _handle_result(self, mg_input, mg_result_tuple, use_file_output_mode, service_config):
+        """Sends the result back as an answer to a post request.
+        """
+        if mg_result_tuple[0] != None:  # checks for quat_frames in result_tuple
+            if use_file_output_mode:
+                export_synthesis_result(mg_input, service_config["output_dir"], service_config["output_filename"], \
                                         self.application.morphable_graph.bvh_reader, \
-                                        *result_tuple, add_time_stamp=False)
+                                        *mg_result_tuple, add_time_stamp=False)
                 self.write("succcess")
             else:
-                quat_frames = result_tuple[0]
+                quat_frames = mg_result_tuple[0]
                 bvh_string = convert_quat_frames_to_bvh_string(self.application.morphable_graph.bvh_reader, quat_frames)
-                result_list = [bvh_string, result_tuple[1], result_tuple[2]]
+                result_list = [bvh_string, mg_result_tuple[1], mg_result_tuple[2]]
                 self.write(json.dumps(result_list))#send result back
         else:
             error_string = "Error: Failed to generate motion data."
@@ -94,12 +86,23 @@ class MGRestApplication(tornado.web.Application):
         This allows access to the data in the MGInputHandler class
     '''
         
-    def __init__(self,morphable_graph, options, output_mode, handlers=None, default_host="", transforms=None, **settings):
-        tornado.web.Application.__init__( self, handlers, default_host, transforms)
+    def __init__(self,morphable_graph, service_config, algorithm_config, handlers=None, default_host="", transforms=None, **settings):
+        tornado.web.Application.__init__(self, handlers, default_host, transforms)
         self.morphable_graph = morphable_graph
-        self.options = options
-        self.output_mode = output_mode
-
+        self.algorithm_config = algorithm_config
+        self.service_config = service_config
+        self.use_file_output_mode = (service_config["output_mode"] =="file_output")
+       
+    def synthesize_motion(self, mg_input):
+        max_step = -1
+        verbose = False
+        return self.morphable_graph.synthesize_motion(mg_input,options=self.algorithm_config,
+                                                          max_step=max_step,
+                                                          verbose=verbose,
+                                                          output_dir=self.service_config["output_dir"],
+                                                          output_filename=self.service_config["output_filename"],
+                                                          export=False)
+                                                          
         
 class ServerThread(threading.Thread):
     '''Controls a WebSocketApplication by starting a tornado IOLoop instance in 
@@ -113,7 +116,7 @@ class ServerThread(threading.Thread):
         #do something else
         time.sleep(1)
     '''
-    def __init__(self, webApplication,port=8889):
+    def __init__(self, webApplication, port=8889):
         threading.Thread.__init__(self)
         self.webApplication = webApplication
         self.port = port
@@ -136,10 +139,10 @@ class MorphableGraphsRESTfulInterface(object):
     
     Parameters:
     ----------
-    * config_file : String
+    * service_config_file : String
+        Path to service settings
+    * algorithm_config_file : String
         Path to algorithm settings
-    * port : Integer
-        Reserved port of the server process.
     * output_mode : String
         Can be either "answer_request" or "file_output".
         answer_request: send result to HTTP client
@@ -152,22 +155,24 @@ class MorphableGraphsRESTfulInterface(object):
     Example with urllib2 when output_mode is answer_request:
     request = urllib2.Request(mg_server_url, mg_input_data)
     handler = urllib2.urlopen(request)
-    bvh_string, annoations, actions = json.loads(handler.read())
+    bvh_string, annotations, actions = json.loads(handler.read())
     """
-    def __init__(self, config_file, port=8888, output_mode="file_output"):
- 
+    def __init__(self, service_config_file, algorithm_config_file):
+  
+        service_config = load_json_file(SERVICE_CONFIG_FILE)    
         start = time.clock()
-        morphable_graph = load_morphable_graph()
+        morphable_graph = load_morphable_graph(service_config["data_root"])
         print "finished construction from file in", time.clock()-start, "seconds"
-        if os.path.isfile(config_file):
-            options = load_json_file(config_file)
+        if os.path.isfile(algorithm_config_file):
+            algorithm_config = load_json_file(algorithm_config_file)
         else:
-            options = generate_algorithm_settings()
+            algorithm_config = generate_algorithm_settings()
 
-        self.application = MGRestApplication(morphable_graph, options, output_mode,
+        self.application = MGRestApplication(morphable_graph, service_config, algorithm_config, 
                                              [(r"/runmorphablegraphs",MGInputHandler)
                                               ])
-        self.port = port
+                                              
+        self.port = service_config["port"]
         self.server = ServerThread(self.application, self.port)
 
         
@@ -180,14 +185,13 @@ class MorphableGraphsRESTfulInterface(object):
     
 def main():
     
-    ##TODO place into server configuration file
-    global_path_dict["data_root"] = "E:\\projects\\INTERACT\\repository\\"
-    global_path_dict["output_dir"] = global_path_dict["data_root"] + r"BestFitPipeline\_Results"
-    global_path_dict["output_filename"] = "MGresult"
+
+    if os.path.isfile(SERVICE_CONFIG_FILE) and os.path.isfile(ALGORITHM_CONFIG_FILE):  
+        mg_service = MorphableGraphsRESTfulInterface(SERVICE_CONFIG_FILE, ALGORITHM_CONFIG_FILE)
+        mg_service.start()
     
-    port = 8888
-    mg_service = MorphableGraphsRESTfulInterface(CONFIG_FILE, port)
-    mg_service.start()
+    else:
+        print "Error: could not open service or algorithm configuration file"
     return
 
  

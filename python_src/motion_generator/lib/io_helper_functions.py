@@ -11,14 +11,9 @@ import glob
 import json
 import collections
 from datetime import datetime
-import numpy as np
 from utilities.motion_editing import transform_euler_frames, \
                            transform_quaternion_frames
 from utilities.bvh import BVHWriter
-
-global_path_dict = {}
-global_path_dict["data_root"] = ''# path to parent of data directory
-
 
 def write_to_logfile(path,time_string,data):
     """ Appends json data to a text file.
@@ -99,13 +94,13 @@ def gen_file_paths(dir, mask='*mm.json'):
 
 
 
-def get_morphable_model_directory(morphable_model_type = "motion_primitives_quaternion_PCA95"):
+def get_morphable_model_directory(root_directory, morphable_model_type = "motion_primitives_quaternion_PCA95"):
     """
     Return folder path to store result without trailing os.sep
     """
     data_dir_name = "data"
     process_step_dir_name = "3 - Motion primitives"
-    mm_dir = os.sep.join([global_path_dict["data_root"] ,
+    mm_dir = os.sep.join([root_directory,
                           data_dir_name,
                           process_step_dir_name,
                           morphable_model_type])
@@ -113,13 +108,13 @@ def get_morphable_model_directory(morphable_model_type = "motion_primitives_quat
 
     return mm_dir
 
-def get_motion_primitive_directory(elementary_action):
+def get_motion_primitive_directory(root_directory, elementary_action):
     """Return motion primitive file path
     """
     data_dir_name = "data"
     process_step_dir_name = "3 - Motion primitives"
     morphable_model_type = "motion_primitives_quaternion_PCA95"
-    mm_path = os.sep.join([global_path_dict["data_root"] ,
+    mm_path = os.sep.join([root_directory,
                            data_dir_name,
                            process_step_dir_name,
                            morphable_model_type,
@@ -127,14 +122,14 @@ def get_motion_primitive_directory(elementary_action):
                            ])
     return mm_path
 
-def get_motion_primitive_path(elementary_action,
+def get_motion_primitive_path(root_directory, elementary_action,
                               motion_primitive):
     """Return motion primitive file
     """ 
     data_dir_name = "data"
     process_step_dir_name = "3 - Motion primitives"
     morphable_model_type = "motion_primitives_quaternion_PCA95"
-    mm_path = os.sep.join([global_path_dict["data_root"] ,
+    mm_path = os.sep.join([root_directory,
                            data_dir_name,
                            process_step_dir_name,
                            morphable_model_type,
@@ -146,10 +141,10 @@ def get_motion_primitive_path(elementary_action,
                            ])
     return mm_path               
 
-def get_transition_model_directory():
+def get_transition_model_directory(root_directory):
     data_dir_name = "data"
     process_step_dir_name = "4 - Transition model"
-    transition_dir = os.sep.join([global_path_dict["data_root"] ,
+    transition_dir = os.sep.join([root_directory,
                           data_dir_name,
                           process_step_dir_name,"output"])
     return transition_dir
@@ -193,7 +188,7 @@ def export_euler_frames_to_bvh( output_dir,bvh_reader,euler_frames,prefix = "",s
     print filepath
     BVHWriter(filepath,bvh_reader, euler_frames,bvh_reader.frame_time,is_quaternion=False)
 
-def export_quat_frames_to_bvh(output_dir, bvh_reader, quat_frames,prefix="",
+def export_quat_frames_to_bvh_file(output_dir, bvh_reader, quat_frames,prefix="",
                               start_pose=None, time_stamp=True):
     """ Exports a list of quat frames to a bvh file after transforming the 
     frames to the start pose.
@@ -221,10 +216,7 @@ def export_quat_frames_to_bvh(output_dir, bvh_reader, quat_frames,prefix="",
     else:
          filepath =  output_dir + os.sep+"output"+".bvh"
     print filepath
-    print "#####################################"
-    print type(quat_frames)
-    print quat_frames.shape
-    
+   
     bvh_writer = BVHWriter(None, bvh_reader, quat_frames, bvh_reader.frame_time,
                            is_quaternion=True)
     bvh_writer.write(filepath)

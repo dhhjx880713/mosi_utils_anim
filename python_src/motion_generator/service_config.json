@@ -1,0 +1,8 @@
+{
+    "data_root": "E:\\projects\\INTERACT\\repository", 
+    "output_dir":  "E:\\projects\\INTERACT\\repository\\BestFitPipeline\\_Results",
+    "input_dir": "E:\\projects\\INTERACT\\repository\\BestFitPipeline\\CNL-GUI",
+    "output_filename": "MGResult",
+    "port": 8888,
+    "output_mode": "file_output"
+}

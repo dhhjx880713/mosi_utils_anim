@@ -15,7 +15,7 @@ from datetime import datetime
 from utilities.bvh import BVHReader, create_filtered_node_name_map
 from lib.io_helper_functions import load_json_file, write_to_json_file,\
                                  write_to_logfile, \
-                                 export_quat_frames_to_bvh,\
+                                 export_quat_frames_to_bvh_file,\
                                  get_morphable_model_directory,\
                                  get_transition_model_directory
 from lib.input_processing import extract_keyframe_annotations                                    
@@ -159,7 +159,7 @@ def export_synthesis_result(input_data, output_dir, output_filename, bvh_reader,
             frame_annotation["events"].append(event)
 
       write_to_json_file(output_dir + os.sep + output_filename + "_annotations"+".json", frame_annotation)
-      export_quat_frames_to_bvh(output_dir, bvh_reader, quat_frames, prefix=output_filename, start_pose=None, time_stamp=add_time_stamp)        
+      export_quat_frames_to_bvh_file(output_dir, bvh_reader, quat_frames, prefix=output_filename, start_pose=None, time_stamp=add_time_stamp)        
 
 
 def print_runtime_statistics(seconds):
@@ -173,9 +173,9 @@ def print_runtime_statistics(seconds):
     print error_string
     
 
-def load_morphable_graph(use_transition_model=False, skeleton_file=SKELETON_FILE):
-    mm_directory = get_morphable_model_directory()
-    transition_directory = get_transition_model_directory()
+def load_morphable_graph(root_directory, use_transition_model=False, skeleton_file=SKELETON_FILE):
+    mm_directory = get_morphable_model_directory(root_directory)
+    transition_directory = get_transition_model_directory(root_directory)
     cmg = ControllableMorphableGraph(mm_directory,
                                      transition_directory,
                                      skeleton_file,

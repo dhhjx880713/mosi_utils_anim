@@ -16,14 +16,14 @@ os.chdir(dirname)
 import glob
 import time
 from controllable_morphable_graph import load_morphable_graph, export_synthesis_result
-from lib.io_helper_functions import load_json_file, global_path_dict
+from lib.io_helper_functions import load_json_file
 from constrain_motion import generate_algorithm_settings
 
-CONFIG_FILE = "config.json"
 
+ALGORITHM_CONFIG_FILE = "algorithm_config.json"
+SERVICE_CONFIG_FILE = "service_config.json"
 
-
-def run_pipeline(input_file, output_dir, output_filename, config_file):
+def run_pipeline(root_directory, input_file, output_dir, output_filename, config_file):
     """Creates an instance of the morphable graph and runs the synthesis
        algorithm with the input_file and standard parameters.
     """
@@ -35,7 +35,7 @@ def run_pipeline(input_file, output_dir, output_filename, config_file):
         options = generate_algorithm_settings()
 
     start = time.clock()
-    morphable_graph = load_morphable_graph(use_transition_model=options["use_transition_model"])
+    morphable_graph = load_morphable_graph(root_directory, use_transition_model=options["use_transition_model"])
     print "finished construction from file in",time.clock()-start,"seconds"
     
     verbose = False
@@ -51,7 +51,7 @@ def run_pipeline(input_file, output_dir, output_filename, config_file):
         mg_input = load_json_file(input_file)
         export_synthesis_result(mg_input, output_dir, output_filename, morphable_graph.bvh_reader, *result_tuple, add_time_stamp=False)
     else:
-        print "failed to generate motion data"
+        print "Error: Failed to generate motion data."
 
 if __name__ == "__main__":
     """example call:
@@ -60,20 +60,14 @@ if __name__ == "__main__":
     import warnings
     warnings.simplefilter("ignore")
     
-    # set the path to the parent of the data directory 
-    # TODO set as configuration file parameter
-    global_path_dict["data_root"] = "E:\\projects\\INTERACT\\repository\\"
-    
-   
-    
-    # select input file as latest file from a fixed input directory
-    local_path = os.path.dirname(__file__)
-    globalpath = global_path_dict["data_root"] + r"BestFitPipeline\CNL-GUI\*.json"
-    input_file = glob.glob(globalpath)[-1]
-    
-    # set output parameters to a fixed directory that is observed by an
-    # animation server
-    output_dir = global_path_dict["data_root"] + r"BestFitPipeline\_Results"
-    output_filename = "MGresult"
-    
-    run_pipeline(input_file, output_dir, output_filename, CONFIG_FILE)
+    if os.path.isfile(SERVICE_CONFIG_FILE):
+        service_config = load_json_file(SERVICE_CONFIG_FILE)    
+        # select input file as latest file from a fixed input directory
+        globalpath = service_config["input_dir"] + os.sep + "*.json"
+        print globalpath
+
+        input_file = glob.glob(globalpath)[-1]
+        
+        run_pipeline(service_config["data_root"], input_file, service_config["output_dir"], service_config["output_filename"], ALGORITHM_CONFIG_FILE)
+    else:
+        print "Error: Could not read service config file", SERVICE_CONFIG_FILE
