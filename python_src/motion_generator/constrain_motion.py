@@ -40,7 +40,8 @@ def generate_algorithm_settings(use_constraints=True,
                             trajectory_use_position_constraints=True,
                             trajectory_use_dir_vector_constraints=True,
                             trajectory_use_frame_constraints=True,
-                            activate_cluster_search=True):               
+                            activate_cluster_search=True,
+                            verbose=False):               
     """Should be used to generate a dict containing all settings for the algorithm
     Returns
     ------
@@ -74,7 +75,8 @@ def generate_algorithm_settings(use_constraints=True,
            "optimization_settings": optimization_settings,
            "constrained_gmm_settings":constrained_gmm_settings,
            "trajectory_following_settings" : trajectory_following_settings,
-           "activate_cluster_search" : activate_cluster_search
+           "activate_cluster_search" : activate_cluster_search,
+           "verbose": verbose
             }
     return algorithm_config
                 
@@ -395,7 +397,7 @@ def get_random_parameters(pipeline_parameters):
 def get_optimal_parameters(morphable_graph,action_name,mp_name,constraints,\
                          algorithm_config, prev_action_name="", prev_mp_name="", prev_frames=None, prev_parameters=None, \
                          skeleton=None, \
-                         start_pose=None,verbose=False):
+                         start_pose=None):
         """Uses the constraints to find the optimal paramaters for a motion primitive.
         Parameters
         ----------
@@ -425,7 +427,7 @@ def get_optimal_parameters(morphable_graph,action_name,mp_name,constraints,\
         pipeline_parameters = morphable_graph,action_name,mp_name,constraints,\
                          algorithm_config, prev_action_name, prev_mp_name, prev_frames, prev_parameters, \
                          skeleton, \
-                         start_pose,verbose
+                         start_pose,algorithm_config["verbose"]
         sample_size = algorithm_config["constrained_gmm_settings"]["sample_size"]
         precision = algorithm_config["constrained_gmm_settings"]["precision"]
 
@@ -443,7 +445,7 @@ def get_optimal_parameters(morphable_graph,action_name,mp_name,constraints,\
                 #  space partitioning data structure
                 parameters = search_for_best_sample(graph_node,constraints,prev_frames,start_pose,\
                                         skeleton,\
-                                         verbose=verbose)
+                                         verbose=algorithm_config["verbose"])
                 close_to_optimum = True
             else: 
                 # pick new random samples from the Gaussian Mixture Model
@@ -452,18 +454,17 @@ def get_optimal_parameters(morphable_graph,action_name,mp_name,constraints,\
                                         skeleton,\
                                         precision= precision,\
                                         num_samples=sample_size,\
-                                        activate_parameter_check=algorithm_config["activate_parameter_check"],verbose=verbose)
+                                        activate_parameter_check=algorithm_config["activate_parameter_check"],verbose=algorithm_config["verbose"])
                 
             #3) optimize sampled parameters as initial guess if the constraints were not reached
             if  not algorithm_config["use_transition_model"] and algorithm_config["use_optimization"] and not close_to_optimum:
-                verbose = True
                 bounding_boxes = (graph_node.parameter_bb, graph_node.cartesian_bb)
                 try:
                     initial_guess = parameters
                     parameters = run_optimization(graph_node.mp, gmm, constraints,
                                                     initial_guess, skeleton,
                                                     optimization_settings=algorithm_config["optimization_settings"], bounding_boxes=bounding_boxes,
-                                                    prev_frames=prev_frames, start_pose=start_pose, verbose=verbose)
+                                                    prev_frames=prev_frames, start_pose=start_pose, verbose=algorithm_config["verbose"])
                 except ValueError as e:
                     print e.message
                     parameters = initial_guess

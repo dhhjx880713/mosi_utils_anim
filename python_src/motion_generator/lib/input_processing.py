@@ -426,7 +426,7 @@ def extract_all_keyframe_constraints(constraint_list,morphable_subgraph):
 
 
     
-def extract_key_frame_constraint(joint_name,constraint,morphable_subgraph,time_information):
+def extract_keyframe_constraint(joint_name,constraint,morphable_subgraph,time_information):
     """ Creates a dict containing all properties stated explicitly or implicitly in the input constraint
     Parameters
     ----------

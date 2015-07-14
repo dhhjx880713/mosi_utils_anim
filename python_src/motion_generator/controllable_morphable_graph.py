@@ -59,7 +59,7 @@ class ControllableMorphableGraph(MorphableGraph):
         return
         
         
-    def synthesize_motion(self, mg_input, algorithm_config=None, max_step=-1, verbose=False, output_dir="output", output_filename="", export=True):
+    def synthesize_motion(self, mg_input, algorithm_config=None, max_step=-1, output_dir="output", output_filename="", export=True):
         """
         Converts a json input file with a list of elementary actions and constraints 
         into a motion saved to a BVH file.
@@ -86,8 +86,6 @@ class ControllableMorphableGraph(MorphableGraph):
         * max_step : integer
             Debug parameter for the maximum number of motion primitives to be converted before stopping.
             If set to -1 this parameter is ignored
-        * verbose : bool 
-           Activates debug output to the console.
         * output_dir : string
             directory for the generated bvh file.
         * output_filename : string
@@ -113,11 +111,10 @@ class ControllableMorphableGraph(MorphableGraph):
             algorithm_config = generate_algorithm_settings()
 
         # run the algorithm
-        motion_constrains = MotionConstraints(mg_input)
+        motion_constrains = MotionConstraints(mg_input, self)
         
         motion = convert_elementary_action_list_to_motion(self,\
-                                             motion_constrains, algorithm_config, self.skeleton,\
-                                             verbose=verbose)
+                                             motion_constrains, algorithm_config, self.skeleton)
                                              
         seconds = time.clock() - start
         print_runtime_statistics(seconds)

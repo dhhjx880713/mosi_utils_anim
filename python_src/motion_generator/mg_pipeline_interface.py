@@ -37,15 +37,12 @@ def run_pipeline(root_directory, input_file, output_dir, output_filename, algori
     start = time.clock()
     morphable_graph = load_morphable_graph(root_directory, use_transition_model=algorithm_config["use_transition_model"])
     print "finished construction from file in",time.clock()-start,"seconds"
-    
-    verbose = False
 
     motion = morphable_graph.synthesize_motion(input_file,algorithm_config=algorithm_config,
-                                                      max_step=max_step,
-                                                      verbose=verbose,
-                                                      output_dir=output_dir,
-                                                      output_filename=output_filename,
-                                                      export=False)
+                                                                  max_step=max_step,
+                                                                  output_dir=output_dir,
+                                                                  output_filename=output_filename,
+                                                                  export=False)
 
     if motion.quat_frames is not None:  # checks for quat_frames in result_tuple
         mg_input = load_json_file(input_file)
