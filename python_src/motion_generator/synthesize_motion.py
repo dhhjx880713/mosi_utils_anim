@@ -19,50 +19,7 @@ from constrain_motion import get_optimal_parameters,\
                              generate_algorithm_settings
 from constrain_gmm import ConstraintError
 from lib.motion_constraints import MotionPrimitiveConstraints
-
-
-
-
-class GraphWalkEntry(object):
-    def __init__(self, action_name, motion_primitive_name, parameters, arc_length):
-        self.action_name = action_name
-        self.motion_primitive_name = motion_primitive_name
-        self.parameters = parameters
-        self.arc_length = arc_length
-
-
-class AnnotatedMotion(object):
-    def __init__(self):
-        self.action_list = {}
-        self.frame_annotation = {}
-        self.frame_annotation['elementaryActionSequence'] = []
-        self.graph_walk = []
-        self.quat_frames = None
-        self.step_count = 0
-        self.n_frames = 0
-
-
-    def update_action_list(self, tmp_action_list):
-        self.action_list = merge_two_dicts(self.action_list,tmp_action_list )    
-        
-    def update_frame_annotation(self,action_name, start_frame, end_frame):
-            #update frame annotation
-        action_frame_annotation = {}
-        action_frame_annotation["startFrame"] =  start_frame
-        action_frame_annotation["elementaryAction"] = action_name
-        action_frame_annotation["endFrame"] = end_frame
-        self.frame_annotation['elementaryActionSequence'].append(action_frame_annotation)  
-
-
-
-
-def merge_two_dicts(x, y):
-    '''Given two dicts, merge them into a new dict as a shallow copy.
-    source: http://stackoverflow.com/questions/38987/how-can-i-merge-two-python-dictionaries-in-a-single-expression
-    '''
-    z = x.copy()
-    z.update(y)
-    return z
+from lib.annotated_motion import AnnotatedMotion, GraphWalkEntry
 
 
 def get_action_list(quat_frames, time_information, constraints, keyframe_annotations, start_frame, last_frame):
