@@ -82,7 +82,7 @@ def generate_algorithm_settings(use_constraints=True,
 
 
 
-def constrain_primitive(motion_primitive, gmm,constraint, prev_frames,start_pose,bvh_reader,node_name_map = None,
+def constrain_primitive(motion_primitive, gmm,constraint, prev_frames,start_pose, skeleton,
                         firstFrame=None, lastFrame=None, size=300,
                         constrained_gmm_settings=None,verbose = False):
     """constrains a primitive with a given constraint
@@ -103,13 +103,13 @@ def constrain_primitive(motion_primitive, gmm,constraint, prev_frames,start_pose
     \tThe gmm of the motion_primitive constrained by the constraint
     """
 
-    cgmm = ConstrainedGMM(motion_primitive,gmm,constraint = None,bvh_reader=bvh_reader,node_name_map=node_name_map,settings=constrained_gmm_settings, verbose=verbose)
+    cgmm = ConstrainedGMM(motion_primitive,gmm, constraint=None, skeleton=skeleton, settings=constrained_gmm_settings, verbose=verbose)
     cgmm.set_constraint(constraint, prev_frames, start_pose,size=size,firstFrame=firstFrame,
                         lastFrame=lastFrame)
     return cgmm
 
 
-def multiple_constrain_primitive(motion_primitive,gmm, constraints,prev_frames, start_pose,bvh_reader,node_name_map=None,
+def multiple_constrain_primitive(motion_primitive,gmm, constraints,prev_frames, start_pose, skeleton,
                                  size=300, constrained_gmm_settings=None, verbose = False):
 
     """constrains a primitive with all given constraints and yields one gmm
@@ -142,8 +142,7 @@ def multiple_constrain_primitive(motion_primitive,gmm, constraints,prev_frames, 
         firstFrame = c['semanticAnnotation']['firstFrame']
         lastFrame = c['semanticAnnotation']['lastFrame']
         cgmms.append(constrain_primitive(motion_primitive, gmm,c, prev_frames, start_pose,
-                                         bvh_reader,
-                                         node_name_map=node_name_map,size=size,
+                                         skeleton,size=size,
                                          constrained_gmm_settings=constrained_gmm_settings,
                                          firstFrame=firstFrame,
                                          lastFrame=lastFrame,verbose=verbose))
@@ -157,7 +156,7 @@ def multiple_constrain_primitive(motion_primitive,gmm, constraints,prev_frames, 
 
 
 def create_next_motion_distribution(first_s, first_primitive, second_primitive,second_gmm,
-                                    gpm, prev_frames,start_pose,bvh_reader,node_name_map=None, constraints=None,
+                                    gpm, prev_frames,start_pose,skeleton=None, constraints=None,
                                     size=300, precision={"pos":1,"rot":1,"smooth":1},verbose=False):
     """ creates the motion following the first_motion fulfilling the given
     constraints and multiplied by the output_gmm
@@ -189,7 +188,7 @@ def create_next_motion_distribution(first_s, first_primitive, second_primitive,s
     predict_gmm = gpm.predict(first_s)
     if constraints:
         cgmm = multiple_constrain_primitive(second_primitive, second_gmm,constraints,
-                                            prev_frames,start_pose, bvh_reader,node_name_map, size, precision,verbose=verbose)
+                                            prev_frames,start_pose, skeleton, size, precision,verbose=verbose)
 
         constrained_predict_gmm = mul(predict_gmm, cgmm)
         return mul(constrained_predict_gmm, second_gmm)
@@ -199,7 +198,7 @@ def create_next_motion_distribution(first_s, first_primitive, second_primitive,s
 
 
 
-def sample_from_gmm(graph_node,gmm, constraints,prev_frames,start_pose,bvh_reader,node_name_map=None,\
+def sample_from_gmm(graph_node,gmm, constraints, prev_frames, start_pose, skeleton,\
                         precision = {"pos":1,"rot":1,"smooth":1},num_samples=300,activate_parameter_check=False,verbose = False):
 
     """samples and picks the best samples out of a given set, quality measure
@@ -246,13 +245,13 @@ def sample_from_gmm(graph_node,gmm, constraints,prev_frames,start_pose,bvh_reade
         s = np.ravel(gmm.sample())
         if activate_parameter_check:
             # using bounding box to check sample is good or bad
-            valid = check_sample_validity(graph_node,s,bvh_reader,node_name_map) 
+            valid = check_sample_validity(graph_node,s,skeleton) 
         else:
             valid = True
         if valid: 
 #            tmp_bad_samples = 0
             samples.append(s)
-            min_distance,successes = evaluate_list_of_constraints(graph_node.mp,s,constraints,prev_frames,start_pose,bvh_reader,node_name_map,
+            min_distance,successes = evaluate_list_of_constraints(graph_node.mp,s,constraints,prev_frames,start_pose,skeleton,
                                                         precision=precision,verbose=verbose)
             # check the root path for each sample, punish the curve walking
             acr_length = get_step_length_for_sample(graph_node.mp, 
@@ -277,7 +276,7 @@ def sample_from_gmm(graph_node,gmm, constraints,prev_frames,start_pose,bvh_reade
         
     return samples, distances, successes
 
-def sample_and_pick_best(graph_node,gmm, constraints,prev_frames,start_pose,bvh_reader,node_name_map=None,\
+def sample_and_pick_best(graph_node,gmm, constraints, prev_frames, start_pose, skeleton,\
                         precision = {"pos":1,"rot":1,"smooth":1},num_samples=300,activate_parameter_check=False,verbose = False):
     """samples and picks the best sample out of a given set, quality measures
     is naturalness
@@ -303,7 +302,7 @@ def sample_and_pick_best(graph_node,gmm, constraints,prev_frames,start_pose,bvh_
     * success : bool
     \t the constraints were reached exactly
     """
-    samples, distances, successes =  sample_from_gmm(graph_node,gmm, constraints,prev_frames,start_pose,bvh_reader,node_name_map=node_name_map,\
+    samples, distances, successes =  sample_from_gmm(graph_node,gmm, constraints,prev_frames,start_pose, skeleton,\
                             precision=precision,num_samples=num_samples,activate_parameter_check=activate_parameter_check,verbose = verbose)
    
     best_index = distances.index(min(distances))
@@ -323,12 +322,12 @@ def sample_and_pick_best(graph_node,gmm, constraints,prev_frames,start_pose,bvh_
     
     
 
-def search_for_best_sample(graph_node,constraints,prev_frames,start_pose,bvh_reader,node_name_map=None,\
+def search_for_best_sample(graph_node,constraints,prev_frames,start_pose, skeleton,\
                         precision = {"pos":1,"rot":1,"smooth":1},verbose=False):
 
     """ Directed search in precomputed hierarchical space partitioning data structure
     """
-    data = graph_node.mp, constraints, prev_frames,start_pose, bvh_reader, node_name_map,precision
+    data = graph_node.mp, constraints, prev_frames,start_pose, skeleton, precision
     distance, s = graph_node.search_best_sample(obj_error_sum,data)
     print "found best sample with distance:",distance
     global_counter_dict["motionPrimitveErrors"].append(distance)
@@ -343,7 +342,7 @@ def extract_gmm_from_motion_primitive(pipeline_parameters):
     
     morphable_graph,action_name,mp_name,constraints,\
     algorithm_config, prev_action_name, prev_mp_name, prev_frames, prev_parameters, \
-    bvh_reader, node_name_map, \
+    skeleton, \
     start_pose,verbose = pipeline_parameters
      
     sample_size = algorithm_config["constrained_gmm_settings"]["sample_size"]
@@ -363,7 +362,7 @@ def extract_gmm_from_motion_primitive(pipeline_parameters):
                 gmm = create_next_motion_distribution(prev_parameters, prev_primitve,\
                                                     graph_node,gmm,\
                                                     gpm, prev_frames, start_pose,\
-                                                    bvh_reader, node_name_map,\
+                                                    skeleton,\
                                                     constraints,sample_size,\
                                                      algorithm_config["constrained_gmm_settings"],\
                                                     verbose=verbose)
@@ -375,7 +374,7 @@ def extract_gmm_from_motion_primitive(pipeline_parameters):
         gmm = multiple_constrain_primitive(graph_node,gmm,\
                                         constraints,\
                                         prev_frames,start_pose, \
-                                        bvh_reader, node_name_map,\
+                                        skeleton,\
                                         sample_size, algorithm_config["constrained_gmm_settings"],verbose=verbose)   
 
     return gmm
@@ -395,7 +394,7 @@ def get_random_parameters(pipeline_parameters):
 
 def get_optimal_parameters(morphable_graph,action_name,mp_name,constraints,\
                          algorithm_config, prev_action_name="", prev_mp_name="", prev_frames=None, prev_parameters=None, \
-                         bvh_reader=None, node_name_map=None, \
+                         skeleton=None, \
                          start_pose=None,verbose=False):
         """Uses the constraints to find the optimal paramaters for a motion primitive.
         Parameters
@@ -425,7 +424,7 @@ def get_optimal_parameters(morphable_graph,action_name,mp_name,constraints,\
 
         pipeline_parameters = morphable_graph,action_name,mp_name,constraints,\
                          algorithm_config, prev_action_name, prev_mp_name, prev_frames, prev_parameters, \
-                         bvh_reader, node_name_map, \
+                         skeleton, \
                          start_pose,verbose
         sample_size = algorithm_config["constrained_gmm_settings"]["sample_size"]
         precision = algorithm_config["constrained_gmm_settings"]["precision"]
@@ -443,17 +442,16 @@ def get_optimal_parameters(morphable_graph,action_name,mp_name,constraints,\
                 #  find best sample using a directed search in a 
                 #  space partitioning data structure
                 parameters = search_for_best_sample(graph_node,constraints,prev_frames,start_pose,\
-                                        bvh_reader, node_name_map,\
+                                        skeleton,\
                                          verbose=verbose)
                 close_to_optimum = True
-                #close_to_optimum = False
             else: 
                 # pick new random samples from the Gaussian Mixture Model
                 parameters,close_to_optimum = sample_and_pick_best(graph_node,gmm,\
                                         constraints,prev_frames,start_pose,\
-                                        bvh_reader, node_name_map,\
+                                        skeleton,\
                                         precision= precision,\
-                                        num_samples = sample_size,\
+                                        num_samples=sample_size,\
                                         activate_parameter_check=algorithm_config["activate_parameter_check"],verbose=verbose)
                 
             #3) optimize sampled parameters as initial guess if the constraints were not reached
@@ -463,7 +461,7 @@ def get_optimal_parameters(morphable_graph,action_name,mp_name,constraints,\
                 try:
                     initial_guess = parameters
                     parameters = run_optimization(graph_node.mp, gmm, constraints,
-                                                    initial_guess, bvh_reader, node_name_map,
+                                                    initial_guess, skeleton,
                                                     optimization_settings=algorithm_config["optimization_settings"], bounding_boxes=bounding_boxes,
                                                     prev_frames=prev_frames, start_pose=start_pose, verbose=verbose)
                 except ValueError as e:

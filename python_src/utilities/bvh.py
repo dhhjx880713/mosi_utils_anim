@@ -12,39 +12,11 @@ BVH Writer by Erik Herrmann
 """
 
 from collections import OrderedDict
-import collections
 import numpy as np
 from math import degrees
 from cgkit.cgtypes import quat #TODO replace with transformations.py
 
-def create_filtered_node_name_map(bvh_reader):
-    """
-    creates dictionary that maps node names to indices in a frame vector
-    without "Bip" joints
-    """
-    node_name_map = collections.OrderedDict()
-    j = 0
-    for node_name in bvh_reader.node_names:
-        if not node_name.startswith("Bip") and \
-            "children" in bvh_reader.node_names[node_name].keys():
-            node_name_map[node_name] = j
-            j += 1
 
-    return node_name_map
-
-def get_joint_weights(bvh_reader, node_name_map=None):
-    """ Gives joints weights according to their distance in the joint hiearchty
-       to the root joint. The further away the smaller the weight.
-    """
-#    max_level = bvh_reader.max_level+1.0
-    if node_name_map:
-
-#        weights = [np.exp(max_level - bvh_reader.node_levels[node_name]/max_level) for node_name in node_name_map.keys()]
-        weights = [np.exp(-bvh_reader.node_names[node_name]["level"]) for node_name in node_name_map.keys()]
-    else:
-#        weights = [np.exp(max_level - bvh_reader.node_levels[node_name]/max_level) for node_name in bvh_reader.node_names.keys()]
-        weights = [np.exp(-bvh_reader.node_levels[node_name]["level"]) for node_name in bvh_reader.node_names.keys()]
-    return weights
     
 class BVHReader(object):
     """Biovision file format class
@@ -69,10 +41,7 @@ class BVHReader(object):
         if infilename != "":
             infile = open(infilename,"rb")
             self.read(infile)
-            self.max_level = max([node["level"] for node in
-                                  self.node_names.values()
-                                  if "level" in node.keys()])
-            self.parent_dict = self._get_parent_dict()
+           
         infile.close()
 
     def _read_skeleton(self, infile):
@@ -165,17 +134,7 @@ class BVHReader(object):
         self._read_frametime(infile)
         self._read_frames(infile)
         
-    def _get_parent_dict(self):
-        """Returns a dict of node names to their parent node's name"""
 
-        parent_dict = {}
-
-        for node_name in self.node_names:
-            if "children" in self.node_names[node_name].keys():
-                for child_node in self.node_names[node_name]["children"]:
-                    parent_dict[child_node] = node_name
-
-        return parent_dict
         
     def get_angles(self, *node_channels):
         """Returns numpy array of angles in all frames for specified channels
@@ -191,13 +150,6 @@ class BVHReader(object):
         indices = [self.node_channels.index(nc) for nc in node_channels]
         return self.frames[:, indices]
         
-    def gen_all_parents(self, node_name):
-        """Generator of all parents' node names of node with node_name"""
-
-        while node_name in self.parent_dict:
-            parent_name = self.parent_dict[node_name]
-            yield parent_name
-            node_name = parent_name
 
 
 class BVHWriter(object):

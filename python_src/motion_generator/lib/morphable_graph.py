@@ -10,7 +10,8 @@ import collections
 import random
 import numpy as np
 import datetime
-from utilities.bvh import BVHReader, BVHWriter, create_filtered_node_name_map
+from utilities.bvh import BVHReader, BVHWriter
+from utilities.skeleton import Skeleton
 from utilities.io_helper_functions import get_morphable_model_directory, \
                              get_transition_model_directory, \
                              load_json_file, \
@@ -800,14 +801,14 @@ def print_morphable_graph_structure(morphable_graph):
     return
     
     
-def convert_graph_walk_to_euler_frames(bvh_reader, morphable_graph, graph_walk, node_name_map, smooth = True):
+def convert_graph_walk_to_euler_frames(skeleton, morphable_graph, graph_walk, node_name_map, smooth = True):
     """
      Converts a graph walk to a list of euler frames and concatenates the frames 
      to one list by aligning them at transitions.
      
      Parameters
     ----------
-    * bvh_reader: BVHReader
+    * skeleton: Skeleton
     \tUsed for to extract the skeleton hierarchy information.
     * morphable_graph: MorphableGraph
     \tData structure containing the morphable models
@@ -833,23 +834,22 @@ def convert_graph_walk_to_euler_frames(bvh_reader, morphable_graph, graph_walk, 
         quaternion_frames = morphable_graph.subgraphs[subgraph].nodes[state].mp.back_project(parameters).get_motion_vector()
         euler_frames = convert_quaternion_to_euler(quaternion_frames.tolist())
         if concatenated_frames is not None:
-            concatenated_frames = align_frames(bvh_reader,concatenated_frames,euler_frames, node_name_map,smooth) 
+            concatenated_frames = align_frames(skeleton,concatenated_frames,euler_frames, smooth) 
         else:
             concatenated_frames = euler_frames
   
     return concatenated_frames
 
-def export_graph_walk_to_bvh(bvh_reader, graph_walk, morphable_graph, concatenate=True , apply_smoothing= True, prefix= "",out_dir ="."):
+def export_graph_walk_to_bvh(skeleton, graph_walk, morphable_graph, concatenate=True , apply_smoothing= True, prefix= "",out_dir ="."):
     """Saves a graph walk as a single bvh file or as a list of bvh files
     
     """
-    node_name_map = create_filtered_node_name_map(bvh_reader)
     if concatenate:
-        concatenated_frames = convert_graph_walk_to_euler_frames(bvh_reader, morphable_graph, \
-                                                graph_walk,node_name_map,apply_smoothing)
+        concatenated_frames = convert_graph_walk_to_euler_frames(skeleton, morphable_graph, \
+                                                graph_walk,apply_smoothing)
     
         filepath = out_dir+os.sep+prefix+"output_" + unicode(datetime.datetime.now().strftime("%d%m%y_%H%M%S"))+".bvh"
-        BVHWriter(filepath,bvh_reader, concatenated_frames,bvh_reader.frame_time,is_quaternion=False)
+        BVHWriter(filepath,skeleton, concatenated_frames,skeleton.frame_time,is_quaternion=False)
     else:
         time_code = out_dir+os.sep+prefix+"output_" + unicode(datetime.datetime.now().strftime("%d%m%y_%H%M%S"))
         i = 0
@@ -860,13 +860,13 @@ def export_graph_walk_to_bvh(bvh_reader, graph_walk, morphable_graph, concatenat
             parameters = entry["parameters"]
             quaternion_frames = morphable_graph.subgraphs[subgraph].nodes[state].mp.back_project(parameters).get_motion_vector()
             euler_frames = convert_quaternion_to_euler(quaternion_frames.tolist())
-            BVHWriter(filepath,bvh_reader, euler_frames,bvh_reader.frame_time,is_quaternion=False)
+            BVHWriter(filepath,skeleton, euler_frames,skeleton.frame_time,is_quaternion=False)
             i += 1
     
 def test_morphable_graph(load_transition_models = False):
     np.random.seed(int(time.time()))
     skeleton_file = "skeleton.bvh"
-    bvh_reader = BVHReader(skeleton_file)
+    skeleton = Skeleton(BVHReader(skeleton_file))
     start = time.time()
     mm_directory =".."+ os.sep + get_morphable_model_directory()
     transition_directory =".."+ os.sep +  get_transition_model_directory()
@@ -879,7 +879,7 @@ def test_morphable_graph(load_transition_models = False):
     n_steps = 10
     elementary_action = "walk"
     graph_walk = morphable_graph.generate_random_walk(elementary_action,n_steps,load_transition_models)
-    export_graph_walk_to_bvh(bvh_reader, graph_walk, morphable_graph, True, True, prefix = "smoothed_",out_dir="random_walks")
+    export_graph_walk_to_bvh(skeleton, graph_walk, morphable_graph, True, True, prefix = "smoothed_",out_dir="random_walks")
     #export_graph_walk_to_bvh(bvh_reader, graph_walk, morphable_graph, True, False, prefix = "",out_dir="random_walks")
     
 def load_subgraph(elementary_action = "walk",load_transition_models = True):
@@ -909,7 +909,7 @@ def load_subgraph(elementary_action = "walk",load_transition_models = True):
 def test_morphable_subgraph(elementary_action = "walk",load_transition_models = True, apply_smoothing = True):
   
     skeleton_file = "skeleton.bvh"
-    bvh_reader = BVHReader(skeleton_file)
+    skeleton = Skeleton(BVHReader(skeleton_file))
     subgraph = load_subgraph(elementary_action,load_transition_models)
     n_steps = 2
     if subgraph is not None:
@@ -924,7 +924,7 @@ def test_morphable_subgraph(elementary_action = "walk",load_transition_models = 
         prefix = elementary_action+"_"
         if load_transition_models:
             prefix  += "from_transition_"
-        export_graph_walk_to_bvh(bvh_reader, graph_walk, morphable_graph, True, apply_smoothing, prefix = prefix,out_dir="random_walks")
+        export_graph_walk_to_bvh(skeleton, graph_walk, morphable_graph, True, apply_smoothing, prefix = prefix,out_dir="random_walks")
     
 def main():
     test_morphable_graph(False)

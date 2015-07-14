@@ -50,7 +50,7 @@ class MGInputHandler(tornado.web.RequestHandler):
             # start algorithm if predefined keys were found
             if "elementaryActions" in mg_input.keys():
                 motion = self.application.synthesize_motion(mg_input)
-                self._handle_result(mg_input, motion, self.application.use_file_output_mode, self.application.service_config, self.application.morphable_graph.bvh_reader)
+                self._handle_result(mg_input, motion, self.application.use_file_output_mode, self.application.service_config, self.application.morphable_graph.skeleton)
             else:
                 print mg_input
                 self.application.morphable_graph.print_information()
@@ -59,17 +59,17 @@ class MGInputHandler(tornado.web.RequestHandler):
    
 
  
-    def _handle_result(self, mg_input, motion, use_file_output_mode, service_config, bvh_reader):
+    def _handle_result(self, mg_input, motion, use_file_output_mode, service_config, skeleton):
         """Sends the result back as an answer to a post request.
         """
         if motion.quat_frames is not None:  # checks for quat_frames in result_tuple
             if use_file_output_mode:
                 export_synthesis_result(mg_input, service_config["output_dir"], service_config["output_filename"], \
-                                        bvh_reader, motion.quat_frames, motion.frame_annotation, motion.action_list, add_time_stamp=False)
+                                        skeleton, motion.quat_frames, motion.frame_annotation, motion.action_list, add_time_stamp=False)
                 self.write("succcess")
             else:
 
-                bvh_writer = get_bvh_writer(bvh_reader, motion.quat_frames )
+                bvh_writer = get_bvh_writer(skeleton, motion.quat_frames )
                 bvh_string = bvh_writer.generate_bvh_string()
                 result_list = [bvh_string, motion.frame_annotation, motion.action_list]
                 self.write(json.dumps(result_list))#send result back

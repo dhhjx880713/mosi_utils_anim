@@ -1,7 +1,7 @@
 {
-    "data_root": "E:\\projects\\INTERACT\\repository", 
-    "output_dir":  "E:\\projects\\INTERACT\\repository\\BestFitPipeline\\_Results",
-    "input_dir": "E:\\projects\\INTERACT\\repository\\BestFitPipeline\\CNL-GUI",
+    "data_root": "C:\\Users\\herrmann\\repository2", 
+    "output_dir":  "C:\\Users\\herrmann\\repository2\\BestFitPipeline\\_Results",
+    "input_dir": "C:\\Users\\herrmann\\repository2\\BestFitPipeline\\CNL-GUI",
     "output_filename": "MGResult",
     "port": 8888,
     "output_mode": "file_output"

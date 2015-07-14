@@ -13,7 +13,7 @@ import copy
 import numpy as np
 from lib.morphable_graph import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END
 from utilities.motion_editing import convert_quaternion_to_euler, \
-                                get_cartesian_coordinates2, \
+                                get_cartesian_coordinates_from_euler, \
                                 transform_quaternion_frames, \
                                 fast_quat_frames_alignment
 from lib.input_processing import create_trajectory_from_constraint,\
@@ -187,8 +187,7 @@ def get_optimal_motion(morphable_graph,
                        constraints,
                        algorithm_config,
                        prev_motion,
-                       bvh_reader=None,
-                       node_name_map=None,
+                       skeleton=None,
                        start_pose=None,
                        keyframe_annotations={},
                        verbose=False):
@@ -207,7 +206,7 @@ def get_optimal_motion(morphable_graph,
         constrained_gmm_settings : position and orientation precision + sample size
     Returns
     -------
-    * euler_frames : list of np.ndarray
+    * quat_frames : list of np.ndarray
         list of skeleton pose parameters.
     * parameters : np.ndarray
         low dimensional motion parameters used to generate the frames
@@ -240,8 +239,7 @@ def get_optimal_motion(morphable_graph,
                                             prev_mp_name=prev_mp_name,
                                             prev_frames=prev_motion.quat_frames,
                                             prev_parameters=prev_parameters,
-                                            bvh_reader=bvh_reader,
-                                            node_name_map=node_name_map,
+                                            skeleton=skeleton,
                                             start_pose=start_pose,
                                             verbose=verbose)
     except  ConstraintError as e:
@@ -313,7 +311,7 @@ def make_guess_for_goal_arc_length(morphable_subgraph, current_motion_primitive,
     return arc_length
 
 
-def create_frame_constraint(bvh_reader,node_name_map,prev_frames):
+def create_frame_constraint(skeleton, prev_frames):
     """
     create frame a constraint from the preceding motion.
 
@@ -322,12 +320,12 @@ def create_frame_constraint(bvh_reader,node_name_map,prev_frames):
 #    last_frame = prev_frames[-1]
     last_euler_frame = np.ravel(convert_quaternion_to_euler([prev_frames[-1]]))
     position_dict = {}
-    for node_name in node_name_map.keys():
-
-        joint_position = get_cartesian_coordinates2(bvh_reader,
+    for node_name in skeleton.node_name_map.keys():
+#        target_position = get_cartesian_coordinates_from_quaternion(skeleton,
+#                                                             node_name, frame)
+        joint_position = get_cartesian_coordinates_from_euler(skeleton,
                                                         node_name,
-                                                        last_euler_frame,
-                                                        node_name_map)
+                                                        last_euler_frame)
 #        print "add joint position to constraints",node_name,joint_position
         position_dict[node_name] = joint_position
     frame_constraint = {"frame_constraint":position_dict, "semanticAnnotation":{"firstFrame":True,"lastFrame":None}}
@@ -375,8 +373,8 @@ def check_end_condition(morphable_subgraph,prev_frames,trajectory,travelled_arc_
 
 def create_constraints_for_motion_primitive(morphable_subgraph,current_motion_primitive,trajectory,
                                                  last_arc_length,last_pos,unconstrained_indices,
-                                                 settings,root_joint_name,prev_frames = None,
-                                                 bvh_reader = None,node_name_map = None,
+                                                 settings,root_joint_name, prev_frames=None,
+                                                 skeleton=None,
                                                  keyframe_constraints={},semantic_annotation=None,
                                                  is_last_step = False):
     """ Creates a list of constraints for a motion primitive based on the current state and position
@@ -417,8 +415,8 @@ def create_constraints_for_motion_primitive(morphable_subgraph,current_motion_pr
 
 
 
-        if settings["use_frame_constraints"] and  prev_frames is not None and bvh_reader is not None and node_name_map is not None:
-            frame_constraint= create_frame_constraint(bvh_reader,node_name_map,prev_frames)
+        if settings["use_frame_constraints"] and  prev_frames is not None and skeleton is not None:
+            frame_constraint= create_frame_constraint(skeleton, prev_frames)
             constraints.append(frame_constraint)
             pose_constraint_set = True
 
@@ -448,7 +446,7 @@ def create_constraints_for_motion_primitive(morphable_subgraph,current_motion_pr
         # generate frame constraints for the last step basd on the previous state
         # if not already done for the trajectory following
         if not pose_constraint_set and is_last_step and prev_frames is not None:
-            frame_constraint= create_frame_constraint(bvh_reader,node_name_map,prev_frames)
+            frame_constraint= create_frame_constraint(skeleton, prev_frames)
             constraints.append(frame_constraint)
   
         
@@ -474,7 +472,7 @@ def extract_trajectory_from_constraint_list(constraint_list,joint_name):
     else:
         return None, None
 
-def extract_constraints_of_elementary_action(bvh_reader, morphable_subgraph, constraint_list):
+def extract_constraints_of_elementary_action(skeleton, morphable_subgraph, constraint_list):
     """ Extracts keyframe and trajectory constraints from constraint_list
     Returns:
     -------
@@ -485,7 +483,7 @@ def extract_constraints_of_elementary_action(bvh_reader, morphable_subgraph, con
     * keyframe_constraints: dict of lists
         Lists of constraints for each motion primitive in the subgraph.
     """
-    root_joint_name = bvh_reader.root# currently only trajectories on the Hips joint are supported
+    root_joint_name = skeleton.root# currently only trajectories on the Hips joint are supported
     trajectory, unconstrained_indices = extract_trajectory_from_constraint_list(constraint_list, root_joint_name)
 
     keyframe_constraints = extract_all_keyframe_constraints(constraint_list,
@@ -566,8 +564,7 @@ def convert_elementary_action_to_motion(action_name,
                                         morphable_graph,
                                         algorithm_config,
                                         motion,
-                                        bvh_reader=None,
-                                        node_name_map=None,
+                                        skeleton,
                                         start_pose=None,
                                         max_step=-1,
                                         keyframe_annotations={},
@@ -618,7 +615,7 @@ def convert_elementary_action_to_motion(action_name,
     morphable_subgraph = morphable_graph.subgraphs[action_name]
     trajectory_following_settings = algorithm_config["trajectory_following_settings"]#  TODO move trajectory_following_settings to different key of the algorithm_config
     trajectory,unconstrained_indices, keyframe_constraints = \
-    extract_constraints_of_elementary_action(bvh_reader, morphable_subgraph, constraint_list)
+    extract_constraints_of_elementary_action(skeleton, morphable_subgraph, constraint_list)
     arc_length_of_end = morphable_subgraph.nodes[morphable_subgraph.get_random_end_state()].average_step_length
     
 #    number_of_standard_transitions = len([n for n in \
@@ -670,7 +667,7 @@ def convert_elementary_action_to_motion(action_name,
         try: 
             constraints, temp_arc_length, use_optimization = create_constraints_for_motion_primitive(morphable_subgraph,\
                       current_motion_primitive,trajectory,travelled_arc_length,last_pos,unconstrained_indices,trajectory_following_settings,\
-                      bvh_reader.root,motion.quat_frames,bvh_reader,node_name_map,keyframe_constraints,is_last_step=(current_motion_primitive_type == NODE_TYPE_END) )
+                      skeleton.root,motion.quat_frames,skeleton,keyframe_constraints,is_last_step=(current_motion_primitive_type == NODE_TYPE_END) )
         except PathSearchError as e:
                 print "moved beyond end point using parameters",
                 str(e.search_parameters)
@@ -682,7 +679,7 @@ def convert_elementary_action_to_motion(action_name,
         algorithm_config_copy["use_optimization"] = use_optimization
 
         motion.quat_frames, parameters, tmp_action_list = get_optimal_motion(morphable_graph, action_name, current_motion_primitive, constraints,\
-                                                            prev_motion=motion, algorithm_config=algorithm_config_copy, bvh_reader=bvh_reader,node_name_map=node_name_map,\
+                                                            prev_motion=motion, algorithm_config=algorithm_config_copy, skeleton=skeleton,\
                                                             start_pose=start_pose,keyframe_annotations=keyframe_annotations,verbose=verbose)                                            
 
         
@@ -723,7 +720,7 @@ def convert_elementary_action_to_motion(action_name,
   
 
 def convert_elementary_action_list_to_motion(morphable_graph,elementary_action_list,\
-    algorithm_config=None, bvh_reader=None,node_name_map=None, \
+    algorithm_config=None, skeleton=None, \
      max_step=-1, start_pose=None, keyframe_annotations={},verbose=False):
     """ Converts a constrained graph walk to euler frames
      Parameters
@@ -742,10 +739,8 @@ def convert_elementary_action_list_to_motion(morphable_graph,elementary_action_l
         apply_smoothing : Sets whether or not smoothing is applied on transitions
         optimization_settings : parameters for the optimization algorithm: method, max_iterations
         constrained_gmm_settings : position and orientation precision + sample size
-    * bvh_reader : BVHReader
+    * skeleton : Skeleton
         Used for to extract the skeleton hierarchy information.
-    * node_name_map : dict
-        Maps joint names to indices in their original loading sequence ignoring the "Bip" joints
     * max_step : integer
         Sets the maximum number of graph walk steps to be performed. If less than 0
         then it is unconstrained
@@ -791,7 +786,7 @@ def convert_elementary_action_list_to_motion(morphable_graph,elementary_action_l
 
         try:
             motion = convert_elementary_action_to_motion(action, constraints, morphable_graph,algorithm_config,
-                                                                  motion, bvh_reader=bvh_reader,node_name_map=node_name_map,
+                                                                  motion, skeleton=skeleton,
                                                                  start_pose=start_pose, max_step=max_step,
                                                                  keyframe_annotations=action_annotations, verbose=verbose)
 

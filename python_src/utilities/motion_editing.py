@@ -12,7 +12,6 @@ from itertools import izip
 from copy import deepcopy
 import time
 from scipy import stats # linear regression
-from bvh import  get_joint_weights
 from external.transformations import quaternion_matrix, euler_from_matrix, \
                             quaternion_from_matrix, euler_matrix, \
                             quaternion_multiply                           
@@ -263,10 +262,9 @@ fk_func_jacs = [
     fk3.eight_joints_fk_jacobian,
 ]
 
-def get_cartesian_coordinates_from_quaternion(bvh_read,
+def get_cartesian_coordinates_from_quaternion_use_fk(skeleton,
                                               node_name,
                                               quaternion_frame,
-                                              node_name_map,
                                               rotation_order = ['Xrotation',
                                                                 'Yrotation',
                                                                 'Zrotation']):
@@ -285,21 +283,21 @@ def get_cartesian_coordinates_from_quaternion(bvh_read,
 
     """
 
-    if bvh_read.node_names[node_name]["level"] == 0:
+    if skeleton.node_names[node_name]["level"] == 0:
         root_frame_position = quaternion_frame[:3]
-        root_node_offset = bvh_read.node_names[node_name]["offset"]
+        root_node_offset = skeleton.node_names[node_name]["offset"]
 
         return [t + o for t, o in
                 izip(root_frame_position, root_node_offset)]
 
     else:
         # Names are generated bottom to up --> reverse
-        chain_names = list(bvh_read.gen_all_parents(node_name))
+        chain_names = list(skeleton.gen_all_parents(node_name))
         chain_names.reverse()
         chain_names += [node_name]  # Node is not in its parent list
         eul_angles = []
         for nodelname in chain_names:
-            index = node_name_map[nodelname] * 4 + 3
+            index = skeleton.node_name_map[nodelname] * 4 + 3
             # convert quaternion to euler
 #            q = quat(quaternion_frame[index: index + 4])
 #            q.normalize()
@@ -311,7 +309,7 @@ def get_cartesian_coordinates_from_quaternion(bvh_read,
 
         thx, thy, thz = map(list, zip(*rad_angles))
 
-        offsets = [bvh_read.node_names[nodename]["offset"]
+        offsets = [skeleton.node_names[nodename]["offset"]
                    for nodename in chain_names]
 
         # Add root offset to frame offset list
@@ -334,10 +332,9 @@ def get_cartesian_coordinates_from_quaternion(bvh_read,
             return [0,0,0]
 
 
-def get_cartesian_coordinates_from_quaternion2(bvh_read,
+def get_cartesian_coordinates_from_quaternion(skeleton,
                                               node_name,
                                               quaternion_frame,
-                                              node_name_map,
                                               rotation_order = ['Xrotation',
                                                                 'Yrotation',
                                                                 'Zrotation']):
@@ -355,20 +352,20 @@ def get_cartesian_coordinates_from_quaternion2(bvh_read,
     \tA map from node name to index in the euler frame
 
     """
-    if bvh_read.node_names[node_name]["level"] == 0:
+    if skeleton.node_names[node_name]["level"] == 0:
         root_frame_position = quaternion_frame[:3]
-        root_node_offset = bvh_read.node_names[node_name]["offset"]
+        root_node_offset = skeleton.node_names[node_name]["offset"]
 
         return [t + o for t, o in
                 izip(root_frame_position, root_node_offset)]
 
     else:
         # Names are generated bottom to up --> reverse
-        chain_names = list(bvh_read.gen_all_parents(node_name))
+        chain_names = list(skeleton.gen_all_parents(node_name))
         chain_names.reverse()
         chain_names += [node_name]  # Node is not in its parent list
         
-        offsets = [bvh_read.node_names[nodename]["offset"]
+        offsets = [skeleton.node_names[nodename]["offset"]
                                for nodename in chain_names]
         root_position = quaternion_frame[:3].flatten()
         offsets[0] = [r + o for r, o in izip(root_position, offsets[0])]
@@ -376,15 +373,9 @@ def get_cartesian_coordinates_from_quaternion2(bvh_read,
         j_matrices = []
         count=0
         for node_name in chain_names:
-            index = node_name_map[node_name] * 4 + 3
+            index = skeleton.node_name_map[node_name] * 4 + 3
             j_matrix = quaternion_matrix(quaternion_frame[index: index + 4])
-            j_matrix[:,3] = offsets[count] + [1]#3,:1
-            # convert quaternion to euler
-#            q = quat(quaternion_frame[index: index + 4])
-#            q.normalize()
-#            euler_angle = _matrix_to_euler(q.toMat3(),rotation_order)
-            #euler_angle = quaternion_to_euler(quaternion_frame[index: index + 4].flatten())
-            #assert len(euler_angle) == 3, ('length of euler angle should be 3')
+            j_matrix[:,3] = offsets[count] + [1]
             j_matrices.append(j_matrix)
             count+=1
         
@@ -395,71 +386,9 @@ def get_cartesian_coordinates_from_quaternion2(bvh_read,
         point = np.array([0,0,0,1])
         point = np.dot(global_matrix,point)
         return point[:3].tolist()
-            
-            
-def get_cartesian_coordinates(bvh_reader, node_name, euler_frame):
-    """Returns cartesian coordinates for one node at one frame
+ 
 
-    Parameters
-    ----------
-
-    * node_name: String
-    \tName of node
-     * bvh_reader: BVHReader
-    \tBVH data structure read from a file
-    * frame_number: Integer
-    \tAnimation frame number that gets extracted
-
-    """
-    #print len(euler_frame),node_name
-
-    if bvh_reader.node_names[node_name]["level"] == 0:
-        root_frame_position = euler_frame[:3]
-        root_node_offset = bvh_reader.node_names[node_name]["offset"]
-
-        return [t + o for t, o in
-                izip(root_frame_position, root_node_offset)]
-
-    else:
-        # Names are generated bottom to up --> reverse
-        chain_names = list(bvh_reader.gen_all_parents(node_name))
-        chain_names.reverse()
-        chain_names += [node_name]  # Node is not in its parent list
-
-        eul_angles = []
-        for nodename in chain_names:
-            indeces = []
-            for channel in bvh_reader.node_names[nodename]["channels"]:
-                if channel.endswith("rotation"):
-                    indeces.append(bvh_reader.node_channels.index((nodename,channel)))
-            eul_angles.append(euler_frame[indeces])
-
-        #print chain_names, bvh_reader.node_names.keys().index("RightShoulder")*3 + 3,len(euler_frame)
-        rad_angles = (map(radians, eul_angle) for eul_angle in eul_angles)
-
-        thx, thy, thz = map(list, zip(*rad_angles))
-
-        offsets = [bvh_reader.node_names[nodename]["offset"]
-                   for nodename in chain_names]
-
-        # Add root offset to frame offset list
-        root_position = euler_frame[:3]
-        offsets[0] = [r + o for r, o in izip(root_position, offsets[0])]
-
-        ax, ay, az = map(list, izip(*offsets))
-
-        # f_idx identifies the kinematic forward transform function
-        # This does not lead to a negative index because the root is
-        # handled separately
-
-        f_idx = len(ax) - 2
-        #print "f",f_idx
-        if len(ax)-2 < len(fk_funcs):
-            return fk_funcs[f_idx](ax, ay, az, thx, thy, thz)
-        else:
-            return [0,0,0]
-
-def get_cartesian_coordinates2( bvh_reader, node_name, euler_frame,node_name_map):
+def get_cartesian_coordinates_from_euler(skeleton, node_name, euler_frame):
     """Returns cartesian coordinates for one node at one frame. Modified to
      handle frames with omitted values for joints starting with "Bip"
 
@@ -468,8 +397,8 @@ def get_cartesian_coordinates2( bvh_reader, node_name, euler_frame,node_name_map
 
     * node_name: String
     \tName of node
-     * bvh_reader: BVHReader
-    \tBVH data structure read from a file
+     * skeleton: Skeleton
+    \t skeleton structure read from a file
     * frame_number: Integer
     \tAnimation frame number that gets extracted
     * node_name_map: dict
@@ -478,16 +407,16 @@ def get_cartesian_coordinates2( bvh_reader, node_name, euler_frame,node_name_map
     """
     #print len(euler_frame),node_name
 
-    if bvh_reader.node_names[node_name]["level"] == 0:
+    if skeleton.node_names[node_name]["level"] == 0:
         root_frame_position = euler_frame[:3]
-        root_node_offset = bvh_reader.node_names[node_name]["offset"]
+        root_node_offset = skeleton.node_names[node_name]["offset"]
 
         return [t + o for t, o in
                 izip(root_frame_position, root_node_offset)]
 
     else:
         # Names are generated bottom to up --> reverse
-        chain_names = list(bvh_reader.gen_all_parents(node_name))
+        chain_names = list(skeleton.gen_all_parents(node_name))
         chain_names.reverse()
         chain_names += [node_name]  # Node is not in its parent list
 
@@ -495,14 +424,14 @@ def get_cartesian_coordinates2( bvh_reader, node_name, euler_frame,node_name_map
 #                print chain_names
         eul_angles = []
         for nodename in chain_names:
-            index = node_name_map[nodename]*3 +3
+            index = skeleton.node_name_map[nodename]*3 +3
             eul_angles.append(euler_frame[index:index+3])
         #print chain_names, bvh_reader.node_names.keys().index("RightShoulder")*3 + 3,len(euler_frame)
         rad_angles = (map(radians, eul_angle) for eul_angle in eul_angles)
 
         thx, thy, thz = map(list, zip(*rad_angles))
 
-        offsets = [bvh_reader.node_names[nodename]["offset"]
+        offsets = [skeleton.node_names[nodename]["offset"]
                    for nodename in chain_names]
 
         # Add root offset to frame offset list
@@ -522,30 +451,30 @@ def get_cartesian_coordinates2( bvh_reader, node_name, euler_frame,node_name_map
         else:
             return [0,0,0]
 
-def convert_euler_frame_to_cartesian_frame(bvh_reader,euler_frame,node_name_map):
+def convert_euler_frame_to_cartesian_frame(skeleton,euler_frame,node_name_map):
     """
     converts euler frames to cartesian frames by calling get_cartesian_coordinates for each joint
     """
     #print euler_frame.shape
     cartesian_frame = []
-    for node_name in bvh_reader.node_names:
+    for node_name in skeleton.node_names:
         #ignore Bip joints and end sites 
-        if  not node_name.startswith("Bip") and "children" in bvh_reader.node_names[node_name].keys():
-           cartesian_frame.append(get_cartesian_coordinates2(bvh_reader,node_name,euler_frame,node_name_map))
+        if  not node_name.startswith("Bip") and "children" in skeleton.node_names[node_name].keys():
+           cartesian_frame.append(get_cartesian_coordinates_from_euler(skeleton,node_name,euler_frame))
           
     return cartesian_frame
 
 
 
-def convert_quaternion_frame_to_cartesian_frame(bvh_reader,quat_frame,node_name_map):
+def convert_quaternion_frame_to_cartesian_frame(skeleton,quat_frame):
     """
-    Converts quaternion frames to cartesian frames by calling get_cartesian_coordinates_from_quaternion2 for each joint
+    Converts quaternion frames to cartesian frames by calling get_cartesian_coordinates_from_quaternion for each joint
     """
     cartesian_frame = []
-    for node_name in bvh_reader.node_names:
+    for node_name in skeleton.node_names:
         #ignore Bip joints and end sites 
-        if  not node_name.startswith("Bip") and "children" in bvh_reader.node_names[node_name].keys():
-           cartesian_frame.append(get_cartesian_coordinates_from_quaternion2(bvh_reader,node_name,quat_frame,node_name_map))#get_cartesian_coordinates2
+        if  not node_name.startswith("Bip") and "children" in skeleton.node_names[node_name].keys():
+           cartesian_frame.append(get_cartesian_coordinates_from_quaternion(skeleton,node_name,quat_frame))#get_cartesian_coordinates2
           
     return cartesian_frame
 
@@ -619,15 +548,15 @@ def convert_euler_frames_to_cartesian_frames(bvh_reader,euler_frames,node_name_m
     return np.array(cartesian_frames)
 
 
-def find_aligning_transformation(bvh_reader, euler_frames_a, euler_frames_b ,node_name_map = None):
+def find_aligning_transformation(skeleton, euler_frames_a, euler_frames_b):
     """
     performs alignment of the point clouds based on the poses at the end of
     euler_frames_a and the start of euler_frames_b
     Returns the rotation around y axis in radians, x offset and z offset
     """
-    point_cloud_a = convert_euler_frame_to_cartesian_frame(bvh_reader,euler_frames_a[-1],node_name_map)
-    point_cloud_b = convert_euler_frame_to_cartesian_frame(bvh_reader,euler_frames_b[0],node_name_map)
-    weights = get_joint_weights(bvh_reader, node_name_map)
+    point_cloud_a = convert_euler_frame_to_cartesian_frame(skeleton,euler_frames_a[-1])
+    point_cloud_b = convert_euler_frame_to_cartesian_frame(skeleton,euler_frames_b[0])
+    weights = skeleton.get_joint_weights()
     theta, offset_x, offset_z = align_point_clouds_2D(point_cloud_a,point_cloud_b,weights)
     return theta, offset_x, offset_z
 
@@ -1160,8 +1089,7 @@ def smoothly_concatenate_quaternion_frames(quaternion_frames_a,
 
 def shift_euler_frames_to_ground(euler_frames,
                                  ground_contact_joint,
-                                 bvh_reader,
-                                 node_name_map):
+                                 skeleton):
     """
     shift all euler frames of motion to ground, which means the y-axis for
     gound contact joint should be 0
@@ -1172,10 +1100,9 @@ def shift_euler_frames_to_ground(euler_frames,
     """
     tmp_frames = deepcopy(euler_frames)
     for frame in tmp_frames:
-        contact_point_position = get_cartesian_coordinates2(bvh_reader,
+        contact_point_position = get_cartesian_coordinates_from_euler(skeleton,
                                                             ground_contact_joint,
-                                                            frame,
-                                                            node_name_map)
+                                                            frame)
         offset_y = contact_point_position[1]
         # shift root position by offset_y
         frame[1] = frame[1] - offset_y

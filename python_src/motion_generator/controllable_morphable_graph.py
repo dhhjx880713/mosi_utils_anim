@@ -12,7 +12,8 @@ sys.path.append('..')
 import os
 import time
 from datetime import datetime
-from utilities.bvh import BVHReader, create_filtered_node_name_map
+from utilities.bvh import BVHReader
+from utilities.skeleton import Skeleton
 from utilities.io_helper_functions import load_json_file, write_to_json_file,\
                                  write_to_logfile, \
                                  export_quat_frames_to_bvh_file,\
@@ -49,8 +50,8 @@ class ControllableMorphableGraph(MorphableGraph):
                                                         transition_directory,
                                                         load_transtion_models)
 
-        self.bvh_reader = BVHReader(skeleton_path)
-        self.node_name_map = create_filtered_node_name_map(self.bvh_reader)
+
+        self.skeleton = Skeleton(BVHReader(skeleton_path))
         return
         
         
@@ -112,7 +113,7 @@ class ControllableMorphableGraph(MorphableGraph):
         start_pose = mg_input["startPose"]
         keyframe_annotations = extract_keyframe_annotations(elementary_action_list)
         motion = convert_elementary_action_list_to_motion(self,\
-                                             elementary_action_list, options, self.bvh_reader, self.node_name_map,\
+                                             elementary_action_list, options, self.skeleton,\
                                              max_step=max_step, start_pose=start_pose, keyframe_annotations=keyframe_annotations,\
                                              verbose=verbose)
                                              
@@ -131,7 +132,7 @@ class ControllableMorphableGraph(MorphableGraph):
                 prefix = output_filename + "_" + time_stamp
                 
                 write_to_logfile(output_dir + os.sep + LOG_FILE, prefix, options)
-                export_synthesis_result(mg_input, output_dir, output_filename, self.bvh_reader, motion.quat_frames, motion.frame_annotation, motion.action_list, add_time_stamp=True)
+                export_synthesis_result(mg_input, output_dir, output_filename, self.skeleton, motion.quat_frames, motion.frame_annotation, motion.action_list, add_time_stamp=True)
             else:
                 print "Error: failed to generate motion data"
 
@@ -139,7 +140,7 @@ class ControllableMorphableGraph(MorphableGraph):
 
 
 
-def export_synthesis_result(input_data, output_dir, output_filename, bvh_reader, quat_frames, frame_annotation, action_list, add_time_stamp=False):
+def export_synthesis_result(input_data, output_dir, output_filename, skeleton, quat_frames, frame_annotation, action_list, add_time_stamp=False):
       """ Saves the resulting animation frames, the annotation and actions to files. 
       Also exports the input file again to the output directory, where it is 
       used as input for the constraints visualization by the animation server.
@@ -159,7 +160,7 @@ def export_synthesis_result(input_data, output_dir, output_filename, bvh_reader,
             frame_annotation["events"].append(event)
 
       write_to_json_file(output_dir + os.sep + output_filename + "_annotations"+".json", frame_annotation)
-      export_quat_frames_to_bvh_file(output_dir, bvh_reader, quat_frames, prefix=output_filename, start_pose=None, time_stamp=add_time_stamp)        
+      export_quat_frames_to_bvh_file(output_dir, skeleton, quat_frames, prefix=output_filename, start_pose=None, time_stamp=add_time_stamp)        
 
 
 def print_runtime_statistics(seconds):
