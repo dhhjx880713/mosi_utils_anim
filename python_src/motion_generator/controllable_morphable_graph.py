@@ -12,21 +12,25 @@ sys.path.append('..')
 import os
 import time
 from datetime import datetime
+import numpy as np
 from utilities.bvh import BVHReader
 from utilities.skeleton import Skeleton
 from utilities.io_helper_functions import load_json_file, write_to_json_file,\
                                  write_to_logfile, \
                                  export_quat_frames_to_bvh_file,\
                                  get_morphable_model_directory,\
-                                 get_transition_model_directory
-from lib.input_processing import extract_keyframe_annotations                                    
+                                 get_transition_model_directory                      
 from lib.morphable_graph import MorphableGraph
+from lib.motion_constraints import MotionConstraints
 from constrain_motion import generate_algorithm_settings
 from synthesize_motion import convert_elementary_action_list_to_motion
-import numpy as np
-from lib.constraint import global_counter_dict
+from lib.constraint_check import global_counter_dict
+
 LOG_FILE = "log.txt"
 SKELETON_FILE = "lib" + os.sep + "skeleton.bvh"
+
+
+
 
 class ControllableMorphableGraph(MorphableGraph):
     """
@@ -55,7 +59,7 @@ class ControllableMorphableGraph(MorphableGraph):
         return
         
         
-    def synthesize_motion(self, mg_input, options=None, max_step=-1, verbose=False, output_dir="output", output_filename="", export=True):
+    def synthesize_motion(self, mg_input, algorithm_config=None, max_step=-1, verbose=False, output_dir="output", output_filename="", export=True):
         """
         Converts a json input file with a list of elementary actions and constraints 
         into a motion saved to a BVH file.
@@ -105,16 +109,14 @@ class ControllableMorphableGraph(MorphableGraph):
         if type(mg_input) != dict:
             mg_input = load_json_file(mg_input)
         start = time.clock()
-        if options is None:
-            options = generate_algorithm_settings()
+        if algorithm_config is None:
+            algorithm_config = generate_algorithm_settings()
 
         # run the algorithm
-        elementary_action_list = mg_input["elementaryActions"]
-        start_pose = mg_input["startPose"]
-        keyframe_annotations = extract_keyframe_annotations(elementary_action_list)
+        motion_constrains = MotionConstraints(mg_input)
+        
         motion = convert_elementary_action_list_to_motion(self,\
-                                             elementary_action_list, options, self.skeleton,\
-                                             max_step=max_step, start_pose=start_pose, keyframe_annotations=keyframe_annotations,\
+                                             motion_constrains, algorithm_config, self.skeleton,\
                                              verbose=verbose)
                                              
         seconds = time.clock() - start
@@ -131,7 +133,7 @@ class ControllableMorphableGraph(MorphableGraph):
                 time_stamp = unicode(datetime.now().strftime("%d%m%y_%H%M%S"))
                 prefix = output_filename + "_" + time_stamp
                 
-                write_to_logfile(output_dir + os.sep + LOG_FILE, prefix, options)
+                write_to_logfile(output_dir + os.sep + LOG_FILE, prefix, algorithm_config)
                 export_synthesis_result(mg_input, output_dir, output_filename, self.skeleton, motion.quat_frames, motion.frame_annotation, motion.action_list, add_time_stamp=True)
             else:
                 print "Error: failed to generate motion data"

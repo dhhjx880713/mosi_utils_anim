@@ -12,7 +12,7 @@ from constrain_gmm import ConstrainedGMM
 from optimize_motion import run_optimization,\
                     generate_optimization_settings
 from lib.input_processing import get_step_length_for_sample
-from lib.constraint import obj_error_sum,evaluate_list_of_constraints,\
+from lib.constraint_check import obj_error_sum,evaluate_list_of_constraints,\
                             global_counter_dict
 
 

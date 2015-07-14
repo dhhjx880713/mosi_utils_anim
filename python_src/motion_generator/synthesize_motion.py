@@ -84,14 +84,6 @@ def merge_two_dicts(x, y):
     z.update(y)
     return z
 
-def transform_from_left_to_right_handed_cs(start_pose):
-    """ Transform transition and rotation of the start pose from CAD to Opengl 
-        coordinate system.
-    """
-    start_pose_copy = copy.copy(start_pose)
-    start_pose["orientation"] = transform_point_from_cad_to_opengl_cs(start_pose_copy["orientation"])
-    start_pose["position"] = transform_point_from_cad_to_opengl_cs(start_pose_copy["position"])
-    return start_pose
 
 def get_action_list(quat_frames, time_information, constraints, keyframe_annotations, start_frame, last_frame):
     """Associates annotations to frames
@@ -717,17 +709,16 @@ def convert_elementary_action_to_motion(action_name,
     return motion# quat_frames, prev_action_name, mp_sequence[-1][0], prev_parameters, step_count, action_list
 
 
-  
 
-def convert_elementary_action_list_to_motion(morphable_graph,elementary_action_list,\
-    algorithm_config=None, skeleton=None, \
-     max_step=-1, start_pose=None, keyframe_annotations={},verbose=False):
+
+def convert_elementary_action_list_to_motion(morphable_graph,motion_constraints,\
+    algorithm_config=None, skeleton=None,  verbose=False):
     """ Converts a constrained graph walk to euler frames
      Parameters
     ----------
     * morphable_graph : MorphableGraph
         Data structure containing the morphable models
-    * elementary_action_list : list of dict
+    * motion_constraints : list of dict
         Contains a list of dictionaries with the entries for "subgraph","state" and "parameters"
     * algorithm_config : dict
         Contains algorithm_config for the algorithm.
@@ -741,15 +732,7 @@ def convert_elementary_action_list_to_motion(morphable_graph,elementary_action_l
         constrained_gmm_settings : position and orientation precision + sample size
     * skeleton : Skeleton
         Used for to extract the skeleton hierarchy information.
-    * max_step : integer
-        Sets the maximum number of graph walk steps to be performed. If less than 0
-        then it is unconstrained
-    * start_pose : dict
-        Contains keys position and orientation. "position" contains Cartesian coordinates
-        and orientation contains Euler angles in degrees)
-    * keyframe_annotations : list of dicts of dicts
-      Contains for every elementary action a dict that associates of events/actions with certain keyframes
-
+        
     Returns
     -------
     * motion: AnnotatedMotion
@@ -767,27 +750,25 @@ def convert_elementary_action_list_to_motion(morphable_graph,elementary_action_l
         for key in algorithm_config.keys():
             print key,algorithm_config[key]
         print "max_step", max_step
-    if start_pose is not None:
-        start_pose = transform_from_left_to_right_handed_cs(start_pose)
-        print "transform start pose",start_pose
+   
         
     motion = AnnotatedMotion()
 
-    for action_index in range(len(elementary_action_list)):
-        if max_step > -1 and motion.step_count > max_step:
+    for action_index in range(len(motion_constraints.elementary_action_list)):
+        if motion_constraints.max_step > -1 and motion.step_count > motion_constraints.max_step:
             print "reached max step"
             break
-        action = elementary_action_list[action_index]["action"]
+        action = motion_constraints.elementary_action_list[action_index]["action"]
         if verbose:
             print "convert",action,"to graph walk"
 
-        action_annotations = keyframe_annotations[action_index]
-        constraints = elementary_action_list[action_index]["constraints"]
+        action_annotations = motion_constraints.keyframe_annotations[action_index]
+        constraints = motion_constraints.elementary_action_list[action_index]["constraints"]
 
         try:
             motion = convert_elementary_action_to_motion(action, constraints, morphable_graph,algorithm_config,
                                                                   motion, skeleton=skeleton,
-                                                                 start_pose=start_pose, max_step=max_step,
+                                                                 start_pose=motion_constraints.start_pose, max_step=motion_constraints.max_step,
                                                                  keyframe_annotations=action_annotations, verbose=verbose)
 
         except SynthesisError as e:

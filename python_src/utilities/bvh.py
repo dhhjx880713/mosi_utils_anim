@@ -383,9 +383,8 @@ def main():
     bvh = BVHReader(infilename)
 
     print bvh.node_names
-    nn_map = create_filtered_node_name_map(bvh)
-    print nn_map.keys()
-    print bvh.max_level
+
+
     # print bvh.parent_dict
     print bvh.node_names.keys()
     #print [item for item in bvh.gen_all_parents("Head_EndSite")]

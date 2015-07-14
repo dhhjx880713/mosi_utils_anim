@@ -23,24 +23,24 @@ from constrain_motion import generate_algorithm_settings
 ALGORITHM_CONFIG_FILE = "algorithm_config.json"
 SERVICE_CONFIG_FILE = "service_config.json"
 
-def run_pipeline(root_directory, input_file, output_dir, output_filename, config_file):
+def run_pipeline(root_directory, input_file, output_dir, output_filename, algorithm_config_file):
     """Creates an instance of the morphable graph and runs the synthesis
        algorithm with the input_file and standard parameters.
     """
     
     max_step = -1
-    if os.path.isfile(config_file):
-        options = load_json_file(config_file)
+    if os.path.isfile(algorithm_config_file):
+        algorithm_config = load_json_file(algorithm_config_file)
     else:
-        options = generate_algorithm_settings()
+        algorithm_config = generate_algorithm_settings()
 
     start = time.clock()
-    morphable_graph = load_morphable_graph(root_directory, use_transition_model=options["use_transition_model"])
+    morphable_graph = load_morphable_graph(root_directory, use_transition_model=algorithm_config["use_transition_model"])
     print "finished construction from file in",time.clock()-start,"seconds"
     
     verbose = False
 
-    motion = morphable_graph.synthesize_motion(input_file,options=options,
+    motion = morphable_graph.synthesize_motion(input_file,algorithm_config=algorithm_config,
                                                       max_step=max_step,
                                                       verbose=verbose,
                                                       output_dir=output_dir,
@@ -53,13 +53,11 @@ def run_pipeline(root_directory, input_file, output_dir, output_filename, config
     else:
         print "Error: Failed to generate motion data."
 
-if __name__ == "__main__":
-    """example call:
-       mg_pipeline_interface.py
+
+def main():
+    """Loads the latest file added to the input directory specified in 
+        service_config.json and runs the algorithm.
     """
-    import warnings
-    warnings.simplefilter("ignore")
-    
     if os.path.isfile(SERVICE_CONFIG_FILE):
         service_config = load_json_file(SERVICE_CONFIG_FILE) 
         
@@ -70,3 +68,12 @@ if __name__ == "__main__":
         run_pipeline(service_config["data_root"], input_file, service_config["output_dir"], service_config["output_filename"], ALGORITHM_CONFIG_FILE)
     else:
         print "Error: Could not read service config file", SERVICE_CONFIG_FILE
+
+
+if __name__ == "__main__":
+    """example call:
+       mg_pipeline_interface.py
+    """
+    import warnings
+    warnings.simplefilter("ignore")
+    main()

@@ -2,7 +2,7 @@
 """
 Created on Tue Jul 14 14:18:37 2015
 
-@author: herrmann
+@author: Erik Herrmann, Martin Manns
 """
 
 import collections
