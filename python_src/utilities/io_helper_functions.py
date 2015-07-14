@@ -145,7 +145,7 @@ def clean_path(path):
     return path
 
 
-def export_euler_frames_to_bvh( output_dir,bvh_reader,euler_frames,prefix = "",start_pose = None,time_stamp = True):
+def export_euler_frames_to_bvh( output_dir,skeleton,euler_frames,prefix = "",start_pose = None,time_stamp = True):
     """ Exports a list of euler frames to a bvh file after transforming the frames
     to the start pose.
 
@@ -153,7 +153,7 @@ def export_euler_frames_to_bvh( output_dir,bvh_reader,euler_frames,prefix = "",s
     ---------
     * output_dir : string
         directory without trailing os.sep
-    * bvh_reader : BVHRreader
+    * skeleton : Skeleton
         contains joint hiearchy information
     * euler_frames : np.ndarray
         Represents the motion
@@ -170,10 +170,10 @@ def export_euler_frames_to_bvh( output_dir,bvh_reader,euler_frames,prefix = "",s
     else:
          filepath =  output_dir + os.sep+"output"+".bvh"
     print filepath
-    BVHWriter(filepath,bvh_reader, euler_frames,bvh_reader.frame_time,is_quaternion=False)
+    BVHWriter(filepath,skeleton, euler_frames,skeleton.frame_time,is_quaternion=False)
 
 
-def get_bvh_writer( bvh_reader, quat_frames, start_pose=None):
+def get_bvh_writer(skeleton, quat_frames, start_pose=None):
     """
     Returns
     -------
@@ -185,12 +185,12 @@ def get_bvh_writer( bvh_reader, quat_frames, start_pose=None):
                                                   start_pose["orientation"],
                                                  start_pose["position"])
     
-    bvh_writer = BVHWriter(None, bvh_reader, quat_frames, bvh_reader.frame_time,
+    bvh_writer = BVHWriter(None, skeleton, quat_frames, skeleton.frame_time,
                            is_quaternion=True)
     return bvh_writer
 
 
-def export_quat_frames_to_bvh_file(output_dir, bvh_reader, quat_frames,prefix="",
+def export_quat_frames_to_bvh_file(output_dir, skeleton, quat_frames,prefix="",
                               start_pose=None, time_stamp=True):
     """ Exports a list of quat frames to a bvh file after transforming the 
     frames to the start pose.
@@ -199,7 +199,7 @@ def export_quat_frames_to_bvh_file(output_dir, bvh_reader, quat_frames,prefix=""
     ---------
     * output_dir : string
         directory without trailing os.sep
-    * bvh_reader : BVHRreader
+    * skeleton : Skeleton
         contains joint hiearchy information
     * quat_frames : np.ndarray
         Represents the motion
@@ -207,7 +207,7 @@ def export_quat_frames_to_bvh_file(output_dir, bvh_reader, quat_frames,prefix=""
         Contains entry position and orientation each as a list with three components
 
     """
-    bvh_writer = get_bvh_writer(bvh_reader, quat_frames,
+    bvh_writer = get_bvh_writer(skeleton, quat_frames,
                               start_pose=None)
                                 
     if time_stamp:

@@ -49,7 +49,7 @@ def run_pipeline(root_directory, input_file, output_dir, output_filename, config
 
     if motion.quat_frames is not None:  # checks for quat_frames in result_tuple
         mg_input = load_json_file(input_file)
-        export_synthesis_result(mg_input, output_dir, output_filename, morphable_graph.bvh_reader, motion.quat_frames, motion.frame_annotation, motion.action_list, add_time_stamp=False)
+        export_synthesis_result(mg_input, output_dir, output_filename, morphable_graph.skeleton, motion.quat_frames, motion.frame_annotation, motion.action_list, add_time_stamp=False)
     else:
         print "Error: Failed to generate motion data."
 
