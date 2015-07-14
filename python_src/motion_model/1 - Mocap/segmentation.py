@@ -496,34 +496,9 @@ def apply_rotation_to_folder():
         save_filename = save_folder + filename
         BVHWriter(save_filename, reader, transformed_frames,
                   frame_time=0.013889, is_quaternion=False)
-#    bvhreader = BVHReader(bvh_files[0])
-#    rotation_angle = [-90, 0, 0]
-#    translation = [0, 0, 0]
-#    transformed_frames = transform_euler_frames(bvhreader.keyframes,
-#                                                rotation_angle,
-#                                                translation)
-#    save_filename = 'rotated_motion.bvh'
-#    BVHWriter(save_filename, bvhreader, transformed_frames, frame_time=0.013889, is_quaternion = False)
 
 
 if __name__ == '__main__':
-    #    main()
-    #    folder_path = r'C:\Users\hadu01\MG++\repo\data\1 - MoCap\2 - Rocketbox retargeting\Place_one_hand'
-    #    annotation_file = 'manual_keyframes\place_oneHand.json'
-    #    manual_motion_segmentation(folder_path, annotation_file)
-    #    infile = r'C:\Users\hadu01\MG++\repo\data\1 - MoCap\2 - Rocketbox retargeting\Take_pick\pick_038_4.bvh'
-    #    start_frame = 723
-    #    end_frame = 872
-    #    primitive_name = 'turningRight'
-    #    save_folder = r'C:\Users\hadu01\MG++\repo\data\1 - MoCap\3 - Cutting\elementary_action_carryRight\turningRight\\'
-    #    filename = os.path.split(infile)[-1]
-    #    new_filename = filename[:-4] + '_' + primitive_name + '_' + str(start_frame) + '_' + str(end_frame) + '.bvh'
-    #    cut_motion(infile, start_frame, end_frame, save_folder + new_filename)
-    #    infile = r'C:\Users\hadu01\MG++\workspace\MotionGraphs++\mocap data\pick\pickRight\turningRight\orientationAlignment\carry_018_4_turningRight_640_804.bvh'
-    #    start_frame = 42
-    #    end_frame = 163
-    #    save_path = infile
-    #    cut_motion(infile, start_frame, end_frame, save_path)
 
     manual_label_file = r'C:\Users\du\MG++\repo\data\1 - MoCap\2 - Rocketbox retargeting\Take_sidestep\key_frame_annotation.txt'
     file_folder = r'C:\Users\du\MG++\repo\data\1 - MoCap\2 - Rocketbox retargeting\Take_sidestep\rotated_files'
@@ -534,4 +509,3 @@ if __name__ == '__main__':
                                         elementary_action,
                                         primitive_type)
     data = text_to_json(r'C:\Users\du\MG++\repo\data\1 - MoCap\2 - Rocketbox retargeting\Take_sidecarry\key_frame_annotation.txt')
-#    apply_rotation_to_folder()
