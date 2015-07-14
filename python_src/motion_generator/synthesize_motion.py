@@ -11,30 +11,15 @@ json input file. Runs the optimization sequentially and creates constraints
 
 import copy
 import numpy as np
+from lib.exceptions import SynthesisError, PathSearchError
 from lib.morphable_graph import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END
-from utilities.motion_editing import convert_quaternion_to_euler, \
-                                get_cartesian_coordinates_from_euler, \
-                                transform_quaternion_frames, \
+from utilities.motion_editing import transform_quaternion_frames, \
                                 fast_quat_frames_alignment
 from constrain_motion import get_optimal_parameters,\
                              generate_algorithm_settings
 from constrain_gmm import ConstraintError
+from lib.motion_constraints import MotionPrimitiveConstraints
 
-
-
-class SynthesisError(Exception):
-    def __init__(self,  quat_frames, bad_samples):
-        message = "Could not process input file"
-        super(SynthesisError, self).__init__(message)
-        self.bad_samples = bad_samples
-        self.quat_frames = quat_frames
-
-
-class PathSearchError(Exception):
-    def __init__(self, parameters):
-        self.search_parameters = parameters
-        message = "Error in the navigation goal generation"
-        super(PathSearchError, self).__init__(message)
 
 
 
@@ -168,15 +153,8 @@ def get_aligned_frames(morphable_graph, action_name, mp_name, parameters, prev_f
     return quat_frames
 
 
-def get_optimal_motion(morphable_graph,
-                       action_name,
-                       mp_name,
-                       constraints,
-                       algorithm_config,
-                       prev_motion,
-                       skeleton=None,
-                       start_pose=None,
-                       keyframe_annotations={}):
+def get_optimal_motion(action_constraints, motion_primitive_constraints,
+                       algorithm_config, prev_motion):
     """Calls get_optimal_parameters and backpoject the results.
     Parameters
     ----------
@@ -202,6 +180,12 @@ def get_optimal_motion(morphable_graph,
     """
 
     try:
+        mp_name = motion_primitive_constraints.motion_primitive_name
+        action_name = action_constraints.action_name
+        skeleton = action_constraints.get_skeleton()
+        algorithm_config_copy = copy.copy(algorithm_config)
+        algorithm_config_copy["use_optimization"] = motion_primitive_constraints.use_optimization
+
         if len(prev_motion.graph_walk)> 0:
             prev_action_name = prev_motion.graph_walk[-1].action_name
             prev_mp_name =  prev_motion.graph_walk[-1].motion_primitive_name
@@ -215,106 +199,39 @@ def get_optimal_motion(morphable_graph,
             start_frame = len(prev_motion.quat_frames)
         else:
             start_frame = 0
-        parameters = get_optimal_parameters(morphable_graph,
+        parameters = get_optimal_parameters(action_constraints.parent_constraint.morphable_graph,
                                             action_name,
                                             mp_name,
-                                            constraints,
-                                            algorithm_config=algorithm_config,
+                                            motion_primitive_constraints.constraints,
+                                            algorithm_config=algorithm_config_copy,
                                             prev_action_name=prev_action_name,
                                             prev_mp_name=prev_mp_name,
                                             prev_frames=prev_motion.quat_frames,
                                             prev_parameters=prev_parameters,
                                             skeleton=skeleton,
-                                            start_pose=start_pose)
+                                            start_pose=action_constraints.start_pose)
     except  ConstraintError as e:
         print "Exception",e.message
         raise SynthesisError(prev_motion.quat_frames,e.bad_samples)
         
         
 
-        
+
     use_time_parameters = True
-    quat_frames = get_aligned_frames(morphable_graph, action_name, mp_name,
-                                     parameters, prev_motion.quat_frames, start_pose,
+    quat_frames = get_aligned_frames(action_constraints.parent_constraint.morphable_graph, action_name, mp_name,
+                                     parameters, prev_motion.quat_frames, action_constraints.start_pose,
                                      use_time_parameters, algorithm_config["apply_smoothing"])
 
 #            print 'length of quat frames in get optimal motion from no previous frames: ' + str(len(quat_frames))
     #associate keyframe annotation to quat_frames
     
     last_frame = len(quat_frames)-1
-    if mp_name in morphable_graph.subgraphs[action_name].mp_annotations.keys():
-        time_information = morphable_graph.subgraphs[action_name].mp_annotations[mp_name]
+    if mp_name in action_constraints.parent_constraint.morphable_graph.subgraphs[action_constraints.action_name].mp_annotations.keys():
+        time_information = action_constraints.parent_constraint.morphable_graph.subgraphs[action_constraints.action_name].mp_annotations[mp_name]
     else:
         time_information = {}
-    action_list = get_action_list(quat_frames, time_information, constraints, keyframe_annotations, start_frame, last_frame)
+    action_list = get_action_list(quat_frames, time_information, motion_primitive_constraints.constraints, action_constraints.keyframe_annotations, start_frame, last_frame)
     return quat_frames, parameters, action_list
-
-def get_point_and_orientation_from_arc_length(trajectory,arc_length,unconstrained_indices):
-    """ Returns a point, an orientation and a directoion vector on the trajectory
-    """
-    point = trajectory.query_point_by_absolute_arc_length(arc_length).tolist()
-
-    reference_vector = np.array([0,1])# in z direction
-    start,dir_vector,angle = trajectory.get_angle_at_arc_length_2d(arc_length,reference_vector)
-    orientation = [None,angle,None]
-    for i in unconstrained_indices:
-        point[i] = None
-        orientation[i] = None
-    return point,orientation,dir_vector
-
-
-def make_guess_for_goal_arc_length(morphable_subgraph, current_motion_primitive, trajectory,
-                                   last_arc_length, last_pos, unconstrained_indices=None,
-                                    step_length_factor=1.0, method = "arc_length"):
-    """ Makes a guess for a reachable arc length based on the current position.
-        It searches for the closest point on the trajectory, retrieves the absolute arc length
-        and its the arc length of a random sample of the next motion primitive
-    Returns
-    -------
-    * arc_length : float
-      The absolute arc length of the new goal on the trajectory.
-      The goal should then be extracted using get_point_and_orientation_from_arc_length
-    """
-    if unconstrained_indices is None:
-        unconstrained_indices = []
-    step_length = morphable_subgraph.nodes[current_motion_primitive].average_step_length * step_length_factor
-    max_arc_length = last_arc_length + 4.0* step_length
-    #find closest point in the range of the last_arc_length and max_arc_length
-    closest_point,distance = trajectory.find_closest_point(last_pos,min_arc_length = last_arc_length,max_arc_length=max_arc_length)
-    if closest_point is None:
-        parameters = {"last":last_arc_length,"max":max_arc_length,"full":trajectory.full_arc_length}
-        print "did not find closest point",closest_point,str(parameters)
-        raise PathSearchError(parameters)
-    # approximate arc length of the point closest to the current position
-    arc_length,eval_point = trajectory.get_absolute_arc_length_of_point(closest_point,min_arc_length = last_arc_length)
-    #update arc length based on the step length of the next motion primitive
-    if arc_length == -1 :
-        arc_length = trajectory.full_arc_length
-    else:
-        arc_length +=step_length# max(step_length-distance,0)
-    return arc_length
-
-
-def create_frame_constraint(skeleton, prev_frames):
-    """
-    create frame a constraint from the preceding motion.
-
-    """
-
-#    last_frame = prev_frames[-1]
-    last_euler_frame = np.ravel(convert_quaternion_to_euler([prev_frames[-1]]))
-    position_dict = {}
-    for node_name in skeleton.node_name_map.keys():
-#        target_position = get_cartesian_coordinates_from_quaternion(skeleton,
-#                                                             node_name, frame)
-        joint_position = get_cartesian_coordinates_from_euler(skeleton,
-                                                        node_name,
-                                                        last_euler_frame)
-#        print "add joint position to constraints",node_name,joint_position
-        position_dict[node_name] = joint_position
-    frame_constraint = {"frame_constraint":position_dict, "semanticAnnotation":{"firstFrame":True,"lastFrame":None}}
-
-    return frame_constraint
 
 
 
@@ -334,90 +251,6 @@ def check_end_condition(morphable_subgraph,prev_frames,trajectory,travelled_arc_
     continue_with_the_loop = distance_to_end > arc_length_offset/2 and \
                         travelled_arc_length < trajectory.full_arc_length - arc_length_offset
     return not continue_with_the_loop
-
-def create_constraints_for_motion_primitive(morphable_subgraph,current_motion_primitive,trajectory,
-                                                 last_arc_length,last_pos,unconstrained_indices,
-                                                 settings,root_joint_name, prev_frames=None,
-                                                 skeleton=None,
-                                                 keyframe_constraints={},semantic_annotation=None,
-                                                 is_last_step = False):
-    """ Creates a list of constraints for a motion primitive based on the current state and position
-    Returns
-    -------
-    * constraints : list of dicts
-      Each dict contains joint, position,orientation and semanticAnnotation describing a constraint
-    """
-    constraints = []
-    arc_length = 0
-    pose_constraint_set = False
-    if trajectory is not None:
-        step_length_factor = settings["step_length_factor"] #0.8 #used to increase the number of samples that can reach the point
-        method =  settings["method"]#"arc_length"
-        last_pos = copy.copy(last_pos)
-        last_pos[1] = 0.0
-        print "search for new goal"
-        # if it is the last step we need to reach the point exactly otherwise
-        # make a guess for a reachable point on the path that we have not visited yet
-        if not is_last_step:
-            arc_length = make_guess_for_goal_arc_length(morphable_subgraph,
-                                                   current_motion_primitive,trajectory,
-                                                   last_arc_length,last_pos,
-                                                   unconstrained_indices,
-                                                   step_length_factor,method)
-        else:
-            arc_length = trajectory.full_arc_length
-
-        goal,orientation,dir_vector = get_point_and_orientation_from_arc_length(trajectory,arc_length,unconstrained_indices)
-
-#        print  "starting from",last_pos,last_arc_length,"the new goal for", \
-#                current_motion_primitive,"is",goal,"at arc length",arc_length
-        print "starting from: "
-        print last_pos
-        print "the new goal for " + current_motion_primitive
-        print goal
-        print "arc length is: " + str(arc_length)
-
-
-
-        if settings["use_frame_constraints"] and  prev_frames is not None and skeleton is not None:
-            frame_constraint= create_frame_constraint(skeleton, prev_frames)
-            constraints.append(frame_constraint)
-            pose_constraint_set = True
-
-    #    else:
-    #        print "did not create first frame constraint #####################################"
-
-        if settings["use_position_constraints"] :
-            if not is_last_step:
-                pos_semantic_annotation={"firstFrame":None,"lastFrame":True}
-            else:
-                pos_semantic_annotation={"firstFrame":None,"lastFrame":True}
-            pos_constraint = {"joint":root_joint_name,"position":goal,
-                      "semanticAnnotation":pos_semantic_annotation}
-            constraints.append(pos_constraint)
-
-        if settings["use_dir_vector_constraints"] :
-            rot_semantic_annotation={"firstFrame":None,"lastFrame":True}
-            rot_constraint = {"joint":root_joint_name, "dir_vector":dir_vector,
-                          "semanticAnnotation":rot_semantic_annotation}
-            constraints.append(rot_constraint)
-
-    if len(keyframe_constraints.keys()) > 0:
-        # extract keyframe constraints of the current state
-        if current_motion_primitive in keyframe_constraints.keys():
-            constraints+= keyframe_constraints[current_motion_primitive]
-            
-        # generate frame constraints for the last step basd on the previous state
-        # if not already done for the trajectory following
-        if not pose_constraint_set and is_last_step and prev_frames is not None:
-            frame_constraint= create_frame_constraint(skeleton, prev_frames)
-            constraints.append(frame_constraint)
-  
-        
-    use_optimization = len(keyframe_constraints.keys()) > 0 or is_last_step
-    return constraints, arc_length, use_optimization 
-
-
 
     
     
@@ -530,8 +363,8 @@ def append_elementary_action_to_motion(action_constraints,
     """
     
     start_frame = motion.n_frames    
-    skeleton = action_constraints.parent_constraint.morphable_graph.skeleton
-    morphable_subgraph = action_constraints.parent_constraint.morphable_graph.subgraphs[action_constraints.action_name]
+    #skeleton = action_constraints.get_skeleton()
+    morphable_subgraph = action_constraints.get_subgraph()
     
     trajectory_following_settings = algorithm_config["trajectory_following_settings"]#  TODO move trajectory_following_settings to different key of the algorithm_config
 
@@ -584,9 +417,11 @@ def append_elementary_action_to_motion(action_constraints,
             last_pos = motion.quat_frames[-1][:3]
 
         try: 
-            constraints, temp_arc_length, use_optimization = create_constraints_for_motion_primitive(morphable_subgraph,\
-                      current_motion_primitive,action_constraints.trajectory,travelled_arc_length,last_pos,action_constraints.unconstrained_indices, trajectory_following_settings,\
-                      skeleton.root,motion.quat_frames,skeleton,action_constraints.keyframe_constraints,is_last_step=(current_motion_primitive_type == NODE_TYPE_END) )
+            is_last_step = (current_motion_primitive_type == NODE_TYPE_END) 
+            motion_primitive_constraints = MotionPrimitiveConstraints( current_motion_primitive, action_constraints,travelled_arc_length,last_pos, trajectory_following_settings, motion.quat_frames, is_last_step)
+#            constraints, temp_arc_length, use_optimization = create_constraints_for_motion_primitive(action_constraints,current_motion_primitive,\
+#                                                                                                     travelled_arc_length,last_pos, trajectory_following_settings,\
+#                                                                                                     motion.quat_frames,is_last_step=is_last_step)
         except PathSearchError as e:
                 print "moved beyond end point using parameters",
                 str(e.search_parameters)
@@ -594,12 +429,8 @@ def append_elementary_action_to_motion(action_constraints,
         # get optimal parameters, Back-project to frames in joint angle space,
         # Concatenate frames to motion and apply smoothing
 
-        algorithm_config_copy = copy.copy(algorithm_config)
-        algorithm_config_copy["use_optimization"] = use_optimization
-
-        motion.quat_frames, parameters, tmp_action_list = get_optimal_motion(action_constraints.parent_constraint.morphable_graph, action_constraints.action_name, current_motion_primitive, constraints,\
-                                                            prev_motion=motion, algorithm_config=algorithm_config_copy, skeleton=skeleton,\
-                                                            start_pose=action_constraints.start_pose,keyframe_annotations=action_constraints.keyframe_annotations)                                            
+       
+        motion.quat_frames, parameters, tmp_action_list = get_optimal_motion(action_constraints, motion_primitive_constraints,prev_motion=motion, algorithm_config=algorithm_config)                                            
 
         
         #update arc length based on new closest point

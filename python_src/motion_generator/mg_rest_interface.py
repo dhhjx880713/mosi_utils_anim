@@ -96,7 +96,7 @@ class MGRestApplication(tornado.web.Application):
        
     def synthesize_motion(self, mg_input):
         max_step = -1
-        return self.morphable_graph.synthesize_motion(mg_input,options=self.algorithm_config,
+        return self.morphable_graph.synthesize_motion(mg_input,algorithm_config=self.algorithm_config,
                                                           max_step=max_step,
                                                           output_dir=self.service_config["output_dir"],
                                                           output_filename=self.service_config["output_filename"],
