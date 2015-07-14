@@ -23,7 +23,7 @@ from utilities.io_helper_functions import load_json_file, write_to_json_file,\
 from lib.morphable_graph import MorphableGraph
 from lib.motion_constraints import MotionConstraints
 from constrain_motion import generate_algorithm_settings
-from synthesize_motion import convert_elementary_action_list_to_motion
+from synthesize_motion import generate_motion_from_constraints
 from lib.constraint_check import global_counter_dict
 
 LOG_FILE = "log.txt"
@@ -113,8 +113,7 @@ class ControllableMorphableGraph(MorphableGraph):
         # run the algorithm
         motion_constrains = MotionConstraints(mg_input, self)
         
-        motion = convert_elementary_action_list_to_motion(self,\
-                                             motion_constrains, algorithm_config, self.skeleton)
+        motion = generate_motion_from_constraints(motion_constrains, algorithm_config)
                                              
         seconds = time.clock() - start
         print_runtime_statistics(seconds)

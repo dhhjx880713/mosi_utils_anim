@@ -2,7 +2,7 @@
 """
 Created on Mon Jan 26 14:11:11 2015
 
-Runs the complete Morhable Graphs Pipeline to generate a motion based on an
+Runs the complete Morphable Graphs Pipeline to generate a motion based on an
 json input file. Runs the optimization sequentially and creates constraints
  based on previous steps.
 
@@ -487,11 +487,9 @@ def get_random_transition_state(motion, morphable_subgraph, trajectory, travelle
         return None, next_mp_type
        
 
-def convert_elementary_action_to_motion(action_constraints,
-                                        morphable_graph,
+def append_elementary_action_to_motion(action_constraints,
                                         algorithm_config,
-                                        motion,
-                                        skeleton):
+                                        motion):
     """Convert an entry in the elementary action list to a list of euler frames.
     Note only one trajectory constraint per elementary action is currently supported
     and it should be for the Hip joint.
@@ -531,11 +529,10 @@ def convert_elementary_action_to_motion(action_constraints,
     * motion: AnnotatedMotion
     """
     
-    #motion = prev_motion
-    
     start_frame = motion.n_frames    
+    skeleton = action_constraints.parent_constraint.morphable_graph.skeleton
+    morphable_subgraph = action_constraints.parent_constraint.morphable_graph.subgraphs[action_constraints.action_name]
     
-    morphable_subgraph = morphable_graph.subgraphs[action_constraints.action_name]
     trajectory_following_settings = algorithm_config["trajectory_following_settings"]#  TODO move trajectory_following_settings to different key of the algorithm_config
 
     arc_length_of_end = morphable_subgraph.nodes[morphable_subgraph.get_random_end_state()].average_step_length
@@ -557,7 +554,7 @@ def convert_elementary_action_to_motion(action_constraints,
         #######################################################################
         # Get motion primitive = extract from graph based on previous last step + heuristic
         if temp_step == 0:  
-             current_motion_primitive = get_random_start_state(motion, morphable_graph, action_constraints.action_name)
+             current_motion_primitive = get_random_start_state(motion, action_constraints.parent_constraint.morphable_graph, action_constraints.action_name)
              current_motion_primitive_type = NODE_TYPE_START
              if current_motion_primitive is None:
                  if motion.step_count >0:
@@ -600,7 +597,7 @@ def convert_elementary_action_to_motion(action_constraints,
         algorithm_config_copy = copy.copy(algorithm_config)
         algorithm_config_copy["use_optimization"] = use_optimization
 
-        motion.quat_frames, parameters, tmp_action_list = get_optimal_motion(morphable_graph, action_constraints.action_name, current_motion_primitive, constraints,\
+        motion.quat_frames, parameters, tmp_action_list = get_optimal_motion(action_constraints.parent_constraint.morphable_graph, action_constraints.action_name, current_motion_primitive, constraints,\
                                                             prev_motion=motion, algorithm_config=algorithm_config_copy, skeleton=skeleton,\
                                                             start_pose=action_constraints.start_pose,keyframe_annotations=action_constraints.keyframe_annotations)                                            
 
@@ -641,8 +638,7 @@ def convert_elementary_action_to_motion(action_constraints,
 
 
 
-def convert_elementary_action_list_to_motion(morphable_graph,motion_constraints,\
-    algorithm_config=None, skeleton=None):
+def generate_motion_from_constraints(motion_constraints, algorithm_config=None):
     """ Converts a constrained graph walk to euler frames
      Parameters
     ----------
@@ -680,8 +676,7 @@ def convert_elementary_action_list_to_motion(morphable_graph,motion_constraints,
         for key in algorithm_config.keys():
             print key,algorithm_config[key]
 
-   
-        
+
     motion = AnnotatedMotion()
     action_constraints = motion_constraints.get_next_elementary_action_constraints()
     while action_constraints != None:
@@ -694,14 +689,13 @@ def convert_elementary_action_list_to_motion(morphable_graph,motion_constraints,
            print "convert",action_constraints.action_name,"to graph walk"
 
         try:
-            motion = convert_elementary_action_to_motion(action_constraints, morphable_graph,algorithm_config,
-                                                                  motion, skeleton=skeleton)
-            action_constraints = motion_constraints.get_next_elementary_action_constraints() 
+            motion = append_elementary_action_to_motion(action_constraints, algorithm_config, motion)
+            
         except SynthesisError as e:
             print "Arborting conversion",e.message
             return motion
-
-
+        action_constraints = motion_constraints.get_next_elementary_action_constraints() 
+        
     return motion
 
 
