@@ -154,18 +154,21 @@ class BVHReader(object):
 
 class BVHWriter(object):
     """ Saves an input motion defined either as an array of euler or quaternion 
-        frame vectors as a BVH file. 
-        * filename: String or None
-            Name of the created bvh file. Can be None.
-        * skeleton: Skeleton
-            Skeleton structure needed to copy the hierarchy
-        * frame_data: np.ndarray
-            array of motion vectors, either with euler or quaternion as 
-            rotation parameters
-        * frame_time: float
-            time in seconds for the display of each keyframe
-        * is_quaternion: Boolean
-            Defines wether the frame_data is quaternion data or euler data
+    frame vectors as a BVH file.
+    
+    Parameters
+    ----------
+    * filename: String or None
+        Name of the created bvh file. Can be None.
+    * skeleton: Skeleton
+        Skeleton structure needed to copy the hierarchy
+    * frame_data: np.ndarray
+        array of motion vectors, either with euler or quaternion as 
+        rotation parameters
+    * frame_time: float
+        time in seconds for the display of each keyframe
+    * is_quaternion: Boolean
+        Defines wether the frame_data is quaternion data or euler data
     """
     def __init__(self, filename, skeleton, frame_data,frame_time,is_quaternion=False):
         self.skeleton = skeleton

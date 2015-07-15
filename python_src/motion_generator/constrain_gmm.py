@@ -5,21 +5,11 @@ Created on Fri Feb 13 10:09:45 2015
 @author: mamauer,FARUPP,erhe01
 """
 
-import os
 import numpy as np
 import sklearn.mixture as mixture
 from constraint.constraint_check import check_constraint, find_aligned_quaternion_frames
-from motion_model.motion_primitive import MotionPrimitive
 from operator import itemgetter
 
-
-def _get_mm_input_file(action, primitive):
-    """ Return the path to the inputfile """
-    ROOT = os.sep.join(['..'] * 3)
-    return os.sep.join([ROOT, 'data', '3 - Motion primitives',
-                        'motion_primitives_quaternion_PCA95',
-                        'elementary_action_%s' % action,
-                        '%s_%s_quaternion_mm.json' % (action, primitive)])
 
 class ConstraintError(Exception):
     def __init__(self,  bad_samples):
@@ -182,37 +172,3 @@ class ConstrainedGMM(mixture.GMM):
         good_samples = np.array(good_samples)
         self.fit(good_samples)
 
-
-def main():
-    action = 'walk'
-    primitive = 'beginRightStance'
-    mmfile = _get_mm_input_file(action, primitive)
-    mm = MotionPrimitive(mmfile)
-
-    cgmm = ConstrainedGMM(mm, mm.gmm)
-
-    constraint = ('Hips', [12, None, -20], [None, None, None])
-    #  transformation = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, -1, 0],
-    #                             [0, 0, 0, 1]])
-    transformation = None
-    cgmm.set_constraint(constraint, transformation, start_pose =np.array([0,0,0]), size=30,
-                        precision=3, firstFrame=None, lastFrame=None)
-
-    new_s = cgmm.sample(10)
-    for i, s in enumerate(new_s):
-        ok = check_constraint(mm, s, constraint, prev_frames=None, start_pose=None,
-                              precision=3, firstFrame=None, lastFrame=None)
-        print "sample %s ok?" % i, ok
-
-def test():
-    action = 'pick'
-    primitive = 'first'
-    mmfile = _get_mm_input_file(action, primitive)
-    mm = MotionPrimitive(mmfile)
-    cgmm = ConstrainedGMM(mm, mm.gmm)
-    constraint = ('LeftHand', [-46.822415923765426, 23.191993354140852, -45.92779134992672])
-    constraint = ('RightHand', [59.39961171964804, 21.092615703131738, -38.04536998280619])
-
-
-if __name__ == '__main__':
-    main()

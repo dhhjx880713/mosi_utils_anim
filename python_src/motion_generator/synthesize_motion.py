@@ -13,19 +13,17 @@ import copy
 import numpy as np
 from utilities.exceptions import SynthesisError, PathSearchError
 from motion_model.morphable_graph import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END
-from utilities.motion_editing import transform_quaternion_frames, \
-                                fast_quat_frames_alignment
 from constrain_motion import get_optimal_parameters,\
                              generate_algorithm_settings
 from constrain_gmm import ConstraintError
 from constraint.motion_constraints import MotionPrimitiveConstraints
 from annotated_motion import AnnotatedMotion, GraphWalkEntry
-from constraint.constraint_extraction import associate_actions_to_frames
 
 
 def get_optimal_motion(action_constraints, motion_primitive_constraints,
                        algorithm_config, prev_motion):
     """Calls get_optimal_parameters and backpoject the results.
+    
     Parameters
     ----------
     *action_constraints: ActionConstraints
@@ -35,6 +33,8 @@ def get_optimal_motion(action_constraints, motion_primitive_constraints,
     * algorithm_config : dict
         Contains parameters for the algorithm.
     *prev_motion: AnnotatedMotion
+        Annotated motion with information on the graph walk.
+        
     Returns
     -------
     * quat_frames : list of np.ndarray
@@ -59,10 +59,7 @@ def get_optimal_motion(action_constraints, motion_primitive_constraints,
             prev_action_name = ""
             prev_mp_name =  ""
             prev_parameters =  None
-        if prev_motion.quat_frames is not None:
-            start_frame = len(prev_motion.quat_frames)
-        else:
-            start_frame = 0
+
         parameters = get_optimal_parameters(action_constraints.parent_constraint.morphable_graph,
                                             action_name,
                                             mp_name,
@@ -78,8 +75,6 @@ def get_optimal_motion(action_constraints, motion_primitive_constraints,
         print "Exception",e.message
         raise SynthesisError(prev_motion.quat_frames,e.bad_samples)
         
-        
-
     tmp_quat_frames = action_constraints.parent_constraint.morphable_graph.subgraphs[action_name].nodes[mp_name].mp.back_project(parameters, use_time_parameters=True).get_motion_vector()
 
     return tmp_quat_frames, parameters

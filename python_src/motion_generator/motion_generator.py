@@ -34,10 +34,10 @@ class MotionGenerator(object):
     
     Parameters
     ----------
-    * service_config: string
-        Contains paths to the motion data:
+    * service_config: String
+        Contains paths to the motion data.
     * use_transition_model : Booelan
-        Activates the transition models:
+        Activates the transition models.
     """
     def __init__(self,service_config, use_transition_model=False):
         
@@ -60,7 +60,7 @@ class MotionGenerator(object):
         ----------        
         * mg_input_filename : string or dict
             Dict or Path to json file that contains a list of elementary actions with constraints.
-        * options : dict
+        * algorithm_config : dict
             Contains options for the algorithm.
             When set to None generate_algorithm_settings() is called with default settings
             use_constraints: Sets whether or not to use constraints 
@@ -73,8 +73,6 @@ class MotionGenerator(object):
                 optimization_tolerance
             constrained_gmm_settings : position and orientation precision + sample size                
             If set to None default settings are used.
-
-
         * max_step : integer
             Debug parameter for the maximum number of motion primitives to be converted before stopping.
             If set to -1 this parameter is ignored
@@ -88,13 +86,10 @@ class MotionGenerator(object):
             
         Returns
         -------
-        * concatenated_frames : np.ndarray
-           A list of quaternion frames representing a motion.
-         * frame_annotation : dict
-           Associates the quaternion frames with the elementary actions
-        * action_list : dict of dicts
-           Contains actions/events for some frames based on the keyframe_annotations 
+        * motion : AnnotatedMotion
+           Contains a list of quaternion frames and their annotation based on actions.
         """
+        
         global_counter_dict["evaluations"] = 0
         if type(mg_input) != dict:
             mg_input = load_json_file(mg_input)
