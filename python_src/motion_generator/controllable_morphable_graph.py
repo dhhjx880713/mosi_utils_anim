@@ -173,9 +173,9 @@ def print_runtime_statistics(seconds):
     print error_string
     
 
-def load_morphable_graph(root_directory, use_transition_model=False, skeleton_file=SKELETON_FILE):
-    mm_directory = get_morphable_model_directory(root_directory)
-    transition_directory = get_transition_model_directory(root_directory)
+def load_morphable_graph(service_config, use_transition_model=False, skeleton_file=SKELETON_FILE):
+    mm_directory = service_config["model_data"]
+    transition_directory = service_config["transition_data"]
     cmg = ControllableMorphableGraph(mm_directory,
                                      transition_directory,
                                      skeleton_file,

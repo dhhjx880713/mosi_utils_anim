@@ -280,7 +280,7 @@ def get_random_transition_state(motion, morphable_subgraph, trajectory, travelle
 def append_elementary_action_to_motion(action_constraints,
                                         algorithm_config,
                                         motion):
-    """Convert an entry in the elementary action list to a list of euler frames.
+    """Convert an entry in the elementary action list to a list of quaternion frames.
     Note only one trajectory constraint per elementary action is currently supported
     and it should be for the Hip joint.
 
@@ -421,13 +421,13 @@ def append_elementary_action_to_motion(action_constraints,
 #                                        travelled_arc_length,arc_length_of_end)
         
   
-    return motion# quat_frames, prev_action_name, mp_sequence[-1][0], prev_parameters, step_count, action_list
+    return motion
 
 
 
 
 def generate_motion_from_constraints(motion_constraints, algorithm_config=None):
-    """ Converts a constrained graph walk to euler frames
+    """ Converts a constrained graph walk to quaternion frames
      Parameters
     ----------
     * morphable_graph : MorphableGraph

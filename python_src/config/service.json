@@ -1,5 +1,6 @@
 {
-    "data_root": "E:\\projects\\INTERACT\\repository", 
+    "model_data": "E:\\projects\\INTERACT\\repository\\data\\3 - Motion primitives\\motion_primitives_quaternion_PCA95", 
+    "transition_data": "E:\\projects\\INTERACT\\repository\\data\\4 - Transition model\\input", 
     "output_dir":  "E:\\projects\\INTERACT\\repository\\BestFitPipeline\\_Results",
     "input_dir": "E:\\projects\\INTERACT\\repository\\BestFitPipeline\\CNL-GUI",
     "output_filename": "MGResult",
