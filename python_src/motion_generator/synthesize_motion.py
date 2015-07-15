@@ -343,7 +343,7 @@ def generate_motion_from_constraints(motion_constraints, algorithm_config=None):
 
     motion = AnnotatedMotion()
     action_constraints = motion_constraints.get_next_elementary_action_constraints()
-    while action_constraints != None:
+    while action_constraints is not None:
    
         if motion_constraints.max_step > -1 and motion.step_count > motion_constraints.max_step:
             print "reached max step"

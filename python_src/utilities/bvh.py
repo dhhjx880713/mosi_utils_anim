@@ -153,21 +153,22 @@ class BVHReader(object):
 
 
 class BVHWriter(object):
-    """Write BVH files.     
+    """ Saves an input motion defined either as an array of euler or quaternion 
+        frame vectors as a BVH file. 
+        * filename: String or None
+            Name of the created bvh file. Can be None.
+        * skeleton: Skeleton
+            Skeleton structure needed to copy the hierarchy
+        * frame_data: np.ndarray
+            array of motion vectors, either with euler or quaternion as 
+            rotation parameters
+        * frame_time: float
+            time in seconds for the display of each keyframe
+        * is_quaternion: Boolean
+            Defines wether the frame_data is quaternion data or euler data
     """
-
-    def __init__(self,filename, bvh_reader, frame_data,frame_time,is_quaternion=False):
-        """ Saves an input motion defined either as an array of euler or quaternion 
-            frame vectors as a BVH file. 
-            * filename: name of the created bvh file.If no file is provided the 
-                        string can still be returned for unit tests
-            * bvh_reader: bvh data struced needed to copy the hierarchy
-            * frame_data: array of motion vectors, either as euler or quaternion
-            * frame_time: time in seconds for the display of each keyframe
-            * is_quaternion: defines wether the frame_data is quaternion data 
-                            or euler data
-        """
-        self.bvh_reader = bvh_reader
+    def __init__(self, filename, skeleton, frame_data,frame_time,is_quaternion=False):
+        self.skeleton = skeleton
         self.frame_data = frame_data
         self.frame_time = frame_time
         self.is_quaternion = is_quaternion
@@ -190,9 +191,8 @@ class BVHWriter(object):
     
   
     def generate_bvh_string(self):
-
-          bvh_string = self._generate_hierarchy_string(self.bvh_reader.root,self.bvh_reader.node_names)+"\n"
-          bvh_string += self._generate_frame_parameter_string(self.frame_data,self.bvh_reader.node_names,self.frame_time, self.is_quaternion)
+          bvh_string = self._generate_hierarchy_string(self.skeleton.root,self.skeleton.node_names)+"\n"
+          bvh_string += self._generate_frame_parameter_string(self.frame_data,self.skeleton.node_names,self.frame_time, self.is_quaternion)
           return bvh_string
           
     def _generate_hierarchy_string(self,root,node_names):

@@ -87,9 +87,9 @@ class MGRestApplication(tornado.web.Application):
         This allows access to the data in the MGInputHandler class
     '''
         
-    def __init__(self,motion_generator, service_config, algorithm_config, handlers=None, default_host="", transforms=None, **settings):
+    def __init__(self, service_config, algorithm_config, handlers=None, default_host="", transforms=None, **settings):
         tornado.web.Application.__init__(self, handlers, default_host, transforms)
-        self.motion_generator = motion_generator
+        self.motion_generator = MotionGenerator(service_config, use_transition_model=algorithm_config["use_transition_model"])
         self.algorithm_config = algorithm_config
         self.service_config = service_config
         self.use_file_output_mode = (service_config["output_mode"] =="file_output")
@@ -167,9 +167,8 @@ class MorphableGraphsRESTfulInterface(object):
             
         #  Construct morphable graph from files
         start = time.clock()
-        motion_generator = MotionGenerator(service_config, use_transition_model=algorithm_config["use_transition_model"])
         print "finished construction from file in", time.clock()-start, "seconds"
-        self.application = MGRestApplication(motion_generator, service_config, algorithm_config, 
+        self.application = MGRestApplication(service_config, algorithm_config, 
                                              [(r"/runmorphablegraphs",MGInputHandler)
                                               ])
 
