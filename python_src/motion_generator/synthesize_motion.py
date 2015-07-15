@@ -28,25 +28,19 @@ def get_optimal_motion(action_constraints, motion_primitive_constraints,
     """Calls get_optimal_parameters and backpoject the results.
     Parameters
     ----------
+    *action_constraints: ActionConstraints
+        Constraints specific for the elementary action.
+    *motion_primitive_constraints: MotionPrimitiveConstraints
+        Constraints specific for the current motion primitive.
     * algorithm_config : dict
-        Contains algorithm_config for the algorithm.
-        When set to None generate_algorithm_settings() is called with default settings
-        use_constraints: Sets whether or not to use constraints
-        use_optimization : Sets whether to activate optimization or use only sampling
-        use_constrained_gmm : Sets whether or not to constrain the GMM
-        use_transition_model : Sets whether or not to predict parameters using the transition model
-        apply_smoothing : Sets whether or not smoothing is applied on transitions
-        optimization_settings : parameters for the optimization algorithm: method, max_iterations
-        constrained_gmm_settings : position and orientation precision + sample size
+        Contains parameters for the algorithm.
+    *prev_motion: AnnotatedMotion
     Returns
     -------
     * quat_frames : list of np.ndarray
         list of skeleton pose parameters.
     * parameters : np.ndarray
         low dimensional motion parameters used to generate the frames
-    * step_length : float
-       length of the generated motion
-    * action_list :
     """
 
     try:
@@ -88,7 +82,7 @@ def get_optimal_motion(action_constraints, motion_primitive_constraints,
 
     tmp_quat_frames = action_constraints.parent_constraint.morphable_graph.subgraphs[action_name].nodes[mp_name].mp.back_project(parameters, use_time_parameters=True).get_motion_vector()
 
-    return tmp_quat_frames, parameters#, action_list
+    return tmp_quat_frames, parameters
 
 
 
@@ -199,15 +193,7 @@ def append_elementary_action_to_motion(action_constraints,
     * morphable_graph : MorphableGraph
     \t An instance of the MorphableGraph.
     * algorithm_config : dict
-        Contains algorithm_config for the algorithm.
-        When set to None generate_algorithm_settings() is called with default settings
-        use_constraints: Sets whether or not to use constraints
-        use_optimization : Sets whether to activate optimization or use only sampling
-        use_constrained_gmm : Sets whether or not to constrain the GMM
-        use_transition_model : Sets whether or not to predict parameters using the transition model
-        apply_smoothing : Sets whether or not smoothing is applied on transitions
-        optimization_settings : parameters for the optimization algorithm: method, max_iterations
-        constrained_gmm_settings : position and orientation precision + sample size
+        Contains parameters for the algorithm.
     * start_pose : dict
      Contains orientation and position as lists with three elements
 
@@ -314,7 +300,6 @@ def append_elementary_action_to_motion(action_constraints,
         temp_step += 1
 
     motion.step_count += temp_step
-    motion.n_frames = len(motion.quat_frames)
     motion.update_frame_annotation(action_constraints.action_name, start_frame, motion.n_frames)
     
     print "reached end of elementary action", action_constraints.action_name
@@ -341,35 +326,20 @@ def generate_motion_from_constraints(motion_constraints, algorithm_config=None):
     * motion_constraints : list of dict
         Contains a list of dictionaries with the entries for "subgraph","state" and "parameters"
     * algorithm_config : dict
-        Contains algorithm_config for the algorithm.
-        When set to None generate_algorithm_settings() is called with default settings
-        use_constraints: Sets whether or not to use constraints
-        use_optimization : Sets whether to activate optimization or use only sampling
-        use_constrained_gmm : Sets whether or not to constrain the GMM
-        use_transition_model : Sets whether or not to predict parameters using the transition model
-        apply_smoothing : Sets whether or not smoothing is applied on transitions
-        optimization_settings : parameters for the optimization algorithm: method, max_iterations
-        constrained_gmm_settings : position and orientation precision + sample size
+        Contains parameters for the algorithm.
     * skeleton : Skeleton
         Used for to extract the skeleton hierarchy information.
         
     Returns
     -------
     * motion: AnnotatedMotion
-    
-    * concatenated_frames : np.ndarray
-    \tA list of euler frames representing a motion.
-    * frame_annotation : dict
-    \tAssociates the quat frames with the elementary actions
-    * action_list : dict of lists of dict
-    \tContains actions/events for some frames based on the keyframe_annotations
+        Contains the quaternion frames and annotations of the frames based on actions.
     """
     if algorithm_config is None:
         algorithm_config = generate_algorithm_settings()
     if algorithm_config["verbose"]:
         for key in algorithm_config.keys():
             print key,algorithm_config[key]
-
 
     motion = AnnotatedMotion()
     action_constraints = motion_constraints.get_next_elementary_action_constraints()
@@ -389,7 +359,6 @@ def generate_motion_from_constraints(motion_constraints, algorithm_config=None):
             print "Arborting conversion",e.message
             return motion
         action_constraints = motion_constraints.get_next_elementary_action_constraints() 
-        
     return motion
 
 
