@@ -167,7 +167,7 @@ class MorphableGraphsRESTfulInterface(object):
             
         #  Construct morphable graph from files
         start = time.clock()
-        morphable_graph = load_morphable_graph(service_config["data_root"])
+        morphable_graph = load_morphable_graph(service_config)
         print "finished construction from file in", time.clock()-start, "seconds"
         self.application = MGRestApplication(morphable_graph, service_config, algorithm_config, 
                                              [(r"/runmorphablegraphs",MGInputHandler)

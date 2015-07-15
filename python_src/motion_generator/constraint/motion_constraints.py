@@ -8,7 +8,7 @@ Created on Tue Jul 14 15:26:29 2015
 import copy
 import numpy as np
 from utilities.exceptions import PathSearchError
-from input_processing import extract_keyframe_annotations, \
+from constraint_extraction import extract_keyframe_annotations, \
                                 transform_point_from_cad_to_opengl_cs, \
                                 extract_trajectory_constraint,\
                                 create_trajectory_from_constraint,\

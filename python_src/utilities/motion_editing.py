@@ -16,7 +16,7 @@ from external.transformations import quaternion_matrix, euler_from_matrix, \
                             quaternion_from_matrix, euler_matrix, \
                             quaternion_multiply                           
 
-
+SMOOTHING_WINDOW_SIZE = 20
 
 def euler_to_quaternion(euler_angles, rotation_order= \
                         ['Xrotation', 'Yrotation', 'Zrotation'],
@@ -1155,7 +1155,7 @@ def align_frames(bvh_reader,
         euler_frames = np.concatenate((euler_frames_a, euler_frames_b), axis=0)
     return euler_frames
 
-def align_quaternion_frames(bvh_reader,
+def align_quaternion_frames(skeleton,
                             quaternion_frames_a,
                             quaternion_frames_b,
                             node_name_map=None,
@@ -1163,12 +1163,12 @@ def align_quaternion_frames(bvh_reader,
     # find translation and rotation by using last frame from quaternion_frames_a
     # and the first frame from quaternion_frame_b 
     # convert quaternion frame to euler frame                       
-    last_euler_frame = np.ravel(quaternion_frames_a[-1])#convert_quaternion_to_euler([])
-    first_euler_frame = np.ravel(quaternion_frames_b[0])#convert_quaternion_to_euler([])
-    point_cloud_a = convert_quaternion_frame_to_cartesian_frame(bvh_reader, last_euler_frame, node_name_map)
-    point_cloud_b = convert_quaternion_frame_to_cartesian_frame(bvh_reader, first_euler_frame ,node_name_map) 
-    weights = get_joint_weights(bvh_reader, node_name_map)
-    theta, offset_x, offset_z = align_point_clouds_2D(point_cloud_a,point_cloud_b,weights)
+    last_euler_frame = np.ravel(quaternion_frames_a[-1])
+    first_euler_frame = np.ravel(quaternion_frames_b[0])
+    point_cloud_a = convert_quaternion_frame_to_cartesian_frame(skeleton, last_euler_frame)
+    point_cloud_b = convert_quaternion_frame_to_cartesian_frame(skeleton, first_euler_frame) 
+
+    theta, offset_x, offset_z = align_point_clouds_2D(point_cloud_a,point_cloud_b,skeleton.joint_weights)
 #    print 'rotation angle from point cloud alignment: ' + str(np.rad2deg(theta))
 #    print 'translation vector: '
 #    print [offset_x, offset_z]
@@ -1218,7 +1218,7 @@ def fast_quat_frames_alignment(quaternion_frames_a,
     if smooth:
         quaternion_frames = smoothly_concatenate_quaternion_frames(quaternion_frames_a,
                                                                    transformed_frames,
-                                                                   window_size=20)
+                                                                   window_size=SMOOTHING_WINDOW_SIZE)
     else:
         quaternion_frames = np.concatenate((quaternion_frames_a,
                                             transformed_frames))

@@ -20,94 +20,7 @@ from constrain_motion import get_optimal_parameters,\
 from constrain_gmm import ConstraintError
 from constraint.motion_constraints import MotionPrimitiveConstraints
 from annotated_motion import AnnotatedMotion, GraphWalkEntry
-
-
-def get_action_list(quat_frames, time_information, constraints, keyframe_annotations, start_frame, last_frame):
-    """Associates annotations to frames
-    Parameters
-    ----------
-    *quat_frames : np.ndarray
-      motion
-    * time_information : dict
-      maps keyframes to frame numbers
-    * constraints: list of dict
-      list of constraints for one motion primitive generated
-      based on the mg input file
-    * keyframe_annotations : dict of dicts
-      Contains a list of events/actions associated with certain keyframes
-
-    Returns
-    -------
-    *  action_list : dict of lists of dicts
-       A dict that contains a list of actions for certain keyframes
-    """
-
-    action_list = {}
-    key_frame_label_pairs = set()
-    #extract the set of keyframes and their annotations referred to by the constraints
-    for c in constraints:
-        if "semanticAnnotation" in c.keys():
-            for key_label in c["semanticAnnotation"]:  # can also contain lastFrame and firstFrame
-                if key_label in keyframe_annotations.keys() and key_label in time_information.keys():
-                    if time_information[key_label] == "lastFrame":
-                        key_frame = last_frame
-                    elif time_information[key_label] == "firstFrame":
-                        key_frame = start_frame
-                        
-                    if "annotations" in keyframe_annotations[key_label].keys():
-                        key_frame_label_pairs.add((key_frame,key_label))
-                        
-        
-    #extract the annotations for the referred keyframes
-    for key_frame, key_label in key_frame_label_pairs:
-        annotations = keyframe_annotations[key_label]["annotations"]
-
-        num_events = len(annotations)
-        if num_events > 1:
-            #check if an event is mentioned multiple times
-            event_list = [(annotations[i]["event"],annotations[i]) for i in xrange(num_events)]
-            temp_event_dict = dict()
-            for name, event in event_list:#merge parameters to one event if it is found multiple times
-                if name not in temp_event_dict.keys():
-                   temp_event_dict[name]= event
-                else:
-                    if "joint" in temp_event_dict[name]["parameters"].keys():
-                        existing_entry = copy.copy(temp_event_dict[name]["parameters"]["joint"])
-                        if isinstance(existing_entry, basestring):
-                            temp_event_dict[name]["parameters"]["joint"] = [existing_entry,event["parameters"]["joint"]]
-                        else:
-                            temp_event_dict[name]["parameters"]["joint"].append(event["parameters"]["joint"])
-                        print "event dict merged",temp_event_dict[name]
-                    else:
-                        print "event dict merge did not happen",temp_event_dict[name]   
-            action_list[key_frame] = copy.copy(temp_event_dict.values())
-
-        else:
-            action_list[key_frame] = annotations          
-    return action_list
-    
-
-def get_aligned_frames(morphable_graph, action_name, mp_name, parameters, prev_frames, start_pose=None, use_time_parameters=True, apply_smoothing=True):
-    
-    #back project to quaternion frames
-    tmp_quat_frames = morphable_graph.subgraphs[action_name].nodes[mp_name].mp.back_project(parameters, use_time_parameters).get_motion_vector()
-
-    #concatenate with frames from previous steps
-
-    if prev_frames is not None:
-        quat_frames = fast_quat_frames_alignment(prev_frames,
-                                              tmp_quat_frames,
-                                              apply_smoothing)
-    else:
-        if start_pose is not None:
-            #rotate quat frames so the transformation can be found using alignment
-           quat_frames = transform_quaternion_frames(tmp_quat_frames, 
-                                                     start_pose["orientation"], 
-                                                     start_pose["position"])
-           #print "resulting start position",quat_frames[0][:3]
-        else:
-            quat_frames = tmp_quat_frames
-    return quat_frames
+from constraint.constraint_extraction import associate_actions_to_frames
 
 
 def get_optimal_motion(action_constraints, motion_primitive_constraints,
@@ -173,22 +86,9 @@ def get_optimal_motion(action_constraints, motion_primitive_constraints,
         
         
 
+    tmp_quat_frames = action_constraints.parent_constraint.morphable_graph.subgraphs[action_name].nodes[mp_name].mp.back_project(parameters, use_time_parameters=True).get_motion_vector()
 
-    use_time_parameters = True
-    quat_frames = get_aligned_frames(action_constraints.parent_constraint.morphable_graph, action_name, mp_name,
-                                     parameters, prev_motion.quat_frames, action_constraints.start_pose,
-                                     use_time_parameters, algorithm_config["apply_smoothing"])
-
-#            print 'length of quat frames in get optimal motion from no previous frames: ' + str(len(quat_frames))
-    #associate keyframe annotation to quat_frames
-    
-    last_frame = len(quat_frames)-1
-    if mp_name in action_constraints.parent_constraint.morphable_graph.subgraphs[action_constraints.action_name].mp_annotations.keys():
-        time_information = action_constraints.parent_constraint.morphable_graph.subgraphs[action_constraints.action_name].mp_annotations[mp_name]
-    else:
-        time_information = {}
-    action_list = get_action_list(quat_frames, time_information, motion_primitive_constraints.constraints, action_constraints.keyframe_annotations, start_frame, last_frame)
-    return quat_frames, parameters, action_list
+    return tmp_quat_frames, parameters#, action_list
 
 
 
@@ -375,7 +275,7 @@ def append_elementary_action_to_motion(action_constraints,
 
         try: 
             is_last_step = (current_motion_primitive_type == NODE_TYPE_END) 
-            motion_primitive_constraints = MotionPrimitiveConstraints( current_motion_primitive, action_constraints,travelled_arc_length,last_pos, trajectory_following_settings, motion.quat_frames, is_last_step)
+            motion_primitive_constraints = MotionPrimitiveConstraints(current_motion_primitive, action_constraints,travelled_arc_length,last_pos, trajectory_following_settings, motion.quat_frames, is_last_step)
 #            constraints, temp_arc_length, use_optimization = create_constraints_for_motion_primitive(action_constraints,current_motion_primitive,\
 #                                                                                                     travelled_arc_length,last_pos, trajectory_following_settings,\
 #                                                                                                     motion.quat_frames,is_last_step=is_last_step)
@@ -387,8 +287,14 @@ def append_elementary_action_to_motion(action_constraints,
         # Concatenate frames to motion and apply smoothing
 
        
-        motion.quat_frames, parameters, tmp_action_list = get_optimal_motion(action_constraints, motion_primitive_constraints,prev_motion=motion, algorithm_config=algorithm_config)                                            
-
+        tmp_quat_frames, parameters = get_optimal_motion(action_constraints, motion_primitive_constraints, prev_motion=motion, algorithm_config=algorithm_config)                                            
+        
+        #update annotated motion
+        canonical_keyframe_labels = morphable_subgraph.get_canonical_keyframe_labels(current_motion_primitive)
+        start_frame = motion.n_frames
+        motion.append_quat_frames(tmp_quat_frames, action_constraints.start_pose, algorithm_config["apply_smoothing"])
+        last_frame = motion.n_frames-1
+        motion.update_action_list(motion_primitive_constraints.constraints, action_constraints.keyframe_annotations, canonical_keyframe_labels, start_frame, last_frame)
         
         #update arc length based on new closest point
         if action_constraints.trajectory is not None:
@@ -401,7 +307,7 @@ def append_elementary_action_to_motion(action_constraints,
             if travelled_arc_length == -1 :
                 travelled_arc_length = action_constraints.trajectory.full_arc_length
 
-        motion.update_action_list(tmp_action_list)
+        #update graph walk of motion
         graph_walk_entry = GraphWalkEntry(action_constraints.action_name,current_motion_primitive, parameters, travelled_arc_length)
         motion.graph_walk.append(graph_walk_entry)
 

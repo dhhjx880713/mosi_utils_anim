@@ -300,6 +300,8 @@ class GraphNode(object):
             return self.mp.gmm
 
  
+ 
+ 
 class MorphableSubgraph(object):
     """ Contains the motion primitives of an elementary action as nodes and
     transition models as edges. 
@@ -609,6 +611,15 @@ class MorphableSubgraph(object):
             meta_info = self.meta_information
             write_to_json_file(path,meta_info)
         return        
+        
+        
+    def get_canonical_keyframe_labels(self, motion_primitive_name):
+        if motion_primitive_name in self.mp_annotations.keys():
+            keyframe_labels = self.mp_annotations[motion_primitive_name]
+        else:
+            keyframe_labels = {}
+        return keyframe_labels
+
         
 class MorphableGraph(object):
     """ Contains a list of MorphableSubgraphs for each elementary action and
