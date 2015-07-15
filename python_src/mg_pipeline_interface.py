@@ -15,13 +15,14 @@ dirname, filename = os.path.split(os.path.abspath(__file__))
 os.chdir(dirname)
 import glob
 import time
-from controllable_morphable_graph import load_morphable_graph, export_synthesis_result
+from motion_generator.controllable_morphable_graph import load_morphable_graph, export_synthesis_result
+from motion_generator.constrain_motion import generate_algorithm_settings
 from utilities.io_helper_functions import load_json_file
-from constrain_motion import generate_algorithm_settings
 
 
-ALGORITHM_CONFIG_FILE = "algorithm_config.json"
-SERVICE_CONFIG_FILE = "service_config.json"
+
+ALGORITHM_CONFIG_FILE = "config" + os.sep + "algorithm.json"
+SERVICE_CONFIG_FILE = "config" + os.sep + "service.json"
 
 def run_pipeline(root_directory, input_file, output_dir, output_filename, algorithm_config_file):
     """Creates an instance of the morphable graph and runs the synthesis

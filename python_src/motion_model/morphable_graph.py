@@ -20,7 +20,7 @@ from motion_primitive import MotionPrimitive
 from GPMixture import GPMixture
 from utilities.motion_editing import align_frames, convert_quaternion_to_euler
 from math import sqrt
-from space_partitioning import ClusterTree
+from space_partitioning.cluster_tree import ClusterTree
 from zip_io import read_graph_data_without_transition_models_from_zip
 
 

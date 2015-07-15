@@ -8,8 +8,8 @@ Created on Fri Feb 13 10:09:45 2015
 import os
 import numpy as np
 import sklearn.mixture as mixture
-from lib.constraint_check import check_constraint, find_aligned_quaternion_frames
-from lib.motion_primitive import MotionPrimitive
+from constraint.constraint_check import check_constraint, find_aligned_quaternion_frames
+from motion_model.motion_primitive import MotionPrimitive
 from operator import itemgetter
 
 

@@ -17,13 +17,13 @@ import tornado.web
 import json
 import threading
 import time
-from controllable_morphable_graph import load_morphable_graph, export_synthesis_result
-from constrain_motion import generate_algorithm_settings
+from motion_generator.controllable_morphable_graph import load_morphable_graph, export_synthesis_result
+from motion_generator.constrain_motion import generate_algorithm_settings
 from utilities.io_helper_functions import load_json_file, get_bvh_writer
 
 
-ALGORITHM_CONFIG_FILE = "algorithm_config.json"
-SERVICE_CONFIG_FILE = "service_config.json"
+ALGORITHM_CONFIG_FILE = "config" + os.sep + "algorithm.json"
+SERVICE_CONFIG_FILE = "config" + os.sep + "service.json"
 
 class MGInputHandler(tornado.web.RequestHandler):
     """Handles HTTP POST Requests to a registered server url.

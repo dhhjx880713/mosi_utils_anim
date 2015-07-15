@@ -11,15 +11,15 @@ json input file. Runs the optimization sequentially and creates constraints
 
 import copy
 import numpy as np
-from lib.exceptions import SynthesisError, PathSearchError
-from lib.morphable_graph import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END
+from utilities.exceptions import SynthesisError, PathSearchError
+from motion_model.morphable_graph import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END
 from utilities.motion_editing import transform_quaternion_frames, \
                                 fast_quat_frames_alignment
 from constrain_motion import get_optimal_parameters,\
                              generate_algorithm_settings
 from constrain_gmm import ConstraintError
-from lib.motion_constraints import MotionPrimitiveConstraints
-from lib.annotated_motion import AnnotatedMotion, GraphWalkEntry
+from constraint.motion_constraints import MotionPrimitiveConstraints
+from annotated_motion import AnnotatedMotion, GraphWalkEntry
 
 
 def get_action_list(quat_frames, time_information, constraints, keyframe_annotations, start_frame, last_frame):

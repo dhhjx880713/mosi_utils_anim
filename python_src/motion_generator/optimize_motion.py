@@ -9,7 +9,7 @@ Wrapper around scipy minimize and error function definition.
 
 import time
 import numpy as np
-from lib.constraint_check import obj_error_sum
+from constraint.constraint_check import obj_error_sum
 from scipy.optimize import minimize
 from sklearn.mixture.gmm import _log_multivariate_normal_density_full
 from scipy.optimize.optimize import approx_fprime

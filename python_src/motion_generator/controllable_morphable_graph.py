@@ -20,14 +20,15 @@ from utilities.io_helper_functions import load_json_file, write_to_json_file,\
                                  export_quat_frames_to_bvh_file,\
                                  get_morphable_model_directory,\
                                  get_transition_model_directory                      
-from lib.morphable_graph import MorphableGraph
-from lib.motion_constraints import MotionConstraints
+from motion_model.morphable_graph import MorphableGraph
+from constraint.motion_constraints import MotionConstraints
+from constraint.constraint_check import global_counter_dict
 from constrain_motion import generate_algorithm_settings
 from synthesize_motion import generate_motion_from_constraints
-from lib.constraint_check import global_counter_dict
+
 
 LOG_FILE = "log.txt"
-SKELETON_FILE = "lib" + os.sep + "skeleton.bvh"
+SKELETON_FILE = "skeleton.bvh"
 
 
 
