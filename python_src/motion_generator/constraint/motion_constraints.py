@@ -184,7 +184,7 @@ class MotionPrimitiveConstraints(object):
         
 
 class ElementaryActionConstraints(object):
-    def __init__(self,action_index,motion_constraints):
+    def __init__(self,action_index, motion_constraints):
         self.parent_constraint = motion_constraints
         self.action_name = motion_constraints.elementary_action_list[action_index]["action"]
         self.keyframe_annotations = motion_constraints.keyframe_annotations[action_index]

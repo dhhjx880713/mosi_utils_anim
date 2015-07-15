@@ -13,13 +13,9 @@ import os
 import time
 from datetime import datetime
 import numpy as np
-from utilities.bvh import BVHReader
-from utilities.skeleton import Skeleton
 from utilities.io_helper_functions import load_json_file, write_to_json_file,\
                                  write_to_logfile, \
-                                 export_quat_frames_to_bvh_file,\
-                                 get_morphable_model_directory,\
-                                 get_transition_model_directory                      
+                                 export_quat_frames_to_bvh_file                     
 from motion_model.morphable_graph import MorphableGraph
 from constraint.motion_constraints import MotionConstraints
 from constraint.constraint_check import global_counter_dict
@@ -28,35 +24,30 @@ from synthesize_motion import generate_motion_from_constraints
 
 
 LOG_FILE = "log.txt"
-SKELETON_FILE = "skeleton.bvh"
+SKELETON_FILE = "skeleton.bvh" # TODO replace with standard skeleton in data directory
 
 
-
-
-class ControllableMorphableGraph(MorphableGraph):
+class MotionGenerator(object):
     """
-    Extends MorphableGraph with a method to synthesize a motion based on a json input file
+    Creates a MorphableGraph instance and provides a method to synthesize a
+    motion based on a json input file
+    
     Parameters
     ----------
-    * morphable_model_directory: string
-    \tThe root directory of the morphable models of all elementary actions.
-    
-    * transition_model_directory: string
-    \tThe directory of the morphable models of an elementary action.
-    
-    * transition_model_directory: string
-    \tThe directory of the transition models.
-    
-    * skeleton_path : string
-    \t Path to a bvh file that is used to extract joint hierarchy information.
+    * service_config: string
+        Contains paths to the motion data:
+    * use_transition_model : Booelan
+        Activates the transition models:
     """
-    def __init__(self, morphable_model_directory, transition_directory, skeleton_path, load_transtion_models=True):
-        super(ControllableMorphableGraph,self).__init__(morphable_model_directory,
-                                                        transition_directory,
-                                                        load_transtion_models)
+    def __init__(self,service_config, use_transition_model=False):
+        
+        morphable_model_directory = service_config["model_data"]
+        transition_directory = service_config["transition_data"]
 
+        self.morphable_graph = MorphableGraph(SKELETON_FILE, morphable_model_directory,
+                                                transition_directory,
+                                                use_transition_model)
 
-        self.skeleton = Skeleton(BVHReader(skeleton_path))
         return
         
         
@@ -112,12 +103,12 @@ class ControllableMorphableGraph(MorphableGraph):
             algorithm_config = generate_algorithm_settings()
 
         # run the algorithm
-        motion_constrains = MotionConstraints(mg_input, self)
+        motion_constrains = MotionConstraints(mg_input, self.morphable_graph)
         
         motion = generate_motion_from_constraints(motion_constrains, algorithm_config)
                                              
         seconds = time.clock() - start
-        print_runtime_statistics(seconds)
+        self.print_runtime_statistics(seconds)
         
         # export the motion to a bvh file if export == True
         if export:
@@ -136,8 +127,17 @@ class ControllableMorphableGraph(MorphableGraph):
                 print "Error: failed to generate motion data"
 
         return motion
-
-
+    
+    def print_runtime_statistics(self, seconds):
+        minutes = int(seconds/60)
+        seconds = seconds % 60
+        total_time_string = "finished synthesis in "+ str(minutes) + " minutes "+ str(seconds)+ " seconds"
+        evaluations_string = "total number of objective evaluations "+ str(global_counter_dict["evaluations"])
+        error_string = "average error for "+ str(len(global_counter_dict["motionPrimitveErrors"])) +" motion primitives: " + str(np.average(global_counter_dict["motionPrimitveErrors"],axis=0))
+        print total_time_string
+        print evaluations_string
+        print error_string
+    
 
 def export_synthesis_result(input_data, output_dir, output_filename, skeleton, quat_frames, frame_annotation, action_list, add_time_stamp=False):
       """ Saves the resulting animation frames, the annotation and actions to files. 
@@ -162,22 +162,4 @@ def export_synthesis_result(input_data, output_dir, output_filename, skeleton, q
       export_quat_frames_to_bvh_file(output_dir, skeleton, quat_frames, prefix=output_filename, start_pose=None, time_stamp=add_time_stamp)        
 
 
-def print_runtime_statistics(seconds):
-    minutes = int(seconds/60)
-    seconds = seconds % 60
-    total_time_string = "finished synthesis in "+ str(minutes) + " minutes "+ str(seconds)+ " seconds"
-    evaluations_string = "total number of objective evaluations "+ str(global_counter_dict["evaluations"])
-    error_string = "average error for "+ str(len(global_counter_dict["motionPrimitveErrors"])) +" motion primitives: " + str(np.average(global_counter_dict["motionPrimitveErrors"],axis=0))
-    print total_time_string
-    print evaluations_string
-    print error_string
-    
 
-def load_morphable_graph(service_config, use_transition_model=False, skeleton_file=SKELETON_FILE):
-    mm_directory = service_config["model_data"]
-    transition_directory = service_config["transition_data"]
-    cmg = ControllableMorphableGraph(mm_directory,
-                                     transition_directory,
-                                     skeleton_file,
-                                     use_transition_model)
-    return cmg

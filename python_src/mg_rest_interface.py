@@ -17,7 +17,7 @@ import tornado.web
 import json
 import threading
 import time
-from motion_generator.controllable_morphable_graph import load_morphable_graph, export_synthesis_result
+from motion_generator.motion_generator import MotionGenerator, export_synthesis_result
 from motion_generator.constrain_motion import generate_algorithm_settings
 from utilities.io_helper_functions import load_json_file, get_bvh_writer
 
@@ -51,10 +51,10 @@ class MGInputHandler(tornado.web.RequestHandler):
             # start algorithm if predefined keys were found
             if "elementaryActions" in mg_input.keys():
                 motion = self.application.synthesize_motion(mg_input)
-                self._handle_result(mg_input, motion, self.application.use_file_output_mode, self.application.service_config, self.application.morphable_graph.skeleton)
+                self._handle_result(mg_input, motion, self.application.use_file_output_mode, self.application.service_config, self.application.motion_generator.morphable_graph.skeleton)
             else:
                 print mg_input
-                self.application.morphable_graph.print_information()
+                self.application.motion_generator.morphable_graph.print_information()
                 error_string = "Error: Did not find expected keys in the input data."
                 self.write(error_string)
    
@@ -87,16 +87,16 @@ class MGRestApplication(tornado.web.Application):
         This allows access to the data in the MGInputHandler class
     '''
         
-    def __init__(self,morphable_graph, service_config, algorithm_config, handlers=None, default_host="", transforms=None, **settings):
+    def __init__(self,motion_generator, service_config, algorithm_config, handlers=None, default_host="", transforms=None, **settings):
         tornado.web.Application.__init__(self, handlers, default_host, transforms)
-        self.morphable_graph = morphable_graph
+        self.motion_generator = motion_generator
         self.algorithm_config = algorithm_config
         self.service_config = service_config
         self.use_file_output_mode = (service_config["output_mode"] =="file_output")
        
     def synthesize_motion(self, mg_input):
         max_step = -1
-        return self.morphable_graph.synthesize_motion(mg_input,algorithm_config=self.algorithm_config,
+        return self.motion_generator.synthesize_motion(mg_input,algorithm_config=self.algorithm_config,
                                                           max_step=max_step,
                                                           output_dir=self.service_config["output_dir"],
                                                           output_filename=self.service_config["output_filename"],
@@ -167,9 +167,9 @@ class MorphableGraphsRESTfulInterface(object):
             
         #  Construct morphable graph from files
         start = time.clock()
-        morphable_graph = load_morphable_graph(service_config)
+        motion_generator = MotionGenerator(service_config, use_transition_model=algorithm_config["use_transition_model"])
         print "finished construction from file in", time.clock()-start, "seconds"
-        self.application = MGRestApplication(morphable_graph, service_config, algorithm_config, 
+        self.application = MGRestApplication(motion_generator, service_config, algorithm_config, 
                                              [(r"/runmorphablegraphs",MGInputHandler)
                                               ])
 

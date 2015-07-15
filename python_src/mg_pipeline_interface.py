@@ -15,7 +15,7 @@ dirname, filename = os.path.split(os.path.abspath(__file__))
 os.chdir(dirname)
 import glob
 import time
-from motion_generator.controllable_morphable_graph import load_morphable_graph, export_synthesis_result
+from motion_generator.motion_generator import MotionGenerator, export_synthesis_result
 from motion_generator.constrain_motion import generate_algorithm_settings
 from utilities.io_helper_functions import load_json_file
 
@@ -40,10 +40,10 @@ def run_pipeline(service_config, algorithm_config_file):
         algorithm_config = generate_algorithm_settings()
 
     start = time.clock()
-    morphable_graph = load_morphable_graph(service_config, use_transition_model=algorithm_config["use_transition_model"])
+    motion_generator = MotionGenerator(service_config, use_transition_model=algorithm_config["use_transition_model"])
     print "finished construction from file in",time.clock()-start,"seconds"
 
-    motion = morphable_graph.synthesize_motion(input_file,algorithm_config=algorithm_config,
+    motion = motion_generator.synthesize_motion(input_file,algorithm_config=algorithm_config,
                                                                   max_step=max_step,
                                                                   output_dir=service_config["output_dir"],
                                                                   output_filename=service_config["output_filename"],
@@ -51,7 +51,7 @@ def run_pipeline(service_config, algorithm_config_file):
 
     if motion.quat_frames is not None:  # checks for quat_frames in result_tuple
         mg_input = load_json_file(input_file)
-        export_synthesis_result(mg_input, service_config["output_dir"], service_config["output_filename"], morphable_graph.skeleton, motion.quat_frames, motion.frame_annotation, motion.action_list, add_time_stamp=False)
+        export_synthesis_result(mg_input, service_config["output_dir"], service_config["output_filename"], motion_generator.morphable_graph.skeleton, motion.quat_frames, motion.frame_annotation, motion.action_list, add_time_stamp=False)
     else:
         print "Error: Failed to generate motion data."
 

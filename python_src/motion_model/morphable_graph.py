@@ -626,11 +626,14 @@ class MorphableGraph(object):
          transition models between them.
     """
      
-    def __init__(self,morphable_model_directory,transition_model_directory, load_transition_models=False, update_stats=False):
+    def __init__(self, skeleton_path, morphable_model_directory,transition_model_directory, load_transition_models=False, update_stats=False):
         """ Initializes the class
         
         Parameters
         ----------
+        *skeleton_path: string
+        \tpath to a reference BVH file with the skeleton used with the motion data.
+        
         * morphable_model_directory: string
         \tThe root directory of the morphable models of all elementary actions.
         
@@ -640,6 +643,8 @@ class MorphableGraph(object):
         * transition_model_directory: string
         \tThe directory of the transition models.
         """
+       
+        self.skeleton = Skeleton(BVHReader(skeleton_path))
         self.subgraphs = collections.OrderedDict()
         zip_path = morphable_model_directory+".zip"
         if os.path.isfile(zip_path):
@@ -877,20 +882,21 @@ def export_graph_walk_to_bvh(skeleton, graph_walk, morphable_graph, concatenate=
 def test_morphable_graph(load_transition_models = False):
     np.random.seed(int(time.time()))
     skeleton_file = "skeleton.bvh"
-    skeleton = Skeleton(BVHReader(skeleton_file))
+
     start = time.time()
     mm_directory =".."+ os.sep + get_morphable_model_directory()
     transition_directory =".."+ os.sep +  get_transition_model_directory()
     
-    morphable_graph = MorphableGraph(mm_directory,transition_directory, load_transition_models)
-    #morphable_graph = MorphableGraph(mm_directory,transition_directory)
+    morphable_graph = MorphableGraph(skeleton_file, mm_directory,transition_directory, load_transition_models)
+
+
     print_morphable_graph_structure(morphable_graph)
     print "loaded the morphable graph in",time.time()-start,"seconds"
 
     n_steps = 10
     elementary_action = "walk"
     graph_walk = morphable_graph.generate_random_walk(elementary_action,n_steps,load_transition_models)
-    export_graph_walk_to_bvh(skeleton, graph_walk, morphable_graph, True, True, prefix = "smoothed_",out_dir="random_walks")
+    export_graph_walk_to_bvh(morphable_graph.skeleton, graph_walk, morphable_graph, True, True, prefix = "smoothed_",out_dir="random_walks")
     #export_graph_walk_to_bvh(bvh_reader, graph_walk, morphable_graph, True, False, prefix = "",out_dir="random_walks")
     
 def load_subgraph(elementary_action = "walk",load_transition_models = True):
