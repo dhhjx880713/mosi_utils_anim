@@ -9,77 +9,15 @@ json input file. Runs the optimization sequentially and creates constraints
 @author: Erik Herrmann, Han Du, Fabian Rupp, Markus Mauer
 """
 
-import copy
+
 import numpy as np
 from utilities.exceptions import SynthesisError, PathSearchError
-from motion_model.morphable_graph import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END
-from constrain_motion import get_optimal_parameters,\
-                             generate_algorithm_settings
-from constrain_gmm import ConstraintError
-from constraint.motion_constraints import MotionPrimitiveConstraints
+from motion_model.graph import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END
+from synthesize_motion_primitive import get_optimal_motion,\
+                                         generate_algorithm_settings
+
+from constraint.motion_primitive_constraints import MotionPrimitiveConstraints
 from annotated_motion import AnnotatedMotion, GraphWalkEntry
-
-
-def get_optimal_motion(action_constraints, motion_primitive_constraints,
-                       algorithm_config, prev_motion):
-    """Calls get_optimal_parameters and backpoject the results.
-    
-    Parameters
-    ----------
-    *action_constraints: ActionConstraints
-        Constraints specific for the elementary action.
-    *motion_primitive_constraints: MotionPrimitiveConstraints
-        Constraints specific for the current motion primitive.
-    * algorithm_config : dict
-        Contains parameters for the algorithm.
-    *prev_motion: AnnotatedMotion
-        Annotated motion with information on the graph walk.
-        
-    Returns
-    -------
-    * quat_frames : list of np.ndarray
-        list of skeleton pose parameters.
-    * parameters : np.ndarray
-        low dimensional motion parameters used to generate the frames
-    """
-
-    try:
-        mp_name = motion_primitive_constraints.motion_primitive_name
-        action_name = action_constraints.action_name
-        skeleton = action_constraints.get_skeleton()
-        algorithm_config_copy = copy.copy(algorithm_config)
-        algorithm_config_copy["use_optimization"] = motion_primitive_constraints.use_optimization
-
-        if len(prev_motion.graph_walk)> 0:
-            prev_action_name = prev_motion.graph_walk[-1].action_name
-            prev_mp_name =  prev_motion.graph_walk[-1].motion_primitive_name
-            prev_parameters =  prev_motion.graph_walk[-1].parameters
-
-        else:
-            prev_action_name = ""
-            prev_mp_name =  ""
-            prev_parameters =  None
-
-        parameters = get_optimal_parameters(action_constraints.parent_constraint.morphable_graph,
-                                            action_name,
-                                            mp_name,
-                                            motion_primitive_constraints.constraints,
-                                            algorithm_config=algorithm_config_copy,
-                                            prev_action_name=prev_action_name,
-                                            prev_mp_name=prev_mp_name,
-                                            prev_frames=prev_motion.quat_frames,
-                                            prev_parameters=prev_parameters,
-                                            skeleton=skeleton,
-                                            start_pose=action_constraints.start_pose)
-    except  ConstraintError as e:
-        print "Exception",e.message
-        raise SynthesisError(prev_motion.quat_frames,e.bad_samples)
-        
-    tmp_quat_frames = action_constraints.parent_constraint.morphable_graph.subgraphs[action_name].nodes[mp_name].mp.back_project(parameters, use_time_parameters=True).get_motion_vector()
-
-    return tmp_quat_frames, parameters
-
-
 
 def check_end_condition(morphable_subgraph,prev_frames,trajectory,travelled_arc_length,arc_length_offset):
     """

@@ -16,7 +16,7 @@ os.chdir(dirname)
 import glob
 import time
 from motion_generator.motion_generator import MotionGenerator, export_synthesis_result
-from motion_generator.constrain_motion import generate_algorithm_settings
+from motion_generator.synthesize_motion_primitive import generate_algorithm_settings
 from utilities.io_helper_functions import load_json_file
 
 

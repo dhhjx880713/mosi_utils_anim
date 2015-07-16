@@ -9,11 +9,15 @@ import numpy as np
 from utilities.gmm_math import mul
 from utilities.evaluation_methods import check_sample_validity
 from constrain_gmm import ConstrainedGMM
-from optimize_motion import run_optimization,\
+from optimize_motion_parameters import run_optimization,\
                     generate_optimization_settings
 from constraint.constraint_extraction import get_step_length_for_sample
 from constraint.constraint_check import obj_error_sum,evaluate_list_of_constraints,\
                             global_counter_dict
+
+import copy
+from constrain_gmm import ConstraintError
+from utilities.exceptions import SynthesisError
 
 
           
@@ -253,13 +257,13 @@ def sample_from_gmm(graph_node,gmm, constraints, prev_frames, start_pose, skelet
         if valid: 
 #            tmp_bad_samples = 0
             samples.append(s)
-            min_distance,successes = evaluate_list_of_constraints(graph_node.mp,s,constraints,prev_frames,start_pose,skeleton,
+            min_distance,successes = evaluate_list_of_constraints(graph_node.motion_primitive,s,constraints,prev_frames,start_pose,skeleton,
                                                         precision=precision,verbose=verbose)
             # check the root path for each sample, punish the curve walking
-            acr_length = get_step_length_for_sample(graph_node.mp, 
+            acr_length = get_step_length_for_sample(graph_node.motion_primitive, 
                                                     s, 
                                                     method = "arc_length")
-            absolute_length = get_step_length_for_sample(graph_node.mp,
+            absolute_length = get_step_length_for_sample(graph_node.motion_primitive,
                                                          s,
                                                          method="distance") 
             factor = acr_length/absolute_length   
@@ -329,7 +333,7 @@ def search_for_best_sample(graph_node,constraints,prev_frames,start_pose, skelet
 
     """ Directed search in precomputed hierarchical space partitioning data structure
     """
-    data = graph_node.mp, constraints, prev_frames,start_pose, skeleton, precision
+    data = graph_node.motion_primitive, constraints, prev_frames,start_pose, skeleton, precision
     distance, s = graph_node.search_best_sample(obj_error_sum,data)
     print "found best sample with distance:",distance
     global_counter_dict["motionPrimitveErrors"].append(distance)
@@ -350,7 +354,7 @@ def extract_gmm_from_motion_primitive(pipeline_parameters):
     sample_size = algorithm_config["constrained_gmm_settings"]["sample_size"]
     # Get prior gaussian mixture model from node
     graph_node = morphable_graph.subgraphs[action_name].nodes[mp_name]
-    gmm = graph_node.mp.gmm
+    gmm = graph_node.motion_primitive.gmm
     # Perform manipulation based on settings and the current state.
     if algorithm_config["use_transition_model"] and prev_parameters is not None:
         if algorithm_config["use_constrained_gmm"]:
@@ -359,7 +363,7 @@ def extract_gmm_from_motion_primitive(pipeline_parameters):
             #only proceed the GMM prediction if the transition model was loaded
             if morphable_graph.subgraphs[prev_action_name].nodes[prev_mp_name].has_transition_model(transition_key):
                 gpm = morphable_graph.subgraphs[prev_action_name].nodes[prev_mp_name].outgoing_edges[transition_key].transition_model 
-                prev_primitve = morphable_graph.subgraphs[prev_action_name].nodes[prev_mp_name].mp
+                prev_primitve = morphable_graph.subgraphs[prev_action_name].nodes[prev_mp_name].motion_primitive
     
                 gmm = create_next_motion_distribution(prev_parameters, prev_primitve,\
                                                     graph_node,gmm,\
@@ -461,7 +465,7 @@ def get_optimal_parameters(morphable_graph,action_name,mp_name,constraints,\
                 bounding_boxes = (graph_node.parameter_bb, graph_node.cartesian_bb)
                 try:
                     initial_guess = parameters
-                    parameters = run_optimization(graph_node.mp, gmm, constraints,
+                    parameters = run_optimization(graph_node.motion_primitive, gmm, constraints,
                                                     initial_guess, skeleton,
                                                     optimization_settings=algorithm_config["optimization_settings"], bounding_boxes=bounding_boxes,
                                                     prev_frames=prev_frames, start_pose=start_pose, verbose=algorithm_config["verbose"])
@@ -474,3 +478,63 @@ def get_optimal_parameters(morphable_graph,action_name,mp_name,constraints,\
             parameters = get_random_parameters(pipeline_parameters)
          
         return parameters
+        
+def get_optimal_motion(action_constraints, motion_primitive_constraints,
+                       algorithm_config, prev_motion):
+    """Calls get_optimal_parameters and backpoject the results.
+    
+    Parameters
+    ----------
+    *action_constraints: ActionConstraints
+        Constraints specific for the elementary action.
+    *motion_primitive_constraints: MotionPrimitiveConstraints
+        Constraints specific for the current motion primitive.
+    * algorithm_config : dict
+        Contains parameters for the algorithm.
+    *prev_motion: AnnotatedMotion
+        Annotated motion with information on the graph walk.
+        
+    Returns
+    -------
+    * quat_frames : list of np.ndarray
+        list of skeleton pose parameters.
+    * parameters : np.ndarray
+        low dimensional motion parameters used to generate the frames
+    """
+
+    try:
+        mp_name = motion_primitive_constraints.motion_primitive_name
+        action_name = action_constraints.action_name
+        skeleton = action_constraints.get_skeleton()
+        algorithm_config_copy = copy.copy(algorithm_config)
+        algorithm_config_copy["use_optimization"] = motion_primitive_constraints.use_optimization
+
+        if len(prev_motion.graph_walk)> 0:
+            prev_action_name = prev_motion.graph_walk[-1].action_name
+            prev_mp_name =  prev_motion.graph_walk[-1].motion_primitive_name
+            prev_parameters =  prev_motion.graph_walk[-1].parameters
+
+        else:
+            prev_action_name = ""
+            prev_mp_name =  ""
+            prev_parameters =  None
+
+        parameters = get_optimal_parameters(action_constraints.parent_constraint.morphable_graph,
+                                            action_name,
+                                            mp_name,
+                                            motion_primitive_constraints.constraints,
+                                            algorithm_config=algorithm_config_copy,
+                                            prev_action_name=prev_action_name,
+                                            prev_mp_name=prev_mp_name,
+                                            prev_frames=prev_motion.quat_frames,
+                                            prev_parameters=prev_parameters,
+                                            skeleton=skeleton,
+                                            start_pose=action_constraints.start_pose)
+    except  ConstraintError as e:
+        print "Exception",e.message
+        raise SynthesisError(prev_motion.quat_frames,e.bad_samples)
+        
+    tmp_quat_frames = action_constraints.parent_constraint.morphable_graph.subgraphs[action_name].nodes[mp_name].motion_primitive.back_project(parameters, use_time_parameters=True).get_motion_vector()
+
+    return tmp_quat_frames, parameters
+

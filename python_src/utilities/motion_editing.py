@@ -18,6 +18,31 @@ from external.transformations import quaternion_matrix, euler_from_matrix, \
 
 SMOOTHING_WINDOW_SIZE = 20
 
+def extract_root_positions_from_frames(frames):
+    roots = []
+    for i in xrange(len(frames)):
+        position = np.array([frames[i][0], frames[i][1], frames[i][2]])
+        roots.append(position)
+    return np.array(roots) 
+
+
+def get_arc_length_from_points(points):
+    """
+    Note: accuracy depends on the granulariy of points
+    """
+    arc_length = 0.0
+    last_p = None
+    for p in points:
+        if last_p is not None:
+            delta = p - last_p
+            #print delta
+            arc_length += sqrt( delta[0]**2 + delta[1]**2 +delta[2]**2) #-arcLength
+        else:
+            delta = p
+        last_p = p            
+    return arc_length
+
+
 def euler_to_quaternion(euler_angles, rotation_order= \
                         ['Xrotation', 'Yrotation', 'Zrotation'],
                         filter_value=True):

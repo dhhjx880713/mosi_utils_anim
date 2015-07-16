@@ -16,10 +16,10 @@ import numpy as np
 from utilities.io_helper_functions import load_json_file, write_to_json_file,\
                                  write_to_logfile, \
                                  export_quat_frames_to_bvh_file                     
-from motion_model.morphable_graph import MorphableGraph
+from motion_model.elementary_action_graph import ElementaryActionGraph
 from constraint.motion_constraints import MotionConstraints
 from constraint.constraint_check import global_counter_dict
-from constrain_motion import generate_algorithm_settings
+from synthesize_motion_primitive import generate_algorithm_settings
 from synthesize_motion import generate_motion_from_constraints
 
 
@@ -44,7 +44,7 @@ class MotionGenerator(object):
         morphable_model_directory = service_config["model_data"]
         transition_directory = service_config["transition_data"]
 
-        self.morphable_graph = MorphableGraph(SKELETON_FILE, morphable_model_directory,
+        self.morphable_graph = ElementaryActionGraph(SKELETON_FILE, morphable_model_directory,
                                                 transition_directory,
                                                 use_transition_model)
 

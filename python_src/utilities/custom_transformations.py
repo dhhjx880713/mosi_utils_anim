@@ -338,7 +338,7 @@ def get_aligning_transformation(graph_node,bvh_reader,prev_frames, node_name_map
     """
 
     sample_parameters = np.ravel(graph_node.mp.gmm.sample())
-    sample_frames =convert_quaternion_to_euler( graph_node.mp.back_project(sample_parameters).get_motion_vector().tolist() )
+    sample_frames =convert_quaternion_to_euler( graph_node.motion_primitive.back_project(sample_parameters).get_motion_vector().tolist() )
     #bring motions to same y-coordinate to make 2d alignment possible
     offset_y = prev_frames[-1][1] - sample_frames[0][1]
     sample_frames = transform_euler_frames(sample_frames, [0,0,0],[0,offset_y,0])
