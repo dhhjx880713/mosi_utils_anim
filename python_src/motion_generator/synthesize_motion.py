@@ -13,9 +13,8 @@ json input file. Runs the optimization sequentially and creates constraints
 import numpy as np
 from utilities.exceptions import SynthesisError, PathSearchError
 from motion_model.graph import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END
-from synthesize_motion_primitive import get_optimal_motion,\
-                                         generate_algorithm_settings
-
+from synthesize_motion_primitive import generate_motion_primitive_from_constraints
+from algorithm_configuration import generate_algorithm_configuration
 from constraint.motion_primitive_constraints import MotionPrimitiveConstraints
 from annotated_motion import AnnotatedMotion, GraphWalkEntry
 
@@ -195,18 +194,15 @@ def append_elementary_action_to_motion(action_constraints,
         try: 
             is_last_step = (current_motion_primitive_type == NODE_TYPE_END) 
             motion_primitive_constraints = MotionPrimitiveConstraints(current_motion_primitive, action_constraints,travelled_arc_length,last_pos, trajectory_following_settings, motion.quat_frames, is_last_step)
-#            constraints, temp_arc_length, use_optimization = create_constraints_for_motion_primitive(action_constraints,current_motion_primitive,\
-#                                                                                                     travelled_arc_length,last_pos, trajectory_following_settings,\
-#                                                                                                     motion.quat_frames,is_last_step=is_last_step)
+
         except PathSearchError as e:
                 print "moved beyond end point using parameters",
                 str(e.search_parameters)
                 break
+            
         # get optimal parameters, Back-project to frames in joint angle space,
         # Concatenate frames to motion and apply smoothing
-
-       
-        tmp_quat_frames, parameters = get_optimal_motion(action_constraints, motion_primitive_constraints, prev_motion=motion, algorithm_config=algorithm_config)                                            
+        tmp_quat_frames, parameters = generate_motion_primitive_from_constraints(action_constraints, motion_primitive_constraints, prev_motion=motion, algorithm_config=algorithm_config)                                            
         
         #update annotated motion
         canonical_keyframe_labels = morphable_subgraph.get_canonical_keyframe_labels(current_motion_primitive)
@@ -269,7 +265,7 @@ def generate_motion_from_constraints(motion_constraints, algorithm_config=None):
         Contains the quaternion frames and annotations of the frames based on actions.
     """
     if algorithm_config is None:
-        algorithm_config = generate_algorithm_settings()
+        algorithm_config = generate_algorithm_configuration()
     if algorithm_config["verbose"]:
         for key in algorithm_config.keys():
             print key,algorithm_config[key]

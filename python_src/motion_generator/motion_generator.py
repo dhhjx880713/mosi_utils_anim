@@ -19,7 +19,7 @@ from utilities.io_helper_functions import load_json_file, write_to_json_file,\
 from motion_model.elementary_action_graph import ElementaryActionGraph
 from constraint.motion_constraints import MotionConstraints
 from constraint.constraint_check import global_counter_dict
-from synthesize_motion_primitive import generate_algorithm_settings
+from algorithm_configuration import generate_algorithm_configuration
 from synthesize_motion import generate_motion_from_constraints
 
 
@@ -51,7 +51,7 @@ class MotionGenerator(object):
         return
         
         
-    def synthesize_motion(self, mg_input, algorithm_config=None, max_step=-1, output_dir="output", output_filename="", export=True):
+    def generate_motion(self, mg_input, algorithm_config=None, max_step=-1, output_dir="output", output_filename="", export=True):
         """
         Converts a json input file with a list of elementary actions and constraints 
         into a motion saved to a BVH file.
@@ -95,7 +95,7 @@ class MotionGenerator(object):
             mg_input = load_json_file(mg_input)
         start = time.clock()
         if algorithm_config is None:
-            algorithm_config = generate_algorithm_settings()
+            algorithm_config = generate_algorithm_configuration()
 
         # run the algorithm
         motion_constrains = MotionConstraints(mg_input, self.morphable_graph)
@@ -117,7 +117,7 @@ class MotionGenerator(object):
                 prefix = output_filename + "_" + time_stamp
                 
                 write_to_logfile(output_dir + os.sep + LOG_FILE, prefix, algorithm_config)
-                export_synthesis_result(mg_input, output_dir, output_filename, self.skeleton, motion.quat_frames, motion.frame_annotation, motion.action_list, add_time_stamp=True)
+                self.export_synthesis_result(mg_input, output_dir, output_filename, motion, add_time_stamp=True)
             else:
                 print "Error: failed to generate motion data"
 
@@ -134,27 +134,28 @@ class MotionGenerator(object):
         print error_string
     
 
-def export_synthesis_result(input_data, output_dir, output_filename, skeleton, quat_frames, frame_annotation, action_list, add_time_stamp=False):
-      """ Saves the resulting animation frames, the annotation and actions to files. 
-      Also exports the input file again to the output directory, where it is 
-      used as input for the constraints visualization by the animation server.
-      """
-      write_to_json_file(output_dir + os.sep + output_filename + ".json", input_data) 
-      write_to_json_file(output_dir + os.sep + output_filename + "_actions"+".json", action_list)
-      
-      frame_annotation["events"] = []
-      for keyframe in action_list.keys():
-        for event_desc in action_list[keyframe]:
-            event = {}
-            event["jointName"] = event_desc["parameters"]["joint"]
-            event_type = event_desc["event"]
-            target = event_desc["parameters"]["target"]
-            event[event_type] = target
-            event["frameNumber"] = int(keyframe)
-            frame_annotation["events"].append(event)
-
-      write_to_json_file(output_dir + os.sep + output_filename + "_annotations"+".json", frame_annotation)
-      export_quat_frames_to_bvh_file(output_dir, skeleton, quat_frames, prefix=output_filename, start_pose=None, time_stamp=add_time_stamp)        
-
-
-
+    def export_synthesis_result(self, input_data, output_dir, output_filename, motion, add_time_stamp=False):
+          """ Saves the resulting animation frames, the annotation and actions to files. 
+          Also exports the input file again to the output directory, where it is 
+          used as input for the constraints visualization by the animation server.
+          """
+          write_to_json_file(output_dir + os.sep + output_filename + ".json", input_data) 
+          write_to_json_file(output_dir + os.sep + output_filename + "_actions"+".json", motion.action_list)
+          
+          motion.frame_annotation["events"] = []
+          reordered_frame_annotation = motion.frame_annotation
+          for keyframe in motion.action_list.keys():
+            for event_desc in motion.action_list[keyframe]:
+                event = {}
+                event["jointName"] = event_desc["parameters"]["joint"]
+                event_type = event_desc["event"]
+                target = event_desc["parameters"]["target"]
+                event[event_type] = target
+                event["frameNumber"] = int(keyframe)
+                reordered_frame_annotation["events"].append(event)
+    
+          write_to_json_file(output_dir + os.sep + output_filename + "_annotations"+".json", reordered_frame_annotation)
+          export_quat_frames_to_bvh_file(output_dir, self.morphable_graph.skeleton, motion.quat_frames, prefix=output_filename, start_pose=None, time_stamp=add_time_stamp)        
+    
+    
+    

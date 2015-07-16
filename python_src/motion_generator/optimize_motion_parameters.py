@@ -15,19 +15,6 @@ from sklearn.mixture.gmm import _log_multivariate_normal_density_full
 from scipy.optimize.optimize import approx_fprime
                                  
 
-def generate_optimization_settings(method="BFGS",max_iterations=100,quality_scale_factor=1,
-                                   error_scale_factor=0.1,tolerance=0.05,optimize_theta=False,kinematic_epsilon=5):
-    """ Generates optimization_settings dict that needs to be passed to the run_optimization mbvh_readerethod
-    """
-    
-    settings = {"method":method, 
-                 "max_iterations"  : max_iterations,
-                "quality_scale_factor":quality_scale_factor,
-                "error_scale_factor": error_scale_factor,
-                "optimize_theta":optimize_theta,
-                "tolerance":tolerance,
-                "kinematic_epsilon":kinematic_epsilon}
-    return settings
 
 def error_function_jac(x0, data):
     """ jacobian of error function. It is a combination of analytic solution 
