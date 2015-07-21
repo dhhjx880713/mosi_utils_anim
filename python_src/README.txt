@@ -23,8 +23,11 @@ Instructions:
 
 1. Download data necessary to run the algorithm which can be found on redmine:
 https://redmine.viscenter.de/projects/motiongraph/files 
-Required: motion_primitives_quaternion_PCA95.zip contains the motion model data. Copy it to any location.
-Optionally: BestFitPipeline.zip contains the binary files of imk and DFKI LT necessary for CNL processing. Extract the contents to any location.
+Required: 
+ - motion_primitives_quaternion_PCA95.zip contains the motion model data. Copy it to any location.
+Optionally: 
+ - BestFitPipeline.zip contains the binary files of imk and DFKI LT necessary for CNL processing. Extract the contents to any location.
+ - Animation Server.7z contains the animation server. Extract the contents to any location.
 
 2. Modify the configuration files.
 For the morphable graphs algorithm modify "config/service.json" 

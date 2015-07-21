@@ -17,8 +17,7 @@ import tornado.web
 import json
 import threading
 import time
-from motion_generator.motion_generator import MotionGenerator, export_synthesis_result
-from motion_generator.constrain_motion import generate_algorithm_settings
+from motion_generator.motion_generator import MotionGenerator
 from utilities.io_helper_functions import load_json_file, get_bvh_writer
 
 
@@ -50,8 +49,9 @@ class MGInputHandler(tornado.web.RequestHandler):
                 
             # start algorithm if predefined keys were found
             if "elementaryActions" in mg_input.keys():
-                motion = self.application.synthesize_motion(mg_input)
-                self._handle_result(mg_input, motion, self.application.use_file_output_mode, self.application.service_config, self.application.motion_generator.morphable_graph.skeleton)
+                motion = self.application.generate_motion(mg_input)
+    
+                self._handle_result(mg_input, motion, self.application.use_file_output_mode, self.application.service_config)
             else:
                 print mg_input
                 self.application.motion_generator.morphable_graph.print_information()
@@ -60,17 +60,17 @@ class MGInputHandler(tornado.web.RequestHandler):
    
 
  
-    def _handle_result(self, mg_input, motion, use_file_output_mode, service_config, skeleton):
+    def _handle_result(self, mg_input, motion, use_file_output_mode, service_config):
         """Sends the result back as an answer to a post request.
         """
         if motion.quat_frames is not None:  # checks for quat_frames in result_tuple
             if use_file_output_mode:
-                export_synthesis_result(mg_input, service_config["output_dir"], service_config["output_filename"], \
-                                        skeleton, motion.quat_frames, motion.frame_annotation, motion.action_list, add_time_stamp=False)
+                self.application.motion_generator.export_synthesis_result(mg_input, service_config["output_dir"], service_config["output_filename"], \
+                                        motion, add_time_stamp=False)
                 self.write("succcess")
             else:
 
-                bvh_writer = get_bvh_writer(skeleton, motion.quat_frames )
+                bvh_writer = get_bvh_writer(self.application.motion_generator.morphable_graph.skeleton, motion.quat_frames )
                 bvh_string = bvh_writer.generate_bvh_string()
                 result_list = [bvh_string, motion.frame_annotation, motion.action_list]
                 self.write(json.dumps(result_list))#send result back
@@ -89,14 +89,16 @@ class MGRestApplication(tornado.web.Application):
         
     def __init__(self, service_config, algorithm_config, handlers=None, default_host="", transforms=None, **settings):
         tornado.web.Application.__init__(self, handlers, default_host, transforms)
+        start = time.clock()
         self.motion_generator = MotionGenerator(service_config, use_transition_model=algorithm_config["use_transition_model"])
+        print "finished construction from file in", time.clock()-start, "seconds"
         self.algorithm_config = algorithm_config
         self.service_config = service_config
         self.use_file_output_mode = (service_config["output_mode"] =="file_output")
        
-    def synthesize_motion(self, mg_input):
+    def generate_motion(self, mg_input):
         max_step = -1
-        return self.motion_generator.synthesize_motion(mg_input,algorithm_config=self.algorithm_config,
+        return self.motion_generator.generate_motion(mg_input,algorithm_config=self.algorithm_config,
                                                           max_step=max_step,
                                                           output_dir=self.service_config["output_dir"],
                                                           output_filename=self.service_config["output_filename"],
@@ -163,11 +165,9 @@ class MorphableGraphsRESTfulInterface(object):
         if os.path.isfile(algorithm_config_file):
             algorithm_config = load_json_file(algorithm_config_file)
         else:
-            algorithm_config = generate_algorithm_settings()
+            algorithm_config = None
             
         #  Construct morphable graph from files
-        start = time.clock()
-        print "finished construction from file in", time.clock()-start, "seconds"
         self.application = MGRestApplication(service_config, algorithm_config, 
                                              [(r"/runmorphablegraphs",MGInputHandler)
                                               ])
