@@ -1459,7 +1459,20 @@ def pose_orientation(quaternion_frame):
     rotated_point = np.dot(rotmat, ref_offset)
     dir_vec = np.array([rotated_point[0], rotated_point[2]])
     dir_vec = dir_vec/np.linalg.norm(dir_vec)
-    return dir_vec   
+    return dir_vec 
+
+def pose_orientation_euler(euler_frame):
+    ref_offset = np.array([0, 0, 1, 1])
+    rot_angles = euler_frame[3:6]
+    rot_angles_rad = np.deg2rad(rot_angles)
+    rotmat = euler_matrix(rot_angles_rad[0],
+                          rot_angles_rad[1],
+                          rot_angles_rad[2],
+                          'rxyz')
+    rotated_point = np.dot(rotmat, ref_offset)
+    dir_vec = np.array([rotated_point[0], rotated_point[2]])
+    dir_vec = dir_vec/np.linalg.norm(dir_vec)
+    return dir_vec                           
 
 def get_trajectory_dir_from_2d_points(points):
     """Estimate the trajectory heading

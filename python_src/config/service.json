@@ -5,5 +5,6 @@
     "input_dir": "E:\\projects\\INTERACT\\repository\\BestFitPipeline\\CNL-GUI",
     "output_filename": "MGResult",
     "port": 8888,
-    "output_mode": "file_output"
+    "output_mode": "file_output",
+	"data_folder": "C:\\Users\\du\\MG++\\repo\\data\\1 - MoCap"
 }
