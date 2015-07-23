@@ -18,7 +18,7 @@ from utilities.io_helper_functions import get_morphable_model_directory, \
 from GPMixture import GPMixture
 from utilities.motion_editing import align_frames, convert_quaternion_to_euler
 from motion_primitive_graph import MotionPrimitiveGraph
-from zip_io import read_graph_data_without_transition_models_from_zip
+from zip_io import read_graph_data_from_zip
 from graph import GraphEdge
 
 
@@ -59,7 +59,7 @@ class ElementaryActionGraph(object):
         return
         
     def init_from_zip_file(self,zip_path, transition_model_directory, load_transition_models):
-        graph_data =read_graph_data_without_transition_models_from_zip(zip_path,pickle_objects=True)
+        graph_data = read_graph_data_from_zip(zip_path,pickle_objects=True)
         graph_definition = graph_data["transitions"]
         subgraph_desc = graph_data["subgraphs"]
         for el_action in subgraph_desc.keys():
