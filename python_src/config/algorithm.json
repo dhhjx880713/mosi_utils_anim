@@ -32,5 +32,6 @@
     "use_optimization": false, 
     "activate_parameter_check": false, 
     "use_constraints": true,
+    "debug_max_step": -1,
     "verbose": false
 }

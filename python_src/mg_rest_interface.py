@@ -90,17 +90,14 @@ class MGRestApplication(tornado.web.Application):
     def __init__(self, service_config, algorithm_config, handlers=None, default_host="", transforms=None, **settings):
         tornado.web.Application.__init__(self, handlers, default_host, transforms)
         start = time.clock()
-        self.motion_generator = MotionGenerator(service_config, use_transition_model=algorithm_config["use_transition_model"])
+        self.motion_generator = MotionGenerator(service_config, algorithm_config)
         print "finished construction from file in", time.clock()-start, "seconds"
         self.algorithm_config = algorithm_config
         self.service_config = service_config
         self.use_file_output_mode = (service_config["output_mode"] =="file_output")
        
     def generate_motion(self, mg_input):
-        max_step = -1
-        return self.motion_generator.generate_motion(mg_input,algorithm_config=self.algorithm_config,
-                                                          max_step=max_step,
-                                                          output_dir=self.service_config["output_dir"],
+        return self.motion_generator.generate_motion(mg_input, output_dir=self.service_config["output_dir"],
                                                           output_filename=self.service_config["output_filename"],
                                                           export=False)
                                                           

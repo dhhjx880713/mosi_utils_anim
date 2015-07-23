@@ -5,12 +5,7 @@ Created on Thu Jul 16 15:58:50 2015
 @author: erhe01
 """
 
-
-NODE_TYPE_START = "start"
-NODE_TYPE_STANDARD = "standard"
-NODE_TYPE_END = "end"
-
-
+from . import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END
 class GraphEdge(object):
     """ Contains a transition model. 
     """

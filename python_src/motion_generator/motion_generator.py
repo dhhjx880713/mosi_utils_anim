@@ -3,9 +3,11 @@
 Created on Wed Mar 10 17:30:45 2015
 
 Motion Graphs interface for further integration
+Runs the complete Morphable Graphs Pipeline to generate a motion based on an
+json input file. Runs the optimization sequentially and creates constraints
+based on previous steps.
 
-
-@author: erhe01
+@author: Erik Herrmann, Han Du, Fabian Rupp, Markus Mauer
 """
 import sys
 sys.path.append('..')
@@ -20,8 +22,12 @@ from motion_model.elementary_action_graph import ElementaryActionGraph
 from constraint.motion_constraints import MotionConstraints
 from constraint.constraint_check import global_counter_dict
 from algorithm_configuration import generate_algorithm_configuration
-from synthesize_motion import generate_motion_from_constraints
-
+from utilities.exceptions import SynthesisError, PathSearchError
+from motion_model import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END
+from synthesize_motion_primitive import generate_motion_primitive_from_constraints
+from algorithm_configuration import generate_algorithm_configuration
+from constraint.motion_primitive_constraints import MotionPrimitiveConstraints
+from annotated_motion import AnnotatedMotion, GraphWalkEntry
 
 LOG_FILE = "log.txt"
 SKELETON_FILE = "skeleton.bvh" # TODO replace with standard skeleton in data directory
@@ -39,30 +45,25 @@ class MotionGenerator(object):
     * use_transition_model : Booelan
         Activates the transition models.
     """
-    def __init__(self,service_config, use_transition_model=False):
-        
-        morphable_model_directory = service_config["model_data"]
-        transition_directory = service_config["transition_data"]
+    def __init__(self,service_config, algorithm_config):
+        self._service_config = service_config        
+        self._algorithm_config = algorithm_config
+        morphable_model_directory = self._service_config["model_data"]
+        transition_directory = self._service_config["transition_data"]
 
         self.morphable_graph = ElementaryActionGraph(SKELETON_FILE, morphable_model_directory,
                                                 transition_directory,
-                                                use_transition_model)
+                                                self._algorithm_config["use_transition_model"])
 
         return
-        
-        
-    def generate_motion(self, mg_input, algorithm_config=None, max_step=-1, output_dir="output", output_filename="", export=True):
+
+    def set_algorithm_config(self, algorithm_config):
         """
-        Converts a json input file with a list of elementary actions and constraints 
-        into a motion saved to a BVH file.
-        
         Parameters
-        ----------        
-        * mg_input_filename : string or dict
-            Dict or Path to json file that contains a list of elementary actions with constraints.
+        ----------
         * algorithm_config : dict
             Contains options for the algorithm.
-            When set to None generate_algorithm_settings() is called with default settings
+            When set to None generate_algorithm_configuration() is called with default settings
             use_constraints: Sets whether or not to use constraints 
             use_optimization : Sets whether to activate optimization or use only sampling
             use_constrained_gmm : Sets whether or not to constrain the GMM
@@ -72,10 +73,22 @@ class MotionGenerator(object):
                 method, max_iterations,quality_scale_factor,error_scale_factor,
                 optimization_tolerance
             constrained_gmm_settings : position and orientation precision + sample size                
-            If set to None default settings are used.
-        * max_step : integer
-            Debug parameter for the maximum number of motion primitives to be converted before stopping.
-            If set to -1 this parameter is ignored
+            If set to None default settings are used.        
+        """
+        if algorithm_config is None:
+            self._algorithm_config = generate_algorithm_configuration()
+        else:
+            self._algorithm_config = algorithm_config
+        
+    def generate_motion(self, mg_input, output_dir="output", output_filename="", export=True):
+        """
+        Converts a json input file with a list of elementary actions and constraints 
+        into a motion saved to a BVH file.
+        
+        Parameters
+        ----------        
+        * mg_input_filename : string or dict
+            Dict or Path to json file that contains a list of elementary actions with constraints.
         * output_dir : string
             directory for the generated bvh file.
         * output_filename : string
@@ -94,13 +107,9 @@ class MotionGenerator(object):
         if type(mg_input) != dict:
             mg_input = load_json_file(mg_input)
         start = time.clock()
-        if algorithm_config is None:
-            algorithm_config = generate_algorithm_configuration()
-
-        # run the algorithm
         motion_constrains = MotionConstraints(mg_input, self.morphable_graph)
         
-        motion = generate_motion_from_constraints(motion_constrains, algorithm_config)
+        motion = self._generate_motion_from_constraints(motion_constrains)
                                              
         seconds = time.clock() - start
         self.print_runtime_statistics(seconds)
@@ -116,12 +125,201 @@ class MotionGenerator(object):
                 time_stamp = unicode(datetime.now().strftime("%d%m%y_%H%M%S"))
                 prefix = output_filename + "_" + time_stamp
                 
-                write_to_logfile(output_dir + os.sep + LOG_FILE, prefix, algorithm_config)
+                write_to_logfile(output_dir + os.sep + LOG_FILE, prefix, self._algorithm_config)
                 self.export_synthesis_result(mg_input, output_dir, output_filename, motion, add_time_stamp=True)
             else:
                 print "Error: failed to generate motion data"
 
         return motion
+        
+        
+    
+    def _generate_motion_from_constraints(self, motion_constraints, algorithm_config=None):
+        """ Converts a constrained graph walk to quaternion frames
+         Parameters
+        ----------
+        * morphable_graph : MorphableGraph
+            Data structure containing the morphable models
+        * motion_constraints : list of dict
+            Contains a list of dictionaries with the entries for "subgraph","state" and "parameters"
+        * algorithm_config : dict
+            Contains parameters for the algorithm.
+        * skeleton : Skeleton
+            Used for to extract the skeleton hierarchy information.
+            
+        Returns
+        -------
+        * motion: AnnotatedMotion
+            Contains the quaternion frames and annotations of the frames based on actions.
+        """
+        if algorithm_config is None:
+            algorithm_config = generate_algorithm_configuration()
+        if algorithm_config["verbose"]:
+            for key in algorithm_config.keys():
+                print key,algorithm_config[key]
+    
+        motion = AnnotatedMotion()
+        action_constraints = motion_constraints.get_next_elementary_action_constraints()
+        while action_constraints is not None:
+       
+            if algorithm_config["debug_max_step"] > -1 and motion.step_count > algorithm_config["debug_max_step"]:
+                print "reached max step"
+                break
+              
+            if algorithm_config["verbose"]:
+               print "convert",action_constraints.action_name,"to graph walk"
+    
+            try:
+                motion = self._append_elementary_action_to_motion(action_constraints, motion)
+                
+            except SynthesisError as e:
+                print "Arborting conversion",e.message
+                return motion
+            action_constraints = motion_constraints.get_next_elementary_action_constraints() 
+        return motion
+    
+    
+    
+    def _append_elementary_action_to_motion(self, action_constraints, motion):
+        """Convert an entry in the elementary action list to a list of quaternion frames.
+        Note only one trajectory constraint per elementary action is currently supported
+        and it should be for the Hip joint.
+    
+        If there is a trajectory constraint it is used otherwise a random graph walk is used
+        if there is a keyframe constraint it is assigned to the motion primitves
+        in the graph walk
+    
+        Paramaters
+        ---------
+        * elementary_action : string
+          the identifier of the elementary action
+    
+        * constraint_list : list of dict
+         the constraints element from the elementary action list entry
+    
+        * morphable_graph : MorphableGraph
+        \t An instance of the MorphableGraph.
+        * start_pose : dict
+         Contains orientation and position as lists with three elements
+    
+        * keyframe_annotations : dict of dicts
+          Contains a dict of events/actions associated with certain keyframes
+    
+        Returns
+        -------
+        * motion: AnnotatedMotion
+        """
+        
+        start_frame = motion.n_frames    
+        #skeleton = action_constraints.get_skeleton()
+        morphable_subgraph = action_constraints.get_subgraph()
+        
+        trajectory_following_settings = self._algorithm_config["trajectory_following_settings"]#  TODO move trajectory_following_settings to different key of the algorithm_config
+    
+        arc_length_of_end = morphable_subgraph.nodes[morphable_subgraph.get_random_end_state()].average_step_length
+        
+    #    number_of_standard_transitions = len([n for n in \
+    #                                 morphable_subgraph.nodes.keys() if morphable_subgraph.nodes[n].node_type == "standard"])
+    #
+        #create sequence of list motion primitives,arc length and number of frames for backstepping 
+        current_motion_primitive = None
+        current_motion_primitive_type = ""
+        temp_step = 0
+        travelled_arc_length = 0.0
+        print "start converting elementary action",action_constraints.action_name
+        while current_motion_primitive_type != NODE_TYPE_END:
+    
+            if self._algorithm_config["debug_max_step"]  > -1 and motion.step_count + temp_step > self._algorithm_config["debug_max_step"]:
+                print "reached max step"
+                break
+            #######################################################################
+            # Get motion primitive = extract from graph based on previous last step + heuristic
+            if temp_step == 0:  
+                 current_motion_primitive = action_constraints.parent_constraint.morphable_graph.get_random_action_transition(motion, action_constraints.action_name)
+                 current_motion_primitive_type = NODE_TYPE_START
+                 if current_motion_primitive is None:
+                     if motion.step_count >0:
+                         prev_action_name = motion.graph_walk[-1]
+                         prev_mp_name = motion.graph_walk[-1]
+                     else:
+                         prev_action_name = None
+                         prev_mp_name = None
+                     print "Error: Could not find a transition of type action_transition from ",prev_action_name,prev_mp_name ," to state",current_motion_primitive
+                     break
+            elif len(morphable_subgraph.nodes[current_motion_primitive].outgoing_edges) > 0:
+                prev_motion_primitive = current_motion_primitive
+                current_motion_primitive, current_motion_primitive_type = morphable_subgraph.get_random_transition(motion, action_constraints, travelled_arc_length, arc_length_of_end)
+                if current_motion_primitive is None:
+                     print "Error: Could not find a transition of type",current_motion_primitive_type,"from state",prev_motion_primitive
+                     break
+            else:
+                print "Error: Could not find a transition from state",current_motion_primitive
+                break
+    
+            print "transitioned to state",current_motion_primitive
+            #######################################################################
+            #Generate constraints from action_constraints
+            if motion.quat_frames is None:
+                last_pos = action_constraints.start_pose["position"]  
+            else:
+                last_pos = motion.quat_frames[-1][:3]
+    
+            try: 
+                is_last_step = (current_motion_primitive_type == NODE_TYPE_END) 
+                motion_primitive_constraints = MotionPrimitiveConstraints(current_motion_primitive, action_constraints,travelled_arc_length,last_pos, trajectory_following_settings, motion.quat_frames, is_last_step)
+    
+            except PathSearchError as e:
+                    print "moved beyond end point using parameters",
+                    str(e.search_parameters)
+                    break
+                
+            # get optimal parameters, Back-project to frames in joint angle space,
+            # Concatenate frames to motion and apply smoothing
+            tmp_quat_frames, parameters = generate_motion_primitive_from_constraints(action_constraints, motion_primitive_constraints, prev_motion=motion, algorithm_config=self._algorithm_config)                                            
+            
+            #update annotated motion
+            canonical_keyframe_labels = morphable_subgraph.get_canonical_keyframe_labels(current_motion_primitive)
+            start_frame = motion.n_frames
+            motion.append_quat_frames(tmp_quat_frames, action_constraints.start_pose, self._algorithm_config["apply_smoothing"])
+            last_frame = motion.n_frames-1
+            motion.update_action_list(motion_primitive_constraints.constraints, action_constraints.keyframe_annotations, canonical_keyframe_labels, start_frame, last_frame)
+            
+            #update arc length based on new closest point
+            if action_constraints.trajectory is not None:
+                if len(motion.graph_walk) > 0:
+                    min_arc_length = motion.graph_walk[-1].arc_length
+                else:
+                    min_arc_length = 0.0
+                closest_point,distance = action_constraints.trajectory.find_closest_point(motion.quat_frames[-1][:3],min_arc_length=min_arc_length)
+                travelled_arc_length,eval_point = action_constraints.trajectory.get_absolute_arc_length_of_point(closest_point,min_arc_length=travelled_arc_length)
+                if travelled_arc_length == -1 :
+                    travelled_arc_length = action_constraints.trajectory.full_arc_length
+    
+            #update graph walk of motion
+            graph_walk_entry = GraphWalkEntry(action_constraints.action_name,current_motion_primitive, parameters, travelled_arc_length)
+            motion.graph_walk.append(graph_walk_entry)
+    
+            temp_step += 1
+    
+        motion.step_count += temp_step
+        motion.update_frame_annotation(action_constraints.action_name, start_frame, motion.n_frames)
+        
+        print "reached end of elementary action", action_constraints.action_name
+    
+    #    if trajectory is not None:
+    #        print "info", trajectory.full_arc_length, \
+    #               travelled_arc_length,arc_length_of_end, \
+    #               np.linalg.norm(trajectory.get_last_control_point() - quat_frames[-1][:3]), \
+    #               check_end_condition(morphable_subgraph,quat_frames,trajectory,\
+    #                                        travelled_arc_length,arc_length_of_end)
+            
+      
+        return motion
+    
+    
+
+
+    
     
     def print_runtime_statistics(self, seconds):
         minutes = int(seconds/60)

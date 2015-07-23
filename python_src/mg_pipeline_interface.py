@@ -32,19 +32,17 @@ def run_pipeline(service_config, algorithm_config_file):
     globalpath = service_config["input_dir"] + os.sep + "*.json"
     input_file = glob.glob(globalpath)[-1]
     
-    max_step = -1
+
     if os.path.isfile(algorithm_config_file):
         algorithm_config = load_json_file(algorithm_config_file)
     else:
         algorithm_config = None
 
     start = time.clock()
-    motion_generator = MotionGenerator(service_config, use_transition_model=algorithm_config["use_transition_model"])
-    print "finished construction from file in",time.clock()-start,"seconds"
+    motion_generator = MotionGenerator(service_config, algorithm_config)
+    print "finished construction from file in", time.clock() - start, "seconds"
 
-    motion = motion_generator.generate_motion(input_file,algorithm_config=algorithm_config,
-                                                                  max_step=max_step,
-                                                                  output_dir=service_config["output_dir"],
+    motion = motion_generator.generate_motion(input_file, output_dir=service_config["output_dir"],
                                                                   output_filename=service_config["output_filename"],
                                                                   export=False)
 

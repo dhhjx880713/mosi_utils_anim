@@ -21,9 +21,8 @@ class MotionConstraints(object):
         Sets the maximum number of graph walk steps to be performed. If less than 0
         then it is unconstrained
     """
-    def __init__(self, mg_input, morphable_graph, max_step=-1):
+    def __init__(self, mg_input, morphable_graph):
         self.morphable_graph = morphable_graph
-        self.max_step = max_step
         self.elementary_action_list = mg_input["elementaryActions"]
         self.keyframe_annotations = extract_keyframe_annotations(self.elementary_action_list)
         self.start_pose = mg_input["startPose"]

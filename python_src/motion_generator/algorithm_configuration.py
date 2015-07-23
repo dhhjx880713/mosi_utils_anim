@@ -45,10 +45,17 @@ def generate_algorithm_configuration(use_constraints=True,
                             trajectory_use_dir_vector_constraints=True,
                             trajectory_use_frame_constraints=True,
                             activate_cluster_search=True,
+                            debug_max_step = -1,
                             verbose=False):               
     """Should be used to generate a dict containing all settings for the algorithm
+    Parameters
+    ----------
+    * max_step : integer
+    Debug parameter for the maximum number of motion primitives to be converted before stopping.
+    If set to -1 this parameter is ignored
+    
     Returns
-    ------
+    -------
     algorithm_config : dict
       Settings that can be passed as parameter to the pipeline used in get_optimal_parameters
     
@@ -67,7 +74,6 @@ def generate_algorithm_configuration(use_constraints=True,
                                      "use_position_constraints":trajectory_use_position_constraints, 
                                      "use_dir_vector_constraints"  : trajectory_use_dir_vector_constraints,
                                      "use_frame_constraints":trajectory_use_frame_constraints
-                                     
                                      }
     
     algorithm_config = {"use_constraints":use_constraints,
@@ -80,7 +86,8 @@ def generate_algorithm_configuration(use_constraints=True,
            "constrained_gmm_settings":constrained_gmm_settings,
            "trajectory_following_settings" : trajectory_following_settings,
            "activate_cluster_search" : activate_cluster_search,
-           "verbose": verbose
+           "verbose": verbose, 
+           "debug_max_step": debug_max_step
             }
     return algorithm_config
                 
