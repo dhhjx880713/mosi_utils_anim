@@ -301,7 +301,7 @@ def get_cartesian_coordinates_from_quaternion_use_fk(skeleton,
 
     * node_name: String
     \tName of node
-     * bvh_reader: BVHReader
+     * skeleton: Skeleton
     \tBVH data structure read from a file
     * node_name_map: dict
     \tA map from node name to index in the euler frame
@@ -371,7 +371,7 @@ def get_cartesian_coordinates_from_quaternion(skeleton,
 
     * node_name: String
     \tName of node
-     * bvh_reader: BVHReader
+     * skeleton: Skeleton
     \tBVH data structure read from a file
     * node_name_map: dict
     \tA map from node name to index in the euler frame
@@ -476,7 +476,7 @@ def get_cartesian_coordinates_from_euler(skeleton, node_name, euler_frame):
         else:
             return [0,0,0]
 
-def convert_euler_frame_to_cartesian_frame(skeleton,euler_frame,node_name_map):
+def convert_euler_frame_to_cartesian_frame(skeleton,euler_frame):
     """
     converts euler frames to cartesian frames by calling get_cartesian_coordinates for each joint
     """
@@ -562,14 +562,14 @@ def align_point_clouds_2D(a, b, weights):
 
     return theta, offset_x, offset_z
 
-def convert_euler_frames_to_cartesian_frames(bvh_reader,euler_frames,node_name_map = None):
+def convert_euler_frames_to_cartesian_frames(skeleton,euler_frames):
     """
     converts to euler frames to cartesian frames
     """
 
     cartesian_frames = []
     for euler_frame in euler_frames:
-        cartesian_frames.append(convert_euler_frame_to_cartesian_frame(bvh_reader,euler_frame,node_name_map) )
+        cartesian_frames.append(convert_euler_frame_to_cartesian_frame(skeleton,euler_frame) )
     return np.array(cartesian_frames)
 
 
@@ -1134,17 +1134,16 @@ def shift_euler_frames_to_ground(euler_frames,
     return tmp_frames
 
 
-def align_frames(bvh_reader,
+def align_frames(skeleton,
                  euler_frames_a,
                  euler_frames_b,
-                 node_name_map=None,
                  smooth=True):
     """
     calls find_aligning_transformation and concatenates the frames based on the
     resulting transformation
      Parameters
     ----------
-    *bvh_reader: BVHReader
+    *skeleton: Skeleton
     \tUsed to extract hierarchy information.
     *euler_frames_a: np.ndarray
     \List of frames where the rotation is represented as euler angles in degrees.
@@ -1164,8 +1163,8 @@ def align_frames(bvh_reader,
 #    euler_frames_b = transform_euler_frames(euler_frames_b, [0,0,0],[0,offset_y,0])
 
     #perform 2d alignment based on a point cloud alignment algorithm
-    theta, offset_x, offset_z = find_aligning_transformation(bvh_reader, euler_frames_a,\
-                                            euler_frames_b, node_name_map)
+    theta, offset_x, offset_z = find_aligning_transformation(skeleton, euler_frames_a,\
+                                            euler_frames_b)
 
     #apply 2d transformation
     offset = np.array([offset_x,0,offset_z])
@@ -1235,7 +1234,7 @@ def fast_quat_frames_alignment(quaternion_frames_a,
        of last frame of first motion and first frame of second motion 
     """                                    
 
-    angle,offset=fast_quat_frames_transformation(quaternion_frames_a,quaternion_frames_b)
+    angle,offset=fast_quat_frames_transformation(quaternion_frames_a, quaternion_frames_b)
     transformed_frames = transform_quaternion_frames(quaternion_frames_b,
                                                      [0, angle, 0],
                                                      offset)
@@ -1249,14 +1248,13 @@ def fast_quat_frames_alignment(quaternion_frames_a,
                                             transformed_frames))
     return quaternion_frames                                                               
 
-def align_frames2(bvh_reader, euler_frames_a, euler_frames_b,\
-                    node_name_map = None, smooth =True):
+def align_frames2(skeleton, euler_frames_a, euler_frames_b, smooth =True):
     """
     calls find_aligning_transformation and concatenates the frames based on the
     resulting transformation
      Parameters
     ----------
-    *bvh_reader: BVHReader
+    *skeleton: Skeleton
     \tUsed to extract hierarchy information.
     *euler_frames_a: np.ndarray
     \List of frames where the rotation is represented as euler angles in degrees.
@@ -1278,8 +1276,8 @@ def align_frames2(bvh_reader, euler_frames_a, euler_frames_b,\
     euler_frames_b = transform_euler_frames(euler_frames_b, [0,0,0],[0,offset_y,0])
 
     #perform 2d alignment based on a point cloud alignment algorithm
-    theta, offset_x, offset_z = find_aligning_transformation(bvh_reader, euler_frames_a,\
-                                            euler_frames_b, node_name_map)
+    theta, offset_x, offset_z = find_aligning_transformation(skeleton, euler_frames_a,\
+                                            euler_frames_b)
     theta = np.degrees(theta)
     #apply 2d transformation
     offset = np.array([offset_x,0,offset_z])
@@ -1328,44 +1326,41 @@ def transform_point_cloud(point_cloud, theta, offset_x, offset_z):
             transformed_point_cloud.append(rotate_and_translate_point(p, theta, offset_x, offset_z))
     return transformed_point_cloud
 
-def calculate_pose_distance(bvh_reader,euler_frames_a,euler_frames_b,node_name_map):
+def calculate_pose_distance(skeleton,euler_frames_a,euler_frames_b):
     ''' Converts euler frames to point clouds and finds the aligning transformation
         and calculates the distance after the aligning transformation
     '''
 
 #    theta, offset_x, offset_z = find_aligning_transformation(bvh_reader, euler_frames_a, euler_frames_b, node_name_map)
-    point_cloud_a = convert_euler_frame_to_cartesian_frame(bvh_reader,euler_frames_a[-1],node_name_map)
-    point_cloud_b = convert_euler_frame_to_cartesian_frame(bvh_reader,euler_frames_b[0],node_name_map)
+    point_cloud_a = convert_euler_frame_to_cartesian_frame(skeleton,euler_frames_a[-1])
+    point_cloud_b = convert_euler_frame_to_cartesian_frame(skeleton,euler_frames_b[0])
 
-    weights = get_joint_weights(bvh_reader,node_name_map)
+    weights = skeleton.joint_weights
     theta, offset_x, offset_z = align_point_clouds_2D(point_cloud_a,point_cloud_b,weights)
     t_point_cloud_b = transform_point_cloud(point_cloud_b, theta, offset_x, offset_z)
     error = calculate_point_cloud_distance(point_cloud_a,t_point_cloud_b)
     return error
 
-def calculate_frame_distance(bvh_reader,
+def calculate_frame_distance(skeleton,
                              euler_frame_a,
-                             euler_frame_b,
-                             node_name_map):
-    point_cloud_a = convert_euler_frame_to_cartesian_frame(bvh_reader,
-                                                           euler_frame_a,
-                                                           node_name_map)
-    point_cloud_b = convert_euler_frame_to_cartesian_frame(bvh_reader,
-                                                           euler_frame_b,
-                                                           node_name_map)
-    weights = get_joint_weights(bvh_reader,node_name_map)
+                             euler_frame_b):
+    point_cloud_a = convert_euler_frame_to_cartesian_frame(skeleton,
+                                                           euler_frame_a)
+    point_cloud_b = convert_euler_frame_to_cartesian_frame(skeleton,
+                                                           euler_frame_b)
+    weights = skeleton.joint_weights
     theta, offset_x, offset_z = align_point_clouds_2D(point_cloud_a,point_cloud_b,weights)
     t_point_cloud_b = transform_point_cloud(point_cloud_b, theta, offset_x, offset_z)
     error = calculate_point_cloud_distance(point_cloud_a,t_point_cloud_b)
     return error
 
-def calculate_pose_distances_from_low_dim(bvh_reader,mm_models,X,Y,node_name_map):
+def calculate_pose_distances_from_low_dim(skeleton,mm_models,X,Y):
     """
     Converts low dimensional vectors to euler vectors and calculates the
     pose distance error by calling calculate_pose_distance
     Parameters
     ----------
-    * bvh_reader: BVHReader
+    * skeleton: BVHReader
     \tContains the skeleton definition needed for the point cloud conversion
 
     * mm_models: Dict of MotionPrimitives
@@ -1376,10 +1371,6 @@ def calculate_pose_distances_from_low_dim(bvh_reader,mm_models,X,Y,node_name_map
 
     * Y: List
     \tList of low dimensional vectors
-
-    * node_name_map: Dict
-    \tMaps node names to indices in the euler_frame vectors ignoring the joints
-    starting with "Bip"
     """
     print "test"
     assert len(X) == len(Y)
@@ -1388,7 +1379,7 @@ def calculate_pose_distances_from_low_dim(bvh_reader,mm_models,X,Y,node_name_map
     for i in xrange(n):
         euler_frames_a =mm_models["X"].back_project(X[i]).get_motion_vector()
         euler_frames_b =mm_models["Y"].back_project(Y[i]).get_motion_vector()
-        error = calculate_pose_distance(bvh_reader, euler_frames_a, euler_frames_b, node_name_map)
+        error = calculate_pose_distance(skeleton, euler_frames_a, euler_frames_b)
         errors.append(error)
 
     return errors
