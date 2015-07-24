@@ -6,10 +6,8 @@ Created on Tue Jul 14 15:26:29 2015
 """
 
 from copy import copy
-from constraint_extraction import extract_keyframe_annotations, \
-                                transform_point_from_cad_to_opengl_cs
-
 from elementary_action_constraints import ElementaryActionConstraints
+from constraint_extraction import transform_point_from_cad_to_opengl_cs
 
 class MotionConstraints(object):
     """
@@ -24,7 +22,7 @@ class MotionConstraints(object):
     def __init__(self, mg_input, morphable_graph):
         self.morphable_graph = morphable_graph
         self.elementary_action_list = mg_input["elementaryActions"]
-        self.keyframe_annotations = extract_keyframe_annotations(self.elementary_action_list)
+        self.keyframe_annotations = self._extract_keyframe_annotations(self.elementary_action_list)
         self.start_pose = mg_input["startPose"]
         self._transform_from_left_to_right_handed_cs()
         self.action_index = 0
@@ -55,4 +53,27 @@ class MotionConstraints(object):
         else:
             return None
   
+
+    def _extract_keyframe_annotations(self, elementary_action_list):
+        """
+        Returns
+        ------
+        * keyframe_annotations : a list of dicts
+          Contains for every elementary action a dict that associates of events/actions with certain keyframes
+        """
+        keyframe_annotations = []
+        for entry in elementary_action_list:
+            print  "entry#################",entry
+            if "keyframeAnnotations" in entry.keys():
+                annotations = {}
+           
+                for annotation in entry["keyframeAnnotations"]:
+                    key = annotation["keyframe"]
+                    annotations[key] = annotation
+                keyframe_annotations.append(annotations)
+            else:
+                keyframe_annotations.append({})
+        return keyframe_annotations
   
+
+        
