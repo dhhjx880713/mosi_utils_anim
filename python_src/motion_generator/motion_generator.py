@@ -23,7 +23,7 @@ from constraint.motion_constraints import MotionConstraints
 from constraint.constraint_check import global_counter_dict
 from utilities.exceptions import SynthesisError, PathSearchError
 from motion_model import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END
-from synthesize_motion_primitive import MotionPrimitiveGenerator
+from motion_primitive_generator import MotionPrimitiveGenerator
 from algorithm_configuration import AlgorithmConfigurationBuilder
 from constraint.motion_primitive_constraints import MotionPrimitiveConstraints
 from annotated_motion import AnnotatedMotion, GraphWalkEntry
