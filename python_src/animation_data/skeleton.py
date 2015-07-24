@@ -9,6 +9,9 @@ import collections
 import numpy as np
 
 class Skeleton(object):
+    """ Data structure that stores the skeleton hierarchy information 
+        extracted from a BVH file with additional meta information.
+    """
     def __init__(self, bvh_reader):
         self.frame_time = bvh_reader.frame_time
         self.root = bvh_reader.root
