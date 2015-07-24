@@ -55,103 +55,6 @@ def transform_point(transformation_matrix,point):
     """
     return np.dot(transformation_matrix,np.array(point+[1,]))[:3].tolist()   
 
-
-
-    
-    
-def extract_elementary_actions(mg_input):
-    """ Create a mapping from action name to index in the elementary action list.
-    Parameters
-    ----------
-    *mg_input: dict
-    \t The dictionary read from the Morphable Graphs input json file.
-    
-    Returns
-    -------
-    *action_dict: OrderedDict
-    \t A dictionary that maps actions to indices in the elementary action list
-    """
-    action_dict = collections.OrderedDict()
-    index = 0
-    for e in mg_input["elementaryActions"]:
-        action_dict[e["action"]] = index
-        index += 1
-    return action_dict
-
-    
-def extract_trajectory_constraints_for_plotting(mg_input,action_index,scale_factor=1.0):
-    """ Extracts 2d control points for trajectory constraints for a given action
-    
-    Parameters
-    ----------
-    *mg_input: dict
-    \tElementary action list with constraints read from the json input file
-    *action_index: integer
-    \tIndex of an entry in the elementary action
-    *scale_factor: float
-    \tIs applied on cartesian coordinates
-    
-    Returns
-    -------
-    *control_points: dict of lists
-    \t list of 2d control points for each joint
-    """
-    assert action_index < len(mg_input["elementaryActions"])
-    inv_start_transformation = np.zeros(4)
-    constraints_list = mg_input["elementaryActions"][action_index]["constraints"]
-    control_points = {}
-    for entry in constraints_list:
-        joint_name = entry["joint"]
-        if "trajectoryConstraints" in entry.keys():
-            control_points[joint_name] = []
-            control_points[joint_name].append([0,0,0])#add origin as point
-            for c in entry["trajectoryConstraints"]:
-                #point = [ p*scale_factor  for p in c["position"] if p!= None]
-                point = [ p*scale_factor if p is not None else 0 for p in c["position"] ]
-                point = transform_point(inv_start_transformation,point)
-                point = [point[0],point[2]]
-                control_points[joint_name].append(point)
-    return control_points
-
-
-
-def construct_trajectories_for_plotting(mg_input,scale_factor):
-    """Calls extract_trajectory_constraints for each action in the input 
-    and creates a spline using the ParameterizedSpline class
-    """
-    elementary_action_dict = extract_elementary_actions(mg_input)
-    
-    traj_constraints = collections.OrderedDict()
-    for key in elementary_action_dict.keys():
-        control_points = extract_trajectory_constraints_for_plotting(mg_input,elementary_action_dict[key],scale_factor)
-        #print control_points        
-        traj_constraints[key] = {}
-        for joint_name in control_points.keys():
-            traj_constraints[key][joint_name] = ParameterizedSpline(control_points[joint_name],2)        
-    return traj_constraints
-
-def plot_trajectory_from_mg_input_file(filename,scale_factor = 1.0):
-    """ Reads the Morphable Graphs input file and plots trajectories for testing.
-    
-     Parameters
-    ----------
-    * filename: string
-    \tThe path to the saved json file.
-    * scalefactor: float
-    \tIs applied on cartesian coordinates
-    """
-    
-    mg_input = load_json_file(filename)
-    traj_constraints = construct_trajectories_for_plotting(mg_input,scale_factor)
-    plot_splines("Trajectories",traj_constraints["walk"].values())
-  
-def extract_root_positions(euler_frames):
-    roots_2D = []
-    for i in xrange(len(euler_frames)):
-        position_2D = np.array([ euler_frames[i][0],euler_frames[i][1], euler_frames[i][2] ])
-        #print "sample",position2D
-        roots_2D.append(position_2D)
-    return np.array(roots_2D) 
         
    
 def extract_trajectory_constraints(constraints_list,scale_factor= 1.0):
@@ -198,21 +101,5 @@ def extract_trajectory_constraints(constraints_list,scale_factor= 1.0):
                 control_points[joint_name].append(point)
     return control_points, unconstrained_indices
 
-
-
-def create_constraint(joint_name,position=[None,None,None],orientation=[None,None,None],semanticAnnotation=None):
-    """ Wrapper around a dict object creation
-    Returns 
-    -------
-    * constraint : dict
-      A dict containing joint, position,orientation and semanticAnnotation describing a constraint
-    """
-    constraint = {"joint":joint_name,"position":position,"orientation":[None,None,None],"semanticAnnotation":semanticAnnotation} # (joint, [pos_x, pos_y, pos_z],[rot_x, rot_y, rot_z])
-    return constraint
-
-    
-  
-
-    
 
 
