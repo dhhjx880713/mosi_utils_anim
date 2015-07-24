@@ -20,3 +20,9 @@ class PathSearchError(Exception):
         message = "Error in the navigation goal generation"
         super(PathSearchError, self).__init__(message)
 
+
+class ConstraintError(Exception):
+    def __init__(self,  bad_samples):
+        message = "Could not reach constraint"
+        super(ConstraintError, self).__init__(message)
+        self.bad_samples = bad_samples

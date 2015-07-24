@@ -7,7 +7,8 @@ Created on Wed Mar 10 17:15:22 2015
 
 import numpy as np
 from animation_data.evaluation_methods import check_sample_validity
-from constrain_gmm import ConstraintError, ConstrainedGMMBuilder
+from constrained_gmm_builder import ConstrainedGMMBuilder
+from utilities.exceptions import ConstraintError
 from optimize_motion_parameters import run_optimization
 from constraint.constraint_check import obj_error_sum,evaluate_list_of_constraints,\
                             global_counter_dict
