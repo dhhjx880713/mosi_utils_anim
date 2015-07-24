@@ -160,14 +160,14 @@ class MotionPrimitiveNode(object):
         """
         self.n_standard_transitions = len([e for e in self.outgoing_edges.keys() if self.outgoing_edges[e].transition_type == NODE_TYPE_STANDARD])
         n_samples = 50 
-        sample_lengths = [self._get_sample_step_length()for i in xrange(n_samples)]
+        sample_lengths = [self._get_random_sample_step_length()for i in xrange(n_samples)]
         method = "median"
         if method == "average":
             self.average_step_length = sum(sample_lengths)/n_samples
         else:
             self.average_step_length = np.median(sample_lengths)
         
-    def _get_sample_step_length(self, method="arc_length"):
+    def _get_random_sample_step_length(self, method="arc_length"):
         """Backproject the motion and get the step length and the last keyframe on the canonical timeline
         Parameters
         ----------
@@ -183,19 +183,32 @@ class MotionPrimitiveNode(object):
         \tThe arc length of the path of the motion primitive
         """
         current_parameters =  self.sample_parameters()
-        quat_frames = self.motion_primitive.back_project(current_parameters,use_time_parameters=False).get_motion_vector()
+        return self.get_step_length_for_sample(current_parameters, method)
+
+
+    def get_step_length_for_sample(self, s, method="arc_length"):
+        """Backproject the motion and get the step length and the last keyframe on the canonical timeline
+        Parameters
+        ----------
+        * s: np.ndarray
+          Low dimensional motion parameters.
+        * method : string
+          Can have values arc_length or distance. If any other value distance is used.
+        Returns
+        -------
+        *step_length: float
+        \tThe arc length of the path of the motion primitive
+        """
+        # get quaternion frames from s_vector
+        quat_frames = self.motion_primitive.back_project(s,use_time_parameters = False).get_motion_vector()
         if method == "arc_length":
-            root_pos = extract_root_positions_from_frames(quat_frames)
-            #print root_pos
+            root_pos = extract_root_positions_from_frames(quat_frames)        
             step_length = get_arc_length_from_points(root_pos)
-        else:# use distance
-            vector = quat_frames[-1][:3] - quat_frames[0][:3] 
-            magnitude = 0
-            for v in vector:
-                magnitude += v**2
-            step_length = sqrt(magnitude)
+        elif method == "distance":
+            step_length = np.linalg.norm(quat_frames[-1][:3] - quat_frames[0][:3])
+        else:
+            raise NotImplementedError
         return step_length
-            
             
     def has_transition_model(self, to_key):
         return to_key in self.outgoing_edges.keys() and self.outgoing_edges[to_key].transition_model is not None

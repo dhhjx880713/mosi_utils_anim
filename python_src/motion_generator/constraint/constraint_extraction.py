@@ -243,71 +243,8 @@ def extract_trajectory_constraints(constraints_list,scale_factor= 1.0):
                 point = [ p*scale_factor if p!= None else 0 for p in c["position"] ]# else 0  where the array is None set it to 0
                 control_points[joint_name].append(point)
     return control_points, unconstrained_indices
-       
-def get_arc_length_from_points(points):
-    """
-    Note: accuracy depends on the granulariy of points
-    """
-    arc_length = 0.0
-    last_p = None
-    for p in points:
-        if last_p is not None:
-            delta = p - last_p
-            #print delta
-            arc_length += sqrt( delta[0]**2 + delta[1]**2 +delta[2]**2) #-arcLength
-        else:
-            delta = p
-        last_p = p            
-    return arc_length
 
-def get_step_length_for_sample(motion_primitive, s, method = "arc_length"):
-    """Compute step length from a list of euler frames
-    """
-    # get quaternion frames from s_vector
-    quat_frames = motion_primitive.back_project(s,use_time_parameters = False).get_motion_vector()
-    if method == "arc_length":
-        root_pos = extract_root_positions(quat_frames)        
-        step_length = get_arc_length_from_points(root_pos)
-    elif method == "distance":
-        root_pos = extract_root_positions(quat_frames)  
-        step_length = np.linalg.norm(root_pos[-1][:3] - root_pos[0][:3])
-    else:
-        raise NotImplementedError
-    return step_length
-  
-def get_step_length(morphable_subgraph,motion_primitive_name,method = "arc_length"):
-    """Backproject the motion and get the step length and the last keyframe on the canonical timeline
-    Parameters
-    ----------
-    * morphable_subgraph : MorphableSubgraph
-      Represents an elementary action
-    * motion_primitive_name : string
-      Identifier of the morphable model
-    * method : string
-      Can have values arc_length or distance. If any other value distance is used.
-    Returns
-    -------
-    *step_length: float
-    \tThe arc length of the path of the motion primitive
-    """
-    assert motion_primitive_name in morphable_subgraph.nodes.keys()
-    step_length = 0
 
-    current_parameters = morphable_subgraph.nodes[motion_primitive_name].sample_parameters()
-    quat_frames = morphable_subgraph.nodes[motion_primitive_name].motion_primitive.back_project(current_parameters,use_time_parameters = False).get_motion_vector()
-    if method == "arc_length":
-        root_pos = extract_root_positions(quat_frames)
-        #print root_pos
-        step_length = get_arc_length_from_points(root_pos)
-    else:# use distance
-        vector = quat_frames[-1][:3] - quat_frames[0][:3] 
-        magnitude = 0
-        for v in vector:
-            magnitude += v**2
-        step_length = sqrt(magnitude)
-    #print "step length",step_length
-    #print "step length####################",motion_primitive_name,step_length
-    return step_length
 
 def create_constraint(joint_name,position=[None,None,None],orientation=[None,None,None],semanticAnnotation=None):
     """ Wrapper around a dict object creation
