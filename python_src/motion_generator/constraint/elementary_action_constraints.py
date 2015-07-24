@@ -5,7 +5,7 @@ Created on Thu Jul 16 14:42:41 2015
 @author: erhe01
 """
 import numpy as np
-from constraint_extraction import transform_point_from_cad_to_opengl_cs, \
+from coordinate_system_transform import transform_point_from_cad_to_opengl_cs, \
                             transform_unconstrained_indices_from_cad_to_opengl_cs
 from splines.parameterized_spline import ParameterizedSpline
 
