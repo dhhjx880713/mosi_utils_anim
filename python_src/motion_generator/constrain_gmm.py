@@ -32,8 +32,7 @@ class ConstrainedGMM(mixture.GMM):
         which means that no constraint is set.
 
     """
-    def __init__(self,motion_primitve_node, gmm, algorithm_config, start_pose, skeleton, constraint=None, 
-                 prev_frames=None):
+    def __init__(self,motion_primitve_node, gmm, algorithm_config, start_pose, skeleton):
         super(ConstrainedGMM, self).__init__(
             n_components=gmm.n_components,
             covariance_type=gmm.covariance_type,
@@ -49,7 +48,7 @@ class ConstrainedGMM(mixture.GMM):
         self.verbose = algorithm_config["verbose"]
         self.start_pose = start_pose
         self.skeleton = skeleton
-        self.prev_frames = prev_frames
+
         self.mm_ = motion_primitve_node.motion_primitive
         self.weights_ = gmm.weights_
         self.means_ = gmm.means_
@@ -62,9 +61,6 @@ class ConstrainedGMM(mixture.GMM):
         self.strict = algorithm_config["constrained_gmm_settings"]["strict"]
         self.precision = algorithm_config["constrained_gmm_settings"]["precision"]
         self.activate_parameter_check = algorithm_config["constrained_gmm_settings"]
-            
-        if constraint is not None:
-            self.set_constraint(constraint)
 
     def sample_and_check_constraint(self,constraint, prev_frames, firstFrame=None, lastFrame=None):
         success = False
@@ -117,7 +113,6 @@ class ConstrainedGMM(mixture.GMM):
         good_distances = []
         bad_samples = []
         bad_distances = []
-        
         while len(good_samples) < self.sample_size:
             s,distance,success = self.sample_and_check_constraint(constraint, prev_frames, firstFrame, lastFrame)
             if success:               
@@ -196,8 +191,7 @@ class ConstrainedGMMBuilder(object):
     
         else:
             gmm = self._create_constrained_gmm(self._morphable_graph.subgraphs[action_name].nodes[mp_name],\
-                                            constraints,\
-                                            prev_frames)   
+                                            constraints, prev_frames)   
         
         return gmm
 
@@ -212,7 +206,7 @@ class ConstrainedGMMBuilder(object):
         \t\b
         * constraint : tuple
         \tof the shape (joint, [pos_x, pos_y, pos_z], [rot_x, rot_y, rot_z])
-        * prev_frames : dict
+        * prev_frames : np.ndarray
         \t Used to estimate transformation of new samples 
         Returns
         -------
@@ -221,7 +215,8 @@ class ConstrainedGMMBuilder(object):
         """
         firstFrame = constraint['semanticAnnotation']['firstFrame']
         lastFrame = constraint['semanticAnnotation']['lastFrame']
-        cgmm = ConstrainedGMM(mp_node,mp_node.motion_primitive.gmm, self.algorithm_config, self.start_pose, self.skeleton, constraint=None)
+        cgmm = ConstrainedGMM(mp_node, mp_node.motion_primitive.gmm, self.algorithm_config, 
+                              self.start_pose, self.skeleton)
         cgmm.set_constraint(constraint, prev_frames, firstFrame=firstFrame,
                             lastFrame=lastFrame)
         return cgmm
@@ -238,7 +233,7 @@ class ConstrainedGMMBuilder(object):
     
         * constraints : list of tuples
         \tof the shape (joint, [pos_x, pos_y, pos_z], [rot_x, rot_y, rot_z])
-        * prev_frames : dict
+        * prev_frames : np.ndarray
         \t Used to estimate transformation of new samples 
     
         Returns
@@ -250,11 +245,9 @@ class ConstrainedGMMBuilder(object):
             print "generating gmm using",len(constraints),"constraints"
             start = time.clock()
         cgmms = []
-        
-    
         for i, constraint in enumerate(constraints):
             print "\t checking constraint %d" % i
-            print constraint
+            #print constraint
             #constraint = (c['joint'], c['position'], c['orientation'])
             cgmms.append(self._constrain_primitive(mp_node, constraint, prev_frames))
         cgmm = cgmms[0]
@@ -282,7 +275,7 @@ class ConstrainedGMMBuilder(object):
         * second_gmm : sklearn.mixture.gmm
         * constraints : list of numpy.dicts
         \tThe constraints for the second motion
-        * prev_frames : dict
+        * prev_frames : np.ndarray
         \t Used to estimate transformation of new samples 
         * gpm : GPMixture object
         \tThe GPM from the transition model for the transition\
