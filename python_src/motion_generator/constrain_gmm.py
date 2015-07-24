@@ -9,7 +9,7 @@ import numpy as np
 import sklearn.mixture as mixture
 from constraint.constraint_check import check_constraint, find_aligned_quaternion_frames
 from operator import itemgetter
-from utilities.gmm_math import mul
+from statistics.gmm_math import mul
 
 class ConstraintError(Exception):
     def __init__(self,  bad_samples):

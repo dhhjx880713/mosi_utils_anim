@@ -7,7 +7,7 @@ Created on Thu Jul 16 14:42:13 2015
 from copy import copy
 import numpy as np
 from utilities.exceptions import PathSearchError
-from utilities.motion_editing import convert_quaternion_to_euler, \
+from animation_data.motion_editing import convert_quaternion_to_euler, \
                                 get_cartesian_coordinates_from_euler                               
 
        

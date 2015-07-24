@@ -141,16 +141,23 @@ def run_optimization(motion_primitive,gmm,constraints,initial_guess, bvh_reader,
         start = time.clock()
         print "Start optimization using", optimization_settings["method"],optimization_settings["max_iterations"]
 #    jac = error_function_jac(s0, data)
-
-    result = minimize(error_func,#
-                      s0,
-                      args = (data,),
-                      method=optimization_settings["method"], 
-                      #jac = error_function_jac, 
-                      tol = optimization_settings["tolerance"],
-                      options=options)
+    try:
+        result = minimize(error_func,#
+                          s0,
+                          args = (data,),
+                          method=optimization_settings["method"], 
+                          #jac = error_function_jac, 
+                          tol = optimization_settings["tolerance"],
+                          options=options)
+                         
+                         
+  
+    except ValueError as e:
+        print "Warning:", e.message
+        return s0
+        
     if verbose:
         print "Finished optimization in ",time.clock()-start,"seconds"
-    return result.x
+    return result.x    
 
 

@@ -10,15 +10,15 @@ import time
 import collections
 import numpy as np
 import datetime
-from utilities.bvh import BVHReader, BVHWriter
-from utilities.skeleton import Skeleton
+from animation_data.bvh import BVHReader, BVHWriter
+from animation_data.skeleton import Skeleton
 from utilities.io_helper_functions import get_morphable_model_directory, \
                              get_transition_model_directory, \
                              load_json_file
 from GPMixture import GPMixture
-from utilities.motion_editing import align_frames, convert_quaternion_to_euler
+from animation_data.motion_editing import align_frames, convert_quaternion_to_euler
 from motion_primitive_graph import MotionPrimitiveGraph
-from zip_io import read_graph_data_from_zip
+from utilities.zip_io import read_graph_data_from_zip
 from graph_edge import GraphEdge
 
 

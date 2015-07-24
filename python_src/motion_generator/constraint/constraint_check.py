@@ -7,9 +7,9 @@ Created on Fri Feb 13 10:32:58 2015
 Provides all funktionality to check how good a constraint is met
  by a motion primitive sample s
 """
-
+from math import sqrt
 import numpy as np
-from utilities.motion_editing import convert_quaternion_frame_to_cartesian_frame,\
+from animation_data.motion_editing import convert_quaternion_frame_to_cartesian_frame,\
                     get_cartesian_coordinates_from_quaternion,\
                     align_point_clouds_2D,\
                     transform_quaternion_frames,\
@@ -17,7 +17,6 @@ from utilities.motion_editing import convert_quaternion_frame_to_cartesian_frame
                     transform_point_cloud,\
                     calculate_point_cloud_distance,\
                     fast_quat_frames_transformation
-from utilities.custom_transformations import vector_distance
 from external.transformations import rotation_matrix
 
 POSITION_ERROR_FACTOR = 1  # importance of reaching position constraints
@@ -29,6 +28,17 @@ global_counter_dict = {}
 global_counter_dict["evaluations"] = 0# counter for calls of the objective function
 global_counter_dict["motionPrimitveErrors"] = []# holds errors of individual motion primitives
 
+
+
+def vector_distance(a,b):
+    """Returns the distance ignoring entries with None
+    """
+    d_sum = 0
+    #print a,b
+    for i in xrange(len(a)):
+        if a[i] is not None and b[i] is not None:
+            d_sum += (a[i]-b[i])**2
+    return sqrt(d_sum)
 
 
 def find_aligned_quaternion_frames(mm, s, prev_frames, start_pose):

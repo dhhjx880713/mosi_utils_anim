@@ -435,13 +435,12 @@ class ClusterTreeNode(object):
         node_desc_dict["root"] = str(self.id)
         node_desc_dict["nodes"] = {}
         while len(stack) > 0:
-              node = stack.pop(-1)
-              node_desc = node.get_desc()
-              node_desc_dict["nodes"][node_desc["id"]] = node_desc
-              #node_desc_list.append()
-              if node.type != "kdtree":
-                  for cluster in node.clusters:
-                      stack.append(cluster)
+            node = stack.pop(-1)
+            node_desc = node.get_desc()
+            node_desc_dict["nodes"][node_desc["id"]] = node_desc
+            if node.type != "kdtree":
+                for c in node.clusters:
+                    stack.append(c)
         return node_desc_dict
  
         

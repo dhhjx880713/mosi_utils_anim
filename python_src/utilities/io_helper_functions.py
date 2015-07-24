@@ -11,9 +11,9 @@ import glob
 import json
 import collections
 from datetime import datetime
-from utilities.motion_editing import transform_euler_frames, \
+from animation_data.motion_editing import transform_euler_frames, \
                            transform_quaternion_frames
-from utilities.bvh import BVHWriter
+from animation_data.bvh import BVHWriter
 
 def write_to_logfile(path, time_string, data):
     """ Appends json data to a text file.

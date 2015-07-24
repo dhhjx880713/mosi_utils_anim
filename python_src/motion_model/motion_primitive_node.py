@@ -8,7 +8,7 @@ import random
 import numpy as np
 from . import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END
 from motion_primitive import MotionPrimitive
-from utilities.motion_editing import extract_root_positions_from_frames, get_arc_length_from_points
+from animation_data.motion_editing import extract_root_positions_from_frames, get_arc_length_from_points
 from math import sqrt
 from space_partitioning.cluster_tree import ClusterTree
 

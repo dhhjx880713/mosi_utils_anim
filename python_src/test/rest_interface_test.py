@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on Fri Jul 10 15:20:26 2015
-http://isbullsh.it/2012/06/Rest-api-in-python/
+
 @author: erhe01
 """
 import os
@@ -12,6 +12,8 @@ from utilities.io_helper_functions import load_json_file
 TESTPATH = os.sep.join([".."]*2+ ["test_data"])
 
 def test_rest_inteface():
+    """ Based on the example from http://isbullsh.it/2012/06/Rest-api-in-python
+    """
     mg_input_file = os.sep.join([TESTPATH,"mg_input.json"])
     print mg_input_file
     mg_server_url = 'http://localhost:8888/runmorphablegraphs'

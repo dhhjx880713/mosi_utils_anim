@@ -18,21 +18,21 @@ import time
 from motion_generator.motion_generator import MotionGenerator
 from utilities.io_helper_functions import load_json_file
 
-
-
 ALGORITHM_CONFIG_FILE = "config" + os.sep + "algorithm.json"
 SERVICE_CONFIG_FILE = "config" + os.sep + "service.json"
+
+def get_newest_file_from_input_directory(service_config):
+    input_file = glob.glob(service_config["input_dir"] + os.sep + "*.json")[-1]
+    return input_file
+
 
 def run_pipeline(service_config, algorithm_config_file):
     """Creates an instance of the morphable graph and runs the synthesis
        algorithm with the input_file and standard parameters.
     """
 
-    # select input file as latest file from a fixed input directory
-    globalpath = service_config["input_dir"] + os.sep + "*.json"
-    input_file = glob.glob(globalpath)[-1]
+    input_file = get_newest_file_from_input_directory(service_config)
     
-
     if os.path.isfile(algorithm_config_file):
         algorithm_config = load_json_file(algorithm_config_file)
     else:

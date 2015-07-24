@@ -5,7 +5,8 @@ Created on Tue Jul 14 18:39:41 2015
 @author: erhe01
 """
 from copy import copy
-from utilities.motion_editing import fast_quat_frames_alignment, transform_quaternion_frames
+from animation_data.motion_editing import fast_quat_frames_alignment, transform_quaternion_frames
+
 class GraphWalkEntry(object):
     def __init__(self, action_name, motion_primitive_name, parameters, arc_length):
         self.action_name = action_name

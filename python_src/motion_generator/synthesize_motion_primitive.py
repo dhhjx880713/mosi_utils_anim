@@ -6,8 +6,7 @@ Created on Wed Mar 10 17:15:22 2015
 """
 
 import numpy as np
-
-from utilities.evaluation_methods import check_sample_validity
+from animation_data.evaluation_methods import check_sample_validity
 from constrain_gmm import manipulate_gmm
 from optimize_motion_parameters import run_optimization
 from constraint.constraint_extraction import get_step_length_for_sample
@@ -26,6 +25,8 @@ class MotionPrimitiveGenerator(object):
         contains reference to motion data structure
     * algorithm_config : dict
         Contains settings for the algorithm.
+    * prev_action_name : string
+        name of the action before the current action in the elementary action list
     """
     def __init__(self, action_constraints, algorithm_config, prev_action_name=""):
         self._action_constraints = action_constraints
@@ -66,19 +67,21 @@ class MotionPrimitiveGenerator(object):
             low dimensional motion parameters used to generate the frames
         """
     
-        try:
-            mp_name = motion_primitive_constraints.motion_primitive_name
+ 
+        mp_name = motion_primitive_constraints.motion_primitive_name
   
-            if len(prev_motion.graph_walk)> 0:
-                prev_mp_name =  prev_motion.graph_walk[-1].motion_primitive_name
-                prev_parameters =  prev_motion.graph_walk[-1].parameters
-    
-            else:
-                prev_mp_name =  ""
-                prev_parameters =  None
-                
-            use_optimization= self.use_optimization or motion_primitive_constraints.use_optimization
-            motion_primitive_constraints.use_optimization
+        if len(prev_motion.graph_walk)> 0:
+            prev_mp_name =  prev_motion.graph_walk[-1].motion_primitive_name
+            prev_parameters =  prev_motion.graph_walk[-1].parameters
+
+        else:
+            prev_mp_name =  ""
+            prev_parameters =  None
+ 
+        use_optimization= self.use_optimization or motion_primitive_constraints.use_optimization
+        motion_primitive_constraints.use_optimization   
+        
+        try:
             parameters = self.get_optimal_motion_primitive_parameters(mp_name,
                                                 motion_primitive_constraints.constraints,
                                                 prev_mp_name=prev_mp_name,
@@ -148,23 +151,20 @@ class MotionPrimitiveGenerator(object):
                 close_to_optimum = True
             else: 
                 # pick new random samples from the Gaussian Mixture Model
-                parameters,close_to_optimum = self.sample_and_pick_best(graph_node,gmm,\
+                parameters,close_to_optimum = self._sample_and_pick_best(graph_node,gmm,\
                                                                     constraints,prev_frames)
                 
             #3) optimize sampled parameters as initial guess if the constraints were not reached
             if  not self.use_transition_model and use_optimization and not close_to_optimum:
                 bounding_boxes = (graph_node.parameter_bb, graph_node.cartesian_bb)
-                try:
-                    initial_guess = parameters
-                    parameters = run_optimization(graph_node.motion_primitive, gmm, constraints,
-                                                    initial_guess, self.skeleton,
-                                                    optimization_settings=self.optimization_settings, bounding_boxes=bounding_boxes,
-                                                    prev_frames=prev_frames, start_pose=self._action_constraints.start_pose, 
-                                                    verbose=self.verbose)
-                except ValueError as e:
-                    print e.message
-                    parameters = initial_guess
- 
+               
+                initial_guess = parameters
+                parameters = run_optimization(graph_node.motion_primitive, gmm, constraints,
+                                                initial_guess, self.skeleton,
+                                                optimization_settings=self.optimization_settings, bounding_boxes=bounding_boxes,
+                                                prev_frames=prev_frames, start_pose=self._action_constraints.start_pose, 
+                                                verbose=self.verbose)
+
 
         else: # generate random parameters
             parameters = self._get_random_parameters(mp_name, prev_mp_name, 
@@ -205,7 +205,7 @@ class MotionPrimitiveGenerator(object):
     
                                           
 
-    def sample_and_pick_best(self, mp_node, gmm, constraints, prev_frames):
+    def _sample_and_pick_best(self, mp_node, gmm, constraints, prev_frames):
         """samples and picks the best sample out of a given set, quality measures
         is naturalness
     

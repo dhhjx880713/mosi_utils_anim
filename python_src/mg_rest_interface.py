@@ -15,7 +15,6 @@ import tornado.escape
 import tornado.ioloop
 import tornado.web
 import json
-import threading
 import time
 from motion_generator.motion_generator import MotionGenerator
 from utilities.io_helper_functions import load_json_file, get_bvh_writer
@@ -102,34 +101,6 @@ class MGRestApplication(tornado.web.Application):
                                                           export=False)
                                                           
         
-class ServerThread(threading.Thread):
-    '''Controls a WebSocketApplication by starting a tornado IOLoop instance in 
-    a Thread
-    
-    Example usage:
-    -----
-    server = ServerThread(application,8888)
-    server.start()
-    while True:
-        #do something else
-        time.sleep(1)
-    '''
-    def __init__(self, web_application, port=8889):
-        threading.Thread.__init__(self)
-        self.web_application = web_application
-        self.port = port
-    
- 
-               
-    def run(self):
-        print "starting server"
-        self.web_application.listen(self.port)       
-        tornado.ioloop.IOLoop.instance().start() 
-
-    def stop(self):
-        print "stopping server"
-        tornado.ioloop.IOLoop.instance().stop()
-
 
 
 class MorphableGraphsRESTfulInterface(object):
@@ -169,19 +140,16 @@ class MorphableGraphsRESTfulInterface(object):
                                              [(r"/runmorphablegraphs",MGInputHandler)
                                               ])
 
-        #  Create server thread
+        #  Configure server
         self.port = service_config["port"]
-#        self.server = ServerThread(self.application, self.port)
 
         
     def start(self):
+        """ Start the web server loop
+        """
         self.application.listen(self.port)
         tornado.ioloop.IOLoop.instance().start() 
-#        self.server.start()
-#        while True:
-#            time.sleep(1)
-#            #print "run"
-  
+
     
 def main():
     if os.path.isfile(SERVICE_CONFIG_FILE) and os.path.isfile(ALGORITHM_CONFIG_FILE):  

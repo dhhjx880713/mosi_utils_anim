@@ -13,8 +13,8 @@ import collections
 from math import sqrt
 import numpy as np
 from utilities.io_helper_functions import load_json_file
-from utilities.parameterized_spline import ParameterizedSpline, plot_splines
-from utilities.motion_editing import euler_to_quaternion
+from splines.parameterized_spline import ParameterizedSpline, plot_splines
+from animation_data.motion_editing import euler_to_quaternion
 from cgkit.cgtypes import quat
 
 TRAJECTORY_DIM = 3 # spline in cartesian space

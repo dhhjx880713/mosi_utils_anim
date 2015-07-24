@@ -167,11 +167,11 @@ class MotionGenerator(object):
             if self._algorithm_config["verbose"]:
                print "convert",action_constraints.action_name,"to graph walk"
     
-            try:
-                motion = self._append_elementary_action_to_motion(action_constraints, motion)
+          
+            success = self._append_elementary_action_to_motion(action_constraints, motion)
                 
-            except SynthesisError as e:
-                print "Arborting conversion",e.message
+            if not success:#TOOD change to other error handling
+                print "Arborting conversion"#,e.message
                 return motion
             action_constraints = motion_constraints.get_next_elementary_action_constraints() 
         return motion
@@ -272,7 +272,8 @@ class MotionGenerator(object):
             except PathSearchError as e:
                     print "moved beyond end point using parameters",
                     str(e.search_parameters)
-                    break
+                    return False
+          
                 
             # get optimal parameters, Back-project to frames in joint angle space,
             # Concatenate frames to motion and apply smoothing
@@ -314,8 +315,8 @@ class MotionGenerator(object):
     #               check_end_condition(morphable_subgraph,quat_frames,trajectory,\
     #                                        travelled_arc_length,arc_length_of_end)
             
-      
-        return motion
+        
+        return True
     
     
 
