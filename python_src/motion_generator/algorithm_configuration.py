@@ -66,7 +66,7 @@ class AlgorithmConfigurationBuilder(object):
         self.activate_cluster_search = activate_cluster_search
         self.debug_max_step = debug_max_step
         self.verbose = verbose
-        self.build_configuration()
+        self.build()
         return
         
         
@@ -86,7 +86,7 @@ class AlgorithmConfigurationBuilder(object):
         
 
 
-    def build_configuration(self):
+    def build(self):
         optimization_settings = self._generate_optimization_configuration(method=self.optimization_method,max_iterations=self.max_optimization_iterations,
                                                               quality_scale_factor=self.optimization_quality_scale_factor ,
                                                               error_scale_factor=self.optimization_error_scale_factor,
