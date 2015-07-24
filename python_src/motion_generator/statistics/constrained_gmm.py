@@ -7,7 +7,7 @@ Created on Fri Feb 13 10:09:45 2015
 
 import numpy as np
 import sklearn.mixture as mixture
-from constraint.constraint_check import check_constraint, find_aligned_quaternion_frames
+from ..constraint.constraint_check import check_constraint, find_aligned_quaternion_frames
 from operator import itemgetter
 from utilities.exceptions import ConstraintError
 

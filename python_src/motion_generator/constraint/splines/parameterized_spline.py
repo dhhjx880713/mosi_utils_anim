@@ -760,7 +760,7 @@ def test_plot_spline():
 def main():
     verify_spline()
     #test_plot_spline()
-    test_find_closest_point()
+
     return
 
 

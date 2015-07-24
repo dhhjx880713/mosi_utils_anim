@@ -5,7 +5,6 @@ Created on Tue Jul 14 15:26:29 2015
 @author: erhe01
 """
 
-from copy import copy
 from elementary_action_constraints import ElementaryActionConstraints
 from coordinate_system_transform import transform_point_from_cad_to_opengl_cs
 
@@ -30,17 +29,6 @@ class MotionConstraints(object):
         self.action_index = 0
         self.n_actions = len(self.elementary_action_list)
 
-            
-    
-    def _transform_from_left_to_right_handed_cs(self):
-        """ Transform transition and rotation of the start pose from CAD to Opengl 
-            coordinate system.
-        """
-        start_pose_copy = copy(self.start_pose)
-        self.start_pose["orientation"] = transform_point_from_cad_to_opengl_cs(start_pose_copy["orientation"])
-        self.start_pose["position"] = transform_point_from_cad_to_opengl_cs(start_pose_copy["position"])
-        
-        
     def get_next_elementary_action_constraints(self):
         """
         Returns:
@@ -54,7 +42,15 @@ class MotionConstraints(object):
             return action_constraints
         else:
             return None
-  
+            
+    
+    def _transform_from_left_to_right_handed_cs(self):
+        """ Transform transition and rotation of the start pose from CAD to Opengl 
+            coordinate system.
+        """
+        self.start_pose["orientation"] = transform_point_from_cad_to_opengl_cs(self.start_pose["orientation"])
+        self.start_pose["position"] = transform_point_from_cad_to_opengl_cs(self.start_pose["position"])
+        
 
     def _extract_keyframe_annotations(self, elementary_action_list):
         """

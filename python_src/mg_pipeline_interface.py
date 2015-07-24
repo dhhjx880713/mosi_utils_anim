@@ -3,7 +3,6 @@
 Created on Thu Mar 19 16:11:52 2015
 
 Simple Motion Graphs command line interface for pipeline tests.
-Note the loading of transition models can take up to 2 minutes
 
 @author: erhe01
 """
@@ -46,7 +45,8 @@ def run_pipeline(service_config, algorithm_config_file):
 
     if motion.quat_frames is not None:  # checks for quat_frames in result_tuple
         mg_input = load_json_file(input_file)
-        motion_generator.export_synthesis_result(mg_input, service_config["output_dir"], service_config["output_filename"], motion)
+        motion_generator.export_synthesis_result(mg_input, service_config["output_dir"], 
+                                                 service_config["output_filename"], motion)
     else:
         print "Error: Failed to generate motion data."
 

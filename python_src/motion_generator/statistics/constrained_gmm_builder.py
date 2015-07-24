@@ -2,11 +2,11 @@
 """
 Created on Fri Jul 24 19:56:30 2015
 
-@author: erhe01
+@author: mamauer,FARUPP,erhe01
 """
 import time
 from constrained_gmm import ConstrainedGMM
-from statistics.gmm_math import mul
+from gmm_math import mul
 
 class ConstrainedGMMBuilder(object):
     def __init__(self, morphable_graph, algorithm_config, start_pose, skeleton):

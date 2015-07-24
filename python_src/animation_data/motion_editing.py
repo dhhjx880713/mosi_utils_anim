@@ -1210,7 +1210,7 @@ def align_quaternion_frames(skeleton,
     return quaternion_frames  
     
 def fast_quat_frames_transformation(quaternion_frames_a,
-                               quaternion_frames_b):
+                                    quaternion_frames_b):
     dir_vec_a = pose_orientation(quaternion_frames_a[-1])
     dir_vec_b = pose_orientation(quaternion_frames_b[0])
     #print 'first orientation'
@@ -1260,8 +1260,6 @@ def align_frames2(skeleton, euler_frames_a, euler_frames_b, smooth =True):
     \List of frames where the rotation is represented as euler angles in degrees.
     *euler_frames_b: np.ndarray
     \List of frames where the rotation is represented as euler angles in degrees.
-    *node_name_map: dict
-    \tDictionary that maps joint names to their order in the bvh file ignoring "Bip" joints
     *smooth: bool
     \t Sets whether or not smoothing is supposed to be applied on the at the transition.
     Returns

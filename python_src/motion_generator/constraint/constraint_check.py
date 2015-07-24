@@ -67,7 +67,8 @@ def find_aligned_quaternion_frames(mm, s, prev_frames, start_pose):
     quat_frames = mm.back_project(s, use_time_parameters=use_time_parameters).get_motion_vector()
     # find alignment transformation: rotation and translation    
     if prev_frames is not None:
-        angle, offset = fast_quat_frames_transformation(prev_frames,quat_frames)
+        #print prev_frames
+        angle, offset = fast_quat_frames_transformation(prev_frames, quat_frames)
         transformation = {"orientation":[0,angle,0],"position":offset}                                                 
     elif start_pose is not None:
         transformation = start_pose
