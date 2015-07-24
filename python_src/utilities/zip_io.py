@@ -88,7 +88,7 @@ def read_graph_data_from_zip(zip_path,pickle_objects=True):
         data["transitions"] = json.loads(zip_file.read("graph_definition.json"))
         structure_desc = read_zip_file_structure(zip_file)
         data["subgraphs"] = construct_graph_data(zip_file, structure_desc, pickle_objects)
-        return data
+    return data
    
 def main():
     zip_path = "E:\\projects\\INTERACT\\repository\\data\\3 - Motion primitives\\motion_primitives_quaternion_PCA95.zip"
