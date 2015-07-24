@@ -203,15 +203,13 @@ class ConstrainedGMMBuilder(object):
 
 
 
-    def _constrain_primitive(self, mp_node,constraint, prev_frames,
-                            firstFrame=None, lastFrame=None):
+    def _constrain_primitive(self, mp_node,constraint, prev_frames):
         """constrains a primitive with a given constraint
     
         Parameters
         ----------
         * mp_node : MotionPrimitiveNode
         \t\b
-    
         * constraint : tuple
         \tof the shape (joint, [pos_x, pos_y, pos_z], [rot_x, rot_y, rot_z])
         * prev_frames : dict
@@ -221,7 +219,8 @@ class ConstrainedGMMBuilder(object):
         * cgmm : ConstrainedGMM
         \tThe gmm of the motion_primitive constrained by the constraint
         """
-    
+        firstFrame = constraint['semanticAnnotation']['firstFrame']
+        lastFrame = constraint['semanticAnnotation']['lastFrame']
         cgmm = ConstrainedGMM(mp_node,mp_node.motion_primitive.gmm, self.algorithm_config, self.start_pose, self.skeleton, constraint=None)
         cgmm.set_constraint(constraint, prev_frames, firstFrame=firstFrame,
                             lastFrame=lastFrame)
@@ -257,11 +256,7 @@ class ConstrainedGMMBuilder(object):
             print "\t checking constraint %d" % i
             print constraint
             #constraint = (c['joint'], c['position'], c['orientation'])
-            firstFrame = constraint['semanticAnnotation']['firstFrame']
-            lastFrame = constraint['semanticAnnotation']['lastFrame']
-            cgmms.append(self._constrain_primitive(mp_node, constraint, prev_frames,
-                                                         firstFrame=firstFrame,
-                                                         lastFrame=lastFrame))
+            cgmms.append(self._constrain_primitive(mp_node, constraint, prev_frames))
         cgmm = cgmms[0]
         for k in xrange(1, len(cgmms)):
             cgmm = mul(cgmm, cgmms[k])
@@ -302,7 +297,7 @@ class ConstrainedGMMBuilder(object):
     
         predict_gmm = gpm.predict(prev_parameters)
         if constraints:
-            cgmm = self._create_constrained_gmm(mp_node,constraints, prev_frames)
+            cgmm = self._create_constrained_gmm(mp_node, constraints, prev_frames)
             constrained_predict_gmm = mul(predict_gmm, cgmm)
             return mul(constrained_predict_gmm, mp_node.motion_primitive.gmm)
         else:
