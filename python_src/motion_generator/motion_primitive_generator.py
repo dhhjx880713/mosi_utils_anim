@@ -9,7 +9,6 @@ import numpy as np
 from animation_data.evaluation_methods import check_sample_validity
 from constrain_gmm import ConstraintError, ConstrainedGMMBuilder
 from optimize_motion_parameters import run_optimization
-from constraint.constraint_extraction import get_step_length_for_sample
 from constraint.constraint_check import obj_error_sum,evaluate_list_of_constraints,\
                             global_counter_dict
 from utilities.exceptions import SynthesisError
@@ -296,12 +295,8 @@ class MotionPrimitiveGenerator(object):
                 min_distance,successes = evaluate_list_of_constraints(mp_node.motion_primitive,s,constraints,prev_frames,self._action_constraints.start_pose,self.skeleton,
                                                             precision=self.precision,verbose=self.verbose)
                 # check the root path for each sample, punish the curve walking
-                acr_length = get_step_length_for_sample(mp_node.motion_primitive, 
-                                                        s, 
-                                                        method = "arc_length")
-                absolute_length = get_step_length_for_sample(mp_node.motion_primitive,
-                                                             s,
-                                                             method="distance") 
+                acr_length = mp_node.get_step_length_for_sample(s, method="arc_length")
+                absolute_length = mp_node.get_step_length_for_sample(s, method="distance")
                 factor = acr_length/absolute_length   
                 min_distance = factor * min_distance                              
                 if self.verbose:
