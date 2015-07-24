@@ -35,6 +35,7 @@ class MotionPrimitiveGenerator(object):
         self._morphable_graph = self._action_constraints.parent_constraint.morphable_graph
         self.skeleton = self._action_constraints.get_skeleton()
         self._constrained_gmm_config = self._algorithm_config["constrained_gmm_settings"]
+        self._optimization_settings = self._algorithm_config["optimization_settings"]
         self.verbose = self._algorithm_config["verbose"]
         self.precision = self._constrained_gmm_config["precision"]
         self.sample_size = self._constrained_gmm_config["sample_size"]
@@ -161,7 +162,7 @@ class MotionPrimitiveGenerator(object):
                 initial_guess = parameters
                 parameters = run_optimization(graph_node.motion_primitive, gmm, constraints,
                                                 initial_guess, self.skeleton,
-                                                optimization_settings=self.optimization_settings, bounding_boxes=bounding_boxes,
+                                                self._optimization_settings, bounding_boxes=bounding_boxes,
                                                 prev_frames=prev_frames, start_pose=self._action_constraints.start_pose, 
                                                 verbose=self.verbose)
 

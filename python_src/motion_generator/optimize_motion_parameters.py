@@ -82,7 +82,7 @@ def error_func(s,data):
 
 
 
-def run_optimization(motion_primitive,gmm,constraints,initial_guess, bvh_reader, node_name_map , 
+def run_optimization(motion_primitive,gmm,constraints,initial_guess, skeleton, 
                        optimization_settings = {},bounding_boxes=None,prev_frames = None,
                        start_pose=None,verbose=False):
     """ Runs the optimization for a single motion primitive and a list of constraints 
@@ -94,7 +94,7 @@ def run_optimization(motion_primitive,gmm,constraints,initial_guess, bvh_reader,
         Statistical model of the natural motion parameter space
     * constraints : list of dicts
          Each entry containts "joint", "position"   "orientation" and "semanticAnnotation"
-    * bvh_reader: BVHReader
+    * skeleton: Skeleton
         Used for joint hiearchy information 
     * max_iterations : int
         Maximum number of iterations performed by the optimization algorithm
@@ -129,7 +129,7 @@ def run_optimization(motion_primitive,gmm,constraints,initial_guess, bvh_reader,
     # convert prev_frames to euler frames
 #    if prev_frames is not None:
 #        prev_frames = convert_quaternion_to_euler(prev_frames)
-    data = motion_primitive, constraints, prev_frames,start_pose, bvh_reader, node_name_map,{"pos":1,"rot":1,"smooth":1}, \
+    data = motion_primitive, constraints, prev_frames,start_pose, skeleton,{"pos":1,"rot":1,"smooth":1}, \
            optimization_settings["error_scale_factor"], optimization_settings["quality_scale_factor"]     #precision
 #    data = motion_primitive, gmm, constraints, quality_scale_factor, \
 #          error_scale_factor,  bvh_reader,prev_frames, node_name_map,bounding_boxes, \
