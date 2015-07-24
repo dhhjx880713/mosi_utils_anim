@@ -21,11 +21,10 @@ from utilities.io_helper_functions import load_json_file, write_to_json_file,\
 from motion_model.elementary_action_graph import ElementaryActionGraph
 from constraint.motion_constraints import MotionConstraints
 from constraint.constraint_check import global_counter_dict
-from algorithm_configuration import generate_algorithm_configuration
 from utilities.exceptions import SynthesisError, PathSearchError
 from motion_model import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END
 from synthesize_motion_primitive import generate_motion_primitive_from_constraints
-from algorithm_configuration import generate_algorithm_configuration
+from algorithm_configuration import AlgorithmConfigurationBuilder
 from constraint.motion_primitive_constraints import MotionPrimitiveConstraints
 from annotated_motion import AnnotatedMotion, GraphWalkEntry
 
@@ -63,7 +62,7 @@ class MotionGenerator(object):
         ----------
         * algorithm_config : dict
             Contains options for the algorithm.
-            When set to None generate_algorithm_configuration() is called with default settings
+            When set to None AlgorithmSettingsBuilder() is used to generate default settings
             use_constraints: Sets whether or not to use constraints 
             use_optimization : Sets whether to activate optimization or use only sampling
             use_constrained_gmm : Sets whether or not to constrain the GMM
@@ -76,7 +75,8 @@ class MotionGenerator(object):
             If set to None default settings are used.        
         """
         if algorithm_config is None:
-            self._algorithm_config = generate_algorithm_configuration()
+            algorithm_config_builder = AlgorithmConfigurationBuilder()
+            self._algorithm_config = algorithm_config_builder.get_configuration()
         else:
             self._algorithm_config = algorithm_config
         
@@ -134,7 +134,7 @@ class MotionGenerator(object):
         
         
     
-    def _generate_motion_from_constraints(self, motion_constraints, algorithm_config=None):
+    def _generate_motion_from_constraints(self, motion_constraints):
         """ Converts a constrained graph walk to quaternion frames
          Parameters
         ----------
@@ -152,21 +152,19 @@ class MotionGenerator(object):
         * motion: AnnotatedMotion
             Contains the quaternion frames and annotations of the frames based on actions.
         """
-        if algorithm_config is None:
-            algorithm_config = generate_algorithm_configuration()
-        if algorithm_config["verbose"]:
-            for key in algorithm_config.keys():
-                print key,algorithm_config[key]
+        if self._algorithm_config["verbose"]:
+            for key in self._algorithm_config.keys():
+                print key,self._algorithm_config[key]
     
         motion = AnnotatedMotion()
         action_constraints = motion_constraints.get_next_elementary_action_constraints()
         while action_constraints is not None:
        
-            if algorithm_config["debug_max_step"] > -1 and motion.step_count > algorithm_config["debug_max_step"]:
+            if self._algorithm_config["debug_max_step"] > -1 and motion.step_count > self._algorithm_config["debug_max_step"]:
                 print "reached max step"
                 break
               
-            if algorithm_config["verbose"]:
+            if self._algorithm_config["verbose"]:
                print "convert",action_constraints.action_name,"to graph walk"
     
             try:
@@ -275,7 +273,9 @@ class MotionGenerator(object):
                 
             # get optimal parameters, Back-project to frames in joint angle space,
             # Concatenate frames to motion and apply smoothing
-            tmp_quat_frames, parameters = generate_motion_primitive_from_constraints(action_constraints, motion_primitive_constraints, prev_motion=motion, algorithm_config=self._algorithm_config)                                            
+            tmp_quat_frames, parameters = generate_motion_primitive_from_constraints(action_constraints,
+                                                                                     motion_primitive_constraints, prev_motion=motion,
+                                                                                     algorithm_config=self._algorithm_config)                                            
             
             #update annotated motion
             canonical_keyframe_labels = morphable_subgraph.get_canonical_keyframe_labels(current_motion_primitive)
