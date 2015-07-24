@@ -24,7 +24,7 @@ class ConstrainedGMM(mixture.GMM):
 
     Parameters
     ----------
-    * mm : MotionPrimitive
+    * motion_primitve_node : MotionPrimitiveNode
         The original MotionPrimitive which will be constrained
     * constraint : tuple, optional
         The constraint as (joint, [pos_x, pos_y, pos_z], [rot_x, rot_y, rot_z])
@@ -32,7 +32,7 @@ class ConstrainedGMM(mixture.GMM):
         which means that no constraint is set.
 
     """
-    def __init__(self,graph_node, gmm, constraint=None, bvh_reader=None, node_name_map=None, 
+    def __init__(self,motion_primitve_node, gmm, constraint=None, bvh_reader=None, node_name_map=None, 
                  prev_frames=None, settings=None, verbose=False):
         super(ConstrainedGMM, self).__init__(
             n_components=gmm.n_components,
@@ -45,23 +45,25 @@ class ConstrainedGMM(mixture.GMM):
             params=gmm.params,
             init_params=gmm.init_params
         )
-        self.graph_node = graph_node
+        self.motion_primitve_node = motion_primitve_node
         self.verbose = verbose
         self.bvh_reader = bvh_reader
         self.prev_frames = prev_frames
         self.node_name_map = node_name_map
-        self.mm_ = graph_node.mp
+        self.mm_ = motion_primitve_node.motion_primitive
         self.weights_ = gmm.weights_
         self.means_ = gmm.means_
         self.converged_ = gmm.converged_
         self.covars_ = gmm.covars_
         self.samples_ = None
+        
         if settings is not None:
-            
+            self.sample_size = settings["sample_size"]
             self.max_bad_samples = settings["max_bad_samples"]
             self.strict = settings["strict"]
             self.precision = settings["precision"]
         else:
+            self.sample_size = 100
             self.max_bad_samples = 200
             self.strict = False
             self.precision = {"pos":1,"rot":1,"smooth":1}
@@ -69,8 +71,7 @@ class ConstrainedGMM(mixture.GMM):
         if constraint is not None:
             self.set_constraint(constraint)
 
-    def sample_and_check_constraint(self,constraint, prev_frames, start_pose,size=100,
-                       precision={"pos":1,"rot":1}, firstFrame=None, lastFrame=None,
+    def sample_and_check_constraint(self,constraint, prev_frames, start_pose, firstFrame=None, lastFrame=None,
                         activate_parameter_check =True):
         success = False
         s = self.sample()[0]
@@ -95,8 +96,7 @@ class ConstrainedGMM(mixture.GMM):
 
         return s,min_distance,success
         
-    def set_constraint(self, constraint, prev_frames, start_pose,size=100,
-                       precision={"pos":1,"rot":1,"smooth":1}, firstFrame=None, lastFrame=None, activate_parameter_check=True):
+    def set_constraint(self, constraint, prev_frames, start_pose, firstFrame=None, lastFrame=None, activate_parameter_check=True):
         """ Constrain the GMM with the given value
 
         Parameters
@@ -126,9 +126,9 @@ class ConstrainedGMM(mixture.GMM):
         bad_samples = []
         bad_distances = []
         
-        while len(good_samples) < size:
-            s,distance,success = self.sample_and_check_constraint(constraint, prev_frames, start_pose,size,
-                                                       precision, firstFrame, lastFrame,
+        while len(good_samples) < self.sample_size:
+            s,distance,success = self.sample_and_check_constraint(constraint, prev_frames, start_pose,self.sample_size,
+                                                       self.precision, firstFrame, lastFrame,
                                                         activate_parameter_check)
             if success:               
                 good_samples.append(s)
@@ -143,14 +143,13 @@ class ConstrainedGMM(mixture.GMM):
              
             if tmp_bad_samples>self.max_bad_samples:
                 if not self.strict:
-                    print "could not reach constraints use",size,"best samples instead"
+                    print "could not reach constraints use",self.sample_size,"best samples instead"
                     #merge good and bad samples
                     merged_samples = good_samples + bad_samples 
                     merged_distances = good_distances + bad_distances
                     #sample missing samples if necessary
-                    while len(merged_samples) < size:
-                         s,distance,success = self.sample_and_check_constraint(constraint, prev_frames, start_pose,size,
-                                                                           precision, firstFrame, lastFrame,
+                    while len(merged_samples) < self.sample_size:
+                         s,distance,success = self.sample_and_check_constraint(constraint, prev_frames, start_pose, firstFrame, lastFrame,
                                                                             activate_parameter_check)
                          merged_samples.append(s)
                          merged_distances.append(distance)
@@ -158,7 +157,7 @@ class ConstrainedGMM(mixture.GMM):
                     sorted_samples = zip(merged_samples,merged_distances)
                     sorted_samples.sort(key=itemgetter(1))
                     #print type(sorted_samples)
-                    good_samples = zip(*sorted_samples)[0][:size]
+                    good_samples = zip(*sorted_samples)[0][:self.sample_size]
                 else:
                     #stop the conversion and output the motion up to the previous step
                     raise ConstraintError(bad_samples)

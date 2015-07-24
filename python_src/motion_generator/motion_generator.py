@@ -23,7 +23,7 @@ from constraint.motion_constraints import MotionConstraints
 from constraint.constraint_check import global_counter_dict
 from utilities.exceptions import SynthesisError, PathSearchError
 from motion_model import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END
-from synthesize_motion_primitive import generate_motion_primitive_from_constraints
+from synthesize_motion_primitive import MotionPrimitiveGenerator
 from algorithm_configuration import AlgorithmConfigurationBuilder
 from constraint.motion_primitive_constraints import MotionPrimitiveConstraints
 from annotated_motion import AnnotatedMotion, GraphWalkEntry
@@ -208,6 +208,14 @@ class MotionGenerator(object):
         * motion: AnnotatedMotion
         """
         
+        if motion.step_count >0:
+             prev_action_name = motion.graph_walk[-1]
+             prev_mp_name = motion.graph_walk[-1]
+        else:
+             prev_action_name = None
+             prev_mp_name = None
+            
+        motion_primitive_generator = MotionPrimitiveGenerator(action_constraints, self._algorithm_config, prev_action_name)
         start_frame = motion.n_frames    
         #skeleton = action_constraints.get_skeleton()
         morphable_subgraph = action_constraints.get_subgraph()
@@ -236,12 +244,7 @@ class MotionGenerator(object):
                  current_motion_primitive = action_constraints.parent_constraint.morphable_graph.get_random_action_transition(motion, action_constraints.action_name)
                  current_motion_primitive_type = NODE_TYPE_START
                  if current_motion_primitive is None:
-                     if motion.step_count >0:
-                         prev_action_name = motion.graph_walk[-1]
-                         prev_mp_name = motion.graph_walk[-1]
-                     else:
-                         prev_action_name = None
-                         prev_mp_name = None
+
                      print "Error: Could not find a transition of type action_transition from ",prev_action_name,prev_mp_name ," to state",current_motion_primitive
                      break
             elif len(morphable_subgraph.nodes[current_motion_primitive].outgoing_edges) > 0:
@@ -273,9 +276,7 @@ class MotionGenerator(object):
                 
             # get optimal parameters, Back-project to frames in joint angle space,
             # Concatenate frames to motion and apply smoothing
-            tmp_quat_frames, parameters = generate_motion_primitive_from_constraints(action_constraints,
-                                                                                     motion_primitive_constraints, prev_motion=motion,
-                                                                                     algorithm_config=self._algorithm_config)                                            
+            tmp_quat_frames, parameters = motion_primitive_generator.generate_motion_primitive_from_constraints(motion_primitive_constraints, motion)                                            
             
             #update annotated motion
             canonical_keyframe_labels = morphable_subgraph.get_canonical_keyframe_labels(current_motion_primitive)
