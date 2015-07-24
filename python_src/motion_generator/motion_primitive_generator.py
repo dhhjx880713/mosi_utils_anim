@@ -129,33 +129,32 @@ class MotionPrimitiveGenerator(object):
         if self.use_constraints and len(constraints) > 0: # estimate parameters fitting constraints
             graph_node = self._morphable_graph.subgraphs[self.action_name].nodes[mp_name]
             
-            #  1) get gmm and modify it based on the current state and settings
-            
-            # Get prior gaussian mixture model from node
-            graph_node = self._morphable_graph.subgraphs[self.action_name].nodes[mp_name]
-            gmm = graph_node.motion_primitive.gmm
-            if self._constrained_gmm_builder is not None:       
-                gmm = self._constrained_gmm_builder.build(self.action_name, mp_name, constraints,\
-                                            prev_mp_name, prev_frames, prev_parameters)
-                                            
-            elif self.use_transition_model and prev_parameters is not None:
-                gmm = self._predict_gmm(mp_name, prev_mp_name, 
-                                                 prev_frames, 
-                                                 prev_parameters)
-
-            #  2) sample parameters based on constraints and make sure
-            #     the resulting motion is valid
+            # A) find best sample from model
             if self.activate_cluster_search:
                 #  find best sample using a directed search in a 
                 #  space partitioning data structure
                 parameters = self._search_for_best_sample(graph_node, constraints, prev_frames)
                 close_to_optimum = True
             else: 
-                # pick new random samples from the Gaussian Mixture Model
+                #  1) get gmm and modify it based on the current state and settings
+                # Get prior gaussian mixture model from node
+                
+                gmm = graph_node.motion_primitive.gmm
+                if self._constrained_gmm_builder is not None:
+                    gmm = self._constrained_gmm_builder.build(self.action_name, mp_name, constraints,\
+                                                self.prev_action_name, prev_mp_name, prev_frames, prev_parameters)
+                                                
+                elif self.use_transition_model and prev_parameters is not None:
+                    gmm = self._predict_gmm(mp_name, prev_mp_name, 
+                                                     prev_frames, 
+                                                     prev_parameters)
+    
+                #  2) sample parameters  from the Gaussian Mixture Model based on constraints and make sure
+                #     the resulting motion is valid                
                 parameters,close_to_optimum = self._sample_and_pick_best(graph_node,gmm,\
                                                                     constraints,prev_frames)
                 
-            #3) optimize sampled parameters as initial guess if the constraints were not reached
+            # B) optimize sampled parameters as initial guess if the constraints were not reached
             if  not self.use_transition_model and use_optimization and not close_to_optimum:
                 bounding_boxes = (graph_node.parameter_bb, graph_node.cartesian_bb)
                
