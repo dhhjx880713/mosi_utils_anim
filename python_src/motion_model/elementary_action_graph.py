@@ -19,7 +19,7 @@ from GPMixture import GPMixture
 from utilities.motion_editing import align_frames, convert_quaternion_to_euler
 from motion_primitive_graph import MotionPrimitiveGraph
 from zip_io import read_graph_data_from_zip
-from graph import GraphEdge
+from graph_edge import GraphEdge
 
 
         
@@ -206,6 +206,33 @@ class ElementaryActionGraph(object):
                 print "\t##########"       
                 
                 
+    def get_random_action_transition(self, motion, action_name):
+        """ Get random start state based on edge from previous elementary action if possible
+        """
+        next_state = ""
+        if motion.step_count > 0:
+            prev_action_name = motion.graph_walk[-1].action_name
+            prev_mp_name = motion.graph_walk[-1].motion_primitive_name
+      
+            if prev_action_name in self.subgraphs.keys() and \
+                   prev_mp_name in self.subgraphs[prev_action_name].nodes.keys():
+                                       
+               to_key = self.subgraphs[prev_action_name]\
+                               .nodes[prev_mp_name].generate_random_action_transition(action_name)
+               if to_key is not None:
+                   next_state = to_key.split("_")[1]
+                   return next_state
+               else:
+                   return None
+               print "generate start from transition of last action", prev_action_name, prev_mp_name, to_key
+           
+        # if there is no previous elementary action or no action transition
+        #  use transition to random start state
+        if next_state == "" or next_state not in self.subgraphs[action_name].nodes.keys():
+            print next_state,"not in", action_name#,prev_action_name,prev_mp_name
+            next_state = self.subgraphs[action_name].get_random_start_state()
+            print "generate random start",next_state
+        return next_state
 
 
 def print_morphable_graph_structure(morphable_graph):
@@ -344,6 +371,9 @@ def test_morphable_subgraph(elementary_action = "walk",load_transition_models = 
         if load_transition_models:
             prefix  += "from_transition_"
         export_graph_walk_to_bvh(skeleton, graph_walk, morphable_graph, True, apply_smoothing, prefix = prefix,out_dir="random_walks")
+        
+        
+
     
 def main():
     test_morphable_graph(False)
