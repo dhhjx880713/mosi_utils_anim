@@ -34,15 +34,18 @@ class MotionPrimitiveGenerator(object):
         self.prev_action_name = prev_action_name
         self._morphable_graph = self._action_constraints.parent_constraint.morphable_graph
         self.skeleton = self._action_constraints.get_skeleton()
+        self._constrained_gmm_config = self._algorithm_config["constrained_gmm_settings"]
         self.verbose = self._algorithm_config["verbose"]
-        self.precision = self._algorithm_config["constrained_gmm_settings"]["precision"]
-        self.sample_size = self._algorithm_config["constrained_gmm_settings"]["sample_size"]
+        self.precision = self._constrained_gmm_config["precision"]
+        self.sample_size = self._constrained_gmm_config["sample_size"]
+        self.max_bad_samples = self._constrained_gmm_config["max_bad_samples"]
         self.use_constraints = self._algorithm_config["use_constraints"]
         self.use_optimization = self._algorithm_config["use_optimization"]
         self.use_constrained_gmm = self._algorithm_config["use_constrained_gmm"]
         self.use_transition_model = self._algorithm_config["use_transition_model"]
         self.activate_cluster_search = self._algorithm_config["activate_cluster_search"]
         self.activate_parameter_check = self._algorithm_config["activate_parameter_check"]
+        
         
     def generate_motion_primitive_from_constraints(self, motion_primitive_constraints, prev_motion):
         """Calls get_optimal_parameters and backpojects the results.
@@ -270,7 +273,6 @@ class MotionPrimitiveGenerator(object):
        
         """
         reached_max_bad_samples = False
-        max_bad_samples = 200
         samples = []
         distances = []
         successes = []
@@ -278,9 +280,9 @@ class MotionPrimitiveGenerator(object):
         count = 0
         while count < self.sample_size:
     
-            if tmp_bad_samples>max_bad_samples:
+            if tmp_bad_samples>self.max_bad_samples:
                     reached_max_bad_samples = True
-                    break
+                   
                  
             s = np.ravel(gmm.sample())
             if self.activate_parameter_check:
@@ -312,8 +314,8 @@ class MotionPrimitiveGenerator(object):
                tmp_bad_samples+=1
            
         if reached_max_bad_samples:
-            raise RuntimeError("Failed to pick good sample from GMM")
-            
+            print "Warning: Failed to pick good sample from GMM"
+
         return samples, distances, successes
     
             
