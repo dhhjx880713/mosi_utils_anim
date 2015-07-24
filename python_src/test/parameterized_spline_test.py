@@ -7,7 +7,7 @@ Created on Fri Jul 10 18:36:00 2015
 import sys
 import numpy as np
 sys.path.append("..")
-from utilities.parameterized_spline import ParameterizedSpline
+from motion_generator.constraint.splines.parameterized_spline import ParameterizedSpline
 
 def compare_result(spline,input_arc_length):
     """

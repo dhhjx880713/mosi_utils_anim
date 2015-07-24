@@ -11,7 +11,7 @@ import numpy as np
 from math import sqrt
 from libtest import params, pytest_generate_tests
 sys.path.append("..")
-from utilities.motion_editing import convert_quaternion_to_euler
+from animation_data.motion_editing import convert_quaternion_to_euler
 
 
 param_convert_quaternion_to_euler = [
