@@ -49,7 +49,7 @@ class MotionGenerator(object):
         self._algorithm_config = algorithm_config
         morphable_model_directory = self._service_config["model_data"]
         transition_directory = self._service_config["transition_data"]
-
+        
         self.morphable_graph = ElementaryActionGraph(SKELETON_FILE, morphable_model_directory,
                                                 transition_directory,
                                                 self._algorithm_config["use_transition_model"])
@@ -80,7 +80,7 @@ class MotionGenerator(object):
         else:
             self._algorithm_config = algorithm_config
         
-    def generate_motion(self, mg_input, output_dir="output", output_filename="", export=True):
+    def generate_motion(self, mg_input, export=True):
         """
         Converts a json input file with a list of elementary actions and constraints 
         into a motion saved to a BVH file.
@@ -89,10 +89,6 @@ class MotionGenerator(object):
         ----------        
         * mg_input_filename : string or dict
             Dict or Path to json file that contains a list of elementary actions with constraints.
-        * output_dir : string
-            directory for the generated bvh file.
-        * output_filename : string
-           name of the file and its annotation
         * export : bool
             If set to True the generated motion is exported as BVH together 
             with a JSON-annotation file.
@@ -116,6 +112,7 @@ class MotionGenerator(object):
         
         # export the motion to a bvh file if export == True
         if export:
+            output_filename = self._service_config["output_filename"]
             if output_filename == "" and "session" in mg_input.keys():
                 output_filename = mg_input["session"]
 
@@ -125,8 +122,8 @@ class MotionGenerator(object):
                 time_stamp = unicode(datetime.now().strftime("%d%m%y_%H%M%S"))
                 prefix = output_filename + "_" + time_stamp
                 
-                write_to_logfile(output_dir + os.sep + LOG_FILE, prefix, self._algorithm_config)
-                self.export_synthesis_result(mg_input, output_dir, output_filename, motion, add_time_stamp=True)
+                write_to_logfile(self._service_config["output_dir"] + os.sep + LOG_FILE, prefix, self._algorithm_config)
+                self.export_synthesis_result(mg_input, self._service_config["output_dir"], output_filename, motion, add_time_stamp=True)
             else:
                 print "Error: failed to generate motion data"
 

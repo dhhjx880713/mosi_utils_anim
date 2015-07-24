@@ -42,9 +42,7 @@ def run_pipeline(service_config, algorithm_config_file):
     motion_generator = MotionGenerator(service_config, algorithm_config)
     print "finished construction from file in", time.clock() - start, "seconds"
 
-    motion = motion_generator.generate_motion(input_file, output_dir=service_config["output_dir"],
-                                                                  output_filename=service_config["output_filename"],
-                                                                  export=False)
+    motion = motion_generator.generate_motion(input_file, export=False)
 
     if motion.quat_frames is not None:  # checks for quat_frames in result_tuple
         mg_input = load_json_file(input_file)

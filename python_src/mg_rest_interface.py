@@ -96,9 +96,7 @@ class MGRestApplication(tornado.web.Application):
         self.use_file_output_mode = (service_config["output_mode"] =="file_output")
        
     def generate_motion(self, mg_input):
-        return self.motion_generator.generate_motion(mg_input, output_dir=self.service_config["output_dir"],
-                                                          output_filename=self.service_config["output_filename"],
-                                                          export=False)
+        return self.motion_generator.generate_motion(mg_input, export=False)
                                                           
         
 
