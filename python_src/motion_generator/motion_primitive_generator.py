@@ -7,12 +7,11 @@ Created on Wed Mar 10 17:15:22 2015
 
 import numpy as np
 from animation_data.evaluation_methods import check_sample_validity
-from constrain_gmm import manipulate_gmm
+from constrain_gmm import ConstraintError, ConstrainedGMMBuilder
 from optimize_motion_parameters import run_optimization
 from constraint.constraint_extraction import get_step_length_for_sample
 from constraint.constraint_check import obj_error_sum,evaluate_list_of_constraints,\
                             global_counter_dict
-from constrain_gmm import ConstraintError
 from utilities.exceptions import SynthesisError
 
 
@@ -46,6 +45,11 @@ class MotionPrimitiveGenerator(object):
         self.use_transition_model = self._algorithm_config["use_transition_model"]
         self.activate_cluster_search = self._algorithm_config["activate_cluster_search"]
         self.activate_parameter_check = self._algorithm_config["activate_parameter_check"]
+        if self.use_constrained_gmm:
+            self._constrained_gmm_builder = ConstrainedGMMBuilder(self._morphable_graph, self._algorithm_config, 
+                                                                    self._action_constraints.start_pose, self.skeleton)
+        else:
+            self._constrained_gmm_builder = None
         
         
     def generate_motion_primitive_from_constraints(self, motion_primitive_constraints, prev_motion):
@@ -129,14 +133,10 @@ class MotionPrimitiveGenerator(object):
             # Get prior gaussian mixture model from node
             graph_node = self._morphable_graph.subgraphs[self.action_name].nodes[mp_name]
             gmm = graph_node.motion_primitive.gmm
-            if self.use_constrained_gmm:
-                pipeline_parameters = self._morphable_graph,self.action_name, mp_name,constraints,\
-                                self._algorithm_config, self.prev_action_name, \
-                             prev_mp_name, prev_frames, prev_parameters, \
-                             self.skeleton, \
-                             self._action_constraints.start_pose,self.verbose
-  
-                gmm = manipulate_gmm(graph_node, pipeline_parameters)
+            if self._constrained_gmm_builder is not None:       
+                gmm = self._constrained_gmm_builder.build(self.action_name, mp_name, constraints,\
+                                            prev_mp_name, prev_frames, prev_parameters)
+                                            
             elif self.use_transition_model and prev_parameters is not None:
                 gmm = self._predict_gmm(mp_name, prev_mp_name, 
                                                  prev_frames, 
@@ -293,7 +293,7 @@ class MotionPrimitiveGenerator(object):
             if valid: 
     #            tmp_bad_samples = 0
                 samples.append(s)
-                min_distance,successes = evaluate_list_of_constraints(mp_node.motion_primitive,s,constraints,prev_frames,self.start_pose,self.skeleton,
+                min_distance,successes = evaluate_list_of_constraints(mp_node.motion_primitive,s,constraints,prev_frames,self._action_constraints.start_pose,self.skeleton,
                                                             precision=self.precision,verbose=self.verbose)
                 # check the root path for each sample, punish the curve walking
                 acr_length = get_step_length_for_sample(mp_node.motion_primitive, 
