@@ -4,12 +4,12 @@ Created on Fri Feb 13 10:09:45 2015
 
 @author: mamauer,FARUPP,erhe01
 """
-
+import time
 import numpy as np
 import sklearn.mixture as mixture
 from constraint.constraint_check import check_constraint, find_aligned_quaternion_frames
 from operator import itemgetter
-
+from utilities.gmm_math import mul
 
 class ConstraintError(Exception):
     def __init__(self,  bad_samples):
@@ -170,4 +170,159 @@ class ConstrainedGMM(mixture.GMM):
 
         good_samples = np.array(good_samples)
         self.fit(good_samples)
+
+
+
+    
+
+
+def constrain_primitive(mp_node,constraint, prev_frames,start_pose, skeleton,
+                        firstFrame=None, lastFrame=None,
+                        constrained_gmm_settings=None,verbose = False):
+    """constrains a primitive with a given constraint
+
+    Parameters
+    ----------
+    * mp_node : MotionPrimitiveNode
+    \t\b
+
+    * constraint : tuple
+    \tof the shape (joint, [pos_x, pos_y, pos_z], [rot_x, rot_y, rot_z])
+    * prev_frames : dict
+    \t Used to estimate transformation of new samples 
+    Returns
+    -------
+    * cgmm : ConstrainedGMM
+    \tThe gmm of the motion_primitive constrained by the constraint
+    """
+
+    cgmm = ConstrainedGMM(mp_node,mp_node.motion_primitive.gmm, constraint=None, skeleton=skeleton, settings=constrained_gmm_settings, verbose=verbose)
+    cgmm.set_constraint(constraint, prev_frames, start_pose,firstFrame=firstFrame,
+                        lastFrame=lastFrame)
+    return cgmm
+
+
+def multiple_constrain_primitive(mp_node, constraints,prev_frames, start_pose, skeleton,
+                                 constrained_gmm_settings=None, verbose = False):
+
+    """constrains a primitive with all given constraints and yields one gmm
+    Parameters
+    ----------
+    * mp_node : MotionPrimitiveNode
+    \t\b
+
+    * constraints : list of tuples
+    \tof the shape (joint, [pos_x, pos_y, pos_z], [rot_x, rot_y, rot_z])
+    * prev_frames : dict
+    \t Used to estimate transformation of new samples 
+
+    Returns
+    -------
+    * cgmm : ConstrainedGMM
+    \tThe gmm of the motion_primitive constrained by the constraints
+    """
+    if verbose:
+        print "generating gmm using",len(constraints),"constraints"
+        start = time.clock()
+    cgmms = []
+    
+
+    for i, constraint in enumerate(constraints):
+        print "\t checking constraint %d" % i
+        print constraint
+        #constraint = (c['joint'], c['position'], c['orientation'])
+        firstFrame = constraint['semanticAnnotation']['firstFrame']
+        lastFrame = constraint['semanticAnnotation']['lastFrame']
+        cgmms.append(constrain_primitive(mp_node, constraint, prev_frames, start_pose,
+                                         skeleton,
+                                         constrained_gmm_settings=constrained_gmm_settings,
+                                         firstFrame=firstFrame,
+                                         lastFrame=lastFrame,verbose=verbose))
+    cgmm = cgmms[0]
+    for k in xrange(1, len(cgmms)):
+        cgmm = mul(cgmm, cgmms[k])
+    if verbose:
+        print "generated gmm in ",time.clock()-start,"seconds"
+    return cgmm
+    
+
+
+def create_next_motion_distribution(prev_parameters, prev_primitive, mp_node,
+                                    gpm, prev_frames,start_pose,skeleton=None, constraints=None,
+                                    constrained_gmm_settings=None,verbose=False):
+    """ creates the motion following the first_motion fulfilling the given
+    constraints and multiplied by the output_gmm
+
+    Parameters
+    ----------
+    * first_motion : numpy.ndarray
+    \tThe s-vector of the first motion
+    * first_primitive : MotionPrimitive object
+    \tThe first primitive
+    * second_primitive : MotionPrimitive object
+    \tThe second primitive
+    * second_gmm : sklearn.mixture.gmm
+    * constraints : list of numpy.dicts
+    \tThe constraints for the second motion
+    * prev_frames : dict
+    \t Used to estimate transformation of new samples 
+    * gpm : GPMixture object
+    \tThe GPM from the transition model for the transition\
+    first_primitive_to_second_primitive
+
+    Returns
+    -------
+    * predict_gmm : sklearn.mixture.gmm
+    \tThe predicted and constrained new gmm multiplied with the output gmm
+
+    """
+
+    predict_gmm = gpm.predict(prev_parameters)
+    if constraints:
+        cgmm = multiple_constrain_primitive(mp_node,constraints,
+                                            prev_frames,start_pose, skeleton, constrained_gmm_settings,verbose=verbose)
+
+        constrained_predict_gmm = mul(predict_gmm, cgmm)
+        return mul(constrained_predict_gmm, mp_node.motion_primitive.gmm)
+    else:
+        return mul(predict_gmm, mp_node.motion_primitive.gmm)
+
+
+
+def manipulate_gmm(graph_node, pipeline_parameters):
+    """ Restrict the gmm to samples that roughly fit the constraints and 
+        multiply with a predicted GMM from the transition model.
+    """
+    
+    morphable_graph,action_name,mp_name,constraints,\
+    algorithm_config, prev_action_name, prev_mp_name, prev_frames, prev_parameters, \
+    skeleton, \
+    start_pose,verbose = pipeline_parameters
+     
+    # Perform manipulation based on settings and the current state.
+    if algorithm_config["use_transition_model"] and prev_parameters is not None:
+
+        transition_key = action_name +"_"+mp_name
+        
+        #only proceed the GMM prediction if the transition model was loaded
+        if morphable_graph.subgraphs[prev_action_name].nodes[prev_mp_name].has_transition_model(transition_key):
+            gpm = morphable_graph.subgraphs[prev_action_name].nodes[prev_mp_name].outgoing_edges[transition_key].transition_model 
+            prev_primitve = morphable_graph.subgraphs[prev_action_name].nodes[prev_mp_name].motion_primitive
+
+            gmm = create_next_motion_distribution(prev_parameters, prev_primitve,\
+                                                graph_node,\
+                                                gpm, prev_frames, start_pose,\
+                                                skeleton,\
+                                                constraints,
+                                                 algorithm_config["constrained_gmm_settings"],\
+                                                verbose=verbose)
+
+    else:
+        gmm = multiple_constrain_primitive(graph_node,\
+                                        constraints,\
+                                        prev_frames,start_pose, \
+                                        skeleton,\
+                                        algorithm_config["constrained_gmm_settings"],verbose=verbose)   
+    
+    return gmm
 
