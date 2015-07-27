@@ -70,28 +70,23 @@ class AlgorithmConfigurationBuilder(object):
         self.verbose = temp_algorithm_config["verbose"]
         return
         
-    def _generate_optimization_configuration(self, method="BFGS",max_iterations=100,quality_scale_factor=1,
-                                   error_scale_factor=0.1,tolerance=0.05,optimize_theta=False,kinematic_epsilon=5):
-        """ Generates optimization_settings dict that needs to be passed to the run_optimization mbvh_readerethod
+    def _generate_optimization_configuration(self):
+        """ Generates optimization_settings dict that needs to be passed to run_optimization in optimize_motion_parameters.py
         """
     
-        optimization_settings = {"method":method, 
-                 "max_iterations"  : max_iterations,
-                "quality_scale_factor":quality_scale_factor,
-                "error_scale_factor": error_scale_factor,
-                "optimize_theta":optimize_theta,
-                "tolerance":tolerance,
-                "kinematic_epsilon":kinematic_epsilon}
+        optimization_settings = {"method":self.optimization_method, 
+                 "max_iterations"  : self.max_optimization_iterations,
+                "quality_scale_factor":self.optimization_quality_scale_factor,
+                "error_scale_factor": self.optimization_error_scale_factor,
+                "tolerance": self.optimization_tolerance,
+                "kinematic_epsilon":self.optimization_kinematic_epsilon}
         return optimization_settings
         
 
 
     def build(self):
-        optimization_settings = self._generate_optimization_configuration(method=self.optimization_method,max_iterations=self.max_optimization_iterations,
-                                                              quality_scale_factor=self.optimization_quality_scale_factor ,
-                                                              error_scale_factor=self.optimization_error_scale_factor,
-                                                              tolerance=self.optimization_tolerance,
-                                                              kinematic_epsilon=self.optimization_kinematic_epsilon)
+        optimization_settings = self._generate_optimization_configuration()
+        
         constrained_gmm_settings ={"sample_size" : self.sample_size,
                                "precision" : {"pos" : self.constrained_gmm_pos_precision,"rot" : self.constrained_gmm_rot_precision,"smooth":self.constrained_gmm_smooth_precision},
                                "strict" : self.strict_constrained_gmm,
