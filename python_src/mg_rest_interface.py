@@ -17,6 +17,7 @@ import tornado.web
 import json
 import time
 from motion_generator.motion_generator import MotionGenerator
+from  motion_generator.algorithm_configuration import AlgorithmConfigurationBuilder
 from utilities.io_helper_functions import load_json_file, get_bvh_writer
 
 
@@ -128,10 +129,10 @@ class MorphableGraphsRESTfulInterface(object):
   
         #  Load configurtation files
         service_config = load_json_file(SERVICE_CONFIG_FILE)    
-        if os.path.isfile(algorithm_config_file):
-            algorithm_config = load_json_file(algorithm_config_file)
-        else:
-            algorithm_config = None
+         algorithm_config_builder = AlgorithmConfigurationBuilder()
+         if os.path.isfile(algorithm_config_file):
+             algorithm_config_builder.from_json(algorithm_config_file)
+         algorithm_config = algorithm_config_builder.build()
             
         #  Construct morphable graph from files
         self.application = MGRestApplication(service_config, algorithm_config, 

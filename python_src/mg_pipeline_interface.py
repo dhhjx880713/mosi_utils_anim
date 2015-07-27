@@ -15,8 +15,8 @@ os.chdir(dirname)
 import glob
 import time
 from motion_generator.motion_generator import MotionGenerator
+from motion_generator.algorithm_configuration import AlgorithmConfigurationBuilder
 from utilities.io_helper_functions import load_json_file
-
 ALGORITHM_CONFIG_FILE = "config" + os.sep + "algorithm.json"
 SERVICE_CONFIG_FILE = "config" + os.sep + "service.json"
 
@@ -32,10 +32,10 @@ def run_pipeline(service_config, algorithm_config_file):
 
     input_file = get_newest_file_from_input_directory(service_config)
     
+    algorithm_config_builder = AlgorithmConfigurationBuilder()
     if os.path.isfile(algorithm_config_file):
-        algorithm_config = load_json_file(algorithm_config_file)
-    else:
-        algorithm_config = None
+        algorithm_config_builder.from_json(algorithm_config_file)
+    algorithm_config = algorithm_config_builder.build()
 
     start = time.clock()
     motion_generator = MotionGenerator(service_config, algorithm_config)
