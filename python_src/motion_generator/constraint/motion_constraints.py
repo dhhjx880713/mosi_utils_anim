@@ -5,7 +5,7 @@ Created on Tue Jul 14 15:26:29 2015
 @author: erhe01
 """
 
-from elementary_action_constraints import ElementaryActionConstraints
+from elementary_action_constraints_builder import ElementaryActionConstraintsBuilder
 from coordinate_system_transform import transform_point_from_cad_to_opengl_cs
 
 class MotionConstraints(object):
@@ -36,8 +36,11 @@ class MotionConstraints(object):
         * action_constraints : ElementarActionConstraints
           Constraints for the next elementary action extracted from an input file.
         """
+        action_constraint_builder = ElementaryActionConstraintsBuilder()
+        action_constraint_builder.set_motion_constraints(self)
         if self.action_index < self.n_actions:
-            action_constraints = ElementaryActionConstraints(self.action_index, self)
+            action_constraint_builder.set_current_action_index(self.action_index)
+            action_constraints = action_constraint_builder.build()
             self.action_index+=1
             return action_constraints
         else:
@@ -73,5 +76,3 @@ class MotionConstraints(object):
                 keyframe_annotations.append({})
         return keyframe_annotations
   
-
-        
