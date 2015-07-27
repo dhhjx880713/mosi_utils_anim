@@ -25,7 +25,7 @@ from utilities.exceptions import SynthesisError, PathSearchError
 from motion_model import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END
 from motion_primitive_generator import MotionPrimitiveGenerator
 from algorithm_configuration import AlgorithmConfigurationBuilder
-from constraint.motion_primitive_constraints import MotionPrimitiveConstraints
+from constraint.motion_primitive_constraints_builder import MotionPrimitiveConstraintsBuilder
 from annotated_motion import AnnotatedMotion, GraphWalkEntry
 
 LOG_FILE = "log.txt"
@@ -212,13 +212,17 @@ class MotionGenerator(object):
              prev_action_name = None
              prev_mp_name = None
             
+        trajectory_following_settings = self._algorithm_config["trajectory_following_settings"]#  TODO move trajectory_following_settings to different key of the algorithm_config
+    
+        motion_primitive_constraints_builder = MotionPrimitiveConstraintsBuilder()
+        motion_primitive_constraints_builder.set_action_constraints(action_constraints)
+        motion_primitive_constraints_builder.set_trajectory_following_settings(trajectory_following_settings)
         motion_primitive_generator = MotionPrimitiveGenerator(action_constraints, self._algorithm_config, prev_action_name)
         start_frame = motion.n_frames    
         #skeleton = action_constraints.get_skeleton()
         morphable_subgraph = action_constraints.get_subgraph()
         
-        trajectory_following_settings = self._algorithm_config["trajectory_following_settings"]#  TODO move trajectory_following_settings to different key of the algorithm_config
-    
+   
         arc_length_of_end = morphable_subgraph.nodes[morphable_subgraph.get_random_end_state()].average_step_length
         
     #    number_of_standard_transitions = len([n for n in \
@@ -257,14 +261,12 @@ class MotionGenerator(object):
             print "transitioned to state",current_motion_primitive
             #######################################################################
             #Generate constraints from action_constraints
-            if motion.quat_frames is None:
-                last_pos = action_constraints.start_pose["position"]  
-            else:
-                last_pos = motion.quat_frames[-1][:3]
-    
+
             try: 
-                is_last_step = (current_motion_primitive_type == NODE_TYPE_END) 
-                motion_primitive_constraints = MotionPrimitiveConstraints(current_motion_primitive, action_constraints,travelled_arc_length,last_pos, trajectory_following_settings, motion.quat_frames, is_last_step)
+                is_last_step = (current_motion_primitive_type == NODE_TYPE_END)
+                motion_primitive_constraints_builder.set_status(current_motion_primitive, travelled_arc_length, motion.quat_frames, is_last_step)
+                motion_primitive_constraints = motion_primitive_constraints_builder.build()
+                #motion_primitive_constraints = MotionPrimitiveConstraints()
     
             except PathSearchError as e:
                     print "moved beyond end point using parameters",
@@ -320,10 +322,10 @@ class MotionGenerator(object):
 
     
     
-    def print_runtime_statistics(self, seconds):
-        minutes = int(seconds/60)
-        seconds = seconds % 60
-        total_time_string = "finished synthesis in "+ str(minutes) + " minutes "+ str(seconds)+ " seconds"
+    def print_runtime_statistics(self, time_in_seconds):
+        minutes = int(time_in_seconds/60)
+        seconds = time_in_seconds % 60
+        total_time_string = "finished synthesis in "+ str(minutes) + " minutes "+ str(time_in_seconds)+ " seconds"
         evaluations_string = "total number of objective evaluations "+ str(global_counter_dict["evaluations"])
         error_string = "average error for "+ str(len(global_counter_dict["motionPrimitveErrors"])) +" motion primitives: " + str(np.average(global_counter_dict["motionPrimitveErrors"],axis=0))
         print total_time_string
