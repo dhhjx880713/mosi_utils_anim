@@ -129,10 +129,10 @@ class MorphableGraphsRESTfulInterface(object):
   
         #  Load configurtation files
         service_config = load_json_file(SERVICE_CONFIG_FILE)    
-         algorithm_config_builder = AlgorithmConfigurationBuilder()
-         if os.path.isfile(algorithm_config_file):
-             algorithm_config_builder.from_json(algorithm_config_file)
-         algorithm_config = algorithm_config_builder.build()
+        algorithm_config_builder = AlgorithmConfigurationBuilder()
+        if os.path.isfile(algorithm_config_file):
+            algorithm_config_builder.from_json(algorithm_config_file)
+        algorithm_config = algorithm_config_builder.build()
             
         #  Construct morphable graph from files
         self.application = MGRestApplication(service_config, algorithm_config, 
