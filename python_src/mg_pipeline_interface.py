@@ -52,11 +52,11 @@ def run_pipeline(service_config, algorithm_config_file):
 
 
 def main():
-    """Loads the latest file added to the input directory specified in 
+    """Loads the latest file added to the input directory specified in
         service_config.json and runs the algorithm.
     """
     if os.path.isfile(SERVICE_CONFIG_FILE):
-        service_config = load_json_file(SERVICE_CONFIG_FILE) 
+        service_config = load_json_file(SERVICE_CONFIG_FILE)
 
         run_pipeline(service_config, ALGORITHM_CONFIG_FILE)
     else:

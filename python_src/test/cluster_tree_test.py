@@ -16,23 +16,20 @@ def distance_objective(x, test_value):
     return np.linalg.norm(np.asarray(x)-np.asarray(test_value))
 
 def run_cluster_hierarchy_construction(N, K, X, path):
- 
     cluster_tree = ClusterTree(N, K)
     cluster_tree.construct(X)
     cluster_tree.save_to_file(path)#.json
     
-def run_search(N, K, path, test_value):
+def run_search(N, K, path, test_value, error_margin=0.1):
     cluster_tree = ClusterTree(N, K)
     cluster_tree.load_from_file(TESTOUTPATH + os.sep + "tree")
-    error_margin = 0.1
-    n_candidates = 2
+    
+    n_candidates = 5
     distance, result = cluster_tree.find_best_example_exluding_search_candidates_knn(distance_objective, test_value, n_candidates)
     print test_value, result, distance
-    
     assert distance < error_margin
-    return
-    
-def test_construction_search():
+
+def test_construction_and_search():
     n_samples = 10000
     n_dim = 3
     N = 4
@@ -53,7 +50,7 @@ def test_construction_search():
     return
     
 if __name__ == "__main__":
-    test_construction_search()
+    test_construction_and_search()
 
     
     

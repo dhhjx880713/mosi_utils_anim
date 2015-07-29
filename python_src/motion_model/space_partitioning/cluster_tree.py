@@ -539,24 +539,20 @@ class ClusterTree(object):
         candidates = []
         candidates.append( (np.inf,self.root) )
         level = 0
-        while len(candidates) > 0:#level < self.K and 
-            #print "level",level,len(candidates)#,len(results)
+        while len(candidates) > 0:
             new_candidates = []
             for value,node in candidates:
                 if  node.leaf == False:
-                    good_candidates = node.find_best_cluster_canditates(obj,data,n_candidates=n_candidates)
+                    good_candidates = node.find_best_cluster_canditates(obj, data, n_candidates)
                     for c in good_candidates:# value , node tuples
                         heapq.heappush(new_candidates,c)
                 else:
-                    #heapq.heappush(results,(value,node.clusters[0].root.point) )
-                    kdtree_result = node.find_best_example(obj,data) 
+                    kdtree_result = node.find_best_example(obj, data) 
                     heapq.heappush(results,kdtree_result)
             
             candidates = new_candidates[:n_candidates]
-            #node = node.clusters[index]
             level += 1
-        #print level,node.leaf
-        #print len(results),results
+
         if len(results)>0:
             return heapq.heappop(results)    
         else:
@@ -595,17 +591,15 @@ class ClusterTree(object):
             candidates = [c for c in new_candidates[:n_candidates] if c[0] < boundary]
             if len(results)==0 and len(candidates) == 0:
                 candidates = new_candidates[:n_candidates]
-            #node = node.clusters[index]
             level += 1
-        #print level,node.leaf
-        #print len(results),results
+
         if len(results)>0:
             return heapq.heappop(results)    
         else:
             print "#################failed to find a good result"
             return np.inf, self.X[0]
         
-    def find_best_example_exluding_search_candidates_knn(self, obj, data, n_candidates=1, K=20):
+    def find_best_example_exluding_search_candidates_knn(self, obj, data, n_candidates=1, k=50):
         """ Traverses the cluster hierarchy iteratively by evaluating the means
             of the clusters at each level based on the objective function. 
             At the last level the method find_best_example for a KNN Interpolation is used.
@@ -616,27 +610,20 @@ class ClusterTree(object):
         candidates = []
         candidates.append( (np.inf,self.root) )
         level = 0
-        while len(candidates) > 0:#level < self.K and 
-            #print "level",level,len(candidates)#,len(results)
+        while len(candidates) > 0:
             new_candidates = []
             for value,node in candidates:
                 if  node.leaf == False:
-                    good_candidates = node.find_best_cluster_canditates(obj,data,n_candidates=n_candidates)
+                    good_candidates = node.find_best_cluster_canditates(obj, data, n_candidates=n_candidates)
                     for c in good_candidates:# value , node tuples
                         heapq.heappush(new_candidates,c)
                 else:
-                    #heapq.heappush(results,(value,node.clusters[0].root.point) )
-                    #kdtree_result = node.find_best_example(obj,data)
-  
-                    kdtree_result = node.find_best_example_knn(obj, data, k=50)
-             
+                    kdtree_result = node.find_best_example_knn(obj, data, k)
                     heapq.heappush(results,kdtree_result)
             
             candidates = new_candidates[:n_candidates]
-            #node = node.clusters[index]
             level += 1
-        #print level,node.leaf
-        #print len(results),results
+
         if len(results)>0:
             return heapq.heappop(results)    
         else:
