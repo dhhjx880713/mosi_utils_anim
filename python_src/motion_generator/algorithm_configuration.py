@@ -17,7 +17,8 @@ class AlgorithmConfigurationBuilder(object):
         self.use_constrained_gmm = False
         self.activate_parameter_check = False
         self.apply_smoothing = True
-        self.sample_size = 100
+        self.smoothing_window = 20
+        self.n_random_samples = 100
         self.constrained_gmm_pos_precision = 5
         self.constrained_gmm_rot_precision = 0.15
         self.constrained_gmm_smooth_precision = 5
@@ -48,7 +49,8 @@ class AlgorithmConfigurationBuilder(object):
         self.use_constrained_gmm = temp_algorithm_config["use_constrained_gmm"]
         self.activate_parameter_check = temp_algorithm_config["activate_parameter_check"]
         self.apply_smoothing = temp_algorithm_config["apply_smoothing"]
-        self.sample_size = temp_algorithm_config["constrained_gmm_settings"]["sample_size"]
+        self.smoothing_window = temp_algorithm_config["smoothing_window"]
+        self.n_random_samples = temp_algorithm_config["n_random_samples"]
         self.constrained_gmm_pos_precision = temp_algorithm_config["constrained_gmm_settings"]["precision"]["pos"]
         self.constrained_gmm_rot_precision = temp_algorithm_config["constrained_gmm_settings"]["precision"]["rot"]
         self.constrained_gmm_smooth_precision = temp_algorithm_config["constrained_gmm_settings"]["precision"]["smooth"]
@@ -87,8 +89,7 @@ class AlgorithmConfigurationBuilder(object):
     def build(self):
         optimization_settings = self._generate_optimization_configuration()
         
-        constrained_gmm_settings ={"sample_size" : self.sample_size,
-                               "precision" : {"pos" : self.constrained_gmm_pos_precision,"rot" : self.constrained_gmm_rot_precision,"smooth":self.constrained_gmm_smooth_precision},
+        constrained_gmm_settings ={"precision" : {"pos" : self.constrained_gmm_pos_precision,"rot" : self.constrained_gmm_rot_precision,"smooth":self.constrained_gmm_smooth_precision},
                                "strict" : self.strict_constrained_gmm,
                                "max_bad_samples":self.constrained_gmm_max_bad_samples}
         trajectory_following_settings = {"method" : self.trajectory_extraction_method,
@@ -102,8 +103,10 @@ class AlgorithmConfigurationBuilder(object):
                                    "use_optimization": self.use_optimization,
                                    "use_constrained_gmm" : self.use_constrained_gmm,
                                    "use_transition_model": self.use_transition_model,
+                                   "n_random_samples" : self.n_random_samples,
                                    "activate_parameter_check": self.activate_parameter_check,
                                    "apply_smoothing": self.apply_smoothing,
+                                   "smoothing_window": self.smoothing_window,
                                    "optimization_settings": optimization_settings,
                                    "constrained_gmm_settings": constrained_gmm_settings,
                                    "trajectory_following_settings" : trajectory_following_settings,

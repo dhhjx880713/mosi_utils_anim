@@ -48,8 +48,8 @@ class ConstrainedGMM(mixture.GMM):
         self.converged_ = gmm.converged_
         self.covars_ = gmm.covars_
         self.samples_ = None
-   
-        self.sample_size = algorithm_config["constrained_gmm_settings"]["sample_size"]
+    
+        self.n_random_samples = self._algorithm_config["n_random_samples"]
         self.max_bad_samples = algorithm_config["constrained_gmm_settings"]["max_bad_samples"]
         self.strict = algorithm_config["constrained_gmm_settings"]["strict"]
         self.precision = algorithm_config["constrained_gmm_settings"]["precision"]
@@ -106,7 +106,7 @@ class ConstrainedGMM(mixture.GMM):
         good_distances = []
         bad_samples = []
         bad_distances = []
-        while len(good_samples) < self.sample_size:
+        while len(good_samples) < self.n_random_samples:
             s,distance,success = self.sample_and_check_constraint(constraint, prev_frames, firstFrame, lastFrame)
             if success:               
                 good_samples.append(s)
@@ -121,12 +121,12 @@ class ConstrainedGMM(mixture.GMM):
              
             if tmp_bad_samples>self.max_bad_samples:
                 if not self.strict:
-                    print "could not reach constraints use",self.sample_size,"best samples instead"
+                    print "could not reach constraints use",self.n_random_samples,"best samples instead"
                     #merge good and bad samples
                     merged_samples = good_samples + bad_samples 
                     merged_distances = good_distances + bad_distances
                     #sample missing samples if necessary
-                    while len(merged_samples) < self.sample_size:
+                    while len(merged_samples) < self.n_random_samples:
                          s,distance,success = self.sample_and_check_constraint(constraint, prev_frames, firstFrame, lastFrame)
                          merged_samples.append(s)
                          merged_distances.append(distance)
@@ -134,7 +134,7 @@ class ConstrainedGMM(mixture.GMM):
                     sorted_samples = zip(merged_samples,merged_distances)
                     sorted_samples.sort(key=itemgetter(1))
                     #print type(sorted_samples)
-                    good_samples = zip(*sorted_samples)[0][:self.sample_size]
+                    good_samples = zip(*sorted_samples)[0][:self.n_random_samples]
                 else:
                     #stop the conversion and output the motion up to the previous step
                     raise ConstraintError(bad_samples)

@@ -34,9 +34,9 @@ class MotionPrimitiveGenerator(object):
         self.skeleton = self._action_constraints.get_skeleton()
         self._constrained_gmm_config = self._algorithm_config["constrained_gmm_settings"]
         self._optimization_settings = self._algorithm_config["optimization_settings"]
+        self.n_random_samples = self._algorithm_config["n_random_samples"]
         self.verbose = self._algorithm_config["verbose"]
-        self.precision = self._constrained_gmm_config["precision"]
-        self.sample_size = self._constrained_gmm_config["sample_size"]
+        self.precision = self._constrained_gmm_config["precision"]        
         self.max_bad_samples = self._constrained_gmm_config["max_bad_samples"]
         self.use_constraints = self._algorithm_config["use_constraints"]
         self.use_optimization = self._algorithm_config["use_optimization"]
@@ -276,7 +276,7 @@ class MotionPrimitiveGenerator(object):
         successes = []
         tmp_bad_samples = 0
         count = 0
-        while count < self.sample_size:
+        while count < self.n_random_samples:
     
             if tmp_bad_samples>self.max_bad_samples:
                     reached_max_bad_samples = True

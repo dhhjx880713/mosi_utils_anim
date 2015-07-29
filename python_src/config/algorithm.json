@@ -20,7 +20,6 @@
     }, 
     "activate_cluster_search": true, 
     "constrained_gmm_settings": {
-        "sample_size": 300, 
         "precision": {
             "smooth": 5, 
             "rot": 0.15, 
@@ -29,6 +28,7 @@
         "max_bad_samples": 1000, 
         "strict": false
     }, 
+    "n_random_samples": 300,
     "use_transition_model": false, 
     "use_optimization": false, 
     "activate_parameter_check": false, 
