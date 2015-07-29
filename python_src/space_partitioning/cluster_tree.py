@@ -59,7 +59,7 @@ class ClusterTree(object):
         self.dim = data_shape[1]
         root_id = node_desc["root"]
         node_builder = ClusterTreeNodeBuilder(self.N, self.K, self.dim)
-        self.root = node_builder.construct_from_data(self.X)
+        self.root = node_builder.construct_from_node_desc_list(root_id,node_desc,self.X)
 
 
     def save_to_file_pickle(self,file_name):
