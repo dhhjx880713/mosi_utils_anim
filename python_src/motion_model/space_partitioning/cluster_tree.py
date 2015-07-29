@@ -5,7 +5,6 @@ Created on Mon Jun 15 14:58:08 2015
 @author: erhe01 
 """
 import numpy as np
-import time
 import heapq
 from sklearn import cluster
 import uuid
@@ -17,6 +16,7 @@ DEFAULT_N_SUBDIVISIONS_PER_LEVEL = 4
 DEFAULT_N_LEVELS = 4
 MIN_N_SUBDIVISIONS_PER_LEVEL = 2
 MIN_N_LEVELS = 1
+MAX_DIMENSIONS = 10
 
 def discrete_sample(values,probabilities):
     """ Returns a sample from a discrete probability distribution
@@ -114,7 +114,7 @@ class ClusterTreeNode(object):
     * dim: Integer
         Number of dimensions of the data.
     """
-    def __init__(self,N,K,dim):
+    def __init__(self, N, K, dim):
         self.id = str(uuid.uuid1())
         self.clusters = []
         self.N = N
@@ -233,8 +233,7 @@ class ClusterTreeNode(object):
 #            self.means.append(np.mean(X[indices],axis=0))
             
 #            self. = cluster_data
-            
-                
+
 #        return labels, clusters
                 
     def find_best_example_knn(self, obj, data, k=50):
@@ -259,18 +258,8 @@ class ClusterTreeNode(object):
         if self.leaf:
             result_queue = []
             for i in xrange(len(self.clusters)):
-
-#                try:
-                result = self.clusters[i].find_best_example(obj,data)
-                #print result
+                result = self.clusters[i].find_best_example(obj, data)
                 heapq.heappush(result_queue,result)
-                    
-#                except ValueError as e:
-#                 
-#                    print e.message,len(self.clusters[i].data)
-#                    return (10000,kdtree.root.point)#np.inf
-#                    return [ obj(node.point,data),node.point#node.point
-                 
             return heapq.heappop(result_queue)
         else:
             best_value = np.inf
@@ -459,9 +448,10 @@ class ClusterTree(object):
         Maximum levels in the tree. At least 1.
     
     """
-    def __init__(self, N=DEFAULT_N_SUBDIVISIONS_PER_LEVEL, K=DEFAULT_N_LEVELS):
+    def __init__(self, N=DEFAULT_N_SUBDIVISIONS_PER_LEVEL, K=DEFAULT_N_LEVELS, dim=MAX_DIMENSIONS):
         self.N = max(N, MIN_N_SUBDIVISIONS_PER_LEVEL)
         self.K = max(K, MIN_N_LEVELS)
+        self.dim = dim
         self.root = None
         self.X = None
   
@@ -508,7 +498,7 @@ class ClusterTree(object):
       
     def construct(self,X):
         self.X = X
-        self.dim = self.X.shape[1]
+        self.dim = min(self.X.shape[1], self.dim)
         self.root = ClusterTreeNode(self.N, self.K, self.dim)
         self.root.create_subdivision(self.X)
 
@@ -525,7 +515,7 @@ class ClusterTree(object):
             index, value = node.find_best_cluster(obj,data,use_mean=True)
             node = node.clusters[index]
             level += 1
-        print level,node.leaf
+        print level, node.leaf
         return node.find_best_example(obj,data)
           
     def find_best_example_exluding_search_candidates(self, obj, data, n_candidates=1):
@@ -553,7 +543,7 @@ class ClusterTree(object):
             candidates = new_candidates[:n_candidates]
             level += 1
 
-        if len(results)>0:
+        if len(results) > 0:
             return heapq.heappop(results)    
         else:
             print "#################failed to find a result"
@@ -589,11 +579,11 @@ class ClusterTree(object):
 
                                    
             candidates = [c for c in new_candidates[:n_candidates] if c[0] < boundary]
-            if len(results)==0 and len(candidates) == 0:
+            if len(results) == 0 and len(candidates) == 0:
                 candidates = new_candidates[:n_candidates]
             level += 1
 
-        if len(results)>0:
+        if len(results) > 0:
             return heapq.heappop(results)    
         else:
             print "#################failed to find a good result"
