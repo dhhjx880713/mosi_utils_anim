@@ -4,12 +4,12 @@ Created on Thu Jul 23 19:24:10 2015
 
 @author: erhe01
 """
+import os
 import random
 import numpy as np
 from . import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END
 from motion_primitive import MotionPrimitive
 from animation_data.motion_editing import extract_root_positions_from_frames, get_arc_length_from_points
-from math import sqrt
 from space_partitioning.cluster_tree import ClusterTree
 
 class MotionPrimitiveNode(object):
@@ -85,8 +85,10 @@ class MotionPrimitiveNode(object):
         else:
             print "construct space partitioning data structure"
             n_samples = 10000
+            N=4
+            K=4
             X = np.array([self.sample_parameters() for i in xrange(n_samples)])
-            self.cluster_tree = ClusterTree()
+            self.cluster_tree = ClusterTree(N, K)
             self.cluster_tree.construct(X)
             #self.cluster_tree.save_to_file(cluster_file_name+"tree")
             self.cluster_tree.save_to_file_pickle(cluster_file_name+"cluster_tree.pck")

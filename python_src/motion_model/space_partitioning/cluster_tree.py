@@ -13,7 +13,10 @@ import json
 import cPickle as pickle
 from kdtree import KDTree
 
-
+DEFAULT_N_SUBDIVISIONS_PER_LEVEL = 4
+DEFAULT_N_LEVELS = 4
+MIN_N_SUBDIVISIONS_PER_LEVEL = 2
+MIN_N_LEVELS = 1
 
 def discrete_sample(values,probabilities):
     """ Returns a sample from a discrete probability distribution
@@ -456,9 +459,9 @@ class ClusterTree(object):
         Maximum levels in the tree. At least 1.
     
     """
-    def __init__(self, N=4,K=4):
-        self.N = max(N,2)
-        self.K = max(K,1)
+    def __init__(self, N=DEFAULT_N_SUBDIVISIONS_PER_LEVEL, K=DEFAULT_N_LEVELS):
+        self.N = max(N, MIN_N_SUBDIVISIONS_PER_LEVEL)
+        self.K = max(K, MIN_N_LEVELS)
         self.root = None
         self.X = None
   
@@ -469,7 +472,7 @@ class ClusterTree(object):
         fp = open(file_name+".json","wb")
         node_desc_list = self.root.get_node_desc_list()
         node_desc_list["data_shape"] = self.X.shape
-        json.dump(node_desc_list,fp,indent=4)
+        json.dump(node_desc_list, fp, indent=4)
         fp.close()
         ## save data to file
         self.X.tofile(file_name+".data")
@@ -484,8 +487,8 @@ class ClusterTree(object):
         self.X = np.fromfile(file_name+".data").reshape(data_shape) #load
         self.dim = data_shape[1]
         root_id = node_desc_dict["root"]
-        self.root = ClusterTreeNode(self.N,self.K,self.dim)
-        self.root.construct_from_node_desc_list(root_id,node_desc_dict,self.X)
+        self.root = ClusterTreeNode(self.N, self.K, self.dim)
+        self.root.construct_from_node_desc_list(root_id, node_desc_dict, self.X)
         
     def save_to_file_pickle(self,file_name):
         pickleFileName = file_name
@@ -506,7 +509,7 @@ class ClusterTree(object):
     def construct(self,X):
         self.X = X
         self.dim = self.X.shape[1]
-        self.root = ClusterTreeNode(self.N,self.K,self.dim)
+        self.root = ClusterTreeNode(self.N, self.K, self.dim)
         self.root.create_subdivision(self.X)
 
           
