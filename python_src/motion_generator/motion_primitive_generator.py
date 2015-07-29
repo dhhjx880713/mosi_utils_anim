@@ -131,7 +131,7 @@ class MotionPrimitiveGenerator(object):
             if self.activate_cluster_search:
                 #  find best sample using a directed search in a 
                 #  space partitioning data structure
-                parameters = self._search_for_best_sample(graph_node, constraints, prev_frames)
+                parameters = self._search_for_best_sample(graph_node, constraints, prev_frames, self._algorithm_config["n_cluster_search_candidates"])
                 close_to_optimum = True
             else: 
                 #  1) get gmm and modify it based on the current state and settings
@@ -172,12 +172,12 @@ class MotionPrimitiveGenerator(object):
         return parameters
             
             
-    def _search_for_best_sample(self, graph_node,constraints,prev_frames):
+    def _search_for_best_sample(self, graph_node, constraints, prev_frames, n_candidates=2):
     
         """ Directed search in precomputed hierarchical space partitioning data structure
         """
         data = graph_node.motion_primitive, constraints, prev_frames,self._action_constraints.start_pose, self.skeleton, self.precision
-        distance, s = graph_node.search_best_sample(obj_error_sum,data)
+        distance, s = graph_node.search_best_sample(obj_error_sum, data, n_candidates)
         print "found best sample with distance:",distance
         global_counter_dict["motionPrimitveErrors"].append(distance)
         return np.array(s)

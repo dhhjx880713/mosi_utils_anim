@@ -18,7 +18,8 @@
         "method": "Nelder-Mead", 
         "max_iterations": 150
     }, 
-    "activate_cluster_search": true, 
+    "activate_cluster_search": true,
+    "n_cluster_search_candidates": 2,
     "constrained_gmm_settings": {
         "precision": {
             "smooth": 5, 

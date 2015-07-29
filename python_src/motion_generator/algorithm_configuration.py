@@ -36,6 +36,7 @@ class AlgorithmConfigurationBuilder(object):
         self.trajectory_use_dir_vector_constraints = True
         self.trajectory_use_frame_constraints = True
         self.activate_cluster_search = True
+        self.n_cluster_search_candidates = 2
         self.debug_max_step = -1
         self.verbose = False
         self.build()
@@ -68,6 +69,7 @@ class AlgorithmConfigurationBuilder(object):
         self.trajectory_use_dir_vector_constraints = temp_algorithm_config["trajectory_following_settings"]["use_dir_vector_constraints"]
         self.trajectory_use_frame_constraints = temp_algorithm_config["trajectory_following_settings"]["use_frame_constraints"]
         self.activate_cluster_search = temp_algorithm_config["activate_cluster_search"]
+        self.n_cluster_search_candidates = temp_algorithm_config["n_cluster_search_candidates"]
         self.debug_max_step = temp_algorithm_config["debug_max_step"]
         self.verbose = temp_algorithm_config["verbose"]
         return
@@ -111,6 +113,7 @@ class AlgorithmConfigurationBuilder(object):
                                    "constrained_gmm_settings": constrained_gmm_settings,
                                    "trajectory_following_settings" : trajectory_following_settings,
                                    "activate_cluster_search" : self.activate_cluster_search,
+                                   "n_cluster_search_candidates" : self.n_cluster_search_candidates,
                                    "verbose": self.verbose, 
                                    "debug_max_step": self.debug_max_step
                                     }

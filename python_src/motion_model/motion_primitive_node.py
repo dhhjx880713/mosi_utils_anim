@@ -93,7 +93,7 @@ class MotionPrimitiveNode(object):
             #self.cluster_tree.save_to_file(cluster_file_name+"tree")
             self.cluster_tree.save_to_file_pickle(cluster_file_name+"cluster_tree.pck")
                 
-    def search_best_sample(self,obj,data,n_candidates=2):
+    def search_best_sample(self, obj, data, n_candidates=2):
         """ Searches the best sample from a space partition data structure.
         Parameters
         ----------
@@ -110,7 +110,7 @@ class MotionPrimitiveNode(object):
          * parameters: numpy.ndarray
          \tLow dimensional motion parameters.
         """
-        return self.cluster_tree.find_best_example_exluding_search_candidates_knn(obj, data, n_candidates)#_boundary
+        return self.cluster_tree.find_best_example_exluding_search_candidates_knn(obj, data, n_candidates)#_boundary_knn
         
     def sample_parameters(self):
          """ Samples a low dimensional vector from statistical model.
