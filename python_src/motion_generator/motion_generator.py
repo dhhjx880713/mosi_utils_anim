@@ -333,7 +333,7 @@ class MotionGenerator(object):
     def print_runtime_statistics(self, time_in_seconds):
         minutes = int(time_in_seconds/60)
         seconds = time_in_seconds % 60
-        total_time_string = "finished synthesis in "+ str(minutes) + " minutes "+ str(time_in_seconds)+ " seconds"
+        total_time_string = "finished synthesis in "+ str(minutes) + " minutes "+ str(seconds)+ " seconds"
         evaluations_string = "total number of objective evaluations "+ str(global_counter_dict["evaluations"])
         error_string = "average error for "+ str(len(global_counter_dict["motionPrimitveErrors"])) +" motion primitives: " + str(np.average(global_counter_dict["motionPrimitveErrors"],axis=0))
         print total_time_string
