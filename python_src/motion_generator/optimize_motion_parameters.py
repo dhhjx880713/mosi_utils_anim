@@ -112,28 +112,13 @@ def run_optimization(motion_primitive,gmm,constraints,initial_guess, skeleton,
           optimal low dimensional motion parameter vector
     """
 
-
-#    optimize_theta = optimization_settings["optimize_theta"]    
-#    kinematic_epsilon = optimization_settings["kinematic_epsilon"] #0.0# 0.25
-#    
-#    if start_pose is not None:
-#        start_transformation = create_transformation(start_pose["orientation"],start_pose["position"])
-#    else:
-#        start_transformation = np.eye(4)
-#    
-    if initial_guess == None:
-        s0 = np.ravel(gmm.sample())#sample initial guess
+    if initial_guess is None:
+        s0 = np.ravel(gmm.sample())
     else:
         s0 = initial_guess
 
-    # convert prev_frames to euler frames
-#    if prev_frames is not None:
-#        prev_frames = convert_quaternion_to_euler(prev_frames)
     data = motion_primitive, constraints, prev_frames,start_pose, skeleton,{"pos":1,"rot":1,"smooth":1}, \
            optimization_settings["error_scale_factor"], optimization_settings["quality_scale_factor"]     #precision
-#    data = motion_primitive, gmm, constraints, quality_scale_factor, \
-#          error_scale_factor,  bvh_reader,prev_frames, node_name_map,bounding_boxes, \
-#          start_transformation,kinematic_epsilon
 
     options = {'maxiter': optimization_settings["max_iterations"], 'disp' : verbose}
     
@@ -142,7 +127,7 @@ def run_optimization(motion_primitive,gmm,constraints,initial_guess, skeleton,
         print "Start optimization using", optimization_settings["method"],optimization_settings["max_iterations"]
 #    jac = error_function_jac(s0, data)
     try:
-        result = minimize(error_func,#
+        result = minimize(error_func,
                           s0,
                           args = (data,),
                           method=optimization_settings["method"], 

@@ -5,7 +5,9 @@ Created on Tue Jul 14 18:39:41 2015
 @author: erhe01
 """
 from copy import copy
-from animation_data.motion_editing import fast_quat_frames_alignment, transform_quaternion_frames
+from animation_data.motion_editing import DEFAULT_SMOOTHING_WINDOW_SIZE,\
+                                          fast_quat_frames_alignment,\
+                                          transform_quaternion_frames
 
 class GraphWalkEntry(object):
     def __init__(self, action_name, motion_primitive_name, parameters, arc_length):
@@ -16,6 +18,12 @@ class GraphWalkEntry(object):
 
 
 class AnnotatedMotion(object):
+    """
+    Attributes
+    ---------
+    * start_pose: dict
+        \tA dictionary contains staring position and orientation
+    """
     def __init__(self):
         self.action_list = {}
         self.frame_annotation = {}
@@ -24,17 +32,17 @@ class AnnotatedMotion(object):
         self.quat_frames = None
         self.step_count = 0
         self.n_frames = 0
+        self.apply_smoothing = True
+        self.smoothing_window = DEFAULT_SMOOTHING_WINDOW_SIZE
+        self.start_pose = None
 
-
-    def append_quat_frames(self, new_frames, start_pose, key_frame_annotations, apply_smoothing=True):
+    def append_quat_frames(self, new_frames):
         """Align quaternion frames
            
         Parameters
         ----------
         * new_frames: list
         \tA list of quaternion frames
-        * start_pose: dict
-        \tA dictionary contains staring position and orientation
         
         Returns:
         --------
@@ -44,11 +52,14 @@ class AnnotatedMotion(object):
             
         """
         if self.quat_frames is not None:
-            self.quat_frames = fast_quat_frames_alignment(self.quat_frames, new_frames, apply_smoothing)                                              
-        elif start_pose is not None:
+            self.quat_frames = fast_quat_frames_alignment(self.quat_frames,
+                                                          new_frames,
+                                                          self.apply_smoothing,
+                                                          self.smoothing_window)                                              
+        elif self.start_pose is not None:
             self.quat_frames = transform_quaternion_frames(new_frames,
-                                                      start_pose["orientation"],
-                                                      start_pose["position"])
+                                                      self.start_pose["orientation"],
+                                                      self.start_pose["position"])
         else:
             self.quat_frames = new_frames
                             

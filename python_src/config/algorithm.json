@@ -1,5 +1,6 @@
 {
-    "apply_smoothing": true, 
+    "apply_smoothing" : true,
+    "smoothing_window" : 20,
     "trajectory_following_settings": {
         "use_dir_vector_constraints": true, 
         "step_length_factor": 0.8, 

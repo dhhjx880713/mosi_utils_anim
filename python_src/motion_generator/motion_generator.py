@@ -154,6 +154,9 @@ class MotionGenerator(object):
                 print key,self._algorithm_config[key]
     
         motion = AnnotatedMotion()
+        motion.apply_smoothing = self._algorithm_config["apply_smoothing"]
+        motion.smoothing_window = self._algorithm_config["smoothing_window"]
+        motion.start_pose = motion_constraints.start_pose
         action_constraints = motion_constraints.get_next_elementary_action_constraints()
         while action_constraints is not None:
        
@@ -218,7 +221,8 @@ class MotionGenerator(object):
         motion_primitive_constraints_builder.set_action_constraints(action_constraints)
         motion_primitive_constraints_builder.set_trajectory_following_settings(trajectory_following_settings)
         motion_primitive_generator = MotionPrimitiveGenerator(action_constraints, self._algorithm_config, prev_action_name)
-        start_frame = motion.n_frames    
+        start_frame = motion.n_frames
+        #start_step = motion.step_count
         #skeleton = action_constraints.get_skeleton()
         morphable_subgraph = action_constraints.get_subgraph()
         
@@ -281,7 +285,7 @@ class MotionGenerator(object):
             #update annotated motion
             canonical_keyframe_labels = morphable_subgraph.get_canonical_keyframe_labels(current_motion_primitive)
             start_frame = motion.n_frames
-            motion.append_quat_frames(tmp_quat_frames, action_constraints.start_pose, self._algorithm_config["apply_smoothing"])
+            motion.append_quat_frames(tmp_quat_frames)
             last_frame = motion.n_frames-1
             motion.update_action_list(motion_primitive_constraints.constraints, action_constraints.keyframe_annotations, canonical_keyframe_labels, start_frame, last_frame)
             
@@ -307,6 +311,9 @@ class MotionGenerator(object):
         
         print "reached end of elementary action", action_constraints.action_name
     
+        print "generated initial guess"
+#        if self._algorithm_config["active_global_optimization"]:
+#            optimize_globally(motion.graph_walk, start_step, action_constraints)
     #    if trajectory is not None:
     #        print "info", trajectory.full_arc_length, \
     #               travelled_arc_length,arc_length_of_end, \
@@ -318,7 +325,8 @@ class MotionGenerator(object):
         return True
     
     
-
+#    def optimize_globally(self, graph_walk, start_step, action_constraints):
+#         return
 
     
     
