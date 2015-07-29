@@ -642,32 +642,3 @@ class ClusterTree(object):
         else:
             print "#################failed to find a result"
             return np.inf, self.X[self.root.indices[0]]
-
-def test_cluster_hierarchy_construction(X):
-    N = 4
-    K = 4#0
-    cluster_tree = ClusterTree(N, K)
-    cluster_tree.construct(X)
-    cluster_tree.save_to_file("tree")#.json
-    cluster_tree2 = ClusterTree(N, K)
-    cluster_tree2.load_from_file("tree")
-    return
-    
-def main():
-    n_samples = 10000#0
-    n_dim = 30
-
-    X = np.random.random( (n_samples,n_dim) )
-    print X.shape
-    start = time.clock()
-    #kdtree = KDTree()
-    #test_kd_tree(X)
-    test_cluster_hierarchy_construction(X)
-    print "finished construction in ",time.clock()-start, "seconds"
-    return
-    
-if __name__ == "__main__":
-    main()
-
-    
-    
