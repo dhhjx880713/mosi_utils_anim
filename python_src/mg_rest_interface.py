@@ -54,7 +54,6 @@ class MGInputHandler(tornado.web.RequestHandler):
                 self._handle_result(mg_input, motion, self.application.use_file_output_mode, self.application.service_config)
             else:
                 print mg_input
-                self.application.motion_generator.morphable_graph.print_information()
                 error_string = "Error: Did not find expected keys in the input data."
                 self.write(error_string)
    
@@ -78,9 +77,37 @@ class MGInputHandler(tornado.web.RequestHandler):
             error_string = "Error: Failed to generate motion data."
             print error_string
             self.write(error_string)
+
+
+class MGConfiguratiohHandler(tornado.web.RequestHandler):
+    """Handles HTTP POST Requests to a registered server url.
+        Sets the configuration of the morphable graphs algorithm 
+        if an input file is detected in the request body.
+    """
+    def __init__(self, application, request, **kwargs ):
+        tornado.web.RequestHandler.__init__(self,application, request, **kwargs)
+        self.application = application
         
+    def get(self):
+        error_string = "GET request not implemented. Use POST instead."
+        print error_string
+        self.write(error_string)
         
-        
+    def post(self):
+        #  try to decode message body
+        try:
+            algorithm_config = json.loads(self.request.body)
+        except:
+            error_string = "Error: Could not decode request body as JSON."
+            self.write(error_string)
+            return
+        if "use_constraints" in algorithm_config.keys():
+            self.application.set_algorithm_config(algorithm_config)
+        else:
+            print algorithm_config
+            error_string = "Error: Did not find expected keys in the input data."
+            self.write(error_string)
+
 
 class MGRestApplication(tornado.web.Application):
     '''Extends the Application class with a MorphableGraph instance and options.
@@ -98,7 +125,9 @@ class MGRestApplication(tornado.web.Application):
        
     def generate_motion(self, mg_input):
         return self.motion_generator.generate_motion(mg_input, export=False)
-                                                          
+
+    def set_algorithm_config(self, algorithm_config):
+        self.motion_generator.set_algorithm_config(algorithm_config)
         
 
 
@@ -136,7 +165,8 @@ class MorphableGraphsRESTfulInterface(object):
             
         #  Construct morphable graph from files
         self.application = MGRestApplication(service_config, algorithm_config, 
-                                             [(r"/runmorphablegraphs",MGInputHandler)
+                                             [(r"/runmorphablegraphs",MGInputHandler),
+                                              (r"/config_morphablegraphs",MGConfiguratiohHandler)
                                               ])
 
         #  Configure server
