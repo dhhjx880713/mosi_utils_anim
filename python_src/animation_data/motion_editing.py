@@ -16,7 +16,7 @@ from external.transformations import quaternion_matrix, euler_from_matrix, \
                             quaternion_from_matrix, euler_matrix, \
                             quaternion_multiply                           
 
-SMOOTHING_WINDOW_SIZE = 20
+DEFAULT_SMOOTHING_WINDOW_SIZE = 20
 
 def extract_root_positions_from_frames(frames):
     roots = []
@@ -956,7 +956,8 @@ def fromPointToEulerAngle(vec):
     
 def fast_quat_frames_alignment(quaternion_frames_a,
                                quaternion_frames_b,
-                               smooth=True):
+                               smooth=True,
+                               smoothing_window=DEFAULT_SMOOTHING_WINDOW_SIZE):
     """implement a fast frame alignment based on orientation and offset of root
        of last frame of first motion and first frame of second motion 
     """                                    
@@ -969,7 +970,7 @@ def fast_quat_frames_alignment(quaternion_frames_a,
     if smooth:
         quaternion_frames = smoothly_concatenate_quaternion_frames(quaternion_frames_a,
                                                                    transformed_frames,
-                                                                   window_size=SMOOTHING_WINDOW_SIZE)
+                                                                   window_size=smoothing_window)
     else:
         quaternion_frames = np.concatenate((quaternion_frames_a,
                                             transformed_frames))
