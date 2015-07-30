@@ -32,7 +32,7 @@ class ClusterTree(object):
     def __init__(self, N=DEFAULT_N_SUBDIVISIONS_PER_LEVEL, K=DEFAULT_N_LEVELS, dim=MAX_DIMENSIONS):
         self.N = max(N, MIN_N_SUBDIVISIONS_PER_LEVEL)
         self.K = max(K, MIN_N_LEVELS)
-        #self.dim = dim
+        self.dim = dim
         self.root = None
         self.X = None
   
@@ -73,6 +73,7 @@ class ClusterTree(object):
         pickle_file = open(pickle_file_name, 'rb')
         data = pickle.load(pickle_file)
         self.X = data.X
+        self.dim = self.dim
         self.root = data.root
         self.K = data.K
         self.N = data.N
@@ -80,7 +81,7 @@ class ClusterTree(object):
       
     def construct(self,X):
         self.X = X
-        self.dim = self.X.shape[1]#min(self.X.shape[1], self.dim)
+        self.dim = min(self.X.shape[1], self.dim)
         node_builder = ClusterTreeNodeBuilder(self.N, self.K, self.dim)
         self.root = node_builder.construct_from_data(self.X)
 

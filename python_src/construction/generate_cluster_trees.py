@@ -17,6 +17,13 @@ MOTION_PRIMITIVE_FILE_ENDING = "mm.json"
 CONIFG_FILE_PATH = ".." + os.sep + "config" + os.sep + "space_partitioning.json"
 
 class ClusterTreeBuilder(object):
+    """ Creates ClusterTrees for all motion primitives found in a
+        directory hierarchy by sampling from the statistical model.
+        The directory hierarchy has to look as follows
+        - model_data_dir
+            - elementary_action_dir
+                - motion_primitive_mm.json
+    """
     def __init__(self, ):
         self.morphable_model_directory = None
         self.n_samples = 10000
@@ -39,40 +46,49 @@ class ClusterTreeBuilder(object):
         print "construct space partitioning data structure for", motion_primitive.name
 
         X = np.array([motion_primitive.sample(return_lowdimvector=True) for i in xrange(self.n_samples)])
-        cluster_tree = ClusterTree(self.n_subdivisions_per_level, self.n_levels)
+        n_dims = motion_primitive.s_pca["n_dim"]
+        cluster_tree = ClusterTree(self.n_subdivisions_per_level, self.n_levels, n_dims)
         cluster_tree.construct(X)
         #self.cluster_tree.save_to_file(cluster_file_name+"tree")
         cluster_tree.save_to_file_pickle(cluster_file_name+"cluster_tree.pck")
        
     def _process_elementary_action(self, elementary_action):
-        subgraph_path = self.morphable_model_directory+os.sep+elementary_action
-        for root, dirs, files in os.walk(subgraph_path):
+        elementary_action_dir = self.morphable_model_directory + os.sep + elementary_action
+        for root, dirs, files in os.walk(elementary_action_dir):
             for file_name in files:
                 if file_name.endswith(MOTION_PRIMITIVE_FILE_ENDING):
-                    motion_primitive = MotionPrimitive(subgraph_path + os.sep + file_name)
+                    motion_primitive = MotionPrimitive(elementary_action_dir + os.sep + file_name)
                     cluster_file_name =  file_name[:-7]
-                    self._create_space_partitioning(motion_primitive, subgraph_path + os.sep + cluster_file_name)
+                    self._create_space_partitioning(motion_primitive, elementary_action_dir + os.sep + cluster_file_name)
         return
 
-    def run(self):
+    def build(self):
 
         if self.random_seed is not None:
+            print "apply random seed", self.random_seed
             np.random.seed(self.random_seed)
-
+            
+        
         if self.morphable_model_directory is not None:
+            print "start construction in directory", self.morphable_model_directory
             for elementary_action in next(os.walk(self.morphable_model_directory))[1]:
                 self._process_elementary_action(elementary_action)
-
+            return True
+        else:
+            return False
 
 def main():
 
     cluster_tree_builder = ClusterTreeBuilder()
     cluster_tree_builder.set_config(CONIFG_FILE_PATH)
     start = time.clock()
-    cluster_tree_builder.run()
+    success = cluster_tree_builder.build()
+    
     time_in_seconds = time.clock()-start
-    print "Finished construction in", int(time_in_seconds/60), "minutes and", time_in_seconds % 60, "seconds"
-    return
-                        
+    if success:
+        print "Finished construction in", int(time_in_seconds/60), "minutes and", time_in_seconds % 60, "seconds"
+    else:
+        print "Failed to read data from directory"
+                            
 if __name__ == "__main__":
     main()
