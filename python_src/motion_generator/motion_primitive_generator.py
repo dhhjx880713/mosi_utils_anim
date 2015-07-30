@@ -152,8 +152,9 @@ class MotionPrimitiveGenerator(object):
     
                 #  2) sample parameters  from the Gaussian Mixture Model based on constraints and make sure
                 #     the resulting motion is valid                
-                parameters,close_to_optimum = self._sample_and_pick_best(graph_node,gmm,
+                parameters, min_error = self._sample_and_pick_best(graph_node,gmm,
                                                                     constraints,prev_frames)
+                close_to_optimum = True
                 
             # B) optimize sampled parameters as initial guess if the constraints were not reached
             if  not self.use_transition_model and use_optimization and not close_to_optimum:
@@ -203,51 +204,6 @@ class MotionPrimitiveGenerator(object):
                                           
 
     def _sample_and_pick_best(self, mp_node, gmm, constraints, prev_frames):
-        """samples and picks the best sample out of a given set, quality measures
-        is naturalness
-    
-        Parameters
-        ----------
-        * mp_node : MotionPrimitiveNode
-        \t contains a motion primitive and meta information
-        * gmm : sklearn.mixture.gmm
-        \tThe gmm to sample
-    	* constraints : list of dict
-    	\t Each entry should contain joint position orientation and semanticAnnotation
-        * num_samples : (optional) int
-        \tThe number of samples to check
-        * prev_frames: quaternion frames
-        Returns
-        -------
-        * sample : numpy.ndarray
-        \tThe best sample out of those which have been created
-        * success : bool
-        \t the constraints were reached exactly
-        """
-        best_sample, min_error =  self._sample_from_gmm(mp_node, gmm, constraints, prev_frames)
-       
-#        best_index = distances.index(min(distances))
-#        best_sample = samples[best_index]
-        if best_sample is not None:
-            success = True
-        else: 
-            success = False
-        
-        print "found best sample with distance:",min_error
-        global_counter_dict["motionPrimitveErrors"].append(min_error)
-#            
-#        if self.verbose:
-#            if success:
-#                print "reached constraint exactly",distances[best_index]
-#            else:
-#                print "failed to reach constraint exactly return closest sample",distances[best_index]
-#        print "found best sample with distance:",distances[best_index]
-        return best_sample, success
-        
-        
-
-    
-    def _sample_from_gmm(self, mp_node, gmm, constraints, prev_frames):
     
         """samples and picks the best samples out of a given set, quality measure
         is naturalness
@@ -258,26 +214,21 @@ class MotionPrimitiveGenerator(object):
         \t contains a motion primitive and meta information
         * gmm : sklearn.mixture.gmm
         \tThe gmm to sample
-    	* constraints : list of dict
-    	\t Each entry should contain joint position orientation and semanticAnnotation
+    	  * constraints : list of dict
+    	  \t Each entry should contain joint position orientation and semanticAnnotation
         * prev_frames: list
         \tA list of quaternion frames
         Returns
         -------
-        * samples : list of numpy.ndarray
-        \tThe samples out of those which have been created
-        * distances : list of float
-        \t distance of the samples to the constraint
-        * successes : list of bool 
-         \t wether or not  the samples is meeting the desired precision
+        * sample : numpy.ndarray
+        \tThe best sample out of those which have been created
+        * error : bool
+        \t the error of the best sample
        
         """
         best_sample = None
         min_error = 1000000.0
         reached_max_bad_samples = False
-#        samples = []
-#        distances = []
-#        successes = []
         tmp_bad_samples = 0
         count = 0
         while count < self.n_random_samples:
@@ -292,26 +243,12 @@ class MotionPrimitiveGenerator(object):
                 valid = check_sample_validity(mp_node, s, self.skeleton) 
             else:
                 valid = True
-            if valid: 
-    #            tmp_bad_samples = 0
-                
+            if valid:                 
                 object_function_params = mp_node.motion_primitive, constraints, prev_frames, self._action_constraints.start_pose, self.skeleton, self.precision 
                 error = obj_error_sum(s,object_function_params)
                 if min_error > error:
                     min_error = error
                     best_sample = s
-#                distances.append(error)
-#                samples.append(s)
-##                min_distance,successes = evaluate_list_of_constraints(mp_node.motion_primitive,s,constraints,prev_frames,self._action_constraints.start_pose,self.skeleton,
-##                                                            precision=self.precision,verbose=self.verbose)
-#                # check the root path for each sample, punish the curve walking
-#                acr_length = mp_node.get_step_length_for_sample(s, method="arc_length")
-#                absolute_length = mp_node.get_step_length_for_sample(s, method="distance")
-#                factor = acr_length/absolute_length   
-#                min_distance = factor * min_distance                              
-#                if self.verbose:
-#                    print "sample no",count,"min distance",min_distance
-#                distances.append(min_distance)
                 count+=1
             else:
                if self.verbose:
@@ -320,7 +257,9 @@ class MotionPrimitiveGenerator(object):
            
         if reached_max_bad_samples:
             print "Warning: Failed to pick good sample from GMM"
-#        successes.append(True)
+        
+        print "found best sample with distance:",min_error
+        global_counter_dict["motionPrimitveErrors"].append(min_error)
         return best_sample, min_error
     
             
