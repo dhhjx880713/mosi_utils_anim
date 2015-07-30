@@ -93,7 +93,7 @@ class MotionPrimitive(object):
         if 'name' in data.keys():
             self.name = data['name']
         self.n_canonical_frames = data['n_canonical_frames']
-        self.canonical_time_range = np.arange(0,self.n_canonical_frames)
+        self.canonical_time_range = np.arange(0, self.n_canonical_frames)
         
         # initialize parameters for the motion sampling and back projection
         
@@ -115,7 +115,7 @@ class MotionPrimitive(object):
 
         """
         n_components = len(np.array(data['gmm_weights']))
-        self.gmm = mixture.GMM(n_components,covariance_type = 'full')
+        self.gmm = mixture.GMM(n_components, covariance_type='full')
         self.gmm.weights_ = np.array(data['gmm_weights'])
         self.gmm.means_ = np.array(data['gmm_means'])
         self.gmm.converged_ = True

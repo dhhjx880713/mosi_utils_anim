@@ -39,10 +39,10 @@ class ClusterTreeNodeBuilder(object):
     def _calculate_mean(self, X, indices):
         if  indices is None:
             n_samples = len(X)
-            mean = np.mean(X, axis=0)
+            mean = np.mean(X[:,:self.dim], axis=0)
         else:
             n_samples = len(indices)
-            mean = np.mean(X[indices], axis=0)
+            mean = np.mean(X[indices,:self.dim], axis=0)
         return mean, n_samples
         
     def _get_node_type_from_depth(self, depth):
@@ -60,11 +60,12 @@ class ClusterTreeNodeBuilder(object):
         """Use the kmeans algorithm of scipy to labels to samples according 
         to clusters.
         """
+
         self.kmeans = cluster.KMeans(n_clusters=self.N)
         if indices is None:
-            labels = self.kmeans.fit_predict(X)
+            labels = self.kmeans.fit_predict(X[:,:self.dim])
         else:
-            labels = self.kmeans.fit_predict(X[indices])
+            labels = self.kmeans.fit_predict(X[indices,:self.dim])
             
         cluster_indices = [[] for i in xrange(self.N)] 
         if indices is None:

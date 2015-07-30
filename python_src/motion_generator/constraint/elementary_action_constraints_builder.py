@@ -25,23 +25,24 @@ class ElementaryActionConstraintsBuilder():
         return
         
     def build(self):
-        action_constraints = ElementaryActionConstraints()
-        action_constraints.parent_constraint = self.motion_constraints
-        action_constraints.action_name = self.motion_constraints.elementary_action_list[self.current_action_index]["action"]
-        action_constraints.keyframe_annotations = self.motion_constraints.keyframe_annotations[self.current_action_index]
-        action_constraints.constraints = self.motion_constraints.elementary_action_list[self.current_action_index]["constraints"]
-        action_constraints.start_pose = self.motion_constraints.start_pose
-        morphable_subgraph = self.motion_constraints.morphable_graph.subgraphs[action_constraints.action_name]
-        root_joint_name = self.motion_constraints.morphable_graph.skeleton.root# currently only trajectories on the Hips joint are supported
+        if self.current_action_index < len(self.motion_constraints.elementary_action_list):
+            action_constraints = ElementaryActionConstraints()
+            action_constraints.parent_constraint = self.motion_constraints
+            action_constraints.action_name = self.motion_constraints.elementary_action_list[self.current_action_index]["action"]
+            action_constraints.keyframe_annotations = self.motion_constraints.keyframe_annotations[self.current_action_index]
+            action_constraints.constraints = self.motion_constraints.elementary_action_list[self.current_action_index]["constraints"]
+            action_constraints.start_pose = self.motion_constraints.start_pose
+            morphable_subgraph = self.motion_constraints.morphable_graph.subgraphs[action_constraints.action_name]
+            root_joint_name = self.motion_constraints.morphable_graph.skeleton.root# currently only trajectories on the Hips joint are supported
+            
+            action_constraints.trajectory, action_constraints.unconstrained_indices = self._extract_trajectory_from_constraint_list(action_constraints.constraints, root_joint_name)
         
-        action_constraints.trajectory, action_constraints.unconstrained_indices = self._extract_trajectory_from_constraint_list(action_constraints.constraints, root_joint_name)
-    
-        keyframe_constraints = self._extract_all_keyframe_constraints(action_constraints.constraints,
-                                                                morphable_subgraph)
-        action_constraints.keyframe_constraints = self._reorder_keyframe_constraints_for_motion_primitves(morphable_subgraph,
-                                                                                 keyframe_constraints)
-        action_constraints._initialized = True
-        return action_constraints
+            keyframe_constraints = self._extract_all_keyframe_constraints(action_constraints.constraints,
+                                                                    morphable_subgraph)
+            action_constraints.keyframe_constraints = self._reorder_keyframe_constraints_for_motion_primitves(morphable_subgraph,
+                                                                                     keyframe_constraints)
+            action_constraints._initialized = True
+            return action_constraints
         
 
     def _extract_trajectory_from_constraint_list(self, constraint_list, joint_name):

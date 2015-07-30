@@ -13,7 +13,7 @@ from .  import KDTREE_WRAPPER_NODE
 
 class KDTreeWrapper(object):
     """ Wrapper for a KDTree used as leaf of the ClusterTree.
-    
+
     Parameters
     ---------
     * dim: Integer
@@ -25,15 +25,14 @@ class KDTreeWrapper(object):
         self.dim = dim
         self.indices = []
         self.type = KDTREE_WRAPPER_NODE
-       
-        
+
     def construct(self, X, indices):
         self.indices = indices
         self.kdtree.construct(X[indices].tolist(), self.dim)
         return
-        
-    def find_best_example(self,obj,data):
-        return self.kdtree.find_best_example(obj,data,1)[0]
+
+    def find_best_example(self, obj, data):
+        return self.kdtree.find_best_example(obj, data, 1)[0]
 
     def knn_interpolation(self, obj, data, k=50):
         
@@ -56,14 +55,13 @@ class KDTreeWrapper(object):
     
             new_point = np.zeros(len(points[0]))
             for i in xrange(n_influences):
-    
                 #print index
                 new_point += weights[i] * np.array(points[i])
             #print new_point,"#####"
             return obj(new_point,data), new_point # return also the evaluation of the new point
         else:
             return results[0]
-        
+
     def get_desc(self):
         """
         used by save_to_file
@@ -72,10 +70,8 @@ class KDTreeWrapper(object):
         node_desc["id"] = str(self.id)
         #node_desc["depth"] = self.depth
         node_desc["type"] = self.type
-     
         node_desc["children"] = []
         #node_desc["mean"] = self.mean.tolist() 
-        
         node_desc["indices"] = self.indices
         return node_desc
         

@@ -17,10 +17,10 @@ MOTION_PRIMITIVE_FILE_ENDING = "mm.json"
 CONIFG_FILE_PATH = ".." + os.sep + "config" + os.sep + "space_partitioning.json"
 
 class ClusterTreeBuilder(object):
-    """ Creates ClusterTrees for all motion primitives found in a
-        directory hierarchy by sampling from the statistical model.
-        The directory hierarchy has to look as follows
-        - model_data_dir
+    """ Creates ClusterTrees for all motion primitives by sampling from the statistical model
+        The motion primitives are assumed to be organized in a directory 
+        hierarchy as follows
+        - model_data_root_dir
             - elementary_action_dir
                 - motion_primitive_mm.json
     """
@@ -46,7 +46,8 @@ class ClusterTreeBuilder(object):
         print "construct space partitioning data structure for", motion_primitive.name
 
         X = np.array([motion_primitive.sample(return_lowdimvector=True) for i in xrange(self.n_samples)])
-        n_dims = motion_primitive.s_pca["n_dim"]
+        n_dims = motion_primitive.s_pca["n_components"]
+        print "maximum dimension set to", n_dims
         cluster_tree = ClusterTree(self.n_subdivisions_per_level, self.n_levels, n_dims)
         cluster_tree.construct(X)
         #self.cluster_tree.save_to_file(cluster_file_name+"tree")
