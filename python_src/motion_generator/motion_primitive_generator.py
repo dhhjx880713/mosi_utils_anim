@@ -126,7 +126,9 @@ class MotionPrimitiveGenerator(object):
 
 
         if self.use_constraints and len(constraints) > 0: # estimate parameters fitting constraints
+            
             graph_node = self._morphable_graph.subgraphs[self.action_name].nodes[mp_name]
+            gmm = graph_node.motion_primitive.gmm
             
             # A) find best sample from model
             if self.activate_cluster_search and graph_node.cluster_tree is not None:
@@ -138,10 +140,10 @@ class MotionPrimitiveGenerator(object):
                 #  1) get gmm and modify it based on the current state and settings
                 # Get prior gaussian mixture model from node
                 
-                gmm = graph_node.motion_primitive.gmm
                 if self._constrained_gmm_builder is not None:
-                    gmm = self._constrained_gmm_builder.build(self.action_name, mp_name, constraints,\
-                                                self.prev_action_name, prev_mp_name, prev_frames, prev_parameters)
+                    gmm = self._constrained_gmm_builder.build(self.action_name, mp_name, constraints,
+                                                              self.prev_action_name, prev_mp_name, 
+                                                              prev_frames, prev_parameters)
                                                 
                 elif self.use_transition_model and prev_parameters is not None:
                     gmm = self._predict_gmm(mp_name, prev_mp_name, 
@@ -150,19 +152,18 @@ class MotionPrimitiveGenerator(object):
     
                 #  2) sample parameters  from the Gaussian Mixture Model based on constraints and make sure
                 #     the resulting motion is valid                
-                parameters,close_to_optimum = self._sample_and_pick_best(graph_node,gmm,\
+                parameters,close_to_optimum = self._sample_and_pick_best(graph_node,gmm,
                                                                     constraints,prev_frames)
                 
             # B) optimize sampled parameters as initial guess if the constraints were not reached
             if  not self.use_transition_model and use_optimization and not close_to_optimum:
 
-               
-                initial_guess = parameters
                 parameters = self.numerical_minimizer.run(graph_node, gmm, constraints,
-                                                          initial_guess, prev_frames=prev_frames)
+                                                          initial_guess = parameters,
+                                                          prev_frames=prev_frames)
 
 
-        else: # generate random parameters
+        else: # no constraints were given
             parameters = self._get_random_parameters(mp_name, prev_mp_name, 
                                                      prev_frames, 
                                                      prev_parameters)
@@ -223,22 +224,25 @@ class MotionPrimitiveGenerator(object):
         * success : bool
         \t the constraints were reached exactly
         """
-        samples, distances, successes =  self._sample_from_gmm(mp_node, gmm, constraints,prev_frames)
+        best_sample, min_error =  self._sample_from_gmm(mp_node, gmm, constraints, prev_frames)
        
-        best_index = distances.index(min(distances))
-        best_sample = samples[best_index]
-        if np.any(successes):
+#        best_index = distances.index(min(distances))
+#        best_sample = samples[best_index]
+        if best_sample is not None:
             success = True
-        else: ######################################################################################################
+        else: 
             success = False
-            
-        if self.verbose:
-            if success:
-                print "reached constraint exactly",distances[best_index]
-            else:
-                print "failed to reach constraint exactly return closest sample",distances[best_index]
-        print "found best sample with distance:",distances[best_index]
-        return best_sample,success
+        
+        print "found best sample with distance:",min_error
+        global_counter_dict["motionPrimitveErrors"].append(min_error)
+#            
+#        if self.verbose:
+#            if success:
+#                print "reached constraint exactly",distances[best_index]
+#            else:
+#                print "failed to reach constraint exactly return closest sample",distances[best_index]
+#        print "found best sample with distance:",distances[best_index]
+        return best_sample, success
         
         
 
@@ -268,10 +272,12 @@ class MotionPrimitiveGenerator(object):
          \t wether or not  the samples is meeting the desired precision
        
         """
+        best_sample = None
+        min_error = 1000000.0
         reached_max_bad_samples = False
-        samples = []
-        distances = []
-        successes = []
+#        samples = []
+#        distances = []
+#        successes = []
         tmp_bad_samples = 0
         count = 0
         while count < self.n_random_samples:
@@ -283,22 +289,29 @@ class MotionPrimitiveGenerator(object):
             s = np.ravel(gmm.sample())
             if self.activate_parameter_check:
                 # using bounding box to check sample is good or bad
-                valid = check_sample_validity(mp_node,s,self.skeleton) 
+                valid = check_sample_validity(mp_node, s, self.skeleton) 
             else:
                 valid = True
             if valid: 
     #            tmp_bad_samples = 0
-                samples.append(s)
-                min_distance,successes = evaluate_list_of_constraints(mp_node.motion_primitive,s,constraints,prev_frames,self._action_constraints.start_pose,self.skeleton,
-                                                            precision=self.precision,verbose=self.verbose)
-                # check the root path for each sample, punish the curve walking
-                acr_length = mp_node.get_step_length_for_sample(s, method="arc_length")
-                absolute_length = mp_node.get_step_length_for_sample(s, method="distance")
-                factor = acr_length/absolute_length   
-                min_distance = factor * min_distance                              
-                if self.verbose:
-                    print "sample no",count,"min distance",min_distance
-                distances.append(min_distance)
+                
+                object_function_params = mp_node.motion_primitive, constraints, prev_frames, self._action_constraints.start_pose, self.skeleton, self.precision 
+                error = obj_error_sum(s,object_function_params)
+                if min_error > error:
+                    min_error = error
+                    best_sample = s
+#                distances.append(error)
+#                samples.append(s)
+##                min_distance,successes = evaluate_list_of_constraints(mp_node.motion_primitive,s,constraints,prev_frames,self._action_constraints.start_pose,self.skeleton,
+##                                                            precision=self.precision,verbose=self.verbose)
+#                # check the root path for each sample, punish the curve walking
+#                acr_length = mp_node.get_step_length_for_sample(s, method="arc_length")
+#                absolute_length = mp_node.get_step_length_for_sample(s, method="distance")
+#                factor = acr_length/absolute_length   
+#                min_distance = factor * min_distance                              
+#                if self.verbose:
+#                    print "sample no",count,"min distance",min_distance
+#                distances.append(min_distance)
                 count+=1
             else:
                if self.verbose:
@@ -307,7 +320,7 @@ class MotionPrimitiveGenerator(object):
            
         if reached_max_bad_samples:
             print "Warning: Failed to pick good sample from GMM"
-
-        return samples, distances, successes
+#        successes.append(True)
+        return best_sample, min_error
     
             
