@@ -170,7 +170,7 @@ class ClusterTree(object):
             print "#################failed to find a good result"
             return np.inf, self.X[0]
         
-    def find_best_example_exluding_search_candidates_knn(self, obj, data, n_candidates=1, k=50):
+    def find_best_example_excluding_search_candidates_knn(self, obj, data, n_candidates=1, k=50):
         """ Traverses the cluster hierarchy iteratively by evaluating the means
             of the clusters at each level based on the objective function. 
             At the last level the method find_best_example for a KNN Interpolation is used.

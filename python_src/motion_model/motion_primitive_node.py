@@ -104,7 +104,7 @@ class MotionPrimitiveNode(object):
              None is returned if data structure was not initialized
         """
         if self.cluster_tree is not None:
-            return self.cluster_tree.find_best_example_exluding_search_candidates_knn(obj, data, n_candidates)#_boundary_knn
+            return self.cluster_tree.find_best_example_excluding_search_candidates(obj, data, n_candidates)#_boundary_knn
         else:
             return None
         
