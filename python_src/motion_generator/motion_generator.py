@@ -119,10 +119,7 @@ class MotionGenerator(object):
                 motion.frame_annotation["sessionID"] = mg_input["session"]
 
             if motion.quat_frames is not None:
-                time_stamp = unicode(datetime.now().strftime("%d%m%y_%H%M%S"))
-                prefix = output_filename + "_" + time_stamp
-                
-                write_to_logfile(self._service_config["output_dir"] + os.sep + LOG_FILE, prefix, self._algorithm_config)
+            
                 self.export_synthesis_result(mg_input, self._service_config["output_dir"], output_filename, motion, add_time_stamp=True)
             else:
                 print "Error: failed to generate motion data"
@@ -346,6 +343,8 @@ class MotionGenerator(object):
           Also exports the input file again to the output directory, where it is 
           used as input for the constraints visualization by the animation server.
           """
+          time_stamp = unicode(datetime.now().strftime("%d%m%y_%H%M%S"))
+       
           write_to_json_file(output_dir + os.sep + output_filename + ".json", input_data) 
           write_to_json_file(output_dir + os.sep + output_filename + "_actions"+".json", motion.action_list)
           
@@ -360,7 +359,8 @@ class MotionGenerator(object):
                 event[event_type] = target
                 event["frameNumber"] = int(keyframe)
                 reordered_frame_annotation["events"].append(event)
-    
+          if self._service_config["write_log"]:
+              write_to_logfile(output_dir + os.sep + LOG_FILE, output_filename + "_" + time_stamp, self._algorithm_config)
           write_to_json_file(output_dir + os.sep + output_filename + "_annotations"+".json", reordered_frame_annotation)
           export_quat_frames_to_bvh_file(output_dir, self.morphable_graph.skeleton, motion.quat_frames, prefix=output_filename, start_pose=None, time_stamp=add_time_stamp)        
     
