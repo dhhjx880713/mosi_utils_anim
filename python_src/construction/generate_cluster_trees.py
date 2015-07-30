@@ -21,7 +21,8 @@ class ClusterTreeBuilder(object):
         self.morphable_model_directory = None
         self.n_samples = 10000
         self.n_subdivisions_per_level = 4
-        self.n_levels = 8
+        self.n_levels = 4
+        self.random_seed = None
         
         return
         
@@ -32,6 +33,7 @@ class ClusterTreeBuilder(object):
         self.n_samples = config["n_random_samples"]
         self.n_subdivisions_per_level = config["n_subdivisions_per_level"]
         self.n_levels = config["n_levels"]
+        self.random_seed = config["random_seed"]
         
     def _create_space_partitioning(self, motion_primitive, cluster_file_name):
         print "construct space partitioning data structure for", motion_primitive.name
@@ -51,7 +53,12 @@ class ClusterTreeBuilder(object):
                     cluster_file_name =  file_name[:-7]
                     self._create_space_partitioning(motion_primitive, subgraph_path + os.sep + cluster_file_name)
         return
+
     def run(self):
+
+        if self.random_seed is not None:
+            np.random.seed(self.random_seed)
+
         if self.morphable_model_directory is not None:
             for elementary_action in next(os.walk(self.morphable_model_directory))[1]:
                 self._process_elementary_action(elementary_action)
@@ -63,7 +70,8 @@ def main():
     cluster_tree_builder.set_config(CONIFG_FILE_PATH)
     start = time.clock()
     cluster_tree_builder.run()
-    print "Finished construction in", time.clock()-start, "seconds"
+    time_in_seconds = time.clock()-start
+    print "Finished construction in", int(time_in_seconds/60), "minutes and", time_in_seconds % 60, "seconds"
     return
                         
 if __name__ == "__main__":
