@@ -128,7 +128,7 @@ class MotionPrimitiveGenerator(object):
             graph_node = self._morphable_graph.subgraphs[self.action_name].nodes[mp_name]
             
             # A) find best sample from model
-            if self.activate_cluster_search:
+            if self.activate_cluster_search and graph_node.cluster_tree is not None:
                 #  find best sample using a directed search in a 
                 #  space partitioning data structure
                 parameters = self._search_for_best_sample(graph_node, constraints, prev_frames, self._algorithm_config["n_cluster_search_candidates"])
