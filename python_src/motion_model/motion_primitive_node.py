@@ -77,22 +77,14 @@ class MotionPrimitiveNode(object):
         return
         
     def _construct_space_partition(self, cluster_file_name, reconstruct=False):
+        self.cluster_tree = None
         if not reconstruct and os.path.isfile(cluster_file_name+"cluster_tree.pck"):#os.path.isfile(cluster_file_name+"tree.data") and os.path.isfile(cluster_file_name+"tree.json"):
             print "load space partitioning data structure"
             self.cluster_tree = ClusterTree()#)
             #self.cluster_tree.load_from_file(cluster_file_name+"tree")
             self.cluster_tree.load_from_file_pickle(cluster_file_name+"cluster_tree.pck")
-        else:
-            print "construct space partitioning data structure"
-            n_samples = 10000
-            N=4
-            K=4
-            X = np.array([self.sample_parameters() for i in xrange(n_samples)])
-            self.cluster_tree = ClusterTree(N, K)
-            self.cluster_tree.construct(X)
-            #self.cluster_tree.save_to_file(cluster_file_name+"tree")
-            self.cluster_tree.save_to_file_pickle(cluster_file_name+"cluster_tree.pck")
-                
+
+              
     def search_best_sample(self, obj, data, n_candidates=2):
         """ Searches the best sample from a space partition data structure.
         Parameters
@@ -107,10 +99,14 @@ class MotionPrimitiveNode(object):
         
         Returns
          -------
-         * parameters: numpy.ndarray
-         \tLow dimensional motion parameters.
+         * parameters: numpy.ndarray or None
+             Low dimensional motion parameters. 
+             None is returned if data structure was not initialized
         """
-        return self.cluster_tree.find_best_example_exluding_search_candidates_knn(obj, data, n_candidates)#_boundary_knn
+        if self.cluster_tree is not None:
+            return self.cluster_tree.find_best_example_exluding_search_candidates_knn(obj, data, n_candidates)#_boundary_knn
+        else:
+            return None
         
     def sample_parameters(self):
          """ Samples a low dimensional vector from statistical model.
