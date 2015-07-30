@@ -78,71 +78,81 @@ def error_func(s,data):
     error = error_scale_factor * kinematic_error + n_log_likelihood * quality_scale_factor
     print "error",error
     return error
-  
 
 
-
-def run_optimization(motion_primitive,gmm,constraints,initial_guess, skeleton, 
-                       optimization_settings = {},bounding_boxes=None,prev_frames = None,
-                       start_pose=None,verbose=False):
-    """ Runs the optimization for a single motion primitive and a list of constraints 
-    Parameters
-    ----------
-    * motion_primitive : MotionPrimitive
-        Instance of a motion primitive used for back projection
-    * gmm : sklearn.mixture.GMM
-        Statistical model of the natural motion parameter space
-    * constraints : list of dicts
-         Each entry containts "joint", "position"   "orientation" and "semanticAnnotation"
-    * skeleton: Skeleton
-        Used for joint hiearchy information 
-    * max_iterations : int
-        Maximum number of iterations performed by the optimization algorithm
-    * bounding_boxes : tuple
-        Bounding box data read from a graph node in the morphable graph
-    * prev_frames : np.ndarray
-        Motion parameters of the previous motion used for alignment
-    * start_pose : dict
-        Contains keys position and orientation. "position" contains Cartesian coordinates 
-        and orientation contains Euler angles in degrees)
-        
-    Returns
-    -------
-    * x : np.ndarray
-          optimal low dimensional motion parameter vector
+class NumericalMinimizer(object):
+    """ A wrapper class for Scipy minimize that implements different Gradient Descent and
+        derivative free optimization methods.
+        Official documentation of that module:
+        http://docs.scipy.org/doc/scipy-0.15.1/reference/generated/scipy.optimize.minimize.html
     """
-
-    if initial_guess is None:
-        s0 = np.ravel(gmm.sample())
-    else:
-        s0 = initial_guess
-
-    data = motion_primitive, constraints, prev_frames,start_pose, skeleton,{"pos":1,"rot":1,"smooth":1}, \
-           optimization_settings["error_scale_factor"], optimization_settings["quality_scale_factor"]     #precision
-
-    options = {'maxiter': optimization_settings["max_iterations"], 'disp' : verbose}
-    
-    if verbose: 
-        start = time.clock()
-        print "Start optimization using", optimization_settings["method"],optimization_settings["max_iterations"]
-#    jac = error_function_jac(s0, data)
-    try:
-        result = minimize(error_func,
-                          s0,
-                          args = (data,),
-                          method=optimization_settings["method"], 
-                          #jac = error_function_jac, 
-                          tol = optimization_settings["tolerance"],
-                          options=options)
-                         
-                         
-  
-    except ValueError as e:
-        print "Warning:", e.message
-        return s0
+    def __init__(self, algorithm_config, skeleton, start_pose=None):        
         
-    if verbose:
-        print "Finished optimization in ",time.clock()-start,"seconds"
-    return result.x    
+        self._aglortihm_config = algorithm_config
+        self.optimization_settings = algorithm_config["optimization_settings"]
+        self.verbose = algorithm_config["verbose"]
+        self._skeleton = skeleton
+        self._start_pose = start_pose
+        self._error_func_params = None
+        return
+        
+    def _set_error_func_parameters(self, motion_primitive_node, constraints, prev_frames):
+        self._error_func_params = motion_primitive_node.motion_primitive, constraints, \
+                                   prev_frames, self._start_pose, \
+                                   self._skeleton, {"pos":1,"rot":1,"smooth":1}, \
+                                   self.optimization_settings["error_scale_factor"], \
+                                   self.optimization_settings["quality_scale_factor"]
+
+    
+    def run(self, motion_primitive_node, gmm, constraints, initial_guess=None, prev_frames=None):
+        """ Runs the optimization for a single motion primitive and a list of constraints 
+        Parameters
+        ----------
+        * motion_primitive : MotionPrimitiveNode
+            node in the MotionPrimitiveGraph used for back projection
+        * gmm : sklearn.mixture.GMM
+            Statistical model of the natural motion parameter space
+        * constraints : list of dicts
+             Each entry containts "joint", "position", "orientation" and "semanticAnnotation"
+        * initial_guess : np.ndarray
+            Optional initial guess.
+        * prev_frames : np.ndarray
+            Optional frames of the previous motion used for alignment.
+
+        Returns
+        -------
+        * x : np.ndarray
+              optimal low dimensional motion parameter vector
+        """
+    
+        if initial_guess is None:
+            s0 = np.ravel(gmm.sample())
+        else:
+            s0 = initial_guess
+    
+        self._set_error_func_parameters(motion_primitive_node, constraints, prev_frames)
+              
+        if self.verbose: 
+            start = time.clock()
+            print "Start optimization using", self.optimization_settings["method"], self.optimization_settings["max_iterations"]
+    #    jac = error_function_jac(s0, data)
+        try:
+            result = minimize(error_func,
+                              s0,
+                              args = (self._error_func_params,),
+                              method=self.optimization_settings["method"], 
+                              #jac = error_function_jac, 
+                              tol = self.optimization_settings["tolerance"],
+                              options={'maxiter': self.optimization_settings["max_iterations"], 'disp' : self.verbose})
+                             
+                             
+      
+        except ValueError as e:
+            print "Warning:", e.message
+            return s0
+            
+        if self.verbose:
+            print "Finished optimization in ",time.clock()-start,"seconds"
+        return result.x    
 
 

@@ -9,7 +9,7 @@ import numpy as np
 from animation_data.evaluation_methods import check_sample_validity
 from statistics.constrained_gmm_builder import ConstrainedGMMBuilder
 from utilities.exceptions import ConstraintError, SynthesisError
-from optimize_motion_parameters import run_optimization
+from optimize_motion_parameters import NumericalMinimizer
 from constraint.constraint_check import obj_error_sum,evaluate_list_of_constraints,\
                                         global_counter_dict
 
@@ -49,6 +49,7 @@ class MotionPrimitiveGenerator(object):
                                                                     self._action_constraints.start_pose, self.skeleton)
         else:
             self._constrained_gmm_builder = None
+        self.numerical_minimizer = NumericalMinimizer(self._algorithm_config, self.skeleton, action_constraints.start_pose)
         
         
     def generate_motion_primitive_from_constraints(self, motion_primitive_constraints, prev_motion):
@@ -154,14 +155,11 @@ class MotionPrimitiveGenerator(object):
                 
             # B) optimize sampled parameters as initial guess if the constraints were not reached
             if  not self.use_transition_model and use_optimization and not close_to_optimum:
-                bounding_boxes = (graph_node.parameter_bb, graph_node.cartesian_bb)
+
                
                 initial_guess = parameters
-                parameters = run_optimization(graph_node.motion_primitive, gmm, constraints,
-                                                initial_guess, self.skeleton,
-                                                self._optimization_settings, bounding_boxes=bounding_boxes,
-                                                prev_frames=prev_frames, start_pose=self._action_constraints.start_pose, 
-                                                verbose=self.verbose)
+                parameters = self.numerical_minimizer.run(graph_node, gmm, constraints,
+                                                          initial_guess, prev_frames=prev_frames)
 
 
         else: # generate random parameters
