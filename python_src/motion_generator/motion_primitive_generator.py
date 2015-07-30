@@ -10,7 +10,7 @@ from animation_data.evaluation_methods import check_sample_validity
 from statistics.constrained_gmm_builder import ConstrainedGMMBuilder
 from utilities.exceptions import ConstraintError, SynthesisError
 from optimize_motion_parameters import NumericalMinimizer
-from constraint.constraint_check import obj_error_sum,evaluate_list_of_constraints,\
+from constraint.constraint_check import obj_error_sum,\
                                         global_counter_dict
 
 
@@ -134,7 +134,7 @@ class MotionPrimitiveGenerator(object):
             if self.activate_cluster_search and graph_node.cluster_tree is not None:
                 #  find best sample using a directed search in a 
                 #  space partitioning data structure
-                parameters = self._search_for_best_sample(graph_node, constraints, prev_frames, self._algorithm_config["n_cluster_search_candidates"])
+                parameters = self._search_for_best_sample_in_cluster_tree(graph_node, constraints, prev_frames, self._algorithm_config["n_cluster_search_candidates"])
                 close_to_optimum = True
             else: 
                 #  1) get gmm and modify it based on the current state and settings
@@ -152,7 +152,7 @@ class MotionPrimitiveGenerator(object):
     
                 #  2) sample parameters  from the Gaussian Mixture Model based on constraints and make sure
                 #     the resulting motion is valid                
-                parameters, min_error = self._sample_and_pick_best(graph_node,gmm,
+                parameters, min_error = self._pick_best_random_sample(graph_node,gmm,
                                                                     constraints,prev_frames)
                 close_to_optimum = True
                 
@@ -172,15 +172,7 @@ class MotionPrimitiveGenerator(object):
         return parameters
             
             
-    def _search_for_best_sample(self, graph_node, constraints, prev_frames, n_candidates=2):
-    
-        """ Directed search in precomputed hierarchical space partitioning data structure
-        """
-        data = graph_node.motion_primitive, constraints, prev_frames,self._action_constraints.start_pose, self.skeleton, self.precision
-        distance, s = graph_node.search_best_sample(obj_error_sum, data, n_candidates)
-        print "found best sample with distance:",distance
-        global_counter_dict["motionPrimitveErrors"].append(distance)
-        return np.array(s)
+
     
     def _get_random_parameters(self, mp_name, prev_mp_name="", 
                                  prev_frames=None, 
@@ -201,10 +193,16 @@ class MotionPrimitiveGenerator(object):
         gmm = self._morphable_graph.subgraphs[self.prev_action_name].nodes[prev_mp_name].predict_gmm(to_key,prev_parameters)
         return gmm
     
-                                          
+    def _search_for_best_sample_in_cluster_tree(self, graph_node, constraints, prev_frames, n_candidates=2):
+        """ Directed search in precomputed hierarchical space partitioning data structure
+        """
+        data = graph_node.motion_primitive, constraints, prev_frames,self._action_constraints.start_pose, self.skeleton, self.precision
+        distance, s = graph_node.search_best_sample(obj_error_sum, data, n_candidates)
+        print "found best sample with distance:",distance
+        global_counter_dict["motionPrimitveErrors"].append(distance)
+        return np.array(s)                                 
 
-    def _sample_and_pick_best(self, mp_node, gmm, constraints, prev_frames):
-    
+    def _pick_best_random_sample(self, mp_node, gmm, constraints, prev_frames):
         """samples and picks the best samples out of a given set, quality measure
         is naturalness
     
