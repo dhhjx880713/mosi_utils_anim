@@ -20,7 +20,7 @@ from utilities.io_helper_functions import load_json_file, write_to_json_file,\
                                  export_quat_frames_to_bvh_file                     
 from motion_model.elementary_action_graph import ElementaryActionGraph
 from constraint.elementary_action_constraints_builder import ElementaryActionConstraintsBuilder
-from constraint.constraint_check import global_counter_dict
+from . import global_counter_dict
 from utilities.exceptions import SynthesisError, PathSearchError
 from motion_model import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END
 from motion_primitive_generator import MotionPrimitiveGenerator

@@ -10,73 +10,7 @@ Wrapper around scipy minimize and error function definition.
 import time
 import numpy as np
 from scipy.optimize import minimize
-from sklearn.mixture.gmm import _log_multivariate_normal_density_full
-from scipy.optimize.optimize import approx_fprime
-                                 
 
-
-def error_function_jac(x0, data):
-    """ jacobian of error function. It is a combination of analytic solution 
-        for motion primitive model and numerical solution for kinematic error
-    """
-    #  Extract relevant parameters from data tuple. 
-    #  Note other parameters are used for calling obj_error_sum
-    gmm = data[0].gmm
-    error_scale_factor = data[-1]
-    quality_scale_factor = data[-2]
-    
-    tmp = np.reshape(x0, (1, len(x0)))
-    logLikelihoods = _log_multivariate_normal_density_full(tmp,
-                                                           gmm.means_, 
-                                                           gmm.covars_)
-    logLikelihoods = np.ravel(logLikelihoods)
-
-    numerator = 0
-
-    n_models = len(gmm.weights_)
-    for i in xrange(n_models):
-        numerator += np.exp(logLikelihoods[i]) * gmm.weights_[i] * np.dot(np.linalg.inv(gmm.covars_[i]), (x0 - gmm.means_[i]))
-#    numerator = numerator
-    denominator = np.exp(gmm.score([x0])[0])
-#    denominator = motion_primitive.gmm.score([x0])[0]
-    logLikelihood_jac = numerator / denominator
-    kinematic_jac = approx_fprime(x0, obj_error_sum, 1e-7, data[-2:])# ignore the kinematic factor and quality factor
-    jac = logLikelihood_jac * quality_scale_factor + kinematic_jac * error_scale_factor
-    return jac
-
-        
-
-                
-def error_func(s,data):
-    """ Calculates the error of a low dimensional motion vector s given 
-        constraints and the prior knowledge from the statistical model
-
-    Parameters
-    ---------
-    * s : np.ndarray
-        low dimensional motion representation
-    * data : tuple
-        Contains parameters of get_optimal_parameters_from_optimization
-        
-    Returns
-    -------
-    the error
-
-    """
-    
-#    motion_primitive, gmm,  constraints, quality_scale_factor, \
-#    error_scale_factor, bvh_reader,prev_frames, node_name_map, bounding_boxes,\
-#    start_transformation,epsilon = data  # the pre_frames are quaternion frames
-    #kinematic_error = kinematic_error_func(s,data)
-    kinematic_error = obj_error_sum(s,data[:-2])# ignore the kinematic factor and quality factor
-    #print "s-vector",optimize_theta
-    error_scale_factor = data[-1]
-    quality_scale_factor = data[-2]
-    n_log_likelihood = -data[0].gmm.score([s,])[0]
-    print "naturalness is: " + str(n_log_likelihood)
-    error = error_scale_factor * kinematic_error + n_log_likelihood * quality_scale_factor
-    print "error",error
-    return error
 
 
 class NumericalMinimizer(object):
@@ -156,5 +90,8 @@ class NumericalMinimizer(object):
         if self.verbose:
             print "Finished optimization in ",time.clock()-start,"seconds"
         return result.x    
+
+
+
 
 

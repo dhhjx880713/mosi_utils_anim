@@ -24,10 +24,6 @@ ROTATION_ERROR_FACTOR = 10  # importance of reaching rotation constraints
 RELATIVE_HUERISTIC_RANGE = 0.10  # used for setting the search range relative to the number of frames of motion primitive
 CONSTRAINT_CONFLICT_ERROR = 100000  # returned when conflicting constraints were set
 
-global_counter_dict = {}
-global_counter_dict["evaluations"] = 0# counter for calls of the objective function
-global_counter_dict["motionPrimitveErrors"] = []# holds errors of individual motion primitives
-
 
 
 def vector_distance(a,b):

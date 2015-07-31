@@ -10,16 +10,11 @@ from animation_data.evaluation_methods import check_sample_validity
 from statistics.constrained_gmm_builder import ConstrainedGMMBuilder
 from utilities.exceptions import ConstraintError, SynthesisError
 from optimize_motion_parameters import NumericalMinimizer
-from constraint.constraint_check import global_counter_dict
+from . import global_counter_dict
+from objective_functions import obj_error_sum, obj_error_sum_and_naturalness
 
 
-def obj_error_sum(s,data):
-    s = np.asarray(s)
-    motion_primitive, motion_primitive_constraint, prev_frames = data
-    error_sum = motion_primitive_constraint.evaluate(motion_primitive, s, prev_frames)
-    global_counter_dict["evaluations"] += 1
-    return error_sum
-    
+
     
 class MotionPrimitiveGenerator(object):
     """
@@ -57,7 +52,7 @@ class MotionPrimitiveGenerator(object):
         else:
             self._constrained_gmm_builder = None
         self.numerical_minimizer = NumericalMinimizer(self._algorithm_config, self.skeleton, action_constraints.start_pose)
-        self.numerical_minimizer.set_objective_function(obj_error_sum)
+        self.numerical_minimizer.set_objective_function(obj_error_sum_and_naturalness)
         
         
     def generate_motion_primitive_from_constraints(self, motion_primitive_constraints, prev_motion):
