@@ -9,7 +9,7 @@ import numpy as np
 from animation_data.evaluation_methods import check_sample_validity
 from statistics.constrained_gmm_builder import ConstrainedGMMBuilder
 from utilities.exceptions import ConstraintError, SynthesisError
-from optimize_motion_parameters import NumericalMinimizer
+from numerical_minimizer import NumericalMinimizer
 from . import global_counter_dict
 from objective_functions import obj_error_sum, obj_error_sum_and_naturalness
 
@@ -183,7 +183,7 @@ class MotionPrimitiveGenerator(object):
         to_key = self.action_name+"_"+mp_name
         if self.use_transition_model and prev_parameters is not None and self._morphable_graph.subgraphs[self.prev_action_name].nodes[prev_mp_name].has_transition_model(to_key):
              
-             parameters = self._morphable_graph.subgraphs[self.prev_action_name].nodes[prev_mp_name].predict_parameters(to_key,prev_parameters)
+            parameters = self._morphable_graph.subgraphs[self.prev_action_name].nodes[prev_mp_name].predict_parameters(to_key,prev_parameters)
         else:
             parameters = self._morphable_graph.subgraphs[self.action_name].nodes[mp_name].sample_parameters()
         return parameters
@@ -257,6 +257,7 @@ class MotionPrimitiveGenerator(object):
            
         if reached_max_bad_samples:
             print "Warning: Failed to pick good sample from GMM"
+            return best_sample, min_error
         
         print "found best sample with distance:",min_error
         global_counter_dict["motionPrimitveErrors"].append(min_error)
