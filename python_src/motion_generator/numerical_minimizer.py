@@ -34,13 +34,13 @@ class NumericalMinimizer(object):
         self._objective_function = obj
         return
         
-    def _set_objective_function_parameters(self, motion_primitive_node, motion_primitve_constraints, prev_frames):
+    def set_objective_function_parameters(self, motion_primitive_node, motion_primitve_constraints, prev_frames=None):
         self._error_func_params = motion_primitive_node.motion_primitive, motion_primitve_constraints, \
                                    prev_frames, self.optimization_settings["error_scale_factor"], \
                                    self.optimization_settings["quality_scale_factor"]
 
     
-    def run(self, motion_primitive_node, gmm, constraints, initial_guess=None, prev_frames=None):
+    def run(self, initial_guess):
         """ Runs the optimization for a single motion primitive and a list of constraints 
         Parameters
         ----------
@@ -60,22 +60,14 @@ class NumericalMinimizer(object):
         * x : np.ndarray
               optimal low dimensional motion parameter vector
         """
-        if initial_guess is None:
-            s0 = np.ravel(gmm.sample())
-        else:
-            s0 = initial_guess
-        if self._objective_function is not None:
-        
-        
-            self._set_objective_function_parameters(motion_primitive_node, constraints, prev_frames)
-                  
+        if self._objective_function is not None and initial_guess is not None:
             if self.verbose: 
                 start = time.clock()
                 print "Start optimization using", self.optimization_settings["method"], self.optimization_settings["max_iterations"]
         #    jac = error_function_jac(s0, data)
             try:
                 result = minimize(self._objective_function,
-                                  s0,
+                                  initial_guess,
                                   args = (self._error_func_params,),
                                   method=self.optimization_settings["method"], 
                                   #jac = error_function_jac, 
@@ -86,14 +78,14 @@ class NumericalMinimizer(object):
           
             except ValueError as e:
                 print "Warning:", e.message
-                return s0
+                return initial_guess
                 
             if self.verbose:
                 print "Finished optimization in ",time.clock()-start,"seconds"
             return result.x
         else:
             print "Error: No objective function set. Return initial guess instead."
-            return s0
+            return initial_guess
 
 
 

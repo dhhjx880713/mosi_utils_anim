@@ -160,10 +160,8 @@ class MotionPrimitiveGenerator(object):
                 
             # B) optimize sampled parameters as initial guess if the constraints were not reached
             if  not self.use_transition_model and use_optimization and not close_to_optimum:
-
-                parameters = self.numerical_minimizer.run(graph_node, gmm, motion_primitive_constraints,
-                                                          initial_guess = parameters,
-                                                          prev_frames=prev_frames)
+                self.numerical_minimizer.set_objective_function_parameters(graph_node, motion_primitive_constraints, prev_frames)
+                parameters = self.numerical_minimizer.run(initial_guess=parameters)
 
 
         else: # no constraints were given
