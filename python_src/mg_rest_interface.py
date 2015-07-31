@@ -64,11 +64,11 @@ class MGInputHandler(tornado.web.RequestHandler):
         """
         if motion.quat_frames is not None:  # checks for quat_frames in result_tuple
             if use_file_output_mode:
-                self.application.motion_generator.export_synthesis_result(mg_input, service_config["output_dir"], service_config["output_filename"], \
-                                        motion, add_time_stamp=False)
+                motion.export_(service_config["output_dir"],\
+                                  service_config["output_filename"],\
+                                  add_time_stamp=False, write_log=False)
                 self.write("succcess")
             else:
-
                 bvh_writer = get_bvh_writer(self.application.motion_generator.morphable_graph.skeleton, motion.quat_frames )
                 bvh_string = bvh_writer.generate_bvh_string()
                 result_list = [bvh_string, motion.frame_annotation, motion.action_list]
@@ -153,6 +153,9 @@ class MorphableGraphsRESTfulInterface(object):
     request = urllib2.Request(mg_server_url, mg_input_data)
     handler = urllib2.urlopen(request)
     bvh_string, annotations, actions = json.loads(handler.read())
+    
+    configuration can be changed by sending the data to the URL
+    'http://localhost:port/configmorphablegraphs'
     """
     def __init__(self, service_config_file, algorithm_config_file):
   
@@ -166,7 +169,7 @@ class MorphableGraphsRESTfulInterface(object):
         #  Construct morphable graph from files
         self.application = MGRestApplication(service_config, algorithm_config, 
                                              [(r"/runmorphablegraphs",MGInputHandler),
-                                              (r"/config_morphablegraphs",MGConfiguratiohHandler)
+                                              (r"/configmorphablegraphs",MGConfiguratiohHandler)
                                               ])
 
         #  Configure server

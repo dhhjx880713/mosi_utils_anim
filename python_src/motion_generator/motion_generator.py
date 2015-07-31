@@ -90,7 +90,7 @@ class MotionGenerator(object):
             
         Returns
         -------
-        * motion : AnnotatedMotion
+        * motion : MotionGeneratorResult
            Contains a list of quaternion frames and their annotation based on actions.
         """
         
@@ -133,7 +133,7 @@ class MotionGenerator(object):
             
         Returns
         -------
-        * motion: AnnotatedMotion
+        * motion: MotionGeneratorResult
             Contains the quaternion frames and annotations of the frames based on actions.
         """
         if self._algorithm_config["verbose"]:
@@ -194,7 +194,7 @@ class MotionGenerator(object):
     
         Returns
         -------
-        * motion: AnnotatedMotion
+        * motion: MotionGeneratorResult
         """
         
         if motion.step_count >0:

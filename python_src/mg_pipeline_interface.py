@@ -39,14 +39,12 @@ def run_pipeline(service_config, algorithm_config_file):
 
     start = time.clock()
     motion_generator = MotionGenerator(service_config, algorithm_config)
-    print "finished construction from file in", time.clock() - start, "seconds"
+    print "Finished construction from file in", time.clock() - start, "seconds"
 
     motion = motion_generator.generate_motion(input_file, export=False)
 
     if motion.quat_frames is not None:  # checks for quat_frames in result_tuple
-        mg_input = load_json_file(input_file)
-        motion_generator.export_synthesis_result(mg_input, service_config["output_dir"], 
-                                                 service_config["output_filename"], motion)
+        motion.export(service_config["output_dir"], service_config["output_filename"])
     else:
         print "Error: Failed to generate motion data."
 
@@ -55,6 +53,8 @@ def main():
     """Loads the latest file added to the input directory specified in
         service_config.json and runs the algorithm.
     """
+#    SEED_CONSTANT = 41
+#    np.random.seed(SEED_CONSTANT)
     if os.path.isfile(SERVICE_CONFIG_FILE):
         service_config = load_json_file(SERVICE_CONFIG_FILE)
 
