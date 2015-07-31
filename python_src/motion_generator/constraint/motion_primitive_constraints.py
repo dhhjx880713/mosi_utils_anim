@@ -39,14 +39,12 @@ class MotionPrimitiveConstraints(object):
 
     def evaluate(self, motion_primitive, sample, prev_frames, use_time_parameters=False):
         """
-        Calculates the error of a list of constraints given a sample parameter value s.
+        Calculates the error of a list of constraints given a sample parameter value.
         
         Returns
         -------
         * sum_error : float
         \tThe sum of the errors for all constraints
-        * sucesses : list of bool
-        \tSets for each entry in the constraints list wether or not a given precision was reached
     
         """
         error_sum = 0

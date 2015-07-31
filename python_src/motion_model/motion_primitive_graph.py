@@ -11,7 +11,7 @@ from . import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END
 from utilities.io_helper_functions import load_json_file, \
                                          write_to_json_file
 
-from GPMixture import GPMixture
+from gp_mixture import GPMixture
 from motion_primitive_node import MotionPrimitiveNode
 from graph_edge import GraphEdge
 

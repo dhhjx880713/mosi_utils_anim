@@ -14,7 +14,7 @@ from . import global_counter_dict
 def obj_spatial_error_sum(s, data):
     """ Calculates the error of a low dimensional motion vector s 
     given constraints.
-    Note: Time parameters and constraints will be ignored. 
+    Note: Time parameters and time constraints will be ignored. 
 
     Parameters
     ---------
@@ -25,7 +25,7 @@ def obj_spatial_error_sum(s, data):
         
     Returns
     -------
-    * error : float
+    * error: float
     """
     s = np.asarray(s)
     motion_primitive, motion_primitive_constraints, prev_frames = data
@@ -49,7 +49,7 @@ def obj_spatial_error_sum_and_naturalness(s, data):
         
     Returns
     -------
-    * error : float
+    * error: float
 
     """
     
@@ -104,7 +104,7 @@ def obj_time_error_sum(s, data):
         
     Returns
     -------
-    * error : float
+    * error: float
     """
     error_sum = 0
     return error_sum

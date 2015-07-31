@@ -12,7 +12,8 @@ from animation_data.motion_editing import convert_quaternion_frame_to_cartesian_
                     align_point_clouds_2D,\
                     pose_orientation,\
                     transform_point_cloud,\
-                    calculate_point_cloud_distance
+                    calculate_point_cloud_distance,\
+                    quaternion_to_euler
 from external.transformations import rotation_matrix
 
 POSITION_ERROR_FACTOR = 1  # importance of reaching position constraints
@@ -63,8 +64,6 @@ class PoseConstraint(KeyframeConstraint):
         -------
         * error: float
             Difference to the desired constraint value.
-        * in_precision: Boolean
-            If error is inside range precision.
         """
         # get point cloud of first frame
         point_cloud = convert_quaternion_frame_to_cartesian_frame(self.skeleton, aligned_quat_frames[0])
@@ -127,11 +126,12 @@ class PositionAndRotationConstraint(KeyframeConstraint):
         self.constrain_first_frame = constraint_desc["semanticAnnotation"]["firstFrame"]
         self.constrain_last_frame = constraint_desc["semanticAnnotation"]["lastFrame"]
         self._convert_annotation_to_indices()
+        self.rotation_axes = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
 
 
     def evaluate_motion_sample(self, aligned_quat_frames):
 
-        min_error = 10000
+        min_error = CONSTRAINT_CONFLICT_ERROR
         n_frames = len(aligned_quat_frames) 
         #check specific frames
         # check for a special case which should not happen in a single constraint
@@ -157,7 +157,7 @@ class PositionAndRotationConstraint(KeyframeConstraint):
         
     def _evaluate_joint_orientation(self, frame):
         joint_index = self.skeleton.node_name_map[self.joint_name]
-        joint_orientation = frame[joint_index:joint_index+3]
+        joint_orientation = frame[joint_index:joint_index+4]
         return self._orientation_distance(joint_orientation)
         
     def _evaluate_joint_position(self, frame):
@@ -165,22 +165,22 @@ class PositionAndRotationConstraint(KeyframeConstraint):
         return self._vector_distance(self.position, joint_position)
                                           
     def _orientation_distance(self, joint_orientation):
-        rotation_axes = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+        joint_euler_angles = quaternion_to_euler(joint_orientation)
         rotmat_constraint = np.eye(4)
         rotmat_target = np.eye(4)
         for i in xrange(3):
             if self.orientation[i] is not None:
                 tmp_constraint = rotation_matrix(np.deg2rad(self.orientation[i]),
-                                                 rotation_axes[i])
+                                                 self.rotation_axes[i])
                 rotmat_constraint = np.dot(tmp_constraint, rotmat_constraint)
-                tmp_target = rotation_matrix(np.deg2rad(joint_orientation[i]),
-                                             rotation_axes[i])
+                tmp_target = rotation_matrix(np.deg2rad(joint_euler_angles[i]),
+                                             self.rotation_axes[i])
                 rotmat_target = np.dot(tmp_target, rotmat_target)
         rotation_distance = self._vector_distance(np.ravel(rotmat_constraint),
                                             np.ravel(rotmat_target))
         return rotation_distance
         
-    def _vector_distance(self, a,b):
+    def _vector_distance(self, a, b):
         """Returns the distance ignoring entries with None
         """
         d_sum = 0

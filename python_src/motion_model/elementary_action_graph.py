@@ -15,7 +15,7 @@ from animation_data.skeleton import Skeleton
 from utilities.io_helper_functions import get_morphable_model_directory, \
                              get_transition_model_directory, \
                              load_json_file
-from GPMixture import GPMixture
+from gp_mixture import GPMixture
 from animation_data.motion_editing import align_frames, convert_quaternion_to_euler
 from motion_primitive_graph import MotionPrimitiveGraph
 from utilities.zip_io import read_graph_data_from_zip

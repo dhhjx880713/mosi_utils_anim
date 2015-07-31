@@ -24,6 +24,7 @@ class ElementaryActionConstraintsBuilder():
         then it is unconstrained
     """
     def __init__(self, mg_input, morphable_graph):
+        self.mg_input = mg_input
         self.morphable_graph = morphable_graph
         self.elementary_action_list = mg_input["elementaryActions"]
         self.keyframe_annotations = self._extract_keyframe_annotations(self.elementary_action_list)

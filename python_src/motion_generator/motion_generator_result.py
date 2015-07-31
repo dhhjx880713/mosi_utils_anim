@@ -4,11 +4,18 @@ Created on Tue Jul 14 18:39:41 2015
 
 @author: erhe01
 """
+
+import os
+from datetime import datetime
 from copy import copy
 from animation_data.motion_editing import DEFAULT_SMOOTHING_WINDOW_SIZE,\
                                           fast_quat_frames_alignment,\
                                           transform_quaternion_frames
+from utilities.io_helper_functions import write_to_json_file,\
+                                          write_to_logfile, \
+                                          export_quat_frames_to_bvh_file
 
+LOG_FILE = "log.txt"
 class GraphWalkEntry(object):
     def __init__(self, action_name, motion_primitive_name, parameters, arc_length):
         self.action_name = action_name
@@ -17,14 +24,17 @@ class GraphWalkEntry(object):
         self.arc_length = arc_length
 
 
-class AnnotatedMotion(object):
-    """
+class MotionGeneratorResult(object):
+    """ Product of the MotionGenerate class. Contains quaternion frames,
+        the graph walk used to generate the frames, a mapping of frame segments 
+        to elementary actions and a list of events for certain frames.
     Attributes
     ---------
     * start_pose: dict
         \tA dictionary contains staring position and orientation
     """
     def __init__(self):
+        self.skeleton = None
         self.action_list = {}
         self.frame_annotation = {}
         self.frame_annotation['elementaryActionSequence'] = []
@@ -35,6 +45,7 @@ class AnnotatedMotion(object):
         self.apply_smoothing = True
         self.smoothing_window = DEFAULT_SMOOTHING_WINDOW_SIZE
         self.start_pose = None
+        self.mg_input = {}
 
     def append_quat_frames(self, new_frames):
         """Align quaternion frames
@@ -147,4 +158,36 @@ class AnnotatedMotion(object):
             else:
                 action_list[key_frame] = annotations          
         return action_list
+    
+
+    def export(self, output_dir, output_filename, add_time_stamp=False, write_log=False):
+          """ Saves the resulting animation frames, the annotation and actions to files. 
+          Also exports the input file again to the output directory, where it is 
+          used as input for the constraints visualization by the animation server.
+          """
+            
+          if self.quat_frames is not None:
+    
+              time_stamp = unicode(datetime.now().strftime("%d%m%y_%H%M%S"))
+           
+              write_to_json_file(output_dir + os.sep + output_filename + ".json", self.mg_input) 
+              write_to_json_file(output_dir + os.sep + output_filename + "_actions"+".json", self.action_list)
+              
+              self.frame_annotation["events"] = []
+              reordered_frame_annotation = self.frame_annotation
+              for keyframe in self.action_list.keys():
+                for event_desc in self.action_list[keyframe]:
+                    event = {}
+                    event["jointName"] = event_desc["parameters"]["joint"]
+                    event_type = event_desc["event"]
+                    target = event_desc["parameters"]["target"]
+                    event[event_type] = target
+                    event["frameNumber"] = int(keyframe)
+                    reordered_frame_annotation["events"].append(event)
+              if write_log:
+                  write_to_logfile(output_dir + os.sep + LOG_FILE, output_filename + "_" + time_stamp, self._algorithm_config)
+              write_to_json_file(output_dir + os.sep + output_filename + "_annotations"+".json", reordered_frame_annotation)
+              export_quat_frames_to_bvh_file(output_dir, self.skeleton, self.quat_frames, prefix=output_filename, start_pose=None, time_stamp=add_time_stamp)        
+          else:
+             print "Error: no motion data to export"
     

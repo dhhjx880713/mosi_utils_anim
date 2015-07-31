@@ -11,13 +11,9 @@ based on previous steps.
 """
 import sys
 sys.path.append('..')
-import os
 import time
-from datetime import datetime
 import numpy as np
-from utilities.io_helper_functions import load_json_file, write_to_json_file,\
-                                 write_to_logfile, \
-                                 export_quat_frames_to_bvh_file                     
+from utilities.io_helper_functions import load_json_file                   
 from motion_model.elementary_action_graph import ElementaryActionGraph
 from constraint.elementary_action_constraints_builder import ElementaryActionConstraintsBuilder
 from . import global_counter_dict
@@ -26,9 +22,8 @@ from motion_model import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END
 from motion_primitive_generator import MotionPrimitiveGenerator
 from algorithm_configuration import AlgorithmConfigurationBuilder
 from constraint.motion_primitive_constraints_builder import MotionPrimitiveConstraintsBuilder
-from annotated_motion import AnnotatedMotion, GraphWalkEntry
+from motion_generator_result import MotionGeneratorResult, GraphWalkEntry
 
-LOG_FILE = "log.txt"
 SKELETON_FILE = "skeleton.bvh" # TODO replace with standard skeleton in data directory
 
 
@@ -103,10 +98,9 @@ class MotionGenerator(object):
         if type(mg_input) != dict:
             mg_input = load_json_file(mg_input)
         start = time.clock()
-        motion_constrains_builder = ElementaryActionConstraintsBuilder(mg_input, self.morphable_graph)
+        motion_constraints_builder = ElementaryActionConstraintsBuilder(mg_input, self.morphable_graph)
         
-        motion = self._generate_motion_from_constraints(motion_constrains_builder)
-                                             
+        motion = self._generate_motion_from_constraints(motion_constraints_builder)
         seconds = time.clock() - start
         self.print_runtime_statistics(seconds)
         
@@ -118,17 +112,13 @@ class MotionGenerator(object):
 
                 motion.frame_annotation["sessionID"] = mg_input["session"]
 
-            if motion.quat_frames is not None:
-            
-                self.export_synthesis_result(mg_input, self._service_config["output_dir"], output_filename, motion, add_time_stamp=True)
-            else:
-                print "Error: failed to generate motion data"
-
+            motion.export(self._service_config["output_dir"], output_filename, add_time_stamp=True, write_log=self._service_config["write_log"])
+          
         return motion
         
         
     
-    def _generate_motion_from_constraints(self, motion_constrains_builder):
+    def _generate_motion_from_constraints(self, motion_constraints_builder):
         """ Converts a constrained graph walk to quaternion frames
          Parameters
         ----------
@@ -150,11 +140,13 @@ class MotionGenerator(object):
             for key in self._algorithm_config.keys():
                 print key,self._algorithm_config[key]
     
-        motion = AnnotatedMotion()
+        motion = MotionGeneratorResult()
+        motion.skeleton = self.morphable_graph.skeleton
         motion.apply_smoothing = self._algorithm_config["apply_smoothing"]
         motion.smoothing_window = self._algorithm_config["smoothing_window"]
-        motion.start_pose = motion_constrains_builder.start_pose
-        action_constraints = motion_constrains_builder.get_next_elementary_action_constraints()
+        motion.start_pose = motion_constraints_builder.start_pose
+        motion.mg_input = motion_constraints_builder.mg_input
+        action_constraints = motion_constraints_builder.get_next_elementary_action_constraints()
         while action_constraints is not None:
        
             if self._algorithm_config["debug_max_step"] > -1 and motion.step_count > self._algorithm_config["debug_max_step"]:
@@ -170,7 +162,7 @@ class MotionGenerator(object):
             if not success:#TOOD change to other error handling
                 print "Arborting conversion"#,e.message
                 return motion
-            action_constraints = motion_constrains_builder.get_next_elementary_action_constraints() 
+            action_constraints = motion_constraints_builder.get_next_elementary_action_constraints() 
         return motion
     
     
@@ -335,33 +327,4 @@ class MotionGenerator(object):
         print total_time_string
         print evaluations_string
         print error_string
-    
-
-    def export_synthesis_result(self, input_data, output_dir, output_filename, motion, add_time_stamp=False):
-          """ Saves the resulting animation frames, the annotation and actions to files. 
-          Also exports the input file again to the output directory, where it is 
-          used as input for the constraints visualization by the animation server.
-          """
-          time_stamp = unicode(datetime.now().strftime("%d%m%y_%H%M%S"))
-       
-          write_to_json_file(output_dir + os.sep + output_filename + ".json", input_data) 
-          write_to_json_file(output_dir + os.sep + output_filename + "_actions"+".json", motion.action_list)
-          
-          motion.frame_annotation["events"] = []
-          reordered_frame_annotation = motion.frame_annotation
-          for keyframe in motion.action_list.keys():
-            for event_desc in motion.action_list[keyframe]:
-                event = {}
-                event["jointName"] = event_desc["parameters"]["joint"]
-                event_type = event_desc["event"]
-                target = event_desc["parameters"]["target"]
-                event[event_type] = target
-                event["frameNumber"] = int(keyframe)
-                reordered_frame_annotation["events"].append(event)
-          if self._service_config["write_log"]:
-              write_to_logfile(output_dir + os.sep + LOG_FILE, output_filename + "_" + time_stamp, self._algorithm_config)
-          write_to_json_file(output_dir + os.sep + output_filename + "_annotations"+".json", reordered_frame_annotation)
-          export_quat_frames_to_bvh_file(output_dir, self.morphable_graph.skeleton, motion.quat_frames, prefix=output_filename, start_pose=None, time_stamp=add_time_stamp)        
-    
-    
     
