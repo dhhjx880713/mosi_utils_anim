@@ -15,11 +15,11 @@
         "quality_scale_factor": 0, 
         "optimize_theta": false, 
         "tolerance": 0.05, 
-        "method": "Nelder-Mead", 
-        "max_iterations": 150
+        "method": "BFGS", 
+        "max_iterations": 300
     }, 
     "activate_cluster_search": true,
-    "n_cluster_search_candidates": 2,
+    "n_cluster_search_candidates": 1,
     "constrained_gmm_settings": {
         "precision": {
             "smooth": 5, 
