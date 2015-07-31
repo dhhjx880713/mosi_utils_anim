@@ -53,6 +53,9 @@ class MotionPrimitiveConstraintsBuilder(object):
         mp_constraints.constraints = []
         mp_constraints.goal_arc_length = 0
         mp_constraints.step_start = self.status["last_pos"]
+        mp_constraints.start_pose = self.action_constraints.start_pose
+        mp_constraints.skeleton = self.action_constraints.get_skeleton()
+        mp_constraints.precision = self.action_constraints.precision
         
         if self.action_constraints.trajectory is not None:
             self._set_trajectory_constraints(mp_constraints)

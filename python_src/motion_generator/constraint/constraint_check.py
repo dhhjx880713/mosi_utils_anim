@@ -441,13 +441,6 @@ def evaluate_list_of_constraints(motion_primitive,s,constraints,prev_frames,star
     return error_sum, successes
     
 
-def obj_error_sum(s,data):
-    s = np.asarray(s)
-    motion_primitive, constraints, prev_frames,start_pose, skeleton,precision = data
-    error_sum, successes = evaluate_list_of_constraints(motion_primitive,s,constraints,prev_frames,start_pose,skeleton,
-                                                           precision=precision,verbose=False)
-    global_counter_dict["evaluations"] += 1
-    return error_sum
 
 
 

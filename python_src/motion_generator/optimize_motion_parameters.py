@@ -9,7 +9,6 @@ Wrapper around scipy minimize and error function definition.
 
 import time
 import numpy as np
-from constraint.constraint_check import obj_error_sum
 from scipy.optimize import minimize
 from sklearn.mixture.gmm import _log_multivariate_normal_density_full
 from scipy.optimize.optimize import approx_fprime
@@ -93,14 +92,17 @@ class NumericalMinimizer(object):
         self.verbose = algorithm_config["verbose"]
         self._skeleton = skeleton
         self._start_pose = start_pose
+        self._objective_function = None
         self._error_func_params = None
         return
         
-    def _set_error_func_parameters(self, motion_primitive_node, constraints, prev_frames):
-        self._error_func_params = motion_primitive_node.motion_primitive, constraints, \
-                                   prev_frames, self._start_pose, \
-                                   self._skeleton, {"pos":1,"rot":1,"smooth":1}, \
-                                   self.optimization_settings["error_scale_factor"], \
+    def set_objective_function(self, obj):
+        self.objective_function = obj
+        return
+        
+    def _set_error_func_parameters(self, motion_primitive_node, motion_primitve_constraints, prev_frames):
+        self._error_func_params = motion_primitive_node.motion_primitive, motion_primitve_constraints, \
+                                   prev_frames, self.optimization_settings["error_scale_factor"], \
                                    self.optimization_settings["quality_scale_factor"]
 
     
@@ -137,7 +139,7 @@ class NumericalMinimizer(object):
             print "Start optimization using", self.optimization_settings["method"], self.optimization_settings["max_iterations"]
     #    jac = error_function_jac(s0, data)
         try:
-            result = minimize(error_func,
+            result = minimize(self._objective_function,
                               s0,
                               args = (self._error_func_params,),
                               method=self.optimization_settings["method"], 

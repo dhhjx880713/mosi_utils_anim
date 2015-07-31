@@ -10,10 +10,17 @@ from animation_data.evaluation_methods import check_sample_validity
 from statistics.constrained_gmm_builder import ConstrainedGMMBuilder
 from utilities.exceptions import ConstraintError, SynthesisError
 from optimize_motion_parameters import NumericalMinimizer
-from constraint.constraint_check import obj_error_sum,\
-                                        global_counter_dict
+from constraint.constraint_check import global_counter_dict
 
 
+def obj_error_sum(s,data):
+    s = np.asarray(s)
+    motion_primitive, motion_primitive_constraint, prev_frames = data
+    error_sum = motion_primitive_constraint.evaluate(motion_primitive, s, prev_frames)
+    global_counter_dict["evaluations"] += 1
+    return error_sum
+    
+    
 class MotionPrimitiveGenerator(object):
     """
     Parameters
@@ -50,6 +57,7 @@ class MotionPrimitiveGenerator(object):
         else:
             self._constrained_gmm_builder = None
         self.numerical_minimizer = NumericalMinimizer(self._algorithm_config, self.skeleton, action_constraints.start_pose)
+        self.numerical_minimizer.set_objective_function(obj_error_sum)
         
         
     def generate_motion_primitive_from_constraints(self, motion_primitive_constraints, prev_motion):
@@ -59,7 +67,6 @@ class MotionPrimitiveGenerator(object):
         ----------
         *motion_primitive_constraints: MotionPrimitiveConstraints
             Constraints specific for the current motion primitive.
-    
         *prev_motion: AnnotatedMotion
             Annotated motion with information on the graph walk.
             
@@ -87,7 +94,7 @@ class MotionPrimitiveGenerator(object):
         
         try:
             parameters = self.get_optimal_motion_primitive_parameters(mp_name,
-                                                motion_primitive_constraints.constraints,
+                                                motion_primitive_constraints,
                                                 prev_mp_name=prev_mp_name,
                                                 prev_frames=prev_motion.quat_frames,
                                                 prev_parameters=prev_parameters, use_optimization=use_optimization)
@@ -101,7 +108,7 @@ class MotionPrimitiveGenerator(object):
 
 
     def get_optimal_motion_primitive_parameters(self, mp_name,
-                                 constraints,
+                                 motion_primitive_constraints,
                                  prev_mp_name="", 
                                  prev_frames=None, 
                                  prev_parameters=None,
@@ -111,8 +118,8 @@ class MotionPrimitiveGenerator(object):
         ----------
         * mp_name : string
             name of the motion primitive and node in the subgraph of the elemantary action
-        * constraints: list
-            list of dict with position constraints for joints
+        * motion_primitive_constraints: MotionPrimitiveConstraints
+            contains a list of dict with constraints for joints
         * prev_frames: np.ndarry
             quaternion frames               
         * use_optimization: boolean
@@ -125,7 +132,7 @@ class MotionPrimitiveGenerator(object):
 
 
 
-        if self.use_constraints and len(constraints) > 0: # estimate parameters fitting constraints
+        if self.use_constraints and len(motion_primitive_constraints.constraints) > 0: # estimate parameters fitting constraints
             
             graph_node = self._morphable_graph.subgraphs[self.action_name].nodes[mp_name]
             gmm = graph_node.motion_primitive.gmm
@@ -134,14 +141,14 @@ class MotionPrimitiveGenerator(object):
             if self.activate_cluster_search and graph_node.cluster_tree is not None:
                 #  find best sample using a directed search in a 
                 #  space partitioning data structure
-                parameters = self._search_for_best_sample_in_cluster_tree(graph_node, constraints, prev_frames, self._algorithm_config["n_cluster_search_candidates"])
+                parameters = self._search_for_best_sample_in_cluster_tree(graph_node, motion_primitive_constraints, prev_frames, self._algorithm_config["n_cluster_search_candidates"])
                 close_to_optimum = True
             else: 
                 #  1) get gmm and modify it based on the current state and settings
                 # Get prior gaussian mixture model from node
                 
                 if self._constrained_gmm_builder is not None:
-                    gmm = self._constrained_gmm_builder.build(self.action_name, mp_name, constraints,
+                    gmm = self._constrained_gmm_builder.build(self.action_name, mp_name, motion_primitive_constraints.constraints,
                                                               self.prev_action_name, prev_mp_name, 
                                                               prev_frames, prev_parameters)
                                                 
@@ -153,13 +160,13 @@ class MotionPrimitiveGenerator(object):
                 #  2) sample parameters  from the Gaussian Mixture Model based on constraints and make sure
                 #     the resulting motion is valid                
                 parameters, min_error = self._pick_best_random_sample(graph_node,gmm,
-                                                                    constraints,prev_frames)
+                                                                    motion_primitive_constraints,prev_frames)
                 close_to_optimum = True
                 
             # B) optimize sampled parameters as initial guess if the constraints were not reached
             if  not self.use_transition_model and use_optimization and not close_to_optimum:
 
-                parameters = self.numerical_minimizer.run(graph_node, gmm, constraints,
+                parameters = self.numerical_minimizer.run(graph_node, gmm, motion_primitive_constraints,
                                                           initial_guess = parameters,
                                                           prev_frames=prev_frames)
 
@@ -196,7 +203,7 @@ class MotionPrimitiveGenerator(object):
     def _search_for_best_sample_in_cluster_tree(self, graph_node, constraints, prev_frames, n_candidates=2):
         """ Directed search in precomputed hierarchical space partitioning data structure
         """
-        data = graph_node.motion_primitive, constraints, prev_frames,self._action_constraints.start_pose, self.skeleton, self.precision
+        data = graph_node.motion_primitive, constraints, prev_frames
         distance, s = graph_node.search_best_sample(obj_error_sum, data, n_candidates)
         print "found best sample with distance:",distance
         global_counter_dict["motionPrimitveErrors"].append(distance)
@@ -209,19 +216,19 @@ class MotionPrimitiveGenerator(object):
         Parameters
         ----------
         * mp_node : MotionPrimitiveNode
-        \t contains a motion primitive and meta information
+            contains a motion primitive and meta information
         * gmm : sklearn.mixture.gmm
-        \tThe gmm to sample
-    	  * constraints : list of dict
-    	  \t Each entry should contain joint position orientation and semanticAnnotation
+            The gmm to sample
+        * motion_primitive_constraints: MotionPrimitiveConstraints
+        contains a list of dict with constraints for joints
         * prev_frames: list
-        \tA list of quaternion frames
+            A list of quaternion frames
         Returns
         -------
         * sample : numpy.ndarray
-        \tThe best sample out of those which have been created
+            The best sample out of those which have been created
         * error : bool
-        \t the error of the best sample
+            the error of the best sample
        
         """
         best_sample = None
@@ -242,7 +249,7 @@ class MotionPrimitiveGenerator(object):
             else:
                 valid = True
             if valid:                 
-                object_function_params = mp_node.motion_primitive, constraints, prev_frames, self._action_constraints.start_pose, self.skeleton, self.precision 
+                object_function_params = mp_node.motion_primitive, constraints, prev_frames
                 error = obj_error_sum(s,object_function_params)
                 if min_error > error:
                     min_error = error
