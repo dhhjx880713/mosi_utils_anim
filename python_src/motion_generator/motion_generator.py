@@ -19,7 +19,7 @@ from utilities.io_helper_functions import load_json_file, write_to_json_file,\
                                  write_to_logfile, \
                                  export_quat_frames_to_bvh_file                     
 from motion_model.elementary_action_graph import ElementaryActionGraph
-from constraint.motion_constraints import MotionConstraints
+from constraint.elementary_action_constraints_builder import ElementaryActionConstraintsBuilder
 from constraint.constraint_check import global_counter_dict
 from utilities.exceptions import SynthesisError, PathSearchError
 from motion_model import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END
@@ -103,9 +103,9 @@ class MotionGenerator(object):
         if type(mg_input) != dict:
             mg_input = load_json_file(mg_input)
         start = time.clock()
-        motion_constrains = MotionConstraints(mg_input, self.morphable_graph)
+        motion_constrains_builder = ElementaryActionConstraintsBuilder(mg_input, self.morphable_graph)
         
-        motion = self._generate_motion_from_constraints(motion_constrains)
+        motion = self._generate_motion_from_constraints(motion_constrains_builder)
                                              
         seconds = time.clock() - start
         self.print_runtime_statistics(seconds)
@@ -128,13 +128,13 @@ class MotionGenerator(object):
         
         
     
-    def _generate_motion_from_constraints(self, motion_constraints):
+    def _generate_motion_from_constraints(self, motion_constrains_builder):
         """ Converts a constrained graph walk to quaternion frames
          Parameters
         ----------
         * morphable_graph : MorphableGraph
             Data structure containing the morphable models
-        * motion_constraints : list of dict
+        * motion_constrains_builder : ElementaryActionConstraintsBuilder
             Contains a list of dictionaries with the entries for "subgraph","state" and "parameters"
         * algorithm_config : dict
             Contains parameters for the algorithm.
@@ -153,8 +153,8 @@ class MotionGenerator(object):
         motion = AnnotatedMotion()
         motion.apply_smoothing = self._algorithm_config["apply_smoothing"]
         motion.smoothing_window = self._algorithm_config["smoothing_window"]
-        motion.start_pose = motion_constraints.start_pose
-        action_constraints = motion_constraints.get_next_elementary_action_constraints()
+        motion.start_pose = motion_constrains_builder.start_pose
+        action_constraints = motion_constrains_builder.get_next_elementary_action_constraints()
         while action_constraints is not None:
        
             if self._algorithm_config["debug_max_step"] > -1 and motion.step_count > self._algorithm_config["debug_max_step"]:
@@ -170,7 +170,7 @@ class MotionGenerator(object):
             if not success:#TOOD change to other error handling
                 print "Arborting conversion"#,e.message
                 return motion
-            action_constraints = motion_constraints.get_next_elementary_action_constraints() 
+            action_constraints = motion_constrains_builder.get_next_elementary_action_constraints() 
         return motion
     
     

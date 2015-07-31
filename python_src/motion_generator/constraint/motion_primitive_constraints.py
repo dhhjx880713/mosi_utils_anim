@@ -32,3 +32,7 @@ class MotionPrimitiveConstraints(object):
         print "the new goal for " + self.motion_primitive_name
         print self.step_goal
         print "arc length is: " + str(self.goal_arc_length)
+        
+        
+    def evaluate(self, sample):
+        return
