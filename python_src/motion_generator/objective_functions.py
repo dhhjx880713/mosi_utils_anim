@@ -11,15 +11,23 @@ from scipy.optimize.optimize import approx_fprime
 from . import global_counter_dict
                       
 
-def obj_error_sum(s,data):
+def obj_spatial_error_sum(s,data):
+    """ Note: Time parameters and constraints will be ignored. 
+    """
     s = np.asarray(s)
     motion_primitive, motion_primitive_constraint, prev_frames = data
-    error_sum = motion_primitive_constraint.evaluate(motion_primitive, s, prev_frames)
+
+    error_sum = motion_primitive_constraint.evaluate(motion_primitive, s, prev_frames,use_time_parameters=False)
     global_counter_dict["evaluations"] += 1
     return error_sum
     
+def obj_time_error_sum(s,data):
+    """ TODO
+    """
+    error_sum = 0
+    return error_sum
     
-def obj_error_sum_and_naturalness(s,data):
+def obj_spatial_error_sum_and_naturalness(s,data):
     """ Calculates the error of a low dimensional motion vector s given 
         constraints and the prior knowledge from the statistical model
 
@@ -40,7 +48,7 @@ def obj_error_sum_and_naturalness(s,data):
 #    error_scale_factor, bvh_reader,prev_frames, node_name_map, bounding_boxes,\
 #    start_transformation,epsilon = data  # the pre_frames are quaternion frames
     #kinematic_error = kinematic_error_func(s,data)
-    kinematic_error = obj_error_sum(s,data[:-2])# ignore the kinematic factor and quality factor
+    kinematic_error = obj_spatial_error_sum(s,data[:-2])# ignore the kinematic factor and quality factor
     #print "s-vector",optimize_theta
     error_scale_factor = data[-1]
     quality_scale_factor = data[-2]
@@ -50,7 +58,7 @@ def obj_error_sum_and_naturalness(s,data):
     print "error",error
     return error
     
-def obj_error_sum_and_naturalness_jac(x0, data):
+def obj_spatial_error_sum_and_naturalness_jac(x0, data):
     """ jacobian of error function. It is a combination of analytic solution 
         for motion primitive model and numerical solution for kinematic error
     """
@@ -75,7 +83,7 @@ def obj_error_sum_and_naturalness_jac(x0, data):
     denominator = np.exp(gmm.score([x0])[0])
 #    denominator = motion_primitive.gmm.score([x0])[0]
     logLikelihood_jac = numerator / denominator
-    kinematic_jac = approx_fprime(x0, obj_error_sum, 1e-7, data[-2:])# ignore the kinematic factor and quality factor
+    kinematic_jac = approx_fprime(x0, obj_spatial_error_sum, 1e-7, data[-2:])# ignore the kinematic factor and quality factor
     jac = logLikelihood_jac * quality_scale_factor + kinematic_jac * error_scale_factor
     return jac
 

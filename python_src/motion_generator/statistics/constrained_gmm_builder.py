@@ -19,7 +19,7 @@ class ConstrainedGMMBuilder(object):
         return
         
 
-    def build(self, action_name, mp_name, constraints, prev_action_name=None, prev_mp_name=None, prev_frames=None, prev_parameters=None):
+    def build(self, action_name, mp_name, motion_primitive_constraints, prev_action_name=None, prev_mp_name=None, prev_frames=None, prev_parameters=None):
         """ Restrict the gmm to samples that roughly fit the constraints and 
             multiply with a predicted GMM from the transition model.
         """
@@ -38,17 +38,17 @@ class ConstrainedGMMBuilder(object):
                 gmm = self._create_next_motion_distribution(prev_parameters, prev_primitve,\
                                                     self._morphable_graph.subgraphs[action_name].nodes[mp_name],\
                                                     gpm, prev_frames,\
-                                                    constraints)
+                                                    motion_primitive_constraints)
     
         else:
             gmm = self._create_constrained_gmm(self._morphable_graph.subgraphs[action_name].nodes[mp_name],\
-                                            constraints, prev_frames)   
+                                            motion_primitive_constraints, prev_frames)   
         
         return gmm
 
 
 
-    def _constrain_primitive(self, mp_node,constraint, prev_frames):
+    def _constrain_primitive(self, mp_node, constraint, prev_frames):
         """constrains a primitive with a given constraint
     
         Parameters
@@ -74,7 +74,7 @@ class ConstrainedGMMBuilder(object):
 
 
 
-    def _create_constrained_gmm(self, mp_node, constraints, prev_frames):
+    def _create_constrained_gmm(self, mp_node, motion_primitive_constraints, prev_frames):
     
         """constrains a primitive with all given constraints and yields one gmm
         Parameters
@@ -93,10 +93,10 @@ class ConstrainedGMMBuilder(object):
         \tThe gmm of the motion_primitive constrained by the constraints
         """
         if self.verbose:
-            print "generating gmm using",len(constraints),"constraints"
+            print "generating gmm using",len(motion_primitive_constraints.constraints),"constraints"
             start = time.clock()
         cgmms = []
-        for i, constraint in enumerate(constraints):
+        for i, constraint in enumerate(motion_primitive_constraints.constraints):
             print "\t checking constraint %d" % i
             #print constraint
             #constraint = (c['joint'], c['position'], c['orientation'])
@@ -111,7 +111,7 @@ class ConstrainedGMMBuilder(object):
     
     
     def create_next_motion_distribution(self, prev_parameters, prev_primitive, mp_node,
-                                        gpm, prev_frames, constraints=None):
+                                        gpm, prev_frames, motion_primitive_constraints=None):
         """ creates the motion following the first_motion fulfilling the given
         constraints and multiplied by the output_gmm
     
@@ -140,8 +140,8 @@ class ConstrainedGMMBuilder(object):
         """
     
         predict_gmm = gpm.predict(prev_parameters)
-        if constraints:
-            cgmm = self._create_constrained_gmm(mp_node, constraints, prev_frames)
+        if motion_primitive_constraints:
+            cgmm = self._create_constrained_gmm(mp_node, motion_primitive_constraints, prev_frames)
             constrained_predict_gmm = mul(predict_gmm, cgmm)
             return mul(constrained_predict_gmm, mp_node.motion_primitive.gmm)
         else:

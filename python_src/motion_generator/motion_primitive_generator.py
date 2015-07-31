@@ -11,7 +11,7 @@ from statistics.constrained_gmm_builder import ConstrainedGMMBuilder
 from utilities.exceptions import ConstraintError, SynthesisError
 from numerical_minimizer import NumericalMinimizer
 from . import global_counter_dict
-from objective_functions import obj_error_sum, obj_error_sum_and_naturalness
+from objective_functions import obj_spatial_error_sum, obj_spatial_error_sum_and_naturalness
 
 
 
@@ -52,7 +52,7 @@ class MotionPrimitiveGenerator(object):
         else:
             self._constrained_gmm_builder = None
         self.numerical_minimizer = NumericalMinimizer(self._algorithm_config, self.skeleton, action_constraints.start_pose)
-        self.numerical_minimizer.set_objective_function(obj_error_sum_and_naturalness)
+        self.numerical_minimizer.set_objective_function(obj_spatial_error_sum_and_naturalness)
         
         
     def generate_motion_primitive_from_constraints(self, motion_primitive_constraints, prev_motion):
@@ -199,7 +199,7 @@ class MotionPrimitiveGenerator(object):
         """ Directed search in precomputed hierarchical space partitioning data structure
         """
         data = graph_node.motion_primitive, constraints, prev_frames
-        distance, s = graph_node.search_best_sample(obj_error_sum, data, n_candidates)
+        distance, s = graph_node.search_best_sample(obj_spatial_error_sum, data, n_candidates)
         print "found best sample with distance:",distance
         global_counter_dict["motionPrimitveErrors"].append(distance)
         return np.array(s)                                 
@@ -245,7 +245,7 @@ class MotionPrimitiveGenerator(object):
                 valid = True
             if valid:                 
                 object_function_params = mp_node.motion_primitive, constraints, prev_frames
-                error = obj_error_sum(s,object_function_params)
+                error = obj_spatial_error_sum(s,object_function_params)
                 if min_error > error:
                     min_error = error
                     best_sample = s

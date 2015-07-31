@@ -14,9 +14,9 @@ from scipy.optimize import minimize
 
 
 class NumericalMinimizer(object):
-    """ A wrapper class for Scipy minimize that implements different Gradient Descent and
+    """ A wrapper class for Scipy minimize module that implements different gradient descent and
         derivative free optimization methods.
-        Official documentation of that module:
+        Please see the official documentation of that module for the supported optimization methods:
         http://docs.scipy.org/doc/scipy-0.15.1/reference/generated/scipy.optimize.minimize.html
     """
     def __init__(self, algorithm_config, skeleton, start_pose=None):        
