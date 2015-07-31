@@ -7,7 +7,8 @@ Created on Fri Feb 13 10:09:45 2015
 
 import numpy as np
 import sklearn.mixture as mixture
-from ..constraint.constraint_check import check_constraint, find_aligned_quaternion_frames
+from animation_data.motion_editing import align_quaternion_frames
+from motion_generator.constraint.constraint_check import check_constraint
 from operator import itemgetter
 from utilities.exceptions import ConstraintError
 
@@ -58,7 +59,9 @@ class ConstrainedGMM(mixture.GMM):
     def sample_and_check_constraint(self,constraint, prev_frames, firstFrame=None, lastFrame=None):
         success = False
         s = self.sample()[0]
-        aligned_frames  = find_aligned_quaternion_frames(self.mm_, s, prev_frames,
+        
+        new_frames = self.mm_.back_project(s, use_time_parameters=False).get_motion_vector()
+        aligned_frames  = align_quaternion_frames(new_frames, prev_frames,
                                                      self.start_pose)
         ok,failed = check_constraint(aligned_frames, constraint,
                                      self.skeleton,

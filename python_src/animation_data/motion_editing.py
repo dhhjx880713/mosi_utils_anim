@@ -1154,6 +1154,43 @@ def get_trajectory_dir_from_2d_points(points):
     return orientation_vec
 
 
+
+def align_quaternion_frames(quat_frames, prev_frames=None, aligning_transformation=None):
+    """Concatenate and align quaternion frames based on previous frames or 
+        given transformation
+       
+    Parameters
+    ----------
+    * new_frames: list
+         A list of quaternion frames
+    * prev_frames: list
+        A list of quaternion frames
+   *  aligning_transformation: dict
+       Contains translation and orientation in Euler angles
+    Returns:
+    --------
+    * transformed_frames: np.ndarray
+        Quaternion frames resulting from the back projection of s,
+        transformed to fit to prev_frames.
+        
+    """
+    # find alignment transformation or use given transformation
+    if prev_frames is not None:
+        #print prev_frames
+        angle, offset = fast_quat_frames_transformation(prev_frames, quat_frames)
+        aligning_transformation = {"orientation":[0,angle,0],"position":offset}                                                 
+    if aligning_transformation is not None:
+        # align frames
+        transformed_frames = transform_quaternion_frames(quat_frames,
+                                                  aligning_transformation["orientation"],
+                                                  aligning_transformation["position"])
+        return transformed_frames
+    else:
+        return quat_frames
+
+        
+
+
 def main():
     q = [2.03844784e-01, 6.46012476e-01, 7.41049869e-01, -5.18757119e-03]
     start = time.clock()
@@ -1172,6 +1209,8 @@ def main():
 #    euler_angles = np.rad2deg(euler_angles)
 #    print euler_angles
         
+        
+
     
 
 if __name__ == "__main__":
