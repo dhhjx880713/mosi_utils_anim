@@ -3,5 +3,6 @@
      "n_random_samples" : 10000,
      "n_levels" : 8,
      "n_subdivisions_per_level" : 4,
-     "random_seed" : null
+     "random_seed" : null,
+     "only_spatial_parameters" : True
 }

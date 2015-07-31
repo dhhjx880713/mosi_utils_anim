@@ -30,7 +30,7 @@ class ClusterTreeBuilder(object):
         self.n_subdivisions_per_level = 4
         self.n_levels = 4
         self.random_seed = None
-        
+        self.only_spatial_parameters = True
         return
         
     def set_config(self, config_file_path):
@@ -41,13 +41,17 @@ class ClusterTreeBuilder(object):
         self.n_subdivisions_per_level = config["n_subdivisions_per_level"]
         self.n_levels = config["n_levels"]
         self.random_seed = config["random_seed"]
+        self.only_spatial_parameters = config["only_spatial_parameters"]
         
     def _create_space_partitioning(self, motion_primitive, cluster_file_name):
         print "construct space partitioning data structure for", motion_primitive.name
 
         X = np.array([motion_primitive.sample(return_lowdimvector=True) for i in xrange(self.n_samples)])
-        n_dims = motion_primitive.s_pca["n_components"]
-        print "maximum dimension set to", n_dims
+        if self.only_spatial_parameters:
+            n_dims = motion_primitive.s_pca["n_components"]
+            print "maximum dimension set to", n_dims, "ignoring time parameters"
+        else:
+            n_dims = len(X[0])
         cluster_tree = ClusterTree(self.n_subdivisions_per_level, self.n_levels, n_dims)
         cluster_tree.construct(X)
         #self.cluster_tree.save_to_file(cluster_file_name+"tree")
