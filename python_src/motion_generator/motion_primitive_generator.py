@@ -143,7 +143,7 @@ class MotionPrimitiveGenerator(object):
                 # Get prior gaussian mixture model from node
                 
                 if self._constrained_gmm_builder is not None:
-                    gmm = self._constrained_gmm_builder.build(self.action_name, mp_name, motion_primitive_constraints.constraints,
+                    gmm = self._constrained_gmm_builder.build(self.action_name, mp_name, motion_primitive_constraints,
                                                               self.prev_action_name, prev_mp_name, 
                                                               prev_frames, prev_parameters)
                                                 
@@ -160,7 +160,12 @@ class MotionPrimitiveGenerator(object):
                 
             # B) optimize sampled parameters as initial guess if the constraints were not reached
             if  not self.use_transition_model and use_optimization and not close_to_optimum:
-                self.numerical_minimizer.set_objective_function_parameters(graph_node, motion_primitive_constraints, prev_frames)
+
+                data =  graph_node.motion_primitive, motion_primitive_constraints, \
+                       prev_frames, self._optimization_settings["error_scale_factor"], \
+                       self._optimization_settings["quality_scale_factor"]
+
+                self.numerical_minimizer.set_objective_function_parameters(data)
                 parameters = self.numerical_minimizer.run(initial_guess=parameters)
 
 

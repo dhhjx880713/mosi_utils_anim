@@ -215,7 +215,7 @@ class MotionGenerator(object):
     
         motion_primitive_constraints_builder = MotionPrimitiveConstraintsBuilder()
         motion_primitive_constraints_builder.set_action_constraints(action_constraints)
-        motion_primitive_constraints_builder.set_trajectory_following_settings(self._algorithm_config)
+        motion_primitive_constraints_builder.set_algorithm_config(self._algorithm_config)
         motion_primitive_generator = MotionPrimitiveGenerator(action_constraints, self._algorithm_config, prev_action_name)
         start_frame = motion.n_frames
         #start_step = motion.step_count

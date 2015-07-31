@@ -8,9 +8,7 @@ Wrapper around scipy minimize and error function definition.
 """
 
 import time
-import numpy as np
 from scipy.optimize import minimize
-
 
 
 class NumericalMinimizer(object):
@@ -34,10 +32,8 @@ class NumericalMinimizer(object):
         self._objective_function = obj
         return
         
-    def set_objective_function_parameters(self, motion_primitive_node, motion_primitve_constraints, prev_frames=None):
-        self._error_func_params = motion_primitive_node.motion_primitive, motion_primitve_constraints, \
-                                   prev_frames, self.optimization_settings["error_scale_factor"], \
-                                   self.optimization_settings["quality_scale_factor"]
+    def set_objective_function_parameters(self,data):
+        self._error_func_params = data
 
     
     def run(self, initial_guess):

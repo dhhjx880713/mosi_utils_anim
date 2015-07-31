@@ -109,16 +109,15 @@ class AnnotatedMotion(object):
         key_frame_label_pairs = set()
         #extract the set of keyframes and their annotations referred to by the constraints
         for c in constraints:
-            if "semanticAnnotation" in c.keys():
-                for key_label in c["semanticAnnotation"]:  # can also contain lastFrame and firstFrame
-                    if key_label in keyframe_annotations.keys() and key_label in time_information.keys():
-                        if time_information[key_label] == "lastFrame":
-                            key_frame = last_frame
-                        elif time_information[key_label] == "firstFrame":
-                            key_frame = start_frame
-                            
-                        if "annotations" in keyframe_annotations[key_label].keys():
-                            key_frame_label_pairs.add((key_frame,key_label))
+            for key_label in c.semantic_annotation.keys():  # can also contain lastFrame and firstFrame
+                if key_label in keyframe_annotations.keys() and key_label in time_information.keys():
+                    if time_information[key_label] == "lastFrame":
+                        key_frame = last_frame
+                    elif time_information[key_label] == "firstFrame":
+                        key_frame = start_frame
+                        
+                    if "annotations" in keyframe_annotations[key_label].keys():
+                        key_frame_label_pairs.add((key_frame,key_label))
                             
             
         #extract the annotations for the referred keyframes

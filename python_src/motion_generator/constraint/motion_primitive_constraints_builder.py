@@ -11,6 +11,7 @@ from utilities.exceptions import PathSearchError
 from animation_data.motion_editing import convert_quaternion_to_euler, \
                                 get_cartesian_coordinates_from_euler                               
 from motion_primitive_constraints import MotionPrimitiveConstraints
+from keyframe_constraints import PoseConstraint, DirectionConstraint, PositionAndRotationConstraint
 
 class MotionPrimitiveConstraintsBuilder(object):
     """ Extracts a list of constraints for a motion primitive from ElementaryActionConstraints 
@@ -28,8 +29,9 @@ class MotionPrimitiveConstraintsBuilder(object):
         self.morphable_subgraph = self.action_constraints.get_subgraph()
         self.skeleton = self.action_constraints.get_skeleton()
         
-    def set_trajectory_following_settings(self, algorithm_config):
+    def set_algorithm_config(self, algorithm_config):
         self.algorithm_config = algorithm_config
+        self.precision = algorithm_config["constrained_gmm_settings"]["precision"]
         self.trajectory_following_settings = algorithm_config["trajectory_following_settings"]#  TODO move trajectory_following_settings to different key of the algorithm_config
         
     def set_status(self, motion_primitive_name, last_arc_length, prev_frames=None, is_last_step=False):
@@ -84,21 +86,25 @@ class MotionPrimitiveConstraintsBuilder(object):
         mp_constraints.print_status()
 
         if mp_constraints.settings["use_frame_constraints"] and self.status["prev_frames"] is not None:
-            frame_constraint = self._create_frame_constraint()
-            mp_constraints.constraints.append(frame_constraint)
+            pose_constraint_desc = self._create_frame_constraint()
+            pose_constraint = PoseConstraint(self.skeleton, pose_constraint_desc, self.precision["smooth"])
+            mp_constraints.constraints.append(pose_constraint)
             mp_constraints.pose_constraint_set = True
         
         root_joint_name = self.skeleton.root
         if mp_constraints.settings["use_position_constraints"]:
-          pos_semantic_annotation={"firstFrame":None,"lastFrame":True}
-          pos_constraint = {"joint":root_joint_name,"position":mp_constraints.step_goal,
-                      "semanticAnnotation":pos_semantic_annotation}
-          mp_constraints.constraints.append(pos_constraint)
+          keyframe_semantic_annotation={"firstFrame": None, "lastFrame": True}
+          keyframe_constraint_desc = {"joint": root_joint_name, "position": mp_constraints.step_goal,
+                      "semanticAnnotation": keyframe_semantic_annotation}
+          keyframe_constraint = PositionAndRotationConstraint(self.skeleton, keyframe_constraint_desc, self.precision["pos"])
+          mp_constraints.constraints.append(keyframe_constraint)
+          
         if mp_constraints.settings["use_dir_vector_constraints"]:
-            rot_semantic_annotation={"firstFrame":None,"lastFrame":True}
-            rot_constraint = {"joint":root_joint_name, "dir_vector":dir_vector,
-                          "semanticAnnotation":rot_semantic_annotation}
-            mp_constraints.constraints.append(rot_constraint)
+            dir_semantic_annotation={"firstFrame": None, "lastFrame": True}
+            dir_constraint_desc = {"joint": root_joint_name, "dir_vector": dir_vector,
+                          "semanticAnnotation": dir_semantic_annotation}
+            direction_constraint = DirectionConstraint(self.skeleton, dir_constraint_desc, self.precision["rot"])
+            mp_constraints.constraints.append(direction_constraint)
         
 
 
@@ -107,13 +113,16 @@ class MotionPrimitiveConstraintsBuilder(object):
         """
 
         if self.status["motion_primitive_name"] in self.action_constraints.keyframe_constraints.keys():
-            mp_constraints.constraints+= self.action_constraints.keyframe_constraints[self.status["motion_primitive_name"]]
+            keyframe_constraint_desc_list = self.action_constraints.keyframe_constraints[self.status["motion_primitive_name"]]
+            for i in xrange(len(keyframe_constraint_desc_list)):
+                mp_constraints.constraints.append(PositionAndRotationConstraint(self.skeleton, keyframe_constraint_desc_list[i], self.precision["pos"]))
             
         # generate frame constraints for the last step basd on the previous state
         # if not already done for the trajectory following
         if not mp_constraints.pose_constraint_set and self.status["is_last_step"] and self.status["prev_frames"] is not None:
-            frame_constraint= self._create_frame_constraint()
-            mp_constraints.constraints.append(frame_constraint)
+            pose_constraint_desc = self._create_frame_constraint()
+            pose_constraint = PoseConstraint(self.skeleton, pose_constraint_desc, self.precision["smooth"])
+            mp_constraints.constraints.append(pose_constraint)
 
       
 

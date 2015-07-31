@@ -8,7 +8,6 @@ Created on Fri Feb 13 10:09:45 2015
 import numpy as np
 import sklearn.mixture as mixture
 from animation_data.motion_editing import align_quaternion_frames
-from motion_generator.constraint.constraint_check import check_constraint
 from operator import itemgetter
 from utilities.exceptions import ConstraintError
 
@@ -48,39 +47,21 @@ class ConstrainedGMM(mixture.GMM):
         self.means_ = gmm.means_
         self.converged_ = gmm.converged_
         self.covars_ = gmm.covars_
-        self.samples_ = None
     
-        self.n_random_samples = self._algorithm_config["n_random_samples"]
+        self.n_random_samples = algorithm_config["n_random_samples"]
         self.max_bad_samples = algorithm_config["constrained_gmm_settings"]["max_bad_samples"]
         self.strict = algorithm_config["constrained_gmm_settings"]["strict"]
         self.precision = algorithm_config["constrained_gmm_settings"]["precision"]
         self.activate_parameter_check = algorithm_config["constrained_gmm_settings"]
 
-    def sample_and_check_constraint(self,constraint, prev_frames, firstFrame=None, lastFrame=None):
-        success = False
-        s = self.sample()[0]
-        
-        new_frames = self.mm_.back_project(s, use_time_parameters=False).get_motion_vector()
-        aligned_frames  = align_quaternion_frames(new_frames, prev_frames,
-                                                     self.start_pose)
-        ok,failed = check_constraint(aligned_frames, constraint,
-                                     self.skeleton,
-                                     start_pose=self.start_pose,
-                                     precision=self.precision,
-                                     constrain_first_frame=firstFrame,
-                                     constrain_last_frame=lastFrame,
-                                     verbose=self.verbose)
-                 
-        #assign the sample as either a good or a bad sample
-        if len(ok)>0:               
-            min_distance = min((zip(*ok))[1])
-            success =True
-        else:
-            min_distance =  min((zip(*failed) )[1])
+    def _check_constraint(self, sample, constraint, prev_frames):
 
-        return s,min_distance,success
+        new_frames = self.mm_.back_project(sample, use_time_parameters=False).get_motion_vector()
+        aligned_frames  = align_quaternion_frames(new_frames, prev_frames, self.start_pose)
+        error, in_precision = constraint.evaluate_motion_sample_with_precision(aligned_frames)
+        return error, in_precision
         
-    def set_constraint(self, constraint, prev_frames, firstFrame=None, lastFrame=None):
+    def set_constraint(self, constraint, prev_frames):
         """ Constrain the GMM with the given value
 
         Parameters
@@ -91,13 +72,7 @@ class ConstrainedGMM(mixture.GMM):
         are set to None
         * prev_frames : numpy.ndarray
         \t euler frames of all previous steps
-        * start_pose : dict
-        \t contains start position and orientation. 
-        \t Is needed if prev_frames is None
-        * size : int
-        \tThe number of samples we want to build the GMM with
-        * precision : float
-        \tThe precision of the sample to be rated as "constraint fullfiled"
+
         Raises
         ------
         exception : RuntimeError
@@ -110,7 +85,8 @@ class ConstrainedGMM(mixture.GMM):
         bad_samples = []
         bad_distances = []
         while len(good_samples) < self.n_random_samples:
-            s,distance,success = self.sample_and_check_constraint(constraint, prev_frames, firstFrame, lastFrame)
+            s = self.sample()[0]
+            distance,success = self._check_constraint(s, constraint, prev_frames)
             if success:               
                 good_samples.append(s)
                 good_distances.append(distance)
@@ -130,7 +106,9 @@ class ConstrainedGMM(mixture.GMM):
                     merged_distances = good_distances + bad_distances
                     #sample missing samples if necessary
                     while len(merged_samples) < self.n_random_samples:
-                         s,distance,success = self.sample_and_check_constraint(constraint, prev_frames, firstFrame, lastFrame)
+                         s = self.sample()[0]
+                         distance,success = self._check_constraint(s, constraint, prev_frames)
+                        
                          merged_samples.append(s)
                          merged_distances.append(distance)
                     #order them based on distance
@@ -150,8 +128,6 @@ class ConstrainedGMM(mixture.GMM):
 
         good_samples = np.array(good_samples)
         self.fit(good_samples)
-
-
 
     
     

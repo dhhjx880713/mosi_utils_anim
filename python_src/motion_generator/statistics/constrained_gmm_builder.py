@@ -64,12 +64,10 @@ class ConstrainedGMMBuilder(object):
         * cgmm : ConstrainedGMM
         \tThe gmm of the motion_primitive constrained by the constraint
         """
-        firstFrame = constraint['semanticAnnotation']['firstFrame']
-        lastFrame = constraint['semanticAnnotation']['lastFrame']
+
         cgmm = ConstrainedGMM(mp_node, mp_node.motion_primitive.gmm, self.algorithm_config, 
                               self.start_pose, self.skeleton)
-        cgmm.set_constraint(constraint, prev_frames, firstFrame=firstFrame,
-                            lastFrame=lastFrame)
+        cgmm.set_constraint(constraint, prev_frames)
         return cgmm
 
 

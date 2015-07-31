@@ -56,7 +56,7 @@ class MotionPrimitiveConstraints(object):
         aligned_frames  = align_quaternion_frames(quat_frames, prev_frames, self.start_pose)
     
         for c in self.constraints:
-             error_sum += self._check_constraint(aligned_frames, c)
+             error_sum += c.evaluate_motion_sample(aligned_frames)#self._check_constraint(aligned_frames, c)
 
         return error_sum
         
@@ -110,41 +110,3 @@ class MotionPrimitiveConstraints(object):
         else:
             print "Error: Constraint type not recognized"
             return 10000
-
-    def find_aligned_quaternion_frames(mm, s, prev_frames, start_pose):
-        """Align quaternion frames from low dimensional vector s based on
-        previous frames
-           
-        Parameters
-        ----------
-        * mm: motion primitive
-        * s: numpy array
-        \tLow dimensional vector for motion sample from motion primitive
-        * prev_frames: list
-        \tA list of quaternion frames
-        * start_pose: dict
-        \tA dictionary contains staring position and orientation
-        
-        Returns:
-        --------
-        * transformed_frames: np.ndarray
-            Quaternion frames resulting from the back projection of s,
-            transformed to fit to prev_frames.
-            
-        """
-        # get quaternion frames of input motion s
-        use_time_parameters = False # Note: time parameters are not necessary for alignment
-        quat_frames = mm.back_project(s, use_time_parameters=use_time_parameters).get_motion_vector()
-        # find alignment transformation: rotation and translation    
-        if prev_frames is not None:
-            #print prev_frames
-            angle, offset = fast_quat_frames_transformation(prev_frames, quat_frames)
-            transformation = {"orientation":[0,angle,0],"position":offset}                                                 
-        elif start_pose is not None:
-            transformation = start_pose
-    
-        # align frames
-        transformed_frames = transform_quaternion_frames(quat_frames,
-                                                  transformation["orientation"],
-                                                  transformation["position"])   
-        return transformed_frames  
