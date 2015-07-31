@@ -211,12 +211,11 @@ class MotionGenerator(object):
         else:
              prev_action_name = None
              prev_mp_name = None
-            
-        trajectory_following_settings = self._algorithm_config["trajectory_following_settings"]#  TODO move trajectory_following_settings to different key of the algorithm_config
+
     
         motion_primitive_constraints_builder = MotionPrimitiveConstraintsBuilder()
         motion_primitive_constraints_builder.set_action_constraints(action_constraints)
-        motion_primitive_constraints_builder.set_trajectory_following_settings(trajectory_following_settings)
+        motion_primitive_constraints_builder.set_trajectory_following_settings(self._algorithm_config)
         motion_primitive_generator = MotionPrimitiveGenerator(action_constraints, self._algorithm_config, prev_action_name)
         start_frame = motion.n_frames
         #start_step = motion.step_count

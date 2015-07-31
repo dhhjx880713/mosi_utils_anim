@@ -28,8 +28,9 @@ class MotionPrimitiveConstraintsBuilder(object):
         self.morphable_subgraph = self.action_constraints.get_subgraph()
         self.skeleton = self.action_constraints.get_skeleton()
         
-    def set_trajectory_following_settings(self, trajectory_following_settings):
-        self.trajectory_following_settings = trajectory_following_settings
+    def set_trajectory_following_settings(self, algorithm_config):
+        self.algorithm_config = algorithm_config
+        self.trajectory_following_settings = algorithm_config["trajectory_following_settings"]#  TODO move trajectory_following_settings to different key of the algorithm_config
         
     def set_status(self, motion_primitive_name, last_arc_length, prev_frames=None, is_last_step=False):
         self.status["motion_primitive_name"] = motion_primitive_name
@@ -56,6 +57,7 @@ class MotionPrimitiveConstraintsBuilder(object):
         mp_constraints.start_pose = self.action_constraints.start_pose
         mp_constraints.skeleton = self.action_constraints.get_skeleton()
         mp_constraints.precision = self.action_constraints.precision
+        mp_constraints.verbose = self.algorithm_config["verbose"]
         
         if self.action_constraints.trajectory is not None:
             self._set_trajectory_constraints(mp_constraints)
