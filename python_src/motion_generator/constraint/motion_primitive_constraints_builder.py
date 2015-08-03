@@ -11,7 +11,9 @@ from utilities.exceptions import PathSearchError
 from animation_data.motion_editing import convert_quaternion_to_euler, \
                                 get_cartesian_coordinates_from_euler                               
 from motion_primitive_constraints import MotionPrimitiveConstraints
-from keyframe_constraints import PoseConstraint, DirectionConstraint, PositionAndRotationConstraint
+from keyframe_constraints.pose_constraint import PoseConstraint
+from keyframe_constraints.direction_constraint import DirectionConstraint
+from keyframe_constraints.pos_and_rot_constraint import PositionAndRotationConstraint
 
 class MotionPrimitiveConstraintsBuilder(object):
     """ Extracts a list of constraints for a motion primitive from ElementaryActionConstraints 

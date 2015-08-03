@@ -1,109 +1,23 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Jul 31 17:36:36 2015
+Created on Mon Aug 03 19:02:55 2015
 
 @author: erhe01
 """
 
+
 from math import sqrt
 import numpy as np
-from animation_data.motion_editing import convert_quaternion_frame_to_cartesian_frame,\
-                    get_cartesian_coordinates_from_quaternion,\
-                    align_point_clouds_2D,\
-                    pose_orientation,\
-                    transform_point_cloud,\
-                    calculate_point_cloud_distance,\
-                    quaternion_to_euler
+from animation_data.motion_editing import get_cartesian_coordinates_from_quaternion,\
+                                    quaternion_to_euler
 from external.transformations import rotation_matrix
-
+from keyframe_constraint_base import KeyframeConstraintBase
 POSITION_ERROR_FACTOR = 1  # importance of reaching position constraints
 ROTATION_ERROR_FACTOR = 10  # importance of reaching rotation constraints
 RELATIVE_HUERISTIC_RANGE = 0.10  # used for setting the search range relative to the number of frames of motion primitive
 CONSTRAINT_CONFLICT_ERROR = 100000  # returned when conflicting constraints were set
 
-class KeyframeConstraint(object):
-    def __init__(self,constraint_desc, precision):
-        self.semantic_annotation = constraint_desc["semanticAnnotation"]
-        self.precision = precision
-
-    def evaluate_motion_sample(self, aligned_quat_frames):
-        pass
-        
-    def evaluate_motion_sample_with_precision(self, aligned_quat_frames):
-        error = self.evaluate_motion_sample(aligned_quat_frames)
-        if error < self.precision:
-            success = True
-        else:
-            success = False
-        return error, success
-
-class PoseConstraint(KeyframeConstraint):
-    def __init__(self, skeleton, constraint_desc, precision):
-        super(PoseConstraint, self).__init__(constraint_desc, precision)
-        self.skeleton = skeleton
-        self.pose_constraint = constraint_desc["frame_constraint"]
-        return
-    
-    def evaluate_motion_sample(self, aligned_quat_frames):
-        
-        """ Evaluates the difference between the first frame of the motion 
-        and the frame constraint.
-        
-        Parameters
-        ----------
-        * aligned_quat_frames: np.ndarray
-            Motion aligned to previous motion in quaternion format
-        * frame_constraint: dict of np.ndarray
-            Dict containing a position for each joint
-        * skeleton: Skeleton
-            Used for hierarchy information
-        * node_name_map : dict
-           Optional: Maps node name to index in frame vector ignoring "Bip" joints
-        
-        Returns
-        -------
-        * error: float
-            Difference to the desired constraint value.
-        """
-        # get point cloud of first frame
-        point_cloud = convert_quaternion_frame_to_cartesian_frame(self.skeleton, aligned_quat_frames[0])
-    
-        constraint_point_cloud = []
-        for joint in self.skeleton.node_name_map.keys():
-            constraint_point_cloud.append(self.pose_constraint[joint])
-        theta, offset_x, offset_z = align_point_clouds_2D(constraint_point_cloud,
-                                                          point_cloud,
-                                                          self.skeleton.joint_weights)
-        t_point_cloud = transform_point_cloud(point_cloud, theta, offset_x, offset_z)
-    
-        error = calculate_point_cloud_distance(constraint_point_cloud,t_point_cloud)
-
-        return error
-
-
-class DirectionConstraint(KeyframeConstraint):
-    def __init__(self, skelton, constraint_desc, precision):
-        super(DirectionConstraint, self).__init__(constraint_desc, precision)
-        self.direction_constraint = constraint_desc["dir_vector"]
-        self.target_dir = np.array([self.direction_constraint[0], self.direction_constraint[2]])
-        self.target_dir = self.target_dir/np.linalg.norm(self.target_dir)
-        self.rotation_error_factor = ROTATION_ERROR_FACTOR
-        return
-        
-    def evaluate_motion_sample(self, aligned_quat_frames):
-        #   motion_dir = get_orientation_vec(frames)
-        motion_dir = pose_orientation(aligned_quat_frames[-1])
-    
-        
-        error = abs(self.target_dir[0] - motion_dir[0]) + \
-                     abs(self.target_dir[1] - motion_dir[1])
-        
-        # to check the last frame pass rotation and trajectory constraint or not
-        # put higher weights for orientation constraint
-        return error * self.rotation_error_factor
-
-
-class PositionAndRotationConstraint(KeyframeConstraint):
+class PositionAndRotationConstraint(KeyframeConstraintBase):
     """
     * skeleton: Skeleton
         Necessary for the evaluation of frames
