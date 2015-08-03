@@ -14,6 +14,7 @@ from space_partitioning.cluster_tree import ClusterTree
 from motion_model.motion_primitive import MotionPrimitive
 
 MOTION_PRIMITIVE_FILE_ENDING = "mm.json"
+CLUSTER_TREE_FILE_ENDING = "cluster_tree.pck"
 CONIFG_FILE_PATH = ".." + os.sep + "config" + os.sep + "space_partitioning.json"
 
 class ClusterTreeBuilder(object):
@@ -55,7 +56,7 @@ class ClusterTreeBuilder(object):
         cluster_tree = ClusterTree(self.n_subdivisions_per_level, self.n_levels, n_dims)
         cluster_tree.construct(X)
         #self.cluster_tree.save_to_file(cluster_file_name+"tree")
-        cluster_tree.save_to_file_pickle(cluster_file_name+"cluster_tree.pck")
+        cluster_tree.save_to_file_pickle(cluster_file_name + CLUSTER_TREE_FILE_ENDING)
        
     def _process_elementary_action(self, elementary_action):
         elementary_action_dir = self.morphable_model_directory + os.sep + elementary_action
