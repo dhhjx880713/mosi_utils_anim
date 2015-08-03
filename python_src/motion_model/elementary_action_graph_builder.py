@@ -21,7 +21,7 @@ from motion_primitive_graph_builder import MotionPrimitiveGraphBuilder
 from utilities.zip_io import read_graph_data_from_zip
 from graph_edge import GraphEdge
 from elementary_action_graph import ElementaryActionGraph
-
+from . import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END
 
         
 class ElementaryActionGraphBuilder(object):
@@ -61,6 +61,7 @@ class ElementaryActionGraphBuilder(object):
         self.morphable_model_directory = morphable_model_directory
         self.transition_model_directory = transition_model_directory
         self.motion_primitive_graph_builder.set_properties(transition_model_directory=self.transition_model_directory, load_transition_models=self.load_transition_models)
+ 
     def build(self):
         elementary_action_graph = ElementaryActionGraph()
         elementary_action_graph.skeleton = self.skeleton
@@ -81,6 +82,7 @@ class ElementaryActionGraphBuilder(object):
             self.motion_primitive_graph_builder.set_data_source(el_action, subgraph_path, subgraph_desc=subgraph_desc[el_action], graph_definition=graph_definition)
             elementary_action_graph.subgraphs[el_action] = self.motion_primitive_graph_builder.build()
             #for m_primitive in subgraph_desc[el_action].keys():
+        print "add transitions between nodes from",graph_definition," ##################################"
         self._set_transitions_from_dict(elementary_action_graph, graph_definition)
   
     def _init_from_directory(self, elementary_action_graph):
@@ -128,23 +130,44 @@ class ElementaryActionGraphBuilder(object):
                    from_motion_primitive_name in elementary_action_graph.subgraphs[from_action_name].nodes.keys():
                     #print "add action transitions for", subgraph_key,"###############################"
                     for to_key in transition_dict[node_key]:
-                        
                         to_action_name = to_key.split("_")[0]
                         to_motion_primitive_name = to_key.split("_")[1]
-                        if to_action_name != from_action_name:
-                            print "add action transition",node_key,to_key 
-                            transition_model = None
-                            if self.load_transition_models and self.transition_model_directory is not None:
-                                transition_model_file = self.transition_model_directory\
-                                +os.sep+node_key+"_to_"+to_key+".GPM"
-                                if  os.path.isfile(transition_model_file):
-                                    output_gmm =  elementary_action_graph.subgraphs[to_action_name].nodes[to_motion_primitive_name].motion_primitive.gmm
-                                    transition_model = GPMixture.load(transition_model_file,\
-                                    elementary_action_graph.subgraphs[from_action_name].nodes[from_motion_primitive_name].motion_primitive.gmm,output_gmm)
-                                else:
-                                    print "did not find transition model file", transition_model_file
-                            transition_type = "action_transition"
-                           
-                            edge = GraphEdge(from_action_name,from_motion_primitive_name,to_action_name,\
-                            to_motion_primitive_name,transition_type,transition_model)
-                            elementary_action_graph.subgraphs[from_action_name].nodes[from_motion_primitive_name].outgoing_edges[to_key] = edge
+                        if to_motion_primitive_name in elementary_action_graph.subgraphs[to_action_name].nodes.keys():
+                            self._add_transition(elementary_action_graph, from_action_name, from_motion_primitive_name, to_action_name, to_motion_primitive_name, node_key, to_key)
+                        
+                        
+    def _add_transition(self, elementary_action_graph, from_action_name, from_motion_primitive_name, to_action_name, to_motion_primitive_name, node_key, to_key):
+
+#        if to_action_name != from_action_name:
+#            print "add action transition",node_key,to_key 
+        transition_model = None
+        if self.load_transition_models and self.transition_model_directory is not None:
+            transition_model_file = self.transition_model_directory\
+            +os.sep+node_key+"_to_"+to_key+".GPM"
+            if  os.path.isfile(transition_model_file):
+                output_gmm =  elementary_action_graph.subgraphs[to_action_name].nodes[to_motion_primitive_name].motion_primitive.gmm
+                transition_model = GPMixture.load(transition_model_file,\
+                elementary_action_graph.subgraphs[from_action_name].nodes[from_motion_primitive_name].motion_primitive.gmm,output_gmm)
+            else:
+                print "did not find transition model file", transition_model_file
+    
+        transition_type = self._get_transition_type(elementary_action_graph, from_action_name, from_motion_primitive_name, to_action_name, to_motion_primitive_name)
+        self._create_edge(elementary_action_graph, to_key, from_action_name, from_motion_primitive_name, to_action_name,\
+        to_motion_primitive_name,transition_type,transition_model)
+                
+    def _get_transition_type(self, elementary_action_graph, from_action_name, from_motion_primitive_name, to_action_name, to_motion_primitive_name):
+        if to_action_name == from_action_name:
+            if elementary_action_graph.subgraphs[to_action_name].nodes[to_motion_primitive_name].node_type in [NODE_TYPE_START,NODE_TYPE_STANDARD]: 
+                transition_type = "standard"
+            else:
+                transition_type = "end"
+        else:
+            transition_type = "action_transition"
+        return transition_type
+               
+    def _create_edge(self, elementary_action_graph, to_key, from_action_name, from_motion_primitive_name, to_action_name,\
+                            to_motion_primitive_name,transition_type,transition_model):
+                        
+        edge = GraphEdge(from_action_name,from_motion_primitive_name,to_action_name,\
+        to_motion_primitive_name,transition_type,transition_model)
+        elementary_action_graph.subgraphs[from_action_name].nodes[from_motion_primitive_name].outgoing_edges[to_key] = edge

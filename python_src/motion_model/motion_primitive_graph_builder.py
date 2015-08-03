@@ -82,7 +82,7 @@ class MotionPrimitiveGraphBuilder(object):
             motion_primitive_graph._set_meta_information(self.subgraph_desc["info"])
         else:
             motion_primitive_graph._set_meta_information() 
-        self._set_transitions_from_dict(motion_primitive_graph)
+        #self._set_transitions_from_dict(motion_primitive_graph)
         motion_primitive_graph._update_attributes(update_stats=False)
         return
 
@@ -129,62 +129,8 @@ class MotionPrimitiveGraphBuilder(object):
 
       
                
-        self._set_transitions_from_directory(motion_primitive_graph)
+       # self._set_transitions_from_directory(motion_primitive_graph)
        
         motion_primitive_graph._update_attributes(update_stats=self.update_stats)     
 
-
-    def _set_transitions_from_directory(self, motion_primitive_graph):
-        """
-        Define transitions and load transiton models.
-        """
-        
-
-        motion_primitive_graph.has_transition_models = self.load_transition_models
-        if os.path.isfile(self.morphable_model_directory+os.sep+".."+os.sep+"graph_definition.json"):
-            self.graph_definition = load_json_file(self.morphable_model_directory+os.sep+".."+os.sep+"graph_definition.json")
-            self._set_transitions_from_dict(motion_primitive_graph)
-         
-        else:
-            print "Warning: no transitions were found in the directory"
-                    
-        return
-        
-    def _set_transitions_from_dict(self, motion_primitive_graph):
-        """Define transitions  and load transiton models
-            TODO split once into tuples when loaded
-            TODO factor out into its own class
-        """
-        transition_dict = self.graph_definition["transitions"]
-        for node_key in transition_dict:
-            from_action_name = node_key.split("_")[0]
-            from_motion_primitive_name = node_key.split("_")[1]
-            if from_action_name == motion_primitive_graph.elementary_action_name and \
-               from_motion_primitive_name in motion_primitive_graph.nodes.keys():
-                for to_key in transition_dict[node_key]:
-                    to_action_name = to_key.split("_")[0]
-                    to_motion_primitive_name = to_key.split("_")[1]
-                    
-                    if to_action_name == motion_primitive_graph.elementary_action_name:
-                        transition_model = None
-                        if self.transition_model_directory is not None and self.load_transition_models:
-                            transition_model_file = self.transition_model_directory\
-                            +os.sep+node_key+"_to_"+to_key+".GPM"
-                            if  os.path.isfile(transition_model_file):
-                                output_gmm = motion_primitive_graph.nodes[to_motion_primitive_name].motion_primitive.gmm
-                                transition_model = GPMixture.load(transition_model_file,\
-                                motion_primitive_graph.nodes[from_motion_primitive_name].motion_primitive.gmm,output_gmm)
-                            else:
-                                print "did not find transition model file",transition_model_file
-                            
-                        if motion_primitive_graph.nodes[to_motion_primitive_name].node_type in [NODE_TYPE_START,NODE_TYPE_STANDARD]: 
-                            transition_type = "standard"
-                        else:
-                            transition_type = "end"
-                        print "add",transition_type
-                        edge = GraphEdge(motion_primitive_graph.elementary_action_name,node_key,to_action_name,\
-                        to_motion_primitive_name,transition_type,transition_model)
-                        motion_primitive_graph.nodes[from_motion_primitive_name].outgoing_edges[to_key] = edge  
-        return
-        
 
