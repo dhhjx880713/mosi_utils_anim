@@ -16,13 +16,11 @@ import os
 from . import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END
 from utilities.io_helper_functions import load_json_file
 
-from gp_mixture import GPMixture
 from motion_primitive_node import MotionPrimitiveNode
-from graph_edge import GraphEdge
-from motion_primitive_graph import MotionPrimitiveGraph
+from motion_primitive_node_group import MotionPrimitiveNodeGroup
 
  
-class MotionPrimitiveGraphBuilder(object):
+class MotionPrimitiveNodeGroupBuilder(object):
     """ Contains the motion primitives of an elementary action as nodes and
     transition models as edges. 
              
@@ -39,7 +37,6 @@ class MotionPrimitiveGraphBuilder(object):
     """
     def __init__(self):
         self.elementary_action_name = None
-        self.nodes = {}
         self.morphable_model_directory = None
         self.has_transition_models = False
         self.meta_information = None
@@ -63,34 +60,39 @@ class MotionPrimitiveGraphBuilder(object):
 
         
     def build(self):
-        motion_primitive_graph = MotionPrimitiveGraph()
-        if self.subgraph_desc is not None:
-            self._init_from_dict(motion_primitive_graph)
-        else:
-            self._init_from_directory(motion_primitive_graph)
-        return motion_primitive_graph
-        
-    def _init_from_dict(self, motion_primitive_graph):
-        motion_primitive_graph.loaded_from_dict = True
-        motion_primitive_graph.elementary_action_name = self.subgraph_desc["name"]
 
-        for m_primitive in self.subgraph_desc["nodes"].keys():
-             motion_primitive_graph.nodes[m_primitive] = MotionPrimitiveNode()
-             motion_primitive_graph.nodes[m_primitive].init_from_dict(self.elementary_action_name,self.subgraph_desc["nodes"][m_primitive])
+        if self.subgraph_desc is not None:
+            motion_primitive_node_group = self._init_from_dict()
+        else:
+             motion_primitive_node_group = self._init_from_directory(motion_primitive_node_group)
+        return motion_primitive_node_group
+        
+    def _init_from_dict(self):
+        motion_primitive_node_group = MotionPrimitiveNodeGroup()
+        motion_primitive_node_group.nodes = {}
+        motion_primitive_node_group.loaded_from_dict = True
+        motion_primitive_node_group.elementary_action_name = self.subgraph_desc["name"]
+
+        for motion_primitive_name in self.subgraph_desc["nodes"].keys():
+             node_key = (self.subgraph_desc["name"], motion_primitive_name)
+             motion_primitive_node_group.nodes[node_key] = MotionPrimitiveNode()
+             motion_primitive_node_group.nodes[node_key].init_from_dict(self.elementary_action_name,self.subgraph_desc["nodes"][motion_primitive_name])
         
         if "info" in self.subgraph_desc.keys():
-            motion_primitive_graph._set_meta_information(self.subgraph_desc["info"])
+            motion_primitive_node_group._set_meta_information(self.subgraph_desc["info"])
         else:
-            motion_primitive_graph._set_meta_information() 
+            motion_primitive_node_group._set_meta_information() 
         #self._set_transitions_from_dict(motion_primitive_graph)
-        motion_primitive_graph._update_attributes(update_stats=False)
-        return
+        motion_primitive_node_group._update_attributes(update_stats=False)
+        return motion_primitive_node_group
 
-    def _init_from_directory(self, motion_primitive_graph):
-        motion_primitive_graph.loaded_from_dict = False
-        motion_primitive_graph.elementary_action_name = self.elementary_action_name
-        motion_primitive_graph.nodes = {}
-        motion_primitive_graph.morphable_model_directory = self.morphable_model_directory
+    def _init_from_directory(self):
+        
+        motion_primitive_node_group = MotionPrimitiveNodeGroup()
+        motion_primitive_node_group.nodes = {}
+        motion_primitive_node_group.loaded_from_dict = False
+        motion_primitive_node_group.elementary_action_name = self.elementary_action_name
+        motion_primitive_node_group.morphable_model_directory = self.morphable_model_directory
    
         #load morphable models
         temp_file_list =  []#for files containing additional information that require the full graph to be constructed first
@@ -103,11 +105,12 @@ class MotionPrimitiveGraphBuilder(object):
                     print "found meta information"
                 elif file_name.endswith("mm.json"):
                     print "found motion primitive",file_name  
-                    motion_primitive_name = file_name.split("_")[1]  
+                    motion_primitive_name = file_name.split("_")[1]
                     #print motion_primitve_file_name
                     motion_primitive_file_name = self.morphable_model_directory+os.sep+file_name
-                    motion_primitive_graph.nodes[motion_primitive_name] = MotionPrimitiveNode()
-                    motion_primitive_graph.nodes[motion_primitive_name].init_from_file(motion_primitive_graph.elementary_action_name,motion_primitive_name,motion_primitive_file_name)
+                    node_key = (self.subgraph_desc["name"], motion_primitive_name)
+                    motion_primitive_node_group.nodes[node_key] = MotionPrimitiveNode()
+                    motion_primitive_node_group.nodes[node_key].init_from_file(motion_primitive_node_group.elementary_action_name,motion_primitive_name,motion_primitive_file_name)
                     
                 elif file_name.endswith(".stats"):
                     print "found stats",file_name
@@ -116,21 +119,22 @@ class MotionPrimitiveGraphBuilder(object):
                 else:
                     print "ignored",file_name
 
-        motion_primitive_graph._set_meta_information(meta_information)
+        motion_primitive_node_group._set_meta_information(meta_information)
         
         #load information about training data if available
         for file_name in temp_file_list:
             motion_primitive = file_name.split("_")[1][:-6]
             if motion_primitive in self.nodes.keys():
                 info = load_json_file(self.morphable_model_directory+os.sep+file_name,use_ordered_dict=True)
-                motion_primitive_graph.nodes[motion_primitive].parameter_bb = info["pose_bb"]
-                motion_primitive_graph.nodes[motion_primitive].cartesian_bb = info["cartesian_bb"]
-                motion_primitive_graph.nodes[motion_primitive].velocity_data = info["pose_velocity"]
+                motion_primitive_node_group.nodes[motion_primitive].parameter_bb = info["pose_bb"]
+                motion_primitive_node_group.nodes[motion_primitive].cartesian_bb = info["cartesian_bb"]
+                motion_primitive_node_group.nodes[motion_primitive].velocity_data = info["pose_velocity"]
 
       
                
        # self._set_transitions_from_directory(motion_primitive_graph)
        
-        motion_primitive_graph._update_attributes(update_stats=self.update_stats)     
+        motion_primitive_node_group._update_attributes(update_stats=self.update_stats)
+        return  motion_primitive_node_group
 
 

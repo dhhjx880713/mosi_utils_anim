@@ -21,12 +21,13 @@ class MotionPrimitiveConstraintsBuilder(object):
         self.action_constraints = None
         self.algorithm_config = None
         self.status = {}
-        self.morphable_subgraph = None
+        self.morphable_graph = None
         return
     
     def set_action_constraints(self, action_constraints):
         self.action_constraints = action_constraints
-        self.morphable_subgraph = self.action_constraints.get_subgraph()
+        self.morphable_graph = action_constraints.morphable_graph
+        self.node_group = self.action_constraints.get_node_group()
         self.skeleton = self.action_constraints.get_skeleton()
         
     def set_algorithm_config(self, algorithm_config):
@@ -159,8 +160,8 @@ class MotionPrimitiveConstraintsBuilder(object):
         """
         last_arc_length = self.status["last_arc_length"]
         last_pos = self.status["last_pos"]
-       
-        step_length = self.morphable_subgraph.nodes[self.status["motion_primitive_name"]].average_step_length\
+        node_key = (self.action_constraints.action_name , self.status["motion_primitive_name"])
+        step_length = self.morphable_graph.nodes[node_key].average_step_length\
                         * self.trajectory_following_settings["step_length_factor"]
         max_arc_length = last_arc_length + 4.0 * step_length
         #find closest point in the range of the last_arc_length and max_arc_length

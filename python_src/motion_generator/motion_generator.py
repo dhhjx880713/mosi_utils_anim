@@ -213,16 +213,16 @@ class MotionGenerator(object):
         start_frame = motion.n_frames
         #start_step = motion.step_count
         #skeleton = action_constraints.get_skeleton()
-        morphable_subgraph = action_constraints.get_subgraph()
+        node_group = action_constraints.get_node_group()
         
    
-        arc_length_of_end = morphable_subgraph.nodes[morphable_subgraph.get_random_end_state()].average_step_length
+        arc_length_of_end = self.morphable_graph.nodes[node_group.get_random_end_state()].average_step_length
         
     #    number_of_standard_transitions = len([n for n in \
     #                                 morphable_subgraph.nodes.keys() if morphable_subgraph.nodes[n].node_type == "standard"])
     #
         #create sequence of list motion primitives,arc length and number of frames for backstepping 
-        current_motion_primitive = None
+        current_state = None
         current_motion_primitive_type = ""
         temp_step = 0
         travelled_arc_length = 0.0
@@ -234,30 +234,31 @@ class MotionGenerator(object):
                 break
             #######################################################################
             # Get motion primitive = extract from graph based on previous last step + heuristic
-            if temp_step == 0:  
-                 current_motion_primitive = action_constraints.parent_constraint.morphable_graph.get_random_action_transition(motion, action_constraints.action_name)
+            if current_state is None:  
+                 current_state = self.morphable_graph.get_random_action_transition(motion, action_constraints.action_name)
                  current_motion_primitive_type = NODE_TYPE_START
-                 if current_motion_primitive is None:
+                 if current_state is None:
 
-                     print "Error: Could not find a transition of type action_transition from ",prev_action_name,prev_mp_name ," to state",current_motion_primitive
+                     print "Error: Could not find a transition of type action_transition from ",prev_action_name,prev_mp_name ," to state",current_state
                      break
-            elif len(morphable_subgraph.nodes[current_motion_primitive].outgoing_edges) > 0:
-                prev_motion_primitive = current_motion_primitive
-                current_motion_primitive, current_motion_primitive_type = morphable_subgraph.get_random_transition(motion, action_constraints, travelled_arc_length, arc_length_of_end)
-                if current_motion_primitive is None:
-                     print "Error: Could not find a transition of type",current_motion_primitive_type,"from state",prev_motion_primitive
+            elif len(self.morphable_graph.nodes[current_state].outgoing_edges) > 0:
+                prev_state = current_state
+                current_state, current_motion_primitive_type = node_group.get_random_transition(motion, action_constraints, travelled_arc_length, arc_length_of_end)
+                if current_state is None:
+                     print "Error: Could not find a transition of type",current_motion_primitive_type,"from state",prev_state
                      break
             else:
-                print "Error: Could not find a transition from state",current_motion_primitive
+                print "Error: Could not find a transition from state",current_state
                 break
     
-            print "transitioned to state",current_motion_primitive
+            print "transitioned to state",current_state
             #######################################################################
             #Generate constraints from action_constraints
 
             try: 
                 is_last_step = (current_motion_primitive_type == NODE_TYPE_END)
-                motion_primitive_constraints_builder.set_status(current_motion_primitive, travelled_arc_length, motion.quat_frames, is_last_step)
+                print current_state
+                motion_primitive_constraints_builder.set_status(current_state[1], travelled_arc_length, motion.quat_frames, is_last_step)
                 motion_primitive_constraints = motion_primitive_constraints_builder.build()
                 #motion_primitive_constraints = MotionPrimitiveConstraints()
     
@@ -272,7 +273,7 @@ class MotionGenerator(object):
             tmp_quat_frames, parameters = motion_primitive_generator.generate_motion_primitive_from_constraints(motion_primitive_constraints, motion)                                            
             
             #update annotated motion
-            canonical_keyframe_labels = morphable_subgraph.get_canonical_keyframe_labels(current_motion_primitive)
+            canonical_keyframe_labels = node_group.get_canonical_keyframe_labels(current_state[1])
             start_frame = motion.n_frames
             motion.append_quat_frames(tmp_quat_frames)
             last_frame = motion.n_frames-1
@@ -290,7 +291,8 @@ class MotionGenerator(object):
                     travelled_arc_length = action_constraints.trajectory.full_arc_length
     
             #update graph walk of motion
-            graph_walk_entry = GraphWalkEntry(action_constraints.action_name,current_motion_primitive, parameters, travelled_arc_length)
+            print "Add graph walk entry", action_constraints.action_name,current_state[1]
+            graph_walk_entry = GraphWalkEntry(action_constraints.action_name,current_state[1], parameters, travelled_arc_length)
             motion.graph_walk.append(graph_walk_entry)
     
             temp_step += 1
@@ -299,8 +301,6 @@ class MotionGenerator(object):
         motion.update_frame_annotation(action_constraints.action_name, start_frame, motion.n_frames)
         
         print "reached end of elementary action", action_constraints.action_name
-    
-        print "generated initial guess"
 #        if self._algorithm_config["active_global_optimization"]:
 #            optimize_globally(motion.graph_walk, start_step, action_constraints)
     #    if trajectory is not None:

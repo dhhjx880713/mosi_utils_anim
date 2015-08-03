@@ -32,7 +32,7 @@ class MotionPrimitiveGenerator(object):
         self._algorithm_config = algorithm_config
         self.action_name = action_constraints.action_name
         self.prev_action_name = prev_action_name
-        self._morphable_graph = self._action_constraints.parent_constraint.morphable_graph
+        self._morphable_graph = self._action_constraints.morphable_graph
         self.skeleton = self._action_constraints.get_skeleton()
         self._constrained_gmm_config = self._algorithm_config["constrained_gmm_settings"]
         self._optimization_settings = self._algorithm_config["optimization_settings"]
@@ -97,7 +97,7 @@ class MotionPrimitiveGenerator(object):
             print "Exception",e.message
             raise SynthesisError(prev_motion.quat_frames,e.bad_samples)
             
-        tmp_quat_frames = self._morphable_graph.subgraphs[self.action_name].nodes[mp_name].motion_primitive.back_project(parameters, use_time_parameters=True).get_motion_vector()
+        tmp_quat_frames = self._morphable_graph.nodes[(self.action_name,mp_name)].motion_primitive.back_project(parameters, use_time_parameters=True).get_motion_vector()
     
         return tmp_quat_frames, parameters
 
@@ -129,7 +129,7 @@ class MotionPrimitiveGenerator(object):
 
         if self.use_constraints and len(motion_primitive_constraints.constraints) > 0: # estimate parameters fitting constraints
             
-            graph_node = self._morphable_graph.subgraphs[self.action_name].nodes[mp_name]
+            graph_node = self._morphable_graph.nodes[(self.action_name, mp_name)]
             gmm = graph_node.motion_primitive.gmm
             
             # A) find best sample from model
@@ -170,6 +170,7 @@ class MotionPrimitiveGenerator(object):
 
 
         else: # no constraints were given
+            print "motion primitive", mp_name
             parameters = self._get_random_parameters(mp_name, prev_mp_name, 
                                                      prev_frames, 
                                                      prev_parameters)
@@ -184,18 +185,18 @@ class MotionPrimitiveGenerator(object):
                                  prev_parameters=None):
         
         to_key = self.action_name+"_"+mp_name
-        if self.use_transition_model and prev_parameters is not None and self._morphable_graph.subgraphs[self.prev_action_name].nodes[prev_mp_name].has_transition_model(to_key):
+        if self.use_transition_model and prev_parameters is not None and self._morphable_graph.nodes[(self.prev_action_name,prev_mp_name)].has_transition_model(to_key):
              
-            parameters = self._morphable_graph.subgraphs[self.prev_action_name].nodes[prev_mp_name].predict_parameters(to_key,prev_parameters)
+            parameters = self._morphable_graph.nodes[(self.prev_action_name,prev_mp_name)].predict_parameters(to_key,prev_parameters)
         else:
-            parameters = self._morphable_graph.subgraphs[self.action_name].nodes[mp_name].sample_parameters()
+            parameters = self._morphable_graph.nodes[(self.action_name,mp_name)].sample_parameters()
         return parameters
         
 
 
     def _predict_gmm(self, mp_name, prev_mp_name, prev_frames, prev_parameters):
-        to_key = self.action_name + "_" + mp_name
-        gmm = self._morphable_graph.subgraphs[self.prev_action_name].nodes[prev_mp_name].predict_gmm(to_key,prev_parameters)
+        to_key = (self.action_name, mp_name)
+        gmm = self._morphable_graph.nodes[(self.prev_action_name,prev_mp_name)].predict_gmm(to_key,prev_parameters)
         return gmm
     
     def _search_for_best_sample_in_cluster_tree(self, graph_node, constraints, prev_frames, n_candidates=2):

@@ -78,19 +78,18 @@ class ElementaryActionConstraintsBuilder():
     def _build(self):
         if self.current_action_index < len(self.elementary_action_list):
             action_constraints = ElementaryActionConstraints()
-            action_constraints.parent_constraint = self
+            action_constraints.morphable_graph = self.morphable_graph
             action_constraints.action_name = self.elementary_action_list[self.current_action_index]["action"]
             action_constraints.keyframe_annotations = self.keyframe_annotations[self.current_action_index]
             action_constraints.constraints = self.elementary_action_list[self.current_action_index]["constraints"]
             action_constraints.start_pose = self.start_pose
-            morphable_subgraph = self.morphable_graph.subgraphs[action_constraints.action_name]
             root_joint_name = self.morphable_graph.skeleton.root# currently only trajectories on the Hips joint are supported
-            
+            node_group =  self.morphable_graph.node_groups[action_constraints.action_name]
             action_constraints.trajectory, action_constraints.unconstrained_indices = self._extract_trajectory_from_constraint_list(action_constraints.constraints, root_joint_name)
         
             keyframe_constraints = self._extract_all_keyframe_constraints(action_constraints.constraints,
-                                                                    morphable_subgraph)
-            action_constraints.keyframe_constraints = self._reorder_keyframe_constraints_for_motion_primitves(morphable_subgraph,
+                                                                    node_group)
+            action_constraints.keyframe_constraints = self._reorder_keyframe_constraints_for_motion_primitves(node_group,
                                                                                      keyframe_constraints)
             action_constraints._initialized = True
             return action_constraints
@@ -172,7 +171,7 @@ class ElementaryActionConstraintsBuilder():
     
     
         
-    def _extract_keyframe_constraint(self, joint_name,constraint,morphable_subgraph,time_information):
+    def _extract_keyframe_constraint(self, joint_name, constraint, time_information):
         """ Creates a dict containing all properties stated explicitly or implicitly in the input constraint
         Parameters
         ----------
@@ -243,12 +242,12 @@ class ElementaryActionConstraintsBuilder():
             if "keyframeConstraints" in c.keys():# there are keyframe constraints
                 key_constraints[joint_name] = []
                 for constraint_definition in c["keyframeConstraints"]:
-                    print "read constraint",constraint_definition
+                    print "read constraint",constraint_definition, joint_name
                     if self._constraint_definition_has_label(constraint_definition,label):
                         key_constraints[joint_name].append(constraint_definition)
         return key_constraints
                     
-    def _extract_all_keyframe_constraints(self, constraint_list,morphable_subgraph):
+    def _extract_all_keyframe_constraints(self, constraint_list,node_group):
         """Orders the keyframe constraint for the labels found in the metainformation of
            the elementary actions based on labels as keys
         Returns
@@ -258,7 +257,7 @@ class ElementaryActionConstraintsBuilder():
           access as keyframe_constraints["label"]["joint"][index]
         """
         keyframe_constraints = {}
-        annotations = morphable_subgraph.annotation_map.keys()#["start_contact",]
+        annotations = node_group.annotation_map.keys()#["start_contact",]
         for label in annotations:
     #        print "extract constraints for annotation",label
             keyframe_constraints[label] = self._extract_keyframe_constraints_for_label(constraint_list,label)
@@ -268,14 +267,14 @@ class ElementaryActionConstraintsBuilder():
     
 
 
-    def _reorder_keyframe_constraints_for_motion_primitves(self, morphable_subgraph, keyframe_constraints):
+    def _reorder_keyframe_constraints_for_motion_primitves(self, node_group, keyframe_constraints):
          """ Order constraints extracted by _extract_all_keyframe_constraints for each state
          """
          constraints = {}#dict of lists
          #iterate over keyframe labels
          for label in keyframe_constraints.keys():
-            state = morphable_subgraph.annotation_map[label]
-            time_information = morphable_subgraph.motion_primitive_annotations[state][label]
+            state = node_group.annotation_map[label]
+            time_information = node_group.motion_primitive_annotations[state][label]
             constraints[state] = []
             # iterate over joints constrained at that keyframe
             for joint_name in keyframe_constraints[label].keys():
@@ -283,8 +282,7 @@ class ElementaryActionConstraintsBuilder():
                 for c in keyframe_constraints[label][joint_name]:
                     # create constraint definition usable by the algorithm
                     # and add it to the list of constraints for that state
-                    constraint_desc = self._extract_keyframe_constraint(joint_name,c,\
-                                                morphable_subgraph,time_information)
+                    constraint_desc = self._extract_keyframe_constraint(joint_name,c,time_information)
                     constraints[state].append(constraint_desc)
          return constraints
          

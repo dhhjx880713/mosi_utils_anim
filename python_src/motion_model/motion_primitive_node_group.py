@@ -11,7 +11,7 @@ from . import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END
 from utilities.io_helper_functions import write_to_json_file
 
  
-class MotionPrimitiveGraph(object):
+class MotionPrimitiveNodeGroup(object):
     """ Contains the motion primitives of an elementary action as nodes and
     transition models as edges. 
              
@@ -47,8 +47,8 @@ class MotionPrimitiveGraph(object):
         self.meta_information = meta_information
         
         if self.meta_information is None:
-            self.start_states = [k for k in self.nodes.keys() if k.startswith("begin") or k == "first"]
-            self.end_states = [k for k in self.nodes.keys() if k.startswith("end") or k == "second"]
+            self.start_states = [k[1] for k in self.nodes.keys() if k[1].startswith("begin") or k[1] == "first"]
+            self.end_states = [k[1] for k in self.nodes.keys() if k[1].startswith("end") or k[1] == "second"]
         else:
             for key in ["annotations", "start_states", "end_states" ]:
                 assert key in self.meta_information.keys() 
@@ -73,10 +73,10 @@ class MotionPrimitiveGraph(object):
         print "elementary_action",self.elementary_action_name     
         print "start states",self.start_states
         for k in self.start_states:
-            self.nodes[k].node_type = NODE_TYPE_START
+            self.nodes[(self.elementary_action_name, k)].node_type = NODE_TYPE_START
         print "end states",self.end_states
         for k in self.end_states:
-            self.nodes[k].node_type = NODE_TYPE_END
+            self.nodes[(self.elementary_action_name, k)].node_type = NODE_TYPE_END
              
         return
                       
@@ -91,7 +91,7 @@ class MotionPrimitiveGraph(object):
             self.meta_information["stats"] = {}
             for k in self.nodes.keys():
                  self.nodes[k].update_attributes()
-                 self.meta_information["stats"][k]={"average_step_length":self.nodes[k].average_step_length,"n_standard_transitions": self.nodes[k].n_standard_transitions }
+                 self.meta_information["stats"][k[1]]={"average_step_length":self.nodes[k].average_step_length,"n_standard_transitions": self.nodes[k].n_standard_transitions }
                  print"n standard transitions",k,self.nodes[k].n_standard_transitions
             print "updated meta information",self.meta_information
         else:
@@ -113,16 +113,16 @@ class MotionPrimitiveGraph(object):
     def get_random_start_state(self):
         """ Returns the name of a random start state. """
         random_index = random.randrange(0, len(self.start_states), 1)
-        start_state = self.start_states[random_index]
+        start_state = (self.elementary_action_name, self.start_states[random_index])
         return start_state
             
     def get_random_end_state(self):
         """ Returns the name of a random start state."""
         random_index = random.randrange(0, len(self.end_states), 1)
-        start_state = self.end_states[random_index]
+        start_state = (self.elementary_action_name, self.end_states[random_index])
         return start_state
         
-    def generate_random_walk(self,start_state, number_of_steps, use_transition_model=True):
+    def generate_random_walk(self, start_state, number_of_steps, use_transition_model=True):
         """ Generates a random graph walk to be converted into a BVH file
     
         Parameters
@@ -150,7 +150,7 @@ class MotionPrimitiveGraph(object):
                 #sample transition
                 #print current_state
                 to_key = self.nodes[current_state].generate_random_transition(NODE_TYPE_STANDARD) 
-                next_parameters = self.generate_next_parameters(current_state,current_parameters,to_key,use_transition_model)
+                next_parameters = self.generate_next_parameters(self.nodes, current_state,current_parameters,to_key,use_transition_model)
                 #add entry to graph walk
                 to_action  = to_key.split("_")[0]
                 to_motion_primitive  = to_key.split("_")[1]
@@ -169,7 +169,7 @@ class MotionPrimitiveGraph(object):
         graph_walk.append(entry)
         return graph_walk
         
-    def generate_next_parameters(self,current_state,current_parameters,to_key,use_transition_model):
+    def generate_next_parameters(self, current_state, current_parameters, to_key, use_transition_model):
         """ Generate parameters for transitions.
         
         Parameters
@@ -218,7 +218,8 @@ class MotionPrimitiveGraph(object):
     def get_random_transition(self, motion, action_constraint, travelled_arc_length, arc_length_of_end):
         """ Get next state of the elementary action based on previous iteration.
         """
-        prev_mp_name = motion.graph_walk[-1].motion_primitive_name
+        
+        prev_state = (motion.graph_walk[-1].action_name, motion.graph_walk[-1].motion_primitive_name)
             
         if action_constraint.trajectory is not None :
                 
@@ -237,18 +238,18 @@ class MotionPrimitiveGraph(object):
                 
             print "generate",next_mp_type,"transition from trajectory"
         else:
-            n_standard_transitions = len([e for e in self.nodes[prev_mp_name].outgoing_edges.keys() if self.nodes[prev_mp_name].outgoing_edges[e].transition_type == NODE_TYPE_STANDARD])
+            n_standard_transitions = len([e for e in self.nodes[prev_state].outgoing_edges.keys() if self.nodes[prev_state].outgoing_edges[e].transition_type == NODE_TYPE_STANDARD])
             if n_standard_transitions > 0:
                 next_mp_type = NODE_TYPE_STANDARD
             else:
                 next_mp_type = NODE_TYPE_END
             print "generate",next_mp_type,"transition without trajectory",n_standard_transitions
     
-        to_key = self.nodes[prev_mp_name].generate_random_transition(next_mp_type)
+        to_key = self.nodes[prev_state].generate_random_transition(next_mp_type)
         
         if to_key is not None:
-            current_motion_primitive = to_key.split("_")[1]
-            return current_motion_primitive, next_mp_type
+            print to_key
+            return to_key, next_mp_type
         else:
             return None, next_mp_type
            

@@ -131,11 +131,11 @@ class MotionPrimitiveNode(object):
             if len(edges) > 0:
                 random_index = random.randrange(0, len(edges), 1)
                 to_key = edges[random_index]
-                #print "to",to_key
+                print "to",to_key, self.outgoing_edges[edges[random_index]].transition_type
                 return to_key
         return None
         
-    def generate_random_action_transition(self, elementary_action):
+    def generate_random_action_transition(self, elementary_action_name):
         """ Returns the key of a random transition to the given elementary action.
 
         Parameters
@@ -144,22 +144,22 @@ class MotionPrimitiveNode(object):
         \t Identifies an elementary action
         """
         if self.outgoing_edges:
-            edges = [e for e in self.outgoing_edges.keys() if e.split("_")[0] == elementary_action]
+            edges = [e for e in self.outgoing_edges.keys() if e[0] == elementary_action_name]
             if len(edges) > 0:
                 random_index = random.randrange(0, len(edges), 1)
                 to_key = edges[random_index]
-                #print "to",to_key
+                print "to",to_key
                 return to_key
         return None
         
     
-    def update_attributes(self):
+    def update_attributes(self,n_samples=50,  method="median"):
         """ Updates attributes for faster look up
         """
         self.n_standard_transitions = len([e for e in self.outgoing_edges.keys() if self.outgoing_edges[e].transition_type == NODE_TYPE_STANDARD])
-        n_samples = 50 
+        
         sample_lengths = [self._get_random_sample_step_length()for i in xrange(n_samples)]
-        method = "median"
+        
         if method == "average":
             self.average_step_length = sum(sample_lengths)/n_samples
         else:
@@ -198,7 +198,7 @@ class MotionPrimitiveNode(object):
         \tThe arc length of the path of the motion primitive
         """
         # get quaternion frames from s_vector
-        quat_frames = self.motion_primitive.back_project(s,use_time_parameters = False).get_motion_vector()
+        quat_frames = self.motion_primitive.back_project(s, use_time_parameters=False).get_motion_vector()
         if method == "arc_length":
             root_pos = extract_root_positions_from_frames(quat_frames)        
             step_length = get_arc_length_from_points(root_pos)

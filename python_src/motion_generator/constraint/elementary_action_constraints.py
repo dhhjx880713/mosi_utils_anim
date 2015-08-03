@@ -9,7 +9,7 @@ import numpy as np
 
 class ElementaryActionConstraints(object):
     def __init__(self):
-        self.parent_constraint = None
+        self.morphable_graph = None
         self.action_name = None
         self.keyframe_annotations = None
         self.constraints = None
@@ -21,11 +21,11 @@ class ElementaryActionConstraints(object):
         self._initialized = False
 
 
-    def get_subgraph(self):
-        return self.parent_constraint.morphable_graph.subgraphs[self.action_name]
+    def get_node_group(self):
+        return self.morphable_graph.node_groups[self.action_name]
         
     def get_skeleton(self):
-        return self.parent_constraint.morphable_graph.skeleton
+        return self.morphable_graph.skeleton
 
     
     def check_end_condition(self, prev_frames, travelled_arc_length, arc_length_offset):
