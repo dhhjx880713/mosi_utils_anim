@@ -20,22 +20,18 @@ ROOT_DIR = os.sep.join([".."] * 3)
 
 class StatisticalModelTrainer(object):
 
-    def __init__(self, spatial_pca, temporal_pca=None, save_path=None):
-        if temporal_pca is None:
-            self.use_temporal_parameter = False
-        else:
-            self.use_temporal_parameter = True
-            self._temporal_pca = temporal_pca
-            self._temporal_parameters = np.asarray(self._temporal_pca[self._temporal_pca.names.index('scores')])
-            self._load_spatial_data(spatial_pca)
-            self._combine_spatial_temporal_parameters()
+    def __init__(self, fdata, save_path=None):
+
+
+        self._load_spatial_data(fdata)
+        self._combine_spatial_temporal_parameters()
+    
+    def gen_motion_primitive_model(self):
         self._train_gmm()
         self._create_gmm()
         self._save_model(save_path=save_path)
 
-        
-
-    def _load_spatial_data(self, spatial_pca):
+    def _load__data(self, fdata):
         '''
         Load dimensional representation for motion segements from a json file
 
@@ -45,27 +41,17 @@ class StatisticalModelTrainer(object):
         \tThe data is stored in a dictionary
         '''
         
-        self._motion_primitive_name = spatial_pca['motion_type']
-        self._spatial_parameters = np.array(spatial_pca['spatial_parameters'])
-#        self._time_parameters = np.array(tmp['time_parameters'])
-        self._spatial_eigenvectors = spatial_pca['spatial_eigenvectors']
-        self._n_frames = int(spatial_pca['n_frames'])
-        self._scale_vec = spatial_pca['scale_vector']
-        self._n_basis = spatial_pca['n_basis']
-        self._mean_motion = spatial_pca['mean_motion']
-        self._n_dim_spatial = int(spatial_pca['n_dim_spatial'])
-#
-#    def _load_temporal_data(self, RDataFile):
-#        '''
-#        Load temporal parameters from R data
-#        '''
-#        rcode = '''
-#            library(fda)
-#            pcaobj = readRDS("%s")
-#        ''' % (RDataFile)
-#        robjects.r(rcode)
-#        self._temporal_pca = robjects.globalenv['pcaobj']
-#        self._temporal_parameters = np.asarray(self._temporal_pca[self._temporal_pca.names.index('scores')])
+        self._motion_primitive_name = fdata['motion_type']
+        self._spatial_parameters = fdata['spatial_parameters']
+        self._spatial_eigenvectors = fdata['spatial_eigenvectors']
+        self._n_frames = int(fdata['n_frames'])
+        self._scale_vec = fdata['scale_vector']
+        self._n_basis = fdata['n_basis']
+        self._mean_motion = fdata['mean_motion']
+        self._n_dim_spatial = int(fdata['n_dim_spatial'])
+        self._temporal_pca = fdata['temporal_pcaobj']
+        self._temporal_parameters = np.asarray(self._temporal_pca[self._temporal_pca.names.index('scores')])        
+
 
     def _weight_temporal_parameters(self):
         '''
@@ -80,8 +66,6 @@ class StatisticalModelTrainer(object):
         Concatenate temporal and spatial paramters of same motion sample as a 
         long vector
         '''
-        print self._spatial_parameters.shape[0]
-        print self._temporal_parameters.shape[0]
         assert self._spatial_parameters.shape[0] == \
                self._temporal_parameters.shape[0], ('Number of samples are not the same for spatial parameters and temporal parameters')
         self._weight_temporal_parameters()
@@ -93,14 +77,8 @@ class StatisticalModelTrainer(object):
         '''
         Find the best number of Gaussian using BIC score
         '''
-        if self.use_temporal_parameter:
-            print 'dimension of training data: '
-            print self._motion_parameters.shape
-            obs = np.random.permutation(self._motion_parameters)
-        else:
-            print 'dimension of training data: '
-            print self._spatial_parameters.shape
-            obs = np.random.permutation(self._spatial_parameters)
+
+        obs = np.random.permutation(self._motion_parameters)
         lowestBIC = np.infty
         BIC = []
         K = range(1, n_K)
@@ -190,8 +168,6 @@ class StatisticalModelTrainer(object):
             filename = self._motion_primitive_name + '_quaternion_mm.json'
         else:
             filename = save_path + os.sep + self._motion_primitive_name + '_quaternion_mm.json'
-            if len(filename) > 116:
-                filename = clean_path(filename)
         weights = self.gmm.weights_.tolist()
         means = self.gmm.means_.tolist()
         covars = self.gmm.covars_.tolist()
@@ -218,156 +194,8 @@ class StatisticalModelTrainer(object):
             json.dump(data, outfile)
         outfile.close()
 
-def get_input_folder_spatial():
-    """
-    Return input folder path of functional data
-    """
-    data_dir_name = "data"
-    PCA_dir_name = "2 - PCA"
-    type_parameter = "spatial"
-    step = "3 - fpca"
-    action = 'experiment'
-    feature = '2 - FPCA with quaternion joint angles'
-    test_type = '1.1 normal PCA on concatenated functional parameters'
-    input_dir = os.sep.join([ROOT_DIR,
-                             data_dir_name,
-                             PCA_dir_name,
-                             type_parameter,
-                             step,
-                             action,
-                             feature,
-                             test_type
-                             ])
-    return input_dir
-
-
-def get_input_folder_temporal():
-    """
-    Return input folder path of functional data
-    """
-    data_dir_name = "data"
-    PCA_dir_name = "2 - PCA"
-    type_parameter = "temporal"
-    step = "3 - fpca__result"
-    action = 'experiments'
-    input_dir = os.sep.join([ROOT_DIR,
-                             data_dir_name,
-                             PCA_dir_name,
-                             type_parameter,
-                             step,
-                             action])
-    return input_dir
-
-
-def get_output_folder(elementary_action):
-    """Return the save path without trailing os.sep
-    """
-    data_dir_name = "data"
-    motion_primitive_dir = "3 - Motion primitives"
-    model_type = "motion_primitives_quaternion_PCA95"
-    elementary_action = "elementary_action_" + elementary_action
-    output_dir = os.sep.join([ROOT_DIR,
-                              data_dir_name,
-                              motion_primitive_dir,
-                              model_type,
-                              elementary_action])
-    return output_dir
-
-
-def clean_path(path):
-    """
-    Generate absolute path starting with '\\\\?\\' to avoid failure of loading
-    because of long path in windows
-
-    Parameters
-    ----------
-    * path: string
-    \tRelative path
-
-    Return
-    ------
-    * path: string
-    \tAbsolute path starting with '\\\\?\\'
-    """
-    path = path.replace('/', os.sep).replace('\\', os.sep)
-    if os.sep == '\\' and '\\\\?\\' not in path:
-        # fix for Windows 260 char limit
-        relative_levels = len([directory for directory in path.split(os.sep)
-                               if directory == '..'])
-        cwd = [directory for directory in os.getcwd().split(os.sep)] if ':' not in path else []
-        path = '\\\\?\\' + os.sep.join(cwd[:len(cwd)-relative_levels] + [directory for directory in path.split(os.sep) if directory != ''][relative_levels:])
-    return path
-
-def get_input_dir_standard_PCA():
-    """
-    Return input folder path of spatial parameters from standard PCA
-    """
-    data_dir_name = "data"
-    PCA_dir_name = "2 - PCA"
-    type_parameter = "spatial"
-    step = "3 - fpca"
-    action = 'experiment'
-    feature = '2 - FPCA with quaternion joint angles'
-    test_type = '1.2 normal PCA on motion data'
-    input_dir = os.sep.join([ROOT_DIR,
-                             data_dir_name,
-                             PCA_dir_name,
-                             type_parameter,
-                             step,
-                             action,
-                             feature,
-                             test_type
-                             ])
-    return input_dir   
-
 def main():
-    input_dir_spatial = get_input_folder_spatial()
-    if len(input_dir_spatial) > 116:  # avoid too long path in windows
-        input_dir_spatial = clean_path(input_dir_spatial)
-    elementary_action = 'carryBoth'
-    motion_primitive = 'turningRightStance'
-    filename_spatial = input_dir_spatial + os.sep + '%s_%s_low_dimensional_data.json' % \
-        (elementary_action, motion_primitive)
-    input_dir_temporal = get_input_folder_temporal()
-    if len(input_dir_temporal) > 116:  # avoid too long path in windows
-        input_dir_temporal = clean_path(input_dir_temporal)
-    filename_temporal = input_dir_temporal + os.sep + 'b_splines_%s_%s.RData' % \
-        (elementary_action, motion_primitive) 
-    try:
-        shutil.copyfile(filename_temporal, 'functionalData.RData')
-    except:
-        raise IOError('no existing file or file path is wrong') 
-        
-#    testFile = 'walk_leftStance_low_dimensional_data.json'
-#    rDataFile = 'b_splines_walk_leftStance.RData'
-#    temporalDataFile = 'scores_walk_leftStance.npy'
-    output_dir = get_output_folder(elementary_action)
-    model =  StatisticalModelTrainer(spatial_file=filename_spatial, 
-                                     temporal_file='functionalData.RData', 
-                                     save_path=output_dir)
-    os.remove('functionalData.RData')
-
-def test_standPCA_on_quaternion_spatial():
-    input_dir_spatial_standard_PCA = get_input_dir_standard_PCA()
-    elementary_action = "pick"
-    motion_primitive = 'first'
-    filename_spatial = input_dir_spatial_standard_PCA + os.sep + '%s_%s_low_dimensional_data.json' % \
-        (elementary_action, motion_primitive)
-    if len(filename_spatial) > 116:  # avoid too long path in windows
-        filename_spatial = clean_path(filename_spatial)    
-    model = StatisticalModelTrainer(spatial_file=filename_spatial)
-    model._sample_spatial_parameters(30)
-
-def test_fpca_on_quaternion_spatial():
-    input_dir_spatial = get_input_folder_spatial()
-    elementary_action = 'carry'
-    motion_primitive = 'leftStance'  
-    filename_spatial = input_dir_spatial + os.sep + '%s_%s_low_dimensional_data.json' % \
-        (elementary_action, motion_primitive)
-    if len(filename_spatial) > 116:
-        filename_spatial = clean_path(filename_spatial)
-    model = StatisticalModelTrainer(spatial_file=filename_spatial)
-    
+    pass    
     
 if __name__ == '__main__':
 #    test_standPCA_on_quaternion_spatial()

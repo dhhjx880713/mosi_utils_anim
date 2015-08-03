@@ -8,30 +8,27 @@ import os
 import sys
 ROOT_DIR = os.sep.join(['..'] * 2)
 sys.path.append(ROOT_DIR)
-from utilities.motion_editing import get_rotation_angle, \
-                               get_cartesian_coordinates, \
-                               transform_euler_frames, \
-                               pose_orientation_euler
-from utilities.bvh import BVHReader, BVHWriter  
+from animation_data.motion_editing import get_rotation_angle, \
+                                          get_cartesian_coordinates_from_euler_full_skeleton, \
+                                          transform_euler_frames, \
+                                          pose_orientation_euler
+from animation_data.bvh import BVHReader, BVHWriter  
+from motion_segmentation import MotionSegmentation
+from animation_data.skeleton import Skeleton
 import glob
 import numpy as np
+from utilities.io_helper_functions import load_json_file
+SERVICE_CONFIG_FILE = ROOT_DIR + os.sep + "config" + os.sep + "service.json"
 
 
-class MotionNormalization(object):
-    def __init__(self, 
-                 motion_data=None, 
-                 ref_orientaiton=None,
-                 original_point=None,
-                 ref_bvh=None,
-                 touch_ground_joint=None):
-        self.motion_data = motion_data
-        self.ref_orientaiton = ref_orientaiton
-        self.original_point = original_point
-        self.ref_bvh = ref_bvh
-        self.touch_ground_joint = touch_ground_joint
+class MotionNormalization(MotionSegmentation):
     
-    def load_data_from_file(self, data_folder):
-        self.motion_data = {}
+
+    def __init__(self):
+        super(MotionNormalization, self).__init__()
+        self.ref_bvh = None
+    
+    def load_data_from_files_for_normalization(self, data_folder):
         if not data_folder.endswith(os.sep):
             data_folder += os.sep
         bvh_files = glob.glob(data_folder+'*.bvh')
@@ -39,50 +36,62 @@ class MotionNormalization(object):
         for bvh_file_path in bvh_files:
             bvhreader = BVHReader(bvh_file_path)
             filename = os.path.split(bvh_file_path)[-1]
-            self.motion_data[filename] = bvhreader.frames
+            self.cutted_motions[filename] = bvhreader.frames
     
     
-    def translate_to_original_point(self, frames):        
+    def translate_to_original_point(self, frames, origin_point, 
+                                    touch_ground_joint):        
         self.ref_bvhreader.frames = frames
+        skeleton = Skeleton(self.ref_bvhreader)
         # shift the motion to ground
-        touch_point_pos = get_cartesian_coordinates(self.ref_bvhreader,
-                                                    self.touch_ground_joint,
+        touch_point_pos = get_cartesian_coordinates_from_euler_full_skeleton(self.ref_bvhreader,
+                                                                             skeleton,
+                                                    touch_ground_joint,
                                                     self.ref_bvhreader.frames[0])   
         root_pos = self.ref_bvhreader.frames[0][:3] 
         rotation = [0, 0, 0]
-        translation = np.array([self.original_point[0] - root_pos[0],
+        translation = np.array([origin_point[0] - root_pos[0],
                                 -touch_point_pos[1],
-                                self.original_point[2] - root_pos[2]])
+                                origin_point[2] - root_pos[2]])
         transformed_frames = transform_euler_frames(self.ref_bvhreader.frames,
                                                     rotation,
                                                     translation) 
-        return transformed_frames                                            
-                                                    
-                                                
-    def normalize_root(self):
+        return transformed_frames      
+
+    def set_ref_bvh(self, ref_bvh):
+        self.ref_bvh = ref_bvh                                      
+                                                                                           
+    def normalize_root(self, origin_point, touch_ground_joint):
         """set the offset of root joint to (0, 0, 0), and shift the motions to
            original_point, if original_point is None, the set it as (0, 0, 0)
         """
-
+        origin_point = [origin_point['x'],
+                        origin_point['y'],
+                        origin_point['z']]
         if self.ref_bvh is not None:
             self.ref_bvhreader = BVHReader(self.ref_bvh)
+        elif self.bvhreader is not None:
+            self.ref_bvhreader = self.bvhreader
         else:
             raise ValueError('No reference BVH file for skeleton information')
-        self.ref_bvhreader.node_names['Hip']['offset'] = [0, 0, 0]   
+        self.ref_bvhreader.node_names['Hips']['offset'] = [0, 0, 0]   
         self.translated_motions = {}
-        for filename, frames in self.motion_data.iteritems():
-            self.translated_motions[filename] = self.translate_to_original_point(frames)
+        for filename, frames in self.cutted_motions.iteritems():
+            self.translated_motions[filename] = self.translate_to_original_point(frames,
+                                                                                 origin_point,
+                                                                                 touch_ground_joint)
     
-    def align_motion(self, aligned_frame_idx):
+    def align_motion(self, aligned_frame_idx, ref_orientation):
         """calculate the orientation of selected frame, get the rotation angle
            between current orientation and reference orientation, then 
            transform frames by rotation angle
         """
+        ref_orientation = [ref_orientation['x'], ref_orientation['z']]
         self.aligned_motions = {}
         for filename, frames in self.translated_motions.iteritems():
-            self.align_motions[filename] = self.rotate_one_motion(frames,
+            self.aligned_motions[filename] = self.rotate_one_motion(frames,
                                                                   aligned_frame_idx,
-                                                                  self.ref_orientaiton)   
+                                                                  ref_orientation)   
                                                                   
     def rotate_one_motion(self, euler_frames, frame_idx, ref_orientation):
         test_ori = pose_orientation_euler(euler_frames[frame_idx])
@@ -99,24 +108,47 @@ class MotionNormalization(object):
         for filename, frames in self.aligned_motions.iteritems():
             BVHWriter(save_path+filename, self.ref_bvhreader, frames,
                       frame_time=self.ref_bvhreader.frame_time,
-                      is_quaternion=False)                                                         
+                      is_quaternion=False) 
 
-def test():
-    testfile = r'C:\Users\du\MG++\repo\data\1 - MoCap\3 - Cutting\elementary_action_walk\sidestepLeft\walk_001_4_sidestepLeft_425_584.bvh'
-    bvhreader = BVHReader(testfile)
-    
-#    print bvhreader.node_names['Hips']  
-#    footposition = get_cartesian_coordinates(bvhreader, 'Bip01_R_Toe0', 
-#                                             bvhreader.frames[0])
-#    print footposition                                         
-#    bvhreader.node_names['Hips']['offset'] = [0, 0, 0]
-##    filename = 'normalized_file.bvh'
-##    BVHWriter(filename, bvhreader, bvhreader.frames, frame_time=0.013889,
-##              is_quaternion = False)
-#    footposition = get_cartesian_coordinates(bvhreader, 'Bip01_R_Toe0', 
-#                                             bvhreader.frames[0])    
-#    print footposition                                               
-    
+
+def main():
+    normalizer = MotionNormalization()        
+    data_folder = r'C:\Users\du\MG++\repo\data\1 - MoCap\3 - Cutting\test\\'    
+    save_path = r'C:\Users\du\MG++\repo\data\1 - MoCap\4 - Alignment\test\\'
+#    normalizer.load_data_from_file(data_folder)
+    origin_point = [0,0,0]
+    ref_orientation = [0,0, -1]
+    touch_ground_joint = 'Bip01_R_Toe0'   
+    ref_bvh = ROOT_DIR + os.sep + 'skeleton.bvh'
+    path_data = load_json_file(SERVICE_CONFIG_FILE)
+    data_path = path_data['data_folder']
+    elementary_action = 'walk'
+    primitive_type = 'sidestepLeft'
+
+    retarget_folder = data_path + os.sep + r'2 - Rocketbox retargeting\Take_sidestep'
+#    cutting_folder = data_path + os.sep + r'3 - Cutting\test'
+    annotation = retarget_folder + os.sep + 'key_frame_annotation.txt' 
+    normalizer.segment_motions(elementary_action,
+                                     primitive_type,
+                                     retarget_folder,
+                                     annotation) 
+    normalizer.set_ref_bvh(ref_bvh)                                 
+    normalizer.normalize_root(origin_point, touch_ground_joint)
+    normalizer.align_motion(0, ref_orientation)
+    normalizer.save_motion(save_path)
+
+def test_get_cartesian_coordinates():
+#    testFile = r'skeleton.bvh'
+    testFile = r'C:\Users\du\MG++\repo\data\1 - MoCap\4 - Alignment\elementary_action_walk\leftStance\walk_001_1_leftStance_43_86.bvh'
+    bvhreader = BVHReader(testFile)
+    test_joint = 'Bip01_R_Toe0'
+    skeleton = Skeleton(bvhreader)
+#    print skeleton.node_name_map
+    point = get_cartesian_coordinates_from_euler_full_skeleton(bvhreader,
+                                                               skeleton,
+                                                 test_joint,
+                                                 bvhreader.frames[0])
+    print point 
 if __name__ == '__main__':
 #    input_folder = (r'C:\Users\du\MG++\workspace\MotionGraphs++\mocap data'
 #                    r'\walk\sidestepRight\normalized_data')
@@ -125,12 +157,6 @@ if __name__ == '__main__':
 #    ref_motion = (r'C:\Users\du\MG++\repo\data\1 - MoCap\4 - Alignment\\'
 #                  r'elementary_action_pick\firstTwoHands\\'
 #                  r'pick_007_3_firstTwoHands_568_673.bvh')
-#    ref_index = 0
-#    test_index = 0
-#    align_orientation(input_folder,
-#                      output_folder,
-##                      ref_motion,
-##                      ref_index,
-#                      test_index)
-    test()                     
-#    normalization(input_folder, output_folder)                 
+    main()
+#    test_get_cartesian_coordinates()
+                  
