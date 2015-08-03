@@ -13,7 +13,6 @@ Created on Thu Jul 16 15:57:42 2015
 """
 
 import os
-from . import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END
 from utilities.io_helper_functions import load_json_file
 
 from motion_primitive_node import MotionPrimitiveNode
@@ -21,19 +20,8 @@ from motion_primitive_node_group import MotionPrimitiveNodeGroup
 
  
 class MotionPrimitiveNodeGroupBuilder(object):
-    """ Contains the motion primitives of an elementary action as nodes and
-    transition models as edges. 
-             
-    Parameters
-    ----------
-    * elementary_action_name: string
-    \t The name of the elementary action that the subgraph represents
-    
-    * morphable_model_directory: string
-    \tThe directory of the morphable models of an elementary action.
-    
-    * transition_model_directory: string
-    \tThe directory of the transition models.
+    """ Contains a dictionary of motion primitives of an elementary action as nodes  meta information. 
+
     """
     def __init__(self):
         self.elementary_action_name = None
@@ -53,6 +41,24 @@ class MotionPrimitiveNodeGroupBuilder(object):
         return
 
     def set_data_source(self, elementary_action_name, morphable_model_directory, subgraph_desc=None, graph_definition=None):
+        """Sets the directory with the motion primitives    
+        Parameters
+        ----------
+        * elementary_action_name: string
+            The name of the elementary action that the subgraph represents
+        
+        * morphable_model_directory: string
+            The directory of the morphable models of an elementary action.
+        
+        * subgraph_desc: dict
+            Optionla: Description loaded from zip file
+            
+        * transition_model_directory: string
+            Optional: The directory of the transition models.
+        
+        * graph_definition: dict
+           Optional: Description of the graph
+         """
         self.subgraph_desc = subgraph_desc
         self.elementary_action_name = elementary_action_name
         self.morphable_model_directory = morphable_model_directory
@@ -97,7 +103,7 @@ class MotionPrimitiveNodeGroupBuilder(object):
         #load morphable models
         temp_file_list =  []#for files containing additional information that require the full graph to be constructed first
         meta_information = None
-        motion_primitive_graph.annotation_map = {}
+        motion_primitive_node_group.annotation_map = {}
         for root, dirs, files in os.walk(self.morphable_model_directory):
             for file_name in files:#for each morphable model 
                 if file_name == "meta_information.json":

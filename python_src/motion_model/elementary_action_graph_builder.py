@@ -176,7 +176,5 @@ class ElementaryActionGraphBuilder(object):
     def _create_edge(self, elementary_action_graph, from_node_key, to_node_key, transition_model=None):
 
         transition_type = self._get_transition_type(elementary_action_graph, from_node_key, to_node_key)
-        print "create edge",from_node_key, to_node_key, transition_type
         edge = GraphEdge(from_node_key, to_node_key, transition_type, transition_model)
-        print edge.transition_type
         elementary_action_graph.nodes[from_node_key].outgoing_edges[to_node_key] = edge

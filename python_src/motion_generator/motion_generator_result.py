@@ -16,6 +16,7 @@ from utilities.io_helper_functions import write_to_json_file,\
                                           export_quat_frames_to_bvh_file
 
 LOG_FILE = "log.txt"
+
 class GraphWalkEntry(object):
     def __init__(self, action_name, motion_primitive_name, parameters, arc_length):
         self.action_name = action_name

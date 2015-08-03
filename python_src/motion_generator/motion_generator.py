@@ -291,7 +291,6 @@ class MotionGenerator(object):
                     travelled_arc_length = action_constraints.trajectory.full_arc_length
     
             #update graph walk of motion
-            print "Add graph walk entry", action_constraints.action_name,current_state[1]
             graph_walk_entry = GraphWalkEntry(action_constraints.action_name,current_state[1], parameters, travelled_arc_length)
             motion.graph_walk.append(graph_walk_entry)
     
