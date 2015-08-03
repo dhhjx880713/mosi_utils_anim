@@ -17,7 +17,7 @@ from animation_data.bvh import BVHReader
 from animation_data.skeleton import Skeleton
 from utilities.io_helper_functions import load_json_file
 from gp_mixture import GPMixture
-from motion_primitive_graph import MotionPrimitiveGraph
+from motion_primitive_graph_builder import MotionPrimitiveGraphBuilder
 from utilities.zip_io import read_graph_data_from_zip
 from graph_edge import GraphEdge
 from elementary_action_graph import ElementaryActionGraph
@@ -33,6 +33,8 @@ class ElementaryActionGraphBuilder(object):
         self.update_stats = False
         self.morphable_model_directory = None
         self.transition_model_directory = None
+        self.motion_primitive_graph_builder = MotionPrimitiveGraphBuilder()
+     
         return
         
     def set_data_source(self, skeleton_path, morphable_model_directory, transition_model_directory, load_transition_models=False, update_stats=False):
@@ -58,7 +60,7 @@ class ElementaryActionGraphBuilder(object):
         self.update_stats = update_stats
         self.morphable_model_directory = morphable_model_directory
         self.transition_model_directory = transition_model_directory
-        
+        self.motion_primitive_graph_builder.set_properties(transition_model_directory=self.transition_model_directory, load_transition_models=self.load_transition_models)
     def build(self):
         elementary_action_graph = ElementaryActionGraph()
         elementary_action_graph.skeleton = self.skeleton
@@ -70,14 +72,14 @@ class ElementaryActionGraphBuilder(object):
         
     def _init_from_zip_file(self, elementary_action_graph):
         
-
         zip_path = self.morphable_model_directory+".zip"
         graph_data = read_graph_data_from_zip(zip_path, pickle_objects=True)
         graph_definition = graph_data["transitions"]
         subgraph_desc = graph_data["subgraphs"]
         for el_action in subgraph_desc.keys():
-            elementary_action_graph.subgraphs[el_action] = MotionPrimitiveGraph()
-            elementary_action_graph.subgraphs[el_action].init_from_dict(subgraph_desc[el_action],graph_definition, self.transition_model_directory, self.load_transition_models)
+            subgraph_path = self.morphable_model_directory+os.sep+el_action
+            self.motion_primitive_graph_builder.set_data_source(el_action, subgraph_path, subgraph_desc=subgraph_desc[el_action], graph_definition=graph_definition)
+            elementary_action_graph.subgraphs[el_action] = self.motion_primitive_graph_builder.build()
             #for m_primitive in subgraph_desc[el_action].keys():
         self._set_transitions_from_dict(elementary_action_graph, graph_definition)
   
@@ -97,14 +99,12 @@ class ElementaryActionGraphBuilder(object):
         """
         
         #load graphs representing elementary actions including transitions between actions
-
- 
         for key in next(os.walk(self.morphable_model_directory))[1]:
-            subgraph_path =self. morphable_model_directory+os.sep+key
+            subgraph_path = self. morphable_model_directory+os.sep+key
             name = key.split("_")[-1]
-            elementary_action_graph.subgraphs[name] = MotionPrimitiveGraph()
-            elementary_action_graph.subgraphs[name].init_from_directory(name,subgraph_path,self.transition_model_directory, self.load_transition_models, self.update_stats)
-            
+            self.motion_primitive_graph_builder.set_data_source(name, subgraph_path)
+            elementary_action_graph.subgraphs[name] = self.motion_primitive_graph_builder.build()
+
         graph_definition_file = self.morphable_model_directory+os.sep+"graph_definition.json"
         
         #add transitions between subgraphs and load transition models           

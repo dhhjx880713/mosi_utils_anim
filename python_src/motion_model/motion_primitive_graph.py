@@ -8,13 +8,7 @@ Created on Thu Jul 16 15:57:42 2015
 import os
 import random
 from . import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END
-from utilities.io_helper_functions import load_json_file, \
-                                         write_to_json_file
-
-from gp_mixture import GPMixture
-from motion_primitive_node import MotionPrimitiveNode
-from graph_edge import GraphEdge
-
+from utilities.io_helper_functions import write_to_json_file
 
  
 class MotionPrimitiveGraph(object):
@@ -44,123 +38,7 @@ class MotionPrimitiveGraph(object):
         self.motion_primitive_annotations = {}
         self.loaded_from_dict = False
    
-    def init_from_dict(self, subgraph_desc, graph_definition, transition_model_directory=None, load_transition_models=False):
-        self.loaded_from_dict = True
-        self.elementary_action_name = subgraph_desc["name"]
 
-        for m_primitive in subgraph_desc["nodes"].keys():
-             self.nodes[m_primitive] = MotionPrimitiveNode()
-             self.nodes[m_primitive].init_from_dict(self.elementary_action_name,subgraph_desc["nodes"][m_primitive])
-        
-        if "info" in subgraph_desc.keys():
-            self._set_meta_information(subgraph_desc["info"])
-        else:
-            self._set_meta_information() 
-        self._set_transitions_from_dict(graph_definition, transition_model_directory, load_transition_models)
-        self._update_attributes(update_stats=False)
-        return
-
-    def init_from_directory(self,elementary_action_name, morphable_model_directory,transition_model_directory, load_transition_models=False, update_stats=False):
-        self.loaded_from_dict = False
-        self.elementary_action_name = elementary_action_name
-        self.nodes = {}
-        self.morphable_model_directory = morphable_model_directory
-   
-        #load morphable models
-        temp_file_list =  []#for files containing additional information that require the full graph to be constructed first
-        meta_information = None
-        self.annotation_map = {}
-        for root, dirs, files in os.walk(morphable_model_directory):
-            for file_name in files:#for each morphable model 
-                if file_name == "meta_information.json":
-                    meta_information = load_json_file(morphable_model_directory+os.sep+file_name)
-                    print "found meta information"
-                elif file_name.endswith("mm.json"):
-                    print "found motion primitive",file_name  
-                    motion_primitive_name = file_name.split("_")[1]  
-                    #print motion_primitve_file_name
-                    motion_primitive_file_name = morphable_model_directory+os.sep+file_name
-                    self.nodes[motion_primitive_name] = MotionPrimitiveNode()
-                    self.nodes[motion_primitive_name].init_from_file(elementary_action_name,motion_primitive_name,motion_primitive_file_name)
-                    
-                elif file_name.endswith(".stats"):
-                    print "found stats",file_name
-                    temp_file_list.append(file_name)
-
-                else:
-                    print "ignored",file_name
-
-        self._set_meta_information(meta_information)
-        
-        #load information about training data if available
-        for file_name in temp_file_list:
-            motion_primitive = file_name.split("_")[1][:-6]
-            if motion_primitive in self.nodes.keys():
-                info = load_json_file(morphable_model_directory+os.sep+file_name,use_ordered_dict=True)
-                self.nodes[motion_primitive].parameter_bb = info["pose_bb"]
-                self.nodes[motion_primitive].cartesian_bb = info["cartesian_bb"]
-                self.nodes[motion_primitive].velocity_data = info["pose_velocity"]
-
-      
-               
-        self._set_transitions_from_directory(morphable_model_directory, transition_model_directory, load_transition_models)
-       
-        self._update_attributes(update_stats=update_stats)     
-
-
-    def _set_transitions_from_directory(self, morphable_model_directory, transition_model_directory, load_transition_models=False):
-        """
-        Define transitions and load transiton models.
-        """
-        
-
-        self.has_transition_models = load_transition_models
-        if os.path.isfile(morphable_model_directory+os.sep+".."+os.sep+"graph_definition.json"):
-            graph_definition = load_json_file(morphable_model_directory+os.sep+".."+os.sep+"graph_definition.json")
-            self._set_transitions_from_dict(graph_definition, transition_model_directory, load_transition_models)
-         
-        else:
-            print "Warning: no transitions were found in the directory"
-                    
-        return
-        
-    def _set_transitions_from_dict(self,graph_definition, transition_model_directory=None, load_transition_models=False):
-        """Define transitions  and load transiton models
-            TODO split once into tuples when loaded
-            TODO factor out into its own class
-        """
-        transition_dict = graph_definition["transitions"]
-        for node_key in transition_dict:
-            from_action_name = node_key.split("_")[0]
-            from_motion_primitive_name = node_key.split("_")[1]
-            if from_action_name == self.elementary_action_name and \
-               from_motion_primitive_name in self.nodes.keys():
-                for to_key in transition_dict[node_key]:
-                    to_action_name = to_key.split("_")[0]
-                    to_motion_primitive_name = to_key.split("_")[1]
-                    
-                    if to_action_name == self.elementary_action_name:
-                        transition_model = None
-                        if transition_model_directory is not None and load_transition_models:
-                            transition_model_file = transition_model_directory\
-                            +os.sep+node_key+"_to_"+to_key+".GPM"
-                            if  os.path.isfile(transition_model_file):
-                                output_gmm = self.nodes[to_motion_primitive_name].motion_primitive.gmm
-                                transition_model = GPMixture.load(transition_model_file,\
-                                self.nodes[from_motion_primitive_name].motion_primitive.gmm,output_gmm)
-                            else:
-                                print "did not find transition model file",transition_model_file
-                            
-                        if self.nodes[to_motion_primitive_name].node_type in [NODE_TYPE_START,NODE_TYPE_STANDARD]: 
-                            transition_type = "standard"
-                        else:
-                            transition_type = "end"
-                        print "add",transition_type
-                        edge = GraphEdge(self.elementary_action_name,node_key,to_action_name,\
-                        to_motion_primitive_name,transition_type,transition_model)
-                        self.nodes[from_motion_primitive_name].outgoing_edges[to_key] = edge  
-        return
-        
     def _set_meta_information(self, meta_information=None):
         """
         Identify start and end states from meta information.
@@ -336,8 +214,6 @@ class MotionPrimitiveGraph(object):
         return keyframe_labels
 
 
-
-        
         
     def get_random_transition(self, motion, action_constraint, travelled_arc_length, arc_length_of_end):
         """ Get next state of the elementary action based on previous iteration.
