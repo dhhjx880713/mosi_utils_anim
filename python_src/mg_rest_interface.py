@@ -64,7 +64,7 @@ class MGInputHandler(tornado.web.RequestHandler):
         """
         if motion.quat_frames is not None:  # checks for quat_frames in result_tuple
             if use_file_output_mode:
-                motion.export_(service_config["output_dir"],\
+                motion.export(service_config["output_dir"],\
                                   service_config["output_filename"],\
                                   add_time_stamp=False, write_log=False)
                 self.write("succcess")
@@ -168,8 +168,8 @@ class MorphableGraphsRESTfulInterface(object):
             
         #  Construct morphable graph from files
         self.application = MGRestApplication(service_config, algorithm_config, 
-                                             [(r"/runmorphablegraphs",MGInputHandler),
-                                              (r"/configmorphablegraphs",MGConfiguratiohHandler)
+                                             [(r"/run_morphablegraphs",MGInputHandler),
+                                              (r"/config_morphablegraphs",MGConfiguratiohHandler)
                                               ])
 
         #  Configure server
