@@ -282,7 +282,61 @@ def get_cartesian_coordinates_from_quaternion(skeleton,
         point = np.array([0,0,0,1])
         point = np.dot(global_matrix,point)
         return point[:3].tolist()
- 
+
+def get_cartesian_coordinates_from_euler_full_skeleton(bvh_reader, 
+                                                       skeleton,
+                                                       node_name,
+                                                       euler_frame):
+    """Return cartesian coordinates for one node at one frame, include the 
+       skipped joints starting with "Bip"
+    """                                                       
+    if bvh_reader.node_names[node_name]["level"] == 0:
+        root_frame_position = euler_frame[:3]
+        root_node_offset = bvh_reader.node_names[node_name]["offset"]
+
+        return [t + o for t, o in
+                izip(root_frame_position, root_node_offset)]
+
+    else:
+        # Names are generated bottom to up --> reverse
+        chain_names = list(skeleton.gen_all_parents(node_name))
+        chain_names.reverse()
+        chain_names += [node_name]  # Node is not in its parent list
+
+        eul_angles = []
+        index = 0
+        for nodename in chain_names:
+            indeces = []
+            for channel in bvh_reader.node_names[nodename]["channels"]:
+                if channel.endswith("rotation"):
+                    indeces.append(bvh_reader.node_channels.index((nodename,channel)))
+            eul_angles.append(euler_frame[indeces])
+            index += 1
+
+        #print chain_names, bvh_reader.node_names.keys().index("RightShoulder")*3 + 3,len(euler_frame)
+        rad_angles = (map(radians, eul_angle) for eul_angle in eul_angles)
+
+        thx, thy, thz = map(list, zip(*rad_angles))
+
+        offsets = [bvh_reader.node_names[nodename]["offset"]
+                   for nodename in chain_names]
+
+        # Add root offset to frame offset list
+        root_position = euler_frame[:3]
+        offsets[0] = [r + o for r, o in izip(root_position, offsets[0])]
+
+        ax, ay, az = map(list, izip(*offsets))
+
+        # f_idx identifies the kinematic forward transform function
+        # This does not lead to a negative index because the root is
+        # handled separately
+
+        f_idx = len(ax) - 2
+        #print "f",f_idx
+        if len(ax)-2 < len(fk_funcs):
+            return fk_funcs[f_idx](ax, ay, az, thx, thy, thz)
+        else:
+            return [0,0,0]
 
 def get_cartesian_coordinates_from_euler(skeleton, node_name, euler_frame):
     """Returns cartesian coordinates for one node at one frame. Modified to
@@ -322,6 +376,7 @@ def get_cartesian_coordinates_from_euler(skeleton, node_name, euler_frame):
         for nodename in chain_names:
             index = skeleton.node_name_map[nodename]*3 +3
             eul_angles.append(euler_frame[index:index+3])
+
         #print chain_names, bvh_reader.node_names.keys().index("RightShoulder")*3 + 3,len(euler_frame)
         rad_angles = (map(radians, eul_angle) for eul_angle in eul_angles)
 
@@ -1028,16 +1083,21 @@ def calculate_pose_distance(skeleton,euler_frames_a,euler_frames_b):
 
 def calculate_frame_distance(skeleton,
                              euler_frame_a,
-                             euler_frame_b):
+                             euler_frame_b,
+                             return_transform=False):
     point_cloud_a = convert_euler_frame_to_cartesian_frame(skeleton,
-                                                           euler_frame_a)
+                                                           euler_frame_a)                                                              
     point_cloud_b = convert_euler_frame_to_cartesian_frame(skeleton,
-                                                           euler_frame_b)
+                                                           euler_frame_b)                                                       
     weights = skeleton.joint_weights
+
     theta, offset_x, offset_z = align_point_clouds_2D(point_cloud_a,point_cloud_b,weights)
     t_point_cloud_b = transform_point_cloud(point_cloud_b, theta, offset_x, offset_z)
     error = calculate_point_cloud_distance(point_cloud_a,t_point_cloud_b)
-    return error
+    if return_transform:
+        return error, theta, offset_x, offset_z
+    else:
+        return error
 
 def calculate_pose_distances_from_low_dim(skeleton,mm_models,X,Y):
     """
