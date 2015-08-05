@@ -10,6 +10,7 @@ from scipy.stats import multivariate_normal
 
 
 class Gaussian(object):
+
     """ Small Gaussian representation with several functions
 
     Supports the following functions:
@@ -34,6 +35,7 @@ class Gaussian(object):
     multi: bool
     \tIndicates whether this gaussian is multivariate or univariate
     """
+
     def __init__(self, mu=0, sigma=1):
         self.mu = np.array(mu)
         self.sigma = np.array(sigma)
@@ -58,7 +60,7 @@ class Gaussian(object):
         """ Multiply two univariate gaussians """
         mu = (self.mu * other.sigma**2) + (other.mu * self.sigma**2)
         mu /= (self.sigma**2 + other.sigma**2)
-        sigma = 1.0 / ((1.0/self.sigma**2) + (1.0/other.sigma**2))
+        sigma = 1.0 / ((1.0 / self.sigma**2) + (1.0 / other.sigma**2))
         return Gaussian(mu, sigma)
 
     def _mul_multivariate(self, other):
@@ -87,7 +89,7 @@ class Gaussian(object):
             raise ValueError('Specify at maximum 2 dimensions for multivariate'
                              ' distributions')
 
-        if self.multi and len(self.mu) == 2 and dim is None :
+        if self.multi and len(self.mu) == 2 and dim is None:
             dim = (0, 1)
 
         if newfigure:
@@ -103,22 +105,22 @@ class Gaussian(object):
             delta_x = sigmax * 0.1
             delta_y = sigmay * 0.1
 
-            x = np.arange(mux - 50*sigmax, mux + 50*sigmax, delta_x)
-            y = np.arange(muy - 50*sigmay, muy + 50*sigmay, delta_y)
+            x = np.arange(mux - 50 * sigmax, mux + 50 * sigmax, delta_x)
+            y = np.arange(muy - 50 * sigmay, muy + 50 * sigmay, delta_y)
 
             X, Y = np.meshgrid(x, y)
             pos = np.empty(X.shape + (2,))
-            pos[:, :, 0] = X; pos[:, :, 1] = Y
+            pos[:, :, 0] = X
+            pos[:, :, 1] = Y
             rv = multivariate_normal([mux, muy], [[sigmax, sigmaxy],
                                                   [sigmaxy, sigmay]])
 
             Z = rv.pdf(pos)
-            plt.axis([mux - 50*sigmax, mux + 50*sigmax,
-                      muy - 50*sigmay, muy + 50*sigmay])
+            plt.axis([mux - 50 * sigmax, mux + 50 * sigmax,
+                      muy - 50 * sigmay, muy + 50 * sigmay])
             C = plt.contour(X, Y, Z, **kwargs)
             plt.clabel(C, inline=1, fontsize=10)
-            #plt.legend()
-
+            # plt.legend()
 
         if not self.multi or len(dim) == 1:
             def distribution(x, mu, sig):
@@ -157,10 +159,9 @@ def main():
     g3 = g1 * g2
     print g3
 
-
-    g1.plot(dim=(0,1), label='g1')
-    g2.plot(dim=(0,1), newfigure=False, label='g2')
-    g3.plot(dim=(0,1), newfigure=False, label='g3')
+    g1.plot(dim=(0, 1), label='g1')
+    g2.plot(dim=(0, 1), newfigure=False, label='g2')
+    g3.plot(dim=(0, 1), newfigure=False, label='g3')
 
 if __name__ == '__main__':
     main()

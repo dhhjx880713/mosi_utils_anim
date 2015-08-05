@@ -15,12 +15,13 @@ from animation_data.motion_editing import convert_quaternion_to_euler
 
 
 param_convert_quaternion_to_euler = [
-    {"quat": [[1.0,2.0,3.0,0.0,0.0,0.0,0.1], [1.0,2.0,4.0,0.0,0.0,0.0,0.2]],
-     "res": [[1.0,2.0,3.0,0.0,0.0,180.0], [1.0,2.0,4.0,0.0,0.0,180.0]]},
-    {"quat": [[0.0,2.0,3.0,0.0,0.1,0.2,0.1], [1.0,2.0,4.0,0.0,0.0,0.0,0.2]],
-     "res": [[0.0,2.0,3.0,-135.0,19.471220634490695,-135.0],
-             [1.0,2.0,4.0,0.0,0.0,180.0]]},
+    {"quat": [[1.0, 2.0, 3.0, 0.0, 0.0, 0.0, 0.1], [1.0, 2.0, 4.0, 0.0, 0.0, 0.0, 0.2]],
+     "res": [[1.0, 2.0, 3.0, 0.0, 0.0, 180.0], [1.0, 2.0, 4.0, 0.0, 0.0, 180.0]]},
+    {"quat": [[0.0, 2.0, 3.0, 0.0, 0.1, 0.2, 0.1], [1.0, 2.0, 4.0, 0.0, 0.0, 0.0, 0.2]],
+     "res": [[0.0, 2.0, 3.0, -135.0, 19.471220634490695, -135.0],
+             [1.0, 2.0, 4.0, 0.0, 0.0, 180.0]]},
 ]
+
 
 @params(param_convert_quaternion_to_euler)
 def test_convert_quaternion_to_euler(quat, res):
@@ -29,7 +30,7 @@ def test_convert_quaternion_to_euler(quat, res):
         for rr, ee in zip(r, e):
             a = rr**2
             b = ee**2
-            assert np.isclose(a-b, 0.0)
+            assert np.isclose(a - b, 0.0)
 
 
 #from motion_editing import *
@@ -38,7 +39,7 @@ def test_convert_quaternion_to_euler(quat, res):
 #from motion_primitive import MotionPrimitive
 #from morphable_graph import create_filtered_node_name_map
 
-#param_get_cartesian_coordinates = [
+# param_get_cartesian_coordinates = [
 #    {"test_file": "pick_002_1_first_540_610.bvh",
 #     "frame_index": 0,
 #     "joint": "RightHand",
@@ -50,7 +51,7 @@ def test_convert_quaternion_to_euler(quat, res):
 #]
 #
 #@params(param_get_cartesian_coordinates)
-#def test_get_cartesian_coordinates(test_file, frame_index, joint, res):
+# def test_get_cartesian_coordinates(test_file, frame_index, joint, res):
 #    """Unit test for get_cartesian_coordinates
 #    """
 #    reader = BVHReader(test_file)
@@ -60,14 +61,14 @@ def test_convert_quaternion_to_euler(quat, res):
 #        assert round(pos[i], 3) == round(res[i], 3)
 #
 #
-#param_shift_euler_frames_to_ground = [
+# param_shift_euler_frames_to_ground = [
 #    {"elementary_action": "pick",
 #     "primitive_type": "first",
 #     "contact_joint": "LeftFoot"}
 #]
 #
 #@params(param_shift_euler_frames_to_ground)
-#def test_shift_euler_frames_to_ground(elementary_action,
+# def test_shift_euler_frames_to_ground(elementary_action,
 #                                      primitive_type,
 #                                      contact_joint):
 #    """Unit test for shift_euler_frames_to_ground

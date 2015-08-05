@@ -16,9 +16,10 @@ from libtest import params, pytest_generate_tests
 from rpy2_funcs import rpy2_temporal_mean, rpy2_temporal
 from motion_generator.lib import motion_primitive
 
-TESTPATH = os.sep.join([".."]*2+ ["test_data"])
-MP_FILE = os.sep.join([TESTPATH,"walk_leftStance_quaternion_mm.json"])
-#print MP_FILE
+TESTPATH = os.sep.join([".."] * 2 + ["test_data"])
+MP_FILE = os.sep.join([TESTPATH, "walk_leftStance_quaternion_mm.json"])
+# print MP_FILE
+
 
 def params(funcarglist):
     """Test function parameter decorator
@@ -39,41 +40,42 @@ def pytest_generate_tests(metafunc):
 
 
 def back_project_rpy2(m, sample):
-        """ Back project low dimensional parameters to frames using eval.fd
-        implemented in R  """
-        alpha = sample[:m.s_pca["n_components"]]
-        gamma = sample[m.s_pca["n_components"]:]
-        canonical_motion = m._inverse_spatial_pca(alpha)
-        time_function = m._inverse_temporal_pca(gamma)
+    """ Back project low dimensional parameters to frames using eval.fd
+    implemented in R  """
+    alpha = sample[:m.s_pca["n_components"]]
+    gamma = sample[m.s_pca["n_components"]:]
+    canonical_motion = m._inverse_spatial_pca(alpha)
+    time_function = m._inverse_temporal_pca(gamma)
 
-        robjects.r('library("fda")')
+    robjects.r('library("fda")')
 
-        # define basis object
-        n_basis = canonical_motion.shape[0]
-        rcode = """
+    # define basis object
+    n_basis = canonical_motion.shape[0]
+    rcode = """
             n_basis = %d
             n_frames = %d
             basisobj = create.bspline.basis(c(0, n_frames - 1),
                                             nbasis = n_basis)
         """ % (n_basis, m.n_canonical_frames)
-        robjects.r(rcode)
-        basis = robjects.globalenv['basisobj']
+    robjects.r(rcode)
+    basis = robjects.globalenv['basisobj']
 
-        # create fd object
-        fd = robjects.r['fd']
-        coefs = numpy2ri.numpy2ri(canonical_motion)
-        canonical_motion = fd(coefs, basis)
+    # create fd object
+    fd = robjects.r['fd']
+    coefs = numpy2ri.numpy2ri(canonical_motion)
+    canonical_motion = fd(coefs, basis)
 
-        # save time function
-        time_function = time_function.tolist()
-        eval_fd = robjects.r['eval.fd']
-        frames = np.array(eval_fd(time_function, canonical_motion))
-        frames = np.reshape(frames, (frames.shape[0],
-                                     frames.shape[-1]))
-        return frames
+    # save time function
+    time_function = time_function.tolist()
+    eval_fd = robjects.r['eval.fd']
+    frames = np.array(eval_fd(time_function, canonical_motion))
+    frames = np.reshape(frames, (frames.shape[0],
+                                 frames.shape[-1]))
+    return frames
 
 
 class TestMotionPrimitive(object):
+
     """ Unit test class for MotionPrimitive class """
 
     def setup_class(self):
@@ -106,11 +108,10 @@ def test_compare_get_motion_vector_with_r():
 
         sample = m.sample(return_lowdimvector=True)
         frames = m.back_project(sample).get_motion_vector()
-        frames_rpy2 = back_project_rpy2(m,sample)
+        frames_rpy2 = back_project_rpy2(m, sample)
         #assert np.isclose(frames_rpy2, frames)
         assert np.all(frames_rpy2 == frames)
     return
 
 if __name__ == "__main__":
     test_compare_get_motion_vector_with_r()
-

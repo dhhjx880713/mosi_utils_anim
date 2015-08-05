@@ -12,13 +12,15 @@ import rpy2.robjects.numpy2ri as numpy2ri
 import rpy2.robjects as robjects
 from external.PCA import Center, PCA
 
+
 class PCA_fd(object):
-    def __init__(self, input_data, n_basis = 7, fraction = 0.90):
+
+    def __init__(self, input_data, n_basis=7, fraction=0.90):
         '''
         Parameters
         ----------
         * input_data: 3d array (n_frames * n_samples *n_dims)
-        
+
         * faction: a value in [0, 1] 
         \tThe ratio of variance to maintain
         '''
@@ -27,43 +29,36 @@ class PCA_fd(object):
         self.fd = self.convert_to_fd()
         self.reshaped_fd, origin_shape = self.reshape_fd(self.fd)
         self.centerobj = Center(self.reshaped_fd)
-        self.pcaobj = PCA(self.reshaped_fd, fraction = fraction)
+        self.pcaobj = PCA(self.reshaped_fd, fraction=fraction)
         self.eigenvectors = self.pcaobj.Vt[:self.pcaobj.npc]
         print 'number of eigenvectors: ' + str(self.pcaobj.npc)
-        self.lowVs = self.project_data(self.reshape_fd)                                                 
-       
+        self.lowVs = self.project_data(self.reshape_fd)
 
-    def from_pca_to_data(self, data, original_shape):                                                          
+    def from_pca_to_data(self, data, original_shape):
         """Reshape back projection result from PCA as input data
         """
         reconstructed_data = np.zeros(original_shape)
         n_samples, n_frames, n_dims = original_shape
         for i in xrange(n_samples):
-            reconstructed_data[i, :, :] = np.reshape(data[i, :], (n_frames, n_dims))
-        return reconstructed_data        
-    
-    def weight_root_joint(self, weight=10):
-        """Give a higher weight for coefficients of root joints
-        """
-        self.fd[:,:,3] = self.fd[:,:,3] * weight 
-    
-    def unweight_root_joint(self, weight=10):
-        self.fd_back[:,:,3] = self.fd_back[:,:,3]/weight
-    
+            reconstructed_data[i, :, :] = np.reshape(
+                data[i, :], (n_frames, n_dims))
+        return reconstructed_data
+
     def convert_to_fd(self):
         '''
         represent data as a linear combination of basis function, and return 
         weights of functions
-        
+
         Parameters
         ----------
         * input_data: 3d array (n_samples * n_frames *n_dim)
-        
+
         Return
         ------
         * coefs: 3d array (n_coefs * n_samples * n_dim)
         '''
-        assert len(self.input_data.shape) == 3, ('input data should be a 3d array')
+        assert len(
+            self.input_data.shape) == 3, ('input data should be a 3d array')
         # reshape the data matrix for R library fda
         robjects.conversion.py2ri = numpy2ri.numpy2ri
         r_data = robjects.Matrix(self.input_data)
@@ -83,7 +78,7 @@ class PCA_fd(object):
         robjects.r(rcode)
         fd = robjects.globalenv['fd']
         coefs = fd[fd.names.index('coefs')]
-        coefs = np.asarray(coefs)   
+        coefs = np.asarray(coefs)
         print coefs.shape
         return coefs
 
@@ -96,18 +91,20 @@ class PCA_fd(object):
         n_coefs, n_samples, n_dim = fd.shape
         pca_data = np.zeros((n_samples, n_coefs * n_dim))
         for i in xrange(n_samples):
-            pca_data[i] = np.reshape(fd[:,i,:], (1, n_coefs * n_dim))
+            pca_data[i] = np.reshape(fd[:, i, :], (1, n_coefs * n_dim))
         return pca_data, (n_coefs, n_samples, n_dim)
-    
+
     def reshape_fd_back(self, pca_data, origin_shape):
         assert len(pca_data.shape) == 2, ('the data should be a 2d array')
-        assert len(origin_shape) == 3, ('the original data should be a 3d array')
+        assert len(
+            origin_shape) == 3, ('the original data should be a 3d array')
         n_samples, n_dim = pca_data.shape
         fd_back = np.zeros(origin_shape)
         for i in xrange(n_samples):
-            fd_back[:,i,:] = np.reshape(pca_data[i], (origin_shape[0], origin_shape[2]))
+            fd_back[:, i, :] = np.reshape(
+                pca_data[i], (origin_shape[0], origin_shape[2]))
         return fd_back
-    
+
     def project_data(self, data):
         '''
         project functional data to low dimensional space
@@ -119,7 +116,7 @@ class PCA_fd(object):
             lowVs.append(lowV)
         lowVs = np.asarray(lowVs)
         return lowVs
-    
+
     def backproject_data(self, lowVs):
         n_samples = len(lowVs)
         highVs = []
@@ -129,11 +126,11 @@ class PCA_fd(object):
             highVs.append(highV)
         highVs = np.asarray(highVs)
         return highVs
-    
+
     def from_fd_to_data(self, fd, n_frames):
         '''
         generate data from weights of basis functions
-        
+
         Parameter
         ---------
         * fd: 3d array (n_weights * n_samples * n_dim)
@@ -163,6 +160,3 @@ class PCA_fd(object):
         robjects.r(rcode)
         reconstructed_data = np.asarray(robjects.globalenv['samples_mat'])
         return reconstructed_data
-
-
-        

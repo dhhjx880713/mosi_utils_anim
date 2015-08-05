@@ -14,20 +14,21 @@ from construction_algorithm_configuration import ConstructionAlgorithmConfigurat
 from fpca.motion_dimension_reduction import MotionDimensionReduction
 from motion_primitive.statistical_model_trainer import StatisticalModelTrainer
 
+
 def main():
     elementary_action = 'walk'
-    motion_primitive = 'sidestepLeft'   
+    motion_primitive = 'sidestepLeft'
     params = ConstructionAlgorithmConfigurationBuilder(elementary_action,
                                                        motion_primitive)
     preprocessor = Preprocessor(params)
     preprocessor.preprocess()
     dimension_reduction = MotionDimensionReduction(preprocessor.warped_motions,
                                                    preprocessor.bvhreader,
-                                                   params)  
-    dimension_reduction.gen_data_for_modeling()                                             
+                                                   params)
+    dimension_reduction.gen_data_for_modeling()
     modelTrainer = StatisticalModelTrainer(dimension_reduction.fdata,
                                            params.save_path)
-    modelTrainer.gen_motion_primitive_model()                                       
+    modelTrainer.gen_motion_primitive_model()
 
 if __name__ == "__main__":
-    main()                                   
+    main()

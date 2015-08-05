@@ -7,14 +7,16 @@ Created on Fri Jul 10 15:20:26 2015
 import os
 import sys
 sys.path.append("..")
-import urllib2, json
+import urllib2
+import json
 from utilities.io_helper_functions import load_json_file
-TESTPATH = os.sep.join([".."]*2+ ["test_data"])
+TESTPATH = os.sep.join([".."] * 2 + ["test_data"])
+
 
 def test_rest_inteface():
     """ Based on the example from http://isbullsh.it/2012/06/Rest-api-in-python
     """
-    mg_input_file = os.sep.join([TESTPATH,"mg_input.json"])
+    mg_input_file = os.sep.join([TESTPATH, "mg_input.json"])
     print mg_input_file
     mg_server_url = 'http://localhost:8888/runmorphablegraphs'
     mg_input = load_json_file(mg_input_file)
@@ -25,8 +27,7 @@ def test_rest_inteface():
     handler = urllib2.urlopen(request)
     result = handler.read()
     print result
-    assert str(result)=="success"
-    
+    assert str(result) == "success"
+
 if __name__ == "__main__":
     test_rest_inteface()
-    

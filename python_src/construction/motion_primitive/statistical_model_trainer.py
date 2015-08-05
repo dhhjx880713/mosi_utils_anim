@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from sklearn import mixture
 import os
 import sys
-ROOTDIR = os.sep.join(['..']*2)
+ROOTDIR = os.sep.join(['..'] * 2)
 sys.path.append(ROOTDIR)
 import rpy2.robjects.numpy2ri as numpy2ri
 import rpy2.robjects as robjects
@@ -18,14 +18,14 @@ import shutil
 from animation_data.bvh import BVHReader, BVHWriter
 ROOT_DIR = os.sep.join([".."] * 3)
 
+
 class StatisticalModelTrainer(object):
 
     def __init__(self, fdata, save_path=None):
 
-
         self._load_spatial_data(fdata)
         self._combine_spatial_temporal_parameters()
-    
+
     def gen_motion_primitive_model(self):
         self._train_gmm()
         self._create_gmm()
@@ -40,7 +40,7 @@ class StatisticalModelTrainer(object):
         * data: json file
         \tThe data is stored in a dictionary
         '''
-        
+
         self._motion_primitive_name = fdata['motion_type']
         self._spatial_parameters = fdata['spatial_parameters']
         self._spatial_eigenvectors = fdata['spatial_eigenvectors']
@@ -50,8 +50,8 @@ class StatisticalModelTrainer(object):
         self._mean_motion = fdata['mean_motion']
         self._n_dim_spatial = int(fdata['n_dim_spatial'])
         self._temporal_pca = fdata['temporal_pcaobj']
-        self._temporal_parameters = np.asarray(self._temporal_pca[self._temporal_pca.names.index('scores')])        
-
+        self._temporal_parameters = np.asarray(
+            self._temporal_pca[self._temporal_pca.names.index('scores')])
 
     def _weight_temporal_parameters(self):
         '''
@@ -67,7 +67,8 @@ class StatisticalModelTrainer(object):
         long vector
         '''
         assert self._spatial_parameters.shape[0] == \
-               self._temporal_parameters.shape[0], ('Number of samples are not the same for spatial parameters and temporal parameters')
+            self._temporal_parameters.shape[
+                0], ('Number of samples are not the same for spatial parameters and temporal parameters')
         self._weight_temporal_parameters()
         self._motion_parameters = np.concatenate((self._spatial_parameters,
                                                   self._temporal_parameters,),
@@ -115,7 +116,7 @@ class StatisticalModelTrainer(object):
 #        print scores
         averageScore = np.mean(scores)
         print 'average score is:' + str(averageScore)
-    
+
     def _sample_spatial_parameters(self, n, save_path=None):
         '''Generate ranmdon sample from mrophable model based on spatial p
            parameters
@@ -123,12 +124,11 @@ class StatisticalModelTrainer(object):
         self.new_ld_vectors = self.gmm.sample(n)
         for i in xrange(n):
             filename = 'generated_motions' + os.sep + str(i) + '.bvh'
-            self._backprojection(self.new_ld_vectors[i], filename = filename)
-    
+            self._backprojection(self.new_ld_vectors[i], filename=filename)
+
     def _sample_fd_spatial_parameters(self, n, save_path=None):
         self.new_fd_ld_vectors = self.gmm.sample(n)
-        
-    
+
     def _backprojection(self, ld_vec, filename=None):
         """Back project a low dimensional spatial parameter to motion
         """
@@ -137,12 +137,14 @@ class StatisticalModelTrainer(object):
         backprojected_vector = np.ravel(backprojected_vector)
         backprojected_vector += self._mean_motion
         # reshape motion vector as a 2d array n_frames * n_dim
-        assert len(backprojected_vector) == self._n_dim_spatial * self._n_frames, ('the length of back projected motion vector is not correct!')
+        assert len(backprojected_vector) == self._n_dim_spatial * \
+            self._n_frames, (
+                'the length of back projected motion vector is not correct!')
         if filename is None:
             filename = 'sample.bvh'
         else:
             filename = filename
-        frames = np.reshape(backprojected_vector, (self._n_frames, 
+        frames = np.reshape(backprojected_vector, (self._n_frames,
                                                    self._n_dim_spatial))
         # rescale root position for each frame
         for i in xrange(self._n_frames):
@@ -150,11 +152,10 @@ class StatisticalModelTrainer(object):
             frames[i, 1] = frames[i, 1] * self._scale_vec[1]
             frames[i, 2] = frames[i, 2] * self._scale_vec[2]
         skeleton = os.sep.join(('lib', 'skeleton.bvh'))
-        reader = BVHReader(skeleton)                                                   
+        reader = BVHReader(skeleton)
         BVHWriter(filename, reader, frames, frame_time=0.013889,
-                  is_quaternion=True)                                                      
-                                                           
-                                                   
+                  is_quaternion=True)
+
     def _save_model(self, save_path=None):
         '''
         Save model as a json file
@@ -167,12 +168,14 @@ class StatisticalModelTrainer(object):
         if save_path is None:
             filename = self._motion_primitive_name + '_quaternion_mm.json'
         else:
-            filename = save_path + os.sep + self._motion_primitive_name + '_quaternion_mm.json'
+            filename = save_path + os.sep + \
+                self._motion_primitive_name + '_quaternion_mm.json'
         weights = self.gmm.weights_.tolist()
         means = self.gmm.means_.tolist()
         covars = self.gmm.covars_.tolist()
         mean_fd = self._temporal_pca[self._temporal_pca.names.index('meanfd')]
-        self._mean_time_vector = np.array(mean_fd[mean_fd.names.index('coefs')])
+        self._mean_time_vector = np.array(
+            mean_fd[mean_fd.names.index('coefs')])
         self._mean_time_vector = np.ravel(self._mean_time_vector)
         n_basis_time = len(self._mean_time_vector)
         harms = self._temporal_pca[self._temporal_pca.names.index('harmonics')]
@@ -194,9 +197,10 @@ class StatisticalModelTrainer(object):
             json.dump(data, outfile)
         outfile.close()
 
+
 def main():
-    pass    
-    
+    pass
+
 if __name__ == '__main__':
-#    test_standPCA_on_quaternion_spatial()
+    #    test_standPCA_on_quaternion_spatial()
     main()

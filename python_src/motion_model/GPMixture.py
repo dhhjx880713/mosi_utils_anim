@@ -13,7 +13,9 @@ import json
 import zipfile
 import cPickle as pickle
 
+
 class GPMixture(object):
+
     """ Mixture of GPs
 
     Parameters
@@ -98,11 +100,11 @@ class GPMixture(object):
         for i in xrange(inputcluster):
             if sum(weights_[i]) != 0:
                 self.weights_.append(
-                    [float(w)/sum(weights_[i]) for w in weights_[i]])
+                    [float(w) / sum(weights_[i]) for w in weights_[i]])
             else:
                 weights_[i] = [i + 1 for i in weights_[i]]
                 self.weights_.append(
-                    [float(w)/sum(weights_[i]) for w in weights_[i]])
+                    [float(w) / sum(weights_[i]) for w in weights_[i]])
 
     def predict(self, Xnew):
         """ Predict a GMM distribution for the output values
@@ -121,7 +123,8 @@ class GPMixture(object):
         covars_ = []
         weights_ = []
 
-        cluster_index = self.gmm.predict(Xnew)[0]  # self.gmm.predict(Xnew[None, :])[0] suspected to cause problems
+        # self.gmm.predict(Xnew[None, :])[0] suspected to cause problems
+        cluster_index = self.gmm.predict(Xnew)[0]
         for c, gp in enumerate(self.gps):
             if self.weights_[cluster_index][c] != 0:
 
@@ -139,8 +142,6 @@ class GPMixture(object):
             (len(weights_), len(self.gmm.weights_))
 
         return gmm
-
-
 
     def save(self, filepath):
         """Saves a GPMixture object to zip file
@@ -175,7 +176,6 @@ class GPMixture(object):
     def load(cls, filepath, input_gmm, output_gmm=None):
         """Updates self.gps from a zip file"""
         gpm = cls(X=None, Y=None, gmm=input_gmm, output_gmm=output_gmm)
-
 
         gpm.gps = []
         gpm.weights_ = []
@@ -248,7 +248,6 @@ def build_X_Y_pairs(action1, prim1, action2, prim2,
 
 def create_and_save(action1, prim1, action2, prim2, max_iters,
                     mm_path, transition_path, output_path):
-
     """ creates a GP for the transition action1_prim1_to_action2_prim2 and
     saves it to a .GPM zip file
 
@@ -289,7 +288,7 @@ def create_and_save(action1, prim1, action2, prim2, max_iters,
     gpmixture = GPMixture(X, Y, mm.gmm, max_iters=max_iters, messages=False)
     gpmixture.train_gp_mixture()
     gpmixture.save(os.sep.join((output_path, "%s_%s_to_%s_%s.GPM" %
-                               (action1, prim1, action2, prim2))))
+                                (action1, prim1, action2, prim2))))
 
 
 def main():

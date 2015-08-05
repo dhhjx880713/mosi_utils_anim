@@ -12,8 +12,9 @@ sys.path.append(ROOT_DIR)
 SERVICE_CONFIG_FILE = ROOT_DIR + os.sep + "config" + os.sep + "service.json"
 from utilities.io_helper_functions import load_json_file
 
+
 class ConstructionAlgorithmConfigurationBuilder(object):
-        
+
     def __init__(self, elementary_action, motion_primitive):
         self.ref_orientation = {'x': 0, 'y': 0, 'z': -1}
         self.ref_position = {'x': 0, 'y': 0, 'z': 0}
@@ -33,8 +34,9 @@ class ConstructionAlgorithmConfigurationBuilder(object):
         self._get_annotation_file()
 
     def _get_annotation_file(self):
-        self.annotation_file = self.retarget_folder + os.sep + 'key_frame_annotation.txt'
-    
+        self.annotation_file = self.retarget_folder + \
+            os.sep + 'key_frame_annotation.txt'
+
     def _get_retarget_folder(self):
-        self.retarget_folder = self.data_path + os.sep + r'2 - Rocketbox retargeting\Take_sidestep' 
-    
+        self.retarget_folder = self.data_path + os.sep + \
+            r'2 - Rocketbox retargeting\Take_sidestep'

@@ -10,41 +10,45 @@ Provides all funktionality to check how good a constraint is met
 from math import sqrt
 import numpy as np
 from animation_data.motion_editing import convert_quaternion_frame_to_cartesian_frame,\
-                    get_cartesian_coordinates_from_quaternion,\
-                    align_point_clouds_2D,\
-                    transform_quaternion_frames,\
-                    pose_orientation,\
-                    transform_point_cloud,\
-                    calculate_point_cloud_distance,\
-                    fast_quat_frames_transformation
+    get_cartesian_coordinates_from_quaternion,\
+    align_point_clouds_2D,\
+    transform_quaternion_frames,\
+    pose_orientation,\
+    transform_point_cloud,\
+    calculate_point_cloud_distance,\
+    fast_quat_frames_transformation
 from external.transformations import rotation_matrix
 
 POSITION_ERROR_FACTOR = 1  # importance of reaching position constraints
 ROTATION_ERROR_FACTOR = 10  # importance of reaching rotation constraints
-RELATIVE_HUERISTIC_RANGE = 0.10  # used for setting the search range relative to the number of frames of motion primitive
-CONSTRAINT_CONFLICT_ERROR = 100000  # returned when conflicting constraints were set
+# used for setting the search range relative to the number of frames of
+# motion primitive
+RELATIVE_HUERISTIC_RANGE = 0.10
+# returned when conflicting constraints were set
+CONSTRAINT_CONFLICT_ERROR = 100000
 
 global_counter_dict = {}
-global_counter_dict["evaluations"] = 0# counter for calls of the objective function
-global_counter_dict["motionPrimitveErrors"] = []# holds errors of individual motion primitives
+# counter for calls of the objective function
+global_counter_dict["evaluations"] = 0
+# holds errors of individual motion primitives
+global_counter_dict["motionPrimitveErrors"] = []
 
 
-
-def vector_distance(a,b):
+def vector_distance(a, b):
     """Returns the distance ignoring entries with None
     """
     d_sum = 0
-    #print a,b
+    # print a,b
     for i in xrange(len(a)):
         if a[i] is not None and b[i] is not None:
-            d_sum += (a[i]-b[i])**2
+            d_sum += (a[i] - b[i])**2
     return sqrt(d_sum)
 
 
 def find_aligned_quaternion_frames(mm, s, prev_frames, start_pose):
     """Align quaternion frames from low dimensional vector s based on
     previous frames
-       
+
     Parameters
     ----------
     * mm: motion primitive
@@ -54,32 +58,34 @@ def find_aligned_quaternion_frames(mm, s, prev_frames, start_pose):
     \tA list of quaternion frames
     * start_pose: dict
     \tA dictionary contains staring position and orientation
-    
+
     Returns:
     --------
     * transformed_frames: np.ndarray
         Quaternion frames resulting from the back projection of s,
         transformed to fit to prev_frames.
-        
+
     """
     # get quaternion frames of input motion s
-    use_time_parameters = False # Note: time parameters are not necessary for alignment
-    quat_frames = mm.back_project(s, use_time_parameters=use_time_parameters).get_motion_vector()
-    # find alignment transformation: rotation and translation    
+    # Note: time parameters are not necessary for alignment
+    use_time_parameters = False
+    quat_frames = mm.back_project(
+        s, use_time_parameters=use_time_parameters).get_motion_vector()
+    # find alignment transformation: rotation and translation
     if prev_frames is not None:
-        #print prev_frames
-        angle, offset = fast_quat_frames_transformation(prev_frames, quat_frames)
-        transformation = {"orientation":[0,angle,0],"position":offset}                                                 
+        # print prev_frames
+        angle, offset = fast_quat_frames_transformation(
+            prev_frames, quat_frames)
+        transformation = {"orientation": [0, angle, 0], "position": offset}
     elif start_pose is not None:
         transformation = start_pose
 
     # align frames
     transformed_frames = transform_quaternion_frames(quat_frames,
-                                              transformation["orientation"],
-                                              transformation["position"])   
-    return transformed_frames   
-
-
+                                                     transformation[
+                                                         "orientation"],
+                                                     transformation["position"])
+    return transformed_frames
 
 
 def constraint_distance(constraint, target_position=None,
@@ -121,7 +127,7 @@ def constraint_distance(constraint, target_position=None,
         for i in xrange(len(constraint["orientation"])):
             if constraint["orientation"][i] is not None:
                 tmp_constraint = rotation_matrix(np.deg2rad(constraint
-                                                 ["orientation"][i]),
+                                                            ["orientation"][i]),
                                                  rotation_axes[i])
                 rotmat_constraint = np.dot(tmp_constraint, rotmat_constraint)
                 tmp_target = rotation_matrix(np.deg2rad(target_orientation[i]),
@@ -134,8 +140,8 @@ def constraint_distance(constraint, target_position=None,
 
 
 def check_pos_and_rot_constraint_one_frame(frame, constraint, skeleton,
-                               precision={"pos":1,"rot":1},
-                               verbose=False):
+                                           precision={"pos": 1, "rot": 1},
+                                           verbose=False):
     """Checks whether the constraint is fullfiled for a given frame
 
     Parameters
@@ -162,32 +168,29 @@ def check_pos_and_rot_constraint_one_frame(frame, constraint, skeleton,
     """
     if "joint" in constraint.keys():
         node_name = constraint["joint"]
-    
+
         target_position = get_cartesian_coordinates_from_quaternion(skeleton,
-                                                     node_name, frame)
-      
+                                                                    node_name, frame)
 
         pos_distance, rot_distance = constraint_distance(constraint,
-                                                         target_position=
-                                                         target_position,
-                                                         target_orientation=
-                                                         None)
-        if pos_distance <= precision["pos"]  and rot_distance <= precision["rot"]:
+                                                         target_position=target_position,
+                                                         target_orientation=None)
+        if pos_distance <= precision["pos"] and rot_distance <= precision["rot"]:
             success = True
         else:
             success = False
 
-        #return sum of distances for the selection of the best sample
+        # return sum of distances for the selection of the best sample
         return success, pos_distance + rot_distance
     else:
         print "missing joint name in constraint definition"
-        return False,np.inf
+        return False, np.inf
 
 
 def check_dir_constraint(aligned_quat_frames, direction_constraint, precision):
     """ Evaluates the direction of the movement and compares it with the 
     constraint value.
-    
+
     Parameters
     ----------
     * aligned_quat_frames: np.ndarray
@@ -198,7 +201,7 @@ def check_dir_constraint(aligned_quat_frames, direction_constraint, precision):
         Used for hierarchy information.
     * node_name_map : dict
        Optional: Maps node name to index in frame vector ignoring "Bip" joints.
-       
+
     Returns
     -------
     * error: float
@@ -211,10 +214,10 @@ def check_dir_constraint(aligned_quat_frames, direction_constraint, precision):
 #   motion_dir = get_orientation_vec(frames)
     motion_dir = pose_orientation(aligned_quat_frames[-1])
     target_dir = np.array([direction_constraint[0], direction_constraint[2]])
-    target_dir = target_dir/np.linalg.norm(target_dir)
-    
+    target_dir = target_dir / np.linalg.norm(target_dir)
+
     error = abs(target_dir[0] - motion_dir[0]) + \
-                 abs(target_dir[1] - motion_dir[1])
+        abs(target_dir[1] - motion_dir[1])
     if error < precision:
         in_precision = True
     else:
@@ -224,11 +227,10 @@ def check_dir_constraint(aligned_quat_frames, direction_constraint, precision):
     return error * ROTATION_ERROR_FACTOR, in_precision
 
 
-
 def check_frame_constraint(quat_frames, frame_constraint, precision, skeleton):
     """ Evaluates the difference between the first frame of the motion 
     and the frame constraint.
-    
+
     Parameters
     ----------
     * aligned_quat_frames: np.ndarray
@@ -239,7 +241,7 @@ def check_frame_constraint(quat_frames, frame_constraint, precision, skeleton):
         Used for hierarchy information
     * node_name_map : dict
        Optional: Maps node name to index in frame vector ignoring "Bip" joints
-    
+
     Returns
     -------
     * error: float
@@ -248,7 +250,8 @@ def check_frame_constraint(quat_frames, frame_constraint, precision, skeleton):
         If error is inside range precision.
     """
     # get point cloud of first frame
-    point_cloud = convert_quaternion_frame_to_cartesian_frame(skeleton,quat_frames[0])
+    point_cloud = convert_quaternion_frame_to_cartesian_frame(
+        skeleton, quat_frames[0])
 
     constraint_point_cloud = []
     for joint in skeleton.node_name_map.keys():
@@ -256,32 +259,32 @@ def check_frame_constraint(quat_frames, frame_constraint, precision, skeleton):
     theta, offset_x, offset_z = align_point_clouds_2D(constraint_point_cloud,
                                                       point_cloud,
                                                       skeleton.joint_weights)
-    t_point_cloud = transform_point_cloud(point_cloud, theta, offset_x, offset_z)
+    t_point_cloud = transform_point_cloud(
+        point_cloud, theta, offset_x, offset_z)
 
-    error = calculate_point_cloud_distance(constraint_point_cloud,t_point_cloud)
+    error = calculate_point_cloud_distance(
+        constraint_point_cloud, t_point_cloud)
     if error < precision:
         in_precision = True
     else:
         in_precision = False
-    return error, in_precision 
+    return error, in_precision
 
 
 def convert_annotation_to_indices(constrain_first_frame, constrain_last_frame):
-        start_stop_dict = {
-            (None, None): (None, None),
-            (True, None): (None, 1),
-            (False, None): (1, None),
-            (None, True): (-1, None),
-            (None, False): (None, -1),
-            (True, False): (None, 1),
-            (False, True): (-1, None),
-            (False, False): (1, -1)
-        }
-        start, stop = start_stop_dict[(constrain_first_frame, constrain_last_frame)]
-        return start, stop
-
-
-
+    start_stop_dict = {
+        (None, None): (None, None),
+        (True, None): (None, 1),
+        (False, None): (1, None),
+        (None, True): (-1, None),
+        (None, False): (None, -1),
+        (True, False): (None, 1),
+        (False, True): (-1, None),
+        (False, False): (1, -1)
+    }
+    start, stop = start_stop_dict[
+        (constrain_first_frame, constrain_last_frame)]
+    return start, stop
 
 
 def check_pos_and_rot_constraint(aligned_quat_frames, constraint, precision, skeleton, annotation, verbose=False):
@@ -299,44 +302,42 @@ def check_pos_and_rot_constraint(aligned_quat_frames, constraint, precision, ske
     """
 #   print "position constraint is called"
     constrain_first_frame, constrain_last_frame = annotation
-    n_frames = len(aligned_quat_frames) 
-    #check specific frames
+    n_frames = len(aligned_quat_frames)
+    # check specific frames
     # check for a special case which should not happen in a single constraint
-    if not (constrain_first_frame and constrain_last_frame):  
-        
-        start, stop = convert_annotation_to_indices(constrain_first_frame, constrain_last_frame)
-    
-    
-    
+    if not (constrain_first_frame and constrain_last_frame):
+
+        start, stop = convert_annotation_to_indices(
+            constrain_first_frame, constrain_last_frame)
+
         heuristic_range = RELATIVE_HUERISTIC_RANGE * n_frames
-    
+
         filtered_frames = aligned_quat_frames[-heuristic_range:]
         filtered_frame_nos = range(n_frames)
-    
+
         ok = []
         failed = []
         for frame_no, frame in zip(filtered_frame_nos, filtered_frames):
-            success ,distance = check_pos_and_rot_constraint_one_frame(frame, constraint, 
-                                                                        skeleton,
-                                                                        precision,verbose)
+            success, distance = check_pos_and_rot_constraint_one_frame(frame, constraint,
+                                                                       skeleton,
+                                                                       precision, verbose)
             if success:
-                ok.append((frame_no,distance))
+                ok.append((frame_no, distance))
             else:
-                failed.append( (frame_no,distance))
-    
-        return ok,failed
+                failed.append((frame_no, distance))
+
+        return ok, failed
     else:
         print "Warning conflicting constraint was set"
-        return [],[ (0, CONSTRAINT_CONFLICT_ERROR)]
-  
+        return [], [(0, CONSTRAINT_CONFLICT_ERROR)]
 
 
-def check_constraint(quat_frames,constraint,
+def check_constraint(quat_frames, constraint,
                      skeleton,
                      range_start=None,
                      range_stop=None,
                      start_pose=None,
-                     precision={"pos":1,"rot":1,"smooth":1},
+                     precision={"pos": 1, "rot": 1, "smooth": 1},
                      constrain_first_frame=None,
                      constrain_last_frame=None,
                      verbose=False):
@@ -375,38 +376,39 @@ def check_constraint(quat_frames,constraint,
         where the constrained is not fullfilled
         together with the distance to the constraint calculated using l2 norm ignoring None
     """
-          
-    #handle the different types of constraints
-    if "dir_vector" in constraint.keys() and constrain_last_frame: # orientation constraint on last frame
-        error, in_precision = check_dir_constraint(quat_frames, constraint["dir_vector"], precision["rot"])
-        
-        n_frames = len(quat_frames) 
+
+    # handle the different types of constraints
+    # orientation constraint on last frame
+    if "dir_vector" in constraint.keys() and constrain_last_frame:
+        error, in_precision = check_dir_constraint(
+            quat_frames, constraint["dir_vector"], precision["rot"])
+
+        n_frames = len(quat_frames)
         if in_precision:
-            return [(n_frames-1, error)], []
+            return [(n_frames - 1, error)], []
         else:
-            return [], [(n_frames - 1,error)]
-            
-    elif "frame_constraint" in  constraint.keys():
-        error, in_precision= check_frame_constraint(quat_frames, constraint["frame_constraint"], precision["smooth"], skeleton)
+            return [], [(n_frames - 1, error)]
+
+    elif "frame_constraint" in constraint.keys():
+        error, in_precision = check_frame_constraint(
+            quat_frames, constraint["frame_constraint"], precision["smooth"], skeleton)
         if in_precision:
             return [(0, error)], []
         else:
-            return [], [(0,error)]
+            return [], [(0, error)]
 
     elif "position" or "orientation" in constraint.keys():
         return check_pos_and_rot_constraint(quat_frames, constraint, precision, skeleton, (constrain_first_frame, constrain_last_frame), verbose=verbose)
     else:
         print "Error: Constraint type not recognized"
-        return [],[(0,10000)]
+        return [], [(0, 10000)]
 
-        
 
-def evaluate_list_of_constraints(motion_primitive,s,constraints,prev_frames,start_pose,skeleton,\
-                        precision = {"pos":1,"rot":1,"smooth":1},verbose=False):
-    
+def evaluate_list_of_constraints(motion_primitive, s, constraints, prev_frames, start_pose, skeleton,
+                                 precision={"pos": 1, "rot": 1, "smooth": 1}, verbose=False):
     """
     Calculates the error of a list of constraints given a sample parameter value s.
-    
+
     Returns
     -------
     * sum_error : float
@@ -418,36 +420,35 @@ def evaluate_list_of_constraints(motion_primitive,s,constraints,prev_frames,star
     error_sum = 0
     successes = []
 
-    #find aligned frames once for all constraints
-    aligned_frames  = find_aligned_quaternion_frames(motion_primitive, s, prev_frames, start_pose)
+    # find aligned frames once for all constraints
+    aligned_frames = find_aligned_quaternion_frames(
+        motion_primitive, s, prev_frames, start_pose)
 
     for c in constraints:
-         good_frames, bad_frames = check_constraint(aligned_frames, c,
-                                          skeleton,
-                                          precision=precision, 
-                                          constrain_first_frame=c["semanticAnnotation"]["firstFrame"] ,
-                                          constrain_last_frame=c["semanticAnnotation"]["lastFrame"] ,
-                                          verbose=verbose)
+        good_frames, bad_frames = check_constraint(aligned_frames, c,
+                                                   skeleton,
+                                                   precision=precision,
+                                                   constrain_first_frame=c[
+                                                       "semanticAnnotation"]["firstFrame"],
+                                                   constrain_last_frame=c[
+                                                       "semanticAnnotation"]["lastFrame"],
+                                                   verbose=verbose)
 
-                                          
-         if len(good_frames)>0:               
+        if len(good_frames) > 0:
             c_min_distance = min((zip(*good_frames))[1])
             successes.append(True)
-         else:
-            c_min_distance =  min((zip(*bad_frames))[1])
+        else:
+            c_min_distance = min((zip(*bad_frames))[1])
             successes.append(False)
-             
-         error_sum+=c_min_distance
-    return error_sum, successes
-    
 
-def obj_error_sum(s,data):
+        error_sum += c_min_distance
+    return error_sum, successes
+
+
+def obj_error_sum(s, data):
     s = np.asarray(s)
-    motion_primitive, constraints, prev_frames,start_pose, skeleton,precision = data
-    error_sum, successes = evaluate_list_of_constraints(motion_primitive,s,constraints,prev_frames,start_pose,skeleton,
-                                                           precision=precision,verbose=False)
+    motion_primitive, constraints, prev_frames, start_pose, skeleton, precision = data
+    error_sum, successes = evaluate_list_of_constraints(motion_primitive, s, constraints, prev_frames, start_pose, skeleton,
+                                                        precision=precision, verbose=False)
     global_counter_dict["evaluations"] += 1
     return error_sum
-
-
-

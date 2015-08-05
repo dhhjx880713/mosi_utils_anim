@@ -84,7 +84,7 @@ def _full_mul(gmm1, gmm2):
             sumsigma = np.array(g1.sigma + g2.sigma)
             deltamu = g1.mu - g2.mu
 
-            det = np.linalg.det(2*np.pi*(sumsigma))
+            det = np.linalg.det(2 * np.pi * (sumsigma))
 
             weight1 = gmm1.weights_[i] * gmm2.weights_[j] / (np.sqrt(det))
 
@@ -95,7 +95,7 @@ def _full_mul(gmm1, gmm2):
             weight = weight1 * weight2
             weights_.append(weight)
 
-            #raw_input()
+            # raw_input()
     gmm = mixture.GMM(len(means_), covariance_type='full')
     gmm.means_ = np.array(means_)
     gmm.covars_ = np.array(covars_)

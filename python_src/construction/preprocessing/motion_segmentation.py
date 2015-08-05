@@ -17,7 +17,6 @@ SERVICE_CONFIG_FILE = ROOT_DIR + os.sep + "config" + os.sep + "service.json"
 
 class MotionSegmentation(object):
 
-
     def __init__(self, verbose=False):
         self.verbose = verbose
         self.cutted_motions = {}
@@ -30,8 +29,8 @@ class MotionSegmentation(object):
         self.cut_files(elementary_action, primitive_type, data_path)
 
     def load_annotation(self, annotation_file):
-        self.annotation_label= self._convert_to_json(annotation_file,
-                                                     export=False)
+        self.annotation_label = self._convert_to_json(annotation_file,
+                                                      export=False)
         if self.verbose:
             print "Load %d files." % len(self.annotation_label.keys())
 
@@ -117,7 +116,8 @@ def main():
     primitive_type = 'sidestepLeft'
 
     print data_path
-    retarget_folder = data_path + os.sep + r'2 - Rocketbox retargeting\Take_sidestep'
+    retarget_folder = data_path + os.sep + \
+        r'2 - Rocketbox retargeting\Take_sidestep'
     cutting_folder = data_path + os.sep + r'3 - Cutting\test'
     annotation = retarget_folder + os.sep + 'key_frame_annotation.txt'
     motion_segmentor = MotionSegmentation()

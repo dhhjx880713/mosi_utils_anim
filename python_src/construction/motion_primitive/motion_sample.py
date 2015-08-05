@@ -12,6 +12,7 @@ from lib.bvh import BVHReader, BVHWriter
 
 
 class MotionSample(object):
+
     """ Represent a Sample from a Morphable Model or from a Transition Model
 
     It provides the following functionality:
@@ -55,6 +56,7 @@ class MotionSample(object):
     * t: numpy.ndarray
     \tThe times where to evaluate the motion in the new timeline
     """
+
     def __init__(self, canonical_motion, canonical_frames, time_function):
         # initialize fda library
         robjects.r('library("fda")')
@@ -107,12 +109,13 @@ class MotionSample(object):
 #            frame_r = eval_fd(t_i_r, self.canonical_motion)
 #            frame = np.array(frame_r)
 #            self.frames.append(frame)
-        
-        self.frames = np.array(eval_fd(self.time_function.tolist(), self.canonical_motion))
+
+        self.frames = np.array(
+            eval_fd(self.time_function.tolist(), self.canonical_motion))
         print self.frames.shape
         # nested array
         self.frames = np.reshape(self.frames, (self.frames.shape[0],
-                                               self.frames.shape[-1]))                                            
+                                               self.frames.shape[-1]))
         return np.asarray(self.frames)
 
     def save_motion_vector(self, filename):

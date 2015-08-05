@@ -64,8 +64,10 @@ def clean_path(path):
         # fix for Windows 260 char limit
         relative_levels = len([directory for directory in path.split(os.sep)
                                if directory == '..'])
-        cwd = [directory for directory in os.getcwd().split(os.sep)] if ':' not in path else []
-        path = '\\\\?\\' + os.sep.join(cwd[:len(cwd)-relative_levels] + [directory for directory in path.split(os.sep) if directory != ''][relative_levels:])
+        cwd = [directory for directory in os.getcwd().split(
+            os.sep)] if ':' not in path else []
+        path = '\\\\?\\' + os.sep.join(cwd[:len(cwd) - relative_levels] + [
+                                       directory for directory in path.split(os.sep) if directory != ''][relative_levels:])
     return path
 
 
@@ -77,8 +79,10 @@ class MorphableModel(MotionPrimitive):
     def _back_projection(self, low_dimensional_vector):
         """Backproject a low_dimensional_vector to MotionSample object
         """
-        spatial_coefs = self._inverse_spatial_pca(low_dimensional_vector[:self.s_pca["n_components"]])
-        time_fd = self._inverse_temporal_pca(low_dimensional_vector[self.s_pca["n_components"]:])
+        spatial_coefs = self._inverse_spatial_pca(
+            low_dimensional_vector[:self.s_pca["n_components"]])
+        time_fd = self._inverse_temporal_pca(
+            low_dimensional_vector[self.s_pca["n_components"]:])
         return MotionSample(spatial_coefs, self.n_canonical_frames, time_fd)
 
     def back_projection_training_data(self, dataFile, saveFolder=None):
@@ -89,7 +93,8 @@ class MorphableModel(MotionPrimitive):
             infile.close()
         low_dimensional_motion_data_dic = data['motion_data']
         file_order = low_dimensional_motion_data_dic.keys()
-        low_dimensional_motion_data = np.asarray(low_dimensional_motion_data_dic.values())
+        low_dimensional_motion_data = np.asarray(
+            low_dimensional_motion_data_dic.values())
         n_samples = len(low_dimensional_motion_data)
         for i in xrange(n_samples):
             back_motion = self._back_projection(low_dimensional_motion_data[i])
@@ -129,7 +134,8 @@ class MorphableModel(MotionPrimitive):
             infile.close()
         low_dimensional_motion_data_dic = data['motion_data']
         file_order = low_dimensional_motion_data_dic.keys()
-        low_dimensional_motion_data = np.asarray(low_dimensional_motion_data_dic.values())
+        low_dimensional_motion_data = np.asarray(
+            low_dimensional_motion_data_dic.values())
         n_clusters = len(self.gmm.weights_)
         # initialize clusters
         clusters = []
@@ -172,11 +178,14 @@ if __name__ == '__main__':
     motion_data_dir = get_input_data_folder()
     if len(motion_data_dir) > 116:
         motion_data_dir = clean_path(motion_data_dir)
-    motionDataFile = motion_data_dir + os.sep + '%s_%s_low_dimensional_motion_data.json' % (elementary_motion, motion_primitive)
+    motionDataFile = motion_data_dir + os.sep + \
+        '%s_%s_low_dimensional_motion_data.json' % (
+            elementary_motion, motion_primitive)
     motion_primitive_dir = get_motion_primitive_folder()
     if len(motion_primitive_dir) > 116:
         motion_primitive_dir = clean_path(motion_primitive_dir)
-    motionPrimitiveFile = motion_primitive_dir + os.sep + '%s_%s_quaternion_mm.json' % (elementary_motion, motion_primitive)   
+    motionPrimitiveFile = motion_primitive_dir + os.sep + \
+        '%s_%s_quaternion_mm.json' % (elementary_motion, motion_primitive)
     mm = MorphableModel(motionPrimitiveFile)
     mm.gen_Svector_for_clusters(motionDataFile)
 #    with open(motionDataFile, 'rb') as infile:
@@ -190,7 +199,7 @@ if __name__ == '__main__':
 #    probs = mm.eval_probs_for_sample(low_dimension_data[index])
 #    print probs
 #    mm.back_projection_training_data(saveFolder=r'backprojectionMotion/')
-#def load_data(filename):
+# def load_data(filename):
 #    """
 #    Load low dimensional data from json file
 #    """
@@ -198,14 +207,14 @@ if __name__ == '__main__':
 #        data = json.load(infile)
 #        infile.close()
 #    low_dimensional_motion_data = np.asarray(data['motion_data'])
-#    n_samples = len(low_dimensional_motion_data) 
+#    n_samples = len(low_dimensional_motion_data)
 #    print 'number of samples: ' + str(n_samples)
 #    eigen_vector_spatial = np.asarray(data['eigen_vectors_spatial'])
 #    print eigen_vector_spatial.shape
 #    n_pcs_spatial = eigen_vector_spatial[1]
 #    for i in xrange(n_samples):
 
-        
+
 #    low_dimensional_vector = np.ravel(self.gmm.sample())
 #    print low_dimensional_vector
 #    spatial_coefs = self._inverse_spatial_pca(low_dimensional_vector[:self.s_pca["n_components"]])
@@ -213,4 +222,4 @@ if __name__ == '__main__':
 #        time_fd = self._inverse_temporal_pca(low_dimensional_vector[self.s_pca["n_components"]:])
 #    else:
 #        time_fd = None
-#    return MotionSample(spatial_coefs, self.n_canonical_frames, time_fd)        
+#    return MotionSample(spatial_coefs, self.n_canonical_frames, time_fd)

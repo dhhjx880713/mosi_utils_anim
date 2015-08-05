@@ -7,12 +7,13 @@ the file name correspondingly
 """
 from mirror_animation import mirror_animation
 from mirror_animation_list import get_mirror_map, \
-                                  gen_file_paths, \
-                                  clean_path
-import os          
-from helper_functions import * 
-from lib.bvh import BVHReader, BVHWriter                       
+    gen_file_paths, \
+    clean_path
+import os
+from helper_functions import *
+from lib.bvh import BVHReader, BVHWriter
 ROOT_DIR = os.sep.join([".."] * 3)
+
 
 def get_input_data_folder(elementary_action, motion_primitive):
     """Returns folder path as string without trailing os.sep
@@ -35,17 +36,18 @@ def get_input_data_folder(elementary_action, motion_primitive):
     input_dir = os.sep.join([ROOT_DIR,
                              data_dir_name,
                              mocap_dir_name,
-#                             alignment_dir_name,
+                             #                             alignment_dir_name,
                              cutted_dir_name,
                              'elementary_action_' + elementary_action,
                              motion_primitive])
 
     return input_dir
 
+
 def get_output_folder(elementary_action, motion_primitive):
     """
     Return folder path to store result without trailing os.sep
-    
+
 
     Parameters
     ----------
@@ -61,18 +63,19 @@ def get_output_folder(elementary_action, motion_primitive):
     cutted_dir_name = "3 - Cutting"
 
     output_dir = os.sep.join([ROOT_DIR,
-                             data_dir_name,
-                             mocap_dir_name,
-#                             alignment_dir_name,
-                             cutted_dir_name,
-                             'elementary_action_' + elementary_action,
-                             motion_primitive])
+                              data_dir_name,
+                              mocap_dir_name,
+                              #                             alignment_dir_name,
+                              cutted_dir_name,
+                              'elementary_action_' + elementary_action,
+                              motion_primitive])
     return output_dir
+
 
 def main():
     elementary_action = 'walk'
     input_primitive = 'sidestepLeft'
-    output_primitive = 'sidestepRight'   
+    output_primitive = 'sidestepRight'
     input_dir = get_input_data_folder(elementary_action, input_primitive)
     output_dir = get_output_folder(elementary_action, output_primitive)
     mirror_map = get_mirror_map()
@@ -92,7 +95,7 @@ def main():
                                           frames,
                                           mirror_map)
             output_path = output_dir + os.sep + output_filename
-            BVHWriter(output_path, bvh_reader, new_frames, 
-                      frame_time=bvh_reader.frame_time, is_quaternion=True)                             
+            BVHWriter(output_path, bvh_reader, new_frames,
+                      frame_time=bvh_reader.frame_time, is_quaternion=True)
 if __name__ == '__main__':
-    main()                          
+    main()

@@ -21,6 +21,7 @@ np.random.seed(int(time.time()))
 
 
 class MotionPrimitive(object):
+
     """ Represent a motion primitive which can be sampled
 
     Parameters
@@ -52,21 +53,20 @@ class MotionPrimitive(object):
     \tScaling factor to reconstruct the unnormalized translation parameters of a motion after inverse pca
 
     """
+
     def __init__(self, filename):
         self.filename = filename
-        self.name = ""#useful for identifying the data source
-        self.gmm = None #gaussian mixture model
-        self.s_pca ={} #pca result on spatial data
-        self.t_pca ={} #pca result on time data
+        self.name = ""  # useful for identifying the data source
+        self.gmm = None  # gaussian mixture model
+        self.s_pca = {}  # pca result on spatial data
+        self.t_pca = {}  # pca result on time data
 
-        #information about the motion necessary for the reconstruction
+        # information about the motion necessary for the reconstruction
         self.n_canonical_frames = 0
-        self.translation_maxima = np.array([1.0,1.0,1.0])
+        self.translation_maxima = np.array([1.0, 1.0, 1.0])
         self.use_time_parameters = True
 
         self._load(self.filename)
-
-
 
     def _load(self, filename=None):
         """ Load a motion primitive from a file
@@ -83,7 +83,7 @@ class MotionPrimitive(object):
             infile.close()
             self._initialize_from_json(tmp)
 
-    def _initialize_from_json(self,data):
+    def _initialize_from_json(self, data):
         """ Load morphable model parameters from a dictionary and initialize
             the fda library and the Gaussian Mixture model.
 
@@ -94,10 +94,10 @@ class MotionPrimitive(object):
 
         """
 
-        #initialize fda for later operations
+        # initialize fda for later operations
         robjects.r('library("fda")')
 
-        #load additional data
+        # load additional data
         if 'name' in data.keys():
             self.name = data['name']
         self.n_canonical_frames = data['n_canonical_frames']
@@ -105,48 +105,44 @@ class MotionPrimitive(object):
 
         # initialize gmm
         n_components = len(np.array(data['gmm_weights']))
-        self.gmm = mixture.GMM(n_components,covariance_type = 'full')
+        self.gmm = mixture.GMM(n_components, covariance_type='full')
         self.gmm.weights_ = np.array(data['gmm_weights'])
         self.gmm.means_ = np.array(data['gmm_means'])
         self.gmm.converged_ = True
         self.gmm.covars_ = np.array(data['gmm_covars'])
 
-
-        #load spatial parameters
+        # load spatial parameters
         self.s_pca = {}
         self.s_pca["eigen_vectors"] = np.array(data['eigen_vectors_spatial'])
         self.s_pca["mean_vector"] = np.array(data['mean_spatial_vector'])
-        self.s_pca["n_basis"]= int(data['n_basis_spatial'])
+        self.s_pca["n_basis"] = int(data['n_basis_spatial'])
         self.s_pca["n_dim"] = int(data['n_dim_spatial'])
-        self.s_pca["n_components"]= len(self.s_pca["eigen_vectors"])
-        rcode ="""
+        self.s_pca["n_components"] = len(self.s_pca["eigen_vectors"])
+        rcode = """
             n_basis = %d
             n_frames = %d
             basisobj = create.bspline.basis(c(0, n_frames - 1), nbasis = n_basis)
-        """% ( self.s_pca["n_basis"],self.n_canonical_frames)
+        """ % ( self.s_pca["n_basis"], self.n_canonical_frames)
         robjects.r(rcode)
         self.s_pca["basis_function"] = robjects.globalenv['basisobj']
 
-        #load time parameters
+        # load time parameters
         if 'eigen_vectors_time' not in data.keys():
             self.use_time_parameters = False
         else:
             self.t_pca = {}
             self.t_pca["eigen_vectors"] = np.array(data['eigen_vectors_time'])
-            self.t_pca["mean_vector"]= np.array(data['mean_time_vector'])
-            self.t_pca["n_basis"]= int(data['n_basis_time'])
+            self.t_pca["mean_vector"] = np.array(data['mean_time_vector'])
+            self.t_pca["n_basis"] = int(data['n_basis_time'])
             self.t_pca["n_dim"] = 1
 
-            rcode ="""
+            rcode = """
                 n_basis = %d
                 n_frames = %d
                 basisobj = create.bspline.basis(c(0, n_frames - 1), nbasis = n_basis)
-            """% ( self.t_pca["n_basis"],self.n_canonical_frames)
+            """ % ( self.t_pca["n_basis"], self.n_canonical_frames)
             robjects.r(rcode)
             self.t_pca["basis_function"] = robjects.globalenv['basisobj']
-
-
-
 
     def sample(self, return_lowdimvector=False):
         """ Sample the motion primitive and return a motion sample
@@ -176,12 +172,12 @@ class MotionPrimitive(object):
 
         else:
             return self.back_project(low_dimensional_vector)
-            
-            
+
     def back_project_spatial(self, low_dimensional_vector_spatial):
-        coefs = np.dot(np.transpose(self.s_pca["eigen_vectors"]), low_dimensional_vector_spatial)
+        coefs = np.dot(
+            np.transpose(self.s_pca["eigen_vectors"]), low_dimensional_vector_spatial)
         coefs += self.s_pca["mean_vector"]
-        coefs = coefs.reshape((self.s_pca["n_basis"],1,self.s_pca["n_dim"]))
+        coefs = coefs.reshape((self.s_pca["n_basis"], 1, self.s_pca["n_dim"]))
         robjects.conversion.py2ri = numpy2ri.numpy2ri
         r_data = robjects.Matrix(np.asarray(coefs))
         n_frames = 132
@@ -205,10 +201,9 @@ class MotionPrimitive(object):
         robjects.r(rcode)
         reconstructed_data = np.asarray(robjects.globalenv['samples_mat'])
         print reconstructed_data.shape
-        return reconstructed_data        
-            
-    
-    def back_project(self,low_dimensional_vector):
+        return reconstructed_data
+
+    def back_project(self, low_dimensional_vector):
         """ Return a motion sample based on a low dimensional motion vector.
 
         Parameters
@@ -223,15 +218,15 @@ class MotionPrimitive(object):
         \tThe sampled motion as object of type MotionSample
         """
 
-        spatial_coefs = self._inverse_spatial_pca(low_dimensional_vector[:self.s_pca["n_components"]])
+        spatial_coefs = self._inverse_spatial_pca(
+            low_dimensional_vector[:self.s_pca["n_components"]])
         if self.use_time_parameters:
             tmp = low_dimensional_vector[self.s_pca["n_components"]:]
-            tmp = [i*10 for i in tmp]
+            tmp = [i * 10 for i in tmp]
             time_fd = self._inverse_temporal_pca(tmp)
         else:
             time_fd = None
         return MotionSample(spatial_coefs, self.n_canonical_frames, time_fd)
-        
 
     def _inverse_spatial_pca(self, alpha):
         """ Backtransform a lowdimensional vector alpha to a coefficients of
@@ -247,14 +242,14 @@ class MotionPrimitive(object):
         * motion: numpy.ndarray
         \t Reconstructed coefficients of the functional motion representation.
         """
-        #reconstruct coefs of the functionial representation
+        # reconstruct coefs of the functionial representation
         coefs = np.dot(np.transpose(self.s_pca["eigen_vectors"]), alpha.T)
-        coefs+= self.s_pca["mean_vector"]
-        coefs = coefs.reshape((self.s_pca["n_basis"],1,self.s_pca["n_dim"]))
-        #undo the scaling on the translation
-        coefs[:,0,0] *= self.translation_maxima[0]
-        coefs[:,0,1] *= self.translation_maxima[1]
-        coefs[:,0,2] *= self.translation_maxima[2]
+        coefs += self.s_pca["mean_vector"]
+        coefs = coefs.reshape((self.s_pca["n_basis"], 1, self.s_pca["n_dim"]))
+        # undo the scaling on the translation
+        coefs[:, 0, 0] *= self.translation_maxima[0]
+        coefs[:, 0, 1] *= self.translation_maxima[1]
+        coefs[:, 0, 2] *= self.translation_maxima[2]
         return coefs
 
     def _inverse_temporal_pca(self, gamma):
@@ -284,8 +279,8 @@ class MotionPrimitive(object):
         meanfd = fd(mean_coefs, basis)
         numframes = self.n_canonical_frames
 
-        #1.2: reconstruct discrete vector t(t') from gamma by
-        #evaluating the harmonics and the mean
+        # 1.2: reconstruct discrete vector t(t') from gamma by
+        # evaluating the harmonics and the mean
         fdeval = robjects.r['eval.fd']
 #        t = []
 #        t.append(0)
@@ -295,14 +290,15 @@ class MotionPrimitive(object):
 #            eigen_i = np.asarray(fdeval(i, eigenfd))[0]    # its a nested array
 #            t.append(t[-1] + np.exp(mean_i + np.dot(eigen_i, gamma)))
 
-        time_frame =np.arange(0,numframes).tolist()
-        mean =np.array(fdeval(time_frame, meanfd))
-        eigen =np.array(fdeval(time_frame, eigenfd))
-        t=[0,]
+        time_frame = np.arange(0, numframes).tolist()
+        mean = np.array(fdeval(time_frame, meanfd))
+        eigen = np.array(fdeval(time_frame, eigenfd))
+        t = [0, ]
         for i in xrange(numframes):
             t.append(t[-1] + np.exp(mean[i] + np.dot(eigen[i], gamma)))
 
-        #1.3: undo step from timeVarinaces.transform_timefunction during alignment
+        # 1.3: undo step from timeVarinaces.transform_timefunction during
+        # alignment
         t = np.ravel(t[1:])
         t -= 1
         zeroindices = t < 0
@@ -310,42 +306,44 @@ class MotionPrimitive(object):
         largest_frame_index = t[-1]
         a = 0.25
         b = 2
-        offset = b/a * np.log(1 + a*abs(largest_frame_index - self.n_canonical_frames))
+        offset = b / a * \
+            np.log(1 + a * abs(largest_frame_index - self.n_canonical_frames))
         if largest_frame_index > self.n_canonical_frames:
             new_largest_frame_index = offset + self.n_canonical_frames
         else:
             new_largest_frame_index = self.n_canonical_frames - offset
-        scale_factor = new_largest_frame_index/largest_frame_index
-        t = [i*scale_factor for i in t]
+        scale_factor = new_largest_frame_index / largest_frame_index
+        t = [i * scale_factor for i in t]
 
         # step 2: calculate inverse spline by creating a spline, upsampling it and
         # use the samples to get an inverse spline then sample that inverse spline
         # using step size 1
         # i.e. calculate t'(t) from t(t')
 
-        #2.1 do the upsampling
-        #2.1.1 create spline from discrete time function
+        # 2.1 do the upsampling
+        # 2.1.1 create spline from discrete time function
         T = len(t) - 1
-        x = np.linspace(0, T, T+1)
+        x = np.linspace(0, T, T + 1)
         spline = UnivariateSpline(x, t, s=0, k=2)
-        #2.2.1 sample from spline
+        # 2.2.1 sample from spline
         x_sample = np.linspace(0, T, 200)
         w_sample = spline(x_sample)
 
-        #2.3 try to get a valid inverse spline from upsampled data
+        # 2.3 try to get a valid inverse spline from upsampled data
         s = 10
-        frames = np.linspace(1, t[-1], np.round(t[-1])-1)
+        frames = np.linspace(1, t[-1], np.round(t[-1]) - 1)
         while True:
             inverse_spline = UnivariateSpline(w_sample, x_sample, s=s, k=2)
             if not np.isnan(inverse_spline(frames)).any():
                 break
             s = s + 1
 
-        #2.4 sample discrete data from inverse spline
+        # 2.4 sample discrete data from inverse spline
         frames = np.linspace(1, t[-2], np.round(t[-2]))
-        t = inverse_spline(frames)#possible bug when frames not goes out of bound
+        # possible bug when frames not goes out of bound
+        t = inverse_spline(frames)
         t = np.insert(t, 0, 0)
-        t = np.insert(t, len(t), numframes-1)
+        t = np.insert(t, len(t), numframes - 1)
         t_max = max(t)
         # temporary solution: smooth temporal parameters, then linearly extend
         # it to (0, t_max)
@@ -353,14 +351,14 @@ class MotionPrimitive(object):
         t = gaussian_filter1d(t, sigma)
         a = min(t)
         b = max(t)
-        t = [(i-a)/(b-a) * t_max for i in t]
+        t = [(i - a) / (b - a) * t_max for i in t]
         t = np.asarray(t)
 #        t1 = np.linspace(0,1, len(t))
 #        t2 = np.linspace(0, 1, 10*len(t))
 #        t_new = np.interp(t2, t1, t)
 #        t = gaussian_filter1d(t_new, sigma)
-        #handle bug: sometimes samples of the Univariate spline  go out of bounds
-        #or are not monotonously increasing
+        # handle bug: sometimes samples of the Univariate spline  go out of bounds
+        # or are not monotonously increasing
 #        over_bound_indices = [i for i in xrange(len(t)) if t[i] > numframes-1]
 #        if len(over_bound_indices)>0:
 #            last_index = min(over_bound_indices)
@@ -376,7 +374,6 @@ class MotionPrimitive(object):
 #                last_index = -1
 #            t[last_index] = numframes-1
 
-
         return t
 
 
@@ -388,12 +385,12 @@ def plot_data(data, joint_order):
     print data.shape
     n_samples, n_frames, n_dims = data.shape
 #    n_frames, n_samples, n_dims = data.shape
-    fig, axarr = plt.subplots(2,2)
+    fig, axarr = plt.subplots(2, 2)
     for i in xrange(n_samples):
-        axarr[0,0].plot(data[i, :, 3+ 4* (joint_order-1) + 0])
-        axarr[0,1].plot(data[i, :, 3+ 4* (joint_order-1) + 1])
-        axarr[1,0].plot(data[i, :, 3+ 4* (joint_order-1) + 2])
-        axarr[1,1].plot(data[i, :, 3+ 4* (joint_order-1) + 3])
+        axarr[0, 0].plot(data[i, :, 3 + 4 * (joint_order - 1) + 0])
+        axarr[0, 1].plot(data[i, :, 3 + 4 * (joint_order - 1) + 1])
+        axarr[1, 0].plot(data[i, :, 3 + 4 * (joint_order - 1) + 2])
+        axarr[1, 1].plot(data[i, :, 3 + 4 * (joint_order - 1) + 3])
     plt.suptitle('LeftShoulder')
     plt.show()
 
@@ -401,7 +398,7 @@ def plot_data(data, joint_order):
 def main():
     """ Function to demonstrate this module """
     mm_file = 'place_second_quaternion_mm.json'
-    
+
     m = MotionPrimitive(mm_file)
 #    sample = m.sample()
 #    motion_data = m.back_project_spatial(sample)
@@ -409,8 +406,8 @@ def main():
 #    skeleton = os.sep.join(('lib', 'skeleton.bvh'))
 #    reader = BVHReader(skeleton)
 #    BVHWriter(out_file, reader, motion_data[0,:,:], frame_time=0.013889,
-#              is_quaternion=True) 
-              
+#              is_quaternion=True)
+
     skeleton = os.sep.join(('lib', 'skeleton.bvh'))
     reader = BVHReader(skeleton)
     for i in xrange(1):
@@ -420,8 +417,8 @@ def main():
 #        print sample
 #        motion_data = m.back_project_spatial(sample)
 #        BVHWriter(out_file, reader, motion_data[0,:,:], frame_time=0.013889,
-#                      is_quaternion=True) 
+#                      is_quaternion=True)
     sample.save_motion_vector(out_file)
 
-if __name__=='__main__':
+if __name__ == '__main__':
     main()

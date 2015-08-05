@@ -8,7 +8,9 @@ import numpy as np
 from animation_data.bvh import BVHReader, BVHWriter
 import scipy.interpolate as si
 
+
 class MotionSample(object):
+
     """ Represent a Sample from a Morphable Model or from a Transition Model
 
     It provides the following functionality:
@@ -52,6 +54,7 @@ class MotionSample(object):
     * t: numpy.ndarray
     \tThe times where to evaluate the motion in the new timeline
     """
+
     def __init__(self, canonical_motion, canonical_frames, time_function, knots):
 
         self.time_function = time_function
@@ -59,8 +62,8 @@ class MotionSample(object):
         self.frames = None
         n_dim = len(canonical_motion[0][0])
         canonical_motion_coefs = canonical_motion.T
-        self.canonical_motion_splines = [(knots,canonical_motion_coefs[i],3) for i in xrange(n_dim)]
-        
+        self.canonical_motion_splines = [
+            (knots, canonical_motion_coefs[i], 3) for i in xrange(n_dim)]
 
     def get_motion_vector(self, usebuffer=True):
         """ Return a 2d - vector representing the motion in the new timeline
@@ -76,11 +79,13 @@ class MotionSample(object):
         """
         if usebuffer and self.frames is not None:
             return self.frames
-            
-        temp_frames = [ si.splev(self.time_function,spline_def) for spline_def in self.canonical_motion_splines]
-        self.frames  = np.asarray(temp_frames).T
 
-        # Change the result from a 3D array into a 2D array. example: change 47x1x79 to 47x79
+        temp_frames = [si.splev(self.time_function, spline_def)
+                       for spline_def in self.canonical_motion_splines]
+        self.frames = np.asarray(temp_frames).T
+
+        # Change the result from a 3D array into a 2D array. example: change
+        # 47x1x79 to 47x79
         self.frames = np.reshape(self.frames, (self.frames.shape[0],
                                                self.frames.shape[-1]))
 
@@ -98,7 +103,7 @@ class MotionSample(object):
         # Save opperation costs much, therefor we can recalculate the vector
         frames = self.get_motion_vector(usebuffer=False)
 #        skeleton = os.sep.join(('lib', 'skeleton.bvh'))
-        skeleton = ('skeleton.bvh')     
+        skeleton = ('skeleton.bvh')
         reader = BVHReader(skeleton)
         BVHWriter(filename, reader, frames, frame_time=0.013889,
                   is_quaternion=True)
@@ -113,8 +118,6 @@ class MotionSample(object):
         \tThe other motion as MotionSample object.
         """
         raise NotImplementedError()
-
-
 
 
 def main():
