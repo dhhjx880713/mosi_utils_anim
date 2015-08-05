@@ -16,12 +16,11 @@ class Preprocessor(MotionDynamicTimeWarping):
         super(Preprocessor, self).__init__(params)
         self.params = params
         
-    def preprocess(self, elementary_action, primitive_type,
-                   retarget_folder, annotation_file):
-        self.segment_motions(elementary_action,
-                             primitive_type,
-                             retarget_folder,
-                             annotation_file)
+    def preprocess(self):
+        self.segment_motions(self.params.elementary_action,
+                             self.params.primitive_type,
+                             self.params.retarget_folder,
+                             self.params.annotation_file)
         self.normalize_root(self.params.ref_position,
                             self.params.touch_ground_joint)   
         self.align_motion(self.params.align_frame_idx, 
