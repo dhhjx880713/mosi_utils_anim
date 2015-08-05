@@ -129,21 +129,19 @@ class ElementaryActionGraphBuilder(object):
     def _set_transitions_from_dict(self, elementary_action_graph, graph_definition):
         transition_dict = graph_definition["transitions"]
         
-        for elementary_action_key in elementary_action_graph.node_groups.keys(): 
-            for node_key in transition_dict:
-                from_action_name = node_key.split("_")[0]
-                from_motion_primitive_name = node_key.split("_")[1]
-                from_node_key = (from_action_name, from_motion_primitive_name)
-                if from_action_name == elementary_action_key and \
-                    from_node_key in elementary_action_graph.nodes.keys():
-                    #print "add action transitions for", subgraph_key,"###############################"
-                    for to_key in transition_dict[node_key]:
-                        to_action_name = to_key.split("_")[0]
-                        to_motion_primitive_name = to_key.split("_")[1]
-                        to_node_key = (to_action_name,to_motion_primitive_name) 
-                        if to_node_key in elementary_action_graph.nodes.keys():
-                            self._add_transition(elementary_action_graph, from_node_key, to_node_key)
-                        
+        for node_key in transition_dict:
+            from_action_name = node_key.split("_")[0]
+            from_motion_primitive_name = node_key.split("_")[1]
+            from_node_key = (from_action_name, from_motion_primitive_name)
+            if from_node_key in elementary_action_graph.nodes.keys():
+                #print "add action transitions for", subgraph_key,"###############################"
+                for to_key in transition_dict[node_key]:
+                    to_action_name = to_key.split("_")[0]
+                    to_motion_primitive_name = to_key.split("_")[1]
+                    to_node_key = (to_action_name,to_motion_primitive_name) 
+                    if to_node_key in elementary_action_graph.nodes.keys():
+                        self._add_transition(elementary_action_graph, from_node_key, to_node_key)
+                    
                         
     def _add_transition(self, elementary_action_graph, from_node_key, to_node_key):
 
