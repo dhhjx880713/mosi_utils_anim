@@ -10,8 +10,6 @@ import sys
 import numpy as np
 ROOTDIR = os.sep.join(['..']*3)
 import glob
-#os.chdir(ROOTDIR)
-#print os.getcwd()
 sys.path.append(ROOTDIR + os.sep)
 TESTPATH = ROOTDIR + os.sep + r'construction/preprocessing'
 TESTLIBPATH = ROOTDIR + os.sep + 'test/'

@@ -33,7 +33,7 @@ class MotionSegmentation(object):
         self.annotation_label= self._convert_to_json(annotation_file,
                                                      export=False)
         if self.verbose:
-            print "Load &d files." % len(self.annotation_label.keys())
+            print "Load %d files." % len(self.annotation_label.keys())
 
     def cut_files(self, elementary_action, primitive_type, data_path):
         if not data_path.endswith(os.sep):

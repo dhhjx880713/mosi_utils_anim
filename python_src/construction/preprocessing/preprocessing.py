@@ -12,8 +12,8 @@ from motion_dtw import MotionDynamicTimeWarping
 
 class Preprocessor(MotionDynamicTimeWarping):
     
-    def __init__(self, params):
-        super(Preprocessor, self).__init__(params)
+    def __init__(self, params, verbose=False):
+        super(Preprocessor, self).__init__(verbose)
         self.params = params
         
     def preprocess(self):

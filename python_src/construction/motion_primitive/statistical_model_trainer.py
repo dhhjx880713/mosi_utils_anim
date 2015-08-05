@@ -15,7 +15,7 @@ sys.path.append(ROOTDIR)
 import rpy2.robjects.numpy2ri as numpy2ri
 import rpy2.robjects as robjects
 import shutil
-from utilities.bvh import BVHReader, BVHWriter
+from animation_data.bvh import BVHReader, BVHWriter
 ROOT_DIR = os.sep.join([".."] * 3)
 
 class StatisticalModelTrainer(object):

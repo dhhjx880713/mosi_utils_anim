@@ -25,15 +25,15 @@ class ConstructionAlgorithmConfigurationBuilder(object):
         self.npc_temporal = 3
         self.fraction = 0.95
         self.elementary_action = elementary_action
-        self.motion_primitive = motion_primitive
+        self.primitive_type = motion_primitive
         path_data = load_json_file(SERVICE_CONFIG_FILE)
         self.data_path = path_data['data_folder']
-        self.save_path = path_data['model data']
-        self._get_annotation_file()
+        self.save_path = path_data['model_data']
         self._get_retarget_folder()
-    
+        self._get_annotation_file()
+
     def _get_annotation_file(self):
-        self.annotation = self.retarget_folder + os.sep + 'key_frame_annotation.txt'
+        self.annotation_file = self.retarget_folder + os.sep + 'key_frame_annotation.txt'
     
     def _get_retarget_folder(self):
         self.retarget_folder = self.data_path + os.sep + r'2 - Rocketbox retargeting\Take_sidestep' 

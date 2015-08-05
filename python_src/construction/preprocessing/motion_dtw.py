@@ -140,11 +140,14 @@ class MotionDynamicTimeWarping(MotionNormalization):
             ref_indeces, test_indeces, dist = self.calculate_path(distgrid)
             shape = (n_test_frames, n_ref_frames)
             path = self.get_warping_index(test_indeces, ref_indeces, shape)
+            distgrid = distgrid.T
             plt.figure()
             plt.imshow(distgrid)
             plt.plot(range(len(path)), path, color='red')
-            plt.xlabel(ref_motion['filename'])
-            plt.ylabel(test_motion['filename'])
+            plt.ylabel(ref_motion['filename'])
+            plt.ylim(0, n_ref_frames)
+            plt.xlim(0, n_test_frames)
+            plt.xlabel(test_motion['filename'])
             plt.title('similarity grid with path')
             plt.show()                                                             
         return distgrid
