@@ -1,12 +1,5 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon Aug 03 13:59:46 2015
-
-@author: erhe01
-"""
-
-# -*- coding: utf-8 -*-
-"""
 Created on Thu Jul 16 15:57:42 2015
 
 @author: erhe01
@@ -70,7 +63,7 @@ class MotionPrimitiveNodeGroupBuilder(object):
         if self.subgraph_desc is not None:
             motion_primitive_node_group = self._init_from_dict()
         else:
-             motion_primitive_node_group = self._init_from_directory(motion_primitive_node_group)
+            motion_primitive_node_group = self._init_from_directory()
         return motion_primitive_node_group
         
     def _init_from_dict(self):
@@ -114,7 +107,7 @@ class MotionPrimitiveNodeGroupBuilder(object):
                     motion_primitive_name = file_name.split("_")[1]
                     #print motion_primitve_file_name
                     motion_primitive_file_name = self.morphable_model_directory+os.sep+file_name
-                    node_key = (self.subgraph_desc["name"], motion_primitive_name)
+                    node_key = (self.elementary_action_name, motion_primitive_name)
                     motion_primitive_node_group.nodes[node_key] = MotionPrimitiveNode()
                     motion_primitive_node_group.nodes[node_key].init_from_file(motion_primitive_node_group.elementary_action_name,motion_primitive_name,motion_primitive_file_name)
                     
