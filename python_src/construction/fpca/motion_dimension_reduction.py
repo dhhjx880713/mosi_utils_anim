@@ -9,8 +9,12 @@ import sys
 import os
 ROOT_DIR = os.sep.join(['..'] * 2)
 sys.path.append(ROOT_DIR)
+sys.path.append('..//')
 from animation_data.quaternion_frame import QuaternionFrame
+from animation_data.bvh import BVHReader, BVHWriter
+from construction_algorithm_configuration import ConstructionAlgorithmConfigurationBuilder
 import numpy as np
+import json
 from FPCA_temporal_data import FPCATemporalData
 from FPCA_spatial_data import FPCASpatialData
 
@@ -22,10 +26,13 @@ class MotionDimensionReduction(object):
         self.motion_data = motion_data
         self.spatial_data = {}
         self.temporal_data = {}
-        for filename, data in self.motion_data:
+        self.len_quaterion = 4
+        self.len_root_position = 3
+        for filename, data in self.motion_data.iteritems():
             self.spatial_data[filename] = data['frames']
             self.temporal_data[filename] = data['warping_index']
         self.skeleton_bvh = skeleton_bvh
+        self.n_frames = len(self.spatial_data[self.spatial_data.keys()[0]])
 
     def use_fpca_on_temporal_params(self):
         self.fpca_temporal = FPCATemporalData(self.temporal_data,
@@ -42,12 +49,9 @@ class MotionDimensionReduction(object):
         self.fpca_spatial.fpca_on_spatial_data()
 
     def convert_euler_to_quat(self):
-        """Convert euler frames to quaternion frames
-        """
         self.quat_frames = {}
         for filename, frames in self.spatial_data.iteritems():
-            self.quat_frames[
-                filename] = self.get_quat_frames_from_euler(frames)
+            self.quat_frames[filename] = self.get_quat_frames_from_euler(frames)
 
     def get_quat_frames_from_euler(self, frames):
         quat_frames = []
@@ -55,21 +59,43 @@ class MotionDimensionReduction(object):
         for frame in frames:
             quat_frame = QuaternionFrame(self.skeleton_bvh, frame)
             if last_quat_frame is not None:
-                for joint_name in self.skeleton_bvh.node_name.keys():
+                for joint_name in self.skeleton_bvh.node_names.keys():
                     if joint_name in quat_frame.keys():
-                        dot = quat_frame[joint_name][0] * last_quat_frame[joint_name][0] + \
-                            quat_frame[joint_name][1] * last_quat_frame[joint_name][1] + \
-                            quat_frame[joint_name][2] * last_quat_frame[joint_name][2] + \
-                            quat_frame[joint_name][
-                                3] * last_quat_frame[joint_name][3]
-                        if dot < 0:
-                            quat_frame[
-                                joint_name] = [-v for v in quat_frame[joint_name]]
+                        quat_frame[joint_name] = self.check_quat(quat_frame[joint_name],
+                                                                 last_quat_frame[joint_name])
             last_quat_frame = quat_frame
             root_translation = frame[0:3]
             quat_frame_values = [root_translation, ] + quat_frame.values()
+            quat_frame_values = self.convert_quat_frame_value_to_array(quat_frame_values)
             quat_frames.append(quat_frame_values)
         return quat_frames
+    
+    def convert_quat_frame_value_to_array(self, quat_frame_values):
+        n_channels = len(quat_frame_values)
+        quat_channels = n_channels - 1
+        self.n_dims = quat_channels * self.len_quaterion + self.len_root_position
+        # in order to use Functional data representation from Fda(R), the
+        # input data should be a matrix of shape (n_frames * n_samples *
+        # n_dims)
+        quat_frame_value_array = []
+        for item in quat_frame_values:
+            if not isinstance(item, list):
+                item = list(item)
+            quat_frame_value_array += item
+        assert isinstance(quat_frame_value_array, list) and len(quat_frame_value_array) == self.n_dims, \
+        ('The length of quaternion frame is not correct! ')
+        return quat_frame_value_array
+        
+    
+    def check_quat(self, test_quat, ref_quat):
+        """check test quat needs to be filpped or not
+        """
+        test_quat = np.asarray(test_quat)
+        ref_quat = np.asarray(ref_quat)
+        dot = np.dot(test_quat, ref_quat)
+        if dot < 0:
+            test_quat = - test_quat
+        return test_quat.tolist()
 
     def scale_rootchannels(self):
         """ Scale all root channels in the given frames.
@@ -90,13 +116,10 @@ class MotionDimensionReduction(object):
             max_x_i = np.max(np.abs(rootchannels[:, 0]))
             max_y_i = np.max(np.abs(rootchannels[:, 1]))
             max_z_i = np.max(np.abs(rootchannels[:, 2]))
-
             if max_x < max_x_i:
                 max_x = max_x_i
-
             if max_y < max_y_i:
                 max_y = max_y_i
-
             if max_z < max_z_i:
                 max_z = max_z_i
 
@@ -105,15 +128,12 @@ class MotionDimensionReduction(object):
             # Bit confusing conversion needed here, since of numpys view system
             rootchannels = tmp[:, 0].tolist()
             rootchannels = np.array(rootchannels)
-
             rootchannels[:, 0] /= max_x
             rootchannels[:, 1] /= max_y
             rootchannels[:, 2] /= max_z
-
             self.rescaled_quat_frames[key] = value
             for frame in xrange(len(tmp)):
-                self.rescaled_quat_frames[key][frame][
-                    0] = tuple(rootchannels[frame].tolist())
+                self.rescaled_quat_frames[key][frame][0] = tuple(rootchannels[frame].tolist())
         self.scale_vector = [max_x, max_y, max_z]
 
     def gen_data_for_modeling(self):
@@ -130,3 +150,21 @@ class MotionDimensionReduction(object):
         self.fdata['n_dim_spatial'] = self.fpca_spatial.n_dims
         self.fdata['n_basis'] = self.params.n_basis_functions_spatial
         self.fdata['temporal_pcaobj'] = self.fpca_temporal.temporal_pcaobj
+
+def main():
+    motion_data = r'C:\git-repo\ulm\morphablegraphs\test_data\constrction\fpca\motion_data.json'
+    with open(motion_data, 'rb') as infile:
+        motion_data = json.load(infile)
+    params = ConstructionAlgorithmConfigurationBuilder('walk', 'leftstance')
+    skeleton_bvh = BVHReader(params.ref_bvh)
+    dimension_reduction = MotionDimensionReduction(motion_data,
+                                                   skeleton_bvh,
+                                                   params)
+    dimension_reduction.convert_euler_to_quat()
+    save_path = r'C:\git-repo\ulm\morphablegraphs\test_output\tmp' 
+    for filename, data in dimension_reduction.quat_frames.iteritems():
+        BVHWriter(save_path+os.sep+filename, skeleton_bvh, data, 
+                  skeleton_bvh.frame_time, is_quaternion=True)                                             
+
+if __name__ == "__main__":
+    main()

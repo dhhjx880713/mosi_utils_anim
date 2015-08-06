@@ -6,11 +6,9 @@ Created on Fri Nov 24 14:10:21 2014
 
 """
 import collections
-from math import radians
 import numpy as np
 from external.transformations import euler_matrix, quaternion_from_matrix 
-import glob
-import os
+
 
 
 class QuaternionFrame(collections.OrderedDict):
@@ -163,18 +161,13 @@ class QuaternionFrame(collections.OrderedDict):
 def main():
 
     from bvh import BVHReader
-    filepath = "test/walk_001_1_rightStance_86_128.bvh"
+    filepath = r"C:\git-repo\ulm\morphablegraphs\test_data\animation_data/walk_001_1_rightStance_86_128.bvh"
     bvh_reader = BVHReader(filepath)
-#    nameList = []
-#    for node_name in bvh_reader.node_names:
-#        if not node_name.startswith("Bip"):
-#            nameList.append(node_name)
-#    print len(nameList)
-    quat_frame = QuaternionFrame(bvh_reader, 0, True)
-    joint_name = quat_frame.keys()
+    quat_frame = QuaternionFrame(bvh_reader, bvh_reader.frames[0], True)
+#    joint_name = quat_frame.keys()
     joint_value = quat_frame.values()
-    print len(joint_name)
-    print joint_name
+#    print len(joint_name)
+#    print joint_name
     print joint_value
 
 
