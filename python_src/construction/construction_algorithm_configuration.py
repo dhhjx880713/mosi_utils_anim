@@ -7,7 +7,7 @@ Created on Wed Jul 29 17:28:00 2015
 
 import os
 import sys
-ROOT_DIR = os.sep.join(['..'] * 1)
+ROOT_DIR = os.path.dirname(__file__) + os.sep + '..'
 sys.path.append(ROOT_DIR)
 SERVICE_CONFIG_FILE = ROOT_DIR + os.sep + "config" + os.sep + "service.json"
 from utilities.io_helper_functions import load_json_file
