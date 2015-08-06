@@ -81,7 +81,7 @@ class MotionPrimitiveNodeGroup(object):
             self.nodes[(self.elementary_action_name, k)].node_type = NODE_TYPE_END
                           
         
-    def _update_attributes(self, update_stats=False):
+    def update_attributes(self, update_stats=False):
         """
         Update attributes of motion primitives for faster lookup. #
         """
@@ -100,9 +100,9 @@ class MotionPrimitiveNodeGroup(object):
             if "stats" not in self.meta_information.keys():
                 self.meta_information["stats"] = {}
             for k in self.nodes.keys():
-                if k in self.meta_information["stats"].keys():
-                    self.nodes[k].n_standard_transitions = self.meta_information["stats"][k]["n_standard_transitions"] 
-                    self.nodes[k].average_step_length = self.meta_information["stats"][k]["average_step_length"]
+                if k[1] in self.meta_information["stats"].keys():
+                    self.nodes[k].n_standard_transitions = self.meta_information["stats"][k[1]]["n_standard_transitions"] 
+                    self.nodes[k].average_step_length = self.meta_information["stats"][k[1]]["average_step_length"]
                 else:
                     self.nodes[k].update_attributes()
                     self.meta_information["stats"][k[1]]={"average_step_length":self.nodes[k].average_step_length,"n_standard_transitions": self.nodes[k].n_standard_transitions }
