@@ -68,8 +68,10 @@ class MotionPrimitiveNodeGroup(object):
                     for label in motion_primitve_annotations.keys():
                         self.annotation_map[label] = motion_primitive
              
+        self._set_node_attributes()
+        return
          
-     
+    def _set_node_attributes(self):
         print "elementary_action",self.elementary_action_name     
         print "start states",self.start_states
         for k in self.start_states:
@@ -77,9 +79,7 @@ class MotionPrimitiveNodeGroup(object):
         print "end states",self.end_states
         for k in self.end_states:
             self.nodes[(self.elementary_action_name, k)].node_type = NODE_TYPE_END
-             
-        return
-                      
+                          
         
     def _update_attributes(self, update_stats=False):
         """
@@ -95,7 +95,8 @@ class MotionPrimitiveNodeGroup(object):
                  print"n standard transitions",k,self.nodes[k].n_standard_transitions
             print "updated meta information",self.meta_information
         else:
-            
+            if self.meta_information is None:
+                self.meta_information = {}
             if "stats" not in self.meta_information.keys():
                 self.meta_information["stats"] = {}
             for k in self.nodes.keys():
@@ -104,7 +105,7 @@ class MotionPrimitiveNodeGroup(object):
                     self.nodes[k].average_step_length = self.meta_information["stats"][k]["average_step_length"]
                 else:
                     self.nodes[k].update_attributes()
-                    self.meta_information["stats"][k]={"average_step_length":self.nodes[k].average_step_length,"n_standard_transitions": self.nodes[k].n_standard_transitions }
+                    self.meta_information["stats"][k[1]]={"average_step_length":self.nodes[k].average_step_length,"n_standard_transitions": self.nodes[k].n_standard_transitions }
                     changed_meta_info = True
             print "loaded stats from meta information file",self.meta_information
         if changed_meta_info and not self.loaded_from_dict:
@@ -196,13 +197,24 @@ class MotionPrimitiveNodeGroup(object):
             next_parameters = self.nodes[motion_primitive].sample_parameters()
         return next_parameters
 
+    def _convert_keys_to_strings(self, mydict):
+        copy_dict = {}
+        for key in mydict.keys():
+              if type(key) is tuple:
+                try:
+                  copy_dict[key[1]] = mydict[key]
+                except:
+                    continue
+              else:
+                   copy_dict[key] =  mydict[key]
+        return copy_dict
+
     def save_updated_meta_info(self):
         """ Save updated meta data to a json file
         """
         if self.meta_information is not None:
             path = self.morphable_model_directory + os.sep + "meta_information.json"
-            meta_info = self.meta_information
-            write_to_json_file(path,meta_info)
+            write_to_json_file(path, self._convert_keys_to_strings(self.meta_information))
         return        
         
         

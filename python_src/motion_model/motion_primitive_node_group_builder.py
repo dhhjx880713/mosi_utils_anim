@@ -100,8 +100,9 @@ class MotionPrimitiveNodeGroupBuilder(object):
         for root, dirs, files in os.walk(self.morphable_model_directory):
             for file_name in files:#for each morphable model 
                 if file_name == "meta_information.json":
+                    print "found meta information for",  self.elementary_action_name
                     meta_information = load_json_file(self.morphable_model_directory+os.sep+file_name)
-                    print "found meta information"
+                    
                 elif file_name.endswith("mm.json"):
                     print "found motion primitive",file_name  
                     motion_primitive_name = file_name.split("_")[1]
@@ -123,7 +124,7 @@ class MotionPrimitiveNodeGroupBuilder(object):
         #load information about training data if available
         for file_name in temp_file_list:
             motion_primitive = file_name.split("_")[1][:-6]
-            if motion_primitive in self.nodes.keys():
+            if motion_primitive in motion_primitive_node_group.nodes.keys():
                 info = load_json_file(self.morphable_model_directory+os.sep+file_name,use_ordered_dict=True)
                 motion_primitive_node_group.nodes[motion_primitive].parameter_bb = info["pose_bb"]
                 motion_primitive_node_group.nodes[motion_primitive].cartesian_bb = info["cartesian_bb"]
