@@ -27,10 +27,9 @@ class MotionPrimitiveNodeGroupBuilder(object):
         self.motion_primitive_annotations = {}
         self.loaded_from_dict = False
    
-    def set_properties(self, transition_model_directory=None, load_transition_models=False, update_stats=False):
+    def set_properties(self, transition_model_directory=None, load_transition_models=False):
         self.load_transition_models = load_transition_models
         self.transition_model_directory = transition_model_directory
-        self.update_stats = update_stats
         return
 
     def set_data_source(self, elementary_action_name, morphable_model_directory, subgraph_desc=None, graph_definition=None):
@@ -81,8 +80,6 @@ class MotionPrimitiveNodeGroupBuilder(object):
             motion_primitive_node_group._set_meta_information(self.subgraph_desc["info"])
         else:
             motion_primitive_node_group._set_meta_information() 
-        #self._set_transitions_from_dict(motion_primitive_graph)
-        motion_primitive_node_group._update_attributes(update_stats=False)
         return motion_primitive_node_group
 
     def _init_from_directory(self):
@@ -130,11 +127,7 @@ class MotionPrimitiveNodeGroupBuilder(object):
                 motion_primitive_node_group.nodes[motion_primitive].cartesian_bb = info["cartesian_bb"]
                 motion_primitive_node_group.nodes[motion_primitive].velocity_data = info["pose_velocity"]
 
-      
-               
-       # self._set_transitions_from_directory(motion_primitive_graph)
-       
-        motion_primitive_node_group._update_attributes(update_stats=self.update_stats)
+
         return  motion_primitive_node_group
 
 

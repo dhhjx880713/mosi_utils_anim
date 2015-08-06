@@ -87,9 +87,10 @@ class ElementaryActionGraphBuilder(object):
         print "add transitions between nodes from",graph_definition," ##################################"
         self._set_transitions_from_dict(elementary_action_graph, graph_definition)
   
+        self._update_attributes(elementary_action_graph,update_stats=False)
 
         
-    def _init_from_directory(self, elementary_action_graph):
+    def _init_from_directory(self, elementary_action_graph, update_stats=False):
         """ Initializes the class
         
         Parameters
@@ -122,8 +123,13 @@ class ElementaryActionGraphBuilder(object):
             self._set_transitions_from_dict(elementary_action_graph, graph_definition)          
         else:
             print "did not find graph definition file",graph_definition_file," #####################"
-  
-
+               
+        self._update_attributes(elementary_action_graph,update_stats=True)
+        
+    def _update_attributes(self, elementary_action_graph, update_stats=False):
+               # self._set_transitions_from_directory(motion_primitive_graph)
+        for keys in elementary_action_graph.node_groups.keys():
+            elementary_action_graph.node_groups[keys].update_attributes(update_stats=update_stats)
 
          
     def _set_transitions_from_dict(self, elementary_action_graph, graph_definition):
