@@ -32,7 +32,7 @@ class PCA_fd(object):
         self.pcaobj = PCA(self.reshaped_fd, fraction=fraction)
         self.eigenvectors = self.pcaobj.Vt[:self.pcaobj.npc]
         print 'number of eigenvectors: ' + str(self.pcaobj.npc)
-        self.lowVs = self.project_data(self.reshape_fd)
+        self.lowVs = self.project_data(self.reshaped_fd)
 
     def from_pca_to_data(self, data, original_shape):
         """Reshape back projection result from PCA as input data
@@ -57,8 +57,7 @@ class PCA_fd(object):
         ------
         * coefs: 3d array (n_coefs * n_samples * n_dim)
         '''
-        assert len(
-            self.input_data.shape) == 3, ('input data should be a 3d array')
+        assert len(self.input_data.shape) == 3, ('input data should be a 3d array')
         # reshape the data matrix for R library fda
         robjects.conversion.py2ri = numpy2ri.numpy2ri
         r_data = robjects.Matrix(self.input_data)
@@ -79,7 +78,6 @@ class PCA_fd(object):
         fd = robjects.globalenv['fd']
         coefs = fd[fd.names.index('coefs')]
         coefs = np.asarray(coefs)
-        print coefs.shape
         return coefs
 
     def reshape_fd(self, fd):

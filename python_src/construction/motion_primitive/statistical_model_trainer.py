@@ -23,15 +23,16 @@ class StatisticalModelTrainer(object):
 
     def __init__(self, fdata, save_path=None):
 
-        self._load_spatial_data(fdata)
+        self._load_data(fdata)
         self._combine_spatial_temporal_parameters()
+        self.save_path = save_path
 
     def gen_motion_primitive_model(self):
         self._train_gmm()
         self._create_gmm()
-        self._save_model(save_path=save_path)
+        self._save_model(self.save_path)
 
-    def _load__data(self, fdata):
+    def _load_data(self, fdata):
         '''
         Load dimensional representation for motion segements from a json file
 
@@ -107,12 +108,9 @@ class StatisticalModelTrainer(object):
                                covariance_type='full')
 #        self.gmm.fit(self._spatial_parameters)
 #        scores = self.gmm.score(self._spatial_parameters)
-        if self.use_temporal_parameter:
-            self.gmm.fit(self._motion_parameters)
-            scores = self.gmm.score(self._motion_parameters)
-        else:
-            self.gmm.fit(self._spatial_parameters)
-            scores = self.gmm.score(self._spatial_parameters)
+
+        self.gmm.fit(self._motion_parameters)
+        scores = self.gmm.score(self._motion_parameters)
 #        print scores
         averageScore = np.mean(scores)
         print 'average score is:' + str(averageScore)
@@ -184,8 +182,8 @@ class StatisticalModelTrainer(object):
                 'gmm_weights': weights,
                 'gmm_means': means,
                 'gmm_covars': covars,
-                'eigen_vectors_spatial': self._spatial_eigenvectors,
-                'mean_spatial_vector': self._mean_motion,
+                'eigen_vectors_spatial': self._spatial_eigenvectors.tolist(),
+                'mean_spatial_vector': self._mean_motion.tolist(),
                 'n_canonical_frames': self._n_frames,
                 'translation_maxima': self._scale_vec,
                 'n_basis_spatial': self._n_basis,

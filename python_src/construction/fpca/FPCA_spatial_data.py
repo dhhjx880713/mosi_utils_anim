@@ -30,21 +30,15 @@ class FPCASpatialData(object):
         reordered_data = []
         for filename in self.fileorder:
             reordered_data.append(self.spatial_data[filename])
-        reordered_data = np.asarray(reordered_data)
-        n_samples, n_frames, n_channels = reordered_data.shape
-        quat_channels = n_channels - 1
-        len_quat = 4
-        len_root = 3
-        self.n_dims = quat_channels * len_quat + len_root
-        self.n_frames = n_frames
+        reordered_data = np.array(reordered_data)
+        # print reordered_data.shape
+        n_samples, n_frames, n_dims = reordered_data.shape
         # in order to use Functional data representation from Fda(R), the
         # input data should be a matrix of shape (n_frames * n_samples *
         # n_dims)
-        self.reshaped_data = np.zeros((self.n_frames, n_samples, self.n_dims))
+        self.reshaped_data = np.zeros((n_frames, n_samples, n_dims))
         for i in xrange(n_frames):
             for j in xrange(n_samples):
-                temp_j_i = []
-                for k in xrange(len(reordered_data[j, i])):
-                    for elem in reordered_data[j, i, k]:
-                        temp_j_i.append(elem)
-                self.reshaped_data[i, j, :] = np.array(temp_j_i)
+                self.reshaped_data[i, j] = reordered_data[j,i]
+
+

@@ -7,14 +7,12 @@ Created on Sun Aug 02 13:15:01 2015
 
 import sys
 import os
+import json
 ROOT_DIR = os.sep.join(['..'] * 2)
 sys.path.append(ROOT_DIR)
 sys.path.append('..//')
 from animation_data.quaternion_frame import QuaternionFrame
-from animation_data.bvh import BVHReader, BVHWriter
-from construction_algorithm_configuration import ConstructionAlgorithmConfigurationBuilder
 import numpy as np
-import json
 from FPCA_temporal_data import FPCATemporalData
 from FPCA_spatial_data import FPCASpatialData
 
@@ -22,6 +20,20 @@ from FPCA_spatial_data import FPCASpatialData
 class MotionDimensionReduction(object):
 
     def __init__(self, motion_data, skeleton_bvh, params):
+        """
+        * motion_data: dictionary
+        \t{'filename': {'frames': euler frames, 'warping_index': warping frame index}}
+        :param motion_data:
+        :param skeleton_bvh:
+        :param params:
+        :return:
+        """
+        """
+        :param motion_data:
+        :param skeleton_bvh:
+        :param params:
+        :return:
+        """
         self.params = params
         self.motion_data = motion_data
         self.spatial_data = {}
@@ -109,13 +121,10 @@ class MotionDimensionReduction(object):
         max_y = 0
         max_z = 0
         for key, value in self.quat_frames.iteritems():
-            tmp = np.array(value)
-            # Bit confusing conversion needed here, since of numpys view system
-            rootchannels = tmp[:, 0].tolist()
-            rootchannels = np.array(rootchannels)
-            max_x_i = np.max(np.abs(rootchannels[:, 0]))
-            max_y_i = np.max(np.abs(rootchannels[:, 1]))
-            max_z_i = np.max(np.abs(rootchannels[:, 2]))
+            tmp = np.asarray(value)
+            max_x_i = np.max(np.abs(tmp[:, 0]))
+            max_y_i = np.max(np.abs(tmp[:, 1]))
+            max_z_i = np.max(np.abs(tmp[:, 2]))
             if max_x < max_x_i:
                 max_x = max_x_i
             if max_y < max_y_i:
@@ -124,47 +133,43 @@ class MotionDimensionReduction(object):
                 max_z = max_z_i
 
         for key, value in self.quat_frames.iteritems():
-            tmp = np.array(value)
-            # Bit confusing conversion needed here, since of numpys view system
-            rootchannels = tmp[:, 0].tolist()
-            rootchannels = np.array(rootchannels)
-            rootchannels[:, 0] /= max_x
-            rootchannels[:, 1] /= max_y
-            rootchannels[:, 2] /= max_z
-            self.rescaled_quat_frames[key] = value
-            for frame in xrange(len(tmp)):
-                self.rescaled_quat_frames[key][frame][0] = tuple(rootchannels[frame].tolist())
+            value = np.array(value)
+            value[:, 0] /= max_x
+            value[:, 1] /= max_y
+            value[:, 2] /= max_z
+            self.rescaled_quat_frames[key] = value.tolist()
         self.scale_vector = [max_x, max_y, max_z]
 
     def gen_data_for_modeling(self):
+        self.use_fpca_on_temporal_params()
+        self.use_fpca_on_spatial_params()
         self.fdata = {}
         self.fdata['motion_type'] = self.params.elementary_action + '_' + \
-            self.params.motion_primtive
+            self.params.motion_primitive
         self.fdata['spatial_parameters'] = self.fpca_spatial.fpcaobj.lowVs
         self.fdata['file_order'] = self.fpca_spatial.fileorder
         self.fdata['spatial_eigenvectors'] = self.fpca_spatial.fpcaobj.eigenvectors
         self.fdata['scale_vector'] = self.scale_vector
-        self.fdata['n_frames'] = self.fpca_spatial.n_frames
+        self.fdata['n_frames'] = self.n_frames
         self.fdata['mean_motion'] = self.fpca_spatial.fpcaobj.centerobj.mean
         self.fdata['n_dim_spatial'] = self.params.n_basis_functions_spatial
-        self.fdata['n_dim_spatial'] = self.fpca_spatial.n_dims
+        self.fdata['n_dim_spatial'] = self.n_dims
         self.fdata['n_basis'] = self.params.n_basis_functions_spatial
         self.fdata['temporal_pcaobj'] = self.fpca_temporal.temporal_pcaobj
 
-def main():
-    motion_data = r'C:\git-repo\ulm\morphablegraphs\test_data\constrction\fpca\motion_data.json'
-    with open(motion_data, 'rb') as infile:
-        motion_data = json.load(infile)
-    params = ConstructionAlgorithmConfigurationBuilder('walk', 'leftstance')
-    skeleton_bvh = BVHReader(params.ref_bvh)
-    dimension_reduction = MotionDimensionReduction(motion_data,
-                                                   skeleton_bvh,
-                                                   params)
-    dimension_reduction.convert_euler_to_quat()
-    save_path = r'C:\git-repo\ulm\morphablegraphs\test_output\tmp' 
-    for filename, data in dimension_reduction.quat_frames.iteritems():
-        BVHWriter(save_path+os.sep+filename, skeleton_bvh, data, 
-                  skeleton_bvh.frame_time, is_quaternion=True)                                             
 
-if __name__ == "__main__":
+def main():
+    from construction_algorithm_configuration import ConstructionAlgorithmConfigurationBuilder
+    from animation_data.bvh import BVHReader
+    TESTDATAPATH = ROOT_DIR + os.sep + r'../test_data/constrction/fpca'
+    with open(TESTDATAPATH + os.sep + 'motion_data.json') as infile:
+        motion_data = json.load(infile)
+    params = ConstructionAlgorithmConfigurationBuilder('pickLeft', 'first')
+    skeleton_bvh = BVHReader(params.ref_bvh)
+    dimension_reduction = MotionDimensionReduction(motion_data, skeleton_bvh, params)
+    dimension_reduction.gen_data_for_modeling()
+    with open(TESTDATAPATH + os.sep + 'fdata.json', 'wb') as infile:
+        json.dump(dimension_reduction.fdata, infile)
+
+if __name__ == '__main__':
     main()

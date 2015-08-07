@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 
 """
-test_cartesian_frame.py
-Unit test for cartesian_frame.py
+
 ======
 
-Author: Erik
+Author: Han
 
 """
 
@@ -23,7 +22,7 @@ from libtest import params, pytest_generate_tests
 class TestQuaternionFrame(object):
     """QuaternionFrame test class"""
 
-    def setup_method(self, method):
+    def setup_class(self):
 
         testfile = TEST_DATA_PATH + os.sep + "walk_001_1_rightStance_86_128.bvh"
         self.bvh_reader = BVHReader(testfile)

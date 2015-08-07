@@ -25,7 +25,7 @@ class FPCATemporalData(object):
         self.z_t_transform_data = {}
         for filename in self.temporal_data:
             tmp = self._get_monotonic_indices(self.temporal_data[filename])
-            assert self._is_strict_incresing(
+            assert self._is_strict_increasing(
                 tmp), ("convert %s to monotonic indices failed" % filename)
             w_tmp = np.array(tmp)
             # add one to each entry, because we start with 0
@@ -71,8 +71,8 @@ class FPCATemporalData(object):
 
         return shifted_indices
 
-    def _is_strict_incresing(self, indices):
-        """ Check wether the indices are strictly incresing ore not
+    def _is_strict_increasing(self, indices):
+        """ Check wether the indices are strictly increasing ore not
 
         Parameters
         ----------
@@ -112,19 +112,8 @@ class FPCATemporalData(object):
                    length=length, numknots=self.n_basis, nharm=self.npc)
         robjects.r(rcode)
         self.temporal_pcaobj = robjects.globalenv['pcaVarmax']
-        scores = np.asarray(
-            self.temporal_pcaobj[self.temporal_pca.names.index('scores')])
-        print 'dimension of scores: '
-        print scores.shape
+        # scores = np.asarray(
+        #     self.temporal_pcaobj[self.temporal_pca.names.index('scores')])
 
 
-def main():
-    # load timewarping dictionary
-    json_file = r'C:\repo\data\1 - MoCap\4 - Alignment\elementary_action_transfer\transfer\timewarping.json'
-    with open(json_file, 'rb') as infile:
-        timewarping_dic = json.load(infile)
-    fpca_temporal = FPCATemporalData(timewarping_dic, 8, 3)
-    fpca_temporal.fpca_on_temporal_data()
 
-if __name__ == "__main__":
-    main()

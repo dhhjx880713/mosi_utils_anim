@@ -26,7 +26,7 @@ class ConstructionAlgorithmConfigurationBuilder(object):
         self.npc_temporal = 3
         self.fraction = 0.95
         self.elementary_action = elementary_action
-        self.primitive_type = motion_primitive
+        self.motion_primitive = motion_primitive
         path_data = load_json_file(SERVICE_CONFIG_FILE)
         self.data_path = path_data['data_folder']
         self.save_path = path_data['model_data']
