@@ -4,11 +4,15 @@ Created on Mon Jan 26 13:51:36 2015
 
 @author: mamauer
 """
+
+import os
+import sys
+ROOTDIR = os.sep.join(['..'] * 2)
+sys.path.append(ROOTDIR)
 import numpy as np
 import rpy2.robjects as robjects
 from rpy2.robjects import numpy2ri
-import os
-from lib.bvh import BVHReader, BVHWriter
+from animation_data.bvh import BVHReader, BVHWriter
 
 
 class MotionSample(object):
@@ -60,9 +64,6 @@ class MotionSample(object):
     def __init__(self, canonical_motion, canonical_frames, time_function):
         # initialize fda library
         robjects.r('library("fda")')
-        print 'time function is: '
-        print time_function
-        # define basis object
         n_basis = canonical_motion.shape[0]
         rcode = """
             n_basis = %d
@@ -104,11 +105,6 @@ class MotionSample(object):
         eval_fd = robjects.r['eval.fd']
 
         self.frames = []
-#        for t_i in self.time_function:
-#            t_i_r = numpy2ri.numpy2ri(np.float(t_i))
-#            frame_r = eval_fd(t_i_r, self.canonical_motion)
-#            frame = np.array(frame_r)
-#            self.frames.append(frame)
 
         self.frames = np.array(
             eval_fd(self.time_function.tolist(), self.canonical_motion))

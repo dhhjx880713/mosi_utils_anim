@@ -13,10 +13,13 @@ import rpy2.robjects as robjects
 import time
 from motion_sample import MotionSample
 from scipy.interpolate import UnivariateSpline
-from lib.bvh import BVHReader, BVHWriter
 import os
 from scipy.ndimage.filters import gaussian_filter1d
 import matplotlib.pyplot as plt
+import sys
+ROOTDIR = os.sep.join(['..'] * 2)
+sys.path.append(ROOTDIR)
+from animation_data.bvh import BVHReader, BVHWriter
 np.random.seed(int(time.time()))
 
 
@@ -159,17 +162,8 @@ class MotionPrimitive(object):
         """
         assert self.gmm != None, "Motion primitive not initialized."
         low_dimensional_vector = np.ravel(self.gmm.sample())
-#        n = len(low_dimensional_vector)
-#        spatial_len = n -3
-#        print 'len of low dimensional vector' + str(len(low_dimensional_vector))
-#        low_dimensional_vector_spatial = low_dimensional_vector
-#        return low_dimensional_vector_spatial
-
-        print low_dimensional_vector
-
         if return_lowdimvector:
             return low_dimensional_vector
-
         else:
             return self.back_project(low_dimensional_vector)
 
@@ -353,26 +347,6 @@ class MotionPrimitive(object):
         b = max(t)
         t = [(i - a) / (b - a) * t_max for i in t]
         t = np.asarray(t)
-#        t1 = np.linspace(0,1, len(t))
-#        t2 = np.linspace(0, 1, 10*len(t))
-#        t_new = np.interp(t2, t1, t)
-#        t = gaussian_filter1d(t_new, sigma)
-        # handle bug: sometimes samples of the Univariate spline  go out of bounds
-        # or are not monotonously increasing
-#        over_bound_indices = [i for i in xrange(len(t)) if t[i] > numframes-1]
-#        if len(over_bound_indices)>0:
-#            last_index = min(over_bound_indices)
-#            t =t[:last_index]
-#            #t = np.insert(t,last_index,numframes-1)
-#            t[last_index-1] = numframes-1
-#        else:
-#            decreasing_indices = [i-1 for i in xrange(len(t))  if i >0 and t[i]<t[i-1] ]
-#            if len(decreasing_indices)>0:
-#                last_index = min(decreasing_indices)
-#                t=t[:last_index+1]#remove those samples
-#            else:
-#                last_index = -1
-#            t[last_index] = numframes-1
 
         return t
 
@@ -397,10 +371,12 @@ def plot_data(data, joint_order):
 
 def main():
     """ Function to demonstrate this module """
-    mm_file = 'place_second_quaternion_mm.json'
+    mm_file = r'C:\git-repo\ulm\morphablegraphs\test_data\constrction\motion_primitive\walk_leftStance_quaternion_mm.json'
 
     m = MotionPrimitive(mm_file)
-#    sample = m.sample()
+    sample = m.sample(return_lowdimvector=True)[:-3]
+    print list(sample)
+    print list(m._inverse_spatial_pca(sample))
 #    motion_data = m.back_project_spatial(sample)
 #    plot_data(motion_data, 6)
 #    skeleton = os.sep.join(('lib', 'skeleton.bvh'))
@@ -408,17 +384,17 @@ def main():
 #    BVHWriter(out_file, reader, motion_data[0,:,:], frame_time=0.013889,
 #              is_quaternion=True)
 
-    skeleton = os.sep.join(('lib', 'skeleton.bvh'))
-    reader = BVHReader(skeleton)
-    for i in xrange(1):
-        sample = m.sample()
-        out_file = 'samples' + os.sep + str(i) + '.bvh'
+    # skeleton = os.sep.join(('lib', 'skeleton.bvh'))
+    # reader = BVHReader(skeleton)
+    # for i in xrange(1):
+    #     sample = m.sample()
+    #     out_file = 'samples' + os.sep + str(i) + '.bvh'
 #        print 'sample: '
 #        print sample
 #        motion_data = m.back_project_spatial(sample)
 #        BVHWriter(out_file, reader, motion_data[0,:,:], frame_time=0.013889,
 #                      is_quaternion=True)
-    sample.save_motion_vector(out_file)
+#     sample.save_motion_vector(out_file)
 
 if __name__ == '__main__':
     main()

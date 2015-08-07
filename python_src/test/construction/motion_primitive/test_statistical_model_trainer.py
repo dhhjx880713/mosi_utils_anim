@@ -7,11 +7,8 @@ Created on Wed Jan 28 16:51:58 2015
 
 import os
 import sys
-import numpy as np
-
 ROOTDIR = os.sep.join(['..'] * 3)
 import json
-
 sys.path.append(ROOTDIR + os.sep)
 TESTPATH = ROOTDIR + os.sep + r'construction/motion_primitive'
 TESTLIBPATH = ROOTDIR + os.sep + 'test/'
