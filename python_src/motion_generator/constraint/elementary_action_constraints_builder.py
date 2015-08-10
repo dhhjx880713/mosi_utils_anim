@@ -81,13 +81,12 @@ class ElementaryActionConstraintsBuilder():
             action_constraints.morphable_graph = self.morphable_graph
             action_constraints.action_name = self.elementary_action_list[self.current_action_index]["action"]
             action_constraints.keyframe_annotations = self.keyframe_annotations[self.current_action_index]
-            action_constraints.constraints = self.elementary_action_list[self.current_action_index]["constraints"]
             action_constraints.start_pose = self.start_pose
             root_joint_name = self.morphable_graph.skeleton.root# currently only trajectories on the Hips joint are supported
             node_group =  self.morphable_graph.node_groups[action_constraints.action_name]
-            action_constraints.trajectory, action_constraints.unconstrained_indices = self._extract_trajectory_from_constraint_list(action_constraints.constraints, root_joint_name)
+            action_constraints.trajectory, action_constraints.unconstrained_indices = self._extract_trajectory_from_constraint_list(self.elementary_action_list[self.current_action_index]["constraints"], root_joint_name)
         
-            keyframe_constraints = self._extract_all_keyframe_constraints(action_constraints.constraints,
+            keyframe_constraints = self._extract_all_keyframe_constraints(self.elementary_action_list[self.current_action_index]["constraints"],
                                                                     node_group)
             action_constraints.keyframe_constraints = self._reorder_keyframe_constraints_for_motion_primitves(node_group,
                                                                                      keyframe_constraints)
@@ -95,7 +94,7 @@ class ElementaryActionConstraintsBuilder():
             return action_constraints
         
 
-    def _extract_trajectory_from_constraint_list(self, constraint_list, joint_name):
+    def _extract_trajectory_from_constraint_list(self, input_constraint_list, joint_name):
         """ Extract the trajectory information from the constraints and constructs
             a trajectory as an ParameterizedSpline instance.
         Returns:
@@ -105,7 +104,7 @@ class ElementaryActionConstraintsBuilder():
         * unconstrained_indices: list of indices
             Lists of indices of degrees of freedom to ignore in the constraint evaluation.
         """
-        trajectory_constraint = self._extract_trajectory_constraint(constraint_list,joint_name)
+        trajectory_constraint = self._extract_trajectory_constraint(input_constraint_list,joint_name)
         if  trajectory_constraint is not None:
             #print "found trajectory constraint"
             return self._create_trajectory_from_constraint(trajectory_constraint)
@@ -114,11 +113,11 @@ class ElementaryActionConstraintsBuilder():
 
 
 
-    def _extract_trajectory_constraint(self, constraints, joint_name="Hips"):
+    def _extract_trajectory_constraint(self, input_constraint_list, joint_name="Hips"):
         """Returns a single trajectory constraint definition for joint joint out of a elementary action constraint list
         """
-        for c in constraints:
-            if joint_name == c["joint"]: 
+        for c in input_constraint_list:
+            if joint_name == c["joint"]:
                 if "trajectoryConstraints" in c.keys():
                     return c["trajectoryConstraints"]
         return None
@@ -226,7 +225,7 @@ class ElementaryActionConstraintsBuilder():
                 return True
         return False
             
-    def _extract_keyframe_constraints_for_label(self, constraint_list, label):
+    def _extract_keyframe_constraints_for_label(self, input_constraint_list, label):
         """ Returns the constraints associated with the given label. Ordered 
             based on joint names.
         Returns
@@ -235,7 +234,7 @@ class ElementaryActionConstraintsBuilder():
         \t contains the list of the constrained joints
         """
         key_constraints= {}
-        for c in constraint_list:
+        for c in input_constraint_list:
             joint_name = c["joint"]
             #print "read constraint"
             #print c

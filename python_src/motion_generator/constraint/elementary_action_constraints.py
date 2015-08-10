@@ -12,7 +12,6 @@ class ElementaryActionConstraints(object):
         self.morphable_graph = None
         self.action_name = None
         self.keyframe_annotations = None
-        self.constraints = None
         self.start_pose = None
         self.trajectory = None
         self.unconstrained_indices = None
