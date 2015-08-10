@@ -11,6 +11,7 @@ class ElementaryActionConstraints(object):
     def __init__(self):
         self.morphable_graph = None
         self.action_name = None
+        self.prev_action_name = ""
         self.keyframe_annotations = None
         self.start_pose = None
         self.trajectory = None

@@ -24,14 +24,12 @@ class MotionPrimitiveGenerator(object):
         contains reference to motion data structure
     * algorithm_config : dict
         Contains settings for the algorithm.
-    * prev_action_name : string
-        name of the action before the current action in the elementary action list
     """
-    def __init__(self, action_constraints, algorithm_config, prev_action_name=""):
+    def __init__(self, action_constraints, algorithm_config):
         self._action_constraints = action_constraints
         self._algorithm_config = algorithm_config
         self.action_name = action_constraints.action_name
-        self.prev_action_name = prev_action_name
+        self.prev_action_name = action_constraints.prev_action_name
         self._morphable_graph = self._action_constraints.morphable_graph
         self.skeleton = self._action_constraints.get_skeleton()
         self._constrained_gmm_config = self._algorithm_config["constrained_gmm_settings"]

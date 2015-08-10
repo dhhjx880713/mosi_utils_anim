@@ -80,6 +80,8 @@ class ElementaryActionConstraintsBuilder():
             action_constraints = ElementaryActionConstraints()
             action_constraints.morphable_graph = self.morphable_graph
             action_constraints.action_name = self.elementary_action_list[self.current_action_index]["action"]
+            if self.current_action_index > 0:
+                action_constraints.prev_action_name = self.elementary_action_list[self.current_action_index-1]["action"]
             action_constraints.keyframe_annotations = self.keyframe_annotations[self.current_action_index]
             action_constraints.start_pose = self.start_pose
             root_joint_name = self.morphable_graph.skeleton.root# currently only trajectories on the Hips joint are supported
