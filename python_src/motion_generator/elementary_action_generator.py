@@ -28,6 +28,23 @@ class ElementaryActionGenerator(object):
         self.node_group = self.action_constraints.get_node_group()
         self.arc_length_of_end = self.morphable_graph.nodes[self.node_group.get_random_end_state()].average_step_length
 
+
+    def _select_next_motion_primitive_node_key(self, state, motion, prev_action_name, prev_mp_name, travelled_arc_length):
+         """extract from graph based on previous last step + heuristic """
+         if state is None:
+             next_state = self.morphable_graph.get_random_action_transition(motion, self.action_constraints.action_name)
+             next_motion_primitive_type = NODE_TYPE_START
+             if next_state is None:
+                 print "Error: Could not find a transition of type action_transition from ",prev_action_name,prev_mp_name ," to state",state
+         elif len(self.morphable_graph.nodes[state].outgoing_edges) > 0:
+            next_state, next_motion_primitive_type = self.node_group.get_random_transition(motion, self.action_constraints, travelled_arc_length, self.arc_length_of_end)
+            if next_state is None:
+                 print "Error: Could not find a transition of type",next_motion_primitive_type,"from state",state
+         else:
+            print "Error: Could not find a transition from state",state
+
+         return next_state, next_motion_primitive_type
+
     def append_elementary_action_to_motion(self, motion):
         """Convert an entry in the elementary action list to a list of quaternion frames.
         Note only one trajectory constraint per elementary action is currently supported
@@ -66,7 +83,6 @@ class ElementaryActionGenerator(object):
              prev_mp_name = None
 
         start_frame = motion.n_frames
-        #create sequence of list motion primitives,arc length and number of frames for backstepping
         current_state = None
         current_motion_primitive_type = ""
         temp_step = 0
@@ -78,24 +94,10 @@ class ElementaryActionGenerator(object):
                 print "reached max step"
                 break
             #######################################################################
-            # Get motion primitive = extract from graph based on previous last step + heuristic
+
+            current_state, current_motion_primitive_type = self._select_next_motion_primitive_node_key(current_state, motion, prev_action_name, prev_mp_name, travelled_arc_length)
             if current_state is None:
-                 current_state = self.morphable_graph.get_random_action_transition(motion, self.action_constraints.action_name)
-                 current_motion_primitive_type = NODE_TYPE_START
-                 if current_state is None:
-
-                     print "Error: Could not find a transition of type action_transition from ",prev_action_name,prev_mp_name ," to state",current_state
-                     break
-            elif len(self.morphable_graph.nodes[current_state].outgoing_edges) > 0:
-                prev_state = current_state
-                current_state, current_motion_primitive_type = self.node_group.get_random_transition(motion, self.action_constraints, travelled_arc_length, self.arc_length_of_end)
-                if current_state is None:
-                     print "Error: Could not find a transition of type",current_motion_primitive_type,"from state",prev_state
-                     break
-            else:
-                print "Error: Could not find a transition from state",current_state
                 break
-
             print "transitioned to state",current_state
             #######################################################################
             #Generate constraints from action_constraints
