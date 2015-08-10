@@ -35,7 +35,6 @@ def obj_spatial_error_sum(s, data):
     return error_sum
     
 
-    
 def obj_spatial_error_sum_and_naturalness(s, data):
     """ Calculates the error of a low dimensional motion vector s given 
         constraints and the prior knowledge from the statistical model
@@ -62,7 +61,8 @@ def obj_spatial_error_sum_and_naturalness(s, data):
     error = error_scale_factor * kinematic_error + n_log_likelihood * quality_scale_factor
     print "error",error
     return error
-    
+
+
 def obj_spatial_error_sum_and_naturalness_jac(s, data):
     """ jacobian of error function. It is a combination of analytic solution 
         for motion primitive model and numerical solution for kinematic error
@@ -92,7 +92,7 @@ def obj_spatial_error_sum_and_naturalness_jac(s, data):
     jac = logLikelihood_jac * quality_scale_factor + kinematic_jac * error_scale_factor
     return jac
 
-        
+
 def obj_time_error_sum(s, data):
     """ Calculates the error for time constraints for certain keyframes
     Parameters

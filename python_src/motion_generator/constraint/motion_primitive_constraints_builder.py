@@ -63,18 +63,33 @@ class MotionPrimitiveConstraintsBuilder(object):
         mp_constraints.skeleton = self.action_constraints.get_skeleton()
         mp_constraints.precision = self.action_constraints.precision
         mp_constraints.verbose = self.algorithm_config["verbose"]
-        
+
+
+
         if self.action_constraints.trajectory is not None:
             self._set_trajectory_constraints(mp_constraints)
+            self._set_pose_constraint(mp_constraints)
    
         if len(self.action_constraints.keyframe_constraints.keys()) > 0:
             self._set_keyframe_constraints(mp_constraints)
-            
+            # generate frame constraints for the last step basd on the previous state
+            # if not already done for the trajectory following
+            if self.status["is_last_step"] and not mp_constraints.pose_constraint_set:
+                self._set_pose_constraint(mp_constraints)
+
         mp_constraints.use_optimization = len(self.action_constraints.keyframe_constraints.keys()) > 0\
                                             or self.status["is_last_step"]
         return mp_constraints
+
+    def _set_pose_constraint(self, mp_constraints):
+       if mp_constraints.settings["use_frame_constraints"] and self.status["prev_frames"] is not None:
+            pose_constraint_desc = self._create_frame_constraint()
+            pose_constraint = PoseConstraint(self.skeleton, pose_constraint_desc, self.precision["smooth"])
+            mp_constraints.constraints.append(pose_constraint)
+            mp_constraints.pose_constraint_set = True
+
         
-    def _set_trajectory_constraints(self,mp_constraints):
+    def _set_trajectory_constraints(self, mp_constraints):
 
         print "search for new goal"
         # if it is the last step we need to reach the point exactly otherwise
@@ -88,12 +103,7 @@ class MotionPrimitiveConstraintsBuilder(object):
 
         mp_constraints.print_status()
 
-        if mp_constraints.settings["use_frame_constraints"] and self.status["prev_frames"] is not None:
-            pose_constraint_desc = self._create_frame_constraint()
-            pose_constraint = PoseConstraint(self.skeleton, pose_constraint_desc, self.precision["smooth"])
-            mp_constraints.constraints.append(pose_constraint)
-            mp_constraints.pose_constraint_set = True
-        
+
         root_joint_name = self.skeleton.root
         if mp_constraints.settings["use_position_constraints"]:
           keyframe_semantic_annotation={"firstFrame": None, "lastFrame": True}
@@ -114,18 +124,14 @@ class MotionPrimitiveConstraintsBuilder(object):
     def _set_keyframe_constraints(self, mp_constraints):
         """ Extract keyframe constraints of the motion primitive name.
         """
-
         if self.status["motion_primitive_name"] in self.action_constraints.keyframe_constraints.keys():
             keyframe_constraint_desc_list = self.action_constraints.keyframe_constraints[self.status["motion_primitive_name"]]
             for i in xrange(len(keyframe_constraint_desc_list)):
                 mp_constraints.constraints.append(PositionAndRotationConstraint(self.skeleton, keyframe_constraint_desc_list[i], self.precision["pos"]))
             
-        # generate frame constraints for the last step basd on the previous state
-        # if not already done for the trajectory following
-        if not mp_constraints.pose_constraint_set and self.status["is_last_step"] and self.status["prev_frames"] is not None:
-            pose_constraint_desc = self._create_frame_constraint()
-            pose_constraint = PoseConstraint(self.skeleton, pose_constraint_desc, self.precision["smooth"])
-            mp_constraints.constraints.append(pose_constraint)
+
+
+
 
       
 
