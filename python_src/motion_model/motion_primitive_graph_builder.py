@@ -20,12 +20,12 @@ from gp_mixture import GPMixture
 from motion_primitive_node_group_builder import MotionPrimitiveNodeGroupBuilder
 from utilities.zip_io import read_graph_data_from_zip
 from graph_edge import GraphEdge
-from elementary_action_graph import ElementaryActionGraph
+from motion_primitive_graph import MotionPrimitiveGraph
 from . import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END
 
         
-class ElementaryActionGraphBuilder(object):
-    """   Builds an ElementaryActionGraph
+class MotionPrimitiveGraphBuilder(object):
+    """   Builds an MotionPrimitiveGraph
     """  
     def __init__(self):
         self.skeleton = None
@@ -63,7 +63,7 @@ class ElementaryActionGraphBuilder(object):
         self.motion_primitive_node_group_builder.set_properties(transition_model_directory=self.transition_model_directory, load_transition_models=self.load_transition_models)
  
     def build(self):
-        elementary_action_graph = ElementaryActionGraph()
+        elementary_action_graph = MotionPrimitiveGraph()
         elementary_action_graph.skeleton = self.skeleton
         if os.path.isfile(self.morphable_model_directory+".zip"):
             self._init_from_zip_file(elementary_action_graph)

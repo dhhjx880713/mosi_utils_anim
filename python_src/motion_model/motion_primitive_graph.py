@@ -10,9 +10,9 @@ import collections
 
 
         
-class ElementaryActionGraph(object):
-    """ Contains a list of MotionPrimitiveGraphs for each elementary action and
-         transition models between them.
+class MotionPrimitiveGraph(object):
+    """ Contains a dict of MotionPrimitiveNodes and MotionPrimitiveNodeGroups for each elementary action,
+         transitions between them are stored as outgoing edges in the nodes.
     """
      
     def __init__(self):

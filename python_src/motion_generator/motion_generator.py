@@ -14,7 +14,7 @@ sys.path.append('..')
 import time
 import numpy as np
 from utilities.io_helper_functions import load_json_file                   
-from motion_model.elementary_action_graph_builder import ElementaryActionGraphBuilder
+from motion_model.motion_primitive_graph_builder import MotionPrimitiveGraphBuilder
 from constraint.elementary_action_constraints_builder import ElementaryActionConstraintsBuilder
 from . import global_counter_dict
 from utilities.exceptions import SynthesisError, PathSearchError
@@ -44,7 +44,7 @@ class MotionGenerator(object):
         self._algorithm_config = algorithm_config
         morphable_model_directory = self._service_config["model_data"]
         transition_directory = self._service_config["transition_data"]
-        graph_builder = ElementaryActionGraphBuilder()
+        graph_builder = MotionPrimitiveGraphBuilder()
         graph_builder.set_data_source(SKELETON_FILE, morphable_model_directory,
                                                 transition_directory,
                                                 self._algorithm_config["use_transition_model"])
