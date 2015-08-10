@@ -53,8 +53,7 @@ def main():
     """Loads the latest file added to the input directory specified in
         service_config.json and runs the algorithm.
     """
-#    SEED_CONSTANT = 41
-#    np.random.seed(SEED_CONSTANT)
+
     if os.path.isfile(SERVICE_CONFIG_FILE):
         service_config = load_json_file(SERVICE_CONFIG_FILE)
 
@@ -65,7 +64,7 @@ def main():
 
 if __name__ == "__main__":
     """example call:
-       mg_pipeline_interface.py
+       mg_command_line_interface.py
     """
     import warnings
     warnings.simplefilter("ignore")
