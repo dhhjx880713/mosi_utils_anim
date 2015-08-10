@@ -9,7 +9,7 @@ import numpy as np
 import json
 from sklearn import mixture # statistical model
 import rpy2.robjects as robjects
-from motion_sample import MotionSample
+from motion_primitive_sample import MotionPrimitiveSample
 import scipy.interpolate as si # B-spline definition and evaluation
 
 class MotionPrimitive(object):
@@ -217,7 +217,7 @@ class MotionPrimitive(object):
             time_fd = self._inverse_temporal_pca(low_dimensional_vector[self.s_pca["n_components"]:])
         else:
             time_fd = np.arange(0,self.n_canonical_frames)#None
-        return MotionSample(spatial_coefs, self.n_canonical_frames, time_fd, self.s_pca["knots"])
+        return MotionPrimitiveSample(spatial_coefs, self.n_canonical_frames, time_fd, self.s_pca["knots"])
 
 
     def _inverse_spatial_pca(self, alpha):

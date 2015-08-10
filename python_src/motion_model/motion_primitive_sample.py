@@ -8,7 +8,7 @@ import numpy as np
 from animation_data.bvh import BVHReader, BVHWriter
 import scipy.interpolate as si
 
-class MotionSample(object):
+class MotionPrimitiveSample(object):
     """ Represent a Sample from a Morphable Model or from a Transition Model
 
     It provides the following functionality:
