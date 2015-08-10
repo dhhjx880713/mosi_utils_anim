@@ -24,7 +24,6 @@ class ElementaryActionGenerator(object):
         self.motion_primitive_constraints_builder.set_action_constraints(self.action_constraints)
 
         self.motion_primitive_generator = MotionPrimitiveGenerator(self.action_constraints, self._algorithm_config)
-        #skeleton = action_constraints.get_skeleton()
         self.node_group = self.action_constraints.get_node_group()
         self.arc_length_of_end = self.morphable_graph.nodes[self.node_group.get_random_end_state()].average_step_length
 
@@ -45,34 +44,61 @@ class ElementaryActionGenerator(object):
 
          return next_state, next_motion_primitive_type
 
+    def _update_travelled_arc_length(self, new_quat_frames, prev_motion, prev_travelled_arc_length):
+        """update travelled arc length based on new closest point on trajectory """
+        if len(prev_motion.graph_walk) > 0:
+            min_arc_length = prev_motion.graph_walk[-1].arc_length
+        else:
+            min_arc_length = 0.0
+        closest_point, distance = self.action_constraints.trajectory.find_closest_point(new_quat_frames[-1][:3], min_arc_length=min_arc_length)
+        new_travelled_arc_length, eval_point = self.action_constraints.trajectory.get_absolute_arc_length_of_point(closest_point, min_arc_length=prev_travelled_arc_length)
+        if new_travelled_arc_length == -1:
+            new_travelled_arc_length = self.action_constraints.trajectory.full_arc_length
+        return new_travelled_arc_length
+
+
+    def _update_annotated_motion(self, current_state, quat_frames, parameters, motion_primitive_constraints, motion):
+        """ Concatenate frames to motion and apply smoothing """
+        canonical_keyframe_labels = self.node_group.get_canonical_keyframe_labels(current_state[1])
+        start_frame = motion.n_frames
+        motion.append_quat_frames(quat_frames)
+        last_frame = motion.n_frames-1
+        motion.update_action_list(motion_primitive_constraints.constraints, self.action_constraints.keyframe_annotations, canonical_keyframe_labels, start_frame, last_frame)
+
+    def _update_graph_walk(self, motion, current_state, parameters, travelled_arc_length):
+        graph_walk_entry = GraphWalkEntry(self.action_constraints.action_name,current_state[1], parameters, travelled_arc_length)
+        motion.graph_walk.append(graph_walk_entry)
+
+    def _get_motion_primitive_constraints_from_action_constraints(self, current_state, current_motion_primitive_type, prev_motion, travelled_arc_length):
+        try:
+            is_last_step = (current_motion_primitive_type == NODE_TYPE_END)
+            print current_state
+            self.motion_primitive_constraints_builder.set_status(current_state[1], travelled_arc_length, prev_motion.quat_frames, is_last_step)
+            return self.motion_primitive_constraints_builder.build()
+
+        except PathSearchError as e:
+                print "moved beyond end point using parameters",
+                str(e.search_parameters)
+                return None
+
     def append_elementary_action_to_motion(self, motion):
         """Convert an entry in the elementary action list to a list of quaternion frames.
         Note only one trajectory constraint per elementary action is currently supported
         and it should be for the Hip joint.
 
         If there is a trajectory constraint it is used otherwise a random graph walk is used
-        if there is a keyframe constraint it is assigned to the motion primitves
+        if there is a keyframe constraint it is assigned to the motion primitives
         in the graph walk
 
         Paramaters
         ---------
-        * elementary_action : string
-          the identifier of the elementary action
-
-        * constraint_list : list of dict
-         the constraints element from the elementary action list entry
-
-        * morphable_graph : MorphableGraph
-        \t An instance of the MorphableGraph.
-        * start_pose : dict
-         Contains orientation and position as lists with three elements
-
-        * keyframe_annotations : dict of dicts
-          Contains a dict of events/actions associated with certain keyframes
-
+        * motion: MotionGeneratorResult
+            Result object contains the intermediary result of the motion generation process. The animation keyframes of
+            the elementary action will be appended to the frames in this object
         Returns
         -------
-        * motion: MotionGeneratorResult
+        * success: Bool
+            True if successful and False, if an error occurred during the constraints generation
         """
 
         if motion.step_count >0:
@@ -93,68 +119,29 @@ class ElementaryActionGenerator(object):
             if self._algorithm_config["debug_max_step"]  > -1 and motion.step_count + temp_step > self._algorithm_config["debug_max_step"]:
                 print "reached max step"
                 break
-            #######################################################################
-
             current_state, current_motion_primitive_type = self._select_next_motion_primitive_node_key(current_state, motion, prev_action_name, prev_mp_name, travelled_arc_length)
             if current_state is None:
                 break
             print "transitioned to state",current_state
-            #######################################################################
-            #Generate constraints from action_constraints
+            motion_primitive_constraints = self._get_motion_primitive_constraints_from_action_constraints(current_state, current_motion_primitive_type, motion, travelled_arc_length)
+            if motion_primitive_constraints is None:
+                return False
 
-            try:
-                is_last_step = (current_motion_primitive_type == NODE_TYPE_END)
-                print current_state
-                self.motion_primitive_constraints_builder.set_status(current_state[1], travelled_arc_length, motion.quat_frames, is_last_step)
-                motion_primitive_constraints = self.motion_primitive_constraints_builder.build()
-
-            except PathSearchError as e:
-                    print "moved beyond end point using parameters",
-                    str(e.search_parameters)
-                    return False
-
-
-            # get optimal parameters, Back-project to frames in joint angle space,
-            # Concatenate frames to motion and apply smoothing
             tmp_quat_frames, parameters = self.motion_primitive_generator.generate_motion_primitive_from_constraints(motion_primitive_constraints, motion)
 
-            #update annotated motion
-            canonical_keyframe_labels = self.node_group.get_canonical_keyframe_labels(current_state[1])
-            start_frame = motion.n_frames
-            motion.append_quat_frames(tmp_quat_frames)
-            last_frame = motion.n_frames-1
-            motion.update_action_list(motion_primitive_constraints.constraints, self.action_constraints.keyframe_annotations, canonical_keyframe_labels, start_frame, last_frame)
-
-            #update arc length based on new closest point
+            self._update_annotated_motion(current_state, tmp_quat_frames, parameters, motion_primitive_constraints, motion)
             if self.action_constraints.trajectory is not None:
-                if len(motion.graph_walk) > 0:
-                    min_arc_length = motion.graph_walk[-1].arc_length
-                else:
-                    min_arc_length = 0.0
-                closest_point,distance = self.action_constraints.trajectory.find_closest_point(motion.quat_frames[-1][:3],min_arc_length=min_arc_length)
-                travelled_arc_length,eval_point = self.action_constraints.trajectory.get_absolute_arc_length_of_point(closest_point,min_arc_length=travelled_arc_length)
-                if travelled_arc_length == -1 :
-                    travelled_arc_length = self.action_constraints.trajectory.full_arc_length
-
-            #update graph walk of motion
-            graph_walk_entry = GraphWalkEntry(self.action_constraints.action_name,current_state[1], parameters, travelled_arc_length)
-            motion.graph_walk.append(graph_walk_entry)
-
+                travelled_arc_length = self._update_travelled_arc_length(motion.quat_frames, motion, travelled_arc_length)
+            self._update_graph_walk(motion, current_state, parameters, travelled_arc_length)
             temp_step += 1
 
         motion.step_count += temp_step
         motion.update_frame_annotation(self.action_constraints.action_name, start_frame, motion.n_frames)
-
         print "reached end of elementary action", self.action_constraints.action_name
+        return True
 #        if self._algorithm_config["active_global_optimization"]:
 #            optimize_globally(motion.graph_walk, start_step, action_constraints)
-    #    if trajectory is not None:
-    #        print "info", trajectory.full_arc_length, \
-    #               travelled_arc_length,arc_length_of_end, \
-    #               np.linalg.norm(trajectory.get_last_control_point() - quat_frames[-1][:3]), \
-    #               check_end_condition(morphable_subgraph,quat_frames,trajectory,\
-    #                                        travelled_arc_length,arc_length_of_end)
 
 
-        return True
+
 
