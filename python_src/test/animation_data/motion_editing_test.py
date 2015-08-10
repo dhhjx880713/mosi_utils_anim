@@ -7,11 +7,17 @@ Created on Tue Mar 10 12:56:09 2015
 
 import os
 import sys
-import numpy as np
-from math import sqrt
+ROOT_DIR = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-3]) + os.sep
+sys.path.append(ROOT_DIR)
+TEST_LIB_PATH = ROOT_DIR + 'test'
+TEST_DATA_PATH = ROOT_DIR +  '../test_data/animation_data'
+TEST_RESULT_PATH = ROOT_DIR + '../test_output/animation_data'
+sys.path.append(TEST_LIB_PATH)
+from animation_data.bvh import BVHReader, BVHWriter
+from animation_data.motion_editing import *
+from animation_data.skeleton import Skeleton
 from libtest import params, pytest_generate_tests
-sys.path.append("..")
-from animation_data.motion_editing import convert_quaternion_to_euler
+import numpy as np
 
 
 param_convert_quaternion_to_euler = [
