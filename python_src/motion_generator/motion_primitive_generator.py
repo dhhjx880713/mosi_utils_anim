@@ -125,12 +125,11 @@ class MotionPrimitiveGenerator(object):
 
 
 
-        if self.use_constraints and len(motion_primitive_constraints.constraints) > 0: # estimate parameters fitting constraints
-            
+        if self.use_constraints and len(motion_primitive_constraints.constraints) > 0:
+
             graph_node = self._morphable_graph.nodes[(self.action_name, mp_name)]
             gmm = graph_node.motion_primitive.gmm
-            
-            # A) find best sample from model
+
             if self.activate_cluster_search and graph_node.cluster_tree is not None:
                 #  find best sample using a directed search in a 
                 #  space partitioning data structure
@@ -156,7 +155,7 @@ class MotionPrimitiveGenerator(object):
                                                                     motion_primitive_constraints,prev_frames)
                 close_to_optimum = True
                 
-            # B) optimize sampled parameters as initial guess if the constraints were not reached
+
             if  not self.use_transition_model and use_optimization and not close_to_optimum:
 
                 data =  graph_node.motion_primitive, motion_primitive_constraints, \

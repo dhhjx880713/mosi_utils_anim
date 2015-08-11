@@ -158,16 +158,12 @@ class MotionGenerator(object):
             self.elementary_action_generator.set_constraints(action_constraints)
             success = self.elementary_action_generator.append_elementary_action_to_motion(motion)
                 
-            if not success:#TOOD change to other error handling
-                print "Arborting conversion"#,e.message
+            if not success:
+                print "Arborting conversion"
                 return motion
             action_constraints = motion_constraints_builder.get_next_elementary_action_constraints() 
         return motion
     
-    
-
-#    def optimize_globally(self, graph_walk, start_step, action_constraints):
-#         return
 
     
     

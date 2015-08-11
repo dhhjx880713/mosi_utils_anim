@@ -43,7 +43,7 @@ def run_pipeline(service_config, algorithm_config_file):
 
     motion = motion_generator.generate_motion(input_file, export=False)
 
-    if motion.quat_frames is not None:  # checks for quat_frames in result_tuple
+    if motion.quat_frames is not None:
         motion.export(service_config["output_dir"], service_config["output_filename"])
     else:
         print "Error: Failed to generate motion data."

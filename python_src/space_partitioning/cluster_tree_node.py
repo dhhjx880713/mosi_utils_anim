@@ -74,7 +74,7 @@ class ClusterTreeNode(object):
         best_value = np.inf
         best_index = 0
         for cluster_index in xrange(len(self.clusters)):
-            sample = self.clusters[cluster_index].mean#self.means[cluster_index]#.cluster
+            sample = self.clusters[cluster_index].mean
             cluster_value = obj(sample,data)
             
             if cluster_value < best_value:
@@ -105,7 +105,7 @@ class ClusterTreeNode(object):
         result_queue = []
         for cluster_index in xrange(len(self.clusters)):
 
-            sample = self.clusters[cluster_index].mean# self.means[cluster_index]#.cluster
+            sample = self.clusters[cluster_index].mean
 
             cluster_value = obj(sample,data)
             heapq.heappush(result_queue,(cluster_value,self.clusters[cluster_index] ) )

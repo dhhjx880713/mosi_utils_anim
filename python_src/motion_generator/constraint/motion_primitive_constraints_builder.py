@@ -35,7 +35,7 @@ class MotionPrimitiveConstraintsBuilder(object):
     def set_algorithm_config(self, algorithm_config):
         self.algorithm_config = algorithm_config
         self.precision = algorithm_config["constrained_gmm_settings"]["precision"]
-        self.trajectory_following_settings = algorithm_config["trajectory_following_settings"]#  TODO move trajectory_following_settings to different key of the algorithm_config
+        self.trajectory_following_settings = algorithm_config["trajectory_following_settings"]
         
     def set_status(self, motion_primitive_name, last_arc_length, prev_frames=None, is_last_step=False):
         self.status["motion_primitive_name"] = motion_primitive_name
@@ -138,7 +138,7 @@ class MotionPrimitiveConstraintsBuilder(object):
     def _create_frame_constraint(self):
         """ Create frame a constraint from the preceding motion.
         """
-    #    last_frame = prev_frames[-1]
+
         last_euler_frame = np.ravel(convert_quaternion_to_euler([self.status["prev_frames"][-1]]))
         position_dict = {}
         for node_name in self.skeleton.node_name_map.keys():
