@@ -48,7 +48,7 @@ class MotionDynamicTimeWarping(MotionNormalization):
         self.warp_all_motions_to_ref_motion()
 
     def find_ref_motion(self):
-        """The reference motion can be found by using the motion which has 
+        """The reference motion can be found by using the motion which has
            minimal average distance to others
         """
         self.len_aligned_motions = len(self.aligned_motions)
@@ -59,9 +59,9 @@ class MotionDynamicTimeWarping(MotionNormalization):
         for ref_filename in self.dic_distgrid.keys():
             average_dist = 0
             for test_filename in self.dic_distgrid[ref_filename].keys():
-                x, y, dist = self.calculate_path(
+                res = self.calculate_path(
                     self.dic_distgrid[ref_filename][test_filename])
-                average_dist += dist
+                average_dist += res[2]
             average_dist = average_dist / self.len_aligned_motions
             counter += 1
             average_dists[ref_filename] = average_dist
@@ -93,13 +93,12 @@ class MotionDynamicTimeWarping(MotionNormalization):
         if self.aligned_motions == {}:
             raise ValueError('No motion for DTW')
         self.warped_motions = {}
-#        counter = 0
         for filename, frames in self.aligned_motions.iteritems():
             test_motion = {}
             test_motion['filename'] = filename
             test_motion['frames'] = frames
-            warped_frames, warping_index = self.warp_test_motion_to_ref_motion(self.ref_motion,
-                                                                               test_motion)
+            warped_frames, warping_index = self.warp_test_motion_to_ref_motion(
+                self.ref_motion, test_motion)
             self.warped_motions[filename] = {}
             self.warped_motions[filename]['warping_index'] = warping_index
             self.warped_motions[filename]['frames'] = warped_frames
@@ -137,10 +136,12 @@ class MotionDynamicTimeWarping(MotionNormalization):
         distgrid = np.zeros([n_ref_frames, n_test_frames])
         for i in xrange(n_ref_frames):
             for j in xrange(n_test_frames):
-                distgrid[i, j] = calculate_frame_distance(skeleton,
-                                                          ref_motion[
-                                                              'frames'][i],
-                                                          test_motion['frames'][j])
+                distgrid[
+                    i,
+                    j] = calculate_frame_distance(
+                    skeleton,
+                    ref_motion['frames'][i],
+                    test_motion['frames'][j])
         if self.verbose:
             ref_indeces, test_indeces, dist = self.calculate_path(distgrid)
             shape = (n_test_frames, n_ref_frames)
@@ -232,7 +233,7 @@ class MotionDynamicTimeWarping(MotionNormalization):
         rdistgrid = robjects.Matrix(np.asarray(distgrid))
         rcode = '''
                 library("dtw")
-    
+
                 path = dtw(x = as.matrix(%s), y = NULL,
                            dist.method="Euclidean",
                            step.pattern = %s,
@@ -244,7 +245,7 @@ class MotionDynamicTimeWarping(MotionNormalization):
                 xindex = path$index1
                 yindex = path$index2
                 dist = path$distance
-    
+
                 ''' % (rdistgrid.r_repr(), steppattern, window)
 
         robjects.r(rcode)
@@ -254,7 +255,7 @@ class MotionDynamicTimeWarping(MotionNormalization):
             np.array(robjects.globalenv['dist'])[0]
 
     def get_all_distgrid(self):
-        """calculate the distance matrix for each pair of motions in 
+        """calculate the distance matrix for each pair of motions in
            aligned_motions
         """
         print "start to compute distance grid for all pairs pf motions"
@@ -312,10 +313,13 @@ def test():
                    'frames': test_bvh.frames}
     distgrid = dynamicTimeWarper.get_distgrid(ref_motion, test_motion)
     pathx, pathy, dist = dynamicTimeWarper.calculate_path(distgrid)
-    warping_index = dynamicTimeWarper.get_warping_index(pathx, pathy, distgrid.shape)
+    warping_index = dynamicTimeWarper.get_warping_index(
+        pathx,
+        pathy,
+        distgrid.shape)
     print warping_index
 
 
 if __name__ == "__main__":
-#    main()
+    #    main()
     test()
