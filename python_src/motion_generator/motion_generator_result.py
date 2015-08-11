@@ -76,10 +76,7 @@ class MotionGeneratorResult(object):
             self.quat_frames = new_frames
                             
         self.n_frames = len(self.quat_frames)
-        
 
-
-        
     def update_frame_annotation(self, action_name, start_frame, end_frame):
         """Addes a dictionary to self.frame_annotation marking start and end 
             frame of an action.
@@ -89,7 +86,6 @@ class MotionGeneratorResult(object):
         action_frame_annotation["elementaryAction"] = action_name
         action_frame_annotation["endFrame"] = end_frame
         self.frame_annotation['elementaryActionSequence'].append(action_frame_annotation)  
-
 
     def update_action_list(self, constraints, keyframe_annotations, canonical_key_frame_annotation, start_frame, last_frame):
         """  merge the new actions list with the existing list.
@@ -117,7 +113,7 @@ class MotionGeneratorResult(object):
            A dict that contains a list of actions for certain keyframes
         """
     
-        action_list = {}
+
         key_frame_label_pairs = set()
         #extract the set of keyframes and their annotations referred to by the constraints
         for c in constraints:
@@ -129,13 +125,20 @@ class MotionGeneratorResult(object):
                         key_frame = start_frame
                         
                     if "annotations" in keyframe_annotations[key_label].keys():
-                        key_frame_label_pairs.add((key_frame,key_label))
-                            
+                        key_frame_label_pairs.add((key_frame, key_label))
+
+
+        return self._extract_actions_from_keyframe_annotations(key_frame_label_pairs, keyframe_annotations)
             
-        #extract the annotations for the referred keyframes
+
+    
+    def _extract_actions_from_keyframe_annotations(self, key_frame_label_pairs, keyframe_annotations):
+        """extract the annotations for the referred keyframes
+        """
+        action_list = {}
         for key_frame, key_label in key_frame_label_pairs:
             annotations = keyframe_annotations[key_label]["annotations"]
-    
+
             num_events = len(annotations)
             if num_events > 1:
                 #check if an event is mentioned multiple times
@@ -153,13 +156,12 @@ class MotionGeneratorResult(object):
                                 temp_event_dict[name]["parameters"]["joint"].append(event["parameters"]["joint"])
                             print "event dict merged",temp_event_dict[name]
                         else:
-                            print "event dict merge did not happen",temp_event_dict[name]   
+                            print "event dict merge did not happen", temp_event_dict[name]
                 action_list[key_frame] = copy(temp_event_dict.values())
-    
             else:
-                action_list[key_frame] = annotations          
+                action_list[key_frame] = annotations
+
         return action_list
-    
 
     def export(self, output_dir, output_filename, add_time_stamp=False, write_log=False):
           """ Saves the resulting animation frames, the annotation and actions to files. 
@@ -174,21 +176,25 @@ class MotionGeneratorResult(object):
               write_to_json_file(output_dir + os.sep + output_filename + ".json", self.mg_input) 
               write_to_json_file(output_dir + os.sep + output_filename + "_actions"+".json", self.action_list)
               
-              self.frame_annotation["events"] = []
-              reordered_frame_annotation = self.frame_annotation
-              for keyframe in self.action_list.keys():
-                for event_desc in self.action_list[keyframe]:
-                    event = {}
-                    event["jointName"] = event_desc["parameters"]["joint"]
-                    event_type = event_desc["event"]
-                    target = event_desc["parameters"]["target"]
-                    event[event_type] = target
-                    event["frameNumber"] = int(keyframe)
-                    reordered_frame_annotation["events"].append(event)
+              reordered_frame_annotation = self._add_events_to_frame_annotation(self.frame_annotation)
               if write_log:
                   write_to_logfile(output_dir + os.sep + LOG_FILE, output_filename + "_" + time_stamp, self._algorithm_config)
               write_to_json_file(output_dir + os.sep + output_filename + "_annotations"+".json", reordered_frame_annotation)
               export_quat_frames_to_bvh_file(output_dir, self.skeleton, self.quat_frames, prefix=output_filename, start_pose=None, time_stamp=add_time_stamp)        
           else:
              print "Error: no motion data to export"
-    
+
+    def _add_events_to_frame_annotation(self, frame_annotation):
+
+        reordered_frame_annotation = copy(frame_annotation)
+        reordered_frame_annotation["events"] = []
+        for keyframe in self.action_list.keys():
+          for event_desc in self.action_list[keyframe]:
+              event = {}
+              event["jointName"] = event_desc["parameters"]["joint"]
+              event_type = event_desc["event"]
+              target = event_desc["parameters"]["target"]
+              event[event_type] = target
+              event["frameNumber"] = int(keyframe)
+              reordered_frame_annotation["events"].append(event)
+        return reordered_frame_annotation
