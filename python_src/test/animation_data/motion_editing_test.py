@@ -13,9 +13,7 @@ TEST_LIB_PATH = ROOT_DIR + 'test'
 TEST_DATA_PATH = ROOT_DIR +  '../test_data/animation_data'
 TEST_RESULT_PATH = ROOT_DIR + '../test_output/animation_data'
 sys.path.append(TEST_LIB_PATH)
-from animation_data.bvh import BVHReader, BVHWriter
 from animation_data.motion_editing import *
-from animation_data.skeleton import Skeleton
 from libtest import params, pytest_generate_tests
 import numpy as np
 
@@ -28,33 +26,31 @@ param_convert_quaternion_to_euler = [
              [1.0, 2.0, 4.0, 0.0, 0.0, 180.0]]},
 ]
 
-
 @params(param_convert_quaternion_to_euler)
 def test_convert_quaternion_to_euler(quat, res):
-
+    """
+    unittest for convert_quaternion_to_euler
+    :param quat: setup test quaternion
+    :param res: expected result
+    """
     for r, e in zip(res, convert_quaternion_to_euler(quat)):
         for rr, ee in zip(r, e):
             a = rr**2
             b = ee**2
             assert np.isclose(a - b, 0.0)
 
+param_extract_root_position_from_frames = []
 
-#from motion_editing import *
-#from bvh import BVHReader
-#from helper_functions import get_motion_primitive_directory
-#from motion_primitive import MotionPrimitive
-#from morphable_graph import create_filtered_node_name_map
-
-# param_get_cartesian_coordinates = [
-#    {"test_file": "pick_002_1_first_540_610.bvh",
-#     "frame_index": 0,
-#     "joint": "RightHand",
-#     "res": [35.81118176, 91.40765184, -5.18409637]},
-#    {"test_file": "pick_008_3_first_634_759.bvh",
-#     "frame_index": 2,
-#     "joint": "LeftHand",
-#     "res": [-31.32512642, 86.76008481, -12.4771128]}
-#]
+param_get_cartesian_coordinates = [
+   {"test_file": "pick_002_1_first_540_610.bvh",
+    "frame_index": 0,
+    "joint": "RightHand",
+    "res": [35.81118176, 91.40765184, -5.18409637]},
+   {"test_file": "pick_008_3_first_634_759.bvh",
+    "frame_index": 2,
+    "joint": "LeftHand",
+    "res": [-31.32512642, 86.76008481, -12.4771128]}
+]
 #
 #@params(param_get_cartesian_coordinates)
 # def test_get_cartesian_coordinates(test_file, frame_index, joint, res):

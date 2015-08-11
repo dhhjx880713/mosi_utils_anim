@@ -17,32 +17,27 @@ from external.transformations import quaternion_matrix, euler_from_matrix, \
     quaternion_multiply
 
 DEFAULT_SMOOTHING_WINDOW_SIZE = 20
+fk_funcs = [
+    fk3.one_joint_fk,
+    fk3.two_joints_fk,
+    fk3.three_joints_fk,
+    fk3.four_joints_fk,
+    fk3.five_joints_fk,
+    fk3.six_joints_fk,
+    fk3.seven_joints_fk,
+    fk3.eight_joints_fk,
+]
 
-
-def extract_root_positions_from_frames(frames):
-    roots = []
-    for i in xrange(len(frames)):
-        position = np.array([frames[i][0], frames[i][1], frames[i][2]])
-        roots.append(position)
-    return np.array(roots)
-
-
-def get_arc_length_from_points(points):
-    """
-    Note: accuracy depends on the granulariy of points
-    """
-    arc_length = 0.0
-    last_p = None
-    for p in points:
-        if last_p is not None:
-            delta = p - last_p
-            # print delta
-            # -arcLength
-            arc_length += sqrt(delta[0]**2 + delta[1]**2 + delta[2]**2)
-        else:
-            delta = p
-        last_p = p
-    return arc_length
+fk_func_jacs = [
+    fk3.one_joint_fk_jacobian,
+    fk3.two_joints_fk_jacobian,
+    fk3.three_joints_fk_jacobian,
+    fk3.four_joints_fk_jacobian,
+    fk3.five_joints_fk_jacobian,
+    fk3.six_joints_fk_jacobian,
+    fk3.seven_joints_fk_jacobian,
+    fk3.eight_joints_fk_jacobian,
+]
 
 
 def euler_to_quaternion(euler_angles, rotation_order=['Xrotation', 'Yrotation', 'Zrotation'],
@@ -208,35 +203,9 @@ def euler_substraction(theta1, theta2):
     return theta
 
 
-fk_funcs = [
-    fk3.one_joint_fk,
-    fk3.two_joints_fk,
-    fk3.three_joints_fk,
-    fk3.four_joints_fk,
-    fk3.five_joints_fk,
-    fk3.six_joints_fk,
-    fk3.seven_joints_fk,
-    fk3.eight_joints_fk,
-]
-
-fk_func_jacs = [
-    fk3.one_joint_fk_jacobian,
-    fk3.two_joints_fk_jacobian,
-    fk3.three_joints_fk_jacobian,
-    fk3.four_joints_fk_jacobian,
-    fk3.five_joints_fk_jacobian,
-    fk3.six_joints_fk_jacobian,
-    fk3.seven_joints_fk_jacobian,
-    fk3.eight_joints_fk_jacobian,
-]
-
-
 def get_cartesian_coordinates_from_quaternion(skeleton,
                                               node_name,
-                                              quaternion_frame,
-                                              rotation_order=['Xrotation',
-                                                              'Yrotation',
-                                                              'Zrotation']):
+                                              quaternion_frame):
     """Returns cartesian coordinates for one node at one frame. Modified to
      handle frames with omitted values for joints starting with "Bip"
 

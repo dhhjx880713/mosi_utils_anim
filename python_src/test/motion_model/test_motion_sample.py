@@ -8,7 +8,7 @@ All Unittests for the MotionSample class
 """
 import os
 import sys
-ROOTDIR = os.sep.join(['..'] * 3)
+ROOTDIR = os.sep.join(['..'] * 2)
 sys.path.append(ROOTDIR + os.sep)
 TESTPATH = ROOTDIR + os.sep + r'construction/motion_primitive'
 TESTLIBPATH = ROOTDIR + os.sep + 'test/'
