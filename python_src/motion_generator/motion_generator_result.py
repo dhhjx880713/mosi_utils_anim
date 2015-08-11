@@ -29,10 +29,6 @@ class MotionGeneratorResult(object):
     """ Product of the MotionGenerate class. Contains quaternion frames,
         the graph walk used to generate the frames, a mapping of frame segments 
         to elementary actions and a list of events for certain frames.
-    Attributes
-    ---------
-    * start_pose: dict
-        \tA dictionary contains staring position and orientation
     """
     def __init__(self):
         self.skeleton = None
@@ -49,19 +45,12 @@ class MotionGeneratorResult(object):
         self.mg_input = {}
 
     def append_quat_frames(self, new_frames):
-        """Align quaternion frames
+        """Align quaternion frames to previous frames
            
         Parameters
         ----------
         * new_frames: list
-        \tA list of quaternion frames
-        
-        Returns:
-        --------
-        * transformed_frames: np.ndarray
-            Quaternion frames resulting from the back projection of s,
-            transformed to fit to prev_frames.
-            
+            A list of quaternion frames
         """
         if self.quat_frames is not None:
             self.quat_frames = fast_quat_frames_alignment(self.quat_frames,
@@ -138,30 +127,34 @@ class MotionGeneratorResult(object):
         action_list = {}
         for key_frame, key_label in key_frame_label_pairs:
             annotations = keyframe_annotations[key_label]["annotations"]
-
             num_events = len(annotations)
             if num_events > 1:
-                #check if an event is mentioned multiple times
-                event_list = [(annotations[i]["event"],annotations[i]) for i in xrange(num_events)]
-                temp_event_dict = dict()
-                for name, event in event_list:#merge parameters to one event if it is found multiple times
-                    if name not in temp_event_dict.keys():
-                       temp_event_dict[name]= event
-                    else:
-                        if "joint" in temp_event_dict[name]["parameters"].keys():
-                            existing_entry = copy(temp_event_dict[name]["parameters"]["joint"])
-                            if isinstance(existing_entry, basestring):
-                                temp_event_dict[name]["parameters"]["joint"] = [existing_entry,event["parameters"]["joint"]]
-                            else:
-                                temp_event_dict[name]["parameters"]["joint"].append(event["parameters"]["joint"])
-                            print "event dict merged",temp_event_dict[name]
-                        else:
-                            print "event dict merge did not happen", temp_event_dict[name]
+                temp_event_dict = self._merge_multiple_keyframe_events(annotations, num_events)
                 action_list[key_frame] = copy(temp_event_dict.values())
             else:
                 action_list[key_frame] = annotations
 
         return action_list
+
+    def _merge_multiple_keyframe_events(self, annotations, num_events):
+        """Merge events if there are more than one event define for the same keyframe
+        """
+        event_list = [(annotations[i]["event"], annotations[i]) for i in xrange(num_events)]
+        temp_event_dict = dict()
+        for name, event in event_list:#merge parameters to one event if it is found multiple times
+            if name not in temp_event_dict.keys():
+               temp_event_dict[name]= event
+            else:
+                if "joint" in temp_event_dict[name]["parameters"].keys():
+                    existing_entry = copy(temp_event_dict[name]["parameters"]["joint"])
+                    if isinstance(existing_entry, basestring):
+                        temp_event_dict[name]["parameters"]["joint"] = [existing_entry, event["parameters"]["joint"]]
+                    else:
+                        temp_event_dict[name]["parameters"]["joint"].append(event["parameters"]["joint"])
+                    print "event dict merged", temp_event_dict[name]
+                else:
+                    print "event dict merge did not happen", temp_event_dict[name]
+        return temp_event_dict
 
     def export(self, output_dir, output_filename, add_time_stamp=False, write_log=False):
           """ Saves the resulting animation frames, the annotation and actions to files. 
@@ -185,16 +178,15 @@ class MotionGeneratorResult(object):
              print "Error: no motion data to export"
 
     def _add_events_to_frame_annotation(self, frame_annotation):
-
         reordered_frame_annotation = copy(frame_annotation)
         reordered_frame_annotation["events"] = []
         for keyframe in self.action_list.keys():
-          for event_desc in self.action_list[keyframe]:
-              event = {}
-              event["jointName"] = event_desc["parameters"]["joint"]
-              event_type = event_desc["event"]
-              target = event_desc["parameters"]["target"]
-              event[event_type] = target
-              event["frameNumber"] = int(keyframe)
-              reordered_frame_annotation["events"].append(event)
+            for event_desc in self.action_list[keyframe]:
+                event = {}
+                event["jointName"] = event_desc["parameters"]["joint"]
+                event_type = event_desc["event"]
+                target = event_desc["parameters"]["target"]
+                event[event_type] = target
+                event["frameNumber"] = int(keyframe)
+                reordered_frame_annotation["events"].append(event)
         return reordered_frame_annotation
