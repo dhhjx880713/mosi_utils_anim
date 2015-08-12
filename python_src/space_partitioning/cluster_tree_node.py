@@ -45,20 +45,23 @@ class ClusterTreeNode(object):
             result_queue = []
             for i in xrange(len(self.clusters)):
                 result = self.clusters[i].find_best_example(obj, data)
-                heapq.heappush(result_queue,result)
+                heapq.heappush(result_queue, result)
             return heapq.heappop(result_queue)
         else:
-            best_value = np.inf
-            best_index = 0
-            for cluster_index in xrange(len(self.clusters)):
-                sample = self.means[cluster_index]
-                cluster_value = obj(sample,data)
-                if cluster_value < best_value:
-                    best_index = cluster_index
-                    best_value = cluster_value
-            return self.clusters[best_index].find_best_example(obj,data)
-            
-    def find_best_cluster(self, obj, data, use_mean=False):   
+            best_index, best_value = self.find_best_cluster(obj, data)
+            return self.clusters[best_index].find_best_example(obj, data)
+
+    def find_best_example_exhaustive(self, obj, data):
+        """Return the best example based on the evaluation using an objective function.
+        """
+        result_queue = []
+        for i in xrange(len(self.clusters)):
+            result = self.clusters[i].find_best_example_exhaustive(obj, data)
+            heapq.heappush(result_queue, result)
+        return heapq.heappop(result_queue)
+
+
+    def find_best_cluster(self, obj, data):
         """ Return the best cluster based on the evaluation using an objective function.
 
         Parameters
@@ -82,7 +85,6 @@ class ClusterTreeNode(object):
                 best_value = cluster_value
         return best_index, best_value
 
-
     def find_best_cluster_canditates(self, obj, data, n_candidates):
         """Return the clusters with the least cost based on 
         an evaluation using an objective
@@ -104,9 +106,7 @@ class ClusterTreeNode(object):
         """
         result_queue = []
         for cluster_index in xrange(len(self.clusters)):
-
             sample = self.clusters[cluster_index].mean
-
             cluster_value = obj(sample,data)
             heapq.heappush(result_queue,(cluster_value,self.clusters[cluster_index] ) )
       
@@ -159,5 +159,3 @@ class ClusterTreeNode(object):
                 for c in node.clusters:
                     stack.append(c)
         return node_desc_dict
- 
-        

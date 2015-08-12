@@ -64,9 +64,9 @@ class KDTree(object):
         self.global_bb = None
         return
               
-    def construct(self, data,dim):
+    def construct(self, data, dim):
         self.data = data
-        self.root = Node(data,dim)
+        self.root = Node(data, dim)
         return
 
     def _decide_direction_distance(self, target, left, right, distance):
@@ -109,7 +109,6 @@ class KDTree(object):
         return best_option, least_distance
     #         else:
     #             return None, 100000
-
 
     def _decide_direction_objective(self, left, right, obj, data):
         """ Chooses between left and right node allowing either to be None.
@@ -165,9 +164,9 @@ class KDTree(object):
         node_stack.append(self.root)
         while len(node_stack) > 0:
             node = node_stack.pop(-1)
-            best_option, least_distance = self._decide_direction_distance(target,node.left,node.right)
+            best_option, least_distance = self._decide_direction_distance(target, node.left, node.right)
             if best_option is not None:
-                heapq.heappush(result_queue,(least_distance,best_option)) 
+                heapq.heappush(result_queue, (least_distance, best_option))
 #                if len(result_queue)>=K:
 #                    bound = result_queue[K][0]
         return zip([(n[0], n[1]) for n in result_queue[:K]])
@@ -176,9 +175,7 @@ class KDTree(object):
     def print_tree_df(self):
         """prints tree using a depth first traversal 
         """
-        #depth = 0
         node_stack = []
-        #heapq.heappush(node_stack,[d,i])
         node = self.root
         node_stack.append(self.root)
         element_count = 1
@@ -196,19 +193,15 @@ class KDTree(object):
     def df_search(self, obj, data):
         """Depth first search to find the best of all samples
         """
-        #depth = 0
         node_stack = []
-        result_queue = [] 
-      
+        result_queue = []
         node = self.root
-    
-        heapq.heappush(result_queue,(obj(node.point,data),node.point))
+        heapq.heappush(result_queue,(obj(node. point, data), node.point))
         node_stack.append(self.root)
         element_count = 1
         while len(node_stack) > 0:
             node = node_stack.pop(-1)
-            heapq.heappush(result_queue,(obj(node.point,data),node.point) )
-            print element_count# node.point
+            heapq.heappush(result_queue, (obj(node.point, data), node.point))
             if node.type == "inner":
                 if node.left is not None:
                     node_stack.append(node.left)
@@ -220,7 +213,7 @@ class KDTree(object):
         else:
             return None
     
-    def find_best_example(self,obj, data, k=1):
+    def find_best_example(self, obj, data, k=1):
         """
         Traverses the KDTree using the direction of least cost until a leaf is reached
         """
@@ -229,18 +222,15 @@ class KDTree(object):
         node = self.root
         depth = 0
         eval_points.append(node.point)
-        heapq.heappush(result_queue,(obj(node.point,data),depth) )
+        heapq.heappush(result_queue, (obj(node.point, data), depth) )
    
-        while node is not None and node.type  == "inner":
+        while node is not None and node.type == "inner":
             #print "depth",depth,node.point#node.right,node.left
-            
             depth += 1
-            
             node, least_cost = self._decide_direction_objective(node.left,node.right,obj,data)
             if node is not None:
                 heapq.heappush(result_queue,(least_cost,depth)) 
                 eval_points.append(node.point)
-
 #        best_value,best_index = heapq.heappop(result_queue)
 #        return best_value,eval_points[best_index]# best_point#node.point
         return [ (value,eval_points[index]) for  value, index in result_queue[:k]]

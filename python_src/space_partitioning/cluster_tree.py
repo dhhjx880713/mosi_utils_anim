@@ -40,7 +40,7 @@ class ClusterTree(object):
       
     def save_to_file(self,file_name):
         #save tree structure to file
-        fp = open(file_name+".json","wb")
+        fp = open(file_name+".json", "wb")
         node_desc_list = self.root.get_node_desc_list()
         node_desc_list["data_shape"] = self.X.shape
         json.dump(node_desc_list, fp, indent=4)
@@ -49,20 +49,18 @@ class ClusterTree(object):
         self.X.tofile(file_name+".data")
         return
         
-    def load_from_file(self,file_name):
-        fp = open(file_name+".json","r")
+    def load_from_file(self, file_name):
+        fp = open(file_name+".json", "r")
         node_desc = json.load(fp)
         fp.close()
-        
-        data_shape = node_desc["data_shape"]#o
-        self.X = np.fromfile(file_name+".data").reshape(data_shape) #load
+        data_shape = node_desc["data_shape"]
+        self.X = np.fromfile(file_name+".data").reshape(data_shape)
         self.dim = data_shape[1]
         root_id = node_desc["root"]
         node_builder = ClusterTreeNodeBuilder(self.N, self.K, self.dim)
         self.root = node_builder.construct_from_node_desc_list(root_id,node_desc,self.X)
 
-
-    def save_to_file_pickle(self,file_name):
+    def save_to_file_pickle(self, file_name):
         pickle_file_name = file_name
         pickle_file = open(pickle_file_name, 'wb')
         pickle.dump(self, pickle_file, pickle.HIGHEST_PROTOCOL)
@@ -79,17 +77,19 @@ class ClusterTree(object):
         self.N = data.N
         pickle_file.close()     
       
-    def construct(self,X):
+    def construct(self, X):
         self.X = X
         self.dim = min(self.X.shape[1], self.dim)
         node_builder = ClusterTreeNodeBuilder(self.N, self.K, self.dim)
         self.root = node_builder.construct_from_data(self.X)
 
-    def find_best_example(self,obj,data):
-        return self.root.find_best_example(obj,data)
+    def find_best_example(self, obj, data):
+        return self.root.find_best_example(obj, data)
 
+    def find_best_example_exhaustive(self, obj, data):
+        return self.root.find_best_example_exhaustive(obj, data)
 
-    def find_best_example_excluding_search(self,obj,data):
+    def find_best_example_excluding_search(self, obj, data):
         node = self.root
         level = 0
         while level < self.K and node.leaf == False:
@@ -109,18 +109,18 @@ class ClusterTree(object):
         """
         results = []
         candidates = []
-        candidates.append( (np.inf,self.root) )
+        candidates.append((np.inf, self.root))
         level = 0
         while len(candidates) > 0:
             new_candidates = []
-            for value,node in candidates:
-                if  node.leaf == False:
+            for value, node in candidates:
+                if node.leaf == False:
                     good_candidates = node.find_best_cluster_canditates(obj, data, n_candidates)
-                    for c in good_candidates:# value , node tuples
+                    for c in good_candidates:
                         heapq.heappush(new_candidates, c)
                 else:
                     kdtree_result = node.find_best_example(obj, data) 
-                    heapq.heappush(results,kdtree_result)
+                    heapq.heappush(results, kdtree_result)
             
             candidates = new_candidates[:n_candidates]
             level += 1
@@ -143,23 +143,22 @@ class ClusterTree(object):
         boundary = np.inf
         results = []
         candidates = []
-        candidates.append( (np.inf,self.root) )
+        candidates.append((np.inf, self.root))
         level = 0
         while len(candidates) > 0:
             boundary = max([c[0] for c in candidates])
             print boundary
             new_candidates = []
-            for value,node in candidates:
+            for value, node in candidates:
                 
-                if  node.leaf == False:
-                    good_candidates = node.find_best_cluster_canditates(obj,data,n_candidates=n_candidates)
-                    for c in good_candidates:# value , node tuples
-                         heapq.heappush(new_candidates,c)
+                if node.leaf == False:
+                    good_candidates = node.find_best_cluster_canditates(obj, data, n_candidates=n_candidates)
+                    for c in good_candidates:
+                         heapq.heappush(new_candidates, c)
                 else:
-                    kdtree_result = node.find_best_example(obj,data) 
-                    heapq.heappush(results,kdtree_result)
+                    kdtree_result = node.find_best_example(obj, data)
+                    heapq.heappush(results, kdtree_result)
 
-                                   
             candidates = [c for c in new_candidates[:n_candidates] if c[0] < boundary]
             if len(results) == 0 and len(candidates) == 0:
                 candidates = new_candidates[:n_candidates]
@@ -180,19 +179,19 @@ class ClusterTree(object):
         """
         results = []
         candidates = []
-        candidates.append( (np.inf,self.root) )
+        candidates.append((np.inf, self.root))
         level = 0
         while len(candidates) > 0:
             new_candidates = []
-            for value,node in candidates:
-                if  node.leaf == False:
+            for value, node in candidates:
+                if node.leaf == False:
                     good_candidates = node.find_best_cluster_canditates(obj, data, n_candidates=n_candidates)
-                    for c in good_candidates:# value , node tuples
-                        heapq.heappush(new_candidates,c)
+                    for c in good_candidates:
+                        heapq.heappush(new_candidates, c)
                 else:
                     kdtree_result = node.find_best_example_knn(obj, data, k)
-                    heapq.heappush(results,kdtree_result)
-            
+                    heapq.heappush(results, kdtree_result)
+
             candidates = new_candidates[:n_candidates]
             level += 1
 

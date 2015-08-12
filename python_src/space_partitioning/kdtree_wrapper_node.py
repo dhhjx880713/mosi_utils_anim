@@ -34,6 +34,9 @@ class KDTreeWrapper(object):
     def find_best_example(self, obj, data):
         return self.kdtree.find_best_example(obj, data, 1)[0]
 
+    def find_best_example_exhaustive(self, obj, data):
+        return self.kdtree.df_search(obj, data)
+
     def knn_interpolation(self, obj, data, k=50):
         
         results = self.kdtree.find_best_example(obj, data, k)#50

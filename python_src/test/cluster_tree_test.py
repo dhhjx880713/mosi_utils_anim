@@ -18,7 +18,7 @@ def distance_objective(x, test_value):
 def run_cluster_hierarchy_construction(N, K, X, path):
     cluster_tree = ClusterTree(N, K)
     cluster_tree.construct(X)
-    cluster_tree.save_to_file(path)#.json
+    cluster_tree.save_to_file(path)
     
 def run_search(N, K, path, test_value, error_margin=0.1):
     cluster_tree = ClusterTree(N, K)
@@ -33,20 +33,18 @@ def test_construction_and_search():
     n_samples = 10000
     n_dim = 3
     N = 4
-    K = 4#0
+    K = 4
     X_shape = (n_samples, n_dim)
     X = np.random.random(X_shape)
     test_value = X[0]
     print X.shape
     start = time.clock()
-    #kdtree = KDTree()
-    #test_kd_tree(X)
     path = TESTOUTPATH + os.sep + "tree"
     run_cluster_hierarchy_construction(N, K, X, path)
-    print "finished construction in ",time.clock()-start, "seconds"
+    print "finished construction in ", time.clock()-start, "seconds"
     start = time.clock()
     run_search(N, K, path, test_value)
-    print "finished search in ",time.clock()-start, "seconds"
+    print "finished search in ", time.clock()-start, "seconds"
     return
     
 if __name__ == "__main__":
