@@ -59,7 +59,3 @@ class TestSkeleton(object):
                                                                              ('LeftLeg', 14), ('LeftFoot', 15),
                                                                              ('RightUpLeg', 16), ('RightLeg', 17),
                                                                              ('RightFoot', 18)])}]
-
-    @params(param_create_filtered_node_name_map)
-    def test__create_filtered_node_name_map(self, res):
-        assert self.skeleton.node_name_map == res

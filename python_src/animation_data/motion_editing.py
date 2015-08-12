@@ -12,6 +12,7 @@ from itertools import izip
 from copy import deepcopy
 import time
 from scipy import stats  # linear regression
+from quaternion_frame import QuaternionFrame
 from external.transformations import quaternion_matrix, euler_from_matrix, \
     quaternion_from_matrix, euler_matrix, \
     quaternion_multiply
@@ -119,7 +120,7 @@ def quaternion_to_euler(q, rotation_order=['Xrotation',
     """
     q = np.asarray(q)
     # normalize quaternion vector
-    q = q / np.linalg.norm(q)
+    q /=np.linalg.norm(q)
     # create rotation matrix from quaternion
     Rq = quaternion_matrix(q)
     # map rotation order
@@ -140,13 +141,54 @@ def quaternion_to_euler(q, rotation_order=['Xrotation',
             euler_angles = np.rad2deg(euler_from_matrix(Rq, 'rzyx'))
     return euler_angles.tolist()
 
+def convert_euler_frames_to_quaternion_frames(bvhreader, euler_frames):
+    """
+    :param bvhreader: a BVHReader instance to store skeleton information
+    :param euler_frames: a list of euler frames
+    :return: a list of quatenrion frames
+    """
+    quat_frames = []
+    last_quat_frame = None
+    for frame in euler_frames:
+        quat_frame = QuaternionFrame(bvhreader, frame)
+        if last_quat_frame is not None:
+            for joint_name in bvhreader.node_names.keys():
+                if joint_name in quat_frame.keys():
+                    quat_frame[joint_name] = check_quat(quat_frame[joint_name],
+                                                        last_quat_frame[joint_name])
+        last_quat_frame = quat_frame
+        root_translation = frame[0:3]
+        quat_frame_values = [root_translation, ] + quat_frame.values()
+        quat_frame_values = convert_quat_frame_value_to_array(quat_frame_values)
+        quat_frames.append(quat_frame_values)
+    return quat_frames
 
-def convert_quaternion_to_euler(quaternion_frames):
+def convert_quat_frame_value_to_array(quat_frame_values):
+    n_channels = len(quat_frame_values)
+    quat_frame_value_array = []
+    for item in quat_frame_values:
+        if not isinstance(item, list):
+            item = list(item)
+        quat_frame_value_array += item
+    return quat_frame_value_array
+
+def check_quat(test_quat, ref_quat):
+    """check test quat needs to be filpped or not
+    """
+    test_quat = np.asarray(test_quat)
+    ref_quat = np.asarray(ref_quat)
+    dot = np.dot(test_quat, ref_quat)
+    if dot < 0:
+        test_quat = - test_quat
+    return test_quat.tolist()
+
+def convert_quaternion_frames_to_euler_frames(quaternion_frames):
     """Returns an nparray of Euler frames
 
     Parameters
     ----------
 
+    :param quaternion_frames:
      * quaternion_frames: List of quaternion frames
     \tQuaternion frames that shall be converted to Euler frames
 
@@ -178,26 +220,26 @@ def convert_quaternion_to_euler(quaternion_frames):
 
 def euler_substraction(theta1, theta2):
     '''
-    @brief: compute the angular distance from theta1 to theta2, positive value is anti-clockwise, negative is clockwise
+    @brief: compute the angular distance from theta2 to theta1, positive value is anti-clockwise, negative is clockwise
     @param theta1, theta2: angles in degree
     '''
-    theta1 = theta1 % 360
-    theta2 = theta2 % 360
+    theta1 %= 360
+    theta2 %= 360
     if theta1 > 180:
-        theta1 = theta1 - 360
+        theta1 -= 360
     elif theta1 < -180:
-        theta1 = theta1 + 360
+        theta1 += 360
 
     if theta2 > 180:
-        theta2 = theta2 - 360
+        theta2 -= 360
     elif theta2 < - 180:
-        theta2 = theta2 + 360
+        theta2 += 360
 
     theta = theta1 - theta2
     if theta > 180:
-        theta = theta - 360
+        theta -= 360
     elif theta < -180:
-        theta = theta + 360
+        theta += 360
     if theta > 180 or theta < - 180:
         raise ValueError(' exception value')
     return theta
@@ -347,8 +389,8 @@ def get_cartesian_coordinates_from_euler(skeleton, node_name, euler_frame):
         chain_names.reverse()
         chain_names += [node_name]  # Node is not in its parent list
 
-#        if node_name == "Head_EndSite":
-#                print chain_names
+        #        if node_name == "Head_EndSite":
+        #                print chain_names
         eul_angles = []
         for nodename in chain_names:
             index = skeleton.node_name_map[nodename] * 3 + 3
@@ -397,20 +439,6 @@ def convert_euler_frame_to_cartesian_frame(skeleton, euler_frame):
     return cartesian_frame
 
 
-def convert_quaternion_frame_to_cartesian_frame(skeleton, quat_frame):
-    """
-    Converts quaternion frames to cartesian frames by calling get_cartesian_coordinates_from_quaternion for each joint
-    """
-    cartesian_frame = []
-    for node_name in skeleton.node_names:
-        # ignore Bip joints and end sites
-        if not node_name.startswith("Bip") and "children" in skeleton.node_names[node_name].keys():
-            cartesian_frame.append(get_cartesian_coordinates_from_quaternion(
-                skeleton, node_name, quat_frame))  # get_cartesian_coordinates2
-
-    return cartesian_frame
-
-
 def align_point_clouds_2D(a, b, weights):
     '''
      Finds aligning 2d transformation of two equally sized point clouds.
@@ -444,8 +472,8 @@ def align_point_clouds_2D(a, b, weights):
     weighted_sum_a_z = 0
     weighted_sum_b_z = 0
     sum_of_weights = 0.0
-#    if not weights:
-#        weight = 1.0/n_points # todo set weight base on joint level
+    #    if not weights:
+    #        weight = 1.0/n_points # todo set weight base on joint level
     for index in range(n_points):
         numerator_left += weights[index] * (a[index][0] * b[index][2] -
                                             b[index][0] * a[index][2])
@@ -457,18 +485,14 @@ def align_point_clouds_2D(a, b, weights):
         weighted_sum_a_z += weights[index] * a[index][2]
         weighted_sum_b_z += weights[index] * b[index][2]
     numerator_right = 1.0 / sum_of_weights * \
-        (weighted_sum_a_x * weighted_sum_b_z -
-         weighted_sum_b_x * weighted_sum_a_z)
+                      (weighted_sum_a_x * weighted_sum_b_z -
+                       weighted_sum_b_x * weighted_sum_a_z)
     numerator = numerator_left - numerator_right
     denominator_right = 1.0 / sum_of_weights * \
-        (weighted_sum_a_x * weighted_sum_b_x +
-         weighted_sum_a_z * weighted_sum_b_z)
+                        (weighted_sum_a_x * weighted_sum_b_x +
+                         weighted_sum_a_z * weighted_sum_b_z)
     denominator = denominator_left - denominator_right
     theta = np.arctan2(numerator, denominator)
-    #theta = np.arctan(numerator/denominator)
-    #theta = math.atan(numerator/denominator)
-    offset_x = 0
-    offset_z = 0
     offset_x = (weighted_sum_a_x - weighted_sum_b_x *
                 np.cos(theta) - weighted_sum_b_z * np.sin(theta)) / sum_of_weights
     offset_z = (weighted_sum_a_z + weighted_sum_b_x *
@@ -505,20 +529,6 @@ def find_aligning_transformation(skeleton, euler_frames_a, euler_frames_b):
     return theta, offset_x, offset_z
 
 
-def rotate_around_y_axis(point, theta):
-    """
-    source https://www.siggraph.org/education/materials/HyperGraph/modeling/mod_tran/2drota.htm
-    Parameters
-    ---------
-    *point: list
-    \t coordinates
-    *theta: float
-    \t angle in radians
-    """
-    transfomed_point = point[:]
-    transfomed_point[0] = point[0] * cos(theta) - point[2] * sin(theta)
-    transfomed_point[2] = point[2] * cos(theta) + point[0] * sin(theta)
-    return transfomed_point
 
 
 def transform_point(point,
@@ -539,7 +549,7 @@ def transform_point(point,
     *offset: list of floats
     \tTranslation
     """
-    assert len(point) == 3,  ('the point should be a list of length 3')
+    assert len(point) == 3, ('the point should be a list of length 3')
     # translate point to original point
     point = np.asarray(point)
     if origin is not None:
@@ -588,9 +598,8 @@ def transform_point(point,
                              axes='rzyx')
     rotated_point = np.dot(R, point)
     if origin is not None:
-
         rotated_point[:3] += origin
-#    print rotated_point[:3]
+    #    print rotated_point[:3]
     transformed_point = rotated_point[:3] + offset
     return transformed_point.tolist()
 
@@ -725,16 +734,16 @@ def transform_quaternion_frame(quat_frame,
     \tTranslation
     """
 
-#    print quat_frame
+    #    print quat_frame
     if rotation_order is None:
         rotation_order = ["Xrotation", "Yrotation", "Zrotation"]
     transformed_frame = quat_frame[:]
-#    original_point_copy = deepcopy(original_point)
+    #    original_point_copy = deepcopy(original_point)
     transformed_frame[:3] = transform_point(quat_frame[:3],
                                             angles,
                                             offset,
                                             origin=origin)
-#    transformed_frame[:3] = transform_point(quat_frame[:3], [0, 0, 0], offset)
+    #    transformed_frame[:3] = transform_point(quat_frame[:3], [0, 0, 0], offset)
     q = euler_to_quaternion(angles, rotation_order)
     oq = quat_frame[3:7]
     rotated_q = quaternion_multiply(q, oq)
@@ -799,10 +808,10 @@ def smooth_quaternion_frames(quaternion_frames, discontinuity, window=20):
         value = 0.0
         if d - w <= f < d:
             tmp = (f - d + w) / w
-            value = 0.5 * tmp**2
+            value = 0.5 * tmp ** 2
         elif d <= f <= d + w:
             tmp = (f - d + w) / w
-            value = -0.5 * tmp**2 + 2 * tmp - 2
+            value = -0.5 * tmp ** 2 + 2 * tmp - 2
         smoothing_factors.append(value)
     smoothing_factors = np.array(smoothing_factors)
     new_quaternion_frames = []
@@ -839,10 +848,10 @@ def smooth_motion(euler_frames, discontinuity, window=20):
         value = 0.0
         if d - s <= f < d:
             tmp = ((f - d + s) / s)
-            value = 0.5 * tmp**2
+            value = 0.5 * tmp ** 2
         elif d <= f <= d + s:
             tmp = ((f - d + s) / s)
-            value = -0.5 * tmp**2 + 2 * tmp - 2
+            value = -0.5 * tmp ** 2 + 2 * tmp - 2
 
         smoothing_faktors.append(value)
 
@@ -861,7 +870,7 @@ def smooth_motion(euler_frames, discontinuity, window=20):
     return new_euler_frames
 
 
-def smoothly_concatenate(euler_frames_a, euler_frames_b,  window_size=20):
+def smoothly_concatenate(euler_frames_a, euler_frames_b, window_size=20):
     euler_frames = np.concatenate((euler_frames_a, euler_frames_b), axis=0)
     euler_frames = smooth_motion(euler_frames, d, window_size)
     return euler_frames
@@ -942,41 +951,10 @@ def align_frames(skeleton,
     return euler_frames
 
 
-def align_quaternion_frames(skeleton,
-                            quaternion_frames_a,
-                            quaternion_frames_b,
-                            node_name_map=None,
-                            smooth=True):
-    # find translation and rotation by using last frame from quaternion_frames_a
-    # and the first frame from quaternion_frame_b
-    # convert quaternion frame to euler frame
-    last_euler_frame = np.ravel(quaternion_frames_a[-1])
-    first_euler_frame = np.ravel(quaternion_frames_b[0])
-    point_cloud_a = convert_quaternion_frame_to_cartesian_frame(
-        skeleton, last_euler_frame)
-    point_cloud_b = convert_quaternion_frame_to_cartesian_frame(
-        skeleton, first_euler_frame)
-
-    theta, offset_x, offset_z = align_point_clouds_2D(
-        point_cloud_a, point_cloud_b, skeleton.joint_weights)
-    rotation_angle = [0, np.rad2deg(theta), 0]
-    translation = [offset_x, 0, offset_z]
-    transformed_quaternion_frames_b = transform_quaternion_frames(
-        quaternion_frames_b, rotation_angle, translation)
-    if smooth:
-        quaternion_frames = smoothly_concatenate_quaternion_frames(quaternion_frames_a,
-                                                                   transformed_quaternion_frames_b,
-                                                                   window_size=20)
-    else:
-        quaternion_frames = np.concatenate((quaternion_frames_a,
-                                            transformed_quaternion_frames_b))
-    return quaternion_frames
-
-
 def fast_quat_frames_transformation(quaternion_frames_a,
                                     quaternion_frames_b):
-    dir_vec_a = pose_orientation(quaternion_frames_a[-1])
-    dir_vec_b = pose_orientation(quaternion_frames_b[0])
+    dir_vec_a = pose_orientation_quat(quaternion_frames_a[-1])
+    dir_vec_b = pose_orientation_quat(quaternion_frames_b[0])
     angle = get_rotation_angle(dir_vec_a, dir_vec_b)
     offset_x = quaternion_frames_a[-1][0] - quaternion_frames_b[0][0]
     offset_z = quaternion_frames_a[-1][2] - quaternion_frames_b[0][2]
@@ -1000,13 +978,13 @@ def get_rotation_angle(point1, point2):
     *rotation_angle: float (in degree)
     \tRotation angle from point2 to point1
     """
-    theta1 = fromPointToEulerAngle(point1)
-    theta2 = fromPointToEulerAngle(point2)
+    theta1 = point_to_euler_angle(point1)
+    theta2 = point_to_euler_angle(point2)
     rotation_angle = euler_substraction(theta2, theta1)
     return rotation_angle
 
 
-def fromPointToEulerAngle(vec):
+def point_to_euler_angle(vec):
     '''
     @brief: covert a 2D point vec = (cos, sin) to euler angle (in degree)
     The output range is [-180, 180]
@@ -1050,7 +1028,7 @@ def calculate_point_cloud_distance(a, b):
     n_points = len(a)
     for i in xrange(n_points):
         d = [a[i][0] - b[i][0], a[i][1] - b[i][1], a[i][2] - b[i][2]]
-        distance += sqrt(d[0]**2 + d[1]**2 + d[2]**2)
+        distance += sqrt(d[0] ** 2 + d[1] ** 2 + d[2] ** 2)
     return distance / n_points
 
 
@@ -1083,7 +1061,7 @@ def calculate_pose_distance(skeleton, euler_frames_a, euler_frames_b):
         and calculates the distance after the aligning transformation
     '''
 
-#    theta, offset_x, offset_z = find_aligning_transformation(bvh_reader, euler_frames_a, euler_frames_b, node_name_map)
+    #    theta, offset_x, offset_z = find_aligning_transformation(bvh_reader, euler_frames_a, euler_frames_b, node_name_map)
     point_cloud_a = convert_euler_frame_to_cartesian_frame(
         skeleton, euler_frames_a[-1])
     point_cloud_b = convert_euler_frame_to_cartesian_frame(
@@ -1152,49 +1130,21 @@ def calculate_pose_distances_from_low_dim(skeleton, mm_models, X, Y):
 
 
 def extract_root_positions(frames):
-
     roots_2D = []
     for i in xrange(len(frames)):
-        position_2D = np.array([frames[i][0], frames[i][2]])
-        # print "sample",position2D
+        position_2D = [frames[i][0], frames[i][2]]
         roots_2D.append(position_2D)
 
-    return np.array(roots_2D)
+    return roots_2D
 
-
-def get_orientation_vec(euler_frames):
-    """ get orientation for last few frames of a motion sequence
-    """
-    # get 3d root position from motion sample for last 5 frames
-
-    points = extract_root_positions(euler_frames)
-
-    slope, intercept, r_value, p_value, std_err = stats.linregress(*points.T)
-
-    dir_vector = points[-1] - points[0]
-
-    if isnan(slope):
-        orientation_vec1 = np.array([0, 1])
-        orientation_vec2 = np.array([0, -1])
-    else:
-        orientation_vec1 = np.array([1, slope])
-        orientation_vec2 = np.array([-1, -slope])
-    if np.dot(orientation_vec1, dir_vector) > np.dot(orientation_vec2, dir_vector):
-        orientation_vec = orientation_vec1
-    else:
-        orientation_vec = orientation_vec2
-    orientation_vec = orientation_vec / np.linalg.norm(orientation_vec)
-    return orientation_vec
-
-
-def pose_orientation(quaternion_frame):
+def pose_orientation_quat(quaternion_frame):
     """Estimate pose orientation from root orientation
     """
     ref_offset = np.array([0, 0, 1, 1])
     rotmat = quaternion_matrix(quaternion_frame[3:7])
     rotated_point = np.dot(rotmat, ref_offset)
     dir_vec = np.array([rotated_point[0], rotated_point[2]])
-    dir_vec = dir_vec / np.linalg.norm(dir_vec)
+    dir_vec /= np.linalg.norm(dir_vec)
     return dir_vec
 
 
@@ -1208,32 +1158,8 @@ def pose_orientation_euler(euler_frame):
                           'rxyz')
     rotated_point = np.dot(rotmat, ref_offset)
     dir_vec = np.array([rotated_point[0], rotated_point[2]])
-    dir_vec = dir_vec / np.linalg.norm(dir_vec)
+    dir_vec /= np.linalg.norm(dir_vec)
     return dir_vec
-
-
-def get_trajectory_dir_from_2d_points(points):
-    """Estimate the trajectory heading
-
-    Parameters
-    *\Points: numpy array
-    Step 1: fit the points with a 2d straight line
-    Step 2: estimate the direction vector from first and last point
-    """
-    dir_vector = points[-1] - points[0]
-    slope, intercept, r_value, p_value, std_err = stats.linregress(*points.T)
-    if isnan(slope):
-        orientation_vec1 = np.array([0, 1])
-        orientation_vec2 = np.array([0, -1])
-    else:
-        orientation_vec1 = np.array([slope, 1])
-        orientation_vec2 = np.array([-slope, -1])
-    if np.dot(orientation_vec1, dir_vector) > np.dot(orientation_vec2, dir_vector):
-        orientation_vec = orientation_vec1
-    else:
-        orientation_vec = orientation_vec2
-    orientation_vec = orientation_vec / np.linalg.norm(orientation_vec)
-    return orientation_vec
 
 
 def main():
@@ -1251,9 +1177,26 @@ def main():
     duration1 = end1 - start1
     print "time duration: " + str(duration1)
     print euler_angles1
-#    euler_angles = np.rad2deg(euler_angles)
-#    print euler_angles
+
+
+def test():
+    from bvh import BVHReader
+    from skeleton import Skeleton
+    test_file1 = r'C:\git-repo\ulm\morphablegraphs\test_data\animation_data\walk_001_1_rightStance_86_128.bvh'
+    bvhreader1 = BVHReader(test_file1)
+    skeleton = Skeleton(bvhreader1)
+    test_file2 = r'C:\git-repo\ulm\morphablegraphs\test_data\animation_data\walk_001_1_leftStance_43_86.bvh'
+    bvhreader2 = BVHReader(test_file2)
+    quat_frames1 = convert_euler_frames_to_quaternion_frames(bvhreader1, bvhreader1.frames)
+    quat_frames2 = convert_euler_frames_to_quaternion_frames(bvhreader2, bvhreader2.frames)
+    origin_root = get_cartesian_coordinates_from_quaternion(skeleton, 'Hips', quat_frames1[0])
+    point1 = [-0.5, -np.sqrt(3)/2.0]
+    point2 = [1, 1]
+    angle = get_rotation_angle(point1, point2)
+    print angle
+
 
 
 if __name__ == "__main__":
-    main()
+    # main()
+    test()
