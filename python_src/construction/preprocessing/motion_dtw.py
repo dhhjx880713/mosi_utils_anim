@@ -288,7 +288,7 @@ class MotionDynamicTimeWarping(MotionNormalization):
 
 
 def main():
-    data_folder = r'C:\git-repo\ulm\morphablegraphs\test_data\constrction\motion_dtw'
+    data_folder = r'C:\git-repo\ulm\morphablegraphs\test_data\constrction\preprocessing\motion_dtw'
     save_path = r'C:\repo\data\1 - MoCap\4 - Alignment\test'
     ref_motion = data_folder + os.sep + 'pick_003_4_first_485_607.bvh'
     dynamicTimeWarper = MotionDynamicTimeWarping()
@@ -321,5 +321,5 @@ def test():
 
 
 if __name__ == "__main__":
-    #    main()
-    test()
+    main()
+    # test()

@@ -36,8 +36,6 @@ class TestStatisticalModelTrainer(object):
         dimension_reduction = MotionDimensionReduction(motion_data, skeleton_bvh, params)
         dimension_reduction.gen_data_for_modeling()
         self.modelTrainer = StatisticalModelTrainer(dimension_reduction.fdata)
-        # self.modelTrainer.gen_motion_primitive_model()
-    
 
     
     param_combine_spatial_temporal_parameters = [{"res": 11}]
