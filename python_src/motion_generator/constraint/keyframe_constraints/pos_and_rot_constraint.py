@@ -17,6 +17,7 @@ ROTATION_ERROR_FACTOR = 10  # importance of reaching rotation constraints
 RELATIVE_HUERISTIC_RANGE = 0.10  # used for setting the search range relative to the number of frames of motion primitive
 CONSTRAINT_CONFLICT_ERROR = 100000  # returned when conflicting constraints were set
 
+
 class PositionAndRotationConstraint(KeyframeConstraintBase):
     """
     * skeleton: Skeleton
@@ -42,15 +43,11 @@ class PositionAndRotationConstraint(KeyframeConstraintBase):
         self._convert_annotation_to_indices()
         self.rotation_axes = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
 
-
     def evaluate_motion_sample(self, aligned_quat_frames):
-
         min_error = CONSTRAINT_CONFLICT_ERROR
-        n_frames = len(aligned_quat_frames) 
-        #check specific frames
-        # check for a special case which should not happen in a single constraint
-        if not (self.constrain_first_frame and self.constrain_last_frame):  
-
+        n_frames = len(aligned_quat_frames)
+        # ignore a special case which should not happen in a single constraint
+        if not (self.constrain_first_frame and self.constrain_last_frame):
             heuristic_range = self.relative_heuristic_range * n_frames
             filtered_frames = aligned_quat_frames[-heuristic_range:]
             filtered_frame_nos = range(n_frames)            
@@ -58,9 +55,8 @@ class PositionAndRotationConstraint(KeyframeConstraintBase):
                 error = self._evaluate_frame(frame)
                 if min_error > error:
                     min_error = error
-
         return min_error
-        
+
     def _evaluate_frame(self, frame):
         error = 0
         if self.position is not None:
@@ -68,16 +64,16 @@ class PositionAndRotationConstraint(KeyframeConstraintBase):
         if self.orientation is not None:
             error +=  self._evaluate_joint_orientation(frame)
         return error
-        
+
     def _evaluate_joint_orientation(self, frame):
         joint_index = self.skeleton.node_name_map[self.joint_name]
         joint_orientation = frame[joint_index:joint_index+4]
         return self._orientation_distance(joint_orientation)
-        
+
     def _evaluate_joint_position(self, frame):
         joint_position = get_cartesian_coordinates_from_quaternion(self.skeleton, self.joint_name, frame)
         return self._vector_distance(self.position, joint_position)
-                                          
+
     def _orientation_distance(self, joint_orientation):
         joint_euler_angles = quaternion_to_euler(joint_orientation)
         rotmat_constraint = np.eye(4)
@@ -93,18 +89,16 @@ class PositionAndRotationConstraint(KeyframeConstraintBase):
         rotation_distance = self._vector_distance(np.ravel(rotmat_constraint),
                                             np.ravel(rotmat_target))
         return rotation_distance
-        
+
     def _vector_distance(self, a, b):
         """Returns the distance ignoring entries with None
         """
         d_sum = 0
-        #print a,b
         for i in xrange(len(a)):
             if a[i] is not None and b[i] is not None:
                 d_sum += (a[i]-b[i])**2
         return sqrt(d_sum)
 
-            
     def _convert_annotation_to_indices(self):
             start_stop_dict = {
                 (None, None): (None, None),
