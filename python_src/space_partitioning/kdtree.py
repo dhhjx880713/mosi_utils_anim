@@ -13,7 +13,6 @@ import heapq
 import numpy as np
 
 
-
 class Node(object):
     """
     Node for KDTree modified from
@@ -21,36 +20,35 @@ class Node(object):
     """
     def __init__(self, data, dim, depth=0):
         self.index = depth
-        if len(data)>1:
-            self.type = "inner" 
-     
-           # Select axis based on depth so that axis cycles through all valid values   
+        if len(data) > 1:
+            self.type = "inner"
+            # Select axis based on depth so that axis cycles through all valid values
             axis = depth % dim
-  
+
             # Sort point list and choose median as pivot element
             data.sort(key=itemgetter(axis))
-            median = len(data) // 2 # choose median
+            median = len(data) // 2
             left_data = data[:median]
             right_data = data[median+1:]
-            
+
             # Create node and construct subtrees
             self.point = data[median]
 
             if len(left_data) > 0:
-                self.left = Node(left_data,dim,depth+1)
+                self.left = Node(left_data, dim, depth+1)
             else:
                 self.left = None
                 
             if len(right_data) > 0:
-                self.right = Node(right_data,dim,depth+1)
+                self.right = Node(right_data, dim, depth+1)
             else:
                 self.right = None
         else:
             self.type = "leaf"
-            self.point =  data[0]
+            self.point = data[0]
             self.left = None
             self.right = None
-       
+
 
 class KDTree(object):
     """
@@ -149,29 +147,29 @@ class KDTree(object):
             least_cost = obj(left.point, data)
         return best_option, least_cost
 
-    def query(self, target, K=1):
-        """Returns the K nearest neighbors using a Depth First search.
-            distances,
-            node
+    def query(self, target, k=1):
+        """Finds the K nearest neighbors using a Depth First search.
+            Returns
+            -------
+            *distances:
+                list of distances to targets.
+            *node:
+                list of nodes.
         """
         def point_distance(a, b):
             return np.linalg.norm(a-b)
-        assert K >= 1
-        #bound = 10000
+        assert k >= 1
         result_queue = [] 
         node_stack = []
-        heapq.heappush(result_queue,(point_distance(self.root.point,target),self.root.point))
+        heapq.heappush(result_queue, (point_distance(self.root.point, target), self.root.point))
         node_stack.append(self.root)
         while len(node_stack) > 0:
             node = node_stack.pop(-1)
             best_option, least_distance = self._decide_direction_distance(target, node.left, node.right)
             if best_option is not None:
                 heapq.heappush(result_queue, (least_distance, best_option))
-#                if len(result_queue)>=K:
-#                    bound = result_queue[K][0]
-        return zip([(n[0], n[1]) for n in result_queue[:K]])
+        return zip([(n[0], n[1]) for n in result_queue[:k]])
 
-        
     def print_tree_df(self):
         """prints tree using a depth first traversal 
         """
@@ -188,15 +186,14 @@ class KDTree(object):
                 if node.right is not None:
                     node_stack.append(node.right)
             element_count += 1
-        
-        
+
     def df_search(self, obj, data):
         """Depth first search to find the best of all samples
         """
         node_stack = []
         result_queue = []
         node = self.root
-        heapq.heappush(result_queue,(obj(node. point, data), node.point))
+        heapq.heappush(result_queue, (obj(node. point, data), node.point))
         node_stack.append(self.root)
         element_count = 1
         while len(node_stack) > 0:
@@ -222,16 +219,12 @@ class KDTree(object):
         node = self.root
         depth = 0
         eval_points.append(node.point)
-        heapq.heappush(result_queue, (obj(node.point, data), depth) )
+        heapq.heappush(result_queue, (obj(node.point, data), depth))
    
         while node is not None and node.type == "inner":
-            #print "depth",depth,node.point#node.right,node.left
             depth += 1
-            node, least_cost = self._decide_direction_objective(node.left,node.right,obj,data)
+            node, least_cost = self._decide_direction_objective(node.left, node.right, obj, data)
             if node is not None:
-                heapq.heappush(result_queue,(least_cost,depth)) 
+                heapq.heappush(result_queue, (least_cost, depth))
                 eval_points.append(node.point)
-#        best_value,best_index = heapq.heappop(result_queue)
-#        return best_value,eval_points[best_index]# best_point#node.point
-        return [ (value,eval_points[index]) for  value, index in result_queue[:k]]
-        
+        return [(value, eval_points[index]) for value, index in result_queue[:k]]
