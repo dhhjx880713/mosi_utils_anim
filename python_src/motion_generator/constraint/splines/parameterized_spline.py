@@ -39,7 +39,7 @@ def get_magnitude(vector):
 
 
 def get_closest_lower_value(arr, left, right, value, getter=lambda A, i: A[i]):
-    '''
+    """
     Uses a modification of binary search to find the closest lower value
     Note this algorithm was copied from http://stackoverflow.com/questions/4257838/how-to-find-closest-value-in-sorted-array
     - left smallest index of the searched range
@@ -47,7 +47,7 @@ def get_closest_lower_value(arr, left, right, value, getter=lambda A, i: A[i]):
     - arr array to be searched
     - parameter is an optional lambda function for accessing the array
     - returns a tuple (index of lower bound in the array, flag: 0 = exact value was found, 1 = lower bound was returned, 2 = value is lower than the minimum in the array and the minimum index was returned, 3= value exceeds the array and the maximum index was returned)
-    '''
+    """
 
     delta = int(right - left)
     # print delta
@@ -100,9 +100,9 @@ class ParameterizedSpline(object):
         return
 
     def _initiate_control_points(self, control_points):
-        '''
+        """
         @param ordered control_points array of class accessible by control_points[index][dimension]
-        '''
+        """
         self.spline._initiate_control_points(control_points)
         self._update_relative_arc_length_mapping_table()
         return
@@ -124,16 +124,16 @@ class ParameterizedSpline(object):
         self._relative_arc_length_map = []
 
     def transform_by_matrix(self, matrix):
-        '''
+        """
         matrix nxn transformation matrix where n is the number of dimensions of the catmull rom spline
-        '''
+        """
         self.spline.transform_by_matrix(matrix)
 
     def _update_relative_arc_length_mapping_table(self):
-        '''
+        """
         creates a table that maps from parameter space of query point to relative arc length based on the given granularity in the constructor of the catmull rom spline
         http://pages.cpsc.ucalgary.ca/~jungle/587/pdf/5-interpolation.pdf
-        '''
+        """
         self.full_arc_length = 0
         granularity = self.granularity
         accumulated_steps = np.arange(granularity + 1) / float(granularity)
@@ -272,17 +272,16 @@ class ParameterizedSpline(object):
         return self.spline.get_last_control_point()
 
     def get_distance_to_path(self, absolute_arc_length, point):
-        '''
-        evaluates a point with absoluteArcLength on self to get a point on the path
+        """ Evaluates a point with absoluteArcLength on self to get a point on the path
         then the distance between the given position and the point on the path is returned
-        '''
+        """
         point_on_path = self.get_point_at_absolute_arc_length(
             absolute_arc_length)
         return np.linalg.norm(point - point_on_path)
 
     def _find_closest_values_in_relative_arc_length_map(
             self, relative_arc_length):
-        '''Given a relative arc length between 0 and 1 it uses get_closest_lower_value
+        """ Given a relative arc length between 0 and 1 it uses get_closest_lower_value
         to search the self._relative_arc_length_map for the values bounding the searched value
         Returns
         -------
@@ -291,7 +290,7 @@ class ParameterizedSpline(object):
         floor arc length,
         ceiling arc length
         and a bool if the exact value was found
-        '''
+        """
         found_exact_value = True
         # search for the index and a flag value, requires a getter for the
         # array
