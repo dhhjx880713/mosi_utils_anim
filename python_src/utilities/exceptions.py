@@ -7,7 +7,8 @@ Created on Tue Jul 14 18:05:23 2015
 
 
 class SynthesisError(Exception):
-    def __init__(self,  quat_frames, bad_samples):
+
+    def __init__(self, quat_frames, bad_samples):
         message = "Could not process input file"
         super(SynthesisError, self).__init__(message)
         self.bad_samples = bad_samples
@@ -15,6 +16,7 @@ class SynthesisError(Exception):
 
 
 class PathSearchError(Exception):
+
     def __init__(self, parameters):
         self.search_parameters = parameters
         message = "Error in the navigation goal generation"
@@ -22,7 +24,8 @@ class PathSearchError(Exception):
 
 
 class ConstraintError(Exception):
-    def __init__(self,  bad_samples):
+
+    def __init__(self, bad_samples):
         message = "Could not reach constraint"
         super(ConstraintError, self).__init__(message)
         self.bad_samples = bad_samples
