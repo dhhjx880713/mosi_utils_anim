@@ -9,10 +9,8 @@ from utilities.io_helper_functions import load_json_file
 
 
 class AlgorithmConfigurationBuilder(object):
-
     """Can be used to generate a dict containing all settings for the algorithm    
     """
-
     def __init__(self):
         self.use_constraints = True
         self.use_optimization = True
@@ -33,7 +31,6 @@ class AlgorithmConfigurationBuilder(object):
         self.set_default_trajectory_following_settings()
         self.set_default_optimization_settings()
         self.build()
-        return
 
     def set_default_constrained_gmm_settings(self):
         self.constrained_gmm_settings = dict()
@@ -80,36 +77,22 @@ class AlgorithmConfigurationBuilder(object):
         self.n_cluster_search_candidates = temp_algorithm_config["n_cluster_search_candidates"]
         self.debug_max_step = temp_algorithm_config["debug_max_step"]
         self.verbose = temp_algorithm_config["verbose"]
-        return
-
-
 
     def build(self):
+        return {"use_constraints": self.use_constraints,
+                "use_optimization": self.use_optimization,
+                "use_constrained_gmm": self.use_constrained_gmm,
+                "use_transition_model": self.use_transition_model,
+                "n_random_samples": self.n_random_samples,
+                "activate_parameter_check": self.activate_parameter_check,
+                "apply_smoothing": self.apply_smoothing,
+                "smoothing_window": self.smoothing_window,
+                "optimization_settings": self.optimization_settings,
+                "constrained_gmm_settings": self.constrained_gmm_settings,
+                "trajectory_following_settings": self.trajectory_following_settings,
+                "activate_cluster_search": self.activate_cluster_search,
+                "n_cluster_search_candidates": self.n_cluster_search_candidates,
+                "verbose": self.verbose,
+                "debug_max_step": self.debug_max_step
+                }
 
-        self._algorithm_config = {"use_constraints": self.use_constraints,
-                                  "use_optimization": self.use_optimization,
-                                  "use_constrained_gmm": self.use_constrained_gmm,
-                                  "use_transition_model": self.use_transition_model,
-                                  "n_random_samples": self.n_random_samples,
-                                  "activate_parameter_check": self.activate_parameter_check,
-                                  "apply_smoothing": self.apply_smoothing,
-                                  "smoothing_window": self.smoothing_window,
-                                  "optimization_settings": self.optimization_settings,
-                                  "constrained_gmm_settings": self.constrained_gmm_settings,
-                                  "trajectory_following_settings": self.trajectory_following_settings,
-                                  "activate_cluster_search": self.activate_cluster_search,
-                                  "n_cluster_search_candidates": self.n_cluster_search_candidates,
-                                  "verbose": self.verbose,
-                                  "debug_max_step": self.debug_max_step
-                                  }
-
-        return self._algorithm_config
-
-    def get_configuration(self):
-        """
-        Returns
-        -------
-        algorithm_config : dict
-          Settings that can be passed as parameter to the MotionGenerator pipeline
-         """
-        return self._algorithm_settings
