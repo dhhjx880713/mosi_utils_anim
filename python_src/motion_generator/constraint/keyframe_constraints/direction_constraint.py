@@ -6,7 +6,7 @@ Created on Mon Aug 03 19:01:21 2015
 """
 
 import numpy as np
-from animation_data.motion_editing import pose_orientation
+from animation_data.motion_editing import pose_orientation_quat
 from keyframe_constraint_base import KeyframeConstraintBase
 
 DIRECTION_ERROR_FACTOR = 10  # importance of reaching direction constraints
@@ -24,7 +24,7 @@ class DirectionConstraint(KeyframeConstraintBase):
         return
 
     def evaluate_motion_sample(self, aligned_quat_frames):
-        motion_dir = pose_orientation(aligned_quat_frames[-1])
+        motion_dir = pose_orientation_quat(aligned_quat_frames[-1])
 
         error = abs(self.target_dir[0] - motion_dir[0]) + \
             abs(self.target_dir[1] - motion_dir[1])
