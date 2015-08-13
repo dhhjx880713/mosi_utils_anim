@@ -5,7 +5,7 @@ Created on Wed Feb 18 11:53:40 2015
 @author: mamauer
 """
 import numpy as np
-from GPMulti import GPMulti
+from gp_multi import GPMulti
 import os
 from motion_primitive import MotionPrimitive
 from sklearn import mixture

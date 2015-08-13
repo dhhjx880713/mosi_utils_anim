@@ -6,5 +6,6 @@
     "output_filename": "MGResult",
     "port": 8888,
     "output_mode": "file_output",
-	"data_folder": "C:\\repo\\data\\1 - MoCap"
+    "data_folder": "C:\\Users\\du\\MG++\\repo\\data\\1 - MoCap",
+    "write_log" : false
 }

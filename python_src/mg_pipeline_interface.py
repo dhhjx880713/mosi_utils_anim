@@ -9,7 +9,7 @@ Simple Motion Graphs command line interface for pipeline tests.
 
 
 import os
-# change working directory to the script file directory
+ # change working directory to the script file directory
 dirname, filename = os.path.split(os.path.abspath(__file__))
 os.chdir(dirname)
 import glob
@@ -19,7 +19,6 @@ from motion_generator.algorithm_configuration import AlgorithmConfigurationBuild
 from utilities.io_helper_functions import load_json_file
 ALGORITHM_CONFIG_FILE = "config" + os.sep + "algorithm.json"
 SERVICE_CONFIG_FILE = "config" + os.sep + "service.json"
-
 
 def get_newest_file_from_input_directory(service_config):
     input_file = glob.glob(service_config["input_dir"] + os.sep + "*.json")[-1]
@@ -32,7 +31,7 @@ def run_pipeline(service_config, algorithm_config_file):
     """
 
     input_file = get_newest_file_from_input_directory(service_config)
-
+    
     algorithm_config_builder = AlgorithmConfigurationBuilder()
     if os.path.isfile(algorithm_config_file):
         algorithm_config_builder.from_json(algorithm_config_file)
@@ -40,15 +39,12 @@ def run_pipeline(service_config, algorithm_config_file):
 
     start = time.clock()
     motion_generator = MotionGenerator(service_config, algorithm_config)
-    print "finished construction from file in", time.clock() - start, "seconds"
+    print "Finished construction from file in", time.clock() - start, "seconds"
 
     motion = motion_generator.generate_motion(input_file, export=False)
 
-    # checks for quat_frames in result_tuple
-    if motion.quat_frames is not None:
-        mg_input = load_json_file(input_file)
-        motion_generator.export_synthesis_result(mg_input, service_config["output_dir"],
-                                                 service_config["output_filename"], motion)
+    if motion.quat_frames is not None:  # checks for quat_frames in result_tuple
+        motion.export(service_config["output_dir"], service_config["output_filename"])
     else:
         print "Error: Failed to generate motion data."
 
@@ -57,6 +53,8 @@ def main():
     """Loads the latest file added to the input directory specified in
         service_config.json and runs the algorithm.
     """
+#    SEED_CONSTANT = 41
+#    np.random.seed(SEED_CONSTANT)
     if os.path.isfile(SERVICE_CONFIG_FILE):
         service_config = load_json_file(SERVICE_CONFIG_FILE)
 
