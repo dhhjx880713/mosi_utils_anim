@@ -14,8 +14,8 @@ from keyframe_constraint_base import KeyframeConstraintBase
 
 class PoseConstraint(KeyframeConstraintBase):
 
-    def __init__(self, skeleton, constraint_desc, precision):
-        super(PoseConstraint, self).__init__(constraint_desc, precision)
+    def __init__(self, skeleton, constraint_desc, precision, weight_factor=1.0):
+        super(PoseConstraint, self).__init__(constraint_desc, precision, weight_factor)
         self.skeleton = skeleton
         self.pose_constraint = constraint_desc["frame_constraint"]
         return

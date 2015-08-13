@@ -47,14 +47,14 @@ class MotionPrimitiveConstraints(object):
         \tThe sum of the errors for all constraints
     
         """
-        error_sum = 0
         #find aligned frames once for all constraints
         quat_frames = motion_primitive.back_project(sample, use_time_parameters=use_time_parameters).get_motion_vector()
         aligned_frames = align_quaternion_frames(quat_frames, prev_frames, self.start_pose)
     
         #evaluate constraints with the generated motion
+        error_sum = 0
         for c in self.constraints:
-             error_sum += c.evaluate_motion_sample(aligned_frames)
+            error_sum += c.weight_factor * c.evaluate_motion_sample(aligned_frames)
         return error_sum
         
 

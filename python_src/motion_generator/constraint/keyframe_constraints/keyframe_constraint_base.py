@@ -8,9 +8,10 @@ Created on Fri Jul 31 17:36:36 2015
 
 class KeyframeConstraintBase(object):
 
-    def __init__(self, constraint_desc, precision):
+    def __init__(self, constraint_desc, precision, weight_factor=1.0):
         self.semantic_annotation = constraint_desc["semanticAnnotation"]
         self.precision = precision
+        self.weight_factor = weight_factor
 
     def evaluate_motion_sample(self, aligned_quat_frames):
         pass

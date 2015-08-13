@@ -12,8 +12,6 @@ from animation_data.motion_editing import get_cartesian_coordinates_from_quatern
                                     quaternion_to_euler
 from external.transformations import rotation_matrix
 from keyframe_constraint_base import KeyframeConstraintBase
-POSITION_ERROR_FACTOR = 1  # importance of reaching position constraints
-ROTATION_ERROR_FACTOR = 10  # importance of reaching rotation constraints
 RELATIVE_HUERISTIC_RANGE = 0.10  # used for setting the search range relative to the number of frames of motion primitive
 CONSTRAINT_CONFLICT_ERROR = 100000  # returned when conflicting constraints were set
 
@@ -25,8 +23,8 @@ class PositionAndRotationConstraint(KeyframeConstraintBase):
     * constraint_desc: dict
         Contains joint, position, orientation and semantic Annotation
     """
-    def __init__(self, skeleton, constraint_desc, precision):
-        super(PositionAndRotationConstraint, self).__init__(constraint_desc, precision)
+    def __init__(self, skeleton, constraint_desc, precision, weight_factor=1.0):
+        super(PositionAndRotationConstraint, self).__init__(constraint_desc, precision, weight_factor)
         self.skeleton = skeleton
         self.joint_name = constraint_desc["joint"]
         if "position" in constraint_desc.keys():
@@ -62,7 +60,7 @@ class PositionAndRotationConstraint(KeyframeConstraintBase):
         if self.position is not None:
             error += self._evaluate_joint_position(frame)
         if self.orientation is not None:
-            error +=  self._evaluate_joint_orientation(frame)
+            error += self._evaluate_joint_orientation(frame)
         return error
 
     def _evaluate_joint_orientation(self, frame):

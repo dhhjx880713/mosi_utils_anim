@@ -24,7 +24,6 @@ class MotionPrimitiveConstraintsBuilder(object):
         self.algorithm_config = None
         self.status = {}
         self.morphable_graph = None
-        return
     
     def set_action_constraints(self, action_constraints):
         self.action_constraints = action_constraints
@@ -81,7 +80,7 @@ class MotionPrimitiveConstraintsBuilder(object):
     def _set_pose_constraint(self, mp_constraints):
        if mp_constraints.settings["transition_pose_constraint_factor"] > 0.0 and self.status["prev_frames"] is not None:
             pose_constraint_desc = self._create_frame_constraint()
-            pose_constraint = PoseConstraint(self.skeleton, pose_constraint_desc, self.precision["smooth"])
+            pose_constraint = PoseConstraint(self.skeleton, pose_constraint_desc, self.precision["smooth"], mp_constraints.settings["transition_pose_constraint_factor"])
             mp_constraints.constraints.append(pose_constraint)
             mp_constraints.pose_constraint_set = True
 
@@ -106,14 +105,14 @@ class MotionPrimitiveConstraintsBuilder(object):
           keyframe_semantic_annotation={"firstFrame": None, "lastFrame": True}
           keyframe_constraint_desc = {"joint": root_joint_name, "position": mp_constraints.step_goal,
                       "semanticAnnotation": keyframe_semantic_annotation}
-          keyframe_constraint = PositionAndRotationConstraint(self.skeleton, keyframe_constraint_desc, self.precision["pos"])
+          keyframe_constraint = PositionAndRotationConstraint(self.skeleton, keyframe_constraint_desc, self.precision["pos"], mp_constraints.settings["position_constraint_factor"])
           mp_constraints.constraints.append(keyframe_constraint)
           
         if mp_constraints.settings["dir_constraint_factor"] > 0.0:
             dir_semantic_annotation={"firstFrame": None, "lastFrame": True}
             dir_constraint_desc = {"joint": root_joint_name, "dir_vector": dir_vector,
                           "semanticAnnotation": dir_semantic_annotation}
-            direction_constraint = DirectionConstraint(self.skeleton, dir_constraint_desc, self.precision["rot"])
+            direction_constraint = DirectionConstraint(self.skeleton, dir_constraint_desc, self.precision["rot"], mp_constraints.settings["dir_constraint_factor"])
             mp_constraints.constraints.append(direction_constraint)
 
     def _set_keyframe_constraints(self, mp_constraints):
@@ -122,7 +121,7 @@ class MotionPrimitiveConstraintsBuilder(object):
         if self.status["motion_primitive_name"] in self.action_constraints.keyframe_constraints.keys():
             keyframe_constraint_desc_list = self.action_constraints.keyframe_constraints[self.status["motion_primitive_name"]]
             for i in xrange(len(keyframe_constraint_desc_list)):
-                mp_constraints.constraints.append(PositionAndRotationConstraint(self.skeleton, keyframe_constraint_desc_list[i], self.precision["pos"]))
+                mp_constraints.constraints.append(PositionAndRotationConstraint(self.skeleton, keyframe_constraint_desc_list[i], self.precision["pos"], mp_constraints.settings["position_constraint_factor"]))
 
     def _create_frame_constraint(self):
         """ Create frame a constraint from the preceding motion.
@@ -138,7 +137,7 @@ class MotionPrimitiveConstraintsBuilder(object):
                                                                 last_euler_frame)
     #        print "add joint position to constraints",node_name,joint_position
             position_dict[node_name] = joint_position
-        frame_constraint = {"frame_constraint":position_dict, "semanticAnnotation":{"firstFrame":True,"lastFrame":None}}
+        frame_constraint = {"frame_constraint":position_dict, "semanticAnnotation": {"firstFrame": True,"lastFrame": None}}
     
         return frame_constraint
 
