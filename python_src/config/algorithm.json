@@ -2,18 +2,17 @@
     "apply_smoothing" : true,
     "smoothing_window" : 20,
     "trajectory_following_settings": {
-        "use_dir_vector_constraints": true, 
-        "step_length_factor": 0.8, 
-        "use_position_constraints": true, 
-        "method": "arc_length", 
-        "use_frame_constraints": true
+        "dir_constraint_factor": 10.0,
+        "heuristic_step_length_factor": 0.8,
+        "position_constraint_factor": 1.0,
+        "step_length_approx_method": "arc_length",
+        "transition_pose_constraint_factor": 1.0
     }, 
     "use_constrained_gmm": false, 
     "optimization_settings": {
         "error_scale_factor": 1, 
-        "kinematic_epsilon": 0.0, 
-        "quality_scale_factor": 0, 
-        "optimize_theta": false, 
+        "spatial_epsilon": 0.0,
+        "quality_scale_factor": 0,
         "tolerance": 0.05, 
         "method": "BFGS", 
         "max_iterations": 300

@@ -50,7 +50,7 @@ class MotionPrimitiveConstraints(object):
         error_sum = 0
         #find aligned frames once for all constraints
         quat_frames = motion_primitive.back_project(sample, use_time_parameters=use_time_parameters).get_motion_vector()
-        aligned_frames  = align_quaternion_frames(quat_frames, prev_frames, self.start_pose)
+        aligned_frames = align_quaternion_frames(quat_frames, prev_frames, self.start_pose)
     
         #evaluate constraints with the generated motion
         for c in self.constraints:

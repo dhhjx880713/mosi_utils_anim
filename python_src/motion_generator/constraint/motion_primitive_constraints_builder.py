@@ -63,9 +63,6 @@ class MotionPrimitiveConstraintsBuilder(object):
         mp_constraints.skeleton = self.action_constraints.get_skeleton()
         mp_constraints.precision = self.action_constraints.precision
         mp_constraints.verbose = self.algorithm_config["verbose"]
-
-
-
         if self.action_constraints.trajectory is not None:
             self._set_trajectory_constraints(mp_constraints)
             self._set_pose_constraint(mp_constraints)
@@ -82,7 +79,7 @@ class MotionPrimitiveConstraintsBuilder(object):
         return mp_constraints
 
     def _set_pose_constraint(self, mp_constraints):
-       if mp_constraints.settings["use_frame_constraints"] and self.status["prev_frames"] is not None:
+       if mp_constraints.settings["transition_pose_constraint_factor"] > 0.0 and self.status["prev_frames"] is not None:
             pose_constraint_desc = self._create_frame_constraint()
             pose_constraint = PoseConstraint(self.skeleton, pose_constraint_desc, self.precision["smooth"])
             mp_constraints.constraints.append(pose_constraint)
@@ -105,21 +102,19 @@ class MotionPrimitiveConstraintsBuilder(object):
 
 
         root_joint_name = self.skeleton.root
-        if mp_constraints.settings["use_position_constraints"]:
+        if mp_constraints.settings["position_constraint_factor"] > 0.0:
           keyframe_semantic_annotation={"firstFrame": None, "lastFrame": True}
           keyframe_constraint_desc = {"joint": root_joint_name, "position": mp_constraints.step_goal,
                       "semanticAnnotation": keyframe_semantic_annotation}
           keyframe_constraint = PositionAndRotationConstraint(self.skeleton, keyframe_constraint_desc, self.precision["pos"])
           mp_constraints.constraints.append(keyframe_constraint)
           
-        if mp_constraints.settings["use_dir_vector_constraints"]:
+        if mp_constraints.settings["dir_constraint_factor"] > 0.0:
             dir_semantic_annotation={"firstFrame": None, "lastFrame": True}
             dir_constraint_desc = {"joint": root_joint_name, "dir_vector": dir_vector,
                           "semanticAnnotation": dir_semantic_annotation}
             direction_constraint = DirectionConstraint(self.skeleton, dir_constraint_desc, self.precision["rot"])
             mp_constraints.constraints.append(direction_constraint)
-        
-
 
     def _set_keyframe_constraints(self, mp_constraints):
         """ Extract keyframe constraints of the motion primitive name.
@@ -128,12 +123,6 @@ class MotionPrimitiveConstraintsBuilder(object):
             keyframe_constraint_desc_list = self.action_constraints.keyframe_constraints[self.status["motion_primitive_name"]]
             for i in xrange(len(keyframe_constraint_desc_list)):
                 mp_constraints.constraints.append(PositionAndRotationConstraint(self.skeleton, keyframe_constraint_desc_list[i], self.precision["pos"]))
-            
-
-
-
-
-      
 
     def _create_frame_constraint(self):
         """ Create frame a constraint from the preceding motion.
@@ -170,7 +159,7 @@ class MotionPrimitiveConstraintsBuilder(object):
         last_pos = self.status["last_pos"]
         node_key = (self.action_constraints.action_name , self.status["motion_primitive_name"])
         step_length = self.morphable_graph.nodes[node_key].average_step_length\
-                        * self.trajectory_following_settings["step_length_factor"]
+                        * self.trajectory_following_settings["heuristic_step_length_factor"]
         max_arc_length = last_arc_length + 4.0 * step_length
         #find closest point in the range of the last_arc_length and max_arc_length
         closest_point,distance = self.action_constraints.trajectory.find_closest_point(last_pos,min_arc_length=last_arc_length,max_arc_length=max_arc_length)
