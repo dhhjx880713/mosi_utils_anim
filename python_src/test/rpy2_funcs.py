@@ -24,7 +24,6 @@ sys.path.insert(1, TESTPATH)
 sys.path.insert(1, TESTPATH + (os.sep + os.pardir))
 
 
-
 def rpy2_temporal_mean(m):
     """ Calculate the mean of the temporal part of the motion using the
     rpy2 interface with the R - Library "fda"
@@ -77,10 +76,10 @@ def rpy2_temporal(m, gamma):
 
     fdeval = robjects.r['eval.fd']
 
-    time_frame =np.arange(0,numframes).tolist()
-    mean =np.array(fdeval(time_frame, meanfd))
-    eigen =np.array(fdeval(time_frame, eigenfd))
-    t=[0,]
+    time_frame = np.arange(0, numframes).tolist()
+    mean = np.array(fdeval(time_frame, meanfd))
+    eigen = np.array(fdeval(time_frame, eigenfd))
+    t = [0, ]
     for i in xrange(numframes):
         t.append(t[-1] + np.exp(mean[i] + np.dot(eigen[i], gamma)))
 
@@ -90,16 +89,16 @@ def rpy2_temporal(m, gamma):
     t[zeroindices] = 0
     x_sample = np.arange(m.n_canonical_frames)
     try:
-        inverse_spline = si.splrep(t, x_sample,w=None, k=2)
-    except ValueError as e:#Exception
+        inverse_spline = si.splrep(t, x_sample, w=None, k=2)
+    except ValueError as e:  # Exception
         print "exception"
         print e.message
-        print t,"#####"
+        print t, "#####"
 
     frames = np.linspace(1, t[-2], np.round(t[-2]))
-    t = si.splev(frames,inverse_spline)
+    t = si.splev(frames, inverse_spline)
     t = np.insert(t, 0, 0)
-    t = np.insert(t, len(t), m.n_canonical_frames-1)
+    t = np.insert(t, len(t), m.n_canonical_frames - 1)
     return np.asarray(t)
 
 
@@ -128,7 +127,7 @@ def rpy2_spatial(m, alpha):
     return np.array(canonical_motion)
 
 
-#def main():
+# def main():
 #    mm_file = 'walk_leftStance_quaternion_mm.json'
 #    m = MotionPrimitive(mm_file)
 #
@@ -141,6 +140,5 @@ def rpy2_spatial(m, alpha):
 #    assert np.allclose(np.ravel(t_rpy2), np.ravel(t_scipy))
 #
 #
-#if __name__ == '__main__':
+# if __name__ == '__main__':
 #    main()
-

@@ -9,7 +9,7 @@ import os
 import sys
 ROOT_DIR = os.sep.join(['..'] * 2)
 sys.path.append(ROOT_DIR)
-from utilities.bvh import BVHReader, BVHWriter
+from animation_data.bvh import BVHReader, BVHWriter
 import json
 from utilities.io_helper_functions import load_json_file
 SERVICE_CONFIG_FILE = ROOT_DIR + os.sep + "config" + os.sep + "service.json"
@@ -17,61 +17,76 @@ SERVICE_CONFIG_FILE = ROOT_DIR + os.sep + "config" + os.sep + "service.json"
 
 class MotionSegmentation(object):
 
-    def __init__(self, folder_path, annotation, save_path, verbose=False):
-        if not folder_path.endswith(os.sep):
-            folder_path += os.sep
-        if not save_path.endswith(os.sep):
-            save_path += os.sep
-        if verbose:
-            print "Looking for files in %s" % folder_path
-        self.folder_path = folder_path
-        self.annotation_file = annotation
-        self.save_path = save_path
+    def __init__(self, verbose=False):
         self.verbose = verbose
+        self.cutted_motions = {}
+        self.annotation_label = {}
+        self.bvhreader = None
 
-    def segment_motions(self, elementary_action, primitive_type):
-        self._load_annotation()
-        self._cut_files(elementary_action, primitive_type)
+    def segment_motions(self, elementary_action, primitive_type,
+                        data_path, annotation_file):
+        self.load_annotation(annotation_file)
+        self.cut_files(elementary_action, primitive_type, data_path)
 
-    def _load_annotation(self):
-        self.annotation_label= self._convert_to_json(self.annotation_file,
-                                                     export=False)
+    def load_annotation(self, annotation_file):
+        self.annotation_label = self._convert_to_json(annotation_file,
+                                                      export=False)
         if self.verbose:
-            print "Load &d files." % len(self.annotation_label.keys())
+            print "Load %d files." % len(self.annotation_label.keys())
 
-    def _cut_files(self, elementary_action, primitive_type):
-        self.cut_motions = {}
+    def _check_motion_type(self, elementary_action, primitive_type, primitive_data):
+        if primitive_data['elementary_action'] == elementary_action \
+           and primitive_data['motion_primitive'] == primitive_type:
+            return True
+        else:
+            return False
+
+    def _get_annotation_information(self, data_path, filename, primitive_data):
+        file_path = data_path + filename
+        if not os.path.isfile(file_path):
+            raise IOError(
+                'cannot find ' +
+                filename +
+                ' in ' +
+                data_path)
+        start_frame = primitive_data['frames'][0]
+        end_frame = primitive_data['frames'][1]
+        filename_segments = filename[:-4].split('_')
+        return start_frame, end_frame, filename_segments
+
+
+    def cut_files(self, elementary_action, primitive_type, data_path):
+        if not data_path.endswith(os.sep):
+            data_path += os.sep
+        if self.verbose:
+            print "search files in " + data_path
         for filename, items in self.annotation_label.iteritems():
             for primitive_data in items:
-                if primitive_data['elementary_action'] == elementary_action \
-                   and primitive_data['motion_primitive'] == primitive_type:
+                if self._check_motion_type(elementary_action, primitive_type, primitive_data):
                     print "find motion primitive " + elementary_action + '_' \
                           + primitive_type + ' in ' + filename
-                    file_path = self.folder_path + filename
-                    if not os.path.isfile(file_path):
-                        raise IOError(
-                            'cannot find ' +
-                            filename +
-                            ' in ' +
-                            self.folder_path)
-                    start_frame = primitive_data['frames'][0]
-                    end_frame = primitive_data['frames'][1]
-                    filename_segments = filename[:-4].split('_')
-                    # repalce the first element, which should be elementary
-                    # action name, by real elementary name
+                    start_frame, end_frame, filename_segments = self._get_annotation_information(data_path, filename,
+                                                                                                 primitive_data)
                     filename_segments[0] = elementary_action
+                    cutted_frames = self._cut_one_file(data_path + filename,
+                                                       start_frame,
+                                                       end_frame)
                     outfilename = '_'.join(filename_segments) + \
                                   '_%s_%d_%d.bvh' % (primitive_type,
                                                      start_frame,
                                                      end_frame)
-                    cutted_frames = self._cut_one_file(file_path,
-                                                       start_frame,
-                                                       end_frame)
-                    self.cut_motions[outfilename] = cutted_frames
+                    self.cutted_motions[outfilename] = cutted_frames
+                else:
+                    print "cannot find motion primitive " + elementary_action + '_' \
+                          + primitive_type + ' in ' + filename
 
-    def save_segments(self):
-        for outfilename, frames in self.cut_motions.iteritems():
-            save_filename = self.save_path + outfilename
+    def save_segments(self, save_path=None):
+        if save_path is None:
+            raise ValueError('Please give saving path!')
+        if not save_path.endswith(os.sep):
+            save_path += os.sep
+        for outfilename, frames in self.cutted_motions.iteritems():
+            save_filename = save_path + outfilename
             BVHWriter(save_filename, self.bvhreader, frames,
                       frame_time=self.bvhreader.frame_time,
                       is_quaternion=False)
@@ -112,17 +127,19 @@ def main():
     data_path = path_data['data_folder']
     elementary_action = 'walk'
     primitive_type = 'sidestepLeft'
-    
+
     print data_path
-    retarget_folder = data_path + os.sep + r'2 - Rocketbox retargeting\Take_sidestep'
+    retarget_folder = data_path + os.sep + \
+        r'2 - Rocketbox retargeting\Take_sidestep'
     cutting_folder = data_path + os.sep + r'3 - Cutting\test'
     annotation = retarget_folder + os.sep + 'key_frame_annotation.txt'
-    motion_segmentor = MotionSegmentation(retarget_folder, annotation,
-                                          cutting_folder)
+    motion_segmentor = MotionSegmentation()
     motion_segmentor.segment_motions(elementary_action,
-                                     primitive_type)  
-    motion_segmentor.save_segments()            
-                         
+                                     primitive_type,
+                                     retarget_folder,
+                                     annotation)
+    motion_segmentor.save_segments(cutting_folder)
+
 
 if __name__ == '__main__':
     main()

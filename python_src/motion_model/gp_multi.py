@@ -10,6 +10,7 @@ import numpy as np
 
 
 class GPMulti(GPy.models.GPRegression):
+
     """ Gaussian Process Model for Multidimensional output
 
     Parameters
@@ -22,6 +23,7 @@ class GPMulti(GPy.models.GPRegression):
         The kernel, defaults to (ARD*ARD*ARD)**ARD
 
     """
+
     def __init__(self, X, Y, kern=None):
         self.X = X
         self.Y = Y
@@ -31,7 +33,7 @@ class GPMulti(GPy.models.GPRegression):
             self.kern = (GPy.kern.RBF(input_dim=X.shape[1], ARD=True) *
                          GPy.kern.RBF(input_dim=X.shape[1], ARD=True) *
                          GPy.kern.RBF(input_dim=X.shape[1], ARD=True)) **\
-                         GPy.kern.RBF(input_dim=Y.shape[1], ARD=True)
+                GPy.kern.RBF(input_dim=Y.shape[1], ARD=True)
 
         super(GPMulti, self).__init__(_X, _Y[:, None], kernel=self.kern)
 
