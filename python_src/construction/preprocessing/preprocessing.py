@@ -17,7 +17,7 @@ class Preprocessor(MotionDynamicTimeWarping):
 
     def preprocess(self):
         self.segment_motions(self.params.elementary_action,
-                             self.params.primitive_type,
+                             self.params.motion_primitive,
                              self.params.retarget_folder,
                              self.params.annotation_file)
         self.normalize_root(self.params.ref_position,

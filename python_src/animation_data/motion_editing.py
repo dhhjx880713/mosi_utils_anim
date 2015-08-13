@@ -247,7 +247,8 @@ def euler_substraction(theta1, theta2):
 
 def get_cartesian_coordinates_from_quaternion(skeleton,
                                               node_name,
-                                              quaternion_frame):
+                                              quaternion_frame,
+                                              return_gloabl_matrix=False):
     """Returns cartesian coordinates for one node at one frame. Modified to
      handle frames with omitted values for joints starting with "Bip"
 
@@ -292,10 +293,43 @@ def get_cartesian_coordinates_from_quaternion(skeleton,
         global_matrix = np.identity(4)
         for j_matrix in j_matrices:
             global_matrix = np.dot(global_matrix, j_matrix)
+        if return_gloabl_matrix:
+            return global_matrix
+        else:
+            point = np.array([0, 0, 0, 1])
+            point = np.dot(global_matrix, point)
+            return point[:3].tolist()
 
-        point = np.array([0, 0, 0, 1])
-        point = np.dot(global_matrix, point)
-        return point[:3].tolist()
+def get_cartesian_coordinates_for_plam_quaternion(skeleton, quat_frame, node_name='Left'):
+    if node_name == 'Left':
+        node_name = 'LeftHand'
+        Finger2 = 'Bip01_L_Finger2'
+        Finger21 = 'Bip01_L_Finger21'
+        Finger2_offset = [9.55928, -0.145352, -0.186424]
+        Finger2_angles = [-0.0, 0.0, 0.0]
+        Finger21_offset = [3.801407, 0.0, 0.0]
+        Finger21_angles = [-0.0, 0.0, 0.0]
+    elif node_name == 'Right':
+        node_name = 'RightHand'
+        Finger2 = 'Bip01_R_Finger2'
+        Finger21 = 'Bip01_R_Finger21'
+        Finger2_offset = [9.559288, 0.145353, -0.186417]
+        Finger2_angles = [-0.0, 0.0, 0.0]
+        Finger21_offset = [3.801407, 0.0, 0.0]
+        Finger21_angles = [-0.0, 0.0, 0.0]
+    else:
+        raise ValueError('Unknown node name!')
+    global_matrix = get_cartesian_coordinates_from_quaternion(skeleton, node_name, quat_frame,
+                                                              return_gloabl_matrix=True)
+    quat_finger2 = euler_to_quaternion(Finger2_angles)
+    transmat_finger2 = quaternion_matrix(quat_finger2)
+    transmat_finger2[:3, 3] = Finger2_offset[:]
+    global_matrix = np.dot(global_matrix, transmat_finger2)
+    quat_finger21 = euler_to_quaternion(Finger21_angles)
+    transmat_finger21 = quaternion_matrix(quat_finger21)
+    transmat_finger21[:3, 3] = Finger21_offset[:]
+    global_matrix = np.dot(global_matrix, transmat_finger21)
+    return global_matrix[:3, 3]
 
 
 def get_cartesian_coordinates_from_euler_full_skeleton(bvh_reader,
@@ -355,6 +389,56 @@ def get_cartesian_coordinates_from_euler_full_skeleton(bvh_reader,
             return fk_funcs[f_idx](ax, ay, az, thx, thy, thz)
         else:
             return [0, 0, 0]
+
+def get_cartesian_coordinates_for_plam_euler(skeleton, euler_frame, node_name='Left'):
+    if node_name == 'Left':
+        node_name = 'LeftHand'
+        Finger2 = 'Bip01_L_Finger2'
+        Finger21 = 'Bip01_L_Finger21'
+        Finger2_offset = [9.55928, -0.145352, -0.186424]
+        Finger2_angles = [-0.0, 0.0, 0.0]
+        Finger21_offset = [3.801407, 0.0, 0.0]
+        Figner21_angles = [-0.0, 0.0, 0.0]
+    elif node_name == 'Right':
+        node_name = 'RightHand'
+        Finger2 = 'Bip01_R_Finger2'
+        Finger21 = 'Bip01_R_Finger21'
+        Finger2_offset = [9.559288, 0.145353, -0.186417]
+        Finger2_angles = [-0.0, 0.0, 0.0]
+        Finger21_offset = [3.801407, 0.0, 0.0]
+        Figner21_angles = [-0.0, 0.0, 0.0]
+    else:
+        raise ValueError('Unknown node name!')
+    chain_names = list(skeleton.gen_all_parents(node_name))
+    chain_names.reverse()
+    chain_names += [node_name]  # Node is not in its parent list
+    global_trans = np.eye(4)
+    global_trans[:3, 3] = euler_frame[:3]
+    eul_angles = []
+    for nodename in chain_names:
+        index = skeleton.node_name_map[nodename] * 3 + 3
+        eul_angles.append(euler_frame[index:index + 3])
+    eul_angles.append(Finger2_angles)
+    eul_angles.append(Figner21_angles)
+    offsets = [skeleton.node_names[nodename]["offset"]
+               for nodename in chain_names]
+    offsets.append(Finger2_offset)
+    offsets.append(Finger21_offset)
+    chain_names.append(Finger2)
+    chain_names.append(Finger21)
+    for i in xrange(len(chain_names)):
+        rot_angles = eul_angles[i]
+        translation = offsets[i]
+        rot_angles_rad = np.deg2rad(rot_angles)
+        rotmat = euler_matrix(rot_angles_rad[0],
+                              rot_angles_rad[1],
+                              rot_angles_rad[2],
+                              'rxyz')
+        transmat = np.eye(4)
+        transmat[:3, 3] = translation[:]
+        global_trans = np.dot(global_trans, transmat)
+        global_trans = np.dot(global_trans, rotmat)
+    return global_trans[:3, 3]
 
 
 def get_cartesian_coordinates_from_euler(skeleton, node_name, euler_frame):
