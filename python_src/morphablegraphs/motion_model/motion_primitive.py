@@ -236,12 +236,13 @@ class MotionPrimitive(object):
         """
         #reconstruct coefs of the functionial representation
         coefs = np.dot(np.transpose(self.s_pca["eigen_vectors"]), alpha.T)
-        coefs+= self.s_pca["mean_vector"]
-        coefs = coefs.reshape((self.s_pca["n_basis"],1,self.s_pca["n_dim"]))
+        coefs += self.s_pca["mean_vector"]
+
+        coefs = coefs.reshape((self.s_pca["n_basis"],self.s_pca["n_dim"]))
         #undo the scaling on the translation
-        coefs[:,0,0] *= self.translation_maxima[0]
-        coefs[:,0,1] *= self.translation_maxima[1]
-        coefs[:,0,2] *= self.translation_maxima[2]
+        coefs[:,0] *= self.translation_maxima[0]
+        coefs[:,1] *= self.translation_maxima[1]
+        coefs[:,2] *= self.translation_maxima[2]
         return coefs
 
     def _mean_temporal(self):

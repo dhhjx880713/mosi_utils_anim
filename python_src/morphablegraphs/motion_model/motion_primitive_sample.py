@@ -45,20 +45,20 @@ class MotionPrimitiveSample(object):
     into a new timeline. The first value of the tuple is the spline, the second\
     value is the new number of frames n'
 
-    * canonical_frames: int
-    \tThe number of frames in the canonical timeline
+    * canonical_motion: numpy.ndarray
+    \tThe frames in the canonical timeline
 
-    * new_framenumber: int
-    \tThe number of frames in the new timeline
+    * time_function: no.ndarray
+    \tThe function to evaluate a spline
 
-    * t: numpy.ndarray
-    \tThe times where to evaluate the motion in the new timeline
+    * knots: numpy.ndarray
+    \tThe knots for the B-Spline definition
     """
-    def __init__(self, canonical_motion, time_function, knots):
+    def __init__(self, canonical_motion_coefs, time_function, knots):
 
         self.time_function = time_function
         self.buffered_frames = None
-        canonical_motion_coefs = canonical_motion.T
+        canonical_motion_coefs = canonical_motion_coefs.T
         self.n_pose_parameters = len(canonical_motion_coefs)
         #create a spline for each pose parameter from the cooeffients
         self.canonical_motion_splines = [(knots, canonical_motion_coefs[i], B_SPLINE_DEGREE) for i in xrange(self.n_pose_parameters)]
@@ -78,14 +78,8 @@ class MotionPrimitiveSample(object):
         """
         if usebuffer and self.buffered_frames is not None:
             return self.buffered_frames
-            
-        temp_frames = [ si.splev(self.time_function,spline_def) for spline_def in self.canonical_motion_splines]
-        temp_frames = np.asarray(temp_frames).T
-
-        # Change the result from a 3D array into a 2D array. example: change 47x1x79 to 47x79
-        self.buffered_frames = np.reshape(temp_frames, (temp_frames.shape[0],
-                                               temp_frames.shape[-1]))
-
+        temp_frames = [si.splev(self.time_function,spline_def) for spline_def in self.canonical_motion_splines]
+        self.buffered_frames = np.asarray(temp_frames).T
         return self.buffered_frames
 
     def save_motion_vector(self, filename):
