@@ -8,7 +8,7 @@ Created on Wed Jul 29 16:02:54 2015
 import uuid
 import numpy as np
 from kdtree import KDTree
-from .  import KDTREE_WRAPPER_NODE
+from . import KDTREE_WRAPPER_NODE
 
 
 class KDTreeWrapper(object):

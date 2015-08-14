@@ -6,7 +6,7 @@ Created on Thu Jul 16 15:57:42 2015
 """
 
 import os
-from utilities.io_helper_functions import load_json_file
+from ..utilities.io_helper_functions import load_json_file
 
 from motion_primitive_node import MotionPrimitiveNode
 from motion_primitive_node_group import MotionPrimitiveNodeGroup

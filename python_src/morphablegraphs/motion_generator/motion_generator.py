@@ -9,12 +9,11 @@ based on previous steps.
 
 @author: Erik Herrmann, Han Du, Fabian Rupp, Markus Mauer
 """
-import sys
-sys.path.append('..')
+
 import time
 import numpy as np
-from utilities.io_helper_functions import load_json_file
-from motion_model.motion_primitive_graph_builder import MotionPrimitiveGraphBuilder
+from morphablegraphs.utilities.io_helper_functions import load_json_file
+from morphablegraphs.motion_model.motion_primitive_graph_builder import MotionPrimitiveGraphBuilder
 from constraint.elementary_action_constraints_builder import ElementaryActionConstraintsBuilder
 from elementary_action_generator import ElementaryActionGenerator
 from . import global_counter_dict

@@ -4,7 +4,7 @@ Created on Thu Jul 16 14:42:13 2015
 
 @author: erhe01
 """
-from animation_data.motion_editing import align_quaternion_frames
+from ...animation_data.motion_editing import align_quaternion_frames
 
 class MotionPrimitiveConstraints(object):
     """ Represents the input to the generate_motion_primitive_from_constraints

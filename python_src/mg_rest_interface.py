@@ -16,9 +16,9 @@ import tornado.ioloop
 import tornado.web
 import json
 import time
-from motion_generator.motion_generator import MotionGenerator
-from motion_generator.algorithm_configuration import AlgorithmConfigurationBuilder
-from utilities.io_helper_functions import load_json_file, get_bvh_writer
+from morphablegraphs.motion_generator.motion_generator import MotionGenerator
+from morphablegraphs.motion_generator.algorithm_configuration import AlgorithmConfigurationBuilder
+from morphablegraphs.utilities.io_helper_functions import load_json_file, get_bvh_writer
 
 
 ALGORITHM_CONFIG_FILE = "config" + os.sep + "algorithm.json"

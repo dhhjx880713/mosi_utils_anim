@@ -5,7 +5,7 @@ Created on Thu Jul 16 17:19:46 2015
 @author: erhe01
 """
 
-from utilities.io_helper_functions import load_json_file
+from ..utilities.io_helper_functions import load_json_file
 
 
 class AlgorithmConfigurationBuilder(object):

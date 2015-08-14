@@ -4,18 +4,15 @@ Created on Thu Jul 30 10:51:03 2015
 
 @author: erhe01
 """
-import time
 import json
-import numpy as np
-import sys
 import os
-sys.path.append("..")
-from space_partitioning.cluster_tree import ClusterTree
-from motion_model.motion_primitive import MotionPrimitive
+import numpy as np
+from ..space_partitioning.cluster_tree import ClusterTree
+from ..motion_model.motion_primitive import MotionPrimitive
+
 
 MOTION_PRIMITIVE_FILE_ENDING = "mm.json"
 CLUSTER_TREE_FILE_ENDING = "cluster_tree.pck"
-CONIFG_FILE_PATH = ".." + os.sep + "config" + os.sep + "space_partitioning.json"
 
 class ClusterTreeBuilder(object):
     """ Creates ClusterTrees for all motion primitives by sampling from the statistical model
@@ -82,19 +79,3 @@ class ClusterTreeBuilder(object):
             return True
         else:
             return False
-
-def main():
-
-    cluster_tree_builder = ClusterTreeBuilder()
-    cluster_tree_builder.set_config(CONIFG_FILE_PATH)
-    start = time.clock()
-    success = cluster_tree_builder.build()
-    
-    time_in_seconds = time.clock()-start
-    if success:
-        print "Finished construction in", int(time_in_seconds/60), "minutes and", time_in_seconds % 60, "seconds"
-    else:
-        print "Failed to read data from directory"
-                            
-if __name__ == "__main__":
-    main()

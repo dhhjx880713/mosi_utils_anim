@@ -8,10 +8,10 @@ Created on Tue Jul 14 18:39:41 2015
 import os
 from datetime import datetime
 from copy import copy
-from animation_data.motion_editing import DEFAULT_SMOOTHING_WINDOW_SIZE,\
+from ..animation_data.motion_editing import DEFAULT_SMOOTHING_WINDOW_SIZE,\
                                           fast_quat_frames_alignment,\
                                           transform_quaternion_frames
-from utilities.io_helper_functions import write_to_json_file,\
+from ..utilities.io_helper_functions import write_to_json_file,\
                                           write_to_logfile, \
                                           export_quat_frames_to_bvh_file
 

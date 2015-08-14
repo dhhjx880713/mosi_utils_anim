@@ -6,9 +6,9 @@ Created on Wed Mar 10 17:15:22 2015
 """
 
 import numpy as np
-from animation_data.evaluation_methods import check_sample_validity
+from ..animation_data.evaluation_methods import check_sample_validity
 from statistics.constrained_gmm_builder import ConstrainedGMMBuilder
-from utilities.exceptions import ConstraintError, SynthesisError
+from ..utilities.exceptions import ConstraintError, SynthesisError
 from numerical_minimizer import NumericalMinimizer
 from . import global_counter_dict
 from objective_functions import obj_spatial_error_sum, obj_spatial_error_sum_and_naturalness

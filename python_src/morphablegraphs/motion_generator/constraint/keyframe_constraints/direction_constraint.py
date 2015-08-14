@@ -6,7 +6,7 @@ Created on Mon Aug 03 19:01:21 2015
 """
 
 import numpy as np
-from animation_data.motion_editing import pose_orientation_quat
+from ....animation_data.motion_editing import pose_orientation_quat
 from keyframe_constraint_base import KeyframeConstraintBase
 
 class DirectionConstraint(KeyframeConstraintBase):

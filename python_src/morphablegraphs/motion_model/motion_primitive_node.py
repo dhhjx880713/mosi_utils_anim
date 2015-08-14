@@ -9,8 +9,8 @@ import random
 import numpy as np
 from . import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END
 from motion_primitive import MotionPrimitive
-from animation_data.motion_editing import extract_root_positions_from_frames, get_arc_length_from_points
-from space_partitioning.cluster_tree import ClusterTree
+from ..animation_data.motion_editing import extract_root_positions_from_frames, get_arc_length_from_points
+from ..space_partitioning.cluster_tree import ClusterTree
 
 class MotionPrimitiveNode(object):
     """ Contains a motion primitive and all its outgoing transitions. 

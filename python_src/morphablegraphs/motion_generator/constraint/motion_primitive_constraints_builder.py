@@ -7,8 +7,8 @@ Created on Mon Jul 27 18:38:15 2015
 
 from copy import copy
 import numpy as np
-from utilities.exceptions import PathSearchError
-from animation_data.motion_editing import convert_quaternion_to_euler, \
+from ...utilities.exceptions import PathSearchError
+from ...animation_data.motion_editing import convert_quaternion_to_euler, \
                                 get_cartesian_coordinates_from_euler                               
 from motion_primitive_constraints import MotionPrimitiveConstraints
 from keyframe_constraints.pose_constraint import PoseConstraint

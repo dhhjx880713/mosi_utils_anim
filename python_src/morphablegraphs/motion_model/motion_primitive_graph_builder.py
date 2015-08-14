@@ -13,12 +13,12 @@ Created on Thu Jul 16 15:57:51 2015
 """
 
 import os
-from animation_data.bvh import BVHReader
-from animation_data.skeleton import Skeleton
-from utilities.io_helper_functions import load_json_file
+from ..animation_data.bvh import BVHReader
+from ..animation_data.skeleton import Skeleton
+from ..utilities.io_helper_functions import load_json_file
 from gp_mixture import GPMixture
 from motion_primitive_node_group_builder import MotionPrimitiveNodeGroupBuilder
-from utilities.zip_io import read_graph_data_from_zip
+from ..utilities.zip_io import read_graph_data_from_zip
 from graph_edge import GraphEdge
 from motion_primitive_graph import MotionPrimitiveGraph
 from . import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END

@@ -8,7 +8,7 @@ Created on Thu Jul 16 15:57:42 2015
 import os
 import random
 from . import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END
-from utilities.io_helper_functions import write_to_json_file
+from ..utilities.io_helper_functions import write_to_json_file
 
  
 class MotionPrimitiveNodeGroup(object):
