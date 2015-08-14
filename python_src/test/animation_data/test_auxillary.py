@@ -7,8 +7,8 @@ TEST_LIB_PATH = ROOT_DIR + 'test'
 TEST_DATA_PATH = ROOT_DIR +  '../test_data/animation_data'
 TEST_RESULT_PATH = ROOT_DIR + '../test_output/animation_data'
 sys.path.append(TEST_LIB_PATH)
-from animation_data.motion_editing import *
-from animation_data.bvh import  BVHReader, BVHWriter
+from morphablegraphs.animation_data.motion_editing import *
+from morphablegraphs.animation_data.bvh import  BVHReader, BVHWriter
 from libtest import params, pytest_generate_tests
 import numpy as np
 

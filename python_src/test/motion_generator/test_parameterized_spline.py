@@ -5,9 +5,10 @@ Created on Fri Jul 10 18:36:00 2015
 @author: erhe01
 """
 import sys
+import os
 import numpy as np
-sys.path.append("..")
-from motion_generator.constraint.splines.parameterized_spline import ParameterizedSpline
+sys.path.append(os.sep.join([".."]*2))
+from morphablegraphs.motion_generator.constraint.splines.parameterized_spline import ParameterizedSpline
 
 
 def compare_result(spline, input_arc_length):

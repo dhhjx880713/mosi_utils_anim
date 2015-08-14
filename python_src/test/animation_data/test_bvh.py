@@ -15,9 +15,9 @@ TEST_LIB_PATH = ROOT_DIR + 'test'
 TEST_DATA_PATH = ROOT_DIR +  '../test_data/animation_data'
 TEST_RESULT_PATH = ROOT_DIR + '../test_output/animation_data'
 sys.path.append(TEST_LIB_PATH)
-from animation_data.bvh import BVHReader, BVHWriter
-from animation_data.motion_editing import get_cartesian_coordinates_from_euler_full_skeleton
-from animation_data.skeleton import Skeleton
+from morphablegraphs.animation_data.bvh import BVHReader, BVHWriter
+from morphablegraphs.animation_data.motion_editing import get_cartesian_coordinates_from_euler_full_skeleton
+from morphablegraphs.animation_data.skeleton import Skeleton
 from libtest import params, pytest_generate_tests
 
 

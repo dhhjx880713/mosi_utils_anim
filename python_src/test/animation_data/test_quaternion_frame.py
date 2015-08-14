@@ -15,8 +15,8 @@ sys.path.append(ROOT_DIR)
 TEST_LIB_PATH = ROOT_DIR + 'test'
 TEST_DATA_PATH = ROOT_DIR +  '../test_data/animation_data'
 sys.path.append(TEST_LIB_PATH)
-from animation_data.bvh import BVHReader
-from animation_data.quaternion_frame import QuaternionFrame
+from morphablegraphs.animation_data.bvh import BVHReader
+from morphablegraphs.animation_data.quaternion_frame import QuaternionFrame
 from libtest import params, pytest_generate_tests
 
 class TestQuaternionFrame(object):
