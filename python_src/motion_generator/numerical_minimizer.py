@@ -17,13 +17,10 @@ class NumericalMinimizer(object):
         Please see the official documentation of that module for the supported optimization methods:
         http://docs.scipy.org/doc/scipy-0.15.1/reference/generated/scipy.optimize.minimize.html
     """
-    def __init__(self, algorithm_config, skeleton, start_pose=None):        
-        
+    def __init__(self, algorithm_config):
         self._aglortihm_config = algorithm_config
         self.optimization_settings = algorithm_config["optimization_settings"]
         self.verbose = algorithm_config["verbose"]
-        self._skeleton = skeleton
-        self._start_pose = start_pose
         self._objective_function = None
         self._error_func_params = None
         return
@@ -65,19 +62,17 @@ class NumericalMinimizer(object):
                 result = minimize(self._objective_function,
                                   initial_guess,
                                   args = (self._error_func_params,),
-                                  method=self.optimization_settings["method"], 
+                                  method=self.optimization_settings["method"],
                                   #jac = error_function_jac, 
                                   tol = self.optimization_settings["tolerance"],
-                                  options={'maxiter': self.optimization_settings["max_iterations"], 'disp' : self.verbose})
-                                 
-                                 
-          
+                                  options={'maxiter': self.optimization_settings["max_iterations"], 'disp': self.verbose})
+
             except ValueError as e:
                 print "Warning:", e.message
                 return initial_guess
                 
             if self.verbose:
-                print "Finished optimization in ",time.clock()-start,"seconds"
+                print "Finished optimization in ", time.clock()-start, "seconds"
             return result.x
         else:
             print "Error: No objective function set. Return initial guess instead."

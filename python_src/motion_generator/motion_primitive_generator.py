@@ -49,7 +49,7 @@ class MotionPrimitiveGenerator(object):
                                                                     self._action_constraints.start_pose, self.skeleton)
         else:
             self._constrained_gmm_builder = None
-        self.numerical_minimizer = NumericalMinimizer(self._algorithm_config, self.skeleton, action_constraints.start_pose)
+        self.numerical_minimizer = NumericalMinimizer(self._algorithm_config)
         self.numerical_minimizer.set_objective_function(obj_spatial_error_sum_and_naturalness)
         
         
@@ -246,7 +246,7 @@ class MotionPrimitiveGenerator(object):
                 valid = True
             if valid:                 
                 object_function_params = mp_node.motion_primitive, constraints, prev_frames
-                error = obj_spatial_error_sum(s,object_function_params)
+                error = obj_spatial_error_sum(s, object_function_params)
                 if min_error > error:
                     min_error = error
                     best_sample = s
