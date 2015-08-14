@@ -217,7 +217,7 @@ class MotionPrimitive(object):
             time_fd = self._inverse_temporal_pca(low_dimensional_vector[self.s_pca["n_components"]:])
         else:
             time_fd = np.arange(0,self.n_canonical_frames)#None
-        return MotionPrimitiveSample(spatial_coefs, self.n_canonical_frames, time_fd, self.s_pca["knots"])
+        return MotionPrimitiveSample(spatial_coefs, time_fd, self.s_pca["knots"])
 
 
     def _inverse_spatial_pca(self, alpha):

@@ -10,7 +10,7 @@ import os
 sys.path.append(os.sep.join([".."]*2))
 import time
 import numpy as np
-from space_partitioning.cluster_tree import ClusterTree
+from morphablegraphs.space_partitioning.cluster_tree import ClusterTree
 
 TESTOUTPATH = os.sep.join([".."]*3 + ["test_output"])
 

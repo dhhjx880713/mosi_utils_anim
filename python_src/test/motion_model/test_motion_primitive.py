@@ -12,16 +12,14 @@ import os
 import sys
 ROOTDIR = os.sep.join(['..'] * 2)
 sys.path.append(ROOTDIR + os.sep)
-TESTPATH = ROOTDIR + os.sep + r'construction/motion_primitive'
-TESTLIBPATH = ROOTDIR + os.sep + 'test/'
-sys.path.append(TESTPATH)
+TESTLIBPATH = ROOTDIR + os.sep + 'test'
 sys.path.append(TESTLIBPATH)
-sys.path.append(ROOTDIR + os.sep + 'construction')
+sys.path.append(ROOTDIR + os.sep + 'morphablegraphs/construction')
 TEST_DATA_PATH = ROOTDIR + os.sep + r'../test_data/constrction/motion_primitive'
 from libtest import params, pytest_generate_tests
 import numpy as np
-from motion_primitive import MotionPrimitive 
-  
+from morphablegraphs.motion_model.motion_primitive import MotionPrimitive
+
 class TestMotionPrimitive(object):
     """MotionPrimitive test class"""
 

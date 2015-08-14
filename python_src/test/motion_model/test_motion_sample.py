@@ -10,22 +10,20 @@ import os
 import sys
 ROOTDIR = os.sep.join(['..'] * 2)
 sys.path.append(ROOTDIR + os.sep)
-TESTPATH = ROOTDIR + os.sep + r'construction/motion_primitive'
 TESTLIBPATH = ROOTDIR + os.sep + 'test/'
-sys.path.append(TESTPATH)
 sys.path.append(TESTLIBPATH)
 sys.path.append(ROOTDIR + os.sep + 'construction')
 import rpy2.robjects as robjects
 import numpy as np
 import pytest
 import json
-TEST_DATA_PATH = ROOTDIR + os.sep + r'../test_data/constrction/motion_primitive'
+TEST_DATA_PATH = ROOTDIR + os.sep + r'../test_data/motion_model'
 # from libtest import params, pytest_generate_tests
-from motion_sample import MotionSample
+from morphablegraphs.motion_model.motion_primitive_sample import MotionPrimitiveSample
 
 @pytest.fixture(scope="module")
 def motionSample():
-    testfile = TEST_DATA_PATH + os.sep + 'MotionSample_test.json'
+    testfile = TEST_DATA_PATH + os.sep + 'Motion_sample_test.json'
     with open(testfile) as f:
         data = json.load(f)
 
@@ -33,7 +31,8 @@ def motionSample():
     canonical_motion = np.array(data['canonical_motion'])
     canonical_framenumber = data['canonical_frames']
     time_function = np.array(data['time_function'])
-    return MotionSample(canonical_motion, canonical_framenumber, time_function)
+    knots = np.array(data['knots'])
+    return MotionPrimitiveSample(canonical_motion, time_function, knots)
 
 
 class Test__init__(object):
@@ -44,8 +43,9 @@ class Test__init__(object):
         assert robjects.r['is.basis'](motionSample.basis)
 
     def test_canonical_motion_init(self, motionSample):
-        """ Test if the canonical_motion object is a fda fd """
-        assert robjects.r['is.fd'](motionSample.canonical_motion)
+        """ Test if the canonical_motion object has the correct shape"""
+        assert np.array(motionSample.canonical_motion_spline).shape = (,,)
+
 
 
 class Test_get_motion_vector(object):

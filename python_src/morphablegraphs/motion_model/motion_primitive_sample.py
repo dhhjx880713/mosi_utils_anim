@@ -8,6 +8,8 @@ import numpy as np
 from ..animation_data.bvh import BVHReader, BVHWriter
 import scipy.interpolate as si
 
+B_SPLINE_DEGREE = 3
+
 class MotionPrimitiveSample(object):
     """ Represent a Sample from a Morphable Model or from a Transition Model
 
@@ -52,14 +54,14 @@ class MotionPrimitiveSample(object):
     * t: numpy.ndarray
     \tThe times where to evaluate the motion in the new timeline
     """
-    def __init__(self, canonical_motion, canonical_frames, time_function, knots):
+    def __init__(self, canonical_motion, time_function, knots):
 
         self.time_function = time_function
-        self.canonical_frames = canonical_frames
-        self.frames = None
-        n_dim = len(canonical_motion[0][0])
+        self.buffered_frames = None
         canonical_motion_coefs = canonical_motion.T
-        self.canonical_motion_splines = [(knots,canonical_motion_coefs[i],3) for i in xrange(n_dim)]
+        self.n_pose_parameters = len(canonical_motion_coefs)
+        #create a spline for each pose parameter from the cooeffients
+        self.canonical_motion_splines = [(knots, canonical_motion_coefs[i], B_SPLINE_DEGREE) for i in xrange(self.n_pose_parameters)]
         
 
     def get_motion_vector(self, usebuffer=True):
@@ -74,17 +76,17 @@ class MotionPrimitiveSample(object):
         * usebuffer: boolean
         \tWether to return the buffered frame if available
         """
-        if usebuffer and self.frames is not None:
-            return self.frames
+        if usebuffer and self.buffered_frames is not None:
+            return self.buffered_frames
             
         temp_frames = [ si.splev(self.time_function,spline_def) for spline_def in self.canonical_motion_splines]
-        self.frames  = np.asarray(temp_frames).T
+        temp_frames = np.asarray(temp_frames).T
 
         # Change the result from a 3D array into a 2D array. example: change 47x1x79 to 47x79
-        self.frames = np.reshape(self.frames, (self.frames.shape[0],
-                                               self.frames.shape[-1]))
+        self.buffered_frames = np.reshape(temp_frames, (temp_frames.shape[0],
+                                               temp_frames.shape[-1]))
 
-        return self.frames
+        return self.buffered_frames
 
     def save_motion_vector(self, filename):
         """ Save the motion vector as bvh file
