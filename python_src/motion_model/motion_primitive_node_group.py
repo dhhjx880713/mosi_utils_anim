@@ -231,9 +231,9 @@ class MotionPrimitiveNodeGroup(object):
         """ Get next state of the elementary action based on previous iteration.
         """
         
-        prev_state = (motion.graph_walk[-1].action_name, motion.graph_walk[-1].motion_primitive_name)
+        prev_state = motion.graph_walk[-1].node_key
             
-        if action_constraint.trajectory is not None :
+        if action_constraint.trajectory is not None:
                 
              #test end condition for trajectory constraints
             if not action_constraint.check_end_condition(motion.quat_frames,\
