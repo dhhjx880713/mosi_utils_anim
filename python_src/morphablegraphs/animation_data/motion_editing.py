@@ -1306,25 +1306,3 @@ def main():
     print "time duration: " + str(duration1)
     print euler_angles1
 
-
-def test():
-    from bvh import BVHReader
-    from skeleton import Skeleton
-    test_file1 = r'C:\git-repo\ulm\morphablegraphs\test_data\animation_data\walk_001_1_rightStance_86_128.bvh'
-    bvhreader1 = BVHReader(test_file1)
-    skeleton = Skeleton(bvhreader1)
-    test_file2 = r'C:\git-repo\ulm\morphablegraphs\test_data\animation_data\walk_001_1_leftStance_43_86.bvh'
-    bvhreader2 = BVHReader(test_file2)
-    quat_frames1 = convert_euler_frames_to_quaternion_frames(bvhreader1, bvhreader1.frames)
-    quat_frames2 = convert_euler_frames_to_quaternion_frames(bvhreader2, bvhreader2.frames)
-    origin_root = get_cartesian_coordinates_from_quaternion(skeleton, 'Hips', quat_frames1[0])
-    point1 = [-0.5, -np.sqrt(3)/2.0]
-    point2 = [1, 1]
-    angle = get_rotation_angle(point1, point2)
-    print angle
-
-
-
-if __name__ == "__main__":
-    # main()
-    test()
