@@ -10,8 +10,8 @@ All Unittests for the MotionPrimitive class
 
 import os
 import sys
-ROOTDIR = os.sep.join(['..'] * 2)
-sys.path.append(ROOTDIR + os.sep)
+ROOTDIR = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-3]) + os.sep
+sys.path.append(ROOTDIR)
 TESTLIBPATH = ROOTDIR + os.sep + 'test'
 sys.path.append(TESTLIBPATH)
 sys.path.append(ROOTDIR + os.sep + 'morphablegraphs/construction')

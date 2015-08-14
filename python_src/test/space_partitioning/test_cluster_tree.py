@@ -7,12 +7,13 @@ Created on Wed Jul 29 12:24:01 2015
 
 import sys
 import os
-sys.path.append(os.sep.join([".."]*2))
+ROOT_DIR = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-3]) + os.sep
+sys.path.append(ROOT_DIR)
 import time
 import numpy as np
 from morphablegraphs.space_partitioning.cluster_tree import ClusterTree
 
-TESTOUTPATH = os.sep.join([".."]*3 + ["test_output"])
+TESTOUTPATH = os.sep.join([ROOT_DIR,"..","test_output"])
 
 
 def distance_objective(x, test_value):

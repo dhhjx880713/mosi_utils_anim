@@ -8,10 +8,10 @@ Created on Wed Aug 05 15:18:54 2015
 import os
 import sys
 import numpy as np
-ROOTDIR = os.sep.join(['..'] * 3)
+ROOTDIR = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-4]) + os.sep
+sys.path.append(ROOTDIR)
 import glob
 import json
-sys.path.append(ROOTDIR + os.sep)
 TESTPATH = ROOTDIR + os.sep + r'construction/fpca'
 TESTLIBPATH = ROOTDIR + os.sep + 'test/'
 sys.path.append(TESTPATH)

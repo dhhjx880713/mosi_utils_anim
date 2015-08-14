@@ -8,19 +8,17 @@ Created on Wed Jul 22 10:22:20 2015
 import os
 import sys
 import numpy as np
-ROOTDIR = os.sep.join(['..'] * 3)
+ROOTDIR = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-4]) + os.sep
 import glob
-sys.path.append(ROOTDIR + os.sep)
-TESTPATH = ROOTDIR + os.sep + r'construction/preprocessing'
+sys.path.append(ROOTDIR)
 TESTLIBPATH = ROOTDIR + os.sep + 'test/'
-sys.path.append(TESTPATH)
 sys.path.append(TESTLIBPATH)
 TESTDATAPATH = ROOTDIR + os.sep + \
     r'../test_data/constrction/preprocessing/motion_segmentation/Take_sidestep'
 TESTRESULTPATH = ROOTDIR + os.sep + \
     r'../test_output/constrction/preprocessing/motion_segmentation/cutting_results'
 
-from motion_segmentation import MotionSegmentation
+from morphablegraphs.construction.preprocessing.motion_segmentation import MotionSegmentation
 from libtest import params, pytest_generate_tests
 
 

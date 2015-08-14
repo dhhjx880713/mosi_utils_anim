@@ -8,21 +8,19 @@ Created on Wed Aug 05 09:32:14 2015
 import os
 import sys
 import numpy as np
-ROOTDIR = os.sep.join(['..'] * 3)
+ROOTDIR = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-4]) + os.sep
 import glob
-sys.path.append(ROOTDIR + os.sep)
-TESTPATH = ROOTDIR + os.sep + r'construction/preprocessing'
+sys.path.append(ROOTDIR)
 TESTLIBPATH = ROOTDIR + os.sep + 'test/'
-sys.path.append(TESTPATH)
 sys.path.append(TESTLIBPATH)
-from animation_data.motion_editing import pose_orientation_euler
-from animation_data.bvh import BVHReader
+from morphablegraphs.animation_data.motion_editing import pose_orientation_euler
+from morphablegraphs.animation_data.bvh import BVHReader
 TESTDATAPATH = ROOTDIR + os.sep + \
     r'../test_data/constrction/preprocessing/motion_normalization/cutting_results'
 TESTRESULTPATH = ROOTDIR + os.sep + \
     r'../test_output/constrction/preprocessing/motion_normalization'
 
-from motion_normalization import MotionNormalization
+from morphablegraphs.construction.preprocessing.motion_normalization import MotionNormalization
 from libtest import params, pytest_generate_tests
 
 
