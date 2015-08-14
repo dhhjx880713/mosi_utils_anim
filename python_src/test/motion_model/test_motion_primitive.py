@@ -45,7 +45,7 @@ class TestMotionPrimitive(object):
         alpha = sample[:len(self.mp.s_pca["eigen_vectors"])]
         coefs = self.mp._inverse_spatial_pca(alpha)
         assert not np.isnan(coefs).any()
-        assert coefs.shape == (self.mp.s_pca["n_basis"],1,self.mp.s_pca["n_dim"])
+        assert coefs.shape == (self.mp.s_pca["n_basis"], self.mp.s_pca["n_dim"])
         
         
         

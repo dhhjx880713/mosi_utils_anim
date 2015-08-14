@@ -38,13 +38,9 @@ def motionSample():
 class Test__init__(object):
     """ Test if the MotionSample class is initialized correctly """
 
-    def test_basis_init(self, motionSample):
-        """ Test if the basis object is a fda basis """
-        assert robjects.r['is.basis'](motionSample.basis)
-
     def test_canonical_motion_init(self, motionSample):
         """ Test if the canonical_motion object has the correct shape"""
-        assert np.array(motionSample.canonical_motion_spline).shape = (,,)
+        assert len(motionSample.canonical_motion_splines) == motionSample.n_pose_parameters
 
 
 
