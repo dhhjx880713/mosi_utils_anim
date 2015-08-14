@@ -17,6 +17,7 @@ class AlgorithmConfigurationBuilder(object):
         self.use_transition_model = False
         self.use_constrained_gmm = False
         self.activate_parameter_check = False
+        self.use_global_optimization = False
         self.apply_smoothing = True
         self.smoothing_window = 20
         self.n_random_samples = 100
@@ -66,6 +67,7 @@ class AlgorithmConfigurationBuilder(object):
         self.use_optimization = temp_algorithm_config["use_optimization"]
         self.use_transition_model = temp_algorithm_config["use_transition_model"]
         self.use_constrained_gmm = temp_algorithm_config["use_constrained_gmm"]
+        self.use_global_optimization = temp_algorithm_config["use_global_optimization"]
         self.activate_parameter_check = temp_algorithm_config["activate_parameter_check"]
         self.apply_smoothing = temp_algorithm_config["apply_smoothing"]
         self.smoothing_window = temp_algorithm_config["smoothing_window"]
@@ -83,6 +85,7 @@ class AlgorithmConfigurationBuilder(object):
                 "use_optimization": self.use_optimization,
                 "use_constrained_gmm": self.use_constrained_gmm,
                 "use_transition_model": self.use_transition_model,
+                "use_global_optimization": self.use_global_optimization,
                 "n_random_samples": self.n_random_samples,
                 "activate_parameter_check": self.activate_parameter_check,
                 "apply_smoothing": self.apply_smoothing,

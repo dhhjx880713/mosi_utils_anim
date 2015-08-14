@@ -31,7 +31,8 @@
     "n_random_samples": 300,
     "use_transition_model": false, 
     "use_optimization": false, 
-    "activate_parameter_check": false, 
+    "activate_parameter_check": false,
+    "use_global_optimization":false,
     "use_constraints": true,
     "debug_max_step": -1,
     "verbose": false

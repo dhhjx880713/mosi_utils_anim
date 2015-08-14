@@ -1,11 +1,13 @@
 __author__ = 'erhe01'
 
-
-from utilities.exceptions import SynthesisError, PathSearchError
-from motion_model import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END
+from utilities.exceptions import PathSearchError
+from motion_model import NODE_TYPE_START, NODE_TYPE_END
 from motion_primitive_generator import MotionPrimitiveGenerator
 from constraint.motion_primitive_constraints_builder import MotionPrimitiveConstraintsBuilder
+from constraint.time_constraints_builder import TimeConstraintsBuilder
+from numerical_minimizer import NumericalMinimizer
 from motion_generator_result import GraphWalkEntry
+from objective_functions import obj_time_error_sum
 
 
 class ElementaryActionGenerator(object):
@@ -14,8 +16,9 @@ class ElementaryActionGenerator(object):
         self.morphable_graph = morphable_graph
         self._algorithm_config = algorithm_config
         self.motion_primitive_constraints_builder = MotionPrimitiveConstraintsBuilder()
-        self.motion_primitive_constraints_builder.set_algorithm_config(
-            self._algorithm_config)
+        self.motion_primitive_constraints_builder.set_algorithm_config(self._algorithm_config)
+        self.numerical_minimizer = NumericalMinimizer(self._algorithm_config)
+        self.numerical_minimizer.set_objective_function(obj_time_error_sum)
         return
 
     def set_algorithm_config(self, algorithm_config):
@@ -117,8 +120,8 @@ class ElementaryActionGenerator(object):
         * success: Bool
             True if successful and False, if an error occurred during the constraints generation
         """
-
-        if motion.step_count > 0:
+        start_step = motion.step_count
+        if start_step > 0:
             prev_action_name = motion.graph_walk[-1]
             prev_mp_name = motion.graph_walk[-1]
         else:
@@ -167,7 +170,14 @@ class ElementaryActionGenerator(object):
             self.action_constraints.action_name,
             start_frame,
             motion.n_frames)
+        if self._algorithm_config["use_global_optimization"]:
+            self._optimize_over_graph_walk(motion.graph_walk, start_step)
+
         print "reached end of elementary action", self.action_constraints.action_name
         return True
-#        if self._algorithm_config["active_global_optimization"]:
-#            optimize_globally(motion.graph_walk, start_step, action_constraints)
+
+    def _optimize_over_graph_walk(self, motion, start_step):
+        time_constraints = TimeConstraintsBuilder(self.action_constraints, motion, start_step).build()
+        data = (self.morphable_graph, motion, time_constraints)
+        self.numerical_minimizer.set_objective_function_parameters(data)
+        self.action_constraints
