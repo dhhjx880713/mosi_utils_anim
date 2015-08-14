@@ -593,9 +593,8 @@ def find_aligning_transformation(skeleton, euler_frames_a, euler_frames_b):
         skeleton, euler_frames_a[-1])
     point_cloud_b = convert_euler_frame_to_cartesian_frame(
         skeleton, euler_frames_b[0])
-    weights = skeleton.get_joint_weights()
     theta, offset_x, offset_z = align_point_clouds_2D(
-        point_cloud_a, point_cloud_b, weights)
+        point_cloud_a, point_cloud_b, skeleton.joint_weights)
     return theta, offset_x, offset_z
 
 
