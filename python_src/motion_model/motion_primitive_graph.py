@@ -5,11 +5,9 @@ Created on Thu Jul 16 15:57:51 2015
 @author: erhe01
 """
 
-
 import collections
 
 
-        
 class MotionPrimitiveGraph(object):
     """ Contains a dict of MotionPrimitiveNodes and MotionPrimitiveNodeGroups for each elementary action,
          transitions between them are stored as outgoing edges in the nodes.
@@ -22,7 +20,7 @@ class MotionPrimitiveGraph(object):
         self.node_groups = collections.OrderedDict()
         self.nodes = collections.OrderedDict()
 
-    def generate_random_walk(self, start_subgraph,number_of_steps, use_transition_model = True):
+    def generate_random_walk(self, start_subgraph, number_of_steps, use_transition_model=True):
         """ Generates a random graph walk
             
         Parameters
@@ -65,19 +63,17 @@ class MotionPrimitiveGraph(object):
                 for e in self.nodes[n].outgoing_edges.keys():
                     print "\t \t to "+ e
                 print "\t##########"       
-                
-                
+
     def get_random_action_transition(self, motion, action_name):
         """ Get random start state based on edge from previous elementary action if possible
         """
         next_state = None
         if motion.step_count > 0:
-            prev_action_name = motion.graph_walk[-1].action_name
-            prev_mp_name = motion.graph_walk[-1].motion_primitive_name
+            prev_node_key = motion.graph_walk[-1].node_key
       
-            if (prev_action_name,prev_mp_name) in self.nodes.keys():
-                                       
-               to_key = self.nodes[(prev_action_name,prev_mp_name)].generate_random_action_transition(action_name)
+            if prev_node_key in self.nodes.keys():
+
+               to_key = self.nodes[prev_node_key].generate_random_action_transition(action_name)
                if to_key is not None:
                    next_state = to_key
                    return next_state
@@ -88,9 +84,9 @@ class MotionPrimitiveGraph(object):
         # if there is no previous elementary action or no action transition
         #  use transition to random start state
         if next_state == "" or next_state not in self.node_groups[action_name].nodes:
-            print next_state,"not in", action_name#,prev_action_name,prev_mp_name
+            print next_state, "not in", action_name
             next_state = self.node_groups[action_name].get_random_start_state()
-            print "generate random start",next_state
+            print "generate random start", next_state
             return next_state
 
 
@@ -103,4 +99,3 @@ def print_morphable_graph_structure(morphable_graph):
             for e in morphable_graph.nodes[(a, n)].outgoing_edges.keys():
                 print "\t \t to " + e
     return
-    

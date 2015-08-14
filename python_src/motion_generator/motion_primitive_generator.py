@@ -74,13 +74,13 @@ class MotionPrimitiveGenerator(object):
  
         mp_name = motion_primitive_constraints.motion_primitive_name
   
-        if len(prev_motion.graph_walk)> 0:
-            prev_mp_name =  prev_motion.graph_walk[-1].motion_primitive_name
-            prev_parameters =  prev_motion.graph_walk[-1].parameters
+        if len(prev_motion.graph_walk) > 0:
+            prev_mp_name = prev_motion.graph_walk[-1].node_key[1]
+            prev_parameters = prev_motion.graph_walk[-1].parameters
 
         else:
-            prev_mp_name =  ""
-            prev_parameters =  None
+            prev_mp_name = ""
+            prev_parameters = None
  
         use_optimization= self.use_optimization or motion_primitive_constraints.use_optimization
         motion_primitive_constraints.use_optimization   

@@ -84,15 +84,6 @@ class ElementaryActionGenerator(object):
             start_frame,
             last_frame)
 
-    def _update_graph_walk(self, motion, current_state,
-                           parameters, travelled_arc_length):
-        graph_walk_entry = GraphWalkEntry(
-            self.action_constraints.action_name,
-            current_state[1],
-            parameters,
-            travelled_arc_length)
-        motion.graph_walk.append(graph_walk_entry)
-
     def _get_motion_primitive_constraints_from_action_constraints(
             self, current_state, current_motion_primitive_type, prev_motion, travelled_arc_length):
         try:
@@ -168,11 +159,7 @@ class ElementaryActionGenerator(object):
             if self.action_constraints.trajectory is not None:
                 travelled_arc_length = self._update_travelled_arc_length(
                     motion.quat_frames, motion, travelled_arc_length)
-            self._update_graph_walk(
-                motion,
-                current_state,
-                parameters,
-                travelled_arc_length)
+            motion.graph_walk.append(GraphWalkEntry(current_state, parameters, travelled_arc_length))
             temp_step += 1
 
         motion.step_count += temp_step

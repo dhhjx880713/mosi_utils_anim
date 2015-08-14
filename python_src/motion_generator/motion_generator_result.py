@@ -18,9 +18,8 @@ from utilities.io_helper_functions import write_to_json_file,\
 LOG_FILE = "log.txt"
 
 class GraphWalkEntry(object):
-    def __init__(self, action_name, motion_primitive_name, parameters, arc_length):
-        self.action_name = action_name
-        self.motion_primitive_name = motion_primitive_name
+    def __init__(self, node_key, parameters, arc_length):
+        self.node_key = node_key
         self.parameters = parameters
         self.arc_length = arc_length
 
@@ -101,8 +100,6 @@ class MotionGeneratorResult(object):
         *  action_list : dict of lists of dicts
            A dict that contains a list of actions for certain keyframes
         """
-    
-
         key_frame_label_pairs = set()
         #extract the set of keyframes and their annotations referred to by the constraints
         for c in constraints:
@@ -112,11 +109,8 @@ class MotionGeneratorResult(object):
                         key_frame = last_frame
                     elif time_information[key_label] == "firstFrame":
                         key_frame = start_frame
-                        
                     if "annotations" in keyframe_annotations[key_label].keys():
                         key_frame_label_pairs.add((key_frame, key_label))
-
-
         return self._extract_actions_from_keyframe_annotations(key_frame_label_pairs, keyframe_annotations)
             
 
@@ -137,13 +131,13 @@ class MotionGeneratorResult(object):
         return action_list
 
     def _merge_multiple_keyframe_events(self, annotations, num_events):
-        """Merge events if there are more than one event define for the same keyframe
+        """Merge events if there are more than one event defined for the same keyframe.
         """
         event_list = [(annotations[i]["event"], annotations[i]) for i in xrange(num_events)]
         temp_event_dict = dict()
-        for name, event in event_list:#merge parameters to one event if it is found multiple times
+        for name, event in event_list:
             if name not in temp_event_dict.keys():
-               temp_event_dict[name]= event
+               temp_event_dict[name] = event
             else:
                 if "joint" in temp_event_dict[name]["parameters"].keys():
                     existing_entry = copy(temp_event_dict[name]["parameters"]["joint"])
