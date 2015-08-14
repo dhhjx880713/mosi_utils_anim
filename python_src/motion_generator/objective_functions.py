@@ -29,8 +29,7 @@ def obj_spatial_error_sum(s, data):
     """
     s = np.asarray(s)
     motion_primitive, motion_primitive_constraints, prev_frames = data
-
-    error_sum = motion_primitive_constraints.evaluate(motion_primitive, s, prev_frames,use_time_parameters=False)
+    error_sum = motion_primitive_constraints.evaluate(motion_primitive, s, prev_frames, use_time_parameters=False)
     global_counter_dict["evaluations"] += 1
     return error_sum
     
@@ -98,13 +97,41 @@ def obj_time_error_sum(s, data):
     Parameters
     ---------
     * s : np.ndarray
-        low dimensional motion representation
+        concatenatgion of low dimensional motion representations
     * data : tuple
-        Contains time_constraints, motion, n_steps
+        Contains morhable_graph, time_constraints, motion, n_steps
         
     Returns
     -------
     * error: float
     """
+    s = np.asarray(s)
     error_sum = 0
+    morhable_graph, motion, time_constraints, n_steps, start_keyframe = data
+
+    #get time functions for all steps
+    time_functions = []
+    offset = 0
+    for step in motion.graph_walk[n_steps:]: #  look back n_steps
+        gamma = s[offset:step.n_time_components]
+        time_function = morhable_graph.nodes[step.node_key]._inverse_temporal_pca(gamma)
+        time_functions.append(time_function)
+        offset += step.n_time_components
+
+    #get difference to desired time for each constraint
+    for constrained_step_index, constrained_keyframe_index, desired_time in time_constraints:
+        n_frames = start_keyframe #w hen it starts the first step start_keyframe would be 0
+        temp_step_index = 0
+        for step in motion.graph_walk[n_steps:]: # look back n_steps
+            if temp_step_index < constrained_step_index:
+                #simply add the number of frames
+                n_frames += len(time_functions[temp_step_index])
+                temp_step_index += 1
+            else:
+                #inverse lookup the warped frame that maps to the labelled canonical keyframe with the time constraint
+                mapped_key_frame = min(time_function[temp_step_index], key=lambda x: abs(x-constrained_keyframe_index))
+                n_frames += mapped_key_frame
+                total_seconds = n_frames * morhable_graph.skeleton.frame_time
+                error_sum += abs(desired_time-total_seconds)
+                break
     return error_sum
