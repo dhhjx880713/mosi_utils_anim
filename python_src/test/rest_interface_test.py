@@ -9,7 +9,7 @@ import sys
 sys.path.append("..")
 import urllib2
 import json
-from utilities.io_helper_functions import load_json_file
+from morphablegraphs.utilities.io_helper_functions import load_json_file
 TESTPATH = os.sep.join([".."] * 2 + ["test_data"])
 
 
