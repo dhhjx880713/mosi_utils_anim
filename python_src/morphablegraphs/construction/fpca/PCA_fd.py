@@ -4,13 +4,9 @@ Created on Jan 14, 2015
 @author: hadu01
 '''
 import numpy as np
-import os
-import sys
-ROOT_DIR = os.sep.join(['..'] * 2)
-sys.path.append(ROOT_DIR)
 import rpy2.robjects.numpy2ri as numpy2ri
 import rpy2.robjects as robjects
-from external.PCA import Center, PCA
+from ...external.PCA import Center, PCA
 
 
 class PCA_fd(object):

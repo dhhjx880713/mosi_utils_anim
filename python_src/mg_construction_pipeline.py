@@ -5,19 +5,18 @@ Created on Thu Jul 23 10:15:52 2015
 @author: du
 """
 
-import os
 import sys
-ROOT_DIR = os.sep.join(['..'] * 1)
-sys.path.append(ROOT_DIR)
-from preprocessing.preprocessing import Preprocessor
-from construction_algorithm_configuration import ConstructionAlgorithmConfigurationBuilder
-from fpca.motion_dimension_reduction import MotionDimensionReduction
-from motion_primitive.statistical_model_trainer import StatisticalModelTrainer
+from morphablegraphs.construction.preprocessing.preprocessing import Preprocessor
+from morphablegraphs.construction.construction_algorithm_configuration import ConstructionAlgorithmConfigurationBuilder
+from morphablegraphs.construction.fpca.motion_dimension_reduction import MotionDimensionReduction
+from morphablegraphs.construction.motion_primitive.statistical_model_trainer import StatisticalModelTrainer
 
 
 def main():
-    elementary_action = 'walk'
-    motion_primitive = 'sidestepLeft'
+    if len(sys.argv) != 3:
+        raise IOError, ('please give elementary action and motion primitive name. E.g.: morphable_model_construction_pipeline.py walk sidestepLeft')
+    elementary_action = sys.argv[1]
+    motion_primitive = sys.argv[2]
     params = ConstructionAlgorithmConfigurationBuilder(elementary_action,
                                                        motion_primitive)
     preprocessor = Preprocessor(params)
