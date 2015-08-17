@@ -18,7 +18,7 @@ from constraint.elementary_action_constraints_builder import ElementaryActionCon
 from elementary_action_sample_generator import ElementaryActionSampleGenerator
 from . import global_counter_dict
 from algorithm_configuration import AlgorithmConfigurationBuilder
-from motion_sample import MotionGeneratorResult
+from motion_sample import MotionSample
 
 SKELETON_FILE = "skeleton.bvh" # TODO replace with standard skeleton in data directory
 
@@ -138,7 +138,7 @@ class MotionSampleGenerator(object):
             for key in self._algorithm_config.keys():
                 print key,self._algorithm_config[key]
     
-        motion = MotionGeneratorResult()
+        motion = MotionSample()
         motion.skeleton = self.morphable_graph.skeleton
         motion.apply_smoothing = self._algorithm_config["apply_smoothing"]
         motion.smoothing_window = self._algorithm_config["smoothing_window"]
