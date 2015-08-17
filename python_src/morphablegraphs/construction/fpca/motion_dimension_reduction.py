@@ -4,14 +4,9 @@ Created on Sun Aug 02 13:15:01 2015
 
 @author: hadu01
 """
-
-import sys
 import os
 import json
-ROOT_DIR = os.sep.join(['..'] * 2)
-sys.path.append(ROOT_DIR)
-sys.path.append('..//')
-from animation_data.quaternion_frame import QuaternionFrame
+from ...animation_data.quaternion_frame import QuaternionFrame
 import numpy as np
 from FPCA_temporal_data import FPCATemporalData
 from FPCA_spatial_data import FPCASpatialData
@@ -159,9 +154,9 @@ class MotionDimensionReduction(object):
 
 
 def main():
-    from construction_algorithm_configuration import ConstructionAlgorithmConfigurationBuilder
-    from animation_data.bvh import BVHReader
-    TESTDATAPATH = ROOT_DIR + os.sep + r'../test_data/constrction/fpca'
+    from ..construction_algorithm_configuration import ConstructionAlgorithmConfigurationBuilder
+    from ...animation_data.bvh import BVHReader
+    TESTDATAPATH = r'C:\git-repo\ulm\morphablegraphs\test_data\constrction\fpca'
     with open(TESTDATAPATH + os.sep + 'motion_data.json') as infile:
         motion_data = json.load(infile)
     params = ConstructionAlgorithmConfigurationBuilder('pickLeft', 'first')

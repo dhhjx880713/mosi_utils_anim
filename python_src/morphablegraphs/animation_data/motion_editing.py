@@ -13,7 +13,7 @@ from copy import deepcopy
 import time
 from scipy import stats  # linear regression
 from quaternion_frame import QuaternionFrame
-from external.transformations import quaternion_matrix, euler_from_matrix, \
+from ..external.transformations import quaternion_matrix, euler_from_matrix, \
     quaternion_from_matrix, euler_matrix, \
     quaternion_multiply
 

@@ -7,7 +7,7 @@ Created on Sun Aug 02 21:31:09 2015
 import numpy as np
 import rpy2.robjects.numpy2ri as numpy2ri
 import rpy2.robjects as robjects
-import json
+
 
 
 class FPCATemporalData(object):

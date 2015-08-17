@@ -11,7 +11,7 @@ import sys
 import os
 ROOT_DIR = os.sep.join(['..']*1)
 sys.path.append(ROOT_DIR)
-from external.transformations import euler_matrix, quaternion_from_matrix 
+from ..external.transformations import euler_matrix, quaternion_from_matrix
 
 
 

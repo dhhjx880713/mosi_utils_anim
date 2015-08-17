@@ -9,10 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn import mixture
 import os
-import sys
-ROOTDIR = os.sep.join(['..'] * 2)
-sys.path.append(ROOTDIR)
-from animation_data.bvh import BVHReader, BVHWriter
+from ...animation_data.bvh import BVHReader, BVHWriter
 
 
 class StatisticalModelTrainer(object):
