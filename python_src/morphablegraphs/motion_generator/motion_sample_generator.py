@@ -18,7 +18,7 @@ from constraint.elementary_action_constraints_builder import ElementaryActionCon
 from elementary_action_sample_generator import ElementaryActionSampleGenerator
 from . import global_counter_dict
 from algorithm_configuration import AlgorithmConfigurationBuilder
-from motion_generator_result import MotionGeneratorResult
+from motion_sample import MotionGeneratorResult
 
 SKELETON_FILE = "skeleton.bvh" # TODO replace with standard skeleton in data directory
 

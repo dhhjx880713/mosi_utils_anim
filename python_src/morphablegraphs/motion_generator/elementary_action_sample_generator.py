@@ -6,7 +6,7 @@ from motion_primitive_sample_generator import MotionPrimitiveSampleGenerator
 from constraint.motion_primitive_constraints_builder import MotionPrimitiveConstraintsBuilder
 from constraint.time_constraints_builder import TimeConstraintsBuilder
 from numerical_minimizer import NumericalMinimizer
-from motion_generator_result import GraphWalkEntry
+from motion_sample import GraphWalkEntry
 from objective_functions import obj_time_error_sum
 
 
