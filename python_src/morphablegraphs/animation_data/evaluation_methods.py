@@ -473,7 +473,7 @@ def check_sample_validity(graph_node, sample, bvh_reader, node_name_map=None, ep
     if parameter_bb is not None:
         quaternion_frames = graph_node.motion_primitive.back_project(
             sample).get_motion_vector().tolist()
-        euler_frames = convert_quaternion_to_euler(quaternion_frames)
+        euler_frames = convert_quaternion_frames_to_euler_frames(quaternion_frames)
         valid = check_parameter_bounding_box2(
             euler_frames, parameter_bb, eps, update_bb=False)
         # print "valid",valid

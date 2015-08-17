@@ -1,18 +1,16 @@
 __author__ = 'hadu01'
+
 import os
-import sys
-ROOT_DIR = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-3]) + os.sep
-sys.path.append(ROOT_DIR)
-TEST_LIB_PATH = ROOT_DIR + 'test'
-sys.path.append(TEST_LIB_PATH)
-TEST_DATA_PATH = ROOT_DIR + '../test_data/animation_data'
-TEST_RESULT_PATH = ROOT_DIR + '../test_output/animation_data'
-from morphablegraphs.animation_data.bvh import BVHReader
-from morphablegraphs.animation_data.skeleton import Skeleton
-from morphablegraphs.animation_data.motion_editing import *
-from libtest import params, pytest_generate_tests
+from ...morphablegraphs.animation_data.bvh import BVHReader
+from ...morphablegraphs.animation_data.skeleton import Skeleton
+from ...morphablegraphs.animation_data.motion_editing import *
+from ..libtest import params, pytest_generate_tests
 import numpy as np
 import copy
+ROOT_DIR = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-3]) + os.sep
+TEST_DATA_PATH = ROOT_DIR + '../test_data/animation_data'
+TEST_RESULT_PATH = ROOT_DIR + '../test_output/animation_data'
+
 
 class TestMotionEditing(object):
 

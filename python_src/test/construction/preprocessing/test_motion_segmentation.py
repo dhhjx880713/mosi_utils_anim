@@ -6,22 +6,13 @@ Created on Wed Jul 22 10:22:20 2015
 """
 
 import os
-import sys
 import numpy as np
-ROOTDIR = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-4]) + os.sep
 import glob
-sys.path.append(ROOTDIR)
-TESTLIBPATH = ROOTDIR + os.sep + 'test/'
-sys.path.append(TESTLIBPATH)
-TESTDATAPATH = ROOTDIR + os.sep + \
-    r'../test_data/constrction/preprocessing/motion_segmentation/Take_sidestep'
-TESTRESULTPATH = ROOTDIR + os.sep + \
-    r'../test_output/constrction/preprocessing/motion_segmentation/cutting_results'
-
-from morphablegraphs.construction.preprocessing.motion_segmentation import MotionSegmentation
-from libtest import params, pytest_generate_tests
-
-
+from ....morphablegraphs.construction.preprocessing.motion_segmentation import MotionSegmentation
+from ...libtest import params, pytest_generate_tests
+ROOTDIR = os.sep.join(['..'] * 3)
+TESTDATAPATH = ROOTDIR + os.sep + r'../test_data/constrction/preprocessing/motion_segmentation/Take_sidestep'
+TESTRESULTPATH = ROOTDIR + os.sep + r'../test_output/constrction/preprocessing/motion_segmentation/cutting_results'
 input_file_folder = TESTDATAPATH
 input_annotation_file = TESTDATAPATH + os.sep + 'key_frame_annotation.txt'
 output_file_folder = TESTRESULTPATH

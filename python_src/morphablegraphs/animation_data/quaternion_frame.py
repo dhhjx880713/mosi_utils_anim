@@ -7,7 +7,11 @@ Created on Fri Nov 24 14:10:21 2014
 """
 import collections
 import numpy as np
-from morphablegraphs.external.transformations import euler_matrix, quaternion_from_matrix
+import sys
+import os
+ROOT_DIR = os.sep.join(['..']*1)
+sys.path.append(ROOT_DIR)
+from ..external.transformations import euler_matrix, quaternion_from_matrix
 
 
 

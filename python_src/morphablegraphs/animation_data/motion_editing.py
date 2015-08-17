@@ -13,7 +13,7 @@ from copy import deepcopy
 import time
 from scipy import stats  # linear regression
 from quaternion_frame import QuaternionFrame
-from morphablegraphs.external.transformations import quaternion_matrix, euler_from_matrix, \
+from ..external.transformations import quaternion_matrix, euler_from_matrix, \
     quaternion_from_matrix, euler_matrix, \
     quaternion_multiply
 
@@ -45,8 +45,7 @@ def extract_root_positions_from_frames(frames):
     for i in xrange(len(frames)):
         position = np.array([frames[i][0], frames[i][1], frames[i][2]])
         roots.append(position)
-    return np.array(roots) 
-
+    return np.array(roots)
 
 
 def get_arc_length_from_points(points):
@@ -62,7 +61,7 @@ def get_arc_length_from_points(points):
             arc_length += sqrt( delta[0]**2 + delta[1]**2 +delta[2]**2) #-arcLength
         else:
             delta = p
-        last_p = p            
+        last_p = p
     return arc_length
 
 def euler_to_quaternion(euler_angles, rotation_order=['Xrotation', 'Yrotation', 'Zrotation'],
@@ -242,41 +241,6 @@ def convert_quaternion_frames_to_euler_frames(quaternion_frames):
     return np.array(euler_frames)
 
 
-def convert_quaternion_to_euler(quaternion_frames):
-    """Returns an nparray of Euler frames
-
-    Parameters
-    ----------
-
-     * quaternion_frames: List of quaternion frames
-    \tQuaternion frames that shall be converted to Euler frames
-    
-    Returns
-    -------
-    
-    * euler_frames: numpy array
-    \tEuler frames
-    """
-
-    def gen_4_tuples(it):
-        """Generator of n-tuples from iterable"""
-
-        return zip(it[0::4], it[1::4], it[2::4], it[3::4])
-
-    def get_euler_frame(quaternionion_frame):
-        """Converts a quaternion frame into an Euler frame"""
-
-        euler_frame = list(quaternionion_frame[:3])
-        for quaternion in gen_4_tuples(quaternionion_frame[3:]):
-            euler_frame += quaternion_to_euler(quaternion)
-
-        return euler_frame
-
-    euler_frames = map(get_euler_frame, quaternion_frames)
-
-    return np.array(euler_frames)
-
- 
 def euler_substraction(theta1, theta2):
     '''
     @brief: compute the angular distance from theta2 to theta1, positive value is anti-clockwise, negative is clockwise
@@ -306,7 +270,8 @@ def euler_substraction(theta1, theta2):
 
 def get_cartesian_coordinates_from_quaternion(skeleton,
                                               node_name,
-                                              quaternion_frame):
+                                              quaternion_frame,
+                                              return_gloabl_matrix=False):
     """Returns cartesian coordinates for one node at one frame. Modified to
      handle frames with omitted values for joints starting with "Bip"
 
@@ -351,22 +316,44 @@ def get_cartesian_coordinates_from_quaternion(skeleton,
         global_matrix = np.identity(4)
         for j_matrix in j_matrices:
             global_matrix = np.dot(global_matrix, j_matrix)
+        if return_gloabl_matrix:
+            return global_matrix
+        else:
+            point = np.array([0, 0, 0, 1])
+            point = np.dot(global_matrix, point)
+            return point[:3].tolist()
 
-        point = np.array([0, 0, 0, 1])
-        point = np.dot(global_matrix, point)
-        return point[:3].tolist()
+def get_cartesian_coordinates_for_plam_quaternion(skeleton, quat_frame, node_name='Left'):
+    if node_name == 'Left':
+        node_name = 'LeftHand'
+        Finger2 = 'Bip01_L_Finger2'
+        Finger21 = 'Bip01_L_Finger21'
+        Finger2_offset = [9.55928, -0.145352, -0.186424]
+        Finger2_angles = [-0.0, 0.0, 0.0]
+        Finger21_offset = [3.801407, 0.0, 0.0]
+        Finger21_angles = [-0.0, 0.0, 0.0]
+    elif node_name == 'Right':
+        node_name = 'RightHand'
+        Finger2 = 'Bip01_R_Finger2'
+        Finger21 = 'Bip01_R_Finger21'
+        Finger2_offset = [9.559288, 0.145353, -0.186417]
+        Finger2_angles = [-0.0, 0.0, 0.0]
+        Finger21_offset = [3.801407, 0.0, 0.0]
+        Finger21_angles = [-0.0, 0.0, 0.0]
+    else:
+        raise ValueError('Unknown node name!')
+    global_matrix = get_cartesian_coordinates_from_quaternion(skeleton, node_name, quat_frame,
+                                                              return_gloabl_matrix=True)
+    quat_finger2 = euler_to_quaternion(Finger2_angles)
+    transmat_finger2 = quaternion_matrix(quat_finger2)
+    transmat_finger2[:3, 3] = Finger2_offset[:]
+    global_matrix = np.dot(global_matrix, transmat_finger2)
+    quat_finger21 = euler_to_quaternion(Finger21_angles)
+    transmat_finger21 = quaternion_matrix(quat_finger21)
+    transmat_finger21[:3, 3] = Finger21_offset[:]
+    global_matrix = np.dot(global_matrix, transmat_finger21)
+    return global_matrix[:3, 3]
 
-def convert_quaternion_frame_to_cartesian_frame(skeleton,quat_frame):
-    """
-    Converts quaternion frames to cartesian frames by calling get_cartesian_coordinates_from_quaternion for each joint
-    """
-    cartesian_frame = []
-    for node_name in skeleton.node_names:
-        #ignore Bip joints and end sites 
-        if  not node_name.startswith("Bip") and "children" in skeleton.node_names[node_name].keys():
-           cartesian_frame.append(get_cartesian_coordinates_from_quaternion(skeleton,node_name,quat_frame))#get_cartesian_coordinates2
-          
-    return cartesian_frame
 
 def get_cartesian_coordinates_from_euler_full_skeleton(bvh_reader,
                                                        skeleton,
@@ -425,6 +412,56 @@ def get_cartesian_coordinates_from_euler_full_skeleton(bvh_reader,
             return fk_funcs[f_idx](ax, ay, az, thx, thy, thz)
         else:
             return [0, 0, 0]
+
+def get_cartesian_coordinates_for_plam_euler(skeleton, euler_frame, node_name='Left'):
+    if node_name == 'Left':
+        node_name = 'LeftHand'
+        Finger2 = 'Bip01_L_Finger2'
+        Finger21 = 'Bip01_L_Finger21'
+        Finger2_offset = [9.55928, -0.145352, -0.186424]
+        Finger2_angles = [-0.0, 0.0, 0.0]
+        Finger21_offset = [3.801407, 0.0, 0.0]
+        Figner21_angles = [-0.0, 0.0, 0.0]
+    elif node_name == 'Right':
+        node_name = 'RightHand'
+        Finger2 = 'Bip01_R_Finger2'
+        Finger21 = 'Bip01_R_Finger21'
+        Finger2_offset = [9.559288, 0.145353, -0.186417]
+        Finger2_angles = [-0.0, 0.0, 0.0]
+        Finger21_offset = [3.801407, 0.0, 0.0]
+        Figner21_angles = [-0.0, 0.0, 0.0]
+    else:
+        raise ValueError('Unknown node name!')
+    chain_names = list(skeleton.gen_all_parents(node_name))
+    chain_names.reverse()
+    chain_names += [node_name]  # Node is not in its parent list
+    global_trans = np.eye(4)
+    global_trans[:3, 3] = euler_frame[:3]
+    eul_angles = []
+    for nodename in chain_names:
+        index = skeleton.node_name_map[nodename] * 3 + 3
+        eul_angles.append(euler_frame[index:index + 3])
+    eul_angles.append(Finger2_angles)
+    eul_angles.append(Figner21_angles)
+    offsets = [skeleton.node_names[nodename]["offset"]
+               for nodename in chain_names]
+    offsets.append(Finger2_offset)
+    offsets.append(Finger21_offset)
+    chain_names.append(Finger2)
+    chain_names.append(Finger21)
+    for i in xrange(len(chain_names)):
+        rot_angles = eul_angles[i]
+        translation = offsets[i]
+        rot_angles_rad = np.deg2rad(rot_angles)
+        rotmat = euler_matrix(rot_angles_rad[0],
+                              rot_angles_rad[1],
+                              rot_angles_rad[2],
+                              'rxyz')
+        transmat = np.eye(4)
+        transmat[:3, 3] = translation[:]
+        global_trans = np.dot(global_trans, transmat)
+        global_trans = np.dot(global_trans, rotmat)
+    return global_trans[:3, 3]
 
 
 def get_cartesian_coordinates_from_euler(skeleton, node_name, euler_frame):
@@ -508,6 +545,17 @@ def convert_euler_frame_to_cartesian_frame(skeleton, euler_frame):
 
     return cartesian_frame
 
+def convert_quaternion_frame_to_cartesian_frame(skeleton,quat_frame):
+    """
+    Converts quaternion frames to cartesian frames by calling get_cartesian_coordinates_from_quaternion for each joint
+    """
+    cartesian_frame = []
+    for node_name in skeleton.node_names:
+        #ignore Bip joints and end sites
+        if  not node_name.startswith("Bip") and "children" in skeleton.node_names[node_name].keys():
+           cartesian_frame.append(get_cartesian_coordinates_from_quaternion(skeleton,node_name,quat_frame))#get_cartesian_coordinates2
+
+    return cartesian_frame
 
 def align_point_clouds_2D(a, b, weights):
     '''
@@ -593,11 +641,25 @@ def find_aligning_transformation(skeleton, euler_frames_a, euler_frames_b):
         skeleton, euler_frames_a[-1])
     point_cloud_b = convert_euler_frame_to_cartesian_frame(
         skeleton, euler_frames_b[0])
+    weights = skeleton.get_joint_weights()
     theta, offset_x, offset_z = align_point_clouds_2D(
-        point_cloud_a, point_cloud_b, skeleton.joint_weights)
+        point_cloud_a, point_cloud_b, weights)
     return theta, offset_x, offset_z
 
-
+def rotate_around_y_axis(point,theta):
+    """
+    source https://www.siggraph.org/education/materials/HyperGraph/modeling/mod_tran/2drota.htm
+    Parameters
+    ---------
+    *point: list
+    \t coordinates
+    *theta: float
+    \t angle in radians
+    """
+    transfomed_point= point[:]
+    transfomed_point[0] = point[0]*cos(theta) - point[2] * sin(theta)
+    transfomed_point[2] = point[2]*cos(theta) + point[0] * sin(theta)
+    return transfomed_point
 
 
 def transform_point(point,
@@ -1062,31 +1124,6 @@ def point_to_euler_angle(vec):
     theta = np.rad2deg(np.arctan2(vec[1], vec[0]))
     return theta
 
-def align_quaternion_frames_using_point_clouds(skeleton,
-                            quaternion_frames_a,
-                            quaternion_frames_b,
-                            node_name_map=None,
-                            smooth=True):
-    # find translation and rotation by using last frame from quaternion_frames_a
-    # and the first frame from quaternion_frame_b 
-    # convert quaternion frame to euler frame                       
-    last_euler_frame = np.ravel(quaternion_frames_a[-1])
-    first_euler_frame = np.ravel(quaternion_frames_b[0])
-    point_cloud_a = convert_quaternion_frame_to_cartesian_frame(skeleton, last_euler_frame)
-    point_cloud_b = convert_quaternion_frame_to_cartesian_frame(skeleton, first_euler_frame) 
-
-    theta, offset_x, offset_z = align_point_clouds_2D(point_cloud_a,point_cloud_b,skeleton.joint_weights)  
-    rotation_angle = [0, np.rad2deg(theta), 0]
-    translation = [offset_x, 0, offset_z]
-    transformed_quaternion_frames_b = transform_quaternion_frames(quaternion_frames_b, rotation_angle, translation)
-    if smooth:
-        quaternion_frames = smoothly_concatenate_quaternion_frames(quaternion_frames_a,
-                                                                   transformed_quaternion_frames_b,
-                                                                   window_size=20)
-    else:                                        
-        quaternion_frames = np.concatenate((quaternion_frames_a, 
-                                            transformed_quaternion_frames_b))
-    return quaternion_frames
 
 def fast_quat_frames_alignment(quaternion_frames_a,
                                quaternion_frames_b,
@@ -1255,10 +1292,35 @@ def pose_orientation_euler(euler_frame):
     dir_vec /= np.linalg.norm(dir_vec)
     return dir_vec
 
+def get_trajectory_dir_from_2d_points(points):
+    """Estimate the trajectory heading
+
+    Parameters
+    *\Points: numpy array
+    Step 1: fit the points with a 2d straight line
+    Step 2: estimate the direction vector from first and last point
+    """
+    dir_vector = points[-1] - points[0]
+    slope, intercept, r_value, p_value, std_err = stats.linregress(*points.T)
+    if isnan(slope):
+        orientation_vec1 = np.array([0, 1])
+        orientation_vec2 = np.array([0, -1])
+    else:
+        orientation_vec1 = np.array([slope, 1])
+        orientation_vec2 = np.array([-slope, -1])
+    if np.dot(orientation_vec1, dir_vector) > np.dot(orientation_vec2, dir_vector):
+        orientation_vec = orientation_vec1
+    else:
+        orientation_vec = orientation_vec2
+    orientation_vec = orientation_vec/np.linalg.norm(orientation_vec)
+    return orientation_vec
+
+
+
 def align_quaternion_frames(quat_frames, prev_frames=None, aligning_transformation=None):
-    """Concatenate and align quaternion frames based on previous frames or 
+    """Concatenate and align quaternion frames based on previous frames or
         given transformation
-       
+
     Parameters
     ----------
     * new_frames: list
@@ -1272,13 +1334,13 @@ def align_quaternion_frames(quat_frames, prev_frames=None, aligning_transformati
     * transformed_frames: np.ndarray
         Quaternion frames resulting from the back projection of s,
         transformed to fit to prev_frames.
-        
+
     """
     # find alignment transformation or use given transformation
     if prev_frames is not None:
         #print prev_frames
         angle, offset = fast_quat_frames_transformation(prev_frames, quat_frames)
-        aligning_transformation = {"orientation":[0,angle,0],"position":offset}                                                 
+        aligning_transformation = {"orientation":[0,angle,0],"position":offset}
     if aligning_transformation is not None:
         # align frames
         transformed_frames = transform_quaternion_frames(quat_frames,
@@ -1288,7 +1350,6 @@ def align_quaternion_frames(quat_frames, prev_frames=None, aligning_transformati
     else:
         return quat_frames
 
-    
 
 def main():
     q = [2.03844784e-01, 6.46012476e-01, 7.41049869e-01, -5.18757119e-03]

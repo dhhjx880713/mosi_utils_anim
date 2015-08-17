@@ -6,13 +6,8 @@ Created on Tue Jul 21 13:44:05 2015
 """
 
 import os
-import sys
-ROOT_DIR = os.sep.join(['..'] * 2)
-sys.path.append(ROOT_DIR)
-from animation_data.bvh import BVHReader, BVHWriter
+from ...animation_data.bvh import BVHReader, BVHWriter
 import json
-from utilities.io_helper_functions import load_json_file
-SERVICE_CONFIG_FILE = ROOT_DIR + os.sep + "config" + os.sep + "service.json"
 
 
 class MotionSegmentation(object):
@@ -121,25 +116,3 @@ class MotionSegmentation(object):
                 fp.close()
         return annotation_data
 
-
-def main():
-    path_data = load_json_file(SERVICE_CONFIG_FILE)
-    data_path = path_data['data_folder']
-    elementary_action = 'walk'
-    primitive_type = 'sidestepLeft'
-
-    print data_path
-    retarget_folder = data_path + os.sep + \
-        r'2 - Rocketbox retargeting\Take_sidestep'
-    cutting_folder = data_path + os.sep + r'3 - Cutting\test'
-    annotation = retarget_folder + os.sep + 'key_frame_annotation.txt'
-    motion_segmentor = MotionSegmentation()
-    motion_segmentor.segment_motions(elementary_action,
-                                     primitive_type,
-                                     retarget_folder,
-                                     annotation)
-    motion_segmentor.save_segments(cutting_folder)
-
-
-if __name__ == '__main__':
-    main()

@@ -5,14 +5,10 @@ Created on Thu Jul 23 10:06:37 2015
 @author: du, MAUERMA
 """
 
-import os
-import sys
-ROOT_DIR = os.sep.join(['..'] * 2)
-sys.path.append(ROOT_DIR)
-from animation_data.bvh import BVHReader, BVHWriter
+from ...animation_data.bvh import BVHReader, BVHWriter
 from motion_normalization import MotionNormalization
-from animation_data.motion_editing import calculate_frame_distance
-from animation_data.skeleton import Skeleton
+from ...animation_data.motion_editing import calculate_frame_distance
+from ...animation_data.skeleton import Skeleton
 import numpy as np
 import rpy2.robjects.numpy2ri as numpy2ri
 import rpy2.robjects as robjects
@@ -287,39 +283,3 @@ class MotionDynamicTimeWarping(MotionNormalization):
                     self.dic_distgrid[keys[j]][keys[i]] = distgrid
 
 
-def main():
-    data_folder = r'C:\git-repo\ulm\morphablegraphs\test_data\constrction\preprocessing\motion_dtw'
-    save_path = r'C:\repo\data\1 - MoCap\4 - Alignment\test'
-    ref_motion = data_folder + os.sep + 'pick_003_4_first_485_607.bvh'
-    dynamicTimeWarper = MotionDynamicTimeWarping()
-    dynamicTimeWarper.load_motion_from_files_for_DTW(data_folder)
-#    dynamicTimeWarper.set_ref_motion(ref_motion)
-    dynamicTimeWarper.dtw()
-#    dynamicTimeWarper.save_warped_motion(save_path)
-
-
-def test():
-    test_folder = r'C:\git-repo\ulm\morphablegraphs\test_data\constrction\motion_dtw\\'
-    ref_file = test_folder + 'walk_001_4_sidestepLeft_139_263.bvh'
-    test_file = test_folder + 'walk_001_4_sidestepLeft_263_425.bvh'
-    dynamicTimeWarper = MotionDynamicTimeWarping()
-    ref_bvh = BVHReader(ref_file)
-    test_bvh = BVHReader(test_file)
-#    skeleton = Skeleton(ref_bvh)
-    dynamicTimeWarper.ref_bvhreader = ref_bvh
-    ref_motion = {'filename': 'walk_001_4_sidestepLeft_139_263.bvh',
-                  'frames': ref_bvh.frames}
-    test_motion = {'filename': 'walk_001_4_sidestepLeft_263_425.bvh',
-                   'frames': test_bvh.frames}
-    distgrid = dynamicTimeWarper.get_distgrid(ref_motion, test_motion)
-    pathx, pathy, dist = dynamicTimeWarper.calculate_path(distgrid)
-    warping_index = dynamicTimeWarper.get_warping_index(
-        pathx,
-        pathy,
-        distgrid.shape)
-    print warping_index
-
-
-if __name__ == "__main__":
-    main()
-    # test()

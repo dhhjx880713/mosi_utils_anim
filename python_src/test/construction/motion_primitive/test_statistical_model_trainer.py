@@ -6,20 +6,15 @@ Created on Wed Jan 28 16:51:58 2015
 """
 
 import os
-import sys
-ROOTDIR = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-4]) + os.sep
 import json
-sys.path.append(ROOTDIR)
-TESTPATH = ROOTDIR + os.sep + r''
-TESTLIBPATH = ROOTDIR + os.sep + 'test/'
-sys.path.append(TESTLIBPATH)
-from morphablegraphs.construction.motion_primitive.statistical_model_trainer import StatisticalModelTrainer
-from morphablegraphs.construction.fpca.motion_dimension_reduction import  MotionDimensionReduction
-from morphablegraphs.construction.construction_algorithm_configuration import ConstructionAlgorithmConfigurationBuilder
-from morphablegraphs.animation_data.bvh import BVHReader
+from ....morphablegraphs.construction.motion_primitive.statistical_model_trainer import StatisticalModelTrainer
+from ....morphablegraphs.construction.fpca.motion_dimension_reduction import  MotionDimensionReduction
+from ....morphablegraphs.construction.construction_algorithm_configuration import ConstructionAlgorithmConfigurationBuilder
+from ....morphablegraphs.animation_data.bvh import BVHReader
+from ...libtest import params, pytest_generate_tests
+ROOTDIR = os.sep.join(['..'] * 3)
 TEST_DATA_PATH = ROOTDIR + os.sep + r'../test_data/constrction/fpca'
 TEST_RESULT_PATH = ROOTDIR + os.sep + r'../test_output/constrction'
-from libtest import params, pytest_generate_tests
 
 
 class TestStatisticalModelTrainer(object):

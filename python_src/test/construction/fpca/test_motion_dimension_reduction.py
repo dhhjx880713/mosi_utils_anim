@@ -6,26 +6,17 @@ Created on Wed Aug 05 15:18:54 2015
 """
 
 import os
-import sys
 import numpy as np
-ROOTDIR = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-4]) + os.sep
-sys.path.append(ROOTDIR)
 import glob
 import json
-TESTPATH = ROOTDIR + os.sep + r'construction/fpca'
-TESTLIBPATH = ROOTDIR + os.sep + 'test/'
-sys.path.append(TESTPATH)
-sys.path.append(TESTLIBPATH)
-from animation_data.bvh import BVHReader
-from construction.construction_algorithm_configuration import ConstructionAlgorithmConfigurationBuilder
-TEST_DATA_PATH = ROOTDIR + os.sep + \
-    r'../test_data/constrction/fpca'
-TEST_RESULT_PATH = ROOTDIR + os.sep + \
-    r'../test_output/constrction/fpca'
-
-from motion_dimension_reduction import MotionDimensionReduction
-from libtest import params, pytest_generate_tests
+from ....morphablegraphs.animation_data.bvh import BVHReader
+from ....morphablegraphs.construction.construction_algorithm_configuration import ConstructionAlgorithmConfigurationBuilder
+from ....morphablegraphs.construction.fpca.motion_dimension_reduction import MotionDimensionReduction
+from ...libtest import params, pytest_generate_tests
+ROOTDIR = os.sep.join(['..'] * 3)
+TEST_DATA_PATH = ROOTDIR + os.sep + r'../test_data/constrction/fpca'
 MOTION_DATA_FILE = TEST_DATA_PATH + os.sep + 'motion_data.json'
+
 
 def gen_test_data():
     data_folder = r'C:\repo\data\1 - MoCap\4 - Alignment\elementary_action_pick\firstLeftHand'

@@ -5,20 +5,15 @@ Created on Tue Jul 07 10:34:25 2015
 @author: du
 """
 import os
-import sys
-ROOT_DIR = os.sep.join(['..'] * 2)
-sys.path.append(ROOT_DIR)
-from animation_data.motion_editing import get_rotation_angle, \
-    get_cartesian_coordinates_from_euler_full_skeleton, \
-    transform_euler_frames, \
-    pose_orientation_euler
-from animation_data.bvh import BVHReader, BVHWriter
+from ...animation_data.motion_editing import get_rotation_angle, \
+                                             get_cartesian_coordinates_from_euler_full_skeleton, \
+                                             transform_euler_frames, \
+                                             pose_orientation_euler
+from ...animation_data.bvh import BVHReader, BVHWriter
 from motion_segmentation import MotionSegmentation
-from animation_data.skeleton import Skeleton
+from ...animation_data.skeleton import Skeleton
 import glob
 import numpy as np
-from utilities.io_helper_functions import load_json_file
-SERVICE_CONFIG_FILE = ROOT_DIR + os.sep + "config" + os.sep + "service.json"
 
 
 class MotionNormalization(MotionSegmentation):
@@ -109,30 +104,3 @@ class MotionNormalization(MotionSegmentation):
                       is_quaternion=False)
 
 
-def main():
-    normalizer = MotionNormalization()
-    data_folder = r'C:\git-repo\ulm\morphablegraphs\test_data\constrction\motion_normalization\cutting_results\\'
-    save_path = r'C:\git-repo\ulm\morphablegraphs\test_data\constrction\motion_dtw\\'
-#    normalizer.load_data_from_file(data_folder)
-    origin_point = {'x': 0, 'y': 0, 'z': 0}
-    ref_orientation = {'x': 0, 'y': 0, 'z': -1}
-    touch_ground_joint = 'Bip01_R_Toe0'
-    ref_bvh = ROOT_DIR + os.sep + 'skeleton.bvh'
-#    path_data = load_json_file(SERVICE_CONFIG_FILE)
-#    data_path = path_data['data_folder']
-#    elementary_action = 'walk'
-#    primitive_type = 'sidestepLeft'
-
-#    annotation = retarget_folder + os.sep + 'key_frame_annotation.txt'
-#    normalizer.segment_motions(elementary_action,
-#                                     primitive_type,
-#                                     retarget_folder,
-#                                     annotation)
-    normalizer.load_data_from_files_for_normalization(data_folder)
-#    normalizer.set_ref_bvh(ref_bvh)
-    normalizer.normalize_root(origin_point, touch_ground_joint)
-    normalizer.align_motion(0, ref_orientation)
-    normalizer.save_motion(save_path)
-
-if __name__ == '__main__':
-    main()

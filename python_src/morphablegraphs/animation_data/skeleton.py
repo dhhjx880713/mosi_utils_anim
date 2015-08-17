@@ -66,3 +66,6 @@ class Skeleton(object):
                     "children" in self.node_names[node_name].keys():
                 self.node_name_map[node_name] = j
                 j += 1
+
+    def get_joint_weights(self):
+        return self.joint_weights

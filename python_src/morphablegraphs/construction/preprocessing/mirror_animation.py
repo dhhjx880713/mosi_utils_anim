@@ -5,17 +5,15 @@ Created on Thu Jan 29 13:56:45 2015
 @author: herrmann
 """
 import copy
-from lib.bvh import *
-from lib.quaternion_frame import *
-from helper_functions import *
+from ...animation_data.bvh import *
+from ...animation_data.quaternion_frame import *
 from cgkit.cgtypes import quat, mat4
-
+from ...animation_data.motion_editing import euler_to_quaternion, \
+                                             quaternion_to_euler
 
 def flip_coordinate_system(q):
     matrix = np.array(q.toMat4().toList()).reshape(4, 4)
     print "before", matrix
-    #l = 4
-    #r = 3
     temp = matrix[0]
     matrix[0] = matrix[1]
     matrix[1] = temp
@@ -139,26 +137,3 @@ def mirror_animation(node_names, frames, mirror_map):
     return new_frames
 
 
-if __name__ == "__main__":
-
-    in_file_name = "test.bvh"
-    out_file_name = "mirrored.bvh"
-
-    mirror_map = {"LeftShoulder": "RightShoulder",
-                  "LeftArm": "RightArm",
-                  "LeftForeArm": "RightForeArm",
-                  "LeftHand": "RightHand",
-                  "LeftUpLeg": "RightUpLeg",
-                  "LeftLeg": "RightLeg",
-                  "LeftFoot": "RightFoot"
-                  }
-    for k in mirror_map.keys():
-        mirror_map[mirror_map[k]] = k
-
-    bvh_reader = BVHReader(in_file_name)
-    frames = get_quaternion_frames(in_file_name)
-    frames = get_frame_vectors_from_quat_animations(frames)
-    # print frames
-    new_frames = mirror_animation(bvh_reader.node_names, frames, mirror_map)
-    BVHWriter(out_file_name, bvh_reader, new_frames, frame_time=0.013889,
-              is_quaternion=True)

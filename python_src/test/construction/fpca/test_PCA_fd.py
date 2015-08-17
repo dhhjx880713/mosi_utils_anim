@@ -1,18 +1,13 @@
 __author__ = 'hadu01'
+
 import os
-import sys
 import numpy as np
-ROOTDIR = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-4]) + os.sep
-sys.path.append(ROOTDIR)
 import json
-TESTPATH = ROOTDIR + os.sep + r'construction/fpca'
-TESTLIBPATH = ROOTDIR + os.sep + 'test/'
-sys.path.append(TESTPATH)
-sys.path.append(TESTLIBPATH)
-from PCA_fd import PCA_fd
-TEST_DATA_PATH = ROOTDIR + os.sep + \
-    r'../test_data/constrction/fpca'
-from libtest import params, pytest_generate_tests
+from ....morphablegraphs.construction.fpca.PCA_fd import PCA_fd
+from ...libtest import params, pytest_generate_tests
+ROOTDIR = os.sep.join(['..'] * 3)
+TEST_DATA_PATH = ROOTDIR + os.sep + r'../test_data/constrction/fpca'
+
 
 class TestPCA_fd(object):
 
