@@ -16,7 +16,7 @@ from objective_functions import obj_spatial_error_sum, obj_spatial_error_sum_and
 
 
     
-class MotionPrimitiveGenerator(object):
+class MotionPrimitiveSampleGenerator(object):
     """
     Parameters
     ----------

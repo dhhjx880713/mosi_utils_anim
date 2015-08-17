@@ -2,7 +2,7 @@ __author__ = 'erhe01'
 
 from ..utilities.exceptions import PathSearchError
 from ..motion_model import NODE_TYPE_START, NODE_TYPE_END
-from motion_primitive_generator import MotionPrimitiveGenerator
+from motion_primitive_generator import MotionPrimitiveSampleGenerator
 from constraint.motion_primitive_constraints_builder import MotionPrimitiveConstraintsBuilder
 from constraint.time_constraints_builder import TimeConstraintsBuilder
 from numerical_minimizer import NumericalMinimizer
@@ -32,7 +32,7 @@ class ElementaryActionGenerator(object):
         self.motion_primitive_constraints_builder.set_action_constraints(
             self.action_constraints)
 
-        self.motion_primitive_generator = MotionPrimitiveGenerator(
+        self.motion_primitive_generator = MotionPrimitiveSampleGenerator(
             self.action_constraints, self._algorithm_config)
         self.node_group = self.action_constraints.get_node_group()
         self.arc_length_of_end = self.morphable_graph.nodes[
