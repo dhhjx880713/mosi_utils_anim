@@ -13,7 +13,7 @@ from ....morphablegraphs.animation_data.bvh import BVHReader
 from ....morphablegraphs.construction.construction_algorithm_configuration import ConstructionAlgorithmConfigurationBuilder
 from ....morphablegraphs.construction.fpca.motion_dimension_reduction import MotionDimensionReduction
 from ...libtest import params, pytest_generate_tests
-ROOTDIR = os.sep.join(['..'] * 3)
+ROOTDIR = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-4]) + os.sep
 TEST_DATA_PATH = ROOTDIR + os.sep + r'../test_data/constrction/fpca'
 MOTION_DATA_FILE = TEST_DATA_PATH + os.sep + 'motion_data.json'
 

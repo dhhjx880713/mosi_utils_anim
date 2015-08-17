@@ -11,7 +11,7 @@ import glob
 from ....morphablegraphs.animation_data.bvh import BVHReader
 from ....morphablegraphs.construction.preprocessing.motion_dtw import MotionDynamicTimeWarping
 from ...libtest import params, pytest_generate_tests
-ROOTDIR = os.sep.join(['..'] * 3)
+ROOTDIR = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-4]) + os.sep
 TESTDATAPATH = ROOTDIR + os.sep + r'../test_data/constrction/preprocessing/motion_dtw'
 TESTRESULTPATH = ROOTDIR + os.sep + r'../test_output/constrction/preprocessing/motion_dtw'
 

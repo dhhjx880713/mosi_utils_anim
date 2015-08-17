@@ -15,7 +15,7 @@ import rpy2.robjects as robjects
 import matplotlib.pyplot as plt
 import glob
 import json
-
+import os
 
 class MotionDynamicTimeWarping(MotionNormalization):
 
