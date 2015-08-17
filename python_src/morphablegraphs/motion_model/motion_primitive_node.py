@@ -12,6 +12,7 @@ from motion_primitive import MotionPrimitive
 from ..animation_data.motion_editing import extract_root_positions_from_frames, get_arc_length_from_points
 from ..space_partitioning.cluster_tree import ClusterTree
 
+
 class MotionPrimitiveNode(object):
     """ Contains a motion primitive and all its outgoing transitions. 
 
@@ -28,7 +29,6 @@ class MotionPrimitiveNode(object):
     \tEach entry contains a tuple (transition model, transition type)
     """
     def __init__(self):
-
         self.outgoing_edges = {}
         self.node_type = NODE_TYPE_STANDARD
         self.n_standard_transitions = 0
@@ -40,11 +40,9 @@ class MotionPrimitiveNode(object):
         self.action_name = None
         self.primitive_name = None
         self.motion_primitive = None
-        self.cluster_tree = None 
+        self.cluster_tree = None
 
-        
     def init_from_file(self, action_name, primitive_name, motion_primitive_filename, node_type=NODE_TYPE_STANDARD):
-                 
         self.outgoing_edges = {}
         self.node_type = node_type
         self.n_standard_transitions = 0
@@ -56,35 +54,28 @@ class MotionPrimitiveNode(object):
         self.action_name = action_name
         self.primitive_name = primitive_name
         self.motion_primitive = MotionPrimitive(motion_primitive_filename)
-        
         self.cluster_tree = None
-        cluster_file_name =  motion_primitive_filename[:-7]
+        cluster_file_name = motion_primitive_filename[:-7]
         self._construct_space_partition(cluster_file_name)
-        
-    def init_from_dict(self,action_name, desc):
+
+    def init_from_dict(self, action_name, desc):
         self.action_name = action_name
         self.primitive_name = desc["name"]
         self.motion_primitive = MotionPrimitive(None)
         self.motion_primitive._initialize_from_json(desc["mm"])
         self.cluster_tree = desc["space_partition"]
-        #print desc.keys()
         if "stats" in desc.keys():
             self.parameter_bb = desc["stats"]["pose_bb"]
             self.cartesian_bb = desc["stats"]["cartesian_bb"]
             self.velocity_data = desc["stats"]["pose_velocity"]
-   
-        
-        return
-        
+
     def _construct_space_partition(self, cluster_file_name, reconstruct=False):
         self.cluster_tree = None
-        if not reconstruct and os.path.isfile(cluster_file_name+"cluster_tree.pck"):#os.path.isfile(cluster_file_name+"tree.data") and os.path.isfile(cluster_file_name+"tree.json"):
+        if not reconstruct and os.path.isfile(cluster_file_name+"cluster_tree.pck"):
             print "load space partitioning data structure"
-            self.cluster_tree = ClusterTree()#)
-            #self.cluster_tree.load_from_file(cluster_file_name+"tree")
+            self.cluster_tree = ClusterTree()
             self.cluster_tree.load_from_file_pickle(cluster_file_name+"cluster_tree.pck")
 
-              
     def search_best_sample(self, obj, data, n_candidates=2):
         """ Searches the best sample from a space partition data structure.
         Parameters
@@ -104,20 +95,19 @@ class MotionPrimitiveNode(object):
              None is returned if data structure was not initialized
         """
         if self.cluster_tree is not None:
-            return self.cluster_tree.find_best_example_excluding_search_candidates(obj, data, n_candidates)#_boundary_knn
+            return self.cluster_tree.find_best_example_excluding_search_candidates(obj, data, n_candidates)
         else:
             return None
-        
+
     def sample_parameters(self):
-         """ Samples a low dimensional vector from statistical model.
-         Returns
-         -------
-         * parameters: numpy.ndarray
-         \tLow dimensional motion parameters.
-        
-         """
-         return self.motion_primitive.sample(return_lowdimvector=True)
-        
+        """ Samples a low dimensional vector from statistical model.
+        Returns
+        -------
+        * parameters: numpy.ndarray
+        \tLow dimensional motion parameters.
+        """
+        return self.motion_primitive.sample(return_lowdimvector=True)
+
     def generate_random_transition(self, transition_type=NODE_TYPE_STANDARD):
         """ Returns the key of a random transition.
 
@@ -156,7 +146,8 @@ class MotionPrimitiveNode(object):
     def update_attributes(self,n_samples=50,  method="median"):
         """ Updates attributes for faster look up
         """
-        self.n_standard_transitions = len([e for e in self.outgoing_edges.keys() if self.outgoing_edges[e].transition_type == NODE_TYPE_STANDARD])
+        self.n_standard_transitions = len([e for e in self.outgoing_edges.keys()
+                                           if self.outgoing_edges[e].transition_type == NODE_TYPE_STANDARD])
         
         sample_lengths = [self._get_random_sample_step_length()for i in xrange(n_samples)]
         
@@ -180,9 +171,8 @@ class MotionPrimitiveNode(object):
         *step_length: float
         \tThe arc length of the path of the motion primitive
         """
-        current_parameters =  self.sample_parameters()
+        current_parameters = self.sample_parameters()
         return self.get_step_length_for_sample(current_parameters, method)
-
 
     def get_step_length_for_sample(self, s, method="arc_length"):
         """Backproject the motion and get the step length and the last keyframe on the canonical timeline
@@ -216,9 +206,9 @@ class MotionPrimitiveNode(object):
         
         Parameters
         ----------
-        * to_key: string
-        \t Name of the action and motion primitive we want to transition to. 
-        \t Should have the format "action_motionprimitive" 
+        * to_key: tuple
+        \t Identitfier of the action and motion primitive we want to transition to.
+        \t Should have the format (action name, motionprimitive name)
         
         * current_parameters: numpy.ndarray
         \tLow dimensional motion parameters.
@@ -231,15 +221,15 @@ class MotionPrimitiveNode(object):
         gmm = self.outgoing_edges[to_key].transition_model.predict(current_parameters)
         next_parameters = np.ravel(gmm.sample())  
         return next_parameters
-        
+
     def predict_gmm(self, to_key, current_parameters):
         """ Predicts a Gaussian Mixture Model for a transition using the transition model.
         
         Parameters
         ----------
-        * to_key: string
-        \t Name of the action and motion primitive we want to transition to. 
-        \t Should have the format "action_motionprimitive" 
+        * to_key: tuple
+        \t Identitfier of the action and motion primitive we want to transition to.
+        \t Should have the format (action name, motionprimitive name)
         
         * current_parameters: numpy.ndarray
         \tLow dimensional motion parameters.

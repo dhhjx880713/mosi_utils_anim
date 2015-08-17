@@ -13,18 +13,7 @@ from ..utilities.io_helper_functions import write_to_json_file
  
 class MotionPrimitiveNodeGroup(object):
     """ Contains the motion primitives of an elementary action as nodes and
-    transition models as edges. 
-             
-    Parameters
-    ----------
-    * elementary_action_name: string
-    \t The name of the elementary action that the subgraph represents
-    
-    * morphable_model_directory: string
-    \tThe directory of the morphable models of an elementary action.
-    
-    * transition_model_directory: string
-    \tThe directory of the transition models.
+    transition models as edges.
     """
     def __init__(self):
         self.elementary_action_name = None
@@ -64,7 +53,7 @@ class MotionPrimitiveNodeGroup(object):
             #create a map from semantic label to motion primitive
             for motion_primitive in self.meta_information["annotations"].keys():
                 if motion_primitive != "all_primitives":
-                    motion_primitve_annotations  = self.meta_information["annotations"][motion_primitive]
+                    motion_primitve_annotations = self.meta_information["annotations"][motion_primitive]
                     for label in motion_primitve_annotations.keys():
                         self.annotation_map[label] = motion_primitive
              
@@ -179,9 +168,9 @@ class MotionPrimitiveNodeGroup(object):
         \tName of the current motion primitive
         * current_parameters: np.ndarray
         \tParameters of the current state
-        * to_key: string
-        \t Name of the action and motion primitive we want to transition to. 
-        \t Should have the format "action_motionprimitive" 
+        * to_key: tuple
+        \t Identitfier of the action and motion primitive we want to transition to.
+        \t Should have the format (action name, motionprimitive name)
         * use_transition_model: bool
         \t flag to set whether a prediction from the transition model should be made or not.
         """

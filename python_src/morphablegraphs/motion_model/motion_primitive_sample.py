@@ -125,7 +125,7 @@ def main():
     time_function = np.array(data['time_function'])
 
     targetfile = 'test.bvh'
-    sample = MotionSample(canonical_motion, canonical_framenumber,
+    sample = MotionPrimitiveSample(canonical_motion, canonical_framenumber,
                           time_function)
 
     sample.save_motion_vector(targetfile)
