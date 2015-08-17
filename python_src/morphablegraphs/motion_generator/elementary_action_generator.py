@@ -2,7 +2,7 @@ __author__ = 'erhe01'
 
 from ..utilities.exceptions import PathSearchError
 from ..motion_model import NODE_TYPE_START, NODE_TYPE_END
-from motion_primitive_generator import MotionPrimitiveSampleGenerator
+from motion_primitive_sample_generator import MotionPrimitiveSampleGenerator
 from constraint.motion_primitive_constraints_builder import MotionPrimitiveConstraintsBuilder
 from constraint.time_constraints_builder import TimeConstraintsBuilder
 from numerical_minimizer import NumericalMinimizer
