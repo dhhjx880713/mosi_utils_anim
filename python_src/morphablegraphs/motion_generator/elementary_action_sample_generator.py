@@ -10,7 +10,7 @@ from motion_generator_result import GraphWalkEntry
 from objective_functions import obj_time_error_sum
 
 
-class ElementaryActionGenerator(object):
+class ElementaryActionSampleGenerator(object):
 
     def __init__(self, morphable_graph, algorithm_config):
         self.morphable_graph = morphable_graph
