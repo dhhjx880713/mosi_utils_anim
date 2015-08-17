@@ -14,7 +14,7 @@ dirname, filename = os.path.split(os.path.abspath(__file__))
 os.chdir(dirname)
 import glob
 import time
-from morphablegraphs.motion_generator.motion_sample_generator import MotionGenerator
+from morphablegraphs.motion_generator.motion_sample_generator import MotionSampleGenerator
 from morphablegraphs.motion_generator.algorithm_configuration import AlgorithmConfigurationBuilder
 from morphablegraphs.utilities.io_helper_functions import load_json_file
 ALGORITHM_CONFIG_FILE = "config" + os.sep + "algorithm.json"
@@ -38,7 +38,7 @@ def run_pipeline(service_config, algorithm_config_file):
     algorithm_config = algorithm_config_builder.build()
 
     start = time.clock()
-    motion_generator = MotionGenerator(service_config, algorithm_config)
+    motion_generator = MotionSampleGenerator(service_config, algorithm_config)
     print "Finished construction from file in", time.clock() - start, "seconds"
 
     motion = motion_generator.generate_motion(input_file, export=False)

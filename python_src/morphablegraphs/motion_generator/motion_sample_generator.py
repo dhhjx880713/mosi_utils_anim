@@ -15,7 +15,7 @@ import numpy as np
 from morphablegraphs.utilities.io_helper_functions import load_json_file
 from morphablegraphs.motion_model.motion_primitive_graph_builder import MotionPrimitiveGraphBuilder
 from constraint.elementary_action_constraints_builder import ElementaryActionConstraintsBuilder
-from elementary_action_sample_generator import ElementaryActionGenerator
+from elementary_action_sample_generator import ElementaryActionSampleGenerator
 from . import global_counter_dict
 from algorithm_configuration import AlgorithmConfigurationBuilder
 from motion_generator_result import MotionGeneratorResult
@@ -23,7 +23,7 @@ from motion_generator_result import MotionGeneratorResult
 SKELETON_FILE = "skeleton.bvh" # TODO replace with standard skeleton in data directory
 
 
-class MotionGenerator(object):
+class MotionSampleGenerator(object):
     """
     Creates a MorphableGraph instance and provides a method to synthesize a
     motion based on a json input file
@@ -45,7 +45,7 @@ class MotionGenerator(object):
                                                 transition_directory,
                                                 self._algorithm_config["use_transition_model"])
         self.morphable_graph = graph_builder.build()
-        self.elementary_action_generator = ElementaryActionGenerator(self.morphable_graph, self._algorithm_config)
+        self.elementary_action_generator = ElementaryActionSampleGenerator(self.morphable_graph, self._algorithm_config)
         return
 
     def set_algorithm_config(self, algorithm_config):
