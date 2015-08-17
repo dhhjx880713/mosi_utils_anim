@@ -14,9 +14,9 @@ dirname, filename = os.path.split(os.path.abspath(__file__))
 os.chdir(dirname)
 import glob
 import time
-from motion_generator.motion_generator import MotionGenerator
-from motion_generator.algorithm_configuration import AlgorithmConfigurationBuilder
-from utilities.io_helper_functions import load_json_file
+from morphablegraphs.motion_generator.motion_generator import MotionGenerator
+from morphablegraphs.motion_generator.algorithm_configuration import AlgorithmConfigurationBuilder
+from morphablegraphs.utilities.io_helper_functions import load_json_file
 ALGORITHM_CONFIG_FILE = "config" + os.sep + "algorithm.json"
 SERVICE_CONFIG_FILE = "config" + os.sep + "service.json"
 

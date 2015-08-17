@@ -240,6 +240,39 @@ def convert_quaternion_frames_to_euler_frames(quaternion_frames):
 
     return np.array(euler_frames)
 
+def convert_quaternion_to_euler(quaternion_frames):
+    """Returns an nparray of Euler frames
+
+    Parameters
+    ----------
+
+     * quaternion_frames: List of quaternion frames
+    \tQuaternion frames that shall be converted to Euler frames
+
+    Returns
+    -------
+
+    * euler_frames: numpy array
+    \tEuler frames
+    """
+
+    def gen_4_tuples(it):
+        """Generator of n-tuples from iterable"""
+
+        return zip(it[0::4], it[1::4], it[2::4], it[3::4])
+
+    def get_euler_frame(quaternionion_frame):
+        """Converts a quaternion frame into an Euler frame"""
+
+        euler_frame = list(quaternionion_frame[:3])
+        for quaternion in gen_4_tuples(quaternionion_frame[3:]):
+            euler_frame += quaternion_to_euler(quaternion)
+
+        return euler_frame
+
+    euler_frames = map(get_euler_frame, quaternion_frames)
+
+    return np.array(euler_frames)
 
 def euler_substraction(theta1, theta2):
     '''
