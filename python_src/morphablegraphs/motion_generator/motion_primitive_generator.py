@@ -51,9 +51,8 @@ class MotionPrimitiveGenerator(object):
             self._constrained_gmm_builder = None
         self.numerical_minimizer = NumericalMinimizer(self._algorithm_config)
         self.numerical_minimizer.set_objective_function(obj_spatial_error_sum_and_naturalness)
-        
-        
-    def generate_motion_primitive_from_constraints(self, motion_primitive_constraints, prev_motion):
+
+    def generate_motion_primitive_sample_from_constraints(self, motion_primitive_constraints, prev_motion):
         """Calls get_optimal_parameters and backpojects the results.
         
         Parameters
@@ -65,15 +64,9 @@ class MotionPrimitiveGenerator(object):
             
         Returns
         -------
-        * quat_frames : list of np.ndarray
-            list of skeleton pose parameters.
-        * parameters : np.ndarray
-            low dimensional motion parameters used to generate the frames
+        * motion_primitive_sample: MotionPrimitiveSample
         """
-    
- 
         mp_name = motion_primitive_constraints.motion_primitive_name
-  
         if len(prev_motion.graph_walk) > 0:
             prev_mp_name = prev_motion.graph_walk[-1].node_key[1]
             prev_parameters = prev_motion.graph_walk[-1].parameters
@@ -82,22 +75,20 @@ class MotionPrimitiveGenerator(object):
             prev_mp_name = ""
             prev_parameters = None
  
-        use_optimization= self.use_optimization or motion_primitive_constraints.use_optimization
-        motion_primitive_constraints.use_optimization   
-        
+        use_optimization = self.use_optimization or motion_primitive_constraints.use_optimization
+        motion_primitive_constraints.use_optimization
         try:
-            parameters = self.get_optimal_motion_primitive_parameters(mp_name,
+            motion_primitive_parameters = self.get_optimal_motion_primitive_parameters(mp_name,
                                                 motion_primitive_constraints,
                                                 prev_mp_name=prev_mp_name,
                                                 prev_frames=prev_motion.quat_frames,
                                                 prev_parameters=prev_parameters, use_optimization=use_optimization)
         except  ConstraintError as e:
             print "Exception",e.message
-            raise SynthesisError(prev_motion.quat_frames,e.bad_samples)
+            raise SynthesisError(prev_motion.quat_frames, e.bad_samples)
             
-        tmp_quat_frames = self._morphable_graph.nodes[(self.action_name,mp_name)].motion_primitive.back_project(parameters, use_time_parameters=True).get_motion_vector()
-    
-        return tmp_quat_frames, parameters
+        motion_primitive_sample = self._morphable_graph.nodes[(self.action_name, mp_name)].motion_primitive.back_project(motion_primitive_parameters, use_time_parameters=True)
+        return motion_primitive_sample
 
 
     def get_optimal_motion_primitive_parameters(self, mp_name,
