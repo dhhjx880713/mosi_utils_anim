@@ -6,7 +6,7 @@ Created on Fri Jul 10 18:36:00 2015
 """
 import sys
 import os
-ROOTDIR = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-3]) + os.sep
+ROOTDIR = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-5]) + os.sep
 sys.path.append(ROOTDIR)
 from morphablegraphs.motion_generator.constraint.splines.parameterized_spline import ParameterizedSpline
 

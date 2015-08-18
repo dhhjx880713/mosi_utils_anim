@@ -2,14 +2,11 @@ import sys
 import os
 ROOTDIR = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-5]) + os.sep
 sys.path.append(ROOTDIR)
-import numpy as np
 from morphablegraphs.animation_data.bvh import BVHReader
 from morphablegraphs.animation_data.skeleton import Skeleton
 from morphablegraphs.motion_generator.constraint.keyframe_constraints.pose_constraint import PoseConstraint
 from morphablegraphs.motion_generator.constraint.motion_primitive_constraints_builder import MotionPrimitiveConstraintsBuilder
 from morphablegraphs.animation_data.motion_editing import convert_euler_frames_to_quaternion_frames
-from morphablegraphs.animation_data.quaternion_frame import QuaternionFrame
-
 
 def test_pose_constraint():
     file_path = ROOTDIR+os.sep.join(["..", "test_data", "constrction", "preprocessing", "motion_dtw","walk_001_4_sidestepLeft_139_263.bvh"])

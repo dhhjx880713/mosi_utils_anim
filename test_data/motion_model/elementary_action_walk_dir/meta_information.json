@@ -1,0 +1,49 @@
+{
+    "end_states": [
+        "endLeftStance", 
+        "endRightStance"
+    ], 
+    "stats": {
+        "rightStance": {
+            "n_standard_transitions": 1, 
+            "average_step_length": 49.588065028850437
+        }, 
+        "beginRightStance": {
+            "n_standard_transitions": 1, 
+            "average_step_length": 31.979254107531759
+        }, 
+        "leftStance": {
+            "n_standard_transitions": 1, 
+            "average_step_length": 50.203356801103723
+        }, 
+        "sidestepLeft": {
+            "n_standard_transitions": 0, 
+            "average_step_length": 54.283320775118632
+        }, 
+        "sidestepRight": {
+            "n_standard_transitions": 0, 
+            "average_step_length": 54.170046616388518
+        }, 
+        "endRightStance": {
+            "n_standard_transitions": 0, 
+            "average_step_length": 23.545859648125187
+        }, 
+        "endLeftStance": {
+            "n_standard_transitions": 0, 
+            "average_step_length": 29.616090288260288
+        }, 
+        "beginLeftStance": {
+            "n_standard_transitions": 1, 
+            "average_step_length": 30.068766053347971
+        }
+    }, 
+    "annotations": {
+        "all_primitives": {
+            "contact": "all_keyframes"
+        }
+    }, 
+    "start_states": [
+        "beginLeftStance", 
+        "beginRightStance"
+    ]
+}
