@@ -2,21 +2,22 @@ __author__ = 'erhe01'
 
 from ..utilities.exceptions import PathSearchError
 from ..motion_model import NODE_TYPE_START, NODE_TYPE_END
-from motion_primitive_generator import MotionPrimitiveGenerator
+from motion_primitive_sample_generator import MotionPrimitiveSampleGenerator
 from constraint.motion_primitive_constraints_builder import MotionPrimitiveConstraintsBuilder
 from constraint.time_constraints_builder import TimeConstraintsBuilder
 from numerical_minimizer import NumericalMinimizer
-from motion_generator_result import GraphWalkEntry
+from motion_sample import GraphWalkEntry
 from objective_functions import obj_time_error_sum
 
 
-class ElementaryActionGenerator(object):
+class ElementaryActionSampleGenerator(object):
 
     def __init__(self, morphable_graph, algorithm_config):
         self.morphable_graph = morphable_graph
         self._algorithm_config = algorithm_config
         self.motion_primitive_constraints_builder = MotionPrimitiveConstraintsBuilder()
-        self.motion_primitive_constraints_builder.set_algorithm_config(self._algorithm_config)
+        self.motion_primitive_constraints_builder.set_algorithm_config(
+            self._algorithm_config)
         self.numerical_minimizer = NumericalMinimizer(self._algorithm_config)
         self.numerical_minimizer.set_objective_function(obj_time_error_sum)
         return
@@ -31,7 +32,7 @@ class ElementaryActionGenerator(object):
         self.motion_primitive_constraints_builder.set_action_constraints(
             self.action_constraints)
 
-        self.motion_primitive_generator = MotionPrimitiveGenerator(
+        self.motion_primitive_generator = MotionPrimitiveSampleGenerator(
             self.action_constraints, self._algorithm_config)
         self.node_group = self.action_constraints.get_node_group()
         self.arc_length_of_end = self.morphable_graph.nodes[
@@ -73,7 +74,7 @@ class ElementaryActionGenerator(object):
         return new_travelled_arc_length
 
     def _update_annotated_motion(
-            self, current_state, quat_frames, parameters, motion_primitive_constraints, motion):
+            self, current_state, quat_frames, motion_primitive_constraints, motion):
         """ Concatenate frames to motion and apply smoothing """
         canonical_keyframe_labels = self.node_group.get_canonical_keyframe_labels(
             current_state[1])
@@ -150,19 +151,22 @@ class ElementaryActionGenerator(object):
             if motion_primitive_constraints is None:
                 return False
 
-            tmp_quat_frames, parameters = self.motion_primitive_generator.generate_motion_primitive_from_constraints(
+            motion_primitive_sample = self.motion_primitive_generator.generate_motion_primitive_sample_from_constraints(
                 motion_primitive_constraints, motion)
 
             self._update_annotated_motion(
                 current_state,
-                tmp_quat_frames,
-                parameters,
+                motion_primitive_sample.get_motion_vector(False),
                 motion_primitive_constraints,
                 motion)
             if self.action_constraints.trajectory is not None:
                 travelled_arc_length = self._update_travelled_arc_length(
                     motion.quat_frames, motion, travelled_arc_length)
-            motion.graph_walk.append(GraphWalkEntry(current_state, parameters, travelled_arc_length))
+            motion.graph_walk.append(
+                GraphWalkEntry(
+                    current_state,
+                    motion_primitive_sample.low_dimensional_parameters,
+                    travelled_arc_length))
             temp_step += 1
 
         motion.step_count += temp_step
@@ -177,7 +181,8 @@ class ElementaryActionGenerator(object):
         return True
 
     def _optimize_over_graph_walk(self, motion, start_step):
-        time_constraints = TimeConstraintsBuilder(self.action_constraints, motion, start_step).build()
+        time_constraints = TimeConstraintsBuilder(
+            self.action_constraints, motion, start_step).build()
         data = (self.morphable_graph, motion, time_constraints)
         self.numerical_minimizer.set_objective_function_parameters(data)
         self.action_constraints

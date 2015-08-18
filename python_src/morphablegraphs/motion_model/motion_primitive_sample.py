@@ -25,42 +25,39 @@ class MotionPrimitiveSample(object):
 
     Parameters
     ----------
-    * canonical_motion: numpy.ndarray
-    \tA tuple with a Numpy array holding the coeficients of the fd object
+    *low_dimensional_parameters: np.ndarray
+    \tparamters used to backproject the sample
 
-    * canonical_framenumber: int
-    \tThe number of frames in the canonical timeline
+    * canonical_motion_coefs: numpy.ndarray
+    \tA tuple with a Numpy array holding the coefficients of the multidimensional spline
 
     * time_function: numpy.ndarray
     \tThe indices of the timewarping function t'(t)
 
+    * knots: numpy.ndarray
+    \tThe knots for the coefficients of the multidimensional spline definition
+
     Attributes
     ----------
-    * canonical_motion: rpy2.robjects.vectors.ListVector
-    \tThe functional data (fd) object from the R-Library "fda" \
-    representing this motion in the canonical timeline
+    *low_dimensional_parameters: np.ndarray
+    \tparamters used to backproject the sample
 
-    * time_function: tuple with (scipy.UnivariateSpline, int)
+    * canonical_motion_splines: list
+    \tA list of spline definitions for each pose parameter to represent the multidimensional spline.
+
+    * time_function: no.ndarray
     \tThe timefunction t'(t) that warps the motion from the canonical timeline \
     into a new timeline. The first value of the tuple is the spline, the second\
     value is the new number of frames n'
 
-    * canonical_motion: numpy.ndarray
-    \tThe frames in the canonical timeline
-
-    * time_function: no.ndarray
-    \tThe function to evaluate a spline
-
-    * knots: numpy.ndarray
-    \tThe knots for the B-Spline definition
     """
-    def __init__(self, canonical_motion_coefs, time_function, knots):
-
+    def __init__(self, low_dimensional_parameters, canonical_motion_coefs, time_function, knots):
+        self.low_dimensional_parameters = low_dimensional_parameters
         self.time_function = time_function
         self.buffered_frames = None
         canonical_motion_coefs = canonical_motion_coefs.T
         self.n_pose_parameters = len(canonical_motion_coefs)
-        #create a spline for each pose parameter from the cooeffients
+        #create a b-spline for each pose parameter from the cooeffients
         self.canonical_motion_splines = [(knots, canonical_motion_coefs[i], B_SPLINE_DEGREE) for i in xrange(self.n_pose_parameters)]
         
 

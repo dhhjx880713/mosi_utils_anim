@@ -9,7 +9,7 @@ from copy import copy
 import numpy as np
 from ...utilities.exceptions import PathSearchError
 from ...animation_data.motion_editing import convert_quaternion_to_euler, \
-                                get_cartesian_coordinates_from_euler                               
+                                get_cartesian_coordinates_from_quaternion
 from motion_primitive_constraints import MotionPrimitiveConstraints
 from keyframe_constraints.pose_constraint import PoseConstraint
 from keyframe_constraints.direction_constraint import DirectionConstraint
@@ -79,7 +79,7 @@ class MotionPrimitiveConstraintsBuilder(object):
 
     def _set_pose_constraint(self, mp_constraints):
        if mp_constraints.settings["transition_pose_constraint_factor"] > 0.0 and self.status["prev_frames"] is not None:
-            pose_constraint_desc = self._create_frame_constraint()
+            pose_constraint_desc = self._create_frame_constraint_from_preceding_motion()
             pose_constraint = PoseConstraint(self.skeleton, pose_constraint_desc, self.precision["smooth"], mp_constraints.settings["transition_pose_constraint_factor"])
             mp_constraints.constraints.append(pose_constraint)
             mp_constraints.pose_constraint_set = True
@@ -123,27 +123,21 @@ class MotionPrimitiveConstraintsBuilder(object):
             for i in xrange(len(keyframe_constraint_desc_list)):
                 mp_constraints.constraints.append(PositionAndRotationConstraint(self.skeleton, keyframe_constraint_desc_list[i], self.precision["pos"], mp_constraints.settings["position_constraint_factor"]))
 
-    def _create_frame_constraint(self):
+    def _create_frame_constraint_from_preceding_motion(self):
         """ Create frame a constraint from the preceding motion.
         """
+        #last_euler_frame = np.ravel(convert_quaternion_to_euler([]))
+        return MotionPrimitiveConstraintsBuilder.create_frame_constraint(self.skeleton, self.status["prev_frames"][-1])
 
-        last_euler_frame = np.ravel(convert_quaternion_to_euler([self.status["prev_frames"][-1]]))
+    @classmethod
+    def create_frame_constraint(cls, skeleton, frame):
         position_dict = {}
-        for node_name in self.skeleton.node_name_map.keys():
-    #        target_position = get_cartesian_coordinates_from_quaternion(skeleton,
-    #                                                             node_name, frame)
-            joint_position = get_cartesian_coordinates_from_euler(self.skeleton,
-                                                                node_name,
-                                                                last_euler_frame)
-    #        print "add joint position to constraints",node_name,joint_position
+        for node_name in skeleton.node_name_map.keys():
+            joint_position = get_cartesian_coordinates_from_quaternion(skeleton, node_name, frame)
             position_dict[node_name] = joint_position
-        frame_constraint = {"frame_constraint":position_dict, "semanticAnnotation": {"firstFrame": True,"lastFrame": None}}
-    
+        frame_constraint = {"frame_constraint": position_dict, "semanticAnnotation": {"firstFrame": True, "lastFrame": None}}
         return frame_constraint
 
-
-    
-    
     def _make_guess_for_goal_arc_length(self):
         """ Makes a guess for a reachable arc length based on the current position.
             It searches for the closest point on the trajectory, retrieves the absolute arc length
@@ -161,20 +155,19 @@ class MotionPrimitiveConstraintsBuilder(object):
                         * self.trajectory_following_settings["heuristic_step_length_factor"]
         max_arc_length = last_arc_length + 4.0 * step_length
         #find closest point in the range of the last_arc_length and max_arc_length
-        closest_point,distance = self.action_constraints.trajectory.find_closest_point(last_pos,min_arc_length=last_arc_length,max_arc_length=max_arc_length)
+        closest_point,distance = self.action_constraints.trajectory.find_closest_point(last_pos, min_arc_length=last_arc_length, max_arc_length=max_arc_length)
         if closest_point is None:
             parameters = {"last":last_arc_length,"max":max_arc_length,"full": self.action_constraints.trajectory.full_arc_length}
             print "did not find closest point",closest_point,str(parameters)
             raise PathSearchError(parameters)
         # approximate arc length of the point closest to the current position
-        start_arc_length,eval_point = self.action_constraints.trajectory.get_absolute_arc_length_of_point(closest_point,min_arc_length=last_arc_length)
+        start_arc_length,eval_point = self.action_constraints.trajectory.get_absolute_arc_length_of_point(closest_point, min_arc_length=last_arc_length)
         #update arc length based on the step length of the next motion primitive
-        if start_arc_length == -1 :
+        if start_arc_length == -1:
             return self.action_constraints.trajectory.full_arc_length
         else:
             return start_arc_length + step_length# max(step_length-distance,0)
 
-        
     def _get_point_and_orientation_from_arc_length(self, arc_length):
         """ Returns a point, an orientation and a direction vector on the trajectory
         """
