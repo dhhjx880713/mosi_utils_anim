@@ -1,23 +1,26 @@
 ﻿Morphable Graphs implementation
+Developers:
+Han Du*, Markus Mauer°, Erik Herrmann*, Martin Manns°, Fabian Rupp°
+°Daimler AG
+*DFKI GmbH
 
 Python Dependencies:
  - Python 2.7.6.4 64 bit - WinPython is recommended, which already includes most of the other dependencies:  http://sourceforge.net/projects/winpython/files/WinPython_2.7/2.7.6.4/
- - NumPy 1.8.1
- - SciPy 0.15.1
- - scikit-learn 0.14.1
- - cgkit 2.0.0
- - rpy2 2.4.4 (requires R 3.0 or higher)
- - GPy 0.6.1 - can be found in the Dependencies directory
- - fk3.py + BOOST_PYTHON-VC110-MT-1_55.DLL  (C++ implementation of analytic forward kinematics + jacobian by LMS) - can be found in the Dependencies directory
+ - NumPy + mkl > 1.8.1 - install the precompiled binaries available from http://www.lfd.uci.edu/~gohlke/pythonlibs
+ - SciPy > 0.15.1 - install the precompiled binaries available from http://www.lfd.uci.edu/~gohlke/pythonlibs
+ - sklearn > 0.14.1 - use "pip install sklearn"
+ - cgkit 2.0.0 - install the precompiled binaries available from http://www.lfd.uci.edu/~gohlke/pythonlibs
+ - rpy2 2.4.4 - install the precompiled binaries available from http://www.lfd.uci.edu/~gohlke/pythonlibs, requires R 3.0 or higher
+ - GPy 0.6.1 - can be found in "dependencies.7z" on "https://redmine.viscenter.de/projects/motiongraph/files"
+ - fk3.py + BOOST_PYTHON-VC110-MT-1_55.DLL (C++ implementation of analytic forward kinematics + jacobian by LMS) - can be found in "dependencies.7z" on "https://redmine.viscenter.de/projects/motiongraph/files".
+                                                                                                                     Needs to be copied in the Python/DLLs directory
+ - tornado 4.0.2 - use "pip install tornado"
+ - singledispatch 3.4.0.3 - download and install the whl file from https://pypi.python.org/pypi/singledispatch
 
 R-Dependencies
- - R3.1.2 (http://cran.r-project.org/bin/windows/base/)
- - fda 
+ - R3.1.2 (dowload from http://cran.r-project.org/bin/windows/base/, set R_USER variable to your windows user name and R_HOME to the R installation path)
+ - fda  (use package manager of R)
 
-Developers:
-Han Du*, Markus Mauer°, Erik Herrmann*, Martin Manns°, Fabian Rupp°
-°Daimler AG 
-*DFKI GmbH
 
 Instructions:
 
