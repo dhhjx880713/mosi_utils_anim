@@ -285,7 +285,7 @@ def create_and_save(action1, prim1, action2, prim2, max_iters,
 
     X, Y = build_X_Y_pairs(action1, prim1, action2, prim2, transition_path)
 
-    gpmixture = GPMixture(X, Y, mm.gmm, max_iters=max_iters, messages=False)
+    gpmixture = GPMixture(X, Y, mm.gaussian_mixture_model, max_iters=max_iters, messages=False)
     gpmixture.train_gp_mixture()
     gpmixture.save(os.sep.join((output_path, "%s_%s_to_%s_%s.GPM" %
                                 (action1, prim1, action2, prim2))))
