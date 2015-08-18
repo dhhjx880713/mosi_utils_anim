@@ -6,10 +6,10 @@ Created on Thu Jul 16 17:19:46 2015
 """
 
 from ..utilities.io_helper_functions import load_json_file
-
+from ..animation_data.motion_editing import DEFAULT_SMOOTHING_WINDOW_SIZE
 
 class AlgorithmConfigurationBuilder(object):
-    """Can be used to generate a dict containing all settings for the algorithm    
+    """Generates a dict containing all settings for the algorithm
     """
     def __init__(self):
         self.use_constraints = True
@@ -19,7 +19,7 @@ class AlgorithmConfigurationBuilder(object):
         self.activate_parameter_check = False
         self.use_global_optimization = False
         self.apply_smoothing = True
-        self.smoothing_window = 20
+        self.smoothing_window = DEFAULT_SMOOTHING_WINDOW_SIZE
         self.n_random_samples = 100
         self.constrained_gmm_settings = dict()
         self.optimization_settings = dict()
@@ -51,7 +51,6 @@ class AlgorithmConfigurationBuilder(object):
         self.optimization_settings["error_scale_factor"] = 0.01
         self.optimization_settings["tolerance"] = 0.01
         self.optimization_settings["spatial_epsilon"] = 0.0
-        return
 
     def set_default_trajectory_following_settings(self):
         self.trajectory_following_settings = dict()

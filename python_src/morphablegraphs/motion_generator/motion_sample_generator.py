@@ -25,15 +25,15 @@ SKELETON_FILE = "skeleton.bvh" # TODO replace with standard skeleton in data dir
 
 class MotionSampleGenerator(object):
     """
-    Creates a MorphableGraph instance and provides a method to synthesize a
+    Creates a MotionPrimitiveGraph instance and provides a method to synthesize a
     motion based on a json input file
     
     Parameters
     ----------
+    * algorithm_config : dict
+        Contains options for the algorithm.
     * service_config: String
         Contains paths to the motion data.
-    * use_transition_model : Booelan
-        Activates the transition models.
     """
     def __init__(self,service_config, algorithm_config):
         self._service_config = service_config        
@@ -54,17 +54,6 @@ class MotionSampleGenerator(object):
         ----------
         * algorithm_config : dict
             Contains options for the algorithm.
-            When set to None AlgorithmSettingsBuilder() is used to generate default settings
-            use_constraints: Sets whether or not to use constraints 
-            use_optimization : Sets whether to activate optimization or use only sampling
-            use_constrained_gmm : Sets whether or not to constrain the GMM
-            use_transition_model : Sets whether or not to predict parameters using the transition model
-            apply_smoothing : Sets whether or not smoothing is applied on transitions
-            optimization_settings : parameters for the optimization algorithm: 
-                method, max_iterations,quality_scale_factor,error_scale_factor,
-                optimization_tolerance
-            constrained_gmm_settings : position and orientation precision + sample size                
-            If set to None default settings are used.        
         """
         if algorithm_config is None:
             algorithm_config_builder = AlgorithmConfigurationBuilder()
@@ -114,23 +103,15 @@ class MotionSampleGenerator(object):
           
         return motion
 
-
-    def _generate_motion_from_constraints(self, motion_constraints_builder):
+    def _generate_motion_from_constraints(self, elementary_action_constraints_builder):
         """ Converts a constrained graph walk to quaternion frames
          Parameters
         ----------
-        * morphable_graph : MorphableGraph
-            Data structure containing the morphable models
-        * motion_constrains_builder : ElementaryActionConstraintsBuilder
+        * elementary_action_constraints_builder : ElementaryActionConstraintsBuilder
             Contains a list of dictionaries with the entries for "subgraph","state" and "parameters"
-        * algorithm_config : dict
-            Contains parameters for the algorithm.
-        * skeleton : Skeleton
-            Used for to extract the skeleton hierarchy information.
-            
         Returns
         -------
-        * motion: MotionGeneratorResult
+        * motion: MotionSample
             Contains the quaternion frames and annotations of the frames based on actions.
         """
         if self._algorithm_config["verbose"]:
@@ -141,11 +122,10 @@ class MotionSampleGenerator(object):
         motion.skeleton = self.morphable_graph.skeleton
         motion.apply_smoothing = self._algorithm_config["apply_smoothing"]
         motion.smoothing_window = self._algorithm_config["smoothing_window"]
-        motion.start_pose = motion_constraints_builder.start_pose
-        motion.mg_input = motion_constraints_builder.mg_input
-        action_constraints = motion_constraints_builder.get_next_elementary_action_constraints()
+        motion.start_pose = elementary_action_constraints_builder.start_pose
+        motion.mg_input = elementary_action_constraints_builder.mg_input
+        action_constraints = elementary_action_constraints_builder.get_next_elementary_action_constraints()
         while action_constraints is not None:
-       
             if self._algorithm_config["debug_max_step"] > -1 and motion.step_count > self._algorithm_config["debug_max_step"]:
                 print "reached max step"
                 break
@@ -159,12 +139,9 @@ class MotionSampleGenerator(object):
             if not success:
                 print "Arborting conversion"
                 return motion
-            action_constraints = motion_constraints_builder.get_next_elementary_action_constraints() 
+            action_constraints = elementary_action_constraints_builder.get_next_elementary_action_constraints()
         return motion
-    
 
-    
-    
     def print_runtime_statistics(self, time_in_seconds):
         minutes = int(time_in_seconds/60)
         seconds = time_in_seconds % 60
@@ -174,4 +151,4 @@ class MotionSampleGenerator(object):
         print total_time_string
         print evaluations_string
         print error_string
-    
+
