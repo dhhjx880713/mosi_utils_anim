@@ -10,6 +10,32 @@ from motion_sample import GraphWalkEntry
 from objective_functions import obj_time_error_sum
 
 
+class ElementaryActionSampleGeneratorState(object):
+        def __init__(self):
+            self.start_step = -1
+            self.prev_action_name = None
+            self.prev_mp_name = None
+            self.start_frame = -1
+            self.current_node = None
+            self.current_node_type = ""
+            self.temp_step = 0
+            self.travelled_arc_length = 0.0
+
+        def reset(self, motion):
+            self.start_step = motion.step_count
+            if self.start_step > 0:
+                self.prev_action_name = motion.graph_walk[-1]
+                self.prev_mp_name = motion.graph_walk[-1]
+            else:
+                self.prev_action_name = None
+                self.prev_mp_name = None
+
+            self.start_frame = motion.n_frames
+            self.current_node = None # todo change all loop variables to class variables
+            self.current_node_type = ""
+            self.temp_step = 0
+            self.travelled_arc_length = 0.0
+
 class ElementaryActionSampleGenerator(object):
 
     def __init__(self, morphable_graph, algorithm_config):
@@ -20,6 +46,7 @@ class ElementaryActionSampleGenerator(object):
             self._algorithm_config)
         self.numerical_minimizer = NumericalMinimizer(self._algorithm_config)
         self.numerical_minimizer.set_objective_function(obj_time_error_sum)
+        self.state = ElementaryActionSampleGeneratorState()
         return
 
     def set_algorithm_config(self, algorithm_config):
@@ -38,25 +65,24 @@ class ElementaryActionSampleGenerator(object):
         self.arc_length_of_end = self.morphable_graph.nodes[
             self.node_group.get_random_end_state()].average_step_length
 
-    def _select_next_motion_primitive_node_key(
-            self, state, motion, prev_action_name, prev_mp_name, travelled_arc_length):
+    def _select_next_motion_primitive_node_key(self, motion):
         """extract from graph based on previous last step + heuristic """
-        if state is None:
-            next_state = self.morphable_graph.get_random_action_transition(
-                motion, self.action_constraints.action_name)
-            next_motion_primitive_type = NODE_TYPE_START
-            if next_state is None:
-                print "Error: Could not find a transition of type action_transition from ",\
-                    prev_action_name, prev_mp_name, " to state", state
-        elif len(self.morphable_graph.nodes[state].outgoing_edges) > 0:
-            next_state, next_motion_primitive_type = self.node_group.get_random_transition(
-                motion, self.action_constraints, travelled_arc_length, self.arc_length_of_end)
-            if next_state is None:
-                print "Error: Could not find a transition of type", next_motion_primitive_type, "from state", state
-        else:
-            print "Error: Could not find a transition from state", state
 
-        return next_state, next_motion_primitive_type
+        if self.state.current_node is None:
+            next_node = self.morphable_graph.get_random_action_transition(motion, self.action_constraints.action_name)
+            next_node_type = NODE_TYPE_START
+            if next_node is None:
+                print "Error: Could not find a transition of type action_transition from ",\
+                    self.state.prev_action_name, self.state.prev_mp_name, " to state", self.state.current_node
+        elif len(self.morphable_graph.nodes[self.state.current_node].outgoing_edges) > 0:
+            next_node, next_node_type = self.node_group.get_random_transition(
+                motion, self.action_constraints, self.state.travelled_arc_length, self.arc_length_of_end)
+            if next_node is None:
+                print "Error: Could not find a transition of type", next_node_type, "from state", self.state.current_node
+        else:
+            print "Error: Could not find a transition from state", self.state.current_node
+
+        return next_node, next_node_type
 
     def _update_travelled_arc_length(
             self, new_quat_frames, prev_motion, prev_travelled_arc_length):
@@ -121,33 +147,20 @@ class ElementaryActionSampleGenerator(object):
         * success: Bool
             True if successful and False, if an error occurred during the constraints generation
         """
-        start_step = motion.step_count
-        if start_step > 0:
-            prev_action_name = motion.graph_walk[-1]
-            prev_mp_name = motion.graph_walk[-1]
-        else:
-            prev_action_name = None
-            prev_mp_name = None
-
-        start_frame = motion.n_frames
-        current_state = None
-        current_motion_primitive_type = ""
-        temp_step = 0
-        travelled_arc_length = 0.0
+        self.state.reset(motion)
         print "start converting elementary action", self.action_constraints.action_name
-        while current_motion_primitive_type != NODE_TYPE_END:
+        while self.state.current_node_type != NODE_TYPE_END:
 
             if self._algorithm_config["debug_max_step"] > -1 and motion.step_count + \
-                    temp_step > self._algorithm_config["debug_max_step"]:
+                    self.state.temp_step > self._algorithm_config["debug_max_step"]:
                 print "reached max step"
                 break
-            current_state, current_motion_primitive_type = self._select_next_motion_primitive_node_key(
-                current_state, motion, prev_action_name, prev_mp_name, travelled_arc_length)
-            if current_state is None:
+            self.state.current_node, self.state.current_node_type = self._select_next_motion_primitive_node_key(motion)
+            if self.state.current_node is None:
                 break
-            print "transitioned to state", current_state
+            print "transitioned to state", self.state.current_node
             motion_primitive_constraints = self._get_motion_primitive_constraints_from_action_constraints(
-                current_state, current_motion_primitive_type, motion, travelled_arc_length)
+                self.state.current_node, self.state.current_node_type, motion, self.state.travelled_arc_length)
             if motion_primitive_constraints is None:
                 return False
 
@@ -155,34 +168,34 @@ class ElementaryActionSampleGenerator(object):
                 motion_primitive_constraints, motion)
 
             self._update_annotated_motion(
-                current_state,
+                self.state.current_node,
                 motion_primitive_sample.get_motion_vector(False),
                 motion_primitive_constraints,
                 motion)
             if self.action_constraints.trajectory is not None:
-                travelled_arc_length = self._update_travelled_arc_length(
-                    motion.quat_frames, motion, travelled_arc_length)
+                self.state.travelled_arc_length = self._update_travelled_arc_length(
+                    motion.quat_frames, motion, self.state.travelled_arc_length)
             motion.graph_walk.append(
                 GraphWalkEntry(
-                    current_state,
+                    self.state.current_node,
                     motion_primitive_sample.low_dimensional_parameters,
-                    travelled_arc_length))
-            temp_step += 1
+                    self.state.travelled_arc_length))
+            self.state.temp_step += 1
 
-        motion.step_count += temp_step
+        motion.step_count += self.state.temp_step
         motion.update_frame_annotation(
             self.action_constraints.action_name,
-            start_frame,
+            self.state.start_frame,
             motion.n_frames)
         if self._algorithm_config["use_global_optimization"]:
-            self._optimize_over_graph_walk(motion.graph_walk, start_step)
+            self._optimize_over_graph_walk(motion.graph_walk)
 
         print "reached end of elementary action", self.action_constraints.action_name
         return True
 
-    def _optimize_over_graph_walk(self, motion, start_step):
+    def _optimize_over_graph_walk(self, motion):
         time_constraints = TimeConstraintsBuilder(
-            self.action_constraints, motion, start_step).build()
+            self.action_constraints, motion, self.state.start_step).build()
         data = (self.morphable_graph, motion, time_constraints)
         self.numerical_minimizer.set_objective_function_parameters(data)
         self.action_constraints
