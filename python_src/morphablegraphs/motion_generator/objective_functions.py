@@ -85,7 +85,7 @@ def obj_spatial_error_sum_and_naturalness_jac(s, data):
         numerator += np.exp(logLikelihoods[i]) * gmm.weights_[i] * np.dot(np.linalg.inv(gmm.covars_[i]), (s - gmm.means_[i]))
 #    numerator = numerator
     denominator = np.exp(gmm.score([s])[0])
-#    denominator = motion_primitive.gmm.score([x0])[0]
+#    denominator = motion_primitive.gaussian_mixture_model.score([x0])[0]
     logLikelihood_jac = numerator / denominator
     kinematic_jac = approx_fprime(s, obj_spatial_error_sum, 1e-7, data[-2:])# ignore the kinematic factor and quality factor
     jac = logLikelihood_jac * quality_scale_factor + kinematic_jac * error_scale_factor

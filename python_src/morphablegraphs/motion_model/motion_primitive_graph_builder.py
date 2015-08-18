@@ -142,9 +142,9 @@ class MotionPrimitiveGraphBuilder(object):
             transition_model_file = self.transition_model_directory\
             +os.sep+from_node_key+"_to_"+to_node_key[0]+"_"+to_node_key[1]+".GPM"
             if  os.path.isfile(transition_model_file):
-                output_gmm = elementary_action_graph.nodes[to_node_key].motion_primitive.gmm
+                output_gmm = elementary_action_graph.nodes[to_node_key].motion_primitive.gaussian_mixture_model
                 transition_model = GPMixture.load(transition_model_file,\
-                elementary_action_graph.nodes[from_node_key].motion_primitive.gmm,output_gmm)
+                elementary_action_graph.nodes[from_node_key].motion_primitive.gaussian_mixture_model,output_gmm)
             else:
                 print "did not find transition model file", transition_model_file
         self._create_edge(elementary_action_graph, from_node_key, to_node_key,transition_model)

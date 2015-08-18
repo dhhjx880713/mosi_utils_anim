@@ -58,7 +58,7 @@ class MotionPrimitiveGraph(object):
                 print "\t"+"n latent time dimensions",self.nodes[n].motion_primitive.t_pca["n_components"]
                 print "\t"+"n basis spatial ",self.nodes[n].motion_primitive.s_pca["n_basis"]
                 print "\t"+"n basis time ",self.nodes[n].motion_primitive.t_pca["n_basis"]
-                print "\t"+"n clusters",len(self.nodes[n].motion_primitive.gmm.weights_)
+                print "\t"+"n clusters",len(self.nodes[n].motion_primitive.gaussian_mixture_model.weights_)
                 print "\t"+"average length", self.nodes[n].average_step_length
                 for e in self.nodes[n].outgoing_edges.keys():
                     print "\t \t to "+ e

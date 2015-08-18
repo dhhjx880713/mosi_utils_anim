@@ -119,7 +119,7 @@ class MotionPrimitiveSampleGenerator(object):
         if self.use_constraints and len(motion_primitive_constraints.constraints) > 0:
 
             graph_node = self._morphable_graph.nodes[(self.action_name, mp_name)]
-            gmm = graph_node.motion_primitive.gmm
+            gmm = graph_node.motion_primitive.gaussian_mixture_model
 
             if self.activate_cluster_search and graph_node.cluster_tree is not None:
                 #  find best sample using a directed search in a 

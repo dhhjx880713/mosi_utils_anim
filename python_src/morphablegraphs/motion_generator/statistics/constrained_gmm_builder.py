@@ -65,7 +65,7 @@ class ConstrainedGMMBuilder(object):
         \tThe gmm of the motion_primitive constrained by the constraint
         """
 
-        cgmm = ConstrainedGMM(mp_node, mp_node.motion_primitive.gmm, self.algorithm_config, 
+        cgmm = ConstrainedGMM(mp_node, mp_node.motion_primitive.gaussian_mixture_model, self.algorithm_config,
                               self.start_pose, self.skeleton)
         cgmm.set_constraint(constraint, prev_frames)
         return cgmm
@@ -141,6 +141,6 @@ class ConstrainedGMMBuilder(object):
         if motion_primitive_constraints:
             cgmm = self._create_constrained_gmm(mp_node, motion_primitive_constraints, prev_frames)
             constrained_predict_gmm = mul(predict_gmm, cgmm)
-            return mul(constrained_predict_gmm, mp_node.motion_primitive.gmm)
+            return mul(constrained_predict_gmm, mp_node.motion_primitive.gaussian_mixture_model)
         else:
-            return mul(predict_gmm, mp_node.motion_primitive.gmm)
+            return mul(predict_gmm, mp_node.motion_primitive.gaussian_mixture_model)

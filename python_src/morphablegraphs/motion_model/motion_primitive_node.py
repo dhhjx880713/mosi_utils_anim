@@ -13,7 +13,7 @@ from ..animation_data.motion_editing import extract_root_positions_from_frames, 
 from ..space_partitioning.cluster_tree import ClusterTree
 
 
-class MotionPrimitiveNode(object):
+class MotionPrimitiveNode(object):#change it to child class of model
     """ Contains a motion primitive and all its outgoing transitions. 
 
     Parameters
@@ -242,7 +242,7 @@ class MotionPrimitiveNode(object):
         if self.outgoing_edges[to_key].transition_model is not None:
             return self.outgoing_edges[to_key].transition_model.predict(current_parameters)
         else:
-            return self.motion_primitive.gmm
+            return self.motion_primitive.gaussian_mixture_model
             
 
 
