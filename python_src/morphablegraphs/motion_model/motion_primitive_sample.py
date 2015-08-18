@@ -61,7 +61,7 @@ class MotionPrimitiveSample(object):
         self.canonical_motion_splines = [(knots, canonical_motion_coefs[i], B_SPLINE_DEGREE) for i in xrange(self.n_pose_parameters)]
         
 
-    def get_motion_vector(self, usebuffer=True):
+    def get_motion_vector(self, usebuffer=True):#TODO make it two funcs get and recompute
         """ Return a 2d - vector representing the motion in the new timeline
 
         Returns
@@ -78,55 +78,3 @@ class MotionPrimitiveSample(object):
         temp_frames = [si.splev(self.time_function,spline_def) for spline_def in self.canonical_motion_splines]
         self.buffered_frames = np.asarray(temp_frames).T
         return self.buffered_frames
-
-    def save_motion_vector(self, filename):
-        """ Save the motion vector as bvh file
-        (Calls get_motion_vector())
-
-        Parameters
-        ----------
-        * filename: string
-        \tThe path to the target file
-        """
-        # Save opperation costs much, therefor we can recalculate the vector
-        frames = self.get_motion_vector(usebuffer=False)
-#        skeleton = os.sep.join(('lib', 'skeleton.bvh'))
-        skeleton = ('skeleton.bvh')     
-        reader = BVHReader(skeleton)
-        BVHWriter(filename, reader, frames, frame_time=0.013889,
-                  is_quaternion=True)
-
-    def add_motion(self, other):
-        """ Concatenate this motion with another. The other motion will be
-        added to the end of this motion
-
-        Parameters
-        ----------
-        * other: MotionSample
-        \tThe other motion as MotionSample object.
-        """
-        raise NotImplementedError()
-
-
-
-
-def main():
-    """ Function to demonstrate this module """
-    import json
-    testfile = 'MotionSample_test.json'
-    with open(testfile) as f:
-        data = json.load(f)
-
-    canonical_motion = np.array(data['canonical_motion'])
-    canonical_framenumber = data['canonical_frames']
-    time_function = np.array(data['time_function'])
-
-    targetfile = 'test.bvh'
-    sample = MotionPrimitiveSample(canonical_motion, canonical_framenumber,
-                          time_function)
-
-    sample.save_motion_vector(targetfile)
-
-
-if __name__ == '__main__':
-    main()
