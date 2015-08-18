@@ -113,9 +113,8 @@ class MotionSampleGenerator(object):
             motion.export(self._service_config["output_dir"], output_filename, add_time_stamp=True, write_log=self._service_config["write_log"])
           
         return motion
-        
-        
-    
+
+
     def _generate_motion_from_constraints(self, motion_constraints_builder):
         """ Converts a constrained graph walk to quaternion frames
          Parameters
@@ -154,7 +153,7 @@ class MotionSampleGenerator(object):
             if self._algorithm_config["verbose"]:
                print "convert",action_constraints.action_name,"to graph walk"
     
-            self.elementary_action_generator.set_constraints(action_constraints)
+            self.elementary_action_generator.set_action_constraints(action_constraints)
             success = self.elementary_action_generator.append_elementary_action_to_motion(motion)
                 
             if not success:
