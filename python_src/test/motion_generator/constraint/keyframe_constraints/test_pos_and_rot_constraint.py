@@ -16,16 +16,18 @@ from morphablegraphs.utilities.io_helper_functions import load_json_file
 
 
 def get_motion_primitive_graph(skeleton, elementary_action_name, morphable_model_directory):
-    motion_primitive_graph_dummy = MotionPrimitiveGraph()
-    motion_primitive_graph_dummy.skeleton = skeleton
+    motion_primitive_graph = MotionPrimitiveGraph()
+    motion_primitive_graph.skeleton = skeleton
     node_group_builder = MotionPrimitiveNodeGroupBuilder()
     node_group_builder.set_properties(False, False)
 
     node_group_builder.set_data_source(elementary_action_name, morphable_model_directory, subgraph_desc=None, graph_definition=None)
     walk_group = node_group_builder.build()
-    motion_primitive_graph_dummy.nodes = walk_group.nodes
-    motion_primitive_graph_dummy.node_groups = {elementary_action_name: walk_group}
-    return motion_primitive_graph_dummy
+    motion_primitive_graph.nodes = walk_group.nodes
+    motion_primitive_graph.node_groups = {elementary_action_name: walk_group}
+    for keys in motion_primitive_graph.node_groups.keys():
+            motion_primitive_graph.node_groups[keys].update_attributes(update_stats=False)
+    return motion_primitive_graph
 
 
 def get_motion_primitive_constraints_for_first_step(mg_input_file, skeleton, morphable_model_directory):
@@ -38,7 +40,7 @@ def get_motion_primitive_constraints_for_first_step(mg_input_file, skeleton, mor
     motion_primitive_constraints_builder = MotionPrimitiveConstraintsBuilder()
     motion_primitive_constraints_builder.set_algorithm_config(algorithm_config)
     motion_primitive_constraints_builder.set_action_constraints(elementary_action_constraints)
-    motion_primitive_name = "beginLeftStance"
+    motion_primitive_name = "beginRightStance"
     motion_primitive_constraints_builder.set_status(motion_primitive_name, last_arc_length=0, prev_frames=None, is_last_step=False)
     mp_constraints = motion_primitive_constraints_builder.build()
     return mp_constraints#constraint_desc PositionAndRotationConstraint(skeleton, constraint_desc, precision=1.0, weight_factor=1.0)
@@ -55,6 +57,6 @@ def test_pos_and_rot_constraint():
     pos_and_rot_constraint = motion_primitive_constraints.constraints[0]
     error = pos_and_rot_constraint.evaluate_motion_sample(quat_frames)
     print error
-    assert np.isclose(error, 3.84472345971)#574.957480905
+    assert np.isclose(error, 9.85806477085)
 
 test_pos_and_rot_constraint()
