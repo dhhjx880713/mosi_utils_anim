@@ -60,4 +60,7 @@ the algorithm without the pipeline.
 Current limitations:
  - Only one trajectory constraint can be specified for each elementary action.
 
-
+4. Motion Primitive Construction
+Set the path to data folder for modelling in config\service.json, "data_folder"
+Call the motion primitive modelling pipeline mg_construction_pipeline.py from command line with parameters elementary_action motion_primitive
+E.g.: python mg_construction_pipeline walk rightStance
