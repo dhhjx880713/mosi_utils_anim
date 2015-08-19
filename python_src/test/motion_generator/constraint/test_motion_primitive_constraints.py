@@ -46,11 +46,11 @@ def get_motion_primitive_constraints_for_first_step(mg_input_file, skeleton, mor
 
 
 def test_motion_primitive_constraints():
-    """ Tests the expected sum of  errors from the position and direction constraints that were extracted from the trajectory"""
+    """ Tests the expected sum of errors from the position and direction constraints that were extracted from a trajectory"""
     expected_error = 10.209201069
     bvh_file_path = ROOTDIR+os.sep.join(["..", "test_data", "motion_generator", "one_step_walk", "MGResult.bvh"])
     mg_input_file = ROOTDIR+os.sep.join(["..", "test_data", "motion_generator", "one_step_walk", "MGresult.json"])
-    morphable_model_directory = ROOTDIR+os.sep.join(["..", "test_data", "motion_model", "elementary_action_walk_dir"])
+    morphable_model_directory = ROOTDIR+os.sep.join(["..", "test_data", "motion_model", "motion_primitive_graph_dir", "elementary_action_walk"])
     bvh_reader = BVHReader(bvh_file_path)
     skeleton = Skeleton(bvh_reader)
     quat_frames = convert_euler_frames_to_quaternion_frames(bvh_reader, bvh_reader.frames)
