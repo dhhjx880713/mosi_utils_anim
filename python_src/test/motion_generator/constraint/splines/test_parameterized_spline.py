@@ -8,80 +8,60 @@ import sys
 import os
 ROOTDIR = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-5]) + os.sep
 sys.path.append(ROOTDIR)
+TESTDIR = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-4]) + os.sep
+sys.path.append(TESTDIR)
+from libtest import params, pytest_generate_tests
 from morphablegraphs.motion_generator.constraint.splines.parameterized_spline import ParameterizedSpline
 
 
-def compare_result(spline, input_arc_length):
-    """
-    Query a point by the given arc length,
-    find the closest point on the spline to this queried point
-    then calculate and compare the arc length of this closest point
-    """
-    # print "test #############"
-    input_point = spline.query_point_by_absolute_arc_length(input_arc_length)
-    # print "in",input_arc_length,input_point
-    closest_point, distance = spline.find_closest_point(input_point)
-    # print "closest point",closest_point,distance
-    # plot_spline(spline)
-    output_arc_length, output_point = spline.get_absolute_arc_length_of_point(
-        closest_point)
+class TestParameterizedSpline(object):
+    def setup_method(self, method):
+        dimensions = 2
+        control_points = [[0, 0],
+                          [1, 3],
+                          [0, 6],
+                          [0, 12]
 
-    # print "out",arc_length,eval_point
-    #assert np.allclose(input_point, output_point)
+                          ]
+        granularity = 1000
+        self.spline = ParameterizedSpline(control_points, dimensions, granularity)
 
-    for i in xrange(len(input_point)):
-        # print input_point[i],output_point[i],len(input_point)
-        # print  round(input_point[i], 1), round(output_point[i], 1)
-        assert round(input_point[i], 1) == round(output_point[i], 1)
+    param_arc_length_parameterization = [{"input_arc_length": 3.0},
+                        {"input_arc_length": 0.5},
+                        {"input_arc_length": 0.8},
+                        {"input_arc_length": 1.8},
+                        {"input_arc_length": 0.6},
+                        {"input_arc_length": 8.0},
+                        {"input_arc_length": 5.0},
+                        {"input_arc_length": 11.0},
+                        {"input_arc_length": 12.0},
 
-    # print input_arc_length, output_arc_length
-    assert round(input_arc_length, 0) == round(output_arc_length, 0)
+                        ]
+    @params(param_arc_length_parameterization)
+    def test_arc_length_parameterization(self, input_arc_length):
+        """Makes sure that the parameterization works approximately by testing a 2D
+        spline at different arc lenghts l as follows:
+            x = query_point_by_absolute_arc_length(l) # Query a point by the given arc length,
+            l', tmp = find_closest_point(x) # find the closest point on the spline to this queried point
+            x' = get_absolute_arc_length_of_point(l') #calculate the arc length of this closest point
+            round(x) = round(x')
+            round(l) = round(l')
+        """
 
+        input_point = self.spline.query_point_by_absolute_arc_length(input_arc_length)
+        # print "in",input_arc_length,input_point
+        closest_point, distance = self.spline.find_closest_point(input_point)
+        # print "closest point",closest_point,distance
+        output_arc_length, output_point = self.spline.get_absolute_arc_length_of_point(
+            closest_point)
 
-def test_parameterization():
-    """Makes sure that the parameterization works approximately by testing a 2D
-    spline at different arc lenghts l as follows:
-        x = query_point_by_absolute_arc_length(l)
-        l', tmp = find_closest_point(x)
-        x' = get_absolute_arc_length_of_point(l')
-        round(x) = round(x')
-        round(l) = round(l')
-    """
-    control_points = [[0, 0],
-                      [1, 3],
-                      [0, 6],
-                      [0, 12]
+        # print "out",arc_length,eval_point
+        #assert np.allclose(input_point, output_point)
 
-                      ]
-    dimensions = 2
-    granularity = 1000
-    spline = ParameterizedSpline(control_points, dimensions, granularity)
-    input_arc_length = 3.0
-    compare_result(spline, input_arc_length)
-    input_arc_length = 0.5
-    compare_result(spline, input_arc_length)
-    input_arc_length = 0.8
-    compare_result(spline, input_arc_length)
-    input_arc_length = 1.8
-    compare_result(spline, input_arc_length)
-    input_arc_length = 0.6  # 9.8
-    compare_result(spline, input_arc_length)
-    input_arc_length = 8.0
-    compare_result(spline, input_arc_length)
-    input_arc_length = 5.0
-    compare_result(spline, input_arc_length)
-    input_arc_length = 10.0
-    compare_result(spline, input_arc_length)
-    input_arc_length = 11.0
-    compare_result(spline, input_arc_length)
-    input_arc_length = 12.0
-    compare_result(spline, input_arc_length)
-#    point = np.array([1.0,1.2])
+        for i in xrange(len(input_point)):
+            # print input_point[i],output_point[i],len(input_point)
+            # print  round(input_point[i], 1), round(output_point[i], 1)
+            assert round(input_point[i], 1) == round(output_point[i], 1)
 
-#    print "full arc length",arc_length,spline.get_full_arc_length()
-#    print "parameter",spline.query_point_by_parameter(arc_length)
-#    arc_length = arc_length* spline.get_full_arc_length()
-#    print "arc length",spline.query_point_by_absolute_arc_length(arc_length)
-
-if __name__ == "__main__":
-    test_parameterization()
+        # print input_arc_length, output_arc_length
+        assert round(input_arc_length, 0) == round(output_arc_length, 0)

@@ -46,6 +46,7 @@ def get_motion_primitive_constraints_for_first_step(mg_input_file, skeleton, mor
 
 
 def test_motion_primitive_constraints():
+    """ Tests the expected sum of  errors from the position and direction constraints that were extracted from the trajectory"""
     expected_error = 10.209201069
     bvh_file_path = ROOTDIR+os.sep.join(["..", "test_data", "motion_generator", "one_step_walk", "MGResult.bvh"])
     mg_input_file = ROOTDIR+os.sep.join(["..", "test_data", "motion_generator", "one_step_walk", "MGresult.json"])
@@ -59,5 +60,3 @@ def test_motion_primitive_constraints():
         error_sum += c.weight_factor * c.evaluate_motion_sample(quat_frames)
     print "error", error_sum, "expected error", expected_error
     assert np.isclose(error_sum, expected_error)
-
-test_motion_primitive_constraints()
