@@ -14,7 +14,7 @@ from motion_primitive_node_group_builder import MotionPrimitiveNodeGroupBuilder
 from ..utilities.zip_io import read_graph_data_from_zip
 from graph_edge import GraphEdge
 from motion_primitive_graph import MotionPrimitiveGraph
-from . import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END
+from . import NODE_TYPE_START, NODE_TYPE_STANDARD
 
         
 class MotionPrimitiveGraphBuilder(object):
@@ -77,7 +77,7 @@ class MotionPrimitiveGraphBuilder(object):
   
         self._update_attributes(elementary_action_graph,update_stats=False)
 
-    def _init_from_directory(self, elementary_action_graph, update_stats=False):
+    def _init_from_directory(self, elementary_action_graph, update_stats=True):
         """ Initializes the class
         
         Parameters
@@ -91,7 +91,6 @@ class MotionPrimitiveGraphBuilder(object):
         * transition_model_directory: string
         \tThe directory of the transition models.
         """
-        
         #load graphs representing elementary actions including transitions between actions
         for key in next(os.walk(self.morphable_model_directory))[1]:
             subgraph_path = self. morphable_model_directory+os.sep+key
@@ -101,7 +100,7 @@ class MotionPrimitiveGraphBuilder(object):
             elementary_action_graph.nodes.update(node_group.nodes)
             elementary_action_graph.node_groups[node_group.elementary_action_name] = node_group
         graph_definition_file = self.morphable_model_directory+os.sep+"graph_definition.json"
-        #add transitions between subgraphs and load transition models           
+        #add transitions between subgraphs and load transition models
         if os.path.isfile(graph_definition_file):
             graph_definition = load_json_file(graph_definition_file)
             print "add transitions between subgraphs from",graph_definition_file," ##################################"
@@ -109,13 +108,12 @@ class MotionPrimitiveGraphBuilder(object):
         else:
             print "did not find graph definition file",graph_definition_file," #####################"
                
-        self._update_attributes(elementary_action_graph, update_stats=True)
+        self._update_attributes(elementary_action_graph, update_stats=update_stats)
         
     def _update_attributes(self, elementary_action_graph, update_stats=False):
         for keys in elementary_action_graph.node_groups.keys():
             elementary_action_graph.node_groups[keys].update_attributes(update_stats=update_stats)
 
-         
     def _set_transitions_from_dict(self, elementary_action_graph, graph_definition):
         transition_dict = graph_definition["transitions"]
         
@@ -131,20 +129,16 @@ class MotionPrimitiveGraphBuilder(object):
                     to_node_key = (to_action_name,to_motion_primitive_name) 
                     if to_node_key in elementary_action_graph.nodes.keys():
                         self._add_transition(elementary_action_graph, from_node_key, to_node_key)
-                    
-                        
-    def _add_transition(self, elementary_action_graph, from_node_key, to_node_key):
 
-#        if to_action_name != from_action_name:
-#            print "add action transition",node_key,to_key 
+    def _add_transition(self, elementary_action_graph, from_node_key, to_node_key):
         transition_model = None
         if self.load_transition_models and self.transition_model_directory is not None:
             transition_model_file = self.transition_model_directory\
             +os.sep+from_node_key+"_to_"+to_node_key[0]+"_"+to_node_key[1]+".GPM"
             if  os.path.isfile(transition_model_file):
-                output_gmm = elementary_action_graph.nodes[to_node_key].motion_primitive.gaussian_mixture_model
+                output_gmm = elementary_action_graph.nodes[to_node_key].gaussian_mixture_model
                 transition_model = GPMixture.load(transition_model_file,\
-                elementary_action_graph.nodes[from_node_key].motion_primitive.gaussian_mixture_model,output_gmm)
+                elementary_action_graph.nodes[from_node_key].gaussian_mixture_model,output_gmm)
             else:
                 print "did not find transition model file", transition_model_file
         self._create_edge(elementary_action_graph, from_node_key, to_node_key,transition_model)
