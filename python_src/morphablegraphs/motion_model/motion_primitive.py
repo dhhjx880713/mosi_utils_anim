@@ -205,7 +205,9 @@ class MotionPrimitive(object): #StatisticalModel
         """
         spatial_coefs = self._inverse_spatial_pca(low_dimensional_vector[:self.s_pca["n_components"]])
         if self.has_time_parameters and use_time_parameters:
-            time_function = self._inverse_temporal_pca(low_dimensional_vector[self.s_pca["n_components"]:])
+            time_coefs = low_dimensional_vector[self.s_pca["n_components"]:]
+            time_coefs = [i*10 for i in time_coefs]
+            time_function = self._inverse_temporal_pca(time_coefs)
         else:
             time_function = np.arange(0,self.n_canonical_frames)
         return MotionPrimitiveSample(low_dimensional_vector, spatial_coefs, time_function, self.s_pca["knots"])
@@ -246,6 +248,41 @@ class MotionPrimitive(object): #StatisticalModel
         mean_tck = (self.t_pca["knots"], self.t_pca["mean_vector"], 3)
         return si.splev(self.canonical_time_range,mean_tck)
 
+    def _get_monotonic_indices(self, indices, epsilon=0.01, delta=0):
+        """Return an ajusted set of Frameindices which is strictly monotonic
+
+        Parameters
+        ----------
+        indices : list
+        The Frameindices
+
+        Returns
+        -------
+        A numpy-Float Array with indices similar to the provided list,
+        but enforcing strict monotony
+        """
+        shifted_indices = np.array(indices, dtype=np.float)
+        if shifted_indices[0] == shifted_indices[-1]:
+            raise ValueError("First and Last element are equal")
+
+        for i in xrange(1, len(shifted_indices) - 1):
+            if shifted_indices[i] > shifted_indices[i - 1] + delta:
+                continue
+
+            while np.allclose(shifted_indices[i], shifted_indices[i - 1]) or \
+                    shifted_indices[i] <= shifted_indices[i - 1] + delta:
+                shifted_indices[i] = shifted_indices[i] + epsilon
+
+        for i in xrange(len(indices) - 2, 0, -1):
+            if shifted_indices[i] + delta < shifted_indices[i + 1]:
+                break
+
+            while np.allclose(shifted_indices[i], shifted_indices[i + 1]) or \
+                    shifted_indices[i] + delta >= shifted_indices[i + 1]:
+                shifted_indices[i] = shifted_indices[i] - epsilon
+
+        return shifted_indices
+
     def _inverse_temporal_pca(self, gamma):
         """ Backtransform a lowdimensional vector gamma to the timewarping
         function t(t') and inverse it to t'(t).
@@ -264,31 +301,34 @@ class MotionPrimitive(object): #StatisticalModel
         #1.1: reconstruct t by evaluating the harmonics and the mean
 
         mean_t = self._mean_temporal()
-        
+        print "mean temporal: "
+        print mean_t
         n_latent_dim = len(self.t_pca["eigen_coefs"])
+        print "n_latent_dim: "
+        print n_latent_dim
+        print self.t_pca["knots"]
+        print self.t_pca["eigen_coefs"]
         eigen_tck = [(self.t_pca["knots"],self.t_pca["eigen_coefs"][i],3) for i in xrange(n_latent_dim)]
         eigen_t =np.array([ si.splev(self.canonical_time_range,tck) for tck in eigen_tck]).T
 
         t=[0,]
         for i in xrange(self.n_canonical_frames):
             t.append(t[-1] + np.exp(mean_t[i] + np.dot(eigen_t[i], gamma)))
-
+        print "#################################################################"
         #1.2: undo step from timeVarinaces.transform_timefunction during alignment
         t = np.array(t[1:])
         t -= 1
         zeroindices = t < 0
         t[zeroindices] = 0
-
+        t = self._get_monotonic_indices(t)
         # step 2: calculate inverse spline and then sample that inverse spline
         # using step size 1
         # i.e. calculate t'(t) from t(t')
 
         #2.1 get a valid inverse spline
         x_sample = np.arange(self.n_canonical_frames)
-
-    
-        inverse_spline = si.splrep(t, x_sample,w=None, k=2)
-
+        print x_sample
+        inverse_spline = si.splrep(t, x_sample,w=None, k=3)
 
         
         #2.2 sample discrete data from inverse spline
@@ -296,6 +336,7 @@ class MotionPrimitive(object): #StatisticalModel
         # from sample to canonical time
         frames = np.linspace(1, t[-2], np.round(t[-2]))# note this is where the number of frames are changed
         t = si.splev(frames,inverse_spline)
+
         t = np.insert(t, 0, 0)
         t = np.insert(t, len(t), self.n_canonical_frames-1)
         return t

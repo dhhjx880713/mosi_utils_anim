@@ -24,6 +24,9 @@ class TestBVHReader(object):
         testfile = TEST_DATA_PATH + os.sep + "walk_001_1_rightStance_86_128.bvh"
         self.bvh_reader = BVHReader(testfile)
 
+    def test_init(self):
+        assert self.bvh_reader.filename == "walk_001_1_rightStance_86_128.bvh"
+
     param_read_frametime = [{'res': 0.013889}] 
     
     @params(param_read_frametime)

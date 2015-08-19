@@ -281,3 +281,10 @@ class TestMotionEditing(object):
     def test_get_rotation_angle(self, points, res):
         angle = get_rotation_angle(points[0], points[1])
         assert angle == res
+
+    param_get_step_length = [{'res': 61.67638}]
+
+    @params(param_get_step_length)
+    def test_get_step_length(self, res):
+        step_len = get_step_length(self.rightStance_bvhreader.frames)
+        assert round(step_len, 5) == round(res, 5)
