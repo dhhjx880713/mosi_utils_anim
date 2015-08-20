@@ -130,11 +130,11 @@ class MotionPrimitive(object): #StatisticalModel
         self.s_pca = {}
         self.s_pca["eigen_vectors"] = np.array(data['eigen_vectors_spatial'])
         self.s_pca["mean_vector"] = np.array(data['mean_spatial_vector'])
-        self.s_pca["n_basis"]= int(data['n_basis_spatial'])
+        self.s_pca["n_basis"] = int(data['n_basis_spatial'])
         self.s_pca["n_dim"] = int(data['n_dim_spatial'])
-        self.s_pca["n_components"]= len(self.s_pca["eigen_vectors"])
+        self.s_pca["n_components"] = len(self.s_pca["eigen_vectors"])
 
-        rcode ="""
+        rcode = """
             n_basis = %d
             n_frames = %d
             basisobj = create.bspline.basis(c(0, n_frames - 1), nbasis = n_basis)
@@ -264,38 +264,26 @@ class MotionPrimitive(object): #StatisticalModel
         #1.1: reconstruct t by evaluating the harmonics and the mean
 
         mean_t = self._mean_temporal()
-        
         n_latent_dim = len(self.t_pca["eigen_coefs"])
         eigen_tck = [(self.t_pca["knots"],self.t_pca["eigen_coefs"][i],3) for i in xrange(n_latent_dim)]
-        eigen_t =np.array([ si.splev(self.canonical_time_range,tck) for tck in eigen_tck]).T
-
-        t=[0,]
+        eigen_t = np.array([si.splev(self.canonical_time_range,tck) for tck in eigen_tck]).T
+        t =[0,]
         for i in xrange(self.n_canonical_frames):
             t.append(t[-1] + np.exp(mean_t[i] + np.dot(eigen_t[i], gamma)))
-
         #1.2: undo step from timeVarinaces.transform_timefunction during alignment
         t = np.array(t[1:])
-        t -= 1
-        zeroindices = t < 0
-        t[zeroindices] = 0
-
+        t -= 1.0
         # step 2: calculate inverse spline and then sample that inverse spline
         # using step size 1
         # i.e. calculate t'(t) from t(t')
-
         #2.1 get a valid inverse spline
         x_sample = np.arange(self.n_canonical_frames)
-
-    
-        inverse_spline = si.splrep(t, x_sample,w=None, k=2)
-
-
-        
+        inverse_spline = si.splrep(t, x_sample, w=None, k=2)
         #2.2 sample discrete data from inverse spline
         # Note: t gets inverted. Before, t mapped from canonical to sample time, now
         # from sample to canonical time
         frames = np.linspace(1, t[-2], np.round(t[-2]))# note this is where the number of frames are changed
-        t = si.splev(frames,inverse_spline)
+        t = si.splev(frames, inverse_spline)
         t = np.insert(t, 0, 0)
         t = np.insert(t, len(t), self.n_canonical_frames-1)
         return t
