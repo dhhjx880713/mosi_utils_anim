@@ -53,15 +53,15 @@ class MotionPrimitiveGraph(object):
             print s
             for n in self.node_groups[s].nodes.keys():
                 print "\t"+ n
-                print "\t"+"n canonical frames",self.nodes[n].motion_primitive.n_canonical_frames
-                print "\t"+"n latent spatial dimensions",self.nodes[n].motion_primitive.s_pca["n_components"]
-                print "\t"+"n latent time dimensions",self.nodes[n].motion_primitive.t_pca["n_components"]
-                print "\t"+"n basis spatial ",self.nodes[n].motion_primitive.s_pca["n_basis"]
-                print "\t"+"n basis time ",self.nodes[n].motion_primitive.t_pca["n_basis"]
-                print "\t"+"n clusters",len(self.nodes[n].motion_primitive.gaussian_mixture_model.weights_)
+                print "\t"+"n canonical frames", self.nodes[n].n_canonical_frames
+                print "\t"+"n latent spatial dimensions", self.nodes[n].s_pca["n_components"]
+                print "\t"+"n latent time dimensions",self.nodes[n].t_pca["n_components"]
+                print "\t"+"n basis spatial ",self.nodes[n].s_pca["n_basis"]
+                print "\t"+"n basis time ", self.nodes[n].t_pca["n_basis"]
+                print "\t"+"n clusters", len(self.nodes[n].gaussian_mixture_model.weights_)
                 print "\t"+"average length", self.nodes[n].average_step_length
                 for e in self.nodes[n].outgoing_edges.keys():
-                    print "\t \t to "+ e
+                    print "\t \t to " + str(e)
                 print "\t##########"       
 
     def get_random_action_transition(self, motion, action_name):
@@ -88,14 +88,3 @@ class MotionPrimitiveGraph(object):
             next_state = self.node_groups[action_name].get_random_start_state()
             print "generate random start", next_state
             return next_state
-
-
-def print_morphable_graph_structure(morphable_graph):
-    for a in morphable_graph.node_groups.keys():
-        print a
-        for n in morphable_graph.node_groups[a].nodes:
-            print "\t" + n
-            print "\t" + "canonical frames", morphable_graph.nodes[(a, n)].motion_primitive.n_canonical_frames
-            for e in morphable_graph.nodes[(a, n)].outgoing_edges.keys():
-                print "\t \t to " + e
-    return

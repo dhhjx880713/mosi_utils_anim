@@ -33,7 +33,7 @@ class ConstrainedGMMBuilder(object):
             #only proceed the GMM prediction if the transition model was loaded
             if self._morphable_graph.subgraphs[prev_action_name].nodes[prev_mp_name].has_transition_model(transition_key):
                 gpm = self._morphable_graph.subgraphs[prev_action_name].nodes[prev_mp_name].outgoing_edges[transition_key].transition_model 
-                prev_primitve = self._morphable_graph.subgraphs[prev_action_name].nodes[prev_mp_name].motion_primitive
+                prev_primitve = self._morphable_graph.subgraphs[prev_action_name].nodes[prev_mp_name]
     
                 gmm = self._create_next_motion_distribution(prev_parameters, prev_primitve,\
                                                     self._morphable_graph.subgraphs[action_name].nodes[mp_name],\
@@ -65,7 +65,7 @@ class ConstrainedGMMBuilder(object):
         \tThe gmm of the motion_primitive constrained by the constraint
         """
 
-        cgmm = ConstrainedGMM(mp_node, mp_node.motion_primitive.gaussian_mixture_model, self.algorithm_config,
+        cgmm = ConstrainedGMM(mp_node, mp_node.gaussian_mixture_model, self.algorithm_config,
                               self.start_pose, self.skeleton)
         cgmm.set_constraint(constraint, prev_frames)
         return cgmm
@@ -141,6 +141,6 @@ class ConstrainedGMMBuilder(object):
         if motion_primitive_constraints:
             cgmm = self._create_constrained_gmm(mp_node, motion_primitive_constraints, prev_frames)
             constrained_predict_gmm = mul(predict_gmm, cgmm)
-            return mul(constrained_predict_gmm, mp_node.motion_primitive.gaussian_mixture_model)
+            return mul(constrained_predict_gmm, mp_node.gaussian_mixture_model)
         else:
-            return mul(predict_gmm, mp_node.motion_primitive.gaussian_mixture_model)
+            return mul(predict_gmm, mp_node.gaussian_mixture_model)

@@ -42,7 +42,7 @@ class ConstrainedGMM(mixture.GMM):
         self.start_pose = start_pose
         self.skeleton = skeleton
 
-        self.mm_ = motion_primitve_node.motion_primitive
+        self.mm_ = motion_primitve_node
         self.weights_ = gmm.weights_
         self.means_ = gmm.means_
         self.converged_ = gmm.converged_

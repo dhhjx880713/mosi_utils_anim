@@ -13,7 +13,7 @@ from ..animation_data.motion_editing import extract_root_positions_from_frames, 
 from ..space_partitioning.cluster_tree import ClusterTree
 
 
-class MotionPrimitiveNode(object):#change it to child class of model
+class MotionPrimitiveNode(MotionPrimitive):
     """ Contains a motion primitive and all its outgoing transitions. 
 
     Parameters
@@ -23,12 +23,11 @@ class MotionPrimitiveNode(object):#change it to child class of model
     
     Attributes
     ----------
-    * motion_primitive: MotionPrimitive
-    \tThe motion primitive instance that is wrapped by the node class.
     * outgoing_edges: OrderedDict containing tuples
     \tEach entry contains a tuple (transition model, transition type)
     """
     def __init__(self):
+        super(MotionPrimitiveNode, self).__init__(None)
         self.outgoing_edges = {}
         self.node_type = NODE_TYPE_STANDARD
         self.n_standard_transitions = 0
@@ -39,7 +38,6 @@ class MotionPrimitiveNode(object):#change it to child class of model
         self.average_step_length = 0 
         self.action_name = None
         self.primitive_name = None
-        self.motion_primitive = None
         self.cluster_tree = None
 
     def init_from_file(self, action_name, primitive_name, motion_primitive_filename, node_type=NODE_TYPE_STANDARD):
@@ -53,7 +51,7 @@ class MotionPrimitiveNode(object):#change it to child class of model
         self.average_step_length = 0 
         self.action_name = action_name
         self.primitive_name = primitive_name
-        self.motion_primitive = MotionPrimitive(motion_primitive_filename)
+        self._load(motion_primitive_filename)
         self.cluster_tree = None
         cluster_file_name = motion_primitive_filename[:-7]
         self._construct_space_partition(cluster_file_name)
@@ -61,8 +59,7 @@ class MotionPrimitiveNode(object):#change it to child class of model
     def init_from_dict(self, action_name, desc):
         self.action_name = action_name
         self.primitive_name = desc["name"]
-        self.motion_primitive = MotionPrimitive(None)
-        self.motion_primitive._initialize_from_json(desc["mm"])
+        self._initialize_from_json(desc["mm"])
         self.cluster_tree = desc["space_partition"]
         if "stats" in desc.keys():
             self.parameter_bb = desc["stats"]["pose_bb"]
@@ -106,7 +103,7 @@ class MotionPrimitiveNode(object):#change it to child class of model
         * parameters: numpy.ndarray
         \tLow dimensional motion parameters.
         """
-        return self.motion_primitive.sample(return_lowdimvector=True)
+        return self.sample(return_lowdimvector=True)
 
     def generate_random_transition(self, transition_type=NODE_TYPE_STANDARD):
         """ Returns the key of a random transition.
@@ -188,7 +185,7 @@ class MotionPrimitiveNode(object):#change it to child class of model
         \tThe arc length of the path of the motion primitive
         """
         # get quaternion frames from s_vector
-        quat_frames = self.motion_primitive.back_project(s, use_time_parameters=False).get_motion_vector()
+        quat_frames = self.back_project(s, use_time_parameters=False).get_motion_vector()
         if method == "arc_length":
             root_pos = extract_root_positions_from_frames(quat_frames)        
             step_length = get_arc_length_from_points(root_pos)
@@ -242,7 +239,7 @@ class MotionPrimitiveNode(object):#change it to child class of model
         if self.outgoing_edges[to_key].transition_model is not None:
             return self.outgoing_edges[to_key].transition_model.predict(current_parameters)
         else:
-            return self.motion_primitive.gaussian_mixture_model
+            return self.gaussian_mixture_model
             
 
 
