@@ -7,12 +7,12 @@ Created on Mon Jan 26 14:11:11 2015
 
 import numpy as np
 import json
-from sklearn import mixture # statistical model
-import rpy2.robjects as robjects
+from sklearn import mixture  # statistical model
 from motion_primitive_sample import MotionPrimitiveSample
-import scipy.interpolate as si # B-spline definition and evaluation
+import scipy.interpolate as si  # B-spline definition and evaluation
 
-class MotionPrimitive(object): #StatisticalModel
+
+class MotionPrimitive(object):
     """ Represent a motion primitive which can be sampled
 
     Parameters
@@ -83,8 +83,6 @@ class MotionPrimitive(object): #StatisticalModel
 
         """
 
-        robjects.r('library("fda")')  #initialize fda for later operations
-        
         #load name data and canonical frames of the motion
         if 'name' in data.keys():
             self.name = data['name']
@@ -133,15 +131,7 @@ class MotionPrimitive(object): #StatisticalModel
         self.s_pca["n_basis"] = int(data['n_basis_spatial'])
         self.s_pca["n_dim"] = int(data['n_dim_spatial'])
         self.s_pca["n_components"] = len(self.s_pca["eigen_vectors"])
-
-        rcode = """
-            n_basis = %d
-            n_frames = %d
-            basisobj = create.bspline.basis(c(0, n_frames - 1), nbasis = n_basis)
-        """% ( self.s_pca["n_basis"],self.n_canonical_frames)
-        robjects.r(rcode)
-        self.s_pca["basis_function"] = robjects.globalenv['basisobj']
-        self.s_pca["knots"] = np.asarray(robjects.r['knots'](self.s_pca["basis_function"],False))
+        self.s_pca["knots"] = np.asarray(data['b_spline_knots_spatial'])
 
     def _init_time_parameters_from_json(self, data):
         """  Set the parameters for the _inverse_temporal_pca function.
@@ -158,15 +148,7 @@ class MotionPrimitive(object): #StatisticalModel
         self.t_pca["n_basis"]= int(data['n_basis_time'])
         self.t_pca["n_dim"] = 1
         self.t_pca["n_components"]= len(self.t_pca["eigen_vectors"].T)
-
-        rcode ="""
-            n_basis = %d
-            n_frames = %d
-            basisobj = create.bspline.basis(c(0, n_frames - 1), nbasis = n_basis)
-        """% ( self.t_pca["n_basis"],self.n_canonical_frames)
-        robjects.r(rcode)
-        self.t_pca["basis_function"] = robjects.globalenv['basisobj']
-        self.t_pca["knots"] = np.asarray(robjects.r['knots'](self.t_pca["basis_function"],False))
+        self.t_pca["knots"] = np.asarray(data['b_spline_knots_time'])
         self.t_pca["eigen_coefs"] =zip(* self.t_pca["eigen_vectors"])
 
     def sample(self, return_lowdimvector=False):#todo make it two functions
