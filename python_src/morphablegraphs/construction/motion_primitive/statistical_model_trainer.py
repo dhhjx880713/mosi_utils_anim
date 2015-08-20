@@ -197,7 +197,8 @@ class StatisticalModelTrainer(object):
                 'mean_time_vector': self._mean_time_vector.tolist(),
                 'n_dim_spatial': self._n_dim_spatial,
                 'n_basis_time': n_basis_time,
-                'b_spline_knots_spatial': self.get_b_spline_knots(self._n_basis, self._n_frames)}
+                'b_spline_knots_spatial': self.get_b_spline_knots(self._n_basis, self._n_frames),
+                'b_spline_knots_time': self.get_b_spline_knots(n_basis_time, self._n_frames)}
         with open(filename, 'wb') as outfile:
             json.dump(data, outfile)
         outfile.close()
