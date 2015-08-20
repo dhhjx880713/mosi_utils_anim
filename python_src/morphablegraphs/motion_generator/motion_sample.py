@@ -24,7 +24,7 @@ class GraphWalkEntry(object):
         self.arc_length = arc_length
 
 
-class MotionGeneratorResult(object):
+class MotionSample(object):
     """ Product of the MotionGenerate class. Contains quaternion frames,
         the graph walk used to generate the frames, a mapping of frame segments 
         to elementary actions and a list of events for certain frames.

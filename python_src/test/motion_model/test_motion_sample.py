@@ -29,10 +29,9 @@ def motionSample():
 
     robjects.r('library("fda")')
     canonical_motion = np.array(data['canonical_motion'])
-    canonical_framenumber = data['canonical_frames']
     time_function = np.array(data['time_function'])
     knots = np.array(data['knots'])
-    return MotionPrimitiveSample(canonical_motion, time_function, knots)
+    return MotionPrimitiveSample(None, canonical_motion, time_function, knots)
 
 
 class Test__init__(object):

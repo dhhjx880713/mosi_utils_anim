@@ -34,14 +34,14 @@ class TestMotionPrimitive(object):
         assert "eigen_vectors" in self.mp.s_pca.keys() and "eigen_vectors" \
                                                         in self.mp.t_pca.keys()
                                                         
-        assert len(self.mp.gmm.means_[0]) == len(self.mp.s_pca["eigen_vectors"])\
+        assert len(self.mp.gaussian_mixture_model.means_[0]) == len(self.mp.s_pca["eigen_vectors"])\
                                             +len(self.mp.t_pca["eigen_vectors"].T)
 
     def test_inverse_spatial_pca_shape(self):
         """ Test if the inverse spatial pca produces an array with the expected
             shape from a random sample
         """
-        sample = np.ravel(self.mp.gmm.sample())
+        sample = np.ravel(self.mp.gaussian_mixture_model.sample())
         alpha = sample[:len(self.mp.s_pca["eigen_vectors"])]
         coefs = self.mp._inverse_spatial_pca(alpha)
         assert not np.isnan(coefs).any()
@@ -254,7 +254,7 @@ class TestMotionPrimitive(object):
             increasing vector using multiple samples
         """
         for s in xrange(self.number_of_samples):
-            sample = np.ravel(self.mp.gmm.sample())
+            sample = np.ravel(self.mp.gaussian_mixture_model.sample())
             gamma = sample[len(self.mp.s_pca["eigen_vectors"]):]
             t = self.mp._inverse_temporal_pca(gamma)
             if not np.all([t[i]>t[i-1] for i in xrange(len(t)) if i > 0]):

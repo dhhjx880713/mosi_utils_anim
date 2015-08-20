@@ -46,7 +46,7 @@ class PositionAndRotationConstraint(KeyframeConstraintBase):
         n_frames = len(aligned_quat_frames)
         # ignore a special case which should not happen in a single constraint
         if not (self.constrain_first_frame and self.constrain_last_frame):
-            heuristic_range = self.relative_heuristic_range * n_frames
+            heuristic_range = int(self.relative_heuristic_range * n_frames)
             filtered_frames = aligned_quat_frames[-heuristic_range:]
             filtered_frame_nos = range(n_frames)            
             for frame_no, frame in zip(filtered_frame_nos, filtered_frames):

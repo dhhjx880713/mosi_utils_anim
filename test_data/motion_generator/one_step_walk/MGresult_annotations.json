@@ -1,0 +1,10 @@
+{
+    "elementaryActionSequence": [
+        {
+            "startFrame": 0, 
+            "endFrame": 87, 
+            "elementaryAction": "walk"
+        }
+    ], 
+    "events": []
+}

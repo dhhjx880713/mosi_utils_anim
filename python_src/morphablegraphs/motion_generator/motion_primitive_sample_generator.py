@@ -16,7 +16,7 @@ from objective_functions import obj_spatial_error_sum, obj_spatial_error_sum_and
 
 
     
-class MotionPrimitiveGenerator(object):
+class MotionPrimitiveSampleGenerator(object):
     """
     Parameters
     ----------
@@ -51,9 +51,8 @@ class MotionPrimitiveGenerator(object):
             self._constrained_gmm_builder = None
         self.numerical_minimizer = NumericalMinimizer(self._algorithm_config)
         self.numerical_minimizer.set_objective_function(obj_spatial_error_sum_and_naturalness)
-        
-        
-    def generate_motion_primitive_from_constraints(self, motion_primitive_constraints, prev_motion):
+
+    def generate_motion_primitive_sample_from_constraints(self, motion_primitive_constraints, prev_motion):
         """Calls get_optimal_parameters and backpojects the results.
         
         Parameters
@@ -65,15 +64,9 @@ class MotionPrimitiveGenerator(object):
             
         Returns
         -------
-        * quat_frames : list of np.ndarray
-            list of skeleton pose parameters.
-        * parameters : np.ndarray
-            low dimensional motion parameters used to generate the frames
+        * motion_primitive_sample: MotionPrimitiveSample
         """
-    
- 
         mp_name = motion_primitive_constraints.motion_primitive_name
-  
         if len(prev_motion.graph_walk) > 0:
             prev_mp_name = prev_motion.graph_walk[-1].node_key[1]
             prev_parameters = prev_motion.graph_walk[-1].parameters
@@ -82,30 +75,29 @@ class MotionPrimitiveGenerator(object):
             prev_mp_name = ""
             prev_parameters = None
  
-        use_optimization= self.use_optimization or motion_primitive_constraints.use_optimization
-        motion_primitive_constraints.use_optimization   
-        
+        use_optimization = self.use_optimization or motion_primitive_constraints.use_optimization
+
         try:
-            parameters = self.get_optimal_motion_primitive_parameters(mp_name,
-                                                motion_primitive_constraints,
-                                                prev_mp_name=prev_mp_name,
-                                                prev_frames=prev_motion.quat_frames,
-                                                prev_parameters=prev_parameters, use_optimization=use_optimization)
+            low_dimensional_parameters = self.get_optimal_motion_primitive_parameters(mp_name,
+                                                                                      motion_primitive_constraints,
+                                                                                      prev_mp_name=prev_mp_name,
+                                                                                      prev_frames=prev_motion.quat_frames,
+                                                                                      prev_parameters=prev_parameters,
+                                                                                      use_optimization=use_optimization)
         except  ConstraintError as e:
-            print "Exception",e.message
-            raise SynthesisError(prev_motion.quat_frames,e.bad_samples)
+            print "Exception", e.message
+            raise SynthesisError(prev_motion.quat_frames, e.bad_samples)
             
-        tmp_quat_frames = self._morphable_graph.nodes[(self.action_name,mp_name)].motion_primitive.back_project(parameters, use_time_parameters=True).get_motion_vector()
-    
-        return tmp_quat_frames, parameters
+        motion_primitive_sample = self._morphable_graph.nodes[(self.action_name, mp_name)].back_project(low_dimensional_parameters, use_time_parameters=True)
+        return motion_primitive_sample
 
 
     def get_optimal_motion_primitive_parameters(self, mp_name,
-                                 motion_primitive_constraints,
-                                 prev_mp_name="", 
-                                 prev_frames=None, 
-                                 prev_parameters=None,
-                                 use_optimization=False):
+                                                 motion_primitive_constraints,
+                                                 prev_mp_name="",
+                                                 prev_frames=None,
+                                                 prev_parameters=None,
+                                                 use_optimization=False):
         """Uses the constraints to find the optimal paramaters for a motion primitive.
         Parameters
         ----------
@@ -128,7 +120,7 @@ class MotionPrimitiveGenerator(object):
         if self.use_constraints and len(motion_primitive_constraints.constraints) > 0:
 
             graph_node = self._morphable_graph.nodes[(self.action_name, mp_name)]
-            gmm = graph_node.motion_primitive.gmm
+            gmm = graph_node.gaussian_mixture_model
 
             if self.activate_cluster_search and graph_node.cluster_tree is not None:
                 #  find best sample using a directed search in a 
@@ -158,7 +150,7 @@ class MotionPrimitiveGenerator(object):
 
             if  not self.use_transition_model and use_optimization and not close_to_optimum:
 
-                data =  graph_node.motion_primitive, motion_primitive_constraints, \
+                data = graph_node, motion_primitive_constraints, \
                        prev_frames, self._optimization_settings["error_scale_factor"], \
                        self._optimization_settings["quality_scale_factor"]
 
@@ -177,14 +169,12 @@ class MotionPrimitiveGenerator(object):
             
 
     
-    def _get_random_parameters(self, mp_name, prev_mp_name="", 
-                                 prev_frames=None, 
-                                 prev_parameters=None):
+    def _get_random_parameters(self, mp_name, prev_mp_name="", prev_parameters=None):
         
         to_key = self.action_name+"_"+mp_name
-        if self.use_transition_model and prev_parameters is not None and self._morphable_graph.nodes[(self.prev_action_name,prev_mp_name)].has_transition_model(to_key):
+        if self.use_transition_model and prev_parameters is not None and self._morphable_graph.nodes[(self.prev_action_name, prev_mp_name)].has_transition_model(to_key):
              
-            parameters = self._morphable_graph.nodes[(self.prev_action_name,prev_mp_name)].predict_parameters(to_key,prev_parameters)
+            parameters = self._morphable_graph.nodes[(self.prev_action_name,prev_mp_name)].predict_parameters(to_key, prev_parameters)
         else:
             parameters = self._morphable_graph.nodes[(self.action_name,mp_name)].sample_parameters()
         return parameters
@@ -199,7 +189,7 @@ class MotionPrimitiveGenerator(object):
     def _search_for_best_sample_in_cluster_tree(self, graph_node, constraints, prev_frames, n_candidates=2):
         """ Directed search in precomputed hierarchical space partitioning data structure
         """
-        data = graph_node.motion_primitive, constraints, prev_frames
+        data = graph_node, constraints, prev_frames
         distance, s = graph_node.search_best_sample(obj_spatial_error_sum, data, n_candidates)
         print "found best sample with distance:",distance
         global_counter_dict["motionPrimitveErrors"].append(distance)
@@ -245,7 +235,7 @@ class MotionPrimitiveGenerator(object):
             else:
                 valid = True
             if valid:                 
-                object_function_params = mp_node.motion_primitive, constraints, prev_frames
+                object_function_params = mp_node, constraints, prev_frames
                 error = obj_spatial_error_sum(s, object_function_params)
                 if min_error > error:
                     min_error = error

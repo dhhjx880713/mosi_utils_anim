@@ -16,7 +16,7 @@ import tornado.ioloop
 import tornado.web
 import json
 import time
-from morphablegraphs.motion_generator.motion_generator import MotionGenerator
+from morphablegraphs.motion_generator.motion_sample_generator import MotionSampleGenerator
 from morphablegraphs.motion_generator.algorithm_configuration import AlgorithmConfigurationBuilder
 from morphablegraphs.utilities.io_helper_functions import load_json_file, get_bvh_writer
 
@@ -128,7 +128,7 @@ class MGRestApplication(tornado.web.Application):
         tornado.web.Application.__init__(
             self, handlers, default_host, transforms)
         start = time.clock()
-        self.motion_generator = MotionGenerator(
+        self.motion_generator = MotionSampleGenerator(
             service_config, algorithm_config)
         print "finished construction from file in", time.clock() - start, "seconds"
         self.algorithm_config = algorithm_config

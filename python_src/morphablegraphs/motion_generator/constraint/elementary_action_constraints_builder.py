@@ -88,8 +88,7 @@ class ElementaryActionConstraintsBuilder():
             node_group =  self.morphable_graph.node_groups[action_constraints.action_name]
             action_constraints.trajectory, action_constraints.unconstrained_indices = self._extract_trajectory_from_constraint_list(self.elementary_action_list[self.current_action_index]["constraints"], root_joint_name)
         
-            keyframe_constraints = self._extract_all_keyframe_constraints(self.elementary_action_list[self.current_action_index]["constraints"],
-                                                                    node_group)
+            keyframe_constraints = self._extract_all_keyframe_constraints(self.elementary_action_list[self.current_action_index]["constraints"], node_group)
             action_constraints.keyframe_constraints = self._reorder_keyframe_constraints_for_motion_primitves(node_group,
                                                                                      keyframe_constraints)
             action_constraints._initialized = True
