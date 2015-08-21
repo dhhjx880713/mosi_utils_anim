@@ -6,35 +6,35 @@
     "stats": {
         "rightStance": {
             "n_standard_transitions": 1, 
-            "average_step_length": 49.588065028850437
+            "average_step_length": 52.713949945978896
         }, 
         "beginRightStance": {
             "n_standard_transitions": 1, 
-            "average_step_length": 31.979254107531759
+            "average_step_length": 29.610077460222485
         }, 
         "leftStance": {
             "n_standard_transitions": 1, 
-            "average_step_length": 50.203356801103723
+            "average_step_length": 51.290315041079666
         }, 
         "sidestepLeft": {
             "n_standard_transitions": 0, 
-            "average_step_length": 54.283320775118632
+            "average_step_length": 53.303442261987591
         }, 
         "sidestepRight": {
             "n_standard_transitions": 0, 
-            "average_step_length": 54.170046616388518
+            "average_step_length": 53.838726943699399
         }, 
         "endRightStance": {
-            "n_standard_transitions": 0, 
-            "average_step_length": 23.545859648125187
+            "n_standard_transitions": 2, 
+            "average_step_length": 22.169186341519268
         }, 
         "endLeftStance": {
-            "n_standard_transitions": 0, 
-            "average_step_length": 29.616090288260288
+            "n_standard_transitions": 2, 
+            "average_step_length": 25.370737973888737
         }, 
         "beginLeftStance": {
             "n_standard_transitions": 1, 
-            "average_step_length": 30.068766053347971
+            "average_step_length": 32.353105197823666
         }
     }, 
     "annotations": {
