@@ -10,7 +10,6 @@ import random
 from . import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END
 from ..utilities.io_helper_functions import write_to_json_file
 
-
 class MotionPrimitiveNodeGroup(object):
     """ Contains the motion primitives of an elementary action as nodes and
     transition models as edges.
@@ -18,7 +17,7 @@ class MotionPrimitiveNodeGroup(object):
     def __init__(self):
         self.elementary_action_name = None
         self.nodes = {}
-        self.morphable_model_directory = None
+        self.elementary_action_directory = None
         self.has_transition_models = False
         self.meta_information = None
         self.annotation_map = {}
@@ -27,48 +26,36 @@ class MotionPrimitiveNodeGroup(object):
         self.motion_primitive_annotations = {}
         self.loaded_from_dict = False
 
-    def _set_meta_information(self, meta_information=None):
+    def set_meta_information(self, meta_information=None):
         """
         Identify start and end states from meta information.
         """
-        
         self.meta_information = meta_information
-        
-        if self.meta_information is None:
-            self.start_states = [k[1] for k in self.nodes.keys() if k[1].startswith("begin") or k[1] == "first"]
-            self.end_states = [k[1] for k in self.nodes.keys() if k[1].startswith("end") or k[1] == "second"]
-        else:
-            for key in ["annotations", "start_states", "end_states" ]:
-                assert key in self.meta_information.keys() 
-
-            self.start_states = self.meta_information["start_states"]
-            self.end_states = self.meta_information["end_states"]
-            self.motion_primitive_annotations = self.meta_information["annotations"]
-            if "pattern_constraints" in self.meta_information.keys():
-                pattern_constraints = self.meta_information["pattern_constraints"]
-                for k in pattern_constraints.keys():
-                    if k in self.nodes.keys():
-                        self.nodes[k].cluster_annotation = pattern_constraints[k]
-            #create a map from semantic label to motion primitive
-            for motion_primitive in self.meta_information["annotations"].keys():
-                if motion_primitive != "all_primitives":
-                    motion_primitve_annotations = self.meta_information["annotations"][motion_primitive]
-                    for label in motion_primitve_annotations.keys():
-                        self.annotation_map[label] = motion_primitive
-             
+        for key in ["annotations", "start_states", "end_states" ]:
+            assert key in self.meta_information.keys()
+        self.start_states = self.meta_information["start_states"]
+        self.end_states = self.meta_information["end_states"]
+        self.motion_primitive_annotations = self.meta_information["annotations"]
+        self._create_semantic_annotation()
         self._set_node_attributes()
-        return
+
+    def _create_semantic_annotation(self):
+        #create a map from semantic label to motion primitive
+        for motion_primitive in self.meta_information["annotations"].keys():
+            if motion_primitive != "all_primitives":
+                motion_primitve_annotations = self.meta_information["annotations"][motion_primitive]
+                for label in motion_primitve_annotations.keys():
+                    self.annotation_map[label] = motion_primitive
 
     def _set_node_attributes(self):
-        print "elementary_action",self.elementary_action_name     
-        print "start states",self.start_states
+        print "elementary_action", self.elementary_action_name
+        print "start states", self.start_states
         for k in self.start_states:
             self.nodes[(self.elementary_action_name, k)].node_type = NODE_TYPE_START
         print "end states",self.end_states
         for k in self.end_states:
             self.nodes[(self.elementary_action_name, k)].node_type = NODE_TYPE_END
-                          
-        
+
     def update_attributes(self, update_stats=False):
         """
         Update attributes of motion primitives for faster lookup. #
@@ -77,25 +64,27 @@ class MotionPrimitiveNodeGroup(object):
         if update_stats:
             changed_meta_info = True
             self.meta_information["stats"] = {}
-            for k in self.nodes.keys():
-                 self.nodes[k].update_attributes()
-                 self.meta_information["stats"][k[1]]={"average_step_length":self.nodes[k].average_step_length,"n_standard_transitions": self.nodes[k].n_standard_transitions }
-                 print"n standard transitions",k,self.nodes[k].n_standard_transitions
+            for node_key in self.nodes.keys():
+                self.nodes[node_key].update_attributes()
+                self.meta_information["stats"][node_key[1]] = {"average_step_length": self.nodes[node_key].average_step_length,
+                                                            "n_standard_transitions": self.nodes[node_key].n_standard_transitions}
+                print"n standard transitions",node_key,self.nodes[node_key].n_standard_transitions
             print "updated meta information",self.meta_information
         else:
             if self.meta_information is None:
                 self.meta_information = {}
             if "stats" not in self.meta_information.keys():
                 self.meta_information["stats"] = {}
-            for k in self.nodes.keys():
-                if k[1] in self.meta_information["stats"].keys():
-                    self.nodes[k].n_standard_transitions = self.meta_information["stats"][k[1]]["n_standard_transitions"] 
-                    self.nodes[k].average_step_length = self.meta_information["stats"][k[1]]["average_step_length"]
+            for node_key in self.nodes.keys():
+                if node_key[1] in self.meta_information["stats"].keys():
+                    self.nodes[node_key].n_standard_transitions = self.meta_information["stats"][node_key[1]]["n_standard_transitions"]
+                    self.nodes[node_key].average_step_length = self.meta_information["stats"][node_key[1]]["average_step_length"]
                 else:
-                    self.nodes[k].update_attributes()
-                    self.meta_information["stats"][k[1]]={"average_step_length":self.nodes[k].average_step_length,"n_standard_transitions": self.nodes[k].n_standard_transitions }
+                    self.nodes[node_key].update_attributes()
+                    self.meta_information["stats"][node_key[1]] = {"average_step_length": self.nodes[node_key].average_step_length,
+                                                                 "n_standard_transitions": self.nodes[node_key].n_standard_transitions }
                     changed_meta_info = True
-            print "loaded stats from meta information file",self.meta_information
+            print "loaded stats from meta information file", self.meta_information
         if changed_meta_info and not self.loaded_from_dict:
             self.save_updated_meta_info()
             
@@ -111,7 +100,7 @@ class MotionPrimitiveNodeGroup(object):
         start_state = (self.elementary_action_name, self.end_states[random_index])
         return start_state
         
-    def generate_random_walk(self, start_state, number_of_steps, use_transition_model=True):
+    def generate_random_walk(self, state_node, number_of_steps, use_transition_model=True):
         """ Generates a random graph walk to be converted into a BVH file
     
         Parameters
@@ -125,40 +114,33 @@ class MotionPrimitiveNodeGroup(object):
         * use_transition_model: bool
         \tSets whether or not the transition model should be used in parameter prediction
         """
-        assert start_state in self.nodes.keys()
+        current_node = state_node
+        assert current_node in self.nodes.keys()
         graph_walk = []
         count = 0
-        print "start",start_state
-        current_state = start_state
-        current_parameters = self.nodes[current_state].sample_low_dimensional_vector()
-        entry = {"subgraph": self.elementary_action_name,"state": current_state,"parameters":current_parameters}
+        print "start", current_node
+        current_parameters = self.nodes[current_node].sample_low_dimensional_vector()
+        entry = {"node_key": current_node, "parameters": current_parameters}
         graph_walk.append(entry)
         
-        if self.nodes[current_state].n_standard_transitions > 0:
+        if self.nodes[current_node].n_standard_transitions > 0:
             while count < number_of_steps:
-                #sample transition
-                #print current_state
-                to_key = self.nodes[current_state].generate_random_transition(NODE_TYPE_STANDARD) 
-                next_parameters = self.generate_next_parameters(self.nodes, current_state,current_parameters,to_key,use_transition_model)
-                #add entry to graph walk
-                to_action  = to_key.split("_")[0]
-                to_motion_primitive  = to_key.split("_")[1]
-                entry = {"subgraph": to_action,"state": to_motion_primitive,"parameters":next_parameters}
+                to_node_key = self.nodes[current_node].generate_random_transition(NODE_TYPE_STANDARD)
+                next_parameters = self.generate_next_parameters(self.nodes, current_node, current_parameters, to_node_key, use_transition_model)
+                entry = {"node_key": to_node_key, "parameters": next_parameters}
                 graph_walk.append(entry)
                 current_parameters = next_parameters
-                current_state = to_motion_primitive 
+                current_node = to_node_key
                 count += 1
             
-        #add end state
-        to_key = self.nodes[current_state].generate_random_transition(NODE_TYPE_END)
-        next_parameters = self.generate_next_parameters(current_state,current_parameters,to_key,use_transition_model)
-        to_action  = to_key.split("_")[0]
-        to_motion_primitive  = to_key.split("_")[1]
-        entry = {"subgraph": to_action,"state": to_motion_primitive,"parameters":next_parameters}
+        #add end node
+        to_node_key = self.nodes[current_node].generate_random_transition(NODE_TYPE_END)
+        next_parameters = self.generate_next_parameters(current_node,current_parameters,to_node_key,use_transition_model)
+        entry = {"node_key": to_node_key, "parameters":next_parameters}
         graph_walk.append(entry)
         return graph_walk
         
-    def generate_next_parameters(self, current_state, current_parameters, to_key, use_transition_model):
+    def generate_next_parameters(self, current_node_key, current_parameters, to_node_key, use_transition_model):
         """ Generate parameters for transitions.
         
         Parameters
@@ -167,22 +149,18 @@ class MotionPrimitiveNodeGroup(object):
         \tName of the current motion primitive
         * current_parameters: np.ndarray
         \tParameters of the current state
-        * to_key: tuple
+        * to_node_key: tuple
         \t Identitfier of the action and motion primitive we want to transition to.
         \t Should have the format (action name, motionprimitive name)
         * use_transition_model: bool
         \t flag to set whether a prediction from the transition model should be made or not.
         """
-        splitted_key = to_key.split("_")
-        action = splitted_key[0]
-        assert action == self.elementary_action_name
-        if  self.has_transition_models and use_transition_model:
-            print "use transition model",current_state,to_key
-            next_parameters = self.nodes[current_state].predict_parameters(to_key,current_parameters)
-            
+        assert to_node_key[0] == self.elementary_action_name
+        if self.has_transition_models and use_transition_model:
+            print "use transition model", current_node_key, to_node_key
+            next_parameters = self.nodes[current_node_key].predict_parameters(to_node_key, current_parameters)
         else:
-            motion_primitive = splitted_key[1]
-            next_parameters = self.nodes[motion_primitive].sample_low_dimensional_vector()
+            next_parameters = self.nodes[to_node_key].sample_low_dimensional_vector()
         return next_parameters
 
     def _convert_keys_to_strings(self, mydict):
@@ -194,18 +172,17 @@ class MotionPrimitiveNodeGroup(object):
                 except:
                     continue
               else:
-                   copy_dict[key] =  mydict[key]
+                   copy_dict[key] = mydict[key]
         return copy_dict
 
     def save_updated_meta_info(self):
         """ Save updated meta data to a json file
         """
         if self.meta_information is not None:
-            path = self.morphable_model_directory + os.sep + "meta_information.json"
+            path = self.elementary_action_directory + os.sep + "meta_information.json"
             write_to_json_file(path, self._convert_keys_to_strings(self.meta_information))
-        return        
-        
-        
+        return
+
     def get_canonical_keyframe_labels(self, motion_primitive_name):
         if motion_primitive_name in self.motion_primitive_annotations.keys():
             keyframe_labels = self.motion_primitive_annotations[motion_primitive_name]
@@ -213,19 +190,14 @@ class MotionPrimitiveNodeGroup(object):
             keyframe_labels = {}
         return keyframe_labels
 
-
-        
     def get_random_transition(self, motion, action_constraint, travelled_arc_length, arc_length_of_end):
         """ Get next state of the elementary action based on previous iteration.
         """
-        
-        prev_state = motion.graph_walk[-1].node_key
-            
+        prev_node = motion.graph_walk[-1].node_key
         if action_constraint.trajectory is not None:
-                
              #test end condition for trajectory constraints
             if not action_constraint.check_end_condition(motion.quat_frames,\
-                                    travelled_arc_length,arc_length_of_end):            
+                                    travelled_arc_length, arc_length_of_end):
 
                 #make standard transition to go on with trajectory following
                 next_mp_type = NODE_TYPE_STANDARD
@@ -236,20 +208,20 @@ class MotionPrimitiveNodeGroup(object):
     
                 next_mp_type = NODE_TYPE_END
                 
-            print "generate",next_mp_type,"transition from trajectory"
+            print "generate", next_mp_type, "transition from trajectory"
         else:
-            n_standard_transitions = len([e for e in self.nodes[prev_state].outgoing_edges.keys() if self.nodes[prev_state].outgoing_edges[e].transition_type == NODE_TYPE_STANDARD])
+            n_standard_transitions = len([e for e in self.nodes[prev_node].outgoing_edges.keys() if self.nodes[prev_node].outgoing_edges[e].transition_type == NODE_TYPE_STANDARD])
             if n_standard_transitions > 0:
                 next_mp_type = NODE_TYPE_STANDARD
             else:
                 next_mp_type = NODE_TYPE_END
-            print "generate",next_mp_type,"transition without trajectory",n_standard_transitions
+            print "generate", next_mp_type, "transition without trajectory", n_standard_transitions
     
-        to_key = self.nodes[prev_state].generate_random_transition(next_mp_type)
+        to_node_key = self.nodes[prev_node].generate_random_transition(next_mp_type)
         
-        if to_key is not None:
-            print to_key
-            return to_key, next_mp_type
+        if to_node_key is not None:
+            print to_node_key
+            return to_node_key, next_mp_type
         else:
             return None, next_mp_type
            
