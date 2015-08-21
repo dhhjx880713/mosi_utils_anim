@@ -34,7 +34,6 @@ class MotionPrimitiveNode(MotionPrimitive):
         self.parameter_bb = None
         self.cartesian_bb = None
         self.velocity_data = None
-        self.cluster_annotation = None
         self.average_step_length = 0 
         self.action_name = None
         self.primitive_name = None
@@ -44,11 +43,7 @@ class MotionPrimitiveNode(MotionPrimitive):
         self.outgoing_edges = {}
         self.node_type = node_type
         self.n_standard_transitions = 0
-        self.parameter_bb = None
-        self.cartesian_bb = None
-        self.velocity_data = None
-        self.cluster_annotation = None
-        self.average_step_length = 0 
+        self.average_step_length = 0
         self.action_name = action_name
         self.primitive_name = primitive_name
         self._load(motion_primitive_filename)
@@ -130,29 +125,22 @@ class MotionPrimitiveNode(MotionPrimitive):
                 print "to",to_key
                 return to_key
         return None
-        
-    
-    def update_attributes(self,n_samples=50,  method="median"):
+
+    def update_attributes(self, n_samples=50, method="median"):
         """ Updates attributes for faster look up
         """
         self.n_standard_transitions = len([e for e in self.outgoing_edges.keys()
                                            if self.outgoing_edges[e].transition_type == NODE_TYPE_STANDARD])
-        
-        sample_lengths = [self._get_random_sample_step_length()for i in xrange(n_samples)]
-        
+        sample_lengths = [self._get_random_sample_step_length() for i in xrange(n_samples)]
         if method == "average":
             self.average_step_length = sum(sample_lengths)/n_samples
         else:
             self.average_step_length = np.median(sample_lengths)
-        
+
     def _get_random_sample_step_length(self, method="arc_length"):
         """Backproject the motion and get the step length and the last keyframe on the canonical timeline
         Parameters
         ----------
-        * morphable_subgraph : MotionPrimitiveGraph
-          Represents an elementary action
-        * motion_primitive_name : string
-          Identifier of the morphable model
         * method : string
           Can have values arc_length or distance. If any other value distance is used.
         Returns
