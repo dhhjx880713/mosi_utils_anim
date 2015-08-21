@@ -10,6 +10,7 @@ import json
 from sklearn import mixture  # statistical model
 from motion_primitive_sample import MotionPrimitiveSample
 import scipy.interpolate as si  # B-spline definition and evaluation
+from . import B_SPLINE_DEGREE
 
 
 class MotionPrimitive(object):
@@ -151,38 +152,36 @@ class MotionPrimitive(object):
         self.t_pca["knots"] = np.asarray(data['b_spline_knots_time'])
         self.t_pca["eigen_coefs"] =zip(* self.t_pca["eigen_vectors"])
 
-    def sample(self, return_lowdimvector=False):#todo make it two functions
-        """ Sample the motion primitive and return a motion sample
-
-        Parameters
-        ----------
-        *return_lowdimvector: boolean
-        \tIf True, return the s vector, else return a MotionSample object
+    def sample_low_dimensional_vector(self):
+        """ Sample the motion primitive and return a low dimensional vector
         Returns
         -------
-        * motion: MotionSample or numpy.ndarray
-        \tThe sampled motion as object of type MotionSample or numpy.ndarray \
-        (Depending on parameter)
+        * s:  numpy.ndarray
         """
         assert self.gaussian_mixture_model is not None, "Motion primitive not initialized."
-        low_dimensional_vector = np.ravel(self.gaussian_mixture_model.sample())
-        if return_lowdimvector:
-            return low_dimensional_vector
-        else:
-            return self.back_project(low_dimensional_vector)
+        return np.ravel(self.gaussian_mixture_model.sample())
 
-    def back_project(self,low_dimensional_vector,use_time_parameters=True):
+    def sample(self):
+        """ Sample the motion primitive and return a motion sample
+        Returns
+        -------
+        * motion: MotionSample
+        \tThe sampled motion as object of type MotionPrimitiveSample
+        """
+        return self.back_project(self.sample_low_dimensional_vector())
+
+    def back_project(self,low_dimensional_vector, use_time_parameters=True):
         """ Return a motion sample based on a low dimensional motion vector.
 
         Parameters
         ----------
         *low_dimensional_vector: numpy.ndarray
         \tThe low dimensional motion representation sampled from a GMM or GP
-        *return_lowdimvector: boolean
-        \tIf True, return the s vector, else return a MotionSample object
+        *use_time_parameters: boolean
+        \tIf True use time function from _inverse_temporal_pca else canonical time line
         Returns
         -------
-        * motion: MotionSample or numpy.ndarray
+        * motion: MotionSample
         \tThe sampled motion as object of type MotionSample
         """
         spatial_coefs = self._inverse_spatial_pca(low_dimensional_vector[:self.s_pca["n_components"]])
@@ -211,7 +210,7 @@ class MotionPrimitive(object):
         coefs = np.dot(np.transpose(self.s_pca["eigen_vectors"]), alpha.T)
         coefs += self.s_pca["mean_vector"]
 
-        coefs = coefs.reshape((self.s_pca["n_basis"],self.s_pca["n_dim"]))
+        coefs = coefs.reshape((self.s_pca["n_basis"], self.s_pca["n_dim"]))
         #undo the scaling on the translation
         coefs[:,0] *= self.translation_maxima[0]
         coefs[:,1] *= self.translation_maxima[1]
@@ -226,7 +225,7 @@ class MotionPrimitive(object):
             Discretized mean time function.
         """
         mean_tck = (self.t_pca["knots"], self.t_pca["mean_vector"], 3)
-        return si.splev(self.canonical_time_range,mean_tck)
+        return si.splev(self.canonical_time_range, mean_tck)
 
     def _inverse_temporal_pca(self, gamma):
         """ Backtransform a lowdimensional vector gamma to the timewarping
@@ -247,11 +246,11 @@ class MotionPrimitive(object):
 
         mean_t = self._mean_temporal()
         n_latent_dim = len(self.t_pca["eigen_coefs"])
-        eigen_tck = [(self.t_pca["knots"],self.t_pca["eigen_coefs"][i],3) for i in xrange(n_latent_dim)]
-        eigen_t = np.array([si.splev(self.canonical_time_range,tck) for tck in eigen_tck]).T
+        t_eigen_spline = [(self.t_pca["knots"],self.t_pca["eigen_coefs"][i], B_SPLINE_DEGREE) for i in xrange(n_latent_dim)]
+        t_eigen_discrete = np.array([si.splev(self.canonical_time_range, spline_definition) for spline_definition in t_eigen_spline]).T
         t =[0,]
         for i in xrange(self.n_canonical_frames):
-            t.append(t[-1] + np.exp(mean_t[i] + np.dot(eigen_t[i], gamma)))
+            t.append(t[-1] + np.exp(mean_t[i] + np.dot(t_eigen_discrete[i], gamma)))
         #1.2: undo step from timeVarinaces.transform_timefunction during alignment
         t = np.array(t[1:])
         t -= 1.0
@@ -260,7 +259,7 @@ class MotionPrimitive(object):
         # i.e. calculate t'(t) from t(t')
         #2.1 get a valid inverse spline
         x_sample = np.arange(self.n_canonical_frames)
-        inverse_spline = si.splrep(t, x_sample, w=None, k=2)
+        inverse_spline = si.splrep(t, x_sample, w=None, k=B_SPLINE_DEGREE)
         #2.2 sample discrete data from inverse spline
         # Note: t gets inverted. Before, t mapped from canonical to sample time, now
         # from sample to canonical time

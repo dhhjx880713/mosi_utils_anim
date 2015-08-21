@@ -7,8 +7,7 @@ Created on Mon Jan 26 13:51:36 2015
 import numpy as np
 from ..animation_data.bvh import BVHReader, BVHWriter
 import scipy.interpolate as si
-
-B_SPLINE_DEGREE = 3
+from . import B_SPLINE_DEGREE
 
 class MotionPrimitiveSample(object):
     """ Represent a Sample from a Morphable Model or from a Transition Model
