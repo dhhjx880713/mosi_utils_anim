@@ -10,6 +10,8 @@ import matplotlib.pyplot as plt
 from sklearn import mixture
 import os
 from ...animation_data.bvh import BVHReader, BVHWriter
+import rpy2.robjects as robjects
+
 
 
 class StatisticalModelTrainer(object):
@@ -147,6 +149,16 @@ class StatisticalModelTrainer(object):
         BVHWriter(filename, reader, frames, frame_time=0.013889,
                   is_quaternion=True)
 
+    def get_b_spline_knots(self, n_basis, n_canonical_frames):
+        rcode = """
+            n_basis = %d
+            n_frames = %d
+            basisobj = create.bspline.basis(c(0, n_frames - 1), nbasis = n_basis)
+        """% ( n_basis, n_canonical_frames)
+        robjects.r(rcode)
+        basis_function = robjects.globalenv['basisobj']
+        return np.asarray(robjects.r['knots'](basis_function, False))
+
     def _save_model(self, save_path=None):
         '''
         Save model as a json file
@@ -171,6 +183,7 @@ class StatisticalModelTrainer(object):
         n_basis_time = len(self._mean_time_vector)
         harms = self._temporal_pca[self._temporal_pca.names.index('harmonics')]
         self._eigen_vectors_time = np.array(harms[harms.names.index('coefs')])
+
         data = {'name': self._motion_primitive_name,
                 'gmm_weights': weights,
                 'gmm_means': means,
@@ -183,7 +196,9 @@ class StatisticalModelTrainer(object):
                 'eigen_vectors_time': self._eigen_vectors_time.tolist(),
                 'mean_time_vector': self._mean_time_vector.tolist(),
                 'n_dim_spatial': self._n_dim_spatial,
-                'n_basis_time': n_basis_time}
+                'n_basis_time': n_basis_time,
+                'b_spline_knots_spatial': self.get_b_spline_knots(self._n_basis, self._n_frames),
+                'b_spline_knots_time': self.get_b_spline_knots(n_basis_time, self._n_frames)}
         with open(filename, 'wb') as outfile:
             json.dump(data, outfile)
         outfile.close()

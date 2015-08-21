@@ -26,10 +26,9 @@ class KDTreeWrapper(object):
         self.indices = []
         self.type = KDTREE_WRAPPER_NODE
 
-    def construct(self, X, indices):
+    def construct(self, data, indices):
         self.indices = indices
-        self.kdtree.construct(X[indices].tolist(), self.dim)
-        return
+        self.kdtree.construct(data[indices].tolist(), self.dim)
 
     def find_best_example(self, obj, data):
         return self.kdtree.find_best_example(obj, data, 1)[0]
@@ -42,7 +41,7 @@ class KDTreeWrapper(object):
         with a low objective function value.
         """
         results = self.kdtree.find_best_example(obj, data, k)
-        if len(results)>1:#K
+        if len(results) > 1:
             distances, points = zip(*results)
             influences = []
             furthest_distance = distances[-1]
@@ -71,4 +70,3 @@ class KDTreeWrapper(object):
         node_desc["children"] = []
         node_desc["indices"] = self.indices
         return node_desc
-        
