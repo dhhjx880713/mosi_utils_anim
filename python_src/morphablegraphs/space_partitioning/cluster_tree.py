@@ -23,7 +23,7 @@ class ClusterTree(object):
     #TODO make faster
     Parameters
     -----------
-    * N : Integer
+    * n_subdivisions : Integer
         Number of subclusters/children per node in the tree. At least 2.
     * K : Integer
         Maximum levels in the tree. At least 1.
