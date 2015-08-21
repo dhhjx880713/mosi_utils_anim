@@ -66,10 +66,9 @@ class MotionPrimitiveNodeGroupBuilder(object):
         return motion_primitive_node_group
         
     def _init_from_dict(self):
-        motion_primitive_node_group = MotionPrimitiveNodeGroup()
+        motion_primitive_node_group = MotionPrimitiveNodeGroup(self.elementary_action_dict["name"])
         motion_primitive_node_group.nodes = {}
         motion_primitive_node_group.loaded_from_dict = True
-        motion_primitive_node_group.elementary_action_name = self.elementary_action_dict["name"]
         for motion_primitive_name in self.elementary_action_dict["nodes"].keys():
             node_key = (self.elementary_action_dict["name"], motion_primitive_name)
             motion_primitive_node_group.nodes[node_key] = MotionPrimitiveNode()
@@ -81,10 +80,9 @@ class MotionPrimitiveNodeGroupBuilder(object):
         return motion_primitive_node_group
 
     def _init_from_directory(self):
-        motion_primitive_node_group = MotionPrimitiveNodeGroup()
+        motion_primitive_node_group = MotionPrimitiveNodeGroup(self.elementary_action_name)
         motion_primitive_node_group.nodes = {}
         motion_primitive_node_group.loaded_from_dict = False
-        motion_primitive_node_group.elementary_action_name = self.elementary_action_name
         motion_primitive_node_group.elementary_action_directory = self.elementary_action_directory
         #load morphable models
         temp_file_list =  []#for files containing additional information that require the full graph to be constructed first

@@ -5,54 +5,31 @@ Created on Thu Jul 16 15:57:42 2015
 @author: erhe01
 """
 
-import os
-import random
 from . import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END
-from ..utilities.io_helper_functions import write_to_json_file
+from elementary_action_meta_info import ElementaryActionMetaInfo
 
-class MotionPrimitiveNodeGroup(object):
+
+class MotionPrimitiveNodeGroup(ElementaryActionMetaInfo):
     """ Contains the motion primitives of an elementary action as nodes and
     transition models as edges.
     """
-    def __init__(self):
-        self.elementary_action_name = None
+    def __init__(self, elementary_action_name):
+        super(MotionPrimitiveNodeGroup, self).__init__(elementary_action_name)
         self.nodes = {}
         self.elementary_action_directory = None
         self.has_transition_models = False
-        self.meta_information = None
-        self.annotation_map = {}
-        self.start_states = []
-        self.end_states = []
-        self.motion_primitive_annotations = {}
         self.loaded_from_dict = False
 
     def set_meta_information(self, meta_information=None):
-        """
-        Identify start and end states from meta information.
-        """
-        self.meta_information = meta_information
-        for key in ["annotations", "start_states", "end_states" ]:
-            assert key in self.meta_information.keys()
-        self.start_states = self.meta_information["start_states"]
-        self.end_states = self.meta_information["end_states"]
-        self.motion_primitive_annotations = self.meta_information["annotations"]
-        self._create_semantic_annotation()
+        super(MotionPrimitiveNodeGroup, self).set_meta_information(meta_information)
         self._set_node_attributes()
-
-    def _create_semantic_annotation(self):
-        #create a map from semantic label to motion primitive
-        for motion_primitive in self.meta_information["annotations"].keys():
-            if motion_primitive != "all_primitives":
-                motion_primitve_annotations = self.meta_information["annotations"][motion_primitive]
-                for label in motion_primitve_annotations.keys():
-                    self.annotation_map[label] = motion_primitive
 
     def _set_node_attributes(self):
         print "elementary_action", self.elementary_action_name
         print "start states", self.start_states
         for k in self.start_states:
             self.nodes[(self.elementary_action_name, k)].node_type = NODE_TYPE_START
-        print "end states",self.end_states
+        print "end states", self.end_states
         for k in self.end_states:
             self.nodes[(self.elementary_action_name, k)].node_type = NODE_TYPE_END
 
@@ -67,9 +44,9 @@ class MotionPrimitiveNodeGroup(object):
             for node_key in self.nodes.keys():
                 self.nodes[node_key].update_attributes()
                 self.meta_information["stats"][node_key[1]] = {"average_step_length": self.nodes[node_key].average_step_length,
-                                                            "n_standard_transitions": self.nodes[node_key].n_standard_transitions}
-                print"n standard transitions",node_key,self.nodes[node_key].n_standard_transitions
-            print "updated meta information",self.meta_information
+                                                               "n_standard_transitions": self.nodes[node_key].n_standard_transitions}
+                print"n standard transitions", node_key, self.nodes[node_key].n_standard_transitions
+            print "updated meta information", self.meta_information
         else:
             if self.meta_information is None:
                 self.meta_information = {}
@@ -82,24 +59,12 @@ class MotionPrimitiveNodeGroup(object):
                 else:
                     self.nodes[node_key].update_attributes()
                     self.meta_information["stats"][node_key[1]] = {"average_step_length": self.nodes[node_key].average_step_length,
-                                                                 "n_standard_transitions": self.nodes[node_key].n_standard_transitions }
+                                                                   "n_standard_transitions": self.nodes[node_key].n_standard_transitions }
                     changed_meta_info = True
             print "loaded stats from meta information file", self.meta_information
         if changed_meta_info and not self.loaded_from_dict:
             self.save_updated_meta_info()
-            
-    def get_random_start_state(self):
-        """ Returns the name of a random start state. """
-        random_index = random.randrange(0, len(self.start_states), 1)
-        start_state = (self.elementary_action_name, self.start_states[random_index])
-        return start_state
-            
-    def get_random_end_state(self):
-        """ Returns the name of a random start state."""
-        random_index = random.randrange(0, len(self.end_states), 1)
-        start_state = (self.elementary_action_name, self.end_states[random_index])
-        return start_state
-        
+
     def generate_random_walk(self, state_node, number_of_steps, use_transition_model=True):
         """ Generates a random graph walk to be converted into a BVH file
     
@@ -163,33 +128,6 @@ class MotionPrimitiveNodeGroup(object):
             next_parameters = self.nodes[to_node_key].sample_low_dimensional_vector()
         return next_parameters
 
-    def _convert_keys_to_strings(self, mydict):
-        copy_dict = {}
-        for key in mydict.keys():
-              if type(key) is tuple:
-                try:
-                  copy_dict[key[1]] = mydict[key]
-                except:
-                    continue
-              else:
-                   copy_dict[key] = mydict[key]
-        return copy_dict
-
-    def save_updated_meta_info(self):
-        """ Save updated meta data to a json file
-        """
-        if self.meta_information is not None:
-            path = self.elementary_action_directory + os.sep + "meta_information.json"
-            write_to_json_file(path, self._convert_keys_to_strings(self.meta_information))
-        return
-
-    def get_canonical_keyframe_labels(self, motion_primitive_name):
-        if motion_primitive_name in self.motion_primitive_annotations.keys():
-            keyframe_labels = self.motion_primitive_annotations[motion_primitive_name]
-        else:
-            keyframe_labels = {}
-        return keyframe_labels
-
     def get_random_transition(self, motion, action_constraint, travelled_arc_length, arc_length_of_end):
         """ Get next state of the elementary action based on previous iteration.
         """
@@ -216,12 +154,10 @@ class MotionPrimitiveNodeGroup(object):
             else:
                 next_mp_type = NODE_TYPE_END
             print "generate", next_mp_type, "transition without trajectory", n_standard_transitions
-    
         to_node_key = self.nodes[prev_node].generate_random_transition(next_mp_type)
-        
         if to_node_key is not None:
             print to_node_key
             return to_node_key, next_mp_type
         else:
             return None, next_mp_type
-           
+
