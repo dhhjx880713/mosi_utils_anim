@@ -7,43 +7,34 @@ Created on Mon Jan 26 14:11:11 2015
 
 import numpy as np
 import json
-from sklearn import mixture  # statistical model
-from motion_primitive_sample import MotionPrimitiveSample
-import scipy.interpolate as si  # B-spline definition and evaluation
+from sklearn import mixture
+import scipy.interpolate as si
 from . import B_SPLINE_DEGREE
+from motion_primitive_sample import MotionPrimitiveSample
 
 
 class MotionPrimitive(object):
     """ Represent a motion primitive which can be sampled
-
     Parameters
     ----------
     * filename: string
     \tThe filename with the saved data in json format.
-
-
     Attributes
     ----------
     * s_pca: dictionary
     \tThe result of the spacial PCA. It is a dictionary having the
     (eigen_vectors, mean_vectors, n_basis,n_dim, maxima, n_components, knots) as values
-
     * t_pca: dictionary
     \tThe result of the temporal PCA. It is a dictionary having the
     (eigen_vectors, mean_vectors, n_basis,n_dim, knots) as values
-
-    * gmm: sklearn.mixture.GMM
+    * gaussian_mixture_model: sklearn.mixture.GMM
     \tstatistical model on the low dimensional representation of motion samples
-
     *name: string
     \tIdentifier of the motion primitive
-
     *n_canonical_frames: int
     \tNumber of frames in the canonical timeline of the spatial data
-
     *translation_maxima: numpy.ndarray
     \tScaling factor to reconstruct the unnormalized translation parameters of a motion after inverse pca
-
     """
     def __init__(self, filename):
         self.filename = filename

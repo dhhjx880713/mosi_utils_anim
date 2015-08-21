@@ -91,7 +91,6 @@ class MotionPrimitiveNode(MotionPrimitive):
         else:
             return None
 
-
     def generate_random_transition(self, transition_type=NODE_TYPE_STANDARD):
         """ Returns the key of a random transition.
 
@@ -101,12 +100,13 @@ class MotionPrimitiveNode(MotionPrimitive):
         \t Idententifies edges as either standard or end transitions
         """
         if self.outgoing_edges:
-            edges = [e for e in self.outgoing_edges.keys() if self.outgoing_edges[e].transition_type == transition_type]
+            edges = [edge_key for edge_key in self.outgoing_edges.keys()
+                     if self.outgoing_edges[edge_key].transition_type == transition_type]
             if len(edges) > 0:
                 random_index = random.randrange(0, len(edges), 1)
-                to_key = edges[random_index]
-                print "to",to_key, self.outgoing_edges[edges[random_index]].transition_type
-                return to_key
+                to_node_key = edges[random_index]
+                print "to", to_node_key, self.outgoing_edges[edges[random_index]].transition_type
+                return to_node_key
         return None
         
     def generate_random_action_transition(self, elementary_action_name):
@@ -118,12 +118,13 @@ class MotionPrimitiveNode(MotionPrimitive):
         \t Identifies an elementary action
         """
         if self.outgoing_edges:
-            edges = [e for e in self.outgoing_edges.keys() if e[0] == elementary_action_name]
+            edges = [edge_key for edge_key in self.outgoing_edges.keys()
+                     if edge_key[0] == elementary_action_name]
             if len(edges) > 0:
                 random_index = random.randrange(0, len(edges), 1)
-                to_key = edges[random_index]
-                print "to",to_key
-                return to_key
+                to_node_key = edges[random_index]
+                print "to", to_node_key
+                return to_node_key
         return None
 
     def update_attributes(self, n_samples=50, method="median"):
@@ -151,11 +152,11 @@ class MotionPrimitiveNode(MotionPrimitive):
         current_parameters = self.sample_low_dimensional_vector()
         return self.get_step_length_for_sample(current_parameters, method)
 
-    def get_step_length_for_sample(self, s, method="arc_length"):
+    def get_step_length_for_sample(self, parameters, method="arc_length"):
         """Backproject the motion and get the step length and the last keyframe on the canonical timeline
         Parameters
         ----------
-        * s: np.ndarray
+        * parameters: np.ndarray
           Low dimensional motion parameters.
         * method : string
           Can have values arc_length or distance. If any other value distance is used.
@@ -165,7 +166,7 @@ class MotionPrimitiveNode(MotionPrimitive):
         \tThe arc length of the path of the motion primitive
         """
         # get quaternion frames from s_vector
-        quat_frames = self.back_project(s, use_time_parameters=False).get_motion_vector()
+        quat_frames = self.back_project(parameters, use_time_parameters=False).get_motion_vector()
         if method == "arc_length":
             root_pos = extract_root_positions_from_frames(quat_frames)        
             step_length = get_arc_length_from_points(root_pos)
@@ -178,7 +179,7 @@ class MotionPrimitiveNode(MotionPrimitive):
     def has_transition_model(self, to_key):
         return to_key in self.outgoing_edges.keys() and self.outgoing_edges[to_key].transition_model is not None
         
-    def predict_parameters(self, to_key, current_parameters):
+    def predict_parameters(self, to_node_key, current_parameters):
         """ Predicts parameters for a transition using the transition model.
         
         Parameters
@@ -195,29 +196,26 @@ class MotionPrimitiveNode(MotionPrimitive):
         * next_parameters: numpy.ndarray
         \tThe predicted parameters for the next state.
         """
-        gmm = self.outgoing_edges[to_key].transition_model.predict(current_parameters)
+        gmm = self.outgoing_edges[to_node_key].transition_model.predict(current_parameters)
         next_parameters = np.ravel(gmm.sample())  
         return next_parameters
 
-    def predict_gmm(self, to_key, current_parameters):
+    def predict_gmm(self, to_node_key, current_parameters):
         """ Predicts a Gaussian Mixture Model for a transition using the transition model.
-        
         Parameters
         ----------
         * to_key: tuple
         \t Identitfier of the action and motion primitive we want to transition to.
         \t Should have the format (action name, motionprimitive name)
-        
         * current_parameters: numpy.ndarray
         \tLow dimensional motion parameters.
-        
         Returns
         -------
         * gmm: sklearn.mixture.GMM
         \tThe predicted Gaussian Mixture Model.
         """
-        if self.outgoing_edges[to_key].transition_model is not None:
-            return self.outgoing_edges[to_key].transition_model.predict(current_parameters)
+        if self.outgoing_edges[to_node_key].transition_model is not None:
+            return self.outgoing_edges[to_node_key].transition_model.predict(current_parameters)
         else:
             return self.gaussian_mixture_model
             
