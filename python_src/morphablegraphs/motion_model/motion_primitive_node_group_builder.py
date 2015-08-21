@@ -7,10 +7,9 @@ Created on Thu Jul 16 15:57:42 2015
 
 import os
 from ..utilities.io_helper_functions import load_json_file
-
 from motion_primitive_node import MotionPrimitiveNode
 from motion_primitive_node_group import MotionPrimitiveNodeGroup
-
+from . import META_INFORMATION_FILE_NAME
  
 class MotionPrimitiveNodeGroupBuilder(object):
     """ Contains a dictionary of motion primitives of an elementary action as nodes  meta information.
@@ -90,7 +89,7 @@ class MotionPrimitiveNodeGroupBuilder(object):
         motion_primitive_node_group.annotation_map = {}
         for root, dirs, files in os.walk(self.elementary_action_directory):
             for file_name in files:#for each morphable model 
-                if file_name == "meta_information.json":
+                if file_name == META_INFORMATION_FILE_NAME:
                     print "found meta information for",  self.elementary_action_name
                     meta_information = load_json_file(self.elementary_action_directory+os.sep+file_name)
                     

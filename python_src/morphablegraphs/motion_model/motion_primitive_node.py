@@ -176,18 +176,17 @@ class MotionPrimitiveNode(MotionPrimitive):
             raise NotImplementedError
         return step_length
             
-    def has_transition_model(self, to_key):
-        return to_key in self.outgoing_edges.keys() and self.outgoing_edges[to_key].transition_model is not None
+    def has_transition_model(self, to_node_key):
+        return to_node_key in self.outgoing_edges.keys() and self.outgoing_edges[to_node_key].transition_model is not None
         
     def predict_parameters(self, to_node_key, current_parameters):
         """ Predicts parameters for a transition using the transition model.
         
         Parameters
         ----------
-        * to_key: tuple
+        * to_node_key: tuple
         \t Identitfier of the action and motion primitive we want to transition to.
         \t Should have the format (action name, motionprimitive name)
-        
         * current_parameters: numpy.ndarray
         \tLow dimensional motion parameters.
         
