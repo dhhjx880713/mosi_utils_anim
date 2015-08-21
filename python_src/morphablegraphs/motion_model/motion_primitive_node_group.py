@@ -10,7 +10,7 @@ import random
 from . import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END
 from ..utilities.io_helper_functions import write_to_json_file
 
- 
+
 class MotionPrimitiveNodeGroup(object):
     """ Contains the motion primitives of an elementary action as nodes and
     transition models as edges.
@@ -26,7 +26,6 @@ class MotionPrimitiveNodeGroup(object):
         self.end_states = []
         self.motion_primitive_annotations = {}
         self.loaded_from_dict = False
-   
 
     def _set_meta_information(self, meta_information=None):
         """
@@ -59,7 +58,7 @@ class MotionPrimitiveNodeGroup(object):
              
         self._set_node_attributes()
         return
-         
+
     def _set_node_attributes(self):
         print "elementary_action",self.elementary_action_name     
         print "start states",self.start_states
@@ -131,7 +130,7 @@ class MotionPrimitiveNodeGroup(object):
         count = 0
         print "start",start_state
         current_state = start_state
-        current_parameters = self.nodes[current_state].sample_parameters()
+        current_parameters = self.nodes[current_state].sample_low_dimensional_vector()
         entry = {"subgraph": self.elementary_action_name,"state": current_state,"parameters":current_parameters}
         graph_walk.append(entry)
         
@@ -183,7 +182,7 @@ class MotionPrimitiveNodeGroup(object):
             
         else:
             motion_primitive = splitted_key[1]
-            next_parameters = self.nodes[motion_primitive].sample_parameters()
+            next_parameters = self.nodes[motion_primitive].sample_low_dimensional_vector()
         return next_parameters
 
     def _convert_keys_to_strings(self, mydict):

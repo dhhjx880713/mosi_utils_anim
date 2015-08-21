@@ -176,7 +176,7 @@ class MotionPrimitiveSampleGenerator(object):
              
             parameters = self._morphable_graph.nodes[(self.prev_action_name,prev_mp_name)].predict_parameters(to_key, prev_parameters)
         else:
-            parameters = self._morphable_graph.nodes[(self.action_name,mp_name)].sample_parameters()
+            parameters = self._morphable_graph.nodes[(self.action_name,mp_name)].sample_low_dimensional_vector()
         return parameters
         
 

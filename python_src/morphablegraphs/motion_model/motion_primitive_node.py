@@ -96,14 +96,6 @@ class MotionPrimitiveNode(MotionPrimitive):
         else:
             return None
 
-    def sample_parameters(self):
-        """ Samples a low dimensional vector from statistical model.
-        Returns
-        -------
-        * parameters: numpy.ndarray
-        \tLow dimensional motion parameters.
-        """
-        return self.sample(return_lowdimvector=True)
 
     def generate_random_transition(self, transition_type=NODE_TYPE_STANDARD):
         """ Returns the key of a random transition.
@@ -168,7 +160,7 @@ class MotionPrimitiveNode(MotionPrimitive):
         *step_length: float
         \tThe arc length of the path of the motion primitive
         """
-        current_parameters = self.sample_parameters()
+        current_parameters = self.sample_low_dimensional_vector()
         return self.get_step_length_for_sample(current_parameters, method)
 
     def get_step_length_for_sample(self, s, method="arc_length"):
