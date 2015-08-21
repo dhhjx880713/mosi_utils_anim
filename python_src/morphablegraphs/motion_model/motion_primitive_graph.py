@@ -52,7 +52,7 @@ class MotionPrimitiveGraph(object):
         for s in self.node_groups.keys():
             print s
             for n in self.node_groups[s].nodes.keys():
-                print "\t"+ n
+                print "\t"+ str(n)
                 print "\t"+"n canonical frames", self.nodes[n].n_canonical_frames
                 print "\t"+"n latent spatial dimensions", self.nodes[n].s_pca["n_components"]
                 print "\t"+"n latent time dimensions",self.nodes[n].t_pca["n_components"]
