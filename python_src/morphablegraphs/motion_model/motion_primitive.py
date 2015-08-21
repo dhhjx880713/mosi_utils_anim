@@ -42,7 +42,6 @@ class MotionPrimitive(object):
         self.gaussian_mixture_model = None
         self.s_pca = dict()
         self.t_pca = dict()
-        # information about the motion necessary for the reconstruction
         self.n_canonical_frames = 0
         self.translation_maxima = np.array([1.0, 1.0, 1.0])
         self.has_time_parameters = True
@@ -128,7 +127,6 @@ class MotionPrimitive(object):
         ----------
         * data: dictionary
         \tThe dictionary must contain all parameters for the spatial pca.
-
         """
         self.t_pca = dict()
         self.t_pca["eigen_vectors"] = np.array(data['eigen_vectors_time'])
