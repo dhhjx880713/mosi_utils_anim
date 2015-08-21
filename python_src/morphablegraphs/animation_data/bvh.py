@@ -15,6 +15,8 @@ from collections import OrderedDict
 import numpy as np
 from ..external.transformations import quaternion_matrix,\
                                        euler_from_matrix
+import os
+
 
 class BVHReader(object):
 
@@ -38,7 +40,7 @@ class BVHReader(object):
         if infilename != "":
             infile = open(infilename, "rb")
             self.read(infile)
-
+        self.filename = os.path.split(infilename)[-1]
         infile.close()
 
     def _read_skeleton(self, infile):

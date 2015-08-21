@@ -52,17 +52,28 @@ def get_arc_length_from_points(points):
     """
     Note: accuracy depends on the granulariy of points
     """
+    points = np.asarray(points)
     arc_length = 0.0
     last_p = None
     for p in points:
         if last_p is not None:
             delta = p - last_p
             #print delta
-            arc_length += sqrt( delta[0]**2 + delta[1]**2 +delta[2]**2) #-arcLength
+            arc_length += np.linalg.norm(delta)
         else:
             delta = p
         last_p = p
     return arc_length
+
+def get_step_length(frames):
+    """
+
+    :param frames: a list of euler or quaternion frames
+    :return step_len: travelled distance of root joint
+    """
+    root_points = extract_root_positions(frames)
+    step_len = get_arc_length_from_points(root_points)
+    return step_len
 
 def euler_to_quaternion(euler_angles, rotation_order=['Xrotation', 'Yrotation', 'Zrotation'],
                         filter_value=True):
@@ -1294,6 +1305,11 @@ def calculate_pose_distances_from_low_dim(skeleton, mm_models, X, Y):
 
 
 def extract_root_positions(frames):
+    """
+
+    :param frames: a list of euler or quaternion frames
+    :return roots_2D: a list of root position in 2D space
+    """
     roots_2D = []
     for i in xrange(len(frames)):
         position_2D = [frames[i][0], frames[i][2]]
