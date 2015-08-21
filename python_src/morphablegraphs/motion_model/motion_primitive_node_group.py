@@ -15,7 +15,7 @@ class MotionPrimitiveNodeGroup(ElementaryActionMetaInfo):
     """
     def __init__(self, elementary_action_name):
         super(MotionPrimitiveNodeGroup, self).__init__(elementary_action_name)
-        self.nodes = {}
+        self.nodes = dict()
         self.elementary_action_directory = None
         self.has_transition_models = False
         self.loaded_from_dict = False
@@ -65,46 +65,6 @@ class MotionPrimitiveNodeGroup(ElementaryActionMetaInfo):
         if changed_meta_info and not self.loaded_from_dict:
             self.save_updated_meta_info()
 
-    def generate_random_walk(self, state_node, number_of_steps, use_transition_model=True):
-        """ Generates a random graph walk to be converted into a BVH file
-    
-        Parameters
-        ----------
-        * start_state: string
-        \tInitial state.
-        
-        * number_of_steps: integer
-        \tNumber of transitions
-        
-        * use_transition_model: bool
-        \tSets whether or not the transition model should be used in parameter prediction
-        """
-        current_node = state_node
-        assert current_node in self.nodes.keys()
-        graph_walk = []
-        count = 0
-        print "start", current_node
-        current_parameters = self.nodes[current_node].sample_low_dimensional_vector()
-        entry = {"node_key": current_node, "parameters": current_parameters}
-        graph_walk.append(entry)
-        
-        if self.nodes[current_node].n_standard_transitions > 0:
-            while count < number_of_steps:
-                to_node_key = self.nodes[current_node].generate_random_transition(NODE_TYPE_STANDARD)
-                next_parameters = self.generate_next_parameters(self.nodes, current_node, current_parameters, to_node_key, use_transition_model)
-                entry = {"node_key": to_node_key, "parameters": next_parameters}
-                graph_walk.append(entry)
-                current_parameters = next_parameters
-                current_node = to_node_key
-                count += 1
-            
-        #add end node
-        to_node_key = self.nodes[current_node].generate_random_transition(NODE_TYPE_END)
-        next_parameters = self.generate_next_parameters(current_node,current_parameters,to_node_key,use_transition_model)
-        entry = {"node_key": to_node_key, "parameters":next_parameters}
-        graph_walk.append(entry)
-        return graph_walk
-        
     def generate_next_parameters(self, current_node_key, current_parameters, to_node_key, use_transition_model):
         """ Generate parameters for transitions.
         
@@ -133,31 +93,66 @@ class MotionPrimitiveNodeGroup(ElementaryActionMetaInfo):
         """
         prev_node = motion.graph_walk[-1].node_key
         if action_constraint.trajectory is not None:
-             #test end condition for trajectory constraints
+            #test end condition for trajectory constraints
             if not action_constraint.check_end_condition(motion.quat_frames,\
                                     travelled_arc_length, arc_length_of_end):
 
                 #make standard transition to go on with trajectory following
-                next_mp_type = NODE_TYPE_STANDARD
+                next_node_type = NODE_TYPE_STANDARD
             else:
                 # threshold was overstepped. remove previous step before 
                 # trying to reach the goal using a last step
                 #TODO replace with more efficient solution or optimization
-    
-                next_mp_type = NODE_TYPE_END
+                next_node_type = NODE_TYPE_END
                 
-            print "generate", next_mp_type, "transition from trajectory"
+            print "generate", next_node_type, "transition from trajectory"
         else:
             n_standard_transitions = len([e for e in self.nodes[prev_node].outgoing_edges.keys() if self.nodes[prev_node].outgoing_edges[e].transition_type == NODE_TYPE_STANDARD])
             if n_standard_transitions > 0:
-                next_mp_type = NODE_TYPE_STANDARD
+                next_node_type = NODE_TYPE_STANDARD
             else:
-                next_mp_type = NODE_TYPE_END
-            print "generate", next_mp_type, "transition without trajectory", n_standard_transitions
-        to_node_key = self.nodes[prev_node].generate_random_transition(next_mp_type)
+                next_node_type = NODE_TYPE_END
+            print "generate", next_node_type, "transition without trajectory", n_standard_transitions
+        to_node_key = self.nodes[prev_node].generate_random_transition(next_node_type)
         if to_node_key is not None:
             print to_node_key
-            return to_node_key, next_mp_type
+            return to_node_key, next_node_type
         else:
-            return None, next_mp_type
+            return None, next_node_type
 
+    def generate_random_walk(self, state_node, number_of_steps, use_transition_model=True):
+        """ Generates a random graph walk to be converted into a BVH file
+
+        Parameters
+        ----------
+        * start_state: string
+        \tInitial state.
+        * number_of_steps: integer
+        \tNumber of transitions
+        * use_transition_model: bool
+        \tSets whether or not the transition model should be used in parameter prediction
+        """
+        current_node = state_node
+        assert current_node in self.nodes.keys()
+        graph_walk = []
+        count = 0
+        print "start", current_node
+        current_parameters = self.nodes[current_node].sample_low_dimensional_vector()
+        entry = {"node_key": current_node, "parameters": current_parameters}
+        graph_walk.append(entry)
+
+        if self.nodes[current_node].n_standard_transitions > 0:
+            while count < number_of_steps:
+                to_node_key = self.nodes[current_node].generate_random_transition(NODE_TYPE_STANDARD)
+                next_parameters = self.generate_next_parameters(self.nodes, current_node, current_parameters, to_node_key, use_transition_model)
+                entry = {"node_key": to_node_key, "parameters": next_parameters}
+                graph_walk.append(entry)
+                current_parameters = next_parameters
+                current_node = to_node_key
+                count += 1
+        #add end node
+        to_node_key = self.nodes[current_node].generate_random_transition(NODE_TYPE_END)
+        next_parameters = self.generate_next_parameters(current_node,current_parameters,to_node_key,use_transition_model)
+        entry = {"node_key": to_node_key, "parameters":next_parameters}
+        graph_walk.append(entry)
+        return graph_walk
