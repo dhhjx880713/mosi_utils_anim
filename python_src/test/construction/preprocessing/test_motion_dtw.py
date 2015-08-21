@@ -122,7 +122,6 @@ class TestMotionDynamicTimeWarping(object):
                        'frames': test_bvhreader.frames}
         distgrid = self.motion_dtw.get_distgrid(ref_motion, test_motion)
         pathx, pathy, dist = self.motion_dtw.calculate_path(distgrid)
-        warping_index = self.motion_dtw.get_warping_index(pathx, pathy,
-                                                          distgrid.shape)
+        warping_index = self.motion_dtw.get_warping_index(pathx, pathy, distgrid.shape)
         assert warping_index == res
     

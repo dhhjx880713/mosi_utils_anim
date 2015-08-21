@@ -4,13 +4,13 @@ Created on Sun Aug 02 13:15:01 2015
 
 @author: hadu01
 """
-import os
-import json
+
 from ...animation_data.quaternion_frame import QuaternionFrame
 import numpy as np
-from FPCA_temporal_data import FPCATemporalData
-from FPCA_spatial_data import FPCASpatialData
-
+from python_src.morphablegraphs.construction.fpca.fpca_temporal_data import FPCATemporalData
+from python_src.morphablegraphs.construction.fpca.fpca_spatial_data import FPCASpatialData
+LEN_QUATERNION = 4
+LEN_ROOT_POSITION = 3
 
 class MotionDimensionReduction(object):
 
@@ -23,40 +23,42 @@ class MotionDimensionReduction(object):
         :param params:
         :return:
         """
-        """
-        :param motion_data:
-        :param skeleton_bvh:
-        :param params:
-        :return:
-        """
         self.params = params
         self.motion_data = motion_data
         self.spatial_data = {}
         self.temporal_data = {}
-        self.len_quaterion = 4
-        self.len_root_position = 3
         for filename, data in self.motion_data.iteritems():
             self.spatial_data[filename] = data['frames']
             self.temporal_data[filename] = data['warping_index']
         self.skeleton_bvh = skeleton_bvh
-        self.n_frames = len(self.spatial_data[self.spatial_data.keys()[0]])
+        self.fdata = {}
+        self.fdata['n_frames'] = len(self.spatial_data[self.spatial_data.keys()[0]])
+        self.fdata['motion_type'] = self.params.elementary_action + '_' + \
+            self.params.motion_primitive
+        self.fdata['n_dim_spatial'] = self.params.n_basis_functions_spatial
+        self.fdata['n_basis'] = self.params.n_basis_functions_spatial
+        self.fpca_temporal = None
+        self.fpca_spatial = None
+        self.quat_frames = {}
+        self.rescaled_quat_frames = {}
 
     def use_fpca_on_temporal_params(self):
-        self.fpca_temporal = FPCATemporalData(self.temporal_data,
-                                              self.params.n_basis_functions_temporal,
-                                              self.params.npc_temporal)
+        self.fpca_temporal = FPCATemporalData(
+            self.temporal_data,
+            self.params.n_basis_functions_temporal,
+            self.params.npc_temporal)
         self.fpca_temporal.fpca_on_temporal_data()
 
     def use_fpca_on_spatial_params(self):
         self.convert_euler_to_quat()
         self.scale_rootchannels()
-        self.fpca_spatial = FPCASpatialData(self.rescaled_quat_frames,
-                                            self.params.n_basis_functions_spatial,
-                                            self.params.fraction)
+        self.fpca_spatial = FPCASpatialData(
+            self.rescaled_quat_frames,
+            self.params.n_basis_functions_spatial,
+            self.params.fraction)
         self.fpca_spatial.fpca_on_spatial_data()
 
     def convert_euler_to_quat(self):
-        self.quat_frames = {}
         for filename, frames in self.spatial_data.iteritems():
             self.quat_frames[filename] = self.get_quat_frames_from_euler(frames)
 
@@ -68,19 +70,21 @@ class MotionDimensionReduction(object):
             if last_quat_frame is not None:
                 for joint_name in self.skeleton_bvh.node_names.keys():
                     if joint_name in quat_frame.keys():
-                        quat_frame[joint_name] = self.check_quat(quat_frame[joint_name],
-                                                                 last_quat_frame[joint_name])
+                        quat_frame[joint_name] = MotionDimensionReduction.check_quat(
+                            quat_frame[joint_name],
+                            last_quat_frame[joint_name])
             last_quat_frame = quat_frame
             root_translation = frame[0:3]
             quat_frame_values = [root_translation, ] + quat_frame.values()
-            quat_frame_values = self.convert_quat_frame_value_to_array(quat_frame_values)
+            quat_frame_values = self.reshape_quat_frame(quat_frame_values)
             quat_frames.append(quat_frame_values)
         return quat_frames
-    
-    def convert_quat_frame_value_to_array(self, quat_frame_values):
+
+    def reshape_quat_frame(self, quat_frame_values):
         n_channels = len(quat_frame_values)
         quat_channels = n_channels - 1
-        self.n_dims = quat_channels * self.len_quaterion + self.len_root_position
+        n_dims = quat_channels * LEN_QUATERNION + LEN_ROOT_POSITION
+        self.fdata['n_dim_spatial'] = n_dims
         # in order to use Functional data representation from Fda(R), the
         # input data should be a matrix of shape (n_frames * n_samples *
         # n_dims)
@@ -89,12 +93,13 @@ class MotionDimensionReduction(object):
             if not isinstance(item, list):
                 item = list(item)
             quat_frame_value_array += item
-        assert isinstance(quat_frame_value_array, list) and len(quat_frame_value_array) == self.n_dims, \
-        ('The length of quaternion frame is not correct! ')
+        assert isinstance(quat_frame_value_array, list) and len(
+            quat_frame_value_array) == n_dims, \
+            ('The length of quaternion frame is not correct! ')
         return quat_frame_value_array
-        
-    
-    def check_quat(self, test_quat, ref_quat):
+
+    @classmethod
+    def check_quat(cls, test_quat, ref_quat):
         """check test quat needs to be filpped or not
         """
         test_quat = np.asarray(test_quat)
@@ -106,12 +111,10 @@ class MotionDimensionReduction(object):
 
     def scale_rootchannels(self):
         """ Scale all root channels in the given frames.
-        It scales the root channel by taking its absolut maximum 
-        (max_x, max_y, max_z) and devide all values by the maximum, 
-        scaling all positions between -1 and 1    
+        It scales the root channel by taking its absolut maximum
+        (max_x, max_y, max_z) and devide all values by the maximum,
+        scaling all positions between -1 and 1
         """
-
-        self.rescaled_quat_frames = {}
         max_x = 0
         max_y = 0
         max_z = 0
@@ -133,38 +136,13 @@ class MotionDimensionReduction(object):
             value[:, 1] /= max_y
             value[:, 2] /= max_z
             self.rescaled_quat_frames[key] = value.tolist()
-        self.scale_vector = [max_x, max_y, max_z]
+        self.fdata['scale_vector'] = [max_x, max_y, max_z]
 
     def gen_data_for_modeling(self):
         self.use_fpca_on_temporal_params()
         self.use_fpca_on_spatial_params()
-        self.fdata = {}
-        self.fdata['motion_type'] = self.params.elementary_action + '_' + \
-            self.params.motion_primitive
-        self.fdata['spatial_parameters'] = self.fpca_spatial.fpcaobj.lowVs
+        self.fdata['spatial_parameters'] = self.fpca_spatial.fpcaobj.low_vecs
         self.fdata['file_order'] = self.fpca_spatial.fileorder
         self.fdata['spatial_eigenvectors'] = self.fpca_spatial.fpcaobj.eigenvectors
-        self.fdata['scale_vector'] = self.scale_vector
-        self.fdata['n_frames'] = self.n_frames
         self.fdata['mean_motion'] = self.fpca_spatial.fpcaobj.centerobj.mean
-        self.fdata['n_dim_spatial'] = self.params.n_basis_functions_spatial
-        self.fdata['n_dim_spatial'] = self.n_dims
-        self.fdata['n_basis'] = self.params.n_basis_functions_spatial
         self.fdata['temporal_pcaobj'] = self.fpca_temporal.temporal_pcaobj
-
-
-def main():
-    from ..construction_algorithm_configuration import ConstructionAlgorithmConfigurationBuilder
-    from ...animation_data.bvh import BVHReader
-    TESTDATAPATH = r'C:\git-repo\ulm\morphablegraphs\test_data\constrction\fpca'
-    with open(TESTDATAPATH + os.sep + 'motion_data.json') as infile:
-        motion_data = json.load(infile)
-    params = ConstructionAlgorithmConfigurationBuilder('pickLeft', 'first')
-    skeleton_bvh = BVHReader(params.ref_bvh)
-    dimension_reduction = MotionDimensionReduction(motion_data, skeleton_bvh, params)
-    dimension_reduction.gen_data_for_modeling()
-    with open(TESTDATAPATH + os.sep + 'fdata.json', 'wb') as infile:
-        json.dump(dimension_reduction.fdata, infile)
-
-if __name__ == '__main__':
-    main()

@@ -3,7 +3,7 @@ __author__ = 'hadu01'
 import os
 import numpy as np
 import json
-from ....morphablegraphs.construction.fpca.PCA_fd import PCA_fd
+from ....morphablegraphs.construction.fpca.pca_functional_data import PCAFunctionalData
 from ...libtest import params, pytest_generate_tests
 ROOTDIR = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-4]) + os.sep
 TEST_DATA_PATH = ROOTDIR + os.sep + r'../test_data/constrction/fpca'
@@ -17,7 +17,7 @@ class TestPCA_fd(object):
             test_data = json.load(infile)
         print type(test_data)
         print np.asarray(test_data).shape
-        self.pca_fd = PCA_fd(test_data, 7, 0.95)
+        self.pca_fd = PCAFunctionalData(test_data, 7, 0.95)
 
     param_convert_to_fd = [{'res': (7, 29, 79)}]
 
@@ -41,4 +41,4 @@ class TestPCA_fd(object):
     @params(param_project_data)
     def test_project_data(self, res):
         for i in xrange(len(res)):
-            assert  round(self.pca_fd.lowVs[0][i], 3) == round(res[i], 3)
+            assert  round(self.pca_fd.low_vecs[0][i], 3) == round(res[i], 3)

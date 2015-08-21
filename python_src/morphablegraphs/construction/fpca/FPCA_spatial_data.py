@@ -5,7 +5,7 @@ Created on Mon Aug 03 10:48:53 2015
 @author: hadu01
 """
 
-from PCA_fd import PCA_fd
+from python_src.morphablegraphs.construction.fpca.pca_functional_data import PCAFunctionalData
 import numpy as np
 
 
@@ -19,10 +19,13 @@ class FPCASpatialData(object):
         self.spatial_data = motion_data
         self.n_basis = n_basis
         self.fraction = fraction
+        self.reshaped_data = None
+        self.fpcaobj = None
+        self.fileorder = None
 
     def fpca_on_spatial_data(self):
         self.convert_data_for_fpca()
-        self.fpcaobj = PCA_fd(self.reshaped_data, self.n_basis, self.fraction)
+        self.fpcaobj = PCAFunctionalData(self.reshaped_data, self.n_basis, self.fraction)
 
     def convert_data_for_fpca(self):
         # reorder data based on filename
@@ -39,6 +42,4 @@ class FPCASpatialData(object):
         self.reshaped_data = np.zeros((n_frames, n_samples, n_dims))
         for i in xrange(n_frames):
             for j in xrange(n_samples):
-                self.reshaped_data[i, j] = reordered_data[j,i]
-
-
+                self.reshaped_data[i, j] = reordered_data[j, i]

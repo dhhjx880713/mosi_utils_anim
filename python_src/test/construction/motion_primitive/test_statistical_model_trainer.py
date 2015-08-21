@@ -39,7 +39,7 @@ class TestStatisticalModelTrainer(object):
         """
         Unit test for _combine_spatial_temporal_parameters
         """
-        self.modelTrainer._combine_spatial_temporal_parameters()
+        self.modelTrainer.comb_params()
         assert self.modelTrainer._motion_parameters.shape[1] == res
     
     param_train_gmm = [{"res": 3}]
@@ -49,7 +49,7 @@ class TestStatisticalModelTrainer(object):
         Unit test for _train_gmm
         """
         self.modelTrainer._train_gmm()
-        assert self.modelTrainer.numberOfGaussian == res
+        assert self.modelTrainer.n_gaussians == res
     
     param_create_gmm = [{"res": 3}]
     @params(param_create_gmm)

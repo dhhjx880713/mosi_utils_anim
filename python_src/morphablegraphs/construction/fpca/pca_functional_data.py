@@ -9,7 +9,7 @@ import rpy2.robjects as robjects
 from ...external.PCA import Center, PCA
 
 
-class PCA_fd(object):
+class PCAFunctionalData(object):
 
     def __init__(self, input_data, n_basis=7, fraction=0.90):
         '''
@@ -17,20 +17,21 @@ class PCA_fd(object):
         ----------
         * input_data: 3d array (n_frames * n_samples *n_dims)
 
-        * faction: a value in [0, 1] 
+        * faction: a value in [0, 1]
         \tThe ratio of variance to maintain
         '''
         self.input_data = np.asarray(input_data)
         self.n_basis = n_basis
-        self.fd = self.convert_to_fd()
-        self.reshaped_fd, origin_shape = self.reshape_fd(self.fd)
+        self.functional_data = self.convert_to_fd()
+        self.reshaped_fd = PCAFunctionalData.reshape_fd(self.functional_data)[0]
         self.centerobj = Center(self.reshaped_fd)
         self.pcaobj = PCA(self.reshaped_fd, fraction=fraction)
         self.eigenvectors = self.pcaobj.Vt[:self.pcaobj.npc]
         print 'number of eigenvectors: ' + str(self.pcaobj.npc)
-        self.lowVs = self.project_data(self.reshaped_fd)
+        self.low_vecs = self.project_data(self.reshaped_fd)
 
-    def from_pca_to_data(self, data, original_shape):
+    @classmethod
+    def from_pca_to_data(cls, data, original_shape):
         """Reshape back projection result from PCA as input data
         """
         reconstructed_data = np.zeros(original_shape)
@@ -42,7 +43,7 @@ class PCA_fd(object):
 
     def convert_to_fd(self):
         '''
-        represent data as a linear combination of basis function, and return 
+        represent data as a linear combination of basis function, and return
         weights of functions
 
         Parameters
@@ -53,7 +54,8 @@ class PCA_fd(object):
         ------
         * coefs: 3d array (n_coefs * n_samples * n_dim)
         '''
-        assert len(self.input_data.shape) == 3, ('input data should be a 3d array')
+        assert len(
+            self.input_data.shape) == 3, ('input data should be a 3d array')
         # reshape the data matrix for R library fda
         robjects.conversion.py2ri = numpy2ri.numpy2ri
         r_data = robjects.Matrix(self.input_data)
@@ -68,33 +70,34 @@ class PCA_fd(object):
                                             nbasis = n_basis)
             smoothed_tmp = smooth.basis(argvals=seq(0, {n_frames-1},
                             len = {n_frames}),y = {data}, fdParobj = basisobj)
-            fd = smoothed_tmp$fd                                                  
+            fd = smoothed_tmp$fd
         ''' % (r_data.r_repr(), self.n_basis)
         robjects.r(rcode)
-        fd = robjects.globalenv['fd']
-        coefs = fd[fd.names.index('coefs')]
+        functional_data = robjects.globalenv['fd']
+        coefs = functional_data[functional_data.names.index('coefs')]
         coefs = np.asarray(coefs)
         return coefs
 
-    def reshape_fd(self, fd):
+    @classmethod
+    def reshape_fd(cls, functional_data):
         '''
-        reshape 3d coefficients (n_coefs * n_samples * n_dim) as 
+        reshape 3d coefficients (n_coefs * n_samples * n_dim) as
         a 2d matrix (n_samples * (n_coefs * n_dim)) for standard PCA
         '''
-        assert len(fd.shape) == 3, ("fd should be a 3d array")
-        n_coefs, n_samples, n_dim = fd.shape
+        assert len(functional_data.shape) == 3, ("functional data should be a 3d array")
+        n_coefs, n_samples, n_dim = functional_data.shape
         pca_data = np.zeros((n_samples, n_coefs * n_dim))
         for i in xrange(n_samples):
-            pca_data[i] = np.reshape(fd[:, i, :], (1, n_coefs * n_dim))
+            pca_data[i] = np.reshape(functional_data[:, i, :], (1, n_coefs * n_dim))
         return pca_data, (n_coefs, n_samples, n_dim)
 
-    def reshape_fd_back(self, pca_data, origin_shape):
+    @classmethod
+    def reshape_fd_back(cls, pca_data, origin_shape):
         assert len(pca_data.shape) == 2, ('the data should be a 2d array')
         assert len(
             origin_shape) == 3, ('the original data should be a 3d array')
-        n_samples, n_dim = pca_data.shape
         fd_back = np.zeros(origin_shape)
-        for i in xrange(n_samples):
+        for i in xrange(len(pca_data)):
             fd_back[:, i, :] = np.reshape(
                 pca_data[i], (origin_shape[0], origin_shape[2]))
         return fd_back
@@ -103,25 +106,25 @@ class PCA_fd(object):
         '''
         project functional data to low dimensional space
         '''
-        lowVs = []
-        n_samples, n_dim = data.shape
-        for i in xrange(n_samples):
-            lowV = np.dot(self.eigenvectors, data[i])
-            lowVs.append(lowV)
-        lowVs = np.asarray(lowVs)
-        return lowVs
+        low_vecs = []
+        for i in xrange(len(data)):
+            low_vec = np.dot(self.eigenvectors, data[i])
+            low_vecs.append(low_vec)
+        low_vecs = np.asarray(low_vecs)
+        return low_vecs
 
-    def backproject_data(self, lowVs):
-        n_samples = len(lowVs)
-        highVs = []
+    def backproject_data(self, low_vecs):
+        n_samples = len(low_vecs)
+        high_vecs = []
         for i in xrange(n_samples):
-            highV = np.dot(np.transpose(self.eigenvectors), lowVs[i].T)
-            highV = highV + self.centerobj.mean
-            highVs.append(highV)
-        highVs = np.asarray(highVs)
-        return highVs
+            high_vec = np.dot(np.transpose(self.eigenvectors), low_vecs[i].T)
+            high_vec = high_vec + self.centerobj.mean
+            high_vecs.append(high_vec)
+        high_vecs = np.asarray(high_vecs)
+        return high_vecs
 
-    def from_fd_to_data(self, fd, n_frames):
+    @classmethod
+    def from_fd_to_data(cls, functional_data, n_frames):
         '''
         generate data from weights of basis functions
 
@@ -130,10 +133,9 @@ class PCA_fd(object):
         * fd: 3d array (n_weights * n_samples * n_dim)
         \tThe weights of basis functions
         '''
-        assert len(fd.shape) == 3, ('weights matrix should be a 3d array')
-#        n_basis, n_samples, n_dim = coefs.shape
+        assert len(functional_data.shape) == 3, ('weights matrix should be a 3d array')
         robjects.conversion.py2ri = numpy2ri.numpy2ri
-        r_data = robjects.Matrix(np.asarray(fd))
+        r_data = robjects.Matrix(np.asarray(functional_data))
         rcode = '''
             library('fda')
             data = %s

@@ -1400,19 +1400,20 @@ def align_quaternion_frames(quat_frames, prev_frames=None, aligning_transformati
         return quat_frames
 
 
-def main():
-    q = [2.03844784e-01, 6.46012476e-01, 7.41049869e-01, -5.18757119e-03]
-    start = time.clock()
-    euler_angles = quaternion_to_euler2(q)
-    end = time.clock()
-    duration = end - start
-    print "time duration: " + str(duration)
-    print euler_angles
-    q = [2.03844784e-01, 6.46012476e-01, 7.41049869e-01, -5.18757119e-03]
-    start1 = time.clock()
-    euler_angles1 = quaternion_to_euler1(q)
-    end1 = time.clock()
-    duration1 = end1 - start1
-    print "time duration: " + str(duration1)
-    print euler_angles1
-
+def rotate_euler_frames(euler_frames,
+                        frame_idx,
+                        ref_orientation):
+    """
+    Rotate a list of euler frames using the same rotation angle
+    :param euler_frames: a list of euler frames to be rotated
+    :param frame_idx: frame which uses to calculate rotation anlge
+    :param ref_orientation: reference orientation for alignment
+    :return rotated_frames: a list of rotated euler frames
+    """
+    test_ori = pose_orientation_euler(euler_frames[frame_idx])
+    rot_angle = get_rotation_angle(ref_orientation, test_ori)
+    translation = np.array([0, 0, 0])
+    rotated_frames = transform_euler_frames(euler_frames,
+                                            [0, rot_angle, 0],
+                                            translation)
+    return rotated_frames
