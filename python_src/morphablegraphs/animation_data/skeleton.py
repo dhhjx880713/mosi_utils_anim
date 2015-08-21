@@ -11,7 +11,7 @@ import numpy as np
 
 class Skeleton(object):
 
-    """ Data structure that stores the skeleton hierarchy information 
+    """ Data structure that stores the skeleton hierarchy information
         extracted from a BVH file with additional meta information.
     """
 

@@ -32,8 +32,14 @@ def calculate_velocity(euler_frames):
     velocity = []
     for i in xrange(len(euler_frames)):
         if i > 0:
-            diff_frame = np.sqrt(np.power((euler_frame_diff(euler_frames[i],
-                                                            euler_frames[i - 1])), 2))
+            diff_frame = np.sqrt(
+                np.power(
+                    (euler_frame_diff(
+                        euler_frames[i],
+                        euler_frames[
+                            i -
+                            1])),
+                    2))
             velocity.append(diff_frame)
     return velocity
 
@@ -237,9 +243,10 @@ def calculate_cartesian_pose_bounding_box(bvh_reader):
         bb[c] = {"min": np.inf, "max": -np.inf}
     # print bb
     # get cartesian frames
-    cartesian_frames = convert_euler_frames_to_cartesian_frames(bvh_reader,
-                                                                bvh_reader.keyframes,
-                                                                node_name_map=None)
+    cartesian_frames = convert_euler_frames_to_cartesian_frames(
+        bvh_reader,
+        bvh_reader.keyframes,
+        node_name_map=None)
     # print cartesian_frames.shape
     for frame in cartesian_frames:  # iterate over frames
         j = 0
@@ -257,7 +264,13 @@ def calculate_cartesian_pose_bounding_box(bvh_reader):
     return bb
 
 
-def check_parameter_bounding_box(bvh_reader, euler_frames, pose_bb, eps=4, bip_present=False, update_bb=False):
+def check_parameter_bounding_box(
+        bvh_reader,
+        euler_frames,
+        pose_bb,
+        eps=4,
+        bip_present=False,
+        update_bb=False):
     """
     checks if the parameters in the frames correspond to the pose bounding box
     1) compares each channel in each frame in euler_frames if it goes outside
@@ -272,7 +285,10 @@ def check_parameter_bounding_box(bvh_reader, euler_frames, pose_bb, eps=4, bip_p
                     # print node_name
                     for c in pose_bb[node_name].keys():
                         if abs(frame[i]) > eps:
-                            if not check_bb_value(pose_bb[node_name][c], frame[i], eps):
+                            if not check_bb_value(
+                                    pose_bb[node_name][c],
+                                    frame[i],
+                                    eps):
                                 if not update_bb:
                                     print "bounding box", node_name, c, \
                                         pose_bb[node_name], frame[i]
@@ -291,7 +307,10 @@ def check_parameter_bounding_box(bvh_reader, euler_frames, pose_bb, eps=4, bip_p
                 # print node_name
                 for c in pose_bb[node_name].keys():
                     if abs(frame[i]) > eps:
-                        if not check_bb_value(pose_bb[node_name][c], frame[i], eps):
+                        if not check_bb_value(
+                                pose_bb[node_name][c],
+                                frame[i],
+                                eps):
                             if not update_bb:
                                 print "bounding box", node_name, c, \
                                     pose_bb[node_name], frame[i]
@@ -304,7 +323,13 @@ def check_parameter_bounding_box(bvh_reader, euler_frames, pose_bb, eps=4, bip_p
     return True
 
 
-def check_parameter_bounding_box(bvh_reader, euler_frames, pose_bb, eps=4, bip_present=False, update_bb=False):
+def check_parameter_bounding_box(
+        bvh_reader,
+        euler_frames,
+        pose_bb,
+        eps=4,
+        bip_present=False,
+        update_bb=False):
     """
     checks if the parameters in the frames correspond to the pose bounding box
     1) compares each channel in each frame in euler_frames if it goes outside
@@ -319,7 +344,10 @@ def check_parameter_bounding_box(bvh_reader, euler_frames, pose_bb, eps=4, bip_p
                     # print node_name
                     for c in pose_bb[node_name].keys():
                         if abs(frame[i]) > eps:
-                            if not check_bb_value(pose_bb[node_name][c], frame[i], eps):
+                            if not check_bb_value(
+                                    pose_bb[node_name][c],
+                                    frame[i],
+                                    eps):
                                 if not update_bb:
                                     print "bounding box", node_name, c, \
                                         pose_bb[node_name], frame[i]
@@ -338,7 +366,10 @@ def check_parameter_bounding_box(bvh_reader, euler_frames, pose_bb, eps=4, bip_p
                 # print node_name
                 for c in pose_bb[node_name].keys():
                     if abs(frame[i]) > eps:
-                        if not check_bb_value(pose_bb[node_name][c], frame[i], eps):
+                        if not check_bb_value(
+                                pose_bb[node_name][c],
+                                frame[i],
+                                eps):
                             if not update_bb:
                                 print "bounding box", node_name, c, \
                                     pose_bb[node_name], frame[i]
@@ -351,7 +382,11 @@ def check_parameter_bounding_box(bvh_reader, euler_frames, pose_bb, eps=4, bip_p
     return True
 
 
-def check_parameter_bounding_box2(euler_frames, pose_bb, eps=4, update_bb=False):
+def check_parameter_bounding_box2(
+        euler_frames,
+        pose_bb,
+        eps=4,
+        update_bb=False):
     """
     checks if the parameters in the frames correspond to the pose bounding box
     1) compares each channel in each frame in euler_frames if it goes outside
@@ -365,7 +400,10 @@ def check_parameter_bounding_box2(euler_frames, pose_bb, eps=4, update_bb=False)
             # print node_name
             for c in pose_bb[node_name].keys():
                 if abs(frame[i]) > eps:
-                    if not check_bb_value(pose_bb[node_name][c], frame[i], eps):
+                    if not check_bb_value(
+                            pose_bb[node_name][c],
+                            frame[i],
+                            eps):
                         if not update_bb:
                             #                            print "bounding box", node_name, c, \
                             #                                   pose_bb[node_name], frame[i]
@@ -377,7 +415,12 @@ def check_parameter_bounding_box2(euler_frames, pose_bb, eps=4, update_bb=False)
     return True
 
 
-def check_cartesian_bounding_box(bvh_reader, euler_frames, cartesian_bb, eps=4, bip_present=False):
+def check_cartesian_bounding_box(
+        bvh_reader,
+        euler_frames,
+        cartesian_bb,
+        eps=4,
+        bip_present=False):
     """
     converts euler frames into cartesian frames and checks if the motion
     goes outside the bounding box
@@ -425,13 +468,19 @@ def check_velocity_value(velocity, value, eps):
     """
     boundary = abs(velocity["var"]) + eps
 
-    if velocity["avg"] - boundary < value and value < velocity["avg"] + boundary:
+    if velocity["avg"] - \
+            boundary < value and value < velocity["avg"] + boundary:
         return True
     else:
         return False
 
 
-def check_average_velocity(bvh_reader, euler_frames, average_velocity, eps=4, bip_present=False):
+def check_average_velocity(
+        bvh_reader,
+        euler_frames,
+        average_velocity,
+        eps=4,
+        bip_present=False):
     """
     checks if the parameters in the frames correspond to the average velocity
     #1) calculates the average velocity for each joint over all euler_frames
@@ -467,13 +516,19 @@ def check_average_velocity(bvh_reader, euler_frames, average_velocity, eps=4, bi
     return True
 
 
-def check_sample_validity(graph_node, sample, bvh_reader, node_name_map=None, eps=4):
+def check_sample_validity(
+        graph_node,
+        sample,
+        bvh_reader,
+        node_name_map=None,
+        eps=4):
     valid = True
     parameter_bb = graph_node.parameter_bb
     if parameter_bb is not None:
         quaternion_frames = graph_node.back_project(
             sample).get_motion_vector().tolist()
-        euler_frames = convert_quaternion_frames_to_euler_frames(quaternion_frames)
+        euler_frames = convert_quaternion_frames_to_euler_frames(
+            quaternion_frames)
         valid = check_parameter_bounding_box2(
             euler_frames, parameter_bb, eps, update_bb=False)
         # print "valid",valid

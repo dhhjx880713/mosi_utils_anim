@@ -301,20 +301,14 @@ class MotionPrimitive(object): #StatisticalModel
         #1.1: reconstruct t by evaluating the harmonics and the mean
 
         mean_t = self._mean_temporal()
-        print "mean temporal: "
-        print mean_t
         n_latent_dim = len(self.t_pca["eigen_coefs"])
-        print "n_latent_dim: "
-        print n_latent_dim
-        print self.t_pca["knots"]
-        print self.t_pca["eigen_coefs"]
         eigen_tck = [(self.t_pca["knots"],self.t_pca["eigen_coefs"][i],3) for i in xrange(n_latent_dim)]
         eigen_t =np.array([ si.splev(self.canonical_time_range,tck) for tck in eigen_tck]).T
 
         t=[0,]
         for i in xrange(self.n_canonical_frames):
             t.append(t[-1] + np.exp(mean_t[i] + np.dot(eigen_t[i], gamma)))
-        print "#################################################################"
+
         #1.2: undo step from timeVarinaces.transform_timefunction during alignment
         t = np.array(t[1:])
         t -= 1
@@ -327,7 +321,7 @@ class MotionPrimitive(object): #StatisticalModel
 
         #2.1 get a valid inverse spline
         x_sample = np.arange(self.n_canonical_frames)
-        print x_sample
+
         inverse_spline = si.splrep(t, x_sample,w=None, k=3)
 
         
