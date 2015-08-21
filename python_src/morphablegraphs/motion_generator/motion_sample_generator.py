@@ -35,17 +35,17 @@ class MotionSampleGenerator(object):
     * service_config: String
         Contains paths to the motion data.
     """
-    def __init__(self,service_config, algorithm_config):
+    def __init__(self, service_config, algorithm_config):
         self._service_config = service_config        
         self._algorithm_config = algorithm_config
-        morphable_model_directory = self._service_config["model_data"]
+        motion_primitive_graph_directory = self._service_config["model_data"]
         transition_directory = self._service_config["transition_data"]
         graph_builder = MotionPrimitiveGraphBuilder()
-        graph_builder.set_data_source(SKELETON_FILE, morphable_model_directory,
+        graph_builder.set_data_source(SKELETON_FILE, motion_primitive_graph_directory,
                                                 transition_directory,
                                                 self._algorithm_config["use_transition_model"])
-        self.morphable_graph = graph_builder.build()
-        self.elementary_action_generator = ElementaryActionSampleGenerator(self.morphable_graph, self._algorithm_config)
+        self.motion_primitive_graph = graph_builder.build()
+        self.elementary_action_generator = ElementaryActionSampleGenerator(self.motion_primitive_graph, self._algorithm_config)
         return
 
     def set_algorithm_config(self, algorithm_config):
@@ -85,7 +85,7 @@ class MotionSampleGenerator(object):
         if type(mg_input) != dict:
             mg_input = load_json_file(mg_input)
         start = time.clock()
-        motion_constraints_builder = ElementaryActionConstraintsBuilder(mg_input, self.morphable_graph)
+        motion_constraints_builder = ElementaryActionConstraintsBuilder(mg_input, self.motion_primitive_graph)
         
         motion = self._generate_motion_from_constraints(motion_constraints_builder)
         seconds = time.clock() - start
@@ -119,7 +119,7 @@ class MotionSampleGenerator(object):
                 print key,self._algorithm_config[key]
     
         motion = MotionSample()
-        motion.skeleton = self.morphable_graph.skeleton
+        motion.skeleton = self.motion_primitive_graph.skeleton
         motion.apply_smoothing = self._algorithm_config["apply_smoothing"]
         motion.smoothing_window = self._algorithm_config["smoothing_window"]
         motion.start_pose = elementary_action_constraints_builder.start_pose
@@ -145,9 +145,9 @@ class MotionSampleGenerator(object):
     def print_runtime_statistics(self, time_in_seconds):
         minutes = int(time_in_seconds/60)
         seconds = time_in_seconds % 60
-        total_time_string = "finished synthesis in "+ str(minutes) + " minutes "+ str(seconds)+ " seconds"
-        evaluations_string = "total number of objective evaluations "+ str(global_counter_dict["evaluations"])
-        error_string = "average error for "+ str(len(global_counter_dict["motionPrimitveErrors"])) +" motion primitives: " + str(np.average(global_counter_dict["motionPrimitveErrors"],axis=0))
+        total_time_string = "finished synthesis in " + str(minutes) + " minutes " + str(seconds) + " seconds"
+        evaluations_string = "total number of objective evaluations " + str(global_counter_dict["evaluations"])
+        error_string = "average error for " + str(len(global_counter_dict["motionPrimitveErrors"])) +" motion primitives: " + str(np.average(global_counter_dict["motionPrimitveErrors"],axis=0))
         print total_time_string
         print evaluations_string
         print error_string

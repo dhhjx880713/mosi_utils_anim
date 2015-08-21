@@ -49,8 +49,8 @@ class ElementaryActionSampleGeneratorState(object):
 
 
 class ElementaryActionSampleGenerator(object):
-    def __init__(self, morphable_graph, algorithm_config):
-        self.morphable_graph = morphable_graph
+    def __init__(self, motion_primitive_graph, algorithm_config):
+        self.motion_primitive_graph = motion_primitive_graph
         self._algorithm_config = algorithm_config
         self.motion_primitive_constraints_builder = MotionPrimitiveConstraintsBuilder()
         self.motion_primitive_constraints_builder.set_algorithm_config(
@@ -73,19 +73,19 @@ class ElementaryActionSampleGenerator(object):
         self.motion_primitive_generator = MotionPrimitiveSampleGenerator(
             self.action_constraints, self._algorithm_config)
         self.node_group = self.action_constraints.get_node_group()
-        self.arc_length_of_end = self.morphable_graph.nodes[
+        self.arc_length_of_end = self.motion_primitive_graph.nodes[
             self.node_group.get_random_end_state()].average_step_length
 
     def _select_next_motion_primitive_node(self, motion):
         """extract from graph based on previous last step + heuristic """
 
         if self.state.current_node is None:
-            next_node = self.morphable_graph.get_random_action_transition(motion, self.action_constraints.action_name)
+            next_node = self.motion_primitive_graph.get_random_action_transition(motion, self.action_constraints.action_name)
             next_node_type = NODE_TYPE_START
             if next_node is None:
                 print "Error: Could not find a transition of type action_transition from ",\
                     self.state.prev_action_name, self.state.prev_mp_name, " to state", self.state.current_node
-        elif len(self.morphable_graph.nodes[self.state.current_node].outgoing_edges) > 0:
+        elif len(self.motion_primitive_graph.nodes[self.state.current_node].outgoing_edges) > 0:
             next_node, next_node_type = self.node_group.get_random_transition(
                 motion, self.action_constraints, self.state.travelled_arc_length, self.arc_length_of_end)
             if next_node is None:
@@ -193,5 +193,5 @@ class ElementaryActionSampleGenerator(object):
         #TODO planned feature
         time_constraints = TimeConstraintsBuilder(
             self.action_constraints, motion, self.state.start_step).build()
-        data = (self.morphable_graph, motion, time_constraints)
+        data = (self.motion_primitive_graph, motion, time_constraints)
         self.numerical_minimizer.set_objective_function_parameters(data)

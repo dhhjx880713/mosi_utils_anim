@@ -23,9 +23,9 @@ class ElementaryActionConstraintsBuilder():
         Sets the maximum number of graph walk steps to be performed. If less than 0
         then it is unconstrained
     """
-    def __init__(self, mg_input, morphable_graph):
+    def __init__(self, mg_input, motion_primitive_graph):
         self.mg_input = mg_input
-        self.morphable_graph = morphable_graph
+        self.motion_primitive_graph = motion_primitive_graph
         self.elementary_action_list = mg_input["elementaryActions"]
         self.keyframe_annotations = self._extract_keyframe_annotations(self.elementary_action_list)
         self.start_pose = {}
@@ -78,14 +78,14 @@ class ElementaryActionConstraintsBuilder():
     def _build(self):
         if self.current_action_index < len(self.elementary_action_list):
             action_constraints = ElementaryActionConstraints()
-            action_constraints.morphable_graph = self.morphable_graph
+            action_constraints.motion_primitive_graph = self.motion_primitive_graph
             action_constraints.action_name = self.elementary_action_list[self.current_action_index]["action"]
             if self.current_action_index > 0:
                 action_constraints.prev_action_name = self.elementary_action_list[self.current_action_index-1]["action"]
             action_constraints.keyframe_annotations = self.keyframe_annotations[self.current_action_index]
             action_constraints.start_pose = self.start_pose
-            root_joint_name = self.morphable_graph.skeleton.root# currently only trajectories on the Hips joint are supported
-            node_group =  self.morphable_graph.node_groups[action_constraints.action_name]
+            root_joint_name = self.motion_primitive_graph.skeleton.root# currently only trajectories on the Hips joint are supported
+            node_group =  self.motion_primitive_graph.node_groups[action_constraints.action_name]
             action_constraints.trajectory, action_constraints.unconstrained_indices = self._extract_trajectory_from_constraint_list(self.elementary_action_list[self.current_action_index]["constraints"], root_joint_name)
         
             keyframe_constraints = self._extract_all_keyframe_constraints(self.elementary_action_list[self.current_action_index]["constraints"], node_group)

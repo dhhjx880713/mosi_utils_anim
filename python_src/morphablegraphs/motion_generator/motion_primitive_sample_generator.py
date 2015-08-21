@@ -30,7 +30,7 @@ class MotionPrimitiveSampleGenerator(object):
         self._algorithm_config = algorithm_config
         self.action_name = action_constraints.action_name
         self.prev_action_name = action_constraints.prev_action_name
-        self._morphable_graph = self._action_constraints.morphable_graph
+        self._motion_primitive_graph = self._action_constraints.motion_primitive_graph
         self.skeleton = self._action_constraints.get_skeleton()
         self._constrained_gmm_config = self._algorithm_config["constrained_gmm_settings"]
         self._optimization_settings = self._algorithm_config["optimization_settings"]
@@ -45,7 +45,7 @@ class MotionPrimitiveSampleGenerator(object):
         self.activate_cluster_search = self._algorithm_config["activate_cluster_search"]
         self.activate_parameter_check = self._algorithm_config["activate_parameter_check"]
         if self.use_constrained_gmm:
-            self._constrained_gmm_builder = ConstrainedGMMBuilder(self._morphable_graph, self._algorithm_config, 
+            self._constrained_gmm_builder = ConstrainedGMMBuilder(self._motion_primitive_graph, self._algorithm_config,
                                                                     self._action_constraints.start_pose, self.skeleton)
         else:
             self._constrained_gmm_builder = None
@@ -88,7 +88,7 @@ class MotionPrimitiveSampleGenerator(object):
             print "Exception", e.message
             raise SynthesisError(prev_motion.quat_frames, e.bad_samples)
             
-        motion_primitive_sample = self._morphable_graph.nodes[(self.action_name, mp_name)].back_project(low_dimensional_parameters, use_time_parameters=True)
+        motion_primitive_sample = self._motion_primitive_graph.nodes[(self.action_name, mp_name)].back_project(low_dimensional_parameters, use_time_parameters=True)
         return motion_primitive_sample
 
 
@@ -119,7 +119,7 @@ class MotionPrimitiveSampleGenerator(object):
 
         if self.use_constraints and len(motion_primitive_constraints.constraints) > 0:
 
-            graph_node = self._morphable_graph.nodes[(self.action_name, mp_name)]
+            graph_node = self._motion_primitive_graph.nodes[(self.action_name, mp_name)]
             gmm = graph_node.gaussian_mixture_model
 
             if self.activate_cluster_search and graph_node.cluster_tree is not None:
@@ -172,18 +172,18 @@ class MotionPrimitiveSampleGenerator(object):
     def _get_random_parameters(self, mp_name, prev_mp_name="", prev_parameters=None):
         
         to_key = self.action_name+"_"+mp_name
-        if self.use_transition_model and prev_parameters is not None and self._morphable_graph.nodes[(self.prev_action_name, prev_mp_name)].has_transition_model(to_key):
+        if self.use_transition_model and prev_parameters is not None and self._motion_primitive_graph.nodes[(self.prev_action_name, prev_mp_name)].has_transition_model(to_key):
              
-            parameters = self._morphable_graph.nodes[(self.prev_action_name,prev_mp_name)].predict_parameters(to_key, prev_parameters)
+            parameters = self._motion_primitive_graph.nodes[(self.prev_action_name,prev_mp_name)].predict_parameters(to_key, prev_parameters)
         else:
-            parameters = self._morphable_graph.nodes[(self.action_name,mp_name)].sample_low_dimensional_vector()
+            parameters = self._motion_primitive_graph.nodes[(self.action_name,mp_name)].sample_low_dimensional_vector()
         return parameters
         
 
 
     def _predict_gmm(self, mp_name, prev_mp_name, prev_frames, prev_parameters):
         to_key = (self.action_name, mp_name)
-        gmm = self._morphable_graph.nodes[(self.prev_action_name,prev_mp_name)].predict_gmm(to_key,prev_parameters)
+        gmm = self._motion_primitive_graph.nodes[(self.prev_action_name,prev_mp_name)].predict_gmm(to_key,prev_parameters)
         return gmm
     
     def _search_for_best_sample_in_cluster_tree(self, graph_node, constraints, prev_frames, n_candidates=2):
