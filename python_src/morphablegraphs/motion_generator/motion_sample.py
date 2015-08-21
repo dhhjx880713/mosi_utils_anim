@@ -29,18 +29,19 @@ class MotionSample(object):
         the graph walk used to generate the frames, a mapping of frame segments 
         to elementary actions and a list of events for certain frames.
     """
-    def __init__(self):
-        self.skeleton = None
+    def __init__(self, skeleton, start_pose, algorithm_config):
+        self.skeleton = skeleton
+        self.start_pose = start_pose
+        self.apply_smoothing = algorithm_config["apply_smoothing"]
+        self.smoothing_window = algorithm_config["smoothing_window"]
         self.action_list = {}
-        self.frame_annotation = {}
+        self.frame_annotation = dict()
         self.frame_annotation['elementaryActionSequence'] = []
         self.graph_walk = []
         self.quat_frames = None
         self.step_count = 0
         self.n_frames = 0
-        self.apply_smoothing = True
-        self.smoothing_window = DEFAULT_SMOOTHING_WINDOW_SIZE
-        self.start_pose = None
+
         self.mg_input = {}
 
     def append_quat_frames(self, new_frames):
