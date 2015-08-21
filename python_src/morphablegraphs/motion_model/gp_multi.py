@@ -102,10 +102,3 @@ class GPMulti(GPy.models.GPRegression):
 
         _Xnew = self.get_multidim_training_input(np.ravel(Xnew))
         return super(GPMulti, self).predict(_Xnew, full_cov, **likelihood_args)
-
-
-def main():
-    raise NotImplementedError
-
-if __name__ == '__main__':
-    main()
