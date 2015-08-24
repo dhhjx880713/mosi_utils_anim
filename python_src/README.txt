@@ -12,8 +12,11 @@ Python Dependencies:
  - cgkit 2.0.0 - install the precompiled binaries available from http://www.lfd.uci.edu/~gohlke/pythonlibs
  - rpy2 2.4.4 - install the precompiled binaries available from http://www.lfd.uci.edu/~gohlke/pythonlibs, requires R 3.0 or higher
  - GPy 0.6.1 - can be found in "dependencies.7z" on "https://redmine.viscenter.de/projects/motiongraph/files"
- - fk3.py + BOOST_PYTHON-VC110-MT-1_55.DLL (C++ implementation of analytic forward kinematics + jacobian by LMS) - can be found in "dependencies.7z" on "https://redmine.viscenter.de/projects/motiongraph/files".
-                                                                                                                     Needs to be copied in the Python/DLLs directory
+ - fk3.pyd + BOOST_PYTHON-VC110-MT-1_55.DLL (C++ implementation of analytic Forward Kinematics + FK-Jacobian provided by LMS)
+                                           can be found in "dependencies.7z" on "https://redmine.viscenter.de/projects/motiongraph/files".
+                                           Needs to be copied in the Python/DLLs directory
+                                           Requires Microsoft Visual C++ 2012 SP1 Redistributable Package (x64)
+
  - tornado 4.0.2 - use "pip install tornado"
  - singledispatch 3.4.0.3 - download and install the whl file from https://pypi.python.org/pypi/singledispatch
 
