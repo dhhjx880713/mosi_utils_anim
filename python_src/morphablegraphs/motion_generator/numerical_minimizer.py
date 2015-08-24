@@ -23,16 +23,13 @@ class NumericalMinimizer(object):
         self.verbose = algorithm_config["verbose"]
         self._objective_function = None
         self._error_func_params = None
-        return
-        
+
     def set_objective_function(self, obj):
         self._objective_function = obj
-        return
-        
+
     def set_objective_function_parameters(self,data):
         self._error_func_params = data
 
-    
     def run(self, initial_guess):
         """ Runs the optimization for a single motion primitive and a list of constraints 
         Parameters
@@ -77,8 +74,3 @@ class NumericalMinimizer(object):
         else:
             print "Error: No objective function set. Return initial guess instead."
             return initial_guess
-
-
-
-
-

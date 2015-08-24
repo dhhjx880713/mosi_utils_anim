@@ -20,7 +20,7 @@ from . import global_counter_dict
 from algorithm_configuration import AlgorithmConfigurationBuilder
 from motion_sample import MotionSample
 
-SKELETON_FILE = "skeleton.bvh" # TODO replace with standard skeleton in data directory
+SKELETON_FILE = "skeleton.bvh"  # TODO replace with standard skeleton in data directory
 
 
 class MotionSampleGenerator(object):
@@ -42,10 +42,10 @@ class MotionSampleGenerator(object):
         transition_directory = self._service_config["transition_data"]
         graph_builder = MotionPrimitiveGraphBuilder()
         graph_builder.set_data_source(SKELETON_FILE, motion_primitive_graph_directory,
-                                                transition_directory,
-                                                self._algorithm_config["use_transition_model"])
+                                      transition_directory, self._algorithm_config["use_transition_model"])
         self.motion_primitive_graph = graph_builder.build()
-        self.elementary_action_generator = ElementaryActionSampleGenerator(self.motion_primitive_graph, self._algorithm_config)
+        self.elementary_action_generator = ElementaryActionSampleGenerator(self.motion_primitive_graph,
+                                                                           self._algorithm_config)
         return
 
     def set_algorithm_config(self, algorithm_config):

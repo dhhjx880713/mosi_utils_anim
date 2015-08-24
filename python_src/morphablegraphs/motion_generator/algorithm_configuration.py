@@ -8,6 +8,7 @@ Created on Thu Jul 16 17:19:46 2015
 from ..utilities.io_helper_functions import load_json_file
 from ..animation_data.motion_editing import DEFAULT_SMOOTHING_WINDOW_SIZE
 
+
 class AlgorithmConfigurationBuilder(object):
     """Generates a dict containing all settings for the algorithm
     """
@@ -97,4 +98,3 @@ class AlgorithmConfigurationBuilder(object):
                 "verbose": self.verbose,
                 "debug_max_step": self.debug_max_step
                 }
-
