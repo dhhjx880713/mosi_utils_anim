@@ -11,6 +11,7 @@ from ...animation_data.motion_editing import align_quaternion_frames
 from operator import itemgetter
 from ...utilities.exceptions import ConstraintError
 
+
 class ConstrainedGMM(mixture.GMM):
     """ A GMM that has the ability to constraint itself. The GMM is build based
     on a GMM
@@ -25,7 +26,7 @@ class ConstrainedGMM(mixture.GMM):
         which means that no constraint is set.
 
     """
-    def __init__(self,motion_primitve_node, gmm, algorithm_config, start_pose, skeleton):
+    def __init__(self, motion_primitve_node, gmm, algorithm_config, start_pose, skeleton):
         super(ConstrainedGMM, self).__init__(
             n_components=gmm.n_components,
             covariance_type=gmm.covariance_type,
@@ -41,13 +42,11 @@ class ConstrainedGMM(mixture.GMM):
         self.verbose = algorithm_config["verbose"]
         self.start_pose = start_pose
         self.skeleton = skeleton
-
         self.mm_ = motion_primitve_node
         self.weights_ = gmm.weights_
         self.means_ = gmm.means_
         self.converged_ = gmm.converged_
         self.covars_ = gmm.covars_
-    
         self.n_random_samples = algorithm_config["n_random_samples"]
         self.max_bad_samples = algorithm_config["constrained_gmm_settings"]["max_bad_samples"]
         self.strict = algorithm_config["constrained_gmm_settings"]["strict"]
@@ -55,9 +54,8 @@ class ConstrainedGMM(mixture.GMM):
         self.activate_parameter_check = algorithm_config["constrained_gmm_settings"]
 
     def _check_constraint(self, sample, constraint, prev_frames):
-
         new_frames = self.mm_.back_project(sample, use_time_parameters=False).get_motion_vector()
-        aligned_frames  = align_quaternion_frames(new_frames, prev_frames, self.start_pose)
+        aligned_frames = align_quaternion_frames(new_frames, prev_frames, self.start_pose)
         error, in_precision = constraint.evaluate_motion_sample_with_precision(aligned_frames)
         return error, in_precision
         
@@ -86,7 +84,7 @@ class ConstrainedGMM(mixture.GMM):
         bad_distances = []
         while len(good_samples) < self.n_random_samples:
             s = self.sample()[0]
-            distance,success = self._check_constraint(s, constraint, prev_frames)
+            distance, success = self._check_constraint(s, constraint, prev_frames)
             if success:               
                 good_samples.append(s)
                 good_distances.append(distance)
@@ -95,12 +93,12 @@ class ConstrainedGMM(mixture.GMM):
                 bad_distances.append(distance)
                 tmp_bad_samples+=1
             if self.verbose:
-                print "sample no",num,"min distance",distance
+                print "sample no", num, "min distance", distance
             num += 1
              
             if tmp_bad_samples>self.max_bad_samples:
                 if not self.strict:
-                    print "could not reach constraints use",self.n_random_samples,"best samples instead"
+                    print "could not reach constraints use", self.n_random_samples, "best samples instead"
                     #merge good and bad samples
                     merged_samples = good_samples + bad_samples 
                     merged_distances = good_distances + bad_distances
@@ -120,12 +118,9 @@ class ConstrainedGMM(mixture.GMM):
                     #stop the conversion and output the motion up to the previous step
                     raise ConstraintError(bad_samples)
                 break
-            
         if self.verbose:
             print len(good_samples), " out of ", num
             print "Using %d samples out of %d" % (len(good_samples), num)
-
-
         good_samples = np.array(good_samples)
         self.fit(good_samples)
 
