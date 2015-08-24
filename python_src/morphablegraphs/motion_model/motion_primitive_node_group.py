@@ -29,7 +29,7 @@ class MotionPrimitiveNodeGroup(ElementaryActionMetaInfo):
         print "start states", self.start_states
         if len(self.nodes) == 1:
             node_key = self.nodes.keys()[0]
-            self.nodes[node_key].type = NODE_TYPE_SINGLE
+            self.nodes[node_key].node_type = NODE_TYPE_SINGLE
         else:
             for k in self.start_states:
                 self.nodes[(self.elementary_action_name, k)].node_type = NODE_TYPE_START
