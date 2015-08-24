@@ -24,19 +24,23 @@ class MotionSegmentation(object):
         self.cut_files(elementary_action, primitive_type, data_path)
 
     def load_annotation(self, annotation_file):
-        self.annotation_label = self._convert_to_json(annotation_file,
-                                                      export=False)
+        self.annotation_label = MotionSegmentation._convert_to_json(annotation_file,
+                                                                    export=False)
         if self.verbose:
             print "Load %d files." % len(self.annotation_label.keys())
 
-    def _check_motion_type(self, elementary_action, primitive_type, primitive_data):
+    @classmethod
+    def _check_motion_type(cls, elementary_action,
+                           primitive_type,
+                           primitive_data):
         if primitive_data['elementary_action'] == elementary_action \
            and primitive_data['motion_primitive'] == primitive_type:
             return True
         else:
             return False
 
-    def _get_annotation_information(self, data_path, filename, primitive_data):
+    @classmethod
+    def _get_annotation_information(cls, data_path, filename, primitive_data):
         file_path = data_path + filename
         if not os.path.isfile(file_path):
             raise IOError(
@@ -49,7 +53,6 @@ class MotionSegmentation(object):
         filename_segments = filename[:-4].split('_')
         return start_frame, end_frame, filename_segments
 
-
     def cut_files(self, elementary_action, primitive_type, data_path):
         if not data_path.endswith(os.sep):
             data_path += os.sep
@@ -57,11 +60,15 @@ class MotionSegmentation(object):
             print "search files in " + data_path
         for filename, items in self.annotation_label.iteritems():
             for primitive_data in items:
-                if self._check_motion_type(elementary_action, primitive_type, primitive_data):
+                if MotionSegmentation._check_motion_type(elementary_action,
+                                                         primitive_type,
+                                                         primitive_data):
                     print "find motion primitive " + elementary_action + '_' \
                           + primitive_type + ' in ' + filename
-                    start_frame, end_frame, filename_segments = self._get_annotation_information(data_path, filename,
-                                                                                                 primitive_data)
+                    start_frame, end_frame, filename_segments = \
+                        MotionSegmentation._get_annotation_information(data_path,
+                                                                       filename,
+                                                                       primitive_data)
                     filename_segments[0] = elementary_action
                     cutted_frames = self._cut_one_file(data_path + filename,
                                                        start_frame,
@@ -86,13 +93,13 @@ class MotionSegmentation(object):
                       frame_time=self.bvhreader.frame_time,
                       is_quaternion=False)
 
-    def _cut_one_file(self, input_file, start_frame, end_frame,
-                      toe_modify=True):
+    def _cut_one_file(self, input_file, start_frame, end_frame):
         self.bvhreader = BVHReader(input_file)
         new_frames = self.bvhreader.frames[start_frame: end_frame]
         return new_frames
 
-    def _convert_to_json(self, annotation_file, export=False):
+    @classmethod
+    def _convert_to_json(cls, annotation_file, export=False):
         with open(annotation_file, 'rb') as input_file:
             annotation_data = {}
             current_motion = None
@@ -111,8 +118,7 @@ class MotionSegmentation(object):
                         raise ValueError("Couldn't process line: %s" % line)
         if export:
             filename = os.path.split(annotation_file)[-1]
-            with open(filename[:-4] + '.json', 'w+') as fp:
-                json.dump(annotation_data, fp)
-                fp.close()
+            with open(filename[:-4] + '.json', 'w+') as outfile:
+                json.dump(annotation_data, outfile)
+                outfile.close()
         return annotation_data
-

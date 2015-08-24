@@ -9,7 +9,6 @@ import rpy2.robjects.numpy2ri as numpy2ri
 import rpy2.robjects as robjects
 
 
-
 class FPCATemporalData(object):
 
     def __init__(self, temporal_data, n_basis, npc):
@@ -20,23 +19,25 @@ class FPCATemporalData(object):
         self.temporal_data = temporal_data
         self.n_basis = n_basis
         self.npc = npc
-
-    def _z_t_transform(self):
         self.z_t_transform_data = {}
+        self.temporal_pcaobj = None
+
+    def z_t_transform(self):
         for filename in self.temporal_data:
-            tmp = self._get_monotonic_indices(self.temporal_data[filename])
-            assert self._is_strict_increasing(
-                tmp), ("convert %s to monotonic indices failed" % filename)
+            tmp = FPCATemporalData._get_monotonic_indices(self.temporal_data[filename])
+            assert FPCATemporalData._is_strict_increasing(tmp), \
+                ("convert %s to monotonic indices failed" % filename)
             w_tmp = np.array(tmp)
             # add one to each entry, because we start with 0
             w_tmp = w_tmp + 1
             w_tmp = np.insert(w_tmp, 0, 0)  # set w(0) to zero
 
             w_diff = np.diff(w_tmp)
-            z = np.log(w_diff)
-            self.z_t_transform_data[filename] = z
+            z_transform = np.log(w_diff)
+            self.z_t_transform_data[filename] = z_transform
 
-    def _get_monotonic_indices(self, indices, epsilon=0.01, delta=0):
+    @classmethod
+    def _get_monotonic_indices(cls, indices, epsilon=0.01, delta=0):
         """Return an ajusted set of Frameindices which is strictly monotonic
 
         Parameters
@@ -71,7 +72,8 @@ class FPCATemporalData(object):
 
         return shifted_indices
 
-    def _is_strict_increasing(self, indices):
+    @classmethod
+    def _is_strict_increasing(cls, indices):
         """ Check wether the indices are strictly increasing ore not
 
         Parameters
@@ -89,7 +91,7 @@ class FPCATemporalData(object):
         return True
 
     def fpca_on_temporal_data(self):
-        self._z_t_transform()
+        self.z_t_transform()
         file_order = sorted(self.z_t_transform_data.keys())
         timewarping_data = []
         for filename in file_order:
@@ -98,22 +100,17 @@ class FPCATemporalData(object):
         robjects.conversion.py2ri = numpy2ri.numpy2ri
         r_data = robjects.Matrix(np.array(timewarping_data))
         length = timewarping_data.shape[0]
-        maxX = length - 1
+        max_x = length - 1
         rcode = '''
             library(fda)
-            basisobj = create.bspline.basis(c(0,{maxX}),{numknots})
-            ys = smooth.basis(argvals=seq(0,{maxX},len={length}), 
-                              y={data}, 
+            basisobj = create.bspline.basis(c(0,{max_x}),{numknots})
+            ys = smooth.basis(argvals=seq(0,{max_x},len={length}),
+                              y={data},
                               fdParobj=basisobj)
             pca = pca.fd(ys$fd, nharm={nharm})
             pcaVarmax <- varmx.pca.fd(pca)
-            scores = pcaVarmax$scores            
-        '''.format(data=r_data.r_repr(), maxX=maxX,
+            scores = pcaVarmax$scores
+        '''.format(data=r_data.r_repr(), max_x=max_x,
                    length=length, numknots=self.n_basis, nharm=self.npc)
         robjects.r(rcode)
         self.temporal_pcaobj = robjects.globalenv['pcaVarmax']
-        # scores = np.asarray(
-        #     self.temporal_pcaobj[self.temporal_pca.names.index('scores')])
-
-
-

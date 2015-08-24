@@ -10,7 +10,7 @@ import numpy as np
 import glob
 from ....morphablegraphs.construction.preprocessing.motion_segmentation import MotionSegmentation
 from ...libtest import params, pytest_generate_tests
-ROOTDIR = os.sep.join(['..'] * 3)
+ROOTDIR = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-4]) + os.sep
 TESTDATAPATH = ROOTDIR + os.sep + r'../test_data/constrction/preprocessing/motion_segmentation/Take_sidestep'
 TESTRESULTPATH = ROOTDIR + os.sep + r'../test_output/constrction/preprocessing/motion_segmentation/cutting_results'
 input_file_folder = TESTDATAPATH

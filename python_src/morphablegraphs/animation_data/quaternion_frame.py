@@ -9,10 +9,9 @@ import collections
 import numpy as np
 import sys
 import os
-ROOT_DIR = os.sep.join(['..']*1)
+ROOT_DIR = os.sep.join(['..'] * 1)
 sys.path.append(ROOT_DIR)
 from ..external.transformations import euler_matrix, quaternion_from_matrix
-
 
 
 class QuaternionFrame(collections.OrderedDict):
@@ -39,10 +38,10 @@ class QuaternionFrame(collections.OrderedDict):
                 bvh_reader, frame_data, filter_values)
         collections.OrderedDict.__init__(self, quaternions)
 
-    def _get_quaternion_from_euler(self, euler_angles, rotation_order, 
+    def _get_quaternion_from_euler(self, euler_angles, rotation_order,
                                    filter_values):
         """Convert euler angles to quaternion vector [qw, qx, qy, qz]
-        
+
         Parameters
         ----------
         * euler_angles: list of floats
@@ -50,20 +49,21 @@ class QuaternionFrame(collections.OrderedDict):
         * rotation_order: Iteratable
         \t a list that specifies the rotation axis corresponding to the values in euler_angles
         * filter_values: Bool
-        \t enforce a unique rotation representation    
-        
+        \t enforce a unique rotation representation
+
         """
         # convert euler angles into rotation matrix, then convert rotation matrix
         # into quaternion
-        assert len(euler_angles) == 3, ('The length of euler angles should be 3!')
+        assert len(
+            euler_angles) == 3, ('The length of euler angles should be 3!')
         # convert euler angle from degree into radians
         euler_angles = np.deg2rad(euler_angles)
         if rotation_order[0] == 'Xrotation':
             if rotation_order[1] == 'Yrotation':
-                R =  euler_matrix(euler_angles[0], 
-                                  euler_angles[1], 
-                                  euler_angles[2],
-                                  axes='rxyz')                  
+                R = euler_matrix(euler_angles[0],
+                                 euler_angles[1],
+                                 euler_angles[2],
+                                 axes='rxyz')
             elif rotation_order[1] == 'Zrotation':
                 R = euler_matrix(euler_angles[0],
                                  euler_angles[1],
@@ -92,17 +92,18 @@ class QuaternionFrame(collections.OrderedDict):
                                  euler_angles[2],
                                  axes='rzyx')
         else:
-            raise ValueError('Unknown rotation order')                         
-        # convert rotation matrix R into quaternion vector (qw, qx, qy, qz)     
+            raise ValueError('Unknown rotation order')
+        # convert rotation matrix R into quaternion vector (qw, qx, qy, qz)
         q = quaternion_from_matrix(R)
-        # filter the quaternion see http://physicsforgames.blogspot.de/2010/02/quaternions.html
+        # filter the quaternion see
+        # http://physicsforgames.blogspot.de/2010/02/quaternions.html
         if filter_values:
             dot = np.sum(q)
             if dot < 0:
                 q = -q
-        return q[0], q[1], q[2], q[3]    
+        return q[0], q[1], q[2], q[3]
 
-    def _get_quaternion_representation(self, bvh_reader, node_name, 
+    def _get_quaternion_representation(self, bvh_reader, node_name,
                                        frame_data, filter_values=True):
         """Returns the rotation for one node at one frame of an animation as
            a quaternion
@@ -132,8 +133,14 @@ class QuaternionFrame(collections.OrderedDict):
         if node_name.startswith("Bip"):
             euler_angles = [0, 0, 0]     # Set Fingers to zero
 
-        rotation_order = ('Xrotation', 'Yrotation', 'Zrotation')  # hard coded for now
-        return self._get_quaternion_from_euler(euler_angles, rotation_order, filter_values)
+        rotation_order = (
+            'Xrotation',
+            'Yrotation',
+            'Zrotation')  # hard coded for now
+        return self._get_quaternion_from_euler(
+            euler_angles,
+            rotation_order,
+            filter_values)
 
     def _get_all_nodes_quaternion_representation(self, bvh_reader, frame_data,
                                                  filter_values):
@@ -175,7 +182,5 @@ def main():
     print joint_value
 
 
-
 if __name__ == '__main__':
     main()
-

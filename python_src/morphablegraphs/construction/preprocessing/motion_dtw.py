@@ -6,7 +6,8 @@ Created on Thu Jul 23 10:06:37 2015
 """
 
 from ...animation_data.bvh import BVHReader, BVHWriter
-from motion_normalization import MotionNormalization
+from python_src.morphablegraphs.construction.preprocessing.motion_normalization \
+    import MotionNormalization
 from ...animation_data.motion_editing import calculate_frame_distance
 from ...animation_data.skeleton import Skeleton
 import numpy as np
@@ -15,6 +16,7 @@ import rpy2.robjects as robjects
 import matplotlib.pyplot as plt
 import glob
 import json
+import os
 
 
 class MotionDynamicTimeWarping(MotionNormalization):
@@ -22,7 +24,12 @@ class MotionDynamicTimeWarping(MotionNormalization):
     def __init__(self, verbose=False):
         super(MotionDynamicTimeWarping, self).__init__()
         self.ref_motion = {}
+        self.dic_distgrid = {}
+        self.aligned_motions = {}
         self.verbose = verbose
+        self.len_aligned_motions = 0
+        self.warped_motions = {}
+        self.ref_bvhreader = None
 
     def load_motion_from_files_for_DTW(self, folder_path):
         if not folder_path.endswith(os.sep):
@@ -30,7 +37,6 @@ class MotionDynamicTimeWarping(MotionNormalization):
         print "search bvh files in " + folder_path
         motion_files = glob.glob(folder_path + '*.bvh')
         print str(len(motion_files)) + " are found!"
-        self.aligned_motions = {}
         for bvh_file_path in motion_files:
             bvhreader = BVHReader(bvh_file_path)
             filename = os.path.split(bvh_file_path)[-1]
@@ -55,16 +61,15 @@ class MotionDynamicTimeWarping(MotionNormalization):
         for ref_filename in self.dic_distgrid.keys():
             average_dist = 0
             for test_filename in self.dic_distgrid[ref_filename].keys():
-                res = self.calculate_path(
+                res = MotionDynamicTimeWarping.calculate_path(
                     self.dic_distgrid[ref_filename][test_filename])
                 average_dist += res[2]
             average_dist = average_dist / self.len_aligned_motions
             counter += 1
             average_dists[ref_filename] = average_dist
             print counter, '/', self.len_aligned_motions
-        ref_filename = min(average_dists, key=lambda k: average_dists[k])
-        self.ref_motion['filename'] = ref_filename
-        self.ref_motion['frames'] = self.aligned_motions[ref_filename]
+        self.ref_motion['filename'] = min(average_dists, key=lambda k: average_dists[k])
+        self.ref_motion['frames'] = self.aligned_motions[self.ref_motion['filename']]
 
     def set_ref_motion(self, filepath):
         ref_filename = os.path.split(filepath)[-1]
@@ -74,13 +79,12 @@ class MotionDynamicTimeWarping(MotionNormalization):
 
     def warp_test_motion_to_ref_motion(self, ref_motion, test_motion):
         distgrid = self.get_distgrid(ref_motion, test_motion)
-        ref_indeces, test_indeces, dist = self.calculate_path(distgrid)
-        shape = distgrid.shape
-        shape = (shape[1], shape[0])
-        warping_index = self.get_warping_index(
-            test_indeces, ref_indeces, shape)
-        warped_frames = self.get_warped_frames(warping_index,
-                                               test_motion['frames'])
+        res = MotionDynamicTimeWarping.calculate_path(distgrid)
+        ref_indeces = res[0]
+        test_indeces = res[1]
+        warping_index = self.get_warping_index(test_indeces, ref_indeces, distgrid.shape)
+        warped_frames = MotionDynamicTimeWarping.get_warped_frames(warping_index,
+                                                                   test_motion['frames'])
         return warped_frames, warping_index
 
     def warp_all_motions_to_ref_motion(self):
@@ -88,13 +92,12 @@ class MotionDynamicTimeWarping(MotionNormalization):
             raise ValueError('There is no reference motion for DTW')
         if self.aligned_motions == {}:
             raise ValueError('No motion for DTW')
-        self.warped_motions = {}
         for filename, frames in self.aligned_motions.iteritems():
             test_motion = {}
             test_motion['filename'] = filename
             test_motion['frames'] = frames
-            warped_frames, warping_index = self.warp_test_motion_to_ref_motion(
-                self.ref_motion, test_motion)
+            warped_frames, warping_index = self.warp_test_motion_to_ref_motion(self.ref_motion,
+                                                                               test_motion)
             self.warped_motions[filename] = {}
             self.warped_motions[filename]['warping_index'] = warping_index
             self.warped_motions[filename]['frames'] = warped_frames
@@ -108,13 +111,13 @@ class MotionDynamicTimeWarping(MotionNormalization):
                       motion_data['frames'],
                       frame_time=self.ref_bvhreader.frame_time,
                       is_quaternion=False)
-            warping_index_dic[filename] = np.asarray(
-                motion_data['warping_index']).tolist()
-        warping_index_file_path = save_path + 'timewarping.json'
-        with open(warping_index_file_path, 'wb') as outfile:
+            warping_index_dic[filename] = np.array(motion_data['warping_index']).tolist()
+        with open(save_path + 'timewarping.json', 'wb') as outfile:
             json.dump(warping_index_dic, outfile)
 
-    def get_warped_frames(self, warping_index, frames):
+    @classmethod
+    def get_warped_frames(cls, warping_index, frames):
+
         if warping_index[-1] > len(frames):
             raise ValueError('index is larger than length of frames!')
         warped_frames = []
@@ -123,25 +126,21 @@ class MotionDynamicTimeWarping(MotionNormalization):
         return warped_frames
 
     def get_distgrid(self, ref_motion, test_motion):
-        try:
-            skeleton = Skeleton(self.ref_bvhreader)
-        except:
-            ValueError('Cannot initialize skeleton information')
+        skeleton = Skeleton(self.ref_bvhreader)
         n_ref_frames = len(ref_motion['frames'])
         n_test_frames = len(test_motion['frames'])
         distgrid = np.zeros([n_ref_frames, n_test_frames])
         for i in xrange(n_ref_frames):
             for j in xrange(n_test_frames):
-                distgrid[
-                    i,
-                    j] = calculate_frame_distance(
-                    skeleton,
-                    ref_motion['frames'][i],
-                    test_motion['frames'][j])
+                distgrid[i, j] = calculate_frame_distance(skeleton,
+                                                          ref_motion['frames'][i],
+                                                          test_motion['frames'][j])
         if self.verbose:
-            ref_indeces, test_indeces, dist = self.calculate_path(distgrid)
+            res = MotionDynamicTimeWarping.calculate_path(distgrid)
+            ref_indices = res[0]
+            test_indices = res[1]
             shape = (n_test_frames, n_ref_frames)
-            path = self.get_warping_index(test_indeces, ref_indeces, shape)
+            path = self.get_warping_index(test_indices, ref_indices, shape)
             distgrid = distgrid.T
             plt.figure()
             plt.imshow(distgrid)
@@ -154,7 +153,7 @@ class MotionDynamicTimeWarping(MotionNormalization):
             plt.show()
         return distgrid
 
-    def get_warping_index(self, x, y, shape):
+    def get_warping_index(self, test_indices, ref_indices, shape):
         """ @brief Calculate the warping index from a given set of x and y values
 
         Calculate the warping path from the return values of the dtw R function
@@ -163,8 +162,8 @@ class MotionDynamicTimeWarping(MotionNormalization):
         the Path through the Distance grid.
         The indexes for the testmotion is than calculated based on this matrix.
 
-        @param x list of ints - The x-values
-        @param y list of ints - The y-values
+        @param test_indices list of ints - The x-values
+        @param ref_indices list of ints - The y-values
         @param shape array or tuple with two elements - The shape of the distgrid,\
             normaly (testmotion_framenumber, refmotion_framenumber)
         @param verbose (Optional) Displays the warping indexes
@@ -172,24 +171,25 @@ class MotionDynamicTimeWarping(MotionNormalization):
         @return A list with exactly refmotion_framenumber Elements.
         """
         # create Pairs:
-        path_pairs = [(int(x[i]) - 1, int(y[i]) - 1) for i in xrange(len(x))]
-
+        path_pairs = [(int(test_indices[i]) - 1, int(ref_indices[i]) - 1)
+                      for i in xrange(len(test_indices))]
         # create Pathmatirx:
         pathmatrix = np.zeros(shape)
         for pair in path_pairs:
             pathmatrix[pair] = 1
 
-        warpingIndex = []
+        warping_index = []
         for i in xrange(shape[1]):
             index = np.nonzero(pathmatrix[:, i])[0][-1]
-            warpingIndex.append(index)
+            warping_index.append(index)
 
         if self.verbose:
             print "warping index from R is: "
-            print warpingIndex
-        return warpingIndex
+            print warping_index
+        return warping_index
 
-    def calculate_path(self, distgrid, steppattern="typeIb", window="itakura"):
+    @classmethod
+    def calculate_path(cls, distgrid, steppattern="typeIb", window="itakura"):
         """ @brief Calculates the optimal path through the given Distance grid
 
         Calculates an optimal path through the given Distance grid with
@@ -219,10 +219,9 @@ class MotionDynamicTimeWarping(MotionNormalization):
 
         robjects.conversion.py2ri = numpy2ri.numpy2ri
         distgrid = np.asarray(distgrid)
-        m, n = distgrid.shape
-        maxLen = float(max(m, n))
-        minLen = float(min(m, n))
-        ratio = maxLen / minLen
+        max_len = float(max(distgrid.shape))
+        min_len = float(min(distgrid.shape))
+        ratio = max_len / min_len
         if ratio > 1.5:
             steppattern = 'symmetric2'
             window = 'none'
@@ -258,7 +257,6 @@ class MotionDynamicTimeWarping(MotionNormalization):
         total_calculation = self.len_aligned_motions * \
             (self.len_aligned_motions - 1) / 2
         print "There are %d pairs in total" % total_calculation
-        self.dic_distgrid = {}
         counter = 0
         keys = self.aligned_motions.keys()
         for i in xrange(self.len_aligned_motions):
@@ -273,13 +271,11 @@ class MotionDynamicTimeWarping(MotionNormalization):
                                              test_motion)
                 try:
                     self.dic_distgrid[keys[i]][keys[j]] = distgrid
-                except:
+                except KeyError:
                     self.dic_distgrid[keys[i]] = {}
                     self.dic_distgrid[keys[i]][keys[j]] = distgrid
                 try:
                     self.dic_distgrid[keys[j]][keys[i]] = distgrid
-                except:
+                except KeyError:
                     self.dic_distgrid[keys[j]] = {}
                     self.dic_distgrid[keys[j]][keys[i]] = distgrid
-
-

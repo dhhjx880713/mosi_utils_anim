@@ -5,12 +5,12 @@ Created on Tue Jul 07 10:34:25 2015
 @author: du
 """
 import os
-from ...animation_data.motion_editing import get_rotation_angle, \
+from ...animation_data.motion_editing import rotate_euler_frames, \
                                              get_cartesian_coordinates_from_euler_full_skeleton, \
-                                             transform_euler_frames, \
-                                             pose_orientation_euler
+                                             transform_euler_frames
 from ...animation_data.bvh import BVHReader, BVHWriter
-from motion_segmentation import MotionSegmentation
+from python_src.morphablegraphs.construction.preprocessing.motion_segmentation\
+    import MotionSegmentation
 from ...animation_data.skeleton import Skeleton
 import glob
 import numpy as np
@@ -21,8 +21,12 @@ class MotionNormalization(MotionSegmentation):
     def __init__(self):
         super(MotionNormalization, self).__init__()
         self.ref_bvh = None
+        self.aligned_motions = {}
+        self.translated_motions = {}
+        self.ref_bvh = None
+        self.ref_bvhreader = None
 
-    def load_data_from_files_for_normalization(self, data_folder):
+    def load_data_for_normalization(self, data_folder):
         if not data_folder.endswith(os.sep):
             data_folder += os.sep
         bvh_files = glob.glob(data_folder + '*.bvh')
@@ -37,10 +41,11 @@ class MotionNormalization(MotionSegmentation):
         self.ref_bvhreader.frames = frames
         skeleton = Skeleton(self.ref_bvhreader)
         # shift the motion to ground
-        touch_point_pos = get_cartesian_coordinates_from_euler_full_skeleton(self.ref_bvhreader,
-                                                                             skeleton,
-                                                                             touch_ground_joint,
-                                                                             self.ref_bvhreader.frames[0])
+        touch_point_pos = get_cartesian_coordinates_from_euler_full_skeleton(
+            self.ref_bvhreader,
+            skeleton,
+            touch_ground_joint,
+            self.ref_bvhreader.frames[0])
         root_pos = self.ref_bvhreader.frames[0][:3]
         rotation = [0, 0, 0]
         translation = np.array([origin_point[0] - root_pos[0],
@@ -68,32 +73,22 @@ class MotionNormalization(MotionSegmentation):
         else:
             raise ValueError('No reference BVH file for skeleton information')
         self.ref_bvhreader.node_names['Hips']['offset'] = [0, 0, 0]
-        self.translated_motions = {}
         for filename, frames in self.cutted_motions.iteritems():
-            self.translated_motions[filename] = self.translate_to_original_point(frames,
-                                                                                 origin_point,
-                                                                                 touch_ground_joint)
+            self.translated_motions[filename] = self.translate_to_original_point(
+                frames,
+                origin_point,
+                touch_ground_joint)
 
     def align_motion(self, aligned_frame_idx, ref_orientation):
         """calculate the orientation of selected frame, get the rotation angle
-           between current orientation and reference orientation, then 
+           between current orientation and reference orientation, then
            transform frames by rotation angle
         """
         ref_orientation = [ref_orientation['x'], ref_orientation['z']]
-        self.aligned_motions = {}
         for filename, frames in self.translated_motions.iteritems():
-            self.aligned_motions[filename] = self.rotate_one_motion(frames,
-                                                                    aligned_frame_idx,
-                                                                    ref_orientation)
-
-    def rotate_one_motion(self, euler_frames, frame_idx, ref_orientation):
-        test_ori = pose_orientation_euler(euler_frames[frame_idx])
-        rot_angle = get_rotation_angle(ref_orientation, test_ori)
-        translation = np.array([0, 0, 0])
-        rotated_frames = transform_euler_frames(euler_frames,
-                                                [0, rot_angle, 0],
-                                                translation)
-        return rotated_frames
+            self.aligned_motions[filename] = rotate_euler_frames(frames,
+                                                                 aligned_frame_idx,
+                                                                 ref_orientation)
 
     def save_motion(self, save_path):
         if not save_path.endswith(os.sep):
@@ -102,5 +97,3 @@ class MotionNormalization(MotionSegmentation):
             BVHWriter(save_path + filename, self.ref_bvhreader, frames,
                       frame_time=self.ref_bvhreader.frame_time,
                       is_quaternion=False)
-
-

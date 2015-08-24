@@ -3,9 +3,9 @@ __author__ = 'hadu01'
 import os
 import numpy as np
 import json
-from ....morphablegraphs.construction.fpca.FPCA_temporal_data import FPCATemporalData
+from ....morphablegraphs.construction.fpca.fpca_temporal_data import FPCATemporalData
 from ...libtest import params, pytest_generate_tests
-ROOTDIR = os.sep.join(['..'] * 3)
+ROOTDIR = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-4]) + os.sep
 TEST_DATA_PATH = ROOTDIR + os.sep + r'../test_data/constrction/fpca'
 
 
@@ -43,7 +43,7 @@ class TestFPCATemporalData(object):
 
     @params(param_z_t_transform)
     def test_z_t_transform(self, res):
-        self.fpca_temporal._z_t_transform()
+        self.fpca_temporal.z_t_transform()
         z_t = self.fpca_temporal.z_t_transform_data[res['filename']]
         for i in xrange(len(z_t)):
             assert round(z_t[i], 3) == round((res['data'][i]), 3)

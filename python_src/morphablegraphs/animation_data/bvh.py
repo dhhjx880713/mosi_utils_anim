@@ -14,7 +14,7 @@ BVH Writer by Erik Herrmann
 from collections import OrderedDict
 import numpy as np
 from ..external.transformations import quaternion_matrix,\
-                                       euler_from_matrix
+    euler_from_matrix
 import os
 
 
@@ -150,7 +150,7 @@ class BVHReader(object):
 
 class BVHWriter(object):
 
-    """ Saves an input motion defined either as an array of euler or quaternion 
+    """ Saves an input motion defined either as an array of euler or quaternion
     frame vectors as a BVH file.
 
     Parameters
@@ -160,7 +160,7 @@ class BVHWriter(object):
     * skeleton: Skeleton
         Skeleton structure needed to copy the hierarchy
     * frame_data: np.ndarray
-        array of motion vectors, either with euler or quaternion as 
+        array of motion vectors, either with euler or quaternion as
         rotation parameters
     * frame_time: float
         time in seconds for the display of each keyframe
@@ -168,7 +168,13 @@ class BVHWriter(object):
         Defines wether the frame_data is quaternion data or euler data
     """
 
-    def __init__(self, filename, skeleton, frame_data, frame_time, is_quaternion=False):
+    def __init__(
+            self,
+            filename,
+            skeleton,
+            frame_data,
+            frame_time,
+            is_quaternion=False):
         self.skeleton = skeleton
         self.frame_data = frame_data
         self.frame_time = frame_time
@@ -192,7 +198,10 @@ class BVHWriter(object):
         bvh_string = self._generate_hierarchy_string(
             self.skeleton.root, self.skeleton.node_names) + "\n"
         bvh_string += self._generate_frame_parameter_string(
-            self.frame_data, self.skeleton.node_names, self.frame_time, self.is_quaternion)
+            self.frame_data,
+            self.skeleton.node_names,
+            self.frame_time,
+            self.is_quaternion)
         return bvh_string
 
     def _generate_hierarchy_string(self, root, node_names):
@@ -204,7 +213,7 @@ class BVHWriter(object):
         return hierarchy_string
 
     def _generate_joint_string(self, joint, node_names, joint_level):
-        """ Recursive traversing of the joint hierarchy to create a 
+        """ Recursive traversing of the joint hierarchy to create a
             skeleton structure string in the BVH format
         """
         joint_string = ""
@@ -248,20 +257,26 @@ class BVHWriter(object):
         joint_string += tab_string + "}" + "\n"
         return joint_string
 
-    def _generate_frame_parameter_string(self, frame_data, node_names, frame_time, is_quaternion=False):
-        """ Converts the joint parameters for a list of frames into the BVH file representation. 
+    def _generate_frame_parameter_string(
+            self,
+            frame_data,
+            node_names,
+            frame_time,
+            is_quaternion=False):
+        """ Converts the joint parameters for a list of frames into the BVH file representation.
             Note: for the toe joints of the rocketbox skeleton a hard set value is used
             * frame_data: array of motion vectors, either as euler or quaternion
             * node_names: OrderedDict containing the nodes of the skeleton accessible by their name
             * frame_time: time in seconds for the display of each keyframe
-            * is_quaternion: defines wether the frame_data is quaternion data 
+            * is_quaternion: defines wether the frame_data is quaternion data
                             or euler data
         """
 
         # convert to euler frames if necessary
         if not is_quaternion:
             skip_joints = True
-            if len(frame_data[0]) == len([n for n in node_names if "children" in node_names[n].keys()]) * 3 + 3:
+            if len(frame_data[0]) == len(
+                    [n for n in node_names if "children" in node_names[n].keys()]) * 3 + 3:
                 skip_joints = False
             if not skip_joints:
                 euler_frames = frame_data
@@ -275,8 +290,11 @@ class BVHWriter(object):
                                                 # to append specific data
                         # ignore end sites completely
                         if "children" in node_names[node_name].keys():
-                            if not node_name.startswith("Bip") or not skip_joints:
-                                if node_name in ["Bip01_R_Toe0", "Bip01_L_Toe0"]:
+                            if not node_name.startswith(
+                                    "Bip") or not skip_joints:
+                                if node_name in [
+                                        "Bip01_R_Toe0",
+                                        "Bip01_L_Toe0"]:
                                     # special fix for unused toe parameters
                                     euler_frame = np.concatenate(
                                         (euler_frame, ([90.0, -1.00000000713e-06, 75.0	])), axis=0)
@@ -295,7 +313,9 @@ class BVHWriter(object):
                                         (euler_frame, frame[i:i + 3]), axis=0)
                                 joint_idx += 1
                             else:
-                                if node_name in ["Bip01_R_Toe0", "Bip01_L_Toe0"]:
+                                if node_name in [
+                                        "Bip01_R_Toe0",
+                                        "Bip01_L_Toe0"]:
                                     # special fix for unused toe parameters
                                     euler_frame = np.concatenate(
                                         (euler_frame, ([90.0, -1.00000000713e-06, 75.0	])), axis=0)
@@ -307,7 +327,8 @@ class BVHWriter(object):
         else:
             # check whether or not "Bip" frames should be ignored
             skip_joints = True
-            if len(frame_data[0]) == len([n for n in node_names if "children" in node_names[n].keys()]) * 4 + 3:
+            if len(frame_data[0]) == len(
+                    [n for n in node_names if "children" in node_names[n].keys()]) * 4 + 3:
                 skip_joints = False
             euler_frames = []
             for frame in frame_data:
@@ -334,7 +355,13 @@ class BVHWriter(object):
                                         node_name]["channels"]
 
                                 euler_frame = np.concatenate(
-                                    (euler_frame, self._quaternion_to_euler(frame[i:i + 4], channels)), axis=0)
+                                    (euler_frame,
+                                     self._quaternion_to_euler(
+                                         frame[
+                                             i:i +
+                                             4],
+                                         channels)),
+                                    axis=0)
                             joint_idx += 1
                         else:
                             if node_name in ["Bip01_R_Toe0", "Bip01_L_Toe0"]:
@@ -365,7 +392,7 @@ class BVHWriter(object):
         ----------
         * q: list of floats
         \tQuaternion vector with form: [qw, qx, qy, qz]
-    
+
         Return
         ------
         * euler_angles: list
@@ -390,5 +417,3 @@ class BVHWriter(object):
             elif rotation_order[1] == 'Yrotation':
                 euler_angles = np.rad2deg(euler_from_matrix(Rq, 'rzyx'))
         return euler_angles.tolist()
-
-
