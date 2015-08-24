@@ -18,7 +18,7 @@ from ..external.transformations import quaternion_matrix, euler_from_matrix, \
     quaternion_multiply
 
 DEFAULT_SMOOTHING_WINDOW_SIZE = 20
-fk_funcs = [
+FK_FUNCS = [
     fk3.one_joint_fk,
     fk3.two_joints_fk,
     fk3.three_joints_fk,
@@ -28,8 +28,7 @@ fk_funcs = [
     fk3.seven_joints_fk,
     fk3.eight_joints_fk,
 ]
-
-fk_func_jacs = [
+FK_FUNC_JACS = [
     fk3.one_joint_fk_jacobian,
     fk3.two_joints_fk_jacobian,
     fk3.three_joints_fk_jacobian,
@@ -39,7 +38,6 @@ fk_func_jacs = [
     fk3.seven_joints_fk_jacobian,
     fk3.eight_joints_fk_jacobian,
 ]
-
 
 def extract_root_positions_from_frames(frames):
     roots = []
@@ -475,8 +473,8 @@ def get_cartesian_coordinates_from_euler_full_skeleton(bvh_reader,
 
         f_idx = len(ax) - 2
         # print "f",f_idx
-        if len(ax) - 2 < len(fk_funcs):
-            return fk_funcs[f_idx](ax, ay, az, thx, thy, thz)
+        if len(ax) - 2 < len(FK_FUNCS):
+            return FK_FUNCS[f_idx](ax, ay, az, thx, thy, thz)
         else:
             return [0, 0, 0]
 
@@ -596,8 +594,8 @@ def get_cartesian_coordinates_from_euler(skeleton, node_name, euler_frame):
 
         f_idx = len(ax) - 2
         # print "f",f_idx
-        if len(ax) - 2 < len(fk_funcs):
-            return fk_funcs[f_idx](ax, ay, az, thx, thy, thz)
+        if len(ax) - 2 < len(FK_FUNCS):
+            return FK_FUNCS[f_idx](ax, ay, az, thx, thy, thz)
         else:
             return [0, 0, 0]
 

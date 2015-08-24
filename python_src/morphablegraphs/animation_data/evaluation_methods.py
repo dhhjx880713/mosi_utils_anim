@@ -7,7 +7,10 @@ Created on Tue Feb 17 15:39:02 2015
 
 import collections
 import numpy as np
-from motion_editing import convert_euler_frames_to_cartesian_frames, \
+from copy import copy
+
+from python_src.morphablegraphs.animation_data.motion_editing import \
+    convert_euler_frames_to_cartesian_frames, \
     convert_quaternion_frames_to_euler_frames,\
     euler_substraction
 
@@ -50,15 +53,15 @@ def filter_vectors(frames, node_names):
     starting with "Bip"
     """
     filtered_vectors = []
-    for v in frames:
+    for frame in frames:
         filtered_v = []
         j = 0
         for node_name in node_names.keys():
             # only add non bip frames
             if not node_name.startswith("Bip") and \
                     not node_names[node_name].isEndSite():
-                for c in node_names[node_name].channels:
-                    filtered_v.append(v[j])
+                for channel in node_names[node_name].channels:
+                    filtered_v.append(frame[j])
                     j += 1
             else:
                   # j must be also increased when a name is skipped
@@ -87,7 +90,7 @@ def calculate_avg_motion_velocity_from_bvh(bvh_reader,
         \tA data structure containing the energy for each joint and channel
             based on OrderedDicts
     """
-    assert(len(bvh_reader.keyframes) > 2)
+    assert len(bvh_reader.keyframes) > 2
     # calculate the average velocity over each frame
     diff_vectors = calculate_velocity(np.array(bvh_reader.keyframes))
 
@@ -119,14 +122,14 @@ def calculate_avg_motion_velocity_from_bvh(bvh_reader,
 
             average_velocity[node_name] = collections.OrderedDict()
             # add one entry for each channel
-            for c in bvh_reader.node_names[node_name].channels:
-                average_velocity[node_name][c] = {"var": var_vector[j],
+            for channel in bvh_reader.node_names[node_name].channels:
+                average_velocity[node_name][channel] = {"var": var_vector[j],
                                                   "min": min_vector[j],
                                                   "max": max_vector[j]}
                 if normalize_over_frames:
-                    average_velocity[node_name][c]["avg"] = avg_vector[j]
+                    average_velocity[node_name][channel]["avg"] = avg_vector[j]
                 else:
-                    average_velocity[node_name][c]["energy"] = energy_vector[j]
+                    average_velocity[node_name][channel]["energy"] = energy_vector[j]
 
                 j += 1
 
@@ -149,7 +152,7 @@ def create_filtered_node_name_map(bvh_reader):
     return node_name_map
 
 
-def update_bb_value(bb, value):
+def update_bb_value(bounding_box, value):
     """
     Cecks if a value lies inside or outside of a bounding box and then updates
     the bounding box to contain the value if necessary.
@@ -167,16 +170,16 @@ def update_bb_value(bb, value):
 
     """
     update = False
-    if bb["min"] > value:
-        bb["min"] = copy(value)
+    if bounding_box["min"] > value:
+        bounding_box["min"] = copy(value)
         update = True
-    if bb["max"] < value:
-        bb["max"] = copy(value)
+    if bounding_box["max"] < value:
+        bounding_box["max"] = copy(value)
         update = True
     return update
 
 
-def check_bb_value(bb, value, eps):
+def check_bb_value(bounding_box, value, eps):
     """
     Cecks if a value lies in or outside of a bounding box
 
@@ -194,9 +197,9 @@ def check_bb_value(bb, value, eps):
     True if the value lies inside of the bounding box and False if not
 
     """
-    if bb["min"] > value + eps:
+    if bounding_box["min"] > value + eps:
         return False
-    if bb["max"] < value - eps:
+    if bounding_box["max"] < value - eps:
         return False
     return True
 
@@ -206,15 +209,15 @@ def calculate_parameter_bounding_box(bvh_reader):
         bounding box over a motion
     """
 
-    bb = collections.OrderedDict()  # {}
+    bounding_box = collections.OrderedDict()  # {}
     for node_name in bvh_reader.node_names.keys():
         # only add non bip frames
         if not node_name.startswith("Bip") and \
            not bvh_reader.node_names[node_name].isEndSite():
-            bb[node_name] = collections.OrderedDict()
+            bounding_box[node_name] = collections.OrderedDict()
             # add one entry for each channel
             for c in bvh_reader.node_names[node_name].channels:
-                bb[node_name][c] = {"min": np.inf, "max": -np.inf}
+                bounding_box[node_name][c] = {"min": np.inf, "max": -np.inf}
 
     i = 0
     while i < len(bvh_reader.keyframes):
@@ -222,15 +225,15 @@ def calculate_parameter_bounding_box(bvh_reader):
         frame = bvh_reader.keyframes[i]
         j = 0
         for node_name in bvh_reader.node_names.keys():
-            if node_name in bb:
+            if node_name in bounding_box:
                 for c in bvh_reader.node_names[node_name].channels:
-                    update_bb_value(bb[node_name][c], frame[j])
+                    update_bb_value(bounding_box[node_name][c], frame[j])
                     j += 1
             else:
                 # j must be also increased when a name is skipped
                 j += len(bvh_reader.node_names[node_name].channels)
         i += 1
-    return bb
+    return bounding_box
 
 
 def calculate_cartesian_pose_bounding_box(bvh_reader):
@@ -238,9 +241,9 @@ def calculate_cartesian_pose_bounding_box(bvh_reader):
         bounding box over a motion
     """
 
-    bb = collections.OrderedDict()  # {}
+    bounding_box = collections.OrderedDict()  # {}
     for c in ["X", "Y", "Z"]:
-        bb[c] = {"min": np.inf, "max": -np.inf}
+        bounding_box[c] = {"min": np.inf, "max": -np.inf}
     # print bb
     # get cartesian frames
     cartesian_frames = convert_euler_frames_to_cartesian_frames(
@@ -256,12 +259,12 @@ def calculate_cartesian_pose_bounding_box(bvh_reader):
                # print "add",node_name,j,frame.shape
                 # iterate over X Y Z for bounding box breach check
                 k = 0
-                for c in bb.keys():
-                    update_bb_value(bb[c], frame[j][k])
+                for c in bounding_box.keys():
+                    update_bb_value(bounding_box[c], frame[j][k])
                     k += 1
                 j += 1
     # print bb
-    return bb
+    return bounding_box
 
 
 def check_parameter_bounding_box(
@@ -432,9 +435,6 @@ def check_cartesian_bounding_box(
         node_name_map = create_filtered_node_name_map(bvh_reader)
     else:
         node_name_map = None
-#        bvh_reader.keyframes =   euler_frames
-#        bb = calculate_cartesian_pose_bounding_box(bvh_reader)
-#        print bb["Z"]
 
     cartesian_frames = convert_euler_frames_to_cartesian_frames(bvh_reader,
                                                                 euler_frames,
@@ -468,8 +468,8 @@ def check_velocity_value(velocity, value, eps):
     """
     boundary = abs(velocity["var"]) + eps
 
-    if velocity["avg"] - \
-            boundary < value and value < velocity["avg"] + boundary:
+    if velocity["avg"] - boundary < value \
+            and value < velocity["avg"] + boundary:
         return True
     else:
         return False
@@ -499,8 +499,6 @@ def check_average_velocity(
         avg_vector += frame
 
     avg_vector /= len(velocity_vectors)
-#    min_vector = np.min(velocity_vectors, axis=0)
-#    max_vector = np.max(velocity_vectors, axis=0)
 
     # check average velocity
     i = 0
@@ -535,20 +533,3 @@ def check_sample_validity(
     return valid
 
 
-if __name__ == "__main__":
-    bb = {"min": 0.2, "max": 4.0}
-    update_bb_value(bb, 10)
-    print bb
-    update_bb_value(bb, -11)
-    print bb
-    velocity_vectors = np.array([[1.0, 0.0], [2.0, 0.0]])
-    avg_vector = np.array([0.0, 0.0])
-    for v in velocity_vectors:
-        avg_vector += v
-    avg_vector /= len(velocity_vectors)
-    avg_vector2 = np.average(velocity_vectors, axis=0)
-
-    print velocity_vectors
-    print avg_vector
-    print avg_vector2
-    print "different", avg_vector == avg_vector2

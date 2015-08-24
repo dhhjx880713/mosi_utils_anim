@@ -190,9 +190,9 @@ class BVHWriter(object):
             filename = filename
         else:
             filename = filename + '.bvh'
-        fp = open(filename, 'wb')
-        fp.write(bvh_string)
-        fp.close()
+        outfile = open(filename, 'wb')
+        outfile.write(bvh_string)
+        outfile.close()
 
     def generate_bvh_string(self):
         bvh_string = self._generate_hierarchy_string(
@@ -290,14 +290,14 @@ class BVHWriter(object):
                                                 # to append specific data
                         # ignore end sites completely
                         if "children" in node_names[node_name].keys():
-                            if not node_name.startswith(
-                                    "Bip") or not skip_joints:
+                            if not node_name.startswith("Bip") or not skip_joints:
                                 if node_name in [
                                         "Bip01_R_Toe0",
                                         "Bip01_L_Toe0"]:
                                     # special fix for unused toe parameters
-                                    euler_frame = np.concatenate(
-                                        (euler_frame, ([90.0, -1.00000000713e-06, 75.0	])), axis=0)
+                                    euler_frame = np.concatenate((euler_frame,
+                                                                  ([90.0, -1.00000000713e-06, 75.0])),
+                                                                 axis=0)
                                 else:
                                     # print node_name
                                     # get start index in the frame vector
@@ -308,20 +308,20 @@ class BVHWriter(object):
                                     else:
                                         channels = node_names[
                                             node_name]["channels"]
-
-                                    euler_frame = np.concatenate(
-                                        (euler_frame, frame[i:i + 3]), axis=0)
+                                    euler_frame = np.concatenate((euler_frame, frame[i:i + 3]), axis=0)
                                 joint_idx += 1
                             else:
                                 if node_name in [
                                         "Bip01_R_Toe0",
                                         "Bip01_L_Toe0"]:
                                     # special fix for unused toe parameters
-                                    euler_frame = np.concatenate(
-                                        (euler_frame, ([90.0, -1.00000000713e-06, 75.0	])), axis=0)
+                                    euler_frame = np.concatenate((euler_frame,
+                                                                  ([90.0, -1.00000000713e-06, 75.0])),
+                                                                 axis=0)
                                 else:
-                                    euler_frame = np.concatenate(
-                                        (euler_frame, ([0, 0, 0])), axis=0)  # set rotation to 0
+                                    euler_frame = np.concatenate((euler_frame,
+                                                                  ([0, 0, 0])),
+                                                                 axis=0)  # set rotation to 0
 
                     euler_frames.append(euler_frame)
         else:
@@ -342,36 +342,30 @@ class BVHWriter(object):
                             if node_name in ["Bip01_R_Toe0", "Bip01_L_Toe0"]:
                                 # special fix for unused toe parameters
                                 euler_frame = np.concatenate(
-                                    (euler_frame, ([90.0, -1.00000000713e-06, 75.0	])), axis=0)
+                                    (euler_frame, ([90.0, -1.00000000713e-06, 75.0])), axis=0)
                             else:
                                 # print node_name
                                 # get start index in the frame vector
                                 i = joint_idx * 4 + 3
                                 if node_names[node_name]["level"] == 0:
-                                    channels = node_names[
-                                        node_name]["channels"][3:]
+                                    channels = node_names[node_name]["channels"][3:]
                                 else:
-                                    channels = node_names[
-                                        node_name]["channels"]
-
+                                    channels = node_names[node_name]["channels"]
                                 euler_frame = np.concatenate(
                                     (euler_frame,
-                                     self._quaternion_to_euler(
-                                         frame[
-                                             i:i +
-                                             4],
-                                         channels)),
+                                     BVHWriter._quaternion_to_euler(frame[i:i + 4], channels)),
                                     axis=0)
                             joint_idx += 1
                         else:
                             if node_name in ["Bip01_R_Toe0", "Bip01_L_Toe0"]:
                                 # special fix for unused toe parameters
-                                euler_frame = np.concatenate(
-                                    (euler_frame, ([90.0, -1.00000000713e-06, 75.0	])), axis=0)
+                                euler_frame = np.concatenate((euler_frame,
+                                                              ([90.0, -1.00000000713e-06, 75.0])),
+                                                             axis=0)
                             else:
-                                euler_frame = np.concatenate(
-                                    (euler_frame, ([0, 0, 0])), axis=0)  # set rotation to 0
-
+                                euler_frame = np.concatenate((euler_frame,
+                                                              ([0, 0, 0])),
+                                                             axis=0)  # set rotation to 0
                 euler_frames.append(euler_frame)
 
         # create frame string
@@ -384,9 +378,10 @@ class BVHWriter(object):
 
         return frame_parameter_string
 
-    def _quaternion_to_euler(self, q, rotation_order=['Xrotation',
-                                                      'Yrotation',
-                                                      'Zrotation']):
+    @classmethod
+    def _quaternion_to_euler(cls, quat, rotation_order=['Xrotation',
+                                                        'Yrotation',
+                                                        'Zrotation']):
         """
         Parameters
         ----------
@@ -398,22 +393,22 @@ class BVHWriter(object):
         * euler_angles: list
         \tEuler angles in degree with specified order
         """
-        q = np.asarray(q)
-        q = q / np.linalg.norm(q)
-        Rq = quaternion_matrix(q)
+        quat = np.asarray(quat)
+        quat = quat / np.linalg.norm(quat)
+        rotmat_quat = quaternion_matrix(quat)
         if rotation_order[0] == 'Xrotation':
             if rotation_order[1] == 'Yrotation':
-                euler_angles = np.rad2deg(euler_from_matrix(Rq, 'rxyz'))
+                euler_angles = np.rad2deg(euler_from_matrix(rotmat_quat, 'rxyz'))
             elif rotation_order[1] == 'Zrotation':
-                euler_angles = np.rad2deg(euler_from_matrix(Rq, 'rxzy'))
+                euler_angles = np.rad2deg(euler_from_matrix(rotmat_quat, 'rxzy'))
         elif rotation_order[0] == 'Yrotation':
             if rotation_order[1] == 'Xrotation':
-                euler_angles = np.rad2deg(euler_from_matrix(Rq, 'ryxz'))
+                euler_angles = np.rad2deg(euler_from_matrix(rotmat_quat, 'ryxz'))
             elif rotation_order[1] == 'Zrotation':
-                euler_angles = np.rad2deg(euler_from_matrix(Rq, 'ryzx'))
+                euler_angles = np.rad2deg(euler_from_matrix(rotmat_quat, 'ryzx'))
         elif rotation_order[0] == 'Zrotation':
             if rotation_order[1] == 'Xrotation':
-                euler_angles = np.rad2deg(euler_from_matrix(Rq, 'rzxy'))
+                euler_angles = np.rad2deg(euler_from_matrix(rotmat_quat, 'rzxy'))
             elif rotation_order[1] == 'Yrotation':
-                euler_angles = np.rad2deg(euler_from_matrix(Rq, 'rzyx'))
+                euler_angles = np.rad2deg(euler_from_matrix(rotmat_quat, 'rzyx'))
         return euler_angles.tolist()
