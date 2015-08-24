@@ -14,7 +14,7 @@ from motion_primitive_node_group_builder import MotionPrimitiveNodeGroupBuilder
 from ..utilities.zip_io import read_graph_data_from_zip
 from graph_edge import GraphEdge
 from motion_primitive_graph import MotionPrimitiveGraph
-from . import NODE_TYPE_START, NODE_TYPE_STANDARD
+from . import NODE_TYPE_START, NODE_TYPE_STANDARD, TRANSITION_DEFINITION_FILE_NAME, TRANSITION_MODEL_FILE_ENDING
 
         
 class MotionPrimitiveGraphBuilder(object):
@@ -47,8 +47,8 @@ class MotionPrimitiveGraphBuilder(object):
         self.update_stats = update_stats
         self.motion_primitive_graph_path = motion_primitive_graph_path
         self.transition_model_directory = transition_model_directory
-        self.motion_primitive_node_group_builder.set_properties(transition_model_directory=self.transition_model_directory,
-                                                                load_transition_models=self.load_transition_models)
+        self.motion_primitive_node_group_builder.set_properties(self.transition_model_directory,
+                                                                self.load_transition_models)
 
     def build(self):
         motion_primitive_graph = MotionPrimitiveGraph()
@@ -65,11 +65,7 @@ class MotionPrimitiveGraphBuilder(object):
         graph_definition = graph_data["transitions"]
         elementary_actions = graph_data["subgraphs"]
         for action_name in elementary_actions.keys():
-            elementary_action_path = self.motion_primitive_graph_path+os.sep+action_name
-            self.motion_primitive_node_group_builder.set_data_source(action_name,
-                                                                     elementary_action_path,
-                                                                     elementary_action_dict=elementary_actions[action_name],
-                                                                     graph_definition=graph_definition)
+            self.motion_primitive_node_group_builder.set_data_from_zip(elementary_actions[action_name])
             node_group = self.motion_primitive_node_group_builder.build()
             motion_primitive_graph.nodes.update(node_group.nodes)
             motion_primitive_graph.node_groups[node_group.elementary_action_name] = node_group
@@ -85,12 +81,12 @@ class MotionPrimitiveGraphBuilder(object):
         for key in next(os.walk(self.motion_primitive_graph_path))[1]:
             subgraph_path = self. motion_primitive_graph_path+os.sep+key
             name = key.split("_")[-1]
-            self.motion_primitive_node_group_builder.set_data_source(name, subgraph_path)
+            self.motion_primitive_node_group_builder.set_directory_as_data_source(name, subgraph_path)
             node_group = self.motion_primitive_node_group_builder.build()
             motion_primitive_graph.nodes.update(node_group.nodes)
             motion_primitive_graph.node_groups[node_group.elementary_action_name] = node_group
 
-        graph_definition_file = self.motion_primitive_graph_path+os.sep+"graph_definition.json"
+        graph_definition_file = self.motion_primitive_graph_path+os.sep+TRANSITION_DEFINITION_FILE_NAME
         #add transitions between subgraphs and load transition models
         if os.path.isfile(graph_definition_file):
             graph_definition = load_json_file(graph_definition_file)
@@ -100,7 +96,7 @@ class MotionPrimitiveGraphBuilder(object):
             print "did not find graph definition file", graph_definition_file
 
         self._update_attributes(motion_primitive_graph, update_stats=update_stats)
-        
+
     def _update_attributes(self, motion_primitive_graph, update_stats=False):
         for keys in motion_primitive_graph.node_groups.keys():
             motion_primitive_graph.node_groups[keys].update_attributes(update_stats=update_stats)
@@ -117,7 +113,7 @@ class MotionPrimitiveGraphBuilder(object):
                 for to_key in transition_dict[node_key]:
                     to_action_name = to_key.split("_")[0]
                     to_motion_primitive_name = to_key.split("_")[1]
-                    to_node_key = (to_action_name,to_motion_primitive_name) 
+                    to_node_key = (to_action_name, to_motion_primitive_name)
                     if to_node_key in motion_primitive_graph.nodes.keys():
                         self._add_transition(motion_primitive_graph, from_node_key, to_node_key)
 
@@ -125,8 +121,8 @@ class MotionPrimitiveGraphBuilder(object):
         transition_model = None
         if self.load_transition_models and self.transition_model_directory is not None:
             transition_model_file = self.transition_model_directory\
-            +os.sep+from_node_key+"_to_"+to_node_key[0]+"_"+to_node_key[1]+".GPM"
-            if  os.path.isfile(transition_model_file):
+            +os.sep+from_node_key+"_to_"+to_node_key[0]+"_"+to_node_key[1]+TRANSITION_MODEL_FILE_ENDING
+            if os.path.isfile(transition_model_file):
                 output_gmm = motion_primitive_graph.nodes[to_node_key].gaussian_mixture_model
                 transition_model = GPMixture.load(transition_model_file,\
                 motion_primitive_graph.nodes[from_node_key].gaussian_mixture_model,output_gmm)

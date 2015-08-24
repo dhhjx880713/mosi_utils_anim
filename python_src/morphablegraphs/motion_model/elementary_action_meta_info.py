@@ -6,8 +6,9 @@ from . import META_INFORMATION_FILE_NAME
 
 
 class ElementaryActionMetaInfo(object):
-    def __init__(self, elementary_action_name):
+    def __init__(self, elementary_action_name, elementary_action_directory):
         self.elementary_action_name = elementary_action_name
+        self.elementary_action_directory = elementary_action_directory
         self.annotation_map = dict()
         self.start_states = list()
         self.end_states = list()
@@ -50,7 +51,7 @@ class ElementaryActionMetaInfo(object):
     def _convert_keys_to_strings(self, mydict):
         copy_dict = {}
         for key in mydict.keys():
-            if type(key) is tuple:
+            if isinstance(key) is tuple:
                 try:
                     copy_dict[key[1]] = mydict[key]
                 except Exception as exception:
@@ -63,7 +64,7 @@ class ElementaryActionMetaInfo(object):
     def save_updated_meta_info(self):
         """ Save updated meta data to a json file
         """
-        if self.meta_information is not None:
+        if self.meta_information is not None and self.elementary_action_directory is not None:
             path = self.elementary_action_directory + os.sep + META_INFORMATION_FILE_NAME
             write_to_json_file(path, self._convert_keys_to_strings(self.meta_information))
         return
