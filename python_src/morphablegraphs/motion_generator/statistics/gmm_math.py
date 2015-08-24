@@ -127,20 +127,3 @@ def mul(gmm1, gmm2, type='full'):
         return _full_mul(gmm1, gmm2)
     if type == 'cluster':
         return _cluster_mul(gmm1, gmm2)
-
-
-def main():
-    """ Function to demonstrate the usage of this module """
-    from lib.load import load_gmm
-    leftstance = 'walk_leftStance_quaternion_mm.json'
-    rightStance = 'walk_rightStance_quaternion_mm.json'
-
-    gmm_l = load_gmm(leftstance)
-    gmm_r = load_gmm(rightStance)
-
-    gmm_l2 = mul(gmm_l, gmm_l)
-
-    return
-
-if __name__ == '__main__':
-    main()
