@@ -35,17 +35,17 @@ class MotionSampleGenerator(object):
     * service_config: String
         Contains paths to the motion data.
     """
-    def __init__(self,service_config, algorithm_config):
+    def __init__(self, service_config, algorithm_config):
         self._service_config = service_config        
         self._algorithm_config = algorithm_config
-        morphable_model_directory = self._service_config["model_data"]
+        motion_primitive_graph_directory = self._service_config["model_data"]
         transition_directory = self._service_config["transition_data"]
         graph_builder = MotionPrimitiveGraphBuilder()
-        graph_builder.set_data_source(SKELETON_FILE, morphable_model_directory,
+        graph_builder.set_data_source(SKELETON_FILE, motion_primitive_graph_directory,
                                                 transition_directory,
                                                 self._algorithm_config["use_transition_model"])
-        self.morphable_graph = graph_builder.build()
-        self.elementary_action_generator = ElementaryActionSampleGenerator(self.morphable_graph, self._algorithm_config)
+        self.motion_primitive_graph = graph_builder.build()
+        self.elementary_action_generator = ElementaryActionSampleGenerator(self.motion_primitive_graph, self._algorithm_config)
         return
 
     def set_algorithm_config(self, algorithm_config):
@@ -85,22 +85,17 @@ class MotionSampleGenerator(object):
         if type(mg_input) != dict:
             mg_input = load_json_file(mg_input)
         start = time.clock()
-        motion_constraints_builder = ElementaryActionConstraintsBuilder(mg_input, self.morphable_graph)
-        
-        motion = self._generate_motion_from_constraints(motion_constraints_builder)
+        elementary_action_constraints_builder = ElementaryActionConstraintsBuilder(mg_input, self.motion_primitive_graph)
+        motion = self._generate_motion_from_constraints(elementary_action_constraints_builder)
         seconds = time.clock() - start
         self.print_runtime_statistics(seconds)
-        
         # export the motion to a bvh file if export == True
         if export:
             output_filename = self._service_config["output_filename"]
             if output_filename == "" and "session" in mg_input.keys():
                 output_filename = mg_input["session"]
-
                 motion.frame_annotation["sessionID"] = mg_input["session"]
-
             motion.export(self._service_config["output_dir"], output_filename, add_time_stamp=True, write_log=self._service_config["write_log"])
-          
         return motion
 
     def _generate_motion_from_constraints(self, elementary_action_constraints_builder):
@@ -108,7 +103,6 @@ class MotionSampleGenerator(object):
          Parameters
         ----------
         * elementary_action_constraints_builder : ElementaryActionConstraintsBuilder
-            Contains a list of dictionaries with the entries for "subgraph","state" and "parameters"
         Returns
         -------
         * motion: MotionSample
@@ -116,14 +110,13 @@ class MotionSampleGenerator(object):
         """
         if self._algorithm_config["verbose"]:
             for key in self._algorithm_config.keys():
-                print key,self._algorithm_config[key]
+                print key, self._algorithm_config[key]
     
-        motion = MotionSample()
-        motion.skeleton = self.morphable_graph.skeleton
-        motion.apply_smoothing = self._algorithm_config["apply_smoothing"]
-        motion.smoothing_window = self._algorithm_config["smoothing_window"]
-        motion.start_pose = elementary_action_constraints_builder.start_pose
+        motion = MotionSample(self.motion_primitive_graph.skeleton,
+                              elementary_action_constraints_builder.start_pose,
+                              self._algorithm_config)
         motion.mg_input = elementary_action_constraints_builder.mg_input
+
         action_constraints = elementary_action_constraints_builder.get_next_elementary_action_constraints()
         while action_constraints is not None:
             if self._algorithm_config["debug_max_step"] > -1 and motion.step_count > self._algorithm_config["debug_max_step"]:
@@ -131,7 +124,7 @@ class MotionSampleGenerator(object):
                 break
               
             if self._algorithm_config["verbose"]:
-               print "convert",action_constraints.action_name,"to graph walk"
+                print "convert", action_constraints.action_name, "to graph walk"
     
             self.elementary_action_generator.set_action_constraints(action_constraints)
             success = self.elementary_action_generator.append_elementary_action_to_motion(motion)
@@ -145,9 +138,9 @@ class MotionSampleGenerator(object):
     def print_runtime_statistics(self, time_in_seconds):
         minutes = int(time_in_seconds/60)
         seconds = time_in_seconds % 60
-        total_time_string = "finished synthesis in "+ str(minutes) + " minutes "+ str(seconds)+ " seconds"
-        evaluations_string = "total number of objective evaluations "+ str(global_counter_dict["evaluations"])
-        error_string = "average error for "+ str(len(global_counter_dict["motionPrimitveErrors"])) +" motion primitives: " + str(np.average(global_counter_dict["motionPrimitveErrors"],axis=0))
+        total_time_string = "finished synthesis in " + str(minutes) + " minutes " + str(seconds) + " seconds"
+        evaluations_string = "total number of objective evaluations " + str(global_counter_dict["evaluations"])
+        error_string = "average error for " + str(len(global_counter_dict["motionPrimitveErrors"])) +" motion primitives: " + str(np.average(global_counter_dict["motionPrimitveErrors"],axis=0))
         print total_time_string
         print evaluations_string
         print error_string

@@ -44,14 +44,14 @@ class ClusterTreeBuilder(object):
     def _create_space_partitioning(self, motion_primitive, cluster_file_name):
         print "construct space partitioning data structure for", motion_primitive.name
 
-        X = np.array([motion_primitive.sample(return_lowdimvector=True) for i in xrange(self.n_samples)])
+        data = np.array([motion_primitive.sample_low_dimensional_vector() for i in xrange(self.n_samples)])
         if self.only_spatial_parameters:
             n_dims = motion_primitive.s_pca["n_components"]
             print "maximum dimension set to", n_dims, "ignoring time parameters"
         else:
-            n_dims = len(X[0])
+            n_dims = len(data[0])
         cluster_tree = ClusterTree(self.n_subdivisions_per_level, self.n_levels, n_dims)
-        cluster_tree.construct(X)
+        cluster_tree.construct(data)
         #self.cluster_tree.save_to_file(cluster_file_name+"tree")
         cluster_tree.save_to_file_pickle(cluster_file_name + CLUSTER_TREE_FILE_ENDING)
        
@@ -61,7 +61,7 @@ class ClusterTreeBuilder(object):
             for file_name in files:
                 if file_name.endswith(MOTION_PRIMITIVE_FILE_ENDING):
                     motion_primitive = MotionPrimitive(elementary_action_dir + os.sep + file_name)
-                    cluster_file_name =  file_name[:-7]
+                    cluster_file_name = file_name[:-7]
                     self._create_space_partitioning(motion_primitive, elementary_action_dir + os.sep + cluster_file_name)
         return
 

@@ -209,7 +209,7 @@ class KDTree(object):
             return heapq.heappop(result_queue)
         else:
             return None
-    
+
     def find_best_example(self, obj, data, k=1):
         """
         Traverses the KDTree using the direction of least cost until a leaf is reached

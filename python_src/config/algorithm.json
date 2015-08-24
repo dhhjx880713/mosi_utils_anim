@@ -18,7 +18,7 @@
         "max_iterations": 300
     }, 
     "activate_cluster_search": true,
-    "n_cluster_search_candidates": 1,
+    "n_cluster_search_candidates": 5,
     "constrained_gmm_settings": {
         "precision": {
             "smooth": 5, 

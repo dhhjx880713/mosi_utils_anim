@@ -23,11 +23,11 @@ class MotionPrimitiveConstraintsBuilder(object):
         self.action_constraints = None
         self.algorithm_config = None
         self.status = {}
-        self.morphable_graph = None
+        self.motion_primitive_graph = None
     
     def set_action_constraints(self, action_constraints):
         self.action_constraints = action_constraints
-        self.morphable_graph = action_constraints.morphable_graph
+        self.motion_primitive_graph = action_constraints.motion_primitive_graph
         self.node_group = self.action_constraints.get_node_group()
         self.skeleton = self.action_constraints.get_skeleton()
         
@@ -68,7 +68,7 @@ class MotionPrimitiveConstraintsBuilder(object):
    
         if len(self.action_constraints.keyframe_constraints.keys()) > 0:
             self._set_keyframe_constraints(mp_constraints)
-            # generate frame constraints for the last step basd on the previous state
+            # generate frame constraints for the last step based on the previous state
             # if not already done for the trajectory following
             if self.status["is_last_step"] and not mp_constraints.pose_constraint_set:
                 self._set_pose_constraint(mp_constraints)
@@ -94,7 +94,6 @@ class MotionPrimitiveConstraintsBuilder(object):
             mp_constraints.goal_arc_length = self._make_guess_for_goal_arc_length()
         else:
             mp_constraints.goal_arc_length = self.action_constraints.trajectory.full_arc_length
-
         mp_constraints.step_goal,orientation,dir_vector = self._get_point_and_orientation_from_arc_length(mp_constraints.goal_arc_length)
 
         mp_constraints.print_status()
@@ -151,7 +150,7 @@ class MotionPrimitiveConstraintsBuilder(object):
         last_arc_length = self.status["last_arc_length"]
         last_pos = self.status["last_pos"]
         node_key = (self.action_constraints.action_name , self.status["motion_primitive_name"])
-        step_length = self.morphable_graph.nodes[node_key].average_step_length\
+        step_length = self.motion_primitive_graph.nodes[node_key].average_step_length\
                         * self.trajectory_following_settings["heuristic_step_length_factor"]
         max_arc_length = last_arc_length + 4.0 * step_length
         #find closest point in the range of the last_arc_length and max_arc_length
@@ -163,6 +162,7 @@ class MotionPrimitiveConstraintsBuilder(object):
         # approximate arc length of the point closest to the current position
         start_arc_length,eval_point = self.action_constraints.trajectory.get_absolute_arc_length_of_point(closest_point, min_arc_length=last_arc_length)
         #update arc length based on the step length of the next motion primitive
+        print start_arc_length + step_length, self.motion_primitive_graph.nodes[node_key].average_step_length
         if start_arc_length == -1:
             return self.action_constraints.trajectory.full_arc_length
         else:

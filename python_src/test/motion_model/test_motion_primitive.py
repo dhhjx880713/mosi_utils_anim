@@ -15,7 +15,7 @@ sys.path.append(ROOTDIR)
 TESTLIBPATH = ROOTDIR + os.sep + 'test'
 sys.path.append(TESTLIBPATH)
 sys.path.append(ROOTDIR + os.sep + 'morphablegraphs/construction')
-TEST_DATA_PATH = ROOTDIR + os.sep + r'../test_data/constrction/motion_primitive'
+TEST_DATA_PATH = ROOTDIR + os.sep + r'../test_data/motion_model'
 from libtest import params, pytest_generate_tests
 import numpy as np
 from morphablegraphs.motion_model.motion_primitive import MotionPrimitive

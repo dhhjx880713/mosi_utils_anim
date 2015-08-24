@@ -19,9 +19,9 @@ TESTOUTPATH = os.sep.join([ROOT_DIR,"..","test_output"])
 def distance_objective(x, test_value):
     return np.linalg.norm(np.asarray(x)-np.asarray(test_value))
 
-def run_cluster_hierarchy_construction(n_subdivisions, max_level, X, filename):
+def run_cluster_hierarchy_construction(n_subdivisions, max_level, data, filename):
     cluster_tree = ClusterTree(n_subdivisions, max_level)
-    cluster_tree.construct(X)
+    cluster_tree.construct(data)
     cluster_tree.save_to_file_pickle(filename)
     return cluster_tree
 
@@ -34,12 +34,12 @@ class TestClusterTree(object):
         self.max_level = 4
         self.error_margin = 0.1
         self.n_candidates = 5
-        self.X_shape = (self.n_samples, self.n_dim)
-        self.X = np.random.random(self.X_shape)
-        self.test_value = self.X[0]
+        self.data_shape = (self.n_samples, self.n_dim)
+        self.data = np.random.random(self.data_shape)
+        self.test_value = self.data[0]
         self.filename = TESTOUTPATH + os.sep + "tree.pck"
         start = time.clock()
-        self.cluster_tree = run_cluster_hierarchy_construction(self.n_subdivisions, self.max_level, self.X, self.filename)
+        self.cluster_tree = run_cluster_hierarchy_construction(self.n_subdivisions, self.max_level, self.data, self.filename)
         print "finished construction in", time.clock()-start, "seconds"
 
 

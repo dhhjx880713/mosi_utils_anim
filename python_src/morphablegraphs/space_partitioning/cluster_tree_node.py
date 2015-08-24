@@ -18,7 +18,7 @@ class ClusterTreeNode(object):
 
     """
     def __init__(self, unique_id, depth, indices, mean, clusters, node_type, is_leaf):
-        self.id = str(uuid)
+        self.id = str(unique_id)
         self.clusters = clusters
         self.mean = mean
         self.leaf = is_leaf
@@ -26,7 +26,6 @@ class ClusterTreeNode(object):
         self.depth = depth
         self.indices = indices
 
-     
     def find_best_example_knn(self, obj, data, k=50):
         """Return the best example based on the evaluation using an objective function.
             Interpolates the best k results.
@@ -35,7 +34,7 @@ class ClusterTreeNode(object):
             result_queue = []
             for i in xrange(len(self.clusters)):
                 result = self.clusters[i].knn_interpolation(obj, data, k)
-                heapq.heappush(result_queue,result)    
+                heapq.heappush(result_queue, result)
             return heapq.heappop(result_queue)
      
     def find_best_example(self, obj, data):   
@@ -60,7 +59,6 @@ class ClusterTreeNode(object):
             heapq.heappush(result_queue, result)
         return heapq.heappop(result_queue)
 
-
     def find_best_cluster(self, obj, data):
         """ Return the best cluster based on the evaluation using an objective function.
 
@@ -73,7 +71,6 @@ class ClusterTreeNode(object):
         * n_candidates: Integer
             Maximum number of candidates
         """
- 
         best_value = np.inf
         best_index = 0
         for cluster_index in xrange(len(self.clusters)):
@@ -111,7 +108,7 @@ class ClusterTreeNode(object):
             heapq.heappush(result_queue,(cluster_value,self.clusters[cluster_index] ) )
       
         return result_queue[:n_candidates]
-    
+
     def get_desc(self):
         """Used to save the node to file.
         Returns
@@ -137,7 +134,6 @@ class ClusterTreeNode(object):
             else:
                 node_desc["indices"] = []
         return node_desc
-        
 
     def get_node_desc_list(self):
         """Iteratively builds a dictionary containing a description of all 

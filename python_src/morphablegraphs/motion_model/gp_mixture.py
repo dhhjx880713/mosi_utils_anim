@@ -290,9 +290,3 @@ def create_and_save(action1, prim1, action2, prim2, max_iters,
     gpmixture.save(os.sep.join((output_path, "%s_%s_to_%s_%s.GPM" %
                                 (action1, prim1, action2, prim2))))
 
-
-def main():
-    raise NotImplementedError
-
-if __name__ == '__main__':
-    main()
