@@ -15,6 +15,7 @@ from keyframe_constraints.pose_constraint import PoseConstraint
 from keyframe_constraints.direction_constraint import DirectionConstraint
 from keyframe_constraints.pos_and_rot_constraint import PositionAndRotationConstraint
 
+
 class MotionPrimitiveConstraintsBuilder(object):
     """ Extracts a list of constraints for a motion primitive from ElementaryActionConstraints 
         based on the variables set by the method set_status. Generates constraints for path following.
@@ -24,18 +25,18 @@ class MotionPrimitiveConstraintsBuilder(object):
         self.algorithm_config = None
         self.status = {}
         self.motion_primitive_graph = None
-    
+
     def set_action_constraints(self, action_constraints):
         self.action_constraints = action_constraints
         self.motion_primitive_graph = action_constraints.motion_primitive_graph
         self.node_group = self.action_constraints.get_node_group()
         self.skeleton = self.action_constraints.get_skeleton()
-        
+
     def set_algorithm_config(self, algorithm_config):
         self.algorithm_config = algorithm_config
         self.precision = algorithm_config["constrained_gmm_settings"]["precision"]
         self.trajectory_following_settings = algorithm_config["trajectory_following_settings"]
-        
+
     def set_status(self, motion_primitive_name, last_arc_length, prev_frames=None, is_last_step=False):
         self.status["motion_primitive_name"] = motion_primitive_name
         self.status["last_arc_length"] = last_arc_length
@@ -43,14 +44,12 @@ class MotionPrimitiveConstraintsBuilder(object):
             last_pos = self.action_constraints.start_pose["position"]  
         else:
             last_pos = prev_frames[-1][:3]
-	
         last_pos = copy(last_pos)
         last_pos[1] = 0.0
         self.status["last_pos"] = last_pos
         self.status["prev_frames"] = prev_frames
         self.status["is_last_step"] = is_last_step
 
-        
     def build(self):
         mp_constraints = MotionPrimitiveConstraints()
         mp_constraints.motion_primitive_name =  self.status["motion_primitive_name"]
@@ -65,7 +64,6 @@ class MotionPrimitiveConstraintsBuilder(object):
         if self.action_constraints.trajectory is not None:
             self._set_trajectory_constraints(mp_constraints)
             self._set_pose_constraint(mp_constraints)
-   
         if len(self.action_constraints.keyframe_constraints.keys()) > 0:
             self._set_keyframe_constraints(mp_constraints)
             # generate frame constraints for the last step based on the previous state
@@ -84,9 +82,7 @@ class MotionPrimitiveConstraintsBuilder(object):
             mp_constraints.constraints.append(pose_constraint)
             mp_constraints.pose_constraint_set = True
 
-        
     def _set_trajectory_constraints(self, mp_constraints):
-
         print "search for new goal"
         # if it is the last step we need to reach the point exactly otherwise
         # make a guess for a reachable point on the path that we have not visited yet
@@ -149,7 +145,7 @@ class MotionPrimitiveConstraintsBuilder(object):
         """
         last_arc_length = self.status["last_arc_length"]
         last_pos = self.status["last_pos"]
-        node_key = (self.action_constraints.action_name , self.status["motion_primitive_name"])
+        node_key = (self.action_constraints.action_name, self.status["motion_primitive_name"])
         step_length = self.motion_primitive_graph.nodes[node_key].average_step_length\
                         * self.trajectory_following_settings["heuristic_step_length_factor"]
         max_arc_length = last_arc_length + 4.0 * step_length

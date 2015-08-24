@@ -22,10 +22,10 @@ class ElementaryActionConstraints(object):
 
     def get_node_group(self):
         return self.motion_primitive_graph.node_groups[self.action_name]
-        
+
     def get_skeleton(self):
         return self.motion_primitive_graph.skeleton
-    
+
     def check_end_condition(self, prev_frames, travelled_arc_length, arc_length_offset):
         """
         Checks wether or not a threshold distance to the end has been reached.
@@ -40,6 +40,5 @@ class ElementaryActionConstraints(object):
     #    raw_input("go on...")
     
         continue_with_the_loop = distance_to_end > arc_length_offset/2 and \
-                            travelled_arc_length < self.trajectory.full_arc_length - arc_length_offset
+                                 travelled_arc_length < self.trajectory.full_arc_length - arc_length_offset
         return not continue_with_the_loop
-
