@@ -1,7 +1,7 @@
 __author__ = 'erhe01'
 
 from ..utilities.exceptions import PathSearchError
-from ..motion_model import NODE_TYPE_START, NODE_TYPE_END
+from ..motion_model import NODE_TYPE_START, NODE_TYPE_END, NODE_TYPE_SINGLE
 from motion_primitive_sample_generator import MotionPrimitiveSampleGenerator
 from constraint.motion_primitive_constraints_builder import MotionPrimitiveConstraintsBuilder
 from constraint.time_constraints_builder import TimeConstraintsBuilder
@@ -38,6 +38,7 @@ class ElementaryActionSampleGeneratorState(object):
 
         def is_end_state(self):
             return self.current_node_type == NODE_TYPE_END or \
+                    self.current_node_type == NODE_TYPE_SINGLE or \
                    (self.debug_max_step > -1 and self.start_step + \
                     self.temp_step > self.debug_max_step)
 
@@ -171,7 +172,7 @@ class ElementaryActionSampleGenerator(object):
                                            motion_primitive_sample, motion_primitive_constraints, motion)
 
         motion.step_count += self.state.temp_step
-        motion.update_frame_annotation(self.action_constraints.action_name,self.state.start_frame,motion.n_frames)
+        motion.update_frame_annotation(self.action_constraints.action_name, self.state.start_frame, motion.n_frames)
         if self._algorithm_config["use_global_optimization"]:
             self._optimize_over_graph_walk(motion.graph_walk)
         print "reached end of elementary action", self.action_constraints.action_name
@@ -179,7 +180,7 @@ class ElementaryActionSampleGenerator(object):
 
     def _transition_to_next_state(self, next_node, next_node_type, motion_primitive_sample, motion_primitive_constraints, motion):
         prev_graph_walk = motion.graph_walk
-        self._update_motion(next_node,motion_primitive_sample.get_motion_vector(False),
+        self._update_motion(next_node, motion_primitive_sample.get_motion_vector(False),
                             motion_primitive_constraints, motion)
         if self.action_constraints.trajectory is not None:
             new_travelled_arc_length = self._update_travelled_arc_length(motion.quat_frames, prev_graph_walk, self.state.travelled_arc_length)

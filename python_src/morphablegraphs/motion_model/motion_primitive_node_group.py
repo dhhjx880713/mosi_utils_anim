@@ -5,7 +5,7 @@ Created on Thu Jul 16 15:57:42 2015
 @author: erhe01
 """
 
-from . import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END
+from . import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END, NODE_TYPE_SINGLE
 from elementary_action_meta_info import ElementaryActionMetaInfo
 
 
@@ -27,11 +27,15 @@ class MotionPrimitiveNodeGroup(ElementaryActionMetaInfo):
     def _set_node_attributes(self):
         print "elementary_action", self.elementary_action_name
         print "start states", self.start_states
-        for k in self.start_states:
-            self.nodes[(self.elementary_action_name, k)].node_type = NODE_TYPE_START
-        print "end states", self.end_states
-        for k in self.end_states:
-            self.nodes[(self.elementary_action_name, k)].node_type = NODE_TYPE_END
+        if len(self.nodes) == 1:
+            node_key = self.nodes.keys()[0]
+            self.nodes[node_key].type = NODE_TYPE_SINGLE
+        else:
+            for k in self.start_states:
+                self.nodes[(self.elementary_action_name, k)].node_type = NODE_TYPE_START
+            print "end states", self.end_states
+            for k in self.end_states:
+                self.nodes[(self.elementary_action_name, k)].node_type = NODE_TYPE_END
 
     def update_attributes(self, update_stats=False):
         """
