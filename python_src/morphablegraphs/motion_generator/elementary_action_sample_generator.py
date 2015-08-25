@@ -82,7 +82,7 @@ class ElementaryActionSampleGenerator(object):
 
         if self.state.current_node is None:
             next_node = self.motion_primitive_graph.get_random_action_transition(motion, self.action_constraints.action_name)
-            next_node_type = NODE_TYPE_START
+            next_node_type = self.motion_primitive_graph.nodes[next_node].node_type
             if next_node is None:
                 print "Error: Could not find a transition of type action_transition from ",\
                     self.state.prev_action_name, self.state.prev_mp_name, " to state", self.state.current_node

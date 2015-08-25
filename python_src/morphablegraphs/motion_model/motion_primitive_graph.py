@@ -22,18 +22,14 @@ class MotionPrimitiveGraph(object):
 
     def generate_random_walk(self, start_action, number_of_steps, use_transition_model=True):
         """ Generates a random graph walk
-            
         Parameters
         ----------
         * start_action: string
             Initial action.
-        
         * number_of_steps: integer
             Number of transitions
-        
         * use_transition_model: bool
             Sets whether or not the transition model should be used in parameter prediction
-        
         Returns
         -------
         *graph_walk: a list of dictionaries

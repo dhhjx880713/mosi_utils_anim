@@ -17,6 +17,7 @@ from ..utilities.io_helper_functions import write_to_json_file,\
 
 LOG_FILE = "log.txt"
 
+
 class GraphWalkEntry(object):
     def __init__(self, node_key, parameters, arc_length):
         self.node_key = node_key

@@ -7,9 +7,7 @@ class TimeConstraints(object):
         self.start_keyframe = start_keyframe
         self.constraint_list = []
 
-
     def evaluate_graph_walk(self, s, morphable_graph, motion):
-
         time_functions = self._get_time_functions_from_graph_walk(s, morphable_graph, motion)
         #get difference to desired time for each constraint
         frame_time = morphable_graph.skeleton.frame_time
@@ -19,7 +17,6 @@ class TimeConstraints(object):
         return error_sum
 
     def _get_time_functions_from_graph_walk(self, s, morphable_graph, motion):
-
         #get time functions for all steps
         time_functions = []
         offset = 0

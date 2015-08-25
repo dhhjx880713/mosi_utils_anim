@@ -150,9 +150,7 @@ class MotionPrimitiveSampleGenerator(object):
                 parameters = self.numerical_minimizer.run(initial_guess=parameters)
         else: # no constraints were given
             print "motion primitive", mp_name
-            parameters = self._get_random_parameters(mp_name, prev_mp_name, 
-                                                     prev_frames, 
-                                                     prev_parameters)
+            parameters = self._get_random_parameters(mp_name, prev_mp_name, prev_parameters)
          
         return parameters
 

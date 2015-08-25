@@ -10,15 +10,13 @@ from elementary_action_meta_info import ElementaryActionMetaInfo
 
 
 class MotionPrimitiveNodeGroup(ElementaryActionMetaInfo):
-    """ Contains the motion primitives of an elementary action as nodes and
-    transition models as edges.
+    """ Contains the motion primitives of an elementary action as nodes.
     """
-    def __init__(self, elementary_action_name):
-        super(MotionPrimitiveNodeGroup, self).__init__(elementary_action_name)
+    def __init__(self, elementary_action_name, elementary_action_directory):
+        super(MotionPrimitiveNodeGroup, self).__init__(elementary_action_name, elementary_action_directory)
         self.nodes = dict()
-        self.elementary_action_directory = None
         self.has_transition_models = False
-        self.loaded_from_dict = False
+        self.loaded_from_dict = elementary_action_directory is None
 
     def set_meta_information(self, meta_information=None):
         super(MotionPrimitiveNodeGroup, self).set_meta_information(meta_information)
@@ -29,7 +27,7 @@ class MotionPrimitiveNodeGroup(ElementaryActionMetaInfo):
         print "start states", self.start_states
         if len(self.nodes) == 1:
             node_key = self.nodes.keys()[0]
-            self.nodes[node_key].type = NODE_TYPE_SINGLE
+            self.nodes[node_key].node_type = NODE_TYPE_SINGLE
         else:
             for k in self.start_states:
                 self.nodes[(self.elementary_action_name, k)].node_type = NODE_TYPE_START
