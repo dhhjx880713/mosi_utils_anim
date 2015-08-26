@@ -82,7 +82,7 @@ class ClusterTreeNode(object):
                 best_value = cluster_value
         return best_index, best_value
 
-    def find_best_cluster_canditates(self, obj, data, n_candidates):
+    def find_best_cluster_candidates(self, obj, data, n_candidates):
         """Return the clusters with the least cost based on 
         an evaluation using an objective
         function.
@@ -155,3 +155,17 @@ class ClusterTreeNode(object):
                 for c in node.clusters:
                     stack.append(c)
         return node_desc_dict
+
+    def get_number_of_leafs(self):
+        if self.leaf:
+            print "reached leaf at depth", self.depth, "with", len(self.indices), "points"
+            return 1
+        else:
+            n_leafs = 0
+            if self.indices is not None:
+                print self.depth, len(self.indices)
+            for c in self.clusters:
+                n_leafs += c.get_number_of_leafs()
+            return n_leafs
+
+
