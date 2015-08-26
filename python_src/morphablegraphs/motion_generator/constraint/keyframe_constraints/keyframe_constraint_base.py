@@ -1,25 +1,11 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Jul 31 17:36:36 2015
-
-@author: erhe01
-"""
+__author__ = 'herrmann'
 
 
-class KeyframeConstraintBase(object):
+from ..spatial_constraint_base import SpatialConstraintBase
+
+
+class KeyframeConstraintBase(SpatialConstraintBase):
 
     def __init__(self, constraint_desc, precision, weight_factor=1.0):
+        super(KeyframeConstraintBase, self).__init__(precision, weight_factor)
         self.semantic_annotation = constraint_desc["semanticAnnotation"]
-        self.precision = precision
-        self.weight_factor = weight_factor
-
-    def evaluate_motion_sample(self, aligned_quat_frames):
-        pass
-
-    def evaluate_motion_sample_with_precision(self, aligned_quat_frames):
-        error = self.evaluate_motion_sample(aligned_quat_frames)
-        if error < self.precision:
-            success = True
-        else:
-            success = False
-        return error, success
