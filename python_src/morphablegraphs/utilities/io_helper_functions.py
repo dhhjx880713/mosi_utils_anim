@@ -270,7 +270,6 @@ def load_collision_free_constraints(json_file):
     for action in json_data['modification']:
         collision_free_constraints[action["elementaryActionIndex"]] = {}
         for path in action["trajectories"]:
-            collision_free_constraints[action["elementaryActionIndex"]]['jointName'] = path['jointName']
             spline = gen_spline_from_control_points(path['controlPoints'])
-            collision_free_constraints[action["elementaryActionIndex"]]['spline'] = spline
+            collision_free_constraints[action["elementaryActionIndex"]][path['jointName']] = spline
     return collision_free_constraints
