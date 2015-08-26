@@ -98,9 +98,10 @@ class ElementaryActionConstraintsBuilder(object):
         action_constraints.root_trajectory = self._extract_trajectory_from_constraint_list(constraint_list, root_joint_name)
         action_constraints.trajectory_constraints = []
         for joint_name in self.motion_primitive_graph.skeleton.node_name_map.keys():
-            trajectory_constraint = self._extract_trajectory_from_constraint_list(constraint_list, joint_name)
-            if trajectory_constraint is not None:
-                action_constraints.trajectory_constraints.append(trajectory_constraint)
+            if joint_name != root_joint_name:
+                trajectory_constraint = self._extract_trajectory_from_constraint_list(constraint_list, joint_name)
+                if trajectory_constraint is not None:
+                    action_constraints.trajectory_constraints.append(trajectory_constraint)
 
     def _extract_trajectory_from_constraint_list(self, input_constraint_list, joint_name):
         """ Extract the trajectory information from the constraints and constructs
@@ -114,7 +115,7 @@ class ElementaryActionConstraintsBuilder(object):
         """
         trajectory_constraint_desc = self._extract_trajectory_constraint_desc(input_constraint_list, joint_name)
         if trajectory_constraint_desc is not None:
-            return self._create_trajectory_from_constraint(joint_name, trajectory_constraint_desc)
+            return self._create_trajectory_from_constraint_desc(joint_name, trajectory_constraint_desc)
         else:
             return None
 
@@ -127,7 +128,7 @@ class ElementaryActionConstraintsBuilder(object):
                     return c["trajectoryConstraints"]
         return None
 
-    def _create_trajectory_from_constraint(self, joint_name, trajectory_constraint_desc,scale_factor=1.0):
+    def _create_trajectory_from_constraint_desc(self, joint_name, trajectory_constraint_desc,scale_factor=1.0):
         """ Create a spline based on a trajectory constraint. 
             Components containing None are set to 0, but marked as ignored in the unconstrained_indices list.
             Note all elements in constraints_list must have the same dimensions constrained and unconstrained.
@@ -154,7 +155,7 @@ class ElementaryActionConstraintsBuilder(object):
             if v is None:
                 unconstrained_indices.append(idx)
             idx += 1            
-        unconstrained_indices = self._transform_unconstrained_indices_from_cad_to_opengl_cs(unconstrained_indices)
+        unconstrained_indices = self._transform_unconstrained_indices_from_cad_to_opengl_cs(unconstrained_indices).tolist()
         control_points = []
     
         for c in trajectory_constraint_desc:
