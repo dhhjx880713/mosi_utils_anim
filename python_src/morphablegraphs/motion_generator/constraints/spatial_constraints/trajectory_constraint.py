@@ -15,8 +15,9 @@ class TrajectoryConstraint(ParameterizedSpline, SpatialConstraintBase):
         self.joint_name = joint_name
         self.skeleton = skeleton
         self.min_arc_length = min_arc_length
-        self.arc_length = 0  # will store the full arc length after evaluation
+        self.arc_length = 0.0  # will store the full arc length after evaluation
         self.unconstrained_indices = unconstrained_indices
+
 
     def evaluate_motion_sample(self, aligned_quat_frames):
         """  Calculate sum of distances between discrete frames and samples with corresponding arc length from the trajectory
@@ -35,5 +36,6 @@ class TrajectoryConstraint(ParameterizedSpline, SpatialConstraintBase):
             target[self.unconstrained_indices] = 0
             joint_position[self.unconstrained_indices] = 0
             error += np.linalg.norm(joint_position-target)
+
         return error
 

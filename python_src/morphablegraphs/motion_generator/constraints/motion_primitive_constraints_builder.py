@@ -78,7 +78,10 @@ class MotionPrimitiveConstraintsBuilder(object):
     def _set_trajectory_constraints(self, mp_constraints):
         for trajectory_constraint in self.action_constraints.trajectory_constraints:
             # set the previous arc length as new min arc length
-            trajectory_constraint.min_arc_length = trajectory_constraint.arc_length
+            if self.status["prev_frames"] is not None:
+                point = get_cartesian_coordinates_from_quaternion(trajectory_constraint.skeleton, trajectory_constraint.joint_name, self.status["prev_frames"][-1])
+                closest_point = trajectory_constraint.find_closest_point(point, min_arc_length=trajectory_constraint.min_arc_length)
+                trajectory_constraint.min_arc_length = trajectory_constraint.get_absolute_arc_length_of_point(closest_point)
             mp_constraints.constraints.append(trajectory_constraint)
         return
 
@@ -156,8 +159,8 @@ class MotionPrimitiveConstraintsBuilder(object):
         #find closest point in the range of the last_arc_length and max_arc_length
         closest_point, distance = self.action_constraints.root_trajectory.find_closest_point(last_pos, min_arc_length=last_arc_length, max_arc_length=max_arc_length)
         if closest_point is None:
-            parameters = {"last":last_arc_length,"max":max_arc_length,"full": self.action_constraints.root_trajectory.full_arc_length}
-            print "did not find closest point",closest_point,str(parameters)
+            parameters = {"last":last_arc_length,"max": max_arc_length, "full": self.action_constraints.root_trajectory.full_arc_length}
+            print "did not find closest point", closest_point, str(parameters)
             raise PathSearchError(parameters)
         # approximate arc length of the point closest to the current position
         start_arc_length, eval_point = self.action_constraints.root_trajectory.get_absolute_arc_length_of_point(closest_point, min_arc_length=last_arc_length)

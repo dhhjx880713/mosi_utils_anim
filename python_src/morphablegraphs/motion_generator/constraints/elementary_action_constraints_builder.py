@@ -155,11 +155,12 @@ class ElementaryActionConstraintsBuilder(object):
             if v is None:
                 unconstrained_indices.append(idx)
             idx += 1            
-        unconstrained_indices = self._transform_unconstrained_indices_from_cad_to_opengl_cs(unconstrained_indices).tolist()
+        unconstrained_indices = self._transform_unconstrained_indices_from_cad_to_opengl_cs(unconstrained_indices)
         control_points = []
     
         for c in trajectory_constraint_desc:
-            point = [ p*scale_factor if p is not None else 0 for p in c["position"] ]# else 0  where the array is None set it to 0
+            #where the c["position"] is None set it to 0
+            point = [p*scale_factor if p is not None else 0 for p in c["position"]]
             point = self._transform_point_from_cad_to_opengl_cs(point)
             control_points.append(point)
         precision = 1.0
@@ -192,9 +193,7 @@ class ElementaryActionConstraintsBuilder(object):
         if "orientation" in constraint.keys():
             orientation =constraint["orientation"]
         #check if last or fist frame from annotation
-    
         position = self._transform_point_from_cad_to_opengl_cs(position)
-     
         if time_information == "lastFrame":
             last_frame = True
         elif time_information == "firstFrame":
@@ -203,13 +202,11 @@ class ElementaryActionConstraintsBuilder(object):
             semanticAnnotation = constraint["semanticAnnotation"]
         else:
             semanticAnnotation = {}
-            
         semanticAnnotation["firstFrame"] = first_frame
         semanticAnnotation["lastFrame"] = last_frame
         constraint_desc = {"joint":joint_name,"position":position,"orientation":orientation,"semanticAnnotation": semanticAnnotation}
         return constraint_desc
-        
-        
+
     def _constraint_definition_has_label(self, constraint_definition, label):
         """ Checks if the label is in the semantic annotation dict of a constraint
         """
@@ -220,7 +217,7 @@ class ElementaryActionConstraintsBuilder(object):
             if label in annotation.keys():
                 return True
         return False
-            
+
     def _extract_keyframe_constraints_for_label(self, input_constraint_list, label):
         """ Returns the constraints associated with the given label. Ordered 
             based on joint names.
@@ -241,7 +238,7 @@ class ElementaryActionConstraintsBuilder(object):
                     if self._constraint_definition_has_label(constraint_definition,label):
                         key_constraints[joint_name].append(constraint_definition)
         return key_constraints
-                    
+
     def _extract_all_keyframe_constraints(self, constraint_list,node_group):
         """Orders the keyframe constraint for the labels found in the metainformation of
            the elementary actions based on labels as keys
@@ -258,9 +255,6 @@ class ElementaryActionConstraintsBuilder(object):
             keyframe_constraints[label] = self._extract_keyframe_constraints_for_label(constraint_list,label)
             #key_frame_constraints = extract_keyframe_constraints(constraints,annotion)
         return keyframe_constraints
-    
-    
-
 
     def _reorder_keyframe_constraints_for_motion_primitves(self, node_group, keyframe_constraints):
          """ Order constraints extracted by _extract_all_keyframe_constraints for each state
@@ -280,7 +274,6 @@ class ElementaryActionConstraintsBuilder(object):
                     constraint_desc = self._extract_keyframe_constraint(joint_name,c,time_information)
                     constraints[state].append(constraint_desc)
          return constraints
-         
 
     def _transform_point_from_cad_to_opengl_cs(self, point):
         """ Transforms a 3d point represented as a list from a left handed cad to a
@@ -289,8 +282,7 @@ class ElementaryActionConstraintsBuilder(object):
     
         transform_matrix = np.array([[1, 0, 0], [0, 0, 1], [0, -1, 0]])
         return np.dot(transform_matrix, point).tolist()
-    
-    
+
     def _transform_unconstrained_indices_from_cad_to_opengl_cs(self, indices):
         """ Transforms a list indicating unconstrained dimensions from cad to opengl
             coordinate system.
