@@ -14,7 +14,8 @@ class ElementaryActionConstraints(object):
         self.prev_action_name = ""
         self.keyframe_annotations = None
         self.start_pose = None
-        self.trajectory = None
+        self.trajectory_constraints = None
+        self.root_trajectory = None
         self.unconstrained_indices = None
         self.keyframe_constraints = None
         self.precision = {"pos": 1.0, "rot": 1.0, "smooth": 1.0}
@@ -33,12 +34,12 @@ class ElementaryActionConstraints(object):
         -------
         True if yes and False if not
         """
-        distance_to_end = np.linalg.norm(self.trajectory.get_last_control_point() - prev_frames[-1][:3])
+        distance_to_end = np.linalg.norm(self.root_trajectory.get_last_control_point() - prev_frames[-1][:3])
     #    print "current distance to end: " + str(distance_to_end)
     #    print "travelled arc length is: " + str(travelled_arc_length)
     #    print "full arc length is; " + str(trajectory.full_arc_length)
     #    raw_input("go on...")
     
         continue_with_the_loop = distance_to_end > arc_length_offset/2 and \
-                                 travelled_arc_length < self.trajectory.full_arc_length - arc_length_offset
+                                 travelled_arc_length < self.root_trajectory.full_arc_length - arc_length_offset
         return not continue_with_the_loop

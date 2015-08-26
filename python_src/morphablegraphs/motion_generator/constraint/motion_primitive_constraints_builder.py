@@ -61,7 +61,7 @@ class MotionPrimitiveConstraintsBuilder(object):
         mp_constraints.skeleton = self.action_constraints.get_skeleton()
         mp_constraints.precision = self.action_constraints.precision
         mp_constraints.verbose = self.algorithm_config["verbose"]
-        if self.action_constraints.trajectory is not None:
+        if self.action_constraints.root_trajectory is not None:
             self._set_trajectory_constraints(mp_constraints)
             self._set_pose_constraint(mp_constraints)
         if len(self.action_constraints.keyframe_constraints.keys()) > 0:
@@ -89,7 +89,7 @@ class MotionPrimitiveConstraintsBuilder(object):
         if not self.status["is_last_step"]:
             mp_constraints.goal_arc_length = self._make_guess_for_goal_arc_length()
         else:
-            mp_constraints.goal_arc_length = self.action_constraints.trajectory.full_arc_length
+            mp_constraints.goal_arc_length = self.action_constraints.root_trajectory.full_arc_length
         mp_constraints.step_goal, orientation, dir_vector = self._get_point_and_orientation_from_arc_length(mp_constraints.goal_arc_length)
 
         mp_constraints.print_status()
@@ -147,26 +147,26 @@ class MotionPrimitiveConstraintsBuilder(object):
                       * self.trajectory_following_settings["heuristic_step_length_factor"]
         max_arc_length = last_arc_length + 4.0 * step_length
         #find closest point in the range of the last_arc_length and max_arc_length
-        closest_point,  = self.action_constraints.trajectory.find_closest_point(last_pos, min_arc_length=last_arc_length, max_arc_length=max_arc_length)
+        closest_point, distance = self.action_constraints.root_trajectory.find_closest_point(last_pos, min_arc_length=last_arc_length, max_arc_length=max_arc_length)
         if closest_point is None:
-            parameters = {"last":last_arc_length,"max":max_arc_length,"full": self.action_constraints.trajectory.full_arc_length}
+            parameters = {"last":last_arc_length,"max":max_arc_length,"full": self.action_constraints.root_trajectory.full_arc_length}
             print "did not find closest point",closest_point,str(parameters)
             raise PathSearchError(parameters)
         # approximate arc length of the point closest to the current position
-        start_arc_length, eval_point = self.action_constraints.trajectory.get_absolute_arc_length_of_point(closest_point, min_arc_length=last_arc_length)
+        start_arc_length, eval_point = self.action_constraints.root_trajectory.get_absolute_arc_length_of_point(closest_point, min_arc_length=last_arc_length)
         #update arc length based on the step length of the next motion primitive
         print start_arc_length + step_length, self.motion_primitive_graph.nodes[node_key].average_step_length
         if start_arc_length == -1:
-            return self.action_constraints.trajectory.full_arc_length
+            return self.action_constraints.root_trajectory.full_arc_length
         else:
             return start_arc_length + step_length# max(step_length-distance,0)
 
     def _get_point_and_orientation_from_arc_length(self, arc_length):
         """ Returns a point, an orientation and a direction vector on the trajectory
         """
-        point = self.action_constraints.trajectory.query_point_by_absolute_arc_length(arc_length).tolist()
+        point = self.action_constraints.root_trajectory.query_point_by_absolute_arc_length(arc_length).tolist()
         reference_vector = np.array([0, 1])# in z direction
-        start, dir_vector, angle = self.action_constraints.trajectory.get_angle_at_arc_length_2d(arc_length, reference_vector)
+        start, dir_vector, angle = self.action_constraints.root_trajectory.get_angle_at_arc_length_2d(arc_length, reference_vector)
         orientation = [None, angle, None]
         for i in self.action_constraints.unconstrained_indices:
             point[i] = None
