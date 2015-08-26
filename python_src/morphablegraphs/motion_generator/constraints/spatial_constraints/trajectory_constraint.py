@@ -15,7 +15,7 @@ class TrajectoryConstraint(ParameterizedSpline, SpatialConstraintBase):
         self.joint_name = joint_name
         self.skeleton = skeleton
         self.min_arc_length = min_arc_length
-        self.arc_length = 0
+        self.arc_length = 0  # will store the full arc length after evaluation
         self.unconstrained_indices = unconstrained_indices
 
     def evaluate_motion_sample(self, aligned_quat_frames):

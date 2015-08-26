@@ -80,20 +80,27 @@ class ElementaryActionConstraintsBuilder(object):
                 action_constraints.prev_action_name = self.elementary_action_list[self.current_action_index-1]["action"]
             action_constraints.keyframe_annotations = self.keyframe_annotations[self.current_action_index]
             action_constraints.start_pose = self.start_pose
-            self._add_keyframe_constraints_from_constraint_list(action_constraints)
-            self._add_trajectory_constraints_from_constraint_list(action_constraints)
+            self._add_keyframe_constraints_from_constraint_list(action_constraints, self.elementary_action_list[self.current_action_index]["constraints"])
+            self._add_trajectory_constraints_from_constraint_list(action_constraints, self.elementary_action_list[self.current_action_index]["constraints"])
             action_constraints._initialized = True
             return action_constraints
 
-    def _add_keyframe_constraints_from_constraint_list(self, action_constraints):
+    def _add_keyframe_constraints_from_constraint_list(self, action_constraints, constraint_list):
         node_group = self.motion_primitive_graph.node_groups[action_constraints.action_name]
-        keyframe_constraints = self._extract_all_keyframe_constraints(self.elementary_action_list[self.current_action_index]["constraints"], node_group)
+        keyframe_constraints = self._extract_all_keyframe_constraints(constraint_list, node_group)
         action_constraints.keyframe_constraints = self._reorder_keyframe_constraints_for_motion_primitves(node_group, keyframe_constraints)
 
-    def _add_trajectory_constraints_from_constraint_list(self, action_constraints):
-        root_joint_name = self.motion_primitive_graph.skeleton.root# currently only trajectories on the Hips joint are supported
-        action_constraints.root_trajectory = self._extract_trajectory_from_constraint_list(self.elementary_action_list[self.current_action_index]["constraints"], root_joint_name)
+    def _add_trajectory_constraints_from_constraint_list(self, action_constraints, constraint_list):
+        """ Note: only trajectories on the Hips joint are supported for path following with direction constraints
+           the other trajectories are only used  for calculating the euclidean distance
+        """
+        root_joint_name = self.motion_primitive_graph.skeleton.root
+        action_constraints.root_trajectory = self._extract_trajectory_from_constraint_list(constraint_list, root_joint_name)
         action_constraints.trajectory_constraints = []
+        for joint_name in self.motion_primitive_graph.skeleton.node_name_map.keys():
+            trajectory_constraint = self._extract_trajectory_from_constraint_list(constraint_list, joint_name)
+            if trajectory_constraint is not None:
+                action_constraints.trajectory_constraints.append(trajectory_constraint)
 
     def _extract_trajectory_from_constraint_list(self, input_constraint_list, joint_name):
         """ Extract the trajectory information from the constraints and constructs

@@ -61,7 +61,7 @@ class MotionPrimitiveConstraintsBuilder(object):
         mp_constraints.precision = self.action_constraints.precision
         mp_constraints.verbose = self.algorithm_config["verbose"]
         if self.action_constraints.root_trajectory is not None:
-            self._set_trajectory_constraints(mp_constraints)
+            self._set_path_following_constraints(mp_constraints)
             self._set_pose_constraint(mp_constraints)
         if len(self.action_constraints.keyframe_constraints.keys()) > 0:
             self._set_keyframe_constraints(mp_constraints)
@@ -69,10 +69,18 @@ class MotionPrimitiveConstraintsBuilder(object):
             # if not already done for the trajectory following
             if self.status["is_last_step"] and not mp_constraints.pose_constraint_set:
                 self._set_pose_constraint(mp_constraints)
+        self._set_trajectory_constraints(mp_constraints)
 
         mp_constraints.use_optimization = len(self.action_constraints.keyframe_constraints.keys()) > 0\
                                             or self.status["is_last_step"]
         return mp_constraints
+
+    def _set_trajectory_constraints(self, mp_constraints):
+        for trajectory_constraint in self.action_constraints.trajectory_constraints:
+            # set the previous arc length as new min arc length
+            trajectory_constraint.min_arc_length = trajectory_constraint.arc_length
+            mp_constraints.constraints.append(trajectory_constraint)
+        return
 
     def _set_pose_constraint(self, mp_constraints):
        if mp_constraints.settings["transition_pose_constraint_factor"] > 0.0 and self.status["prev_frames"] is not None:
@@ -81,7 +89,7 @@ class MotionPrimitiveConstraintsBuilder(object):
             mp_constraints.constraints.append(pose_constraint)
             mp_constraints.pose_constraint_set = True
 
-    def _set_trajectory_constraints(self, mp_constraints):
+    def _set_path_following_constraints(self, mp_constraints):
         print "search for new goal"
         # if it is the last step we need to reach the point exactly otherwise
         # make a guess for a reachable point on the path that we have not visited yet
