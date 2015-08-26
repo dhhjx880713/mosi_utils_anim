@@ -51,7 +51,7 @@ class MotionPrimitiveConstraintsBuilder(object):
 
     def build(self):
         mp_constraints = MotionPrimitiveConstraints()
-        mp_constraints.motion_primitive_name =  self.status["motion_primitive_name"]
+        mp_constraints.motion_primitive_name = self.status["motion_primitive_name"]
         mp_constraints.settings = self.trajectory_following_settings
         mp_constraints.constraints = []
         mp_constraints.goal_arc_length = 0
@@ -80,8 +80,9 @@ class MotionPrimitiveConstraintsBuilder(object):
             # set the previous arc length as new min arc length
             if self.status["prev_frames"] is not None:
                 point = get_cartesian_coordinates_from_quaternion(trajectory_constraint.skeleton, trajectory_constraint.joint_name, self.status["prev_frames"][-1])
-                closest_point = trajectory_constraint.find_closest_point(point, min_arc_length=trajectory_constraint.min_arc_length)
-                trajectory_constraint.min_arc_length = trajectory_constraint.get_absolute_arc_length_of_point(closest_point)
+                closest_point, distance = trajectory_constraint.find_closest_point(point, min_arc_length=trajectory_constraint.min_arc_length)
+                print "find closest point", closest_point
+                trajectory_constraint.min_arc_length = trajectory_constraint.get_absolute_arc_length_of_point(closest_point)[0]
             mp_constraints.constraints.append(trajectory_constraint)
         return
 
@@ -163,7 +164,7 @@ class MotionPrimitiveConstraintsBuilder(object):
             print "did not find closest point", closest_point, str(parameters)
             raise PathSearchError(parameters)
         # approximate arc length of the point closest to the current position
-        start_arc_length, eval_point = self.action_constraints.root_trajectory.get_absolute_arc_length_of_point(closest_point, min_arc_length=last_arc_length)
+        start_arc_length, eval_point = self.action_constraints.root_trajectory.get_absolute_arc_length_of_point(closest_point)
         #update arc length based on the step length of the next motion primitive
         print start_arc_length + step_length, self.motion_primitive_graph.nodes[node_key].average_step_length
         if start_arc_length == -1:

@@ -128,7 +128,7 @@ class ElementaryActionConstraintsBuilder(object):
                     return c["trajectoryConstraints"]
         return None
 
-    def _create_trajectory_from_constraint_desc(self, joint_name, trajectory_constraint_desc,scale_factor=1.0):
+    def _create_trajectory_from_constraint_desc(self, joint_name, trajectory_constraint_desc, scale_factor=1.0):
         """ Create a spline based on a trajectory constraint. 
             Components containing None are set to 0, but marked as ignored in the unconstrained_indices list.
             Note all elements in constraints_list must have the same dimensions constrained and unconstrained.
@@ -147,7 +147,7 @@ class ElementaryActionConstraintsBuilder(object):
         * unconstrained_indices : list
         \t List of indices of unconstrained dimensions
         """
-        assert len(trajectory_constraint_desc)>0  and "position" in trajectory_constraint_desc[0].keys()
+        assert len(trajectory_constraint_desc) > 0 and "position" in trajectory_constraint_desc[0].keys()
         #extract unconstrained dimensions
         unconstrained_indices = []
         idx = 0
@@ -183,7 +183,6 @@ class ElementaryActionConstraintsBuilder(object):
          *constraint_desc : dict
           Contains the keys joint, position, orientation, semanticAnnotation
         """
-       
         position = [None, None, None]       
         orientation = [None, None, None]
         first_frame = None
@@ -210,7 +209,6 @@ class ElementaryActionConstraintsBuilder(object):
     def _constraint_definition_has_label(self, constraint_definition, label):
         """ Checks if the label is in the semantic annotation dict of a constraint
         """
-        #print "check######",constraint_definition
         if "semanticAnnotation" in constraint_definition.keys():
             annotation = constraint_definition["semanticAnnotation"]
             #print "semantic Annotation",annotation
@@ -226,20 +224,18 @@ class ElementaryActionConstraintsBuilder(object):
         * key_constraints : dict of lists
         \t contains the list of the constrained joints
         """
-        key_constraints= {}
-        for c in input_constraint_list:
-            joint_name = c["joint"]
-            #print "read constraint"
-            #print c
-            if "keyframeConstraints" in c.keys():# there are keyframe constraints
+        key_constraints = {}
+        for constraint in input_constraint_list:
+            joint_name = constraint["joint"]
+            if "keyframeConstraints" in constraint.keys():
                 key_constraints[joint_name] = []
-                for constraint_definition in c["keyframeConstraints"]:
-                    print "read constraint",constraint_definition, joint_name
-                    if self._constraint_definition_has_label(constraint_definition,label):
+                for constraint_definition in constraint["keyframeConstraints"]:
+                    print "read constraint", constraint_definition, joint_name
+                    if self._constraint_definition_has_label(constraint_definition, label):
                         key_constraints[joint_name].append(constraint_definition)
         return key_constraints
 
-    def _extract_all_keyframe_constraints(self, constraint_list,node_group):
+    def _extract_all_keyframe_constraints(self, constraint_list, node_group):
         """Orders the keyframe constraint for the labels found in the metainformation of
            the elementary actions based on labels as keys
         Returns
@@ -252,7 +248,7 @@ class ElementaryActionConstraintsBuilder(object):
         annotations = node_group.annotation_map.keys()#["start_contact",]
         for label in annotations:
     #        print "extract constraints for annotation",label
-            keyframe_constraints[label] = self._extract_keyframe_constraints_for_label(constraint_list,label)
+            keyframe_constraints[label] = self._extract_keyframe_constraints_for_label(constraint_list, label)
             #key_frame_constraints = extract_keyframe_constraints(constraints,annotion)
         return keyframe_constraints
 
@@ -268,10 +264,10 @@ class ElementaryActionConstraintsBuilder(object):
             # iterate over joints constrained at that keyframe
             for joint_name in keyframe_constraints[label].keys():
                 # iterate over constraints for that joint
-                for c in keyframe_constraints[label][joint_name]:
+                for keyframe_constraint in keyframe_constraints[label][joint_name]:
                     # create constraint definition usable by the algorithm
                     # and add it to the list of constraints for that state
-                    constraint_desc = self._extract_keyframe_constraint(joint_name,c,time_information)
+                    constraint_desc = self._extract_keyframe_constraint(joint_name, keyframe_constraint, time_information)
                     constraints[state].append(constraint_desc)
          return constraints
 
@@ -279,7 +275,6 @@ class ElementaryActionConstraintsBuilder(object):
         """ Transforms a 3d point represented as a list from a left handed cad to a
             right handed opengl coordinate system
         """
-    
         transform_matrix = np.array([[1, 0, 0], [0, 0, 1], [0, -1, 0]])
         return np.dot(transform_matrix, point).tolist()
 
