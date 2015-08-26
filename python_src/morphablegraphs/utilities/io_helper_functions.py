@@ -10,6 +10,8 @@ import os
 import glob
 import json
 import collections
+import math
+import numpy as np
 from datetime import datetime
 from ..animation_data.motion_editing import transform_euler_frames, \
     transform_quaternion_frames
@@ -245,7 +247,8 @@ def gen_spline_from_control_points(control_points):
     """
     tmp = []
     for point in control_points:
-        tmp.append(point['position'])
+        if not math.isnan(sum(np.asarray(point['position']))):
+             tmp.append(point['position'])
     dim = len(tmp[0])
 
     spline = ParameterizedSpline(tmp, dim)

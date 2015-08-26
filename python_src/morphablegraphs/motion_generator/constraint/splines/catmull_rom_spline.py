@@ -91,17 +91,10 @@ class CatmullRomSpline(object):
         arc_length = 0.0
         last_point = np.zeros((self.dimensions, 1))
         for accumulated_step in accumulated_steps:
-            point = self.query_point_by_parameter(accumulated_step)
+            point = np.asarray(self.query_point_by_parameter(accumulated_step))
             if point is not None:
-                delta = []
-                d = 0
-                while d < self.dimensions:
-                    sq_k = (point[d] - last_point[d])**2
-                    delta.append(sqrt(sq_k))
-                    d += 1
-                arc_length += np.sum(delta)
-                # arc_length +=
-                # np.linalg.norm(point-last_point)#(point-last_point).length()
+                delta = np.linalg.norm(point - last_point)
+                arc_length += delta
                 last_point = point
             else:
                 raise ValueError(
