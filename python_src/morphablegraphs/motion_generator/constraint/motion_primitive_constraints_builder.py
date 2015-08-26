@@ -168,7 +168,7 @@ class MotionPrimitiveConstraintsBuilder(object):
         reference_vector = np.array([0, 1])# in z direction
         start, dir_vector, angle = self.action_constraints.root_trajectory.get_angle_at_arc_length_2d(arc_length, reference_vector)
         orientation = [None, angle, None]
-        for i in self.action_constraints.unconstrained_indices:
+        for i in self.action_constraints.root_trajectory.unconstrained_indices:
             point[i] = None
             orientation[i] = None
         return point, orientation, dir_vector

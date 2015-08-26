@@ -6,10 +6,8 @@ Created on Mon Jul 27 12:00:15 2015
 """
 
 import numpy as np
-from splines.parameterized_spline import ParameterizedSpline
+from trajectory_constraint import TrajectoryConstraint
 from elementary_action_constraints import ElementaryActionConstraints
-TRAJECTORY_DIM = 3  # spline in cartesian space
-
 
 class ElementaryActionConstraintsBuilder(object):
     """Implements functions used for the processing of the constraints from the input file
@@ -93,8 +91,7 @@ class ElementaryActionConstraintsBuilder(object):
 
     def _add_trajectory_constraints_from_constraint_list(self, action_constraints):
         root_joint_name = self.motion_primitive_graph.skeleton.root# currently only trajectories on the Hips joint are supported
-        trajectory_desc = self._extract_trajectory_from_constraint_list(self.elementary_action_list[self.current_action_index]["constraints"], root_joint_name)
-        action_constraints.root_trajectory, action_constraints.unconstrained_indices = trajectory_desc
+        action_constraints.root_trajectory = self._extract_trajectory_from_constraint_list(self.elementary_action_list[self.current_action_index]["constraints"], root_joint_name)
         action_constraints.trajectory_constraints = []
 
     def _extract_trajectory_from_constraint_list(self, input_constraint_list, joint_name):
@@ -107,16 +104,13 @@ class ElementaryActionConstraintsBuilder(object):
         * unconstrained_indices: list of indices
             Lists of indices of degrees of freedom to ignore in the constraint evaluation.
         """
-        trajectory_constraint = self._extract_trajectory_constraint(input_constraint_list, joint_name)
-        if  trajectory_constraint is not None:
-            #print "found trajectory constraint"
-            return self._create_trajectory_from_constraint(trajectory_constraint)
+        trajectory_constraint_desc = self._extract_trajectory_constraint_desc(input_constraint_list, joint_name)
+        if trajectory_constraint_desc is not None:
+            return self._create_trajectory_from_constraint(joint_name, trajectory_constraint_desc)
         else:
-            return None, None
+            return None
 
-
-
-    def _extract_trajectory_constraint(self, input_constraint_list, joint_name="Hips"):
+    def _extract_trajectory_constraint_desc(self, input_constraint_list, joint_name):
         """Returns a single trajectory constraint definition for joint joint out of a elementary action constraint list
         """
         for c in input_constraint_list:
@@ -124,9 +118,8 @@ class ElementaryActionConstraintsBuilder(object):
                 if "trajectoryConstraints" in c.keys():
                     return c["trajectoryConstraints"]
         return None
-    
-    
-    def _create_trajectory_from_constraint(self, trajectory_constraint,scale_factor=1.0):
+
+    def _create_trajectory_from_constraint(self, joint_name, trajectory_constraint_desc,scale_factor=1.0):
         """ Create a spline based on a trajectory constraint. 
             Components containing None are set to 0, but marked as ignored in the unconstrained_indices list.
             Note all elements in constraints_list must have the same dimensions constrained and unconstrained.
@@ -145,34 +138,25 @@ class ElementaryActionConstraintsBuilder(object):
         * unconstrained_indices : list
         \t List of indices of unconstrained dimensions
         """
-       
-        
-        assert len(trajectory_constraint)>0  and "position" in trajectory_constraint[0].keys()
-               
+        assert len(trajectory_constraint_desc)>0  and "position" in trajectory_constraint_desc[0].keys()
         #extract unconstrained dimensions
         unconstrained_indices = []
         idx = 0
-        for v in trajectory_constraint[0]["position"]:
-            if v == None:
+        for v in trajectory_constraint_desc[0]["position"]:
+            if v is None:
                 unconstrained_indices.append(idx)
             idx += 1            
         unconstrained_indices = self._transform_unconstrained_indices_from_cad_to_opengl_cs(unconstrained_indices)
-        #create control points by setting constrained dimensions to 0
         control_points = []
     
-        for c in trajectory_constraint:
+        for c in trajectory_constraint_desc:
             point = [ p*scale_factor if p is not None else 0 for p in c["position"] ]# else 0  where the array is None set it to 0
             point = self._transform_point_from_cad_to_opengl_cs(point)
             control_points.append(point)
-        #print "####################################################"
-        #print "control points are: "
-        #print control_points
-        trajectory =  ParameterizedSpline(control_points, TRAJECTORY_DIM)
-        
-        return trajectory, unconstrained_indices
-    
-    
-        
+        precision = 1.0
+        trajectory_constraint = TrajectoryConstraint(joint_name, control_points, 0, unconstrained_indices, self.motion_primitive_graph.skeleton, precision)
+        return trajectory_constraint
+
     def _extract_keyframe_constraint(self, joint_name, constraint, time_information):
         """ Creates a dict containing all properties stated explicitly or implicitly in the input constraint
         Parameters
