@@ -9,6 +9,7 @@ import numpy as np
 import uuid
 from . import KDTREE_WRAPPER_NODE
 
+
 class ClusterTreeNode(object):
     """ Node for the ClusterTree class that subdivides a list samples into clusters 
     by containing a child node for each cluster.
@@ -75,7 +76,7 @@ class ClusterTreeNode(object):
         best_index = 0
         for cluster_index in xrange(len(self.clusters)):
             sample = self.clusters[cluster_index].mean
-            cluster_value = obj(sample,data)
+            cluster_value = obj(sample, data)
             
             if cluster_value < best_value:
                 best_index = cluster_index
@@ -104,8 +105,8 @@ class ClusterTreeNode(object):
         result_queue = []
         for cluster_index in xrange(len(self.clusters)):
             sample = self.clusters[cluster_index].mean
-            cluster_value = obj(sample,data)
-            heapq.heappush(result_queue,(cluster_value,self.clusters[cluster_index] ) )
+            cluster_value = obj(sample, data)
+            heapq.heappush(result_queue, (cluster_value, self.clusters[cluster_index]))
       
         return result_queue[:n_candidates]
 
@@ -116,7 +117,7 @@ class ClusterTreeNode(object):
         * node_desc: dict
             Dictionary containing the properties of the node.
         """
-        node_desc = {}
+        node_desc = dict()
         node_desc["id"] = str(self.id)
         node_desc["depth"] = self.depth
         node_desc["type"] = self.type
@@ -158,12 +159,9 @@ class ClusterTreeNode(object):
 
     def get_number_of_leafs(self):
         if self.leaf:
-            print "reached leaf at depth", self.depth, "with", len(self.indices), "points"
             return 1
         else:
             n_leafs = 0
-            if self.indices is not None:
-                print self.depth, len(self.indices)
             for c in self.clusters:
                 n_leafs += c.get_number_of_leafs()
             return n_leafs
