@@ -12,9 +12,9 @@ based on previous steps.
 
 import time
 import numpy as np
-from morphablegraphs.utilities.io_helper_functions import load_json_file
-from morphablegraphs.motion_model.motion_primitive_graph_builder import MotionPrimitiveGraphBuilder
-from constraint.elementary_action_constraints_builder import ElementaryActionConstraintsBuilder
+from ..utilities.io_helper_functions import load_json_file
+from ..motion_model.motion_primitive_graph_builder import MotionPrimitiveGraphBuilder
+from constraints.elementary_action_constraints_builder import ElementaryActionConstraintsBuilder
 from elementary_action_sample_generator import ElementaryActionSampleGenerator
 from . import global_counter_dict
 from algorithm_configuration import AlgorithmConfigurationBuilder

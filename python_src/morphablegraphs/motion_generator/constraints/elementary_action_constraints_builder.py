@@ -6,8 +6,9 @@ Created on Mon Jul 27 12:00:15 2015
 """
 
 import numpy as np
-from trajectory_constraint import TrajectoryConstraint
 from elementary_action_constraints import ElementaryActionConstraints
+from spatial_constraints.trajectory_constraint import TrajectoryConstraint
+
 
 class ElementaryActionConstraintsBuilder(object):
     """Implements functions used for the processing of the constraints from the input file

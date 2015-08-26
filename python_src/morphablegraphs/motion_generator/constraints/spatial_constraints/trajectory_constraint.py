@@ -1,8 +1,10 @@
 __author__ = 'herrmann'
 import numpy as np
+
 from splines.parameterized_spline import ParameterizedSpline
 from spatial_constraint_base import SpatialConstraintBase
-from ...animation_data.motion_editing import get_cartesian_coordinates_from_quaternion
+from ....animation_data.motion_editing import get_cartesian_coordinates_from_quaternion
+
 TRAJECTORY_DIM = 3  # spline in cartesian space
 
 
@@ -17,7 +19,7 @@ class TrajectoryConstraint(ParameterizedSpline, SpatialConstraintBase):
         self.unconstrained_indices = unconstrained_indices
 
     def evaluate_motion_sample(self, aligned_quat_frames):
-        """  use min_arc_length as start and calculate distance of joint in discrete frames and sample with corresponding arc length from spline
+        """  Calculate sum of distances between discrete frames and samples with corresponding arc length from the trajectory
              unconstrained indices are ignored
         :param aligned_quat_frames:
         :return: error
@@ -33,6 +35,5 @@ class TrajectoryConstraint(ParameterizedSpline, SpatialConstraintBase):
             target[self.unconstrained_indices] = 0
             joint_position[self.unconstrained_indices] = 0
             error += np.linalg.norm(joint_position-target)
-
         return error
 

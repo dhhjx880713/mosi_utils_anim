@@ -8,12 +8,11 @@ Created on Mon Jul 27 18:38:15 2015
 from copy import copy
 import numpy as np
 from ...utilities.exceptions import PathSearchError
-from ...animation_data.motion_editing import convert_quaternion_to_euler, \
-                                get_cartesian_coordinates_from_quaternion
+from ...animation_data.motion_editing import get_cartesian_coordinates_from_quaternion
 from motion_primitive_constraints import MotionPrimitiveConstraints
-from keyframe_constraints.pose_constraint import PoseConstraint
-from keyframe_constraints.direction_constraint import DirectionConstraint
-from keyframe_constraints.pos_and_rot_constraint import PositionAndRotationConstraint
+from spatial_constraints.keyframe_constraints.pose_constraint import PoseConstraint
+from spatial_constraints.keyframe_constraints.direction_constraint import DirectionConstraint
+from spatial_constraints.keyframe_constraints.pos_and_rot_constraint import PositionAndRotationConstraint
 
 
 class MotionPrimitiveConstraintsBuilder(object):
