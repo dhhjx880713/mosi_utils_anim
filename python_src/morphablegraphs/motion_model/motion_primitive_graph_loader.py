@@ -10,15 +10,15 @@ from ..animation_data.bvh import BVHReader
 from ..animation_data.skeleton import Skeleton
 from ..utilities.io_helper_functions import load_json_file
 from gp_mixture import GPMixture
-from motion_primitive_node_group_builder import MotionPrimitiveNodeGroupBuilder
+from motion_primitive_node_group_loader import MotionPrimitiveNodeGroupLoader
 from ..utilities.zip_io import read_graph_data_from_zip
 from graph_edge import GraphEdge
 from motion_primitive_graph import MotionPrimitiveGraph
 from . import NODE_TYPE_START, NODE_TYPE_STANDARD, TRANSITION_DEFINITION_FILE_NAME, TRANSITION_MODEL_FILE_ENDING
 
         
-class MotionPrimitiveGraphBuilder(object):
-    """   Builds an MotionPrimitiveGraph
+class MotionPrimitiveGraphLoader(object):
+    """   Constructs a MotionPrimitiveGraph instance from a zip file or directory as data source
     """  
     def __init__(self):
         self.skeleton = None
@@ -27,7 +27,7 @@ class MotionPrimitiveGraphBuilder(object):
         self.motion_primitive_graph_path = None
         self.elementary_action_directory = None
         self.transition_model_directory = None
-        self.motion_primitive_node_group_builder = MotionPrimitiveNodeGroupBuilder()
+        self.motion_primitive_node_group_builder = MotionPrimitiveNodeGroupLoader()
 
     def set_data_source(self, skeleton_path, motion_primitive_graph_path, transition_model_directory, load_transition_models=False, update_stats=False):
         """ Set the source which is used to load the data structure into memory.
