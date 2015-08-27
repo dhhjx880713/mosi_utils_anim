@@ -245,9 +245,9 @@ class ElementaryActionConstraintsBuilder(object):
           access as keyframe_constraints["label"]["joint"][index]
         """
         keyframe_constraints = {}
-        annotations = node_group.annotation_map.keys()#["start_contact",]
+        annotations = node_group.annotation_map.keys()
         for label in annotations:
-    #        print "extract constraints for annotation",label
+            # print "extract constraints for annotation",label
             keyframe_constraints[label] = self._extract_keyframe_constraints_for_label(constraint_list, label)
             #key_frame_constraints = extract_keyframe_constraints(constraints,annotion)
         return keyframe_constraints

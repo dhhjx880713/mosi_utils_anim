@@ -79,10 +79,7 @@ class MotionPrimitiveConstraintsBuilder(object):
         for trajectory_constraint in self.action_constraints.trajectory_constraints:
             # set the previous arc length as new min arc length
             if self.status["prev_frames"] is not None:
-                point = get_cartesian_coordinates_from_quaternion(trajectory_constraint.skeleton, trajectory_constraint.joint_name, self.status["prev_frames"][-1])
-                closest_point, distance = trajectory_constraint.find_closest_point(point, min_arc_length=trajectory_constraint.min_arc_length)
-                print "find closest point", closest_point
-                trajectory_constraint.min_arc_length = trajectory_constraint.get_absolute_arc_length_of_point(closest_point)[0]
+                trajectory_constraint.set_min_arc_length_from_previous_frames(self.status["prev_frames"])
             mp_constraints.constraints.append(trajectory_constraint)
         return
 
@@ -125,7 +122,8 @@ class MotionPrimitiveConstraintsBuilder(object):
         if self.status["motion_primitive_name"] in self.action_constraints.keyframe_constraints.keys():
             keyframe_constraint_desc_list = self.action_constraints.keyframe_constraints[self.status["motion_primitive_name"]]
             for i in xrange(len(keyframe_constraint_desc_list)):
-                mp_constraints.constraints.append(PositionAndRotationConstraint(self.skeleton, keyframe_constraint_desc_list[i], self.precision["pos"], mp_constraints.settings["position_constraint_factor"]))
+                if "position" in keyframe_constraint_desc_list[i].keys() or "orientation" in keyframe_constraint_desc_list[i].keys():
+                    mp_constraints.constraints.append(PositionAndRotationConstraint(self.skeleton, keyframe_constraint_desc_list[i], self.precision["pos"], mp_constraints.settings["position_constraint_factor"]))
 
     def _create_frame_constraint_from_preceding_motion(self):
         """ Create frame a constraint from the preceding motion.

@@ -18,10 +18,19 @@ class TrajectoryConstraint(ParameterizedSpline, SpatialConstraintBase):
         self.arc_length = 0.0  # will store the full arc length after evaluation
         self.unconstrained_indices = unconstrained_indices
 
+    def set_min_arc_length_from_previous_frames(self, previous_frames):
+        """ Sets the minimum arc length of the constraint as the approximate arc length of the position of the joint
+            in the last frame of the previous frames.
+        :param previous_frames: list of quaternion frames.
+        """
+        point = get_cartesian_coordinates_from_quaternion(self.skeleton, self.joint_name, previous_frames[-1])
+        closest_point, distance = self.find_closest_point(point, min_arc_length=self.min_arc_length)
+        self.min_arc_length = self.get_absolute_arc_length_of_point(closest_point)[0]
+
     def evaluate_motion_sample(self, aligned_quat_frames):
         """  Calculate sum of distances between discrete frames and samples with corresponding arc length from the trajectory
              unconstrained indices are ignored
-        :param aligned_quat_frames:
+        :param aligned_quat_frames: list of quaternion frames.
         :return: error
         """
         error = 0
