@@ -168,11 +168,14 @@ class StatisticalModelTrainer(object):
         *filename: string
         \tGive the file name to json file
         '''
+        elementary_action_name = self._motion_primitive_name.split('_')[0]
         if save_path is None:
             filename = self._motion_primitive_name + '_quaternion_mm.json'
         else:
-            filename = save_path + os.sep + \
-                self._motion_primitive_name + '_quaternion_mm.json'
+            if not save_path.endswith(os.sep):
+                save_path += os.sep
+            filename = save_path + 'elementary_action_%s' % (elementary_action_name) + \
+                os.sep + self._motion_primitive_name + '_quaternion_mm.json'
         weights = self.gmm.weights_.tolist()
         means = self.gmm.means_.tolist()
         covars = self.gmm.covars_.tolist()
@@ -197,16 +200,10 @@ class StatisticalModelTrainer(object):
                 'mean_time_vector': self._mean_time_vector.tolist(),
                 'n_dim_spatial': self._n_dim_spatial,
                 'n_basis_time': n_basis_time,
-                'b_spline_knots_spatial': self.get_b_spline_knots(self._n_basis, self._n_frames),
-                'b_spline_knots_time': self.get_b_spline_knots(n_basis_time, self._n_frames)}
+                'b_spline_knots_spatial': self.get_b_spline_knots(self._n_basis, self._n_frames).tolist(),
+                'b_spline_knots_time': self.get_b_spline_knots(n_basis_time, self._n_frames).tolist()}
         with open(filename, 'wb') as outfile:
             json.dump(data, outfile)
         outfile.close()
 
 
-def main():
-    pass
-
-if __name__ == '__main__':
-    #    test_standPCA_on_quaternion_spatial()
-    main()

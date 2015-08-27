@@ -10,11 +10,13 @@ import os
 import glob
 import json
 import collections
+import math
+import numpy as np
 from datetime import datetime
 from ..animation_data.motion_editing import transform_euler_frames, \
     transform_quaternion_frames
 from ..animation_data.bvh import BVHWriter
-
+from ..motion_generator.constraint.splines.parameterized_spline import ParameterizedSpline
 
 def write_to_logfile(path, time_string, data):
     """ Appends json data to a text file.
@@ -235,3 +237,39 @@ def export_quat_frames_to_bvh_file(output_dir, skeleton, quat_frames, prefix="",
         filepath = output_dir + os.sep + "output" + ".bvh"
     print filepath
     bvh_writer.write(filepath)
+
+def gen_spline_from_control_points(control_points):
+    """
+
+    :param control_points: a list of dictionary,
+           each dictionary contains the position and orientation of one point
+    :return: Parameterized spline
+    """
+    tmp = []
+    for point in control_points:
+        if not math.isnan(sum(np.asarray(point['position']))):
+             tmp.append(point['position'])
+    dim = len(tmp[0])
+
+    spline = ParameterizedSpline(tmp, dim)
+    # print tmp
+    return  spline
+
+def load_collision_free_constraints(json_file):
+    """
+    load control points of collision free path for collided joints
+    :param json_file:
+    :return: a dictionary {'elementaryActionIndex': {'jointName': spline, ...}}
+    """
+    try:
+        with open(json_file, "rb") as infile:
+            json_data = json.load(infile)
+    except IOError:
+        print('cannot read data from ' + json_file)
+    collision_free_constraints = {}
+    for action in json_data['modification']:
+        collision_free_constraints[action["elementaryActionIndex"]] = {}
+        for path in action["trajectories"]:
+            spline = gen_spline_from_control_points(path['controlPoints'])
+            collision_free_constraints[action["elementaryActionIndex"]][path['jointName']] = spline
+    return collision_free_constraints
