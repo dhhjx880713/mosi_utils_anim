@@ -316,7 +316,7 @@ class BVHWriter(object):
                                         "Bip01_L_Toe0"]:
                                     # special fix for unused toe parameters
                                     euler_frame = np.concatenate((euler_frame,
-                                                                  ([90.0, -1.00000000713e-06, 75.0])),
+                                                                  ([0.0, -90.0, 0.0])),
                                                                  axis=0)
                                 else:
                                     euler_frame = np.concatenate((euler_frame,
