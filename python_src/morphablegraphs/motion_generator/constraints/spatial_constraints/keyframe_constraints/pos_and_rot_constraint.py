@@ -113,3 +113,6 @@ class PositionAndRotationConstraint(KeyframeConstraintBase):
                 (False, False): (1, -1)
             }
             self.start, self.stop = start_stop_dict[(self.constrain_first_frame, self.constrain_last_frame)]
+
+    def get_length_of_residual_vector(self):
+        return 1

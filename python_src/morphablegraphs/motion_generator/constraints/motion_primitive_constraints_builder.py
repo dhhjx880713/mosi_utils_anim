@@ -80,6 +80,8 @@ class MotionPrimitiveConstraintsBuilder(object):
             # set the previous arc length as new min arc length
             if self.status["prev_frames"] is not None:
                 trajectory_constraint.set_min_arc_length_from_previous_frames(self.status["prev_frames"])
+                n_canonical_frames = self.motion_primitive_graph.nodes[(self.action_constraints.action_name, self.status["motion_primitive_name"])].n_canonical_frames
+                trajectory_constraint.set_number_of_canonical_frames(n_canonical_frames)
             mp_constraints.constraints.append(trajectory_constraint)
         return
 

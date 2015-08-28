@@ -5,7 +5,7 @@ Created on Mon Aug 03 18:59:44 2015
 @author: erhe01
 """
 
-import numpy as np
+from math import sqrt
 from .....animation_data.motion_editing import convert_quaternion_frame_to_cartesian_frame,\
     align_point_clouds_2D,\
     transform_point_cloud,\
@@ -71,8 +71,14 @@ class PoseConstraint(KeyframeConstraintBase):
         theta, offset_x, offset_z = align_point_clouds_2D(constraint_point_cloud,
                                                           point_cloud,
                                                           self.skeleton.joint_weights)
-        t_point_cloud = transform_point_cloud(
-            point_cloud, theta, offset_x, offset_z)
-
-        residual_vector = np.abs(np.array(t_point_cloud) - np.array(constraint_point_cloud))
+        t_point_cloud = transform_point_cloud(point_cloud, theta, offset_x, offset_z)
+        residual_vector = []
+        for i in xrange(len(t_point_cloud)):
+            d = [constraint_point_cloud[i][0] - t_point_cloud[i][0],
+                 constraint_point_cloud[i][1] - t_point_cloud[i][1],
+                 constraint_point_cloud[i][2] - t_point_cloud[i][2]]
+            residual_vector.append(sqrt(d[0] ** 2 + d[1] ** 2 + d[2] ** 2))
         return residual_vector
+
+    def get_length_of_residual_vector(self):
+        return len(self.skeleton.node_name_map.keys())

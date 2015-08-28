@@ -85,4 +85,11 @@ class MotionPrimitiveConstraints(object):
         self.evaluations += 1
         return residual_vector
 
-
+    def get_length_of_residual_vector(self, graph_node):
+        """ If a trajectory is found it also counts each canonical frame of the graph node as individual constraint
+        :return:
+        """
+        n_constraints = 0
+        for constraint in self.constraints:
+            n_constraints += constraint.get_length_of_residual_vector(graph_node)
+        return n_constraints

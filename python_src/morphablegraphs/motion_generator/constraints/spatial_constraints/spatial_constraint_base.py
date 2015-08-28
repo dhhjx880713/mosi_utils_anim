@@ -25,3 +25,6 @@ class SpatialConstraintBase(object):
 
     def get_residual_vector(self, aligned_frames):
         pass
+
+    def get_length_of_residual_vector(self):
+        pass

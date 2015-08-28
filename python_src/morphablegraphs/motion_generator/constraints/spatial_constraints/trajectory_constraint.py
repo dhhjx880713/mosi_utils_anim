@@ -15,8 +15,12 @@ class TrajectoryConstraint(ParameterizedSpline, SpatialConstraintBase):
         self.joint_name = joint_name
         self.skeleton = skeleton
         self.min_arc_length = min_arc_length
+        self.n_canonical_frames = 0
         self.arc_length = 0.0  # will store the full arc length after evaluation
         self.unconstrained_indices = unconstrained_indices
+
+    def set_number_of_canonical_frames(self, n_canonical_frames):
+        self.n_canonical_frames = n_canonical_frames
 
     def set_min_arc_length_from_previous_frames(self, previous_frames):
         """ Sets the minimum arc length of the constraint as the approximate arc length of the position of the joint
@@ -53,4 +57,7 @@ class TrajectoryConstraint(ParameterizedSpline, SpatialConstraintBase):
             #target[self.unconstrained_indices] = 0
             joint_position[self.unconstrained_indices] = 0
             errors.append(np.linalg.norm(joint_position-target))
-        return np.array(errors)
+        return errors
+
+    def get_length_of_residual_vector(self):
+        return self.n_canonical_frames

@@ -32,3 +32,6 @@ class DirectionConstraint(KeyframeConstraintBase):
 
     def get_residual_vector(self, aligned_quat_frames):
         return [self.evaluate_motion_sample(aligned_quat_frames)]
+
+    def get_length_of_residual_vector(self):
+        return 1
