@@ -24,10 +24,6 @@ class NumericalMinimizerLeastSquares(NumericalMinimizerBase):
             if self.verbose:
                 start = time.clock()
                 print "Start optimization using", self.optimization_settings["method"]
-            print "constraints", len(self._error_func_params[1].constraints)
-            measurements = np.zeros((self._error_func_params[1].get_length_of_residual_vector())).tolist()
-            print len(measurements)
-            print len(self._error_func_params)
             try:
                 result = leastsq(self._objective_function,
                                  initial_guess,
