@@ -5,7 +5,7 @@ from ..motion_model import NODE_TYPE_END, NODE_TYPE_SINGLE
 from motion_primitive_sample_generator import MotionPrimitiveSampleGenerator
 from constraints.motion_primitive_constraints_builder import MotionPrimitiveConstraintsBuilder
 from constraints.time_constraints_builder import TimeConstraintsBuilder
-from minimizer.numerical_minimizer_scipy import NumericalMinimizerScipy
+from minimizer.numerical_minimizer_builder import NumericalMinimizerBuilder
 from motion_sample import GraphWalkEntry
 from objective_functions import obj_time_error_sum
 
@@ -56,8 +56,7 @@ class ElementaryActionSampleGenerator(object):
         self.motion_primitive_constraints_builder = MotionPrimitiveConstraintsBuilder()
         self.motion_primitive_constraints_builder.set_algorithm_config(
             self._algorithm_config)
-        self.numerical_minimizer = NumericalMinimizerScipy(self._algorithm_config)
-        self.numerical_minimizer.set_objective_function(obj_time_error_sum)
+        self.numerical_minimizer = NumericalMinimizerBuilder(self._algorithm_config).build_time_error_minimizer()
         self.state = ElementaryActionSampleGeneratorState(self._algorithm_config)
         return
 

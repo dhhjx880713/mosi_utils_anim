@@ -32,7 +32,6 @@ def obj_spatial_error_sum(s, data):
     error_sum = motion_primitive_constraints.evaluate(motion_primitive, s, prev_frames, use_time_parameters=False)
     global_counter_dict["evaluations"] += 1
     return error_sum
-    
 
 def obj_spatial_error_residual_vector(s, data):
     """ Calculates the error of a low dimensional motion vector s
@@ -51,9 +50,14 @@ def obj_spatial_error_residual_vector(s, data):
     * residual_vector: list
     """
     s = np.asarray(s)
-    motion_primitive, motion_primitive_constraints, prev_frames = data
+    motion_primitive, motion_primitive_constraints, prev_frames, error_scale_factor, quality_scale_factor = data
     residual_vector = motion_primitive_constraints.get_residual_vector(motion_primitive, s, prev_frames, use_time_parameters=False)
+    #print len(residual_vector), residual_vector
+    print "error", sum(residual_vector)
     global_counter_dict["evaluations"] += 1
+    n_variables = len(s)
+    while len(residual_vector) < n_variables:
+        residual_vector.append(0)
     return residual_vector
 
 
@@ -74,11 +78,11 @@ def obj_spatial_error_sum_and_naturalness(s, data):
 
     """
     
-    kinematic_error = obj_spatial_error_sum(s,data[:-2])# ignore the kinematic factor and quality factor
+    kinematic_error = obj_spatial_error_sum(s, data[:-2])# ignore the kinematic factor and quality factor
     #print "s-vector",optimize_theta
-    error_scale_factor = data[-1]
-    quality_scale_factor = data[-2]
-    n_log_likelihood = -data[0].gmm.score([s,])[0]
+    error_scale_factor = data[-2]
+    quality_scale_factor = data[-1]
+    n_log_likelihood = -data[0].gmm.score([s, ])[0]
     print "naturalness is: " + str(n_log_likelihood)
     error = error_scale_factor * kinematic_error + n_log_likelihood * quality_scale_factor
     print "error",error

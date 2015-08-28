@@ -56,8 +56,8 @@ class MotionPrimitiveConstraints(object):
         aligned_frames = align_quaternion_frames(quat_frames, prev_frames, self.start_pose)
         #evaluate constraints with the generated motion
         error_sum = 0
-        for c in self.constraints:
-            error_sum += c.weight_factor * c.evaluate_motion_sample(aligned_frames)
+        for constraint in self.constraints:
+            error_sum += constraint.weight_factor * constraint.evaluate_motion_sample(aligned_frames)
         if error_sum < self.least_error:
             self.least_error = error_sum
             self.best_parameters = parameters
@@ -80,16 +80,18 @@ class MotionPrimitiveConstraints(object):
 
         #evaluate constraints with the generated motion
         residual_vector = []
-        for c in self.constraints:
-            residual_vector += c.get_residual_vector(aligned_frames)
+        for constraint in self.constraints:
+            vector = constraint.get_residual_vector(aligned_frames)
+            for value in vector:
+                residual_vector.append(value*constraint.weight_factor)
         self.evaluations += 1
         return residual_vector
 
-    def get_length_of_residual_vector(self, graph_node):
+    def get_length_of_residual_vector(self):
         """ If a trajectory is found it also counts each canonical frame of the graph node as individual constraint
         :return:
         """
         n_constraints = 0
         for constraint in self.constraints:
-            n_constraints += constraint.get_length_of_residual_vector(graph_node)
+            n_constraints += constraint.get_length_of_residual_vector()
         return n_constraints
