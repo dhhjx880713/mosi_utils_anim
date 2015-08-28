@@ -1,11 +1,11 @@
 __author__ = 'erhe01'
 
 from ..utilities.exceptions import PathSearchError
-from ..motion_model import NODE_TYPE_START, NODE_TYPE_END, NODE_TYPE_SINGLE
+from ..motion_model import NODE_TYPE_END, NODE_TYPE_SINGLE
 from motion_primitive_sample_generator import MotionPrimitiveSampleGenerator
 from constraints.motion_primitive_constraints_builder import MotionPrimitiveConstraintsBuilder
 from constraints.time_constraints_builder import TimeConstraintsBuilder
-from numerical_minimizer import NumericalMinimizer
+from minimizer.numerical_minimizer_scipy import NumericalMinimizerScipy
 from motion_sample import GraphWalkEntry
 from objective_functions import obj_time_error_sum
 
@@ -56,7 +56,7 @@ class ElementaryActionSampleGenerator(object):
         self.motion_primitive_constraints_builder = MotionPrimitiveConstraintsBuilder()
         self.motion_primitive_constraints_builder.set_algorithm_config(
             self._algorithm_config)
-        self.numerical_minimizer = NumericalMinimizer(self._algorithm_config)
+        self.numerical_minimizer = NumericalMinimizerScipy(self._algorithm_config)
         self.numerical_minimizer.set_objective_function(obj_time_error_sum)
         self.state = ElementaryActionSampleGeneratorState(self._algorithm_config)
         return
@@ -192,7 +192,6 @@ class ElementaryActionSampleGenerator(object):
 
     def _optimize_over_graph_walk(self, motion):
         #TODO planned feature
-        time_constraints = TimeConstraintsBuilder(
-            self.action_constraints, motion, self.state.start_step).build()
+        time_constraints = TimeConstraintsBuilder(self.action_constraints, motion, self.state.start_step).build()
         data = (self.motion_primitive_graph, motion, time_constraints)
         self.numerical_minimizer.set_objective_function_parameters(data)

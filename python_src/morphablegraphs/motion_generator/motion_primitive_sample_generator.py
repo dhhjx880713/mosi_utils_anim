@@ -6,10 +6,11 @@ Created on Wed Mar 10 17:15:22 2015
 """
 
 import numpy as np
+
 from ..animation_data.evaluation_methods import check_sample_validity
 from statistics.constrained_gmm_builder import ConstrainedGMMBuilder
 from ..utilities.exceptions import ConstraintError, SynthesisError
-from numerical_minimizer import NumericalMinimizer
+from minimizer.numerical_minimizer_scipy import NumericalMinimizerScipy
 from . import global_counter_dict
 from objective_functions import obj_spatial_error_sum, obj_spatial_error_sum_and_naturalness
 
@@ -48,7 +49,7 @@ class MotionPrimitiveSampleGenerator(object):
                                                                   self._action_constraints.start_pose, self.skeleton)
         else:
             self._constrained_gmm_builder = None
-        self.numerical_minimizer = NumericalMinimizer(self._algorithm_config)
+        self.numerical_minimizer = NumericalMinimizerScipy(self._algorithm_config)
         self.numerical_minimizer.set_objective_function(obj_spatial_error_sum_and_naturalness)
 
     def generate_motion_primitive_sample_from_constraints(self, motion_primitive_constraints, prev_motion):
