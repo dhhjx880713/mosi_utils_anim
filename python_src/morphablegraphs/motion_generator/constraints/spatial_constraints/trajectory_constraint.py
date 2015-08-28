@@ -36,7 +36,6 @@ class TrajectoryConstraint(ParameterizedSpline, SpatialConstraintBase):
         :param aligned_quat_frames: list of quaternion frames.
         :return: average error
         """
-        print "evaluate"
         error = np.average(self.get_residual_vector(aligned_quat_frames))
         return error
 
