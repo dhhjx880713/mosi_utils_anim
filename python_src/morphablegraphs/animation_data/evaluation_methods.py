@@ -8,7 +8,9 @@ Created on Tue Feb 17 15:39:02 2015
 import collections
 import numpy as np
 from copy import copy
-
+import os
+from ..motion_model.motion_primitive import MotionPrimitive
+from ..animation_data.bvh import BVHWriter, BVHReader
 from python_src.morphablegraphs.animation_data.motion_editing import \
     convert_euler_frames_to_cartesian_frames, \
     convert_quaternion_frames_to_euler_frames,\
@@ -532,4 +534,26 @@ def check_sample_validity(
         # print "valid",valid
     return valid
 
-
+def evaluate_motion_primitive_model(test_model_file, save_data_path):
+    """
+    generate samples from test motion primitive model, to see the quality of synthesized motions
+    :param test_model_file: json file which constains the parameters of statistical model
+    :param save_data_path: a folder to save synthesized motions
+    """
+    test_mm = MotionPrimitive(test_model_file)
+    # load reference skeleton file
+    ref_bvhreader = BVHReader(r'../skeleton.bvh')
+    if not save_data_path.endswith(os.sep):
+        save_data_path += os.sep
+    N = 30
+    for i in xrange(N):
+        print i
+        sample = test_mm.sample()
+        quat_frames = sample.get_motion_vector()
+        filename = save_data_path + str(i) + '.bvh'
+        try:
+            BVHWriter(filename, ref_bvhreader, quat_frames,
+                      ref_bvhreader.frame_time,
+                      is_quaternion=True)
+        except IOError:
+            print('cannot save files')
