@@ -5,13 +5,14 @@ Created on Mon Aug 03 19:02:55 2015
 @author: erhe01
 """
 
-
 from math import sqrt
 import numpy as np
-from ....animation_data.motion_editing import get_cartesian_coordinates_from_quaternion,\
+from .....animation_data.motion_editing import get_cartesian_coordinates_from_quaternion,\
                                     quaternion_to_euler
-from ....external.transformations import rotation_matrix
+from python_src.morphablegraphs.external.transformations import rotation_matrix
 from keyframe_constraint_base import KeyframeConstraintBase
+
+
 RELATIVE_HUERISTIC_RANGE = 0.10  # used for setting the search range relative to the number of frames of motion primitive
 CONSTRAINT_CONFLICT_ERROR = 100000  # returned when conflicting constraints were set
 

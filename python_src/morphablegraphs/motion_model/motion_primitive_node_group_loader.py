@@ -12,7 +12,7 @@ from motion_primitive_node_group import MotionPrimitiveNodeGroup
 from . import META_INFORMATION_FILE_NAME
 
 
-class MotionPrimitiveNodeGroupBuilder(object):
+class MotionPrimitiveNodeGroupLoader(object):
     """ Contains a dictionary of motion primitives of an elementary action as nodes  meta information.
     """
     def __init__(self):

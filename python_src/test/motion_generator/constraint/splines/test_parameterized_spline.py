@@ -11,7 +11,7 @@ sys.path.append(ROOTDIR)
 TESTDIR = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-4]) + os.sep
 sys.path.append(TESTDIR)
 from libtest import params, pytest_generate_tests
-from morphablegraphs.motion_generator.constraint.splines.parameterized_spline import ParameterizedSpline
+from morphablegraphs.motion_generator.constraints.spatial_constraints.splines.parameterized_spline import ParameterizedSpline
 
 
 class TestParameterizedSpline(object):

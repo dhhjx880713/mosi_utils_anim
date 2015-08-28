@@ -11,6 +11,7 @@ from copy import copy
 from ..animation_data.motion_editing import DEFAULT_SMOOTHING_WINDOW_SIZE,\
                                           fast_quat_frames_alignment,\
                                           transform_quaternion_frames
+from constraints.spatial_constraints.keyframe_constraints.keyframe_constraint_base import KeyframeConstraintBase
 from ..utilities.io_helper_functions import write_to_json_file,\
                                           write_to_logfile, \
                                           export_quat_frames_to_bvh_file
@@ -104,15 +105,16 @@ class MotionSample(object):
         """
         key_frame_label_pairs = set()
         #extract the set of keyframes and their annotations referred to by the constraints
-        for c in constraints:
-            for key_label in c.semantic_annotation.keys():  # can also contain lastFrame and firstFrame
-                if key_label in keyframe_annotations.keys() and key_label in time_information.keys():
-                    if time_information[key_label] == "lastFrame":
-                        key_frame = last_frame
-                    elif time_information[key_label] == "firstFrame":
-                        key_frame = start_frame
-                    if "annotations" in keyframe_annotations[key_label].keys():
-                        key_frame_label_pairs.add((key_frame, key_label))
+        for constraint in constraints:
+            if isinstance(constraint, KeyframeConstraintBase):
+                for key_label in constraint.semantic_annotation.keys():  # can also contain lastFrame and firstFrame
+                    if key_label in keyframe_annotations.keys() and key_label in time_information.keys():
+                        if time_information[key_label] == "lastFrame":
+                            key_frame = last_frame
+                        elif time_information[key_label] == "firstFrame":
+                            key_frame = start_frame
+                        if "annotations" in keyframe_annotations[key_label].keys():
+                            key_frame_label_pairs.add((key_frame, key_label))
         return self._extract_actions_from_keyframe_annotations(key_frame_label_pairs, keyframe_annotations)
             
 

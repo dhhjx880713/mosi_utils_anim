@@ -3,8 +3,8 @@ __author__ = 'erhe01'
 from ..utilities.exceptions import PathSearchError
 from ..motion_model import NODE_TYPE_START, NODE_TYPE_END, NODE_TYPE_SINGLE
 from motion_primitive_sample_generator import MotionPrimitiveSampleGenerator
-from constraint.motion_primitive_constraints_builder import MotionPrimitiveConstraintsBuilder
-from constraint.time_constraints_builder import TimeConstraintsBuilder
+from constraints.motion_primitive_constraints_builder import MotionPrimitiveConstraintsBuilder
+from constraints.time_constraints_builder import TimeConstraintsBuilder
 from numerical_minimizer import NumericalMinimizer
 from motion_sample import GraphWalkEntry
 from objective_functions import obj_time_error_sum
@@ -103,12 +103,12 @@ class ElementaryActionSampleGenerator(object):
             min_arc_length = prev_graph_walk[-1].arc_length
         else:
             min_arc_length = 0.0
-        closest_point, distance = self.action_constraints.trajectory.find_closest_point(
+        closest_point, distance = self.action_constraints.root_trajectory.find_closest_point(
             new_quat_frames[-1][:3], min_arc_length=min_arc_length)
-        new_travelled_arc_length, eval_point = self.action_constraints.trajectory.get_absolute_arc_length_of_point(
+        new_travelled_arc_length, eval_point = self.action_constraints.root_trajectory.get_absolute_arc_length_of_point(
             closest_point, min_arc_length=prev_travelled_arc_length)
         if new_travelled_arc_length == -1:
-            new_travelled_arc_length = self.action_constraints.trajectory.full_arc_length
+            new_travelled_arc_length = self.action_constraints.root_trajectory.full_arc_length
         return new_travelled_arc_length
 
     def _update_motion(self, node_key, quat_frames, motion_primitive_constraints, motion):
@@ -182,7 +182,7 @@ class ElementaryActionSampleGenerator(object):
         prev_graph_walk = motion.graph_walk
         self._update_motion(next_node, motion_primitive_sample.get_motion_vector(False),
                             motion_primitive_constraints, motion)
-        if self.action_constraints.trajectory is not None:
+        if self.action_constraints.root_trajectory is not None:
             new_travelled_arc_length = self._update_travelled_arc_length(motion.quat_frames, prev_graph_walk, self.state.travelled_arc_length)
         else:
             new_travelled_arc_length = 0

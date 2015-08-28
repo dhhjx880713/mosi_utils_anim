@@ -27,7 +27,7 @@ class CatmullRomSpline(object):
         # http://algorithmist.net/docs/catmullrom.pdf
         # base matrix to calculate one component of a point on the spline based
         # on the influence of control points
-        self._catmullrom_basemat = np.array([[-1.0, 3.0, -3.0, 1.0],
+        self._catmullrom_basematrix = np.array([[-1.0, 3.0, -3.0, 1.0],
                                              [2.0, -5.0, 4.0, -1.0],
                                              [-1.0, 0.0, 1.0, 0.0],
                                              [0.0, 2.0, 0.0, 0.0]])
@@ -81,31 +81,9 @@ class CatmullRomSpline(object):
             print "Failed to transform spline by matrix", matrix.shape
         return
 
-    def get_full_arc_length(self, granularity=1000):
-        """
-        Apprioximate the arc length based on the sum of the finite difference using
-        a step size found using the given granularity
-        """
-        #granularity = self.granularity
-        accumulated_steps = np.arange(granularity + 1) / float(granularity)
-        arc_length = 0.0
-        last_point = np.zeros((self.dimensions, 1))
-        for accumulated_step in accumulated_steps:
-            point = np.asarray(self.query_point_by_parameter(accumulated_step))
-            if point is not None:
-                delta = np.linalg.norm(point - last_point)
-                arc_length += delta
-                last_point = point
-            else:
-                raise ValueError(
-                    'queried point is None at %f' %
-                    (accumulated_step))
-
-        return arc_length
-
     def get_last_control_point(self):
         """
-        Returns the last control point ignoring the last auxilliary point
+        Returns the last control point ignoring the last auxiliary point
         """
         if len(self.control_points) > 0:
             return np.array(self.control_points[-1])
@@ -126,7 +104,6 @@ class CatmullRomSpline(object):
         # increment i by 1 to ignore the first auxiliary control point
         return index + 1, local_u
 
-#
     def query_point_by_parameter(self, u):
         """
         Slide 32
@@ -155,10 +132,10 @@ class CatmullRomSpline(object):
         Slide 32
         http://pages.cpsc.ucalgary.ca/~jungle/587/pdf/5-interpolation.pdf
         Queries a component of point on the curve based on control points
-        and their weights and the _catmullrom_basemat
+        and their weights and the _catmullrom_basematrix
         """
         transformed_control_point_vector = np.dot(
-            self._catmullrom_basemat, control_point_vector)
+            self._catmullrom_basematrix, control_point_vector)
         value = np.dot(weight_vector, transformed_control_point_vector)
         return 0.5 * value
 

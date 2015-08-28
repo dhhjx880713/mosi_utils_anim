@@ -9,6 +9,7 @@ import numpy as np
 import uuid
 from . import KDTREE_WRAPPER_NODE
 
+
 class ClusterTreeNode(object):
     """ Node for the ClusterTree class that subdivides a list samples into clusters 
     by containing a child node for each cluster.
@@ -75,14 +76,14 @@ class ClusterTreeNode(object):
         best_index = 0
         for cluster_index in xrange(len(self.clusters)):
             sample = self.clusters[cluster_index].mean
-            cluster_value = obj(sample,data)
+            cluster_value = obj(sample, data)
             
             if cluster_value < best_value:
                 best_index = cluster_index
                 best_value = cluster_value
         return best_index, best_value
 
-    def find_best_cluster_canditates(self, obj, data, n_candidates):
+    def find_best_cluster_candidates(self, obj, data, n_candidates):
         """Return the clusters with the least cost based on 
         an evaluation using an objective
         function.
@@ -104,8 +105,8 @@ class ClusterTreeNode(object):
         result_queue = []
         for cluster_index in xrange(len(self.clusters)):
             sample = self.clusters[cluster_index].mean
-            cluster_value = obj(sample,data)
-            heapq.heappush(result_queue,(cluster_value,self.clusters[cluster_index] ) )
+            cluster_value = obj(sample, data)
+            heapq.heappush(result_queue, (cluster_value, self.clusters[cluster_index]))
       
         return result_queue[:n_candidates]
 
@@ -116,7 +117,7 @@ class ClusterTreeNode(object):
         * node_desc: dict
             Dictionary containing the properties of the node.
         """
-        node_desc = {}
+        node_desc = dict()
         node_desc["id"] = str(self.id)
         node_desc["depth"] = self.depth
         node_desc["type"] = self.type
@@ -155,3 +156,14 @@ class ClusterTreeNode(object):
                 for c in node.clusters:
                     stack.append(c)
         return node_desc_dict
+
+    def get_number_of_leafs(self):
+        if self.leaf:
+            return 1
+        else:
+            n_leafs = 0
+            for c in self.clusters:
+                n_leafs += c.get_number_of_leafs()
+            return n_leafs
+
+

@@ -10,7 +10,7 @@ import json
 from sklearn import mixture
 import scipy.interpolate as si
 from . import B_SPLINE_DEGREE
-from motion_primitive_sample import MotionPrimitiveSample
+from motion_spline import MotionSpline
 
 
 class MotionPrimitive(object):
@@ -174,7 +174,7 @@ class MotionPrimitive(object):
             time_function = self._inverse_temporal_pca(low_dimensional_vector[self.s_pca["n_components"]:])
         else:
             time_function = np.arange(0, self.n_canonical_frames)
-        return MotionPrimitiveSample(low_dimensional_vector, spatial_coefs, time_function, self.s_pca["knots"])
+        return MotionSpline(low_dimensional_vector, spatial_coefs, time_function, self.s_pca["knots"])
 
 
     def _inverse_spatial_pca(self, alpha):

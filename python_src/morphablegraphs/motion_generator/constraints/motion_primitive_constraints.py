@@ -28,6 +28,8 @@ class MotionPrimitiveConstraints(object):
         self.skeleton = None
         self.precision = {"pos": 1.0, "rot": 1.0, "smooth": 1.0}
         self.verbose = False
+        self.least_error = 0.0
+        self.best_parameters = None
 
     def print_status(self):
 #        print  "starting from",last_pos,last_arc_length,"the new goal for", \
@@ -38,7 +40,7 @@ class MotionPrimitiveConstraints(object):
         print self.step_goal
         print "arc length is: " + str(self.goal_arc_length)
 
-    def evaluate(self, motion_primitive, sample, prev_frames, use_time_parameters=False):
+    def evaluate(self, motion_primitive, parameters, prev_frames, use_time_parameters=False):
         """
         Calculates the error of a list of constraints given a sample parameter value.
         
@@ -49,12 +51,16 @@ class MotionPrimitiveConstraints(object):
     
         """
         #find aligned frames once for all constraints
-        quat_frames = motion_primitive.back_project(sample, use_time_parameters=use_time_parameters).get_motion_vector()
+        quat_frames = motion_primitive.back_project(parameters, use_time_parameters=use_time_parameters).get_motion_vector()
         aligned_frames = align_quaternion_frames(quat_frames, prev_frames, self.start_pose)
         #evaluate constraints with the generated motion
         error_sum = 0
         for c in self.constraints:
             error_sum += c.weight_factor * c.evaluate_motion_sample(aligned_frames)
+        if error_sum < self.least_error:
+            self.least_error = error_sum
+            self.best_parameters = parameters
+
         return error_sum
         
 

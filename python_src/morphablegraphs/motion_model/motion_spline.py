@@ -9,7 +9,7 @@ from ..animation_data.bvh import BVHReader, BVHWriter
 import scipy.interpolate as si
 from . import B_SPLINE_DEGREE
 
-class MotionPrimitiveSample(object):
+class MotionSpline(object):
     """ Represent a Sample from a MotionPrimitive
     * get_motion_vector(): Returns a vector of frames, representing a \
     discrete version of this sample

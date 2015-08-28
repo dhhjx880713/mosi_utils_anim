@@ -3,7 +3,7 @@
     "smoothing_window" : 20,
     "trajectory_following_settings": {
         "dir_constraint_factor": 10.0,
-        "heuristic_step_length_factor": 0.8,
+        "heuristic_step_length_factor": 1.0,
         "position_constraint_factor": 1.0,
         "step_length_approx_method": "arc_length",
         "transition_pose_constraint_factor": 1.0

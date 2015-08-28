@@ -50,16 +50,19 @@ def get_closest_lower_value(arr, left, right, value, getter=lambda A, i: A[i]):
     """
 
     delta = int(right - left)
+    # print delta
     if (delta > 1):  # or (left ==0 and (delta> 0) ):# or (right == len(A)-1 and ()):#test if there are more than two elements to explore
         i_mid = int(left + ((right - left) / 2))
         test_value = getter(arr, i_mid)
+        # print "getter",testValue
         if test_value > value:
+            # print "right"
             return get_closest_lower_value(arr, left, i_mid, value, getter)
         elif test_value < value:
-
+            # print "left"
             return get_closest_lower_value(arr, i_mid, right, value, getter)
         else:
-
+            # print "done"
             return (i_mid, 0)
     else:  # always return the lowest closest value if no value was found, see flags for the cases
         left_value = getter(arr, left)
@@ -140,9 +143,14 @@ class ParameterizedSpline(object):
         for accumulated_step in accumulated_steps:
             point = self.query_point_by_parameter(accumulated_step)
             if last_point is not None:
-                point = np.asarray(point)
-                last_point = np.asarray(last_point)
-                self.full_arc_length += np.linalg.norm(point - last_point)
+                delta = []
+                d = 0
+                while d < self.spline.dimensions:
+                    delta.append((point[d] - last_point[d])**2)
+                    d += 1
+                # (point-last_point).length()
+                self.full_arc_length += sqrt(np.sum(delta))
+                # print self.full_arc_length
             self._relative_arc_length_map.append(
                 [accumulated_step, self.full_arc_length])
             number_of_evalulations += 1
@@ -152,6 +160,9 @@ class ParameterizedSpline(object):
         if self.full_arc_length > 0:
             for i in range(number_of_evalulations):
                 self._relative_arc_length_map[i][1] /= self.full_arc_length
+
+#        for entry in self._relative_arc_length_map:
+#            print entry
         return
 
     def get_full_arc_length(self, granularity=1000):
@@ -164,15 +175,20 @@ class ParameterizedSpline(object):
         arc_length = 0.0
         last_point = np.zeros((self.spline.dimensions, 1))
         for accumulated_step in accumulated_steps:
+            # print "sample",accumulated_step
             point = self.query_point_by_parameter(accumulated_step)
             if point is not None:
-
-                point = np.asarray(point)
-                last_point = np.asarray(last_point)
-                delta = np.linalg.norm(point - last_point)
-                arc_length += np.sum(delta)
+                delta = []
+                d = 0
+                while d < self.spline.dimensions:
+                    sq_k = (point[d] - last_point[d])**2
+                    delta.append(sq_k)
+                    d += 1
+                arc_length += sqrt(np.sum(delta))
+                # arc_length +=
+                # np.linalg.norm(point-last_point)#(point-last_point).length()
                 last_point = point
-
+                # print point
             else:
                 raise ValueError(
                     'queried point is None at %f' %
@@ -217,10 +233,13 @@ class ParameterizedSpline(object):
         if absolute_arc_length <= self.full_arc_length:
             # parameterize curve by arc length
             relative_arc_length = absolute_arc_length / self.full_arc_length
-            point = self.query_point_by_relative_arc_length(relative_arc_length)
+            point = self.query_point_by_relative_arc_length(
+                relative_arc_length)
             #point = self.query_point_by_parameter(relative_arc_length)
         else:
+            # return last control point
             point = self.spline.get_last_control_point()
+            #raise ValueError('%f exceeded arc length %f' % (absolute_arc_length,self.full_arc_length))
         return point
 
     def map_relative_arc_length_to_parameter(self, relative_arc_length):
@@ -281,7 +300,6 @@ class ParameterizedSpline(object):
                                          getter=lambda A, i: A[i][1])
         # print result
         index = result[0]
-
         if result[1] == 0:  # found exact value
             floorP, ceilP = self._relative_arc_length_map[index][
                 0], self._relative_arc_length_map[index][0]
@@ -315,7 +333,8 @@ class ParameterizedSpline(object):
         # print relative_arc_length,floorL,ceilL,found_exact_value
         return floorP, ceilP, floorL, ceilL, found_exact_value
 
-    def _construct_segment_list(self, min_arc_length=0, max_arc_length=-1, granularity=1000):
+    def _construct_segment_list(
+            self, min_arc_length=0, max_arc_length=-1, granularity=1000):
         """ Constructs line segments out of the evualated points
          with the given granularity
         Returns
@@ -329,9 +348,9 @@ class ParameterizedSpline(object):
         u = 0
         if max_arc_length <= 0:
             max_arc_length = self.full_arc_length
-
         while u <= 1.0:
             arc_length = self.get_absolute_arc_length(u)
+            # todo make more efficient by looking up min_u
             if arc_length >= min_arc_length and arc_length <= max_arc_length:
                 point = self.query_point_by_parameter(u)
                 points.append(point)
@@ -434,7 +453,8 @@ class ParameterizedSpline(object):
                                             np.array([tangent_line[0], tangent_line[2]]))
         return start, tangent_line, np.degrees(angle)
 
-    def get_absolute_arc_length_of_point(self, point, accuracy=10.0, min_arc_length=0):
+    def get_absolute_arc_length_of_point(
+            self, point, accuracy=10.0, min_arc_length=0):
         """ Finds the approximate arc length of a point on a spline
         Returns
         -------
@@ -467,7 +487,8 @@ class ParameterizedSpline(object):
         else:
             return -1, None
 
-    def _find_closest_point_on_segment(self, point, segment, accuracy=0.001, max_iterations=5000):
+    def _find_closest_point_on_segment(
+            self, point, segment, accuracy=0.001, max_iterations=5000):
         """ Find closest point by dividing the segment until the
             difference in the distance gets smaller than the accuracy
         Returns
@@ -496,8 +517,6 @@ class ParameterizedSpline(object):
             iteration += 1
         closest_point = closest_segment[1]  # extract center of closest segment
         return closest_point, distance
-#
-
 
 #    def find_closest_point(self, point, accuracy=0.001, max_iterations=5000, min_arc_length=0, max_arc_length=-1):
 # return self.spline.find_closest_point(point, accuracy, max_iterations,
@@ -601,151 +620,3 @@ class ParameterizedSpline(object):
             count += 1
         return closest_segments
 
-
-def verify_spline():
-    control_points = [[0, 0, 0],
-                      [0, 1, 0],
-                      [0, 8, 0]
-                      ]
-    dimensions = 3
-    granularity = 1000
-    spline = ParameterizedSpline(control_points, dimensions, granularity)
-    print spline.query_point_by_parameter(0.5)
-    print spline.query_point_by_relative_arc_length(0.5)
-    print spline.full_arc_length
-
-
-def plot_line(start, dir_vector, ax=None, length=0.1):
-
-    end = dir_vector * length + start
-    # print start,end
-    line = np.array([start, end]).T
-    if ax is not None:
-        ax.plot(line[0], line[1])
-    else:
-        plt.plot(line[0], line[1])
-
-
-def plot_line_with_text(start, dir_vector, text, ax=None, length=0.1):
-    plot_line(start, dir_vector, ax, length)
-    if ax is not None:
-        ax.text(start[0], start[1], text, size=8, ha='center', va='center')
-    else:
-        plt.text(start[0], start[1], text, size=8, ha='center', va='center')
-
-
-def plot_spline(spline, granularity=1000.0, ax=None):
-
-    us = np.arange(1, granularity) / granularity
-    print "max", us[-1]
-    # should be equal to full_arc_length
-    full_len = spline.get_full_arc_length(1000)
-    reference_vector = np.array([1, 0])
-    v, tangents = zip(*
-                      [(spline.query_point_by_parameter(u), spline.get_angle_at_arc_length_2d(u *
-                                                                                              full_len, reference_vector)) for u in us])
-
-#    us = np.arange(1,granularity) / granularity
-#    us = us * full_len
-#    v = [(  spline.query_point_by_absolute_arc_length(u) ) for u in us]
-#
-
-#   print "tangent",spline.get_tangent_at_arc_length(3)
-#    reference_frame = [[0,0],[1,1],[1,0] ]
-#    print spline.get_orientation_at_arc_length(3,reference_frame)
-    v = np.array(v).T
-    px = [p[0] for p in spline.control_points]
-    py = [p[1] for p in spline.control_points]
-#    x = [ p[0] for p in v]
-#    y = [ p[1] for p in v]
-#    vs = np.array(vs)
-#    xs,ys = [x,y]
-#    y = vs[1,:]
-#    print x.shape
-#    print y.shape
-#    print len(x)
-#    print len(y)
-
-    if not ax:
-        fig = plt.figure()
-        plt.plot(v[0], v[1])  # x,y
-        plt.plot(px, py, 'ro')
-        count = 0
-        for start, dir_vector, angle in tangents:
-            if count % 20 == 0:
-                plot_line_with_text(
-                    start, dir_vector, str(angle), ax=None, length=1.0)
-#           else:
-#               plot_line(start,dir_vector,ax=None,length=1.0)
-            count += 1
-        fig.show()
-
-    else:
-        ax.plot(v[0], v[1])  # x,y
-        ax.plot(px, py, 'ro')
-        for start, dir_vector, angle in tangents:
-            plot_line_with_text(
-                start,
-                dir_vector,
-                str(angle),
-                ax=None,
-                length=1.0)
-
-
-def plot_splines(title, splines, granularity=100.0, ax=None, output_dir=None):
-    us = np.arange(1, granularity) / granularity
-    show = False
-    if not ax:
-
-        fig = plt.figure()
-
-        ax = fig.add_subplot(111)
-        ax.set_xlim([-50, 50])
-        ax.set_ylim([-50, 50])
-        # fig.subplots_adjust(top=0.85)
-        ax.set_title(title)
-        show = True
-    for spline in splines:
-        v = [spline.query_point_by_parameter(u) for u in us]
-        v = np.array(v).T
-        px = [p[0] for p in spline.control_points]
-        py = [p[1] for p in spline.control_points]
-        ax.plot(v[0], v[1])  # x,y
-        ax.plot(px, py, 'ro')
-
-    if show:
-        fig.show()
-        if output_dir is not None:
-            time_code = unicode(
-                datetime.datetime.now().strftime("%d%m%y_%H%M%S"))
-            filename = output_dir + title + time_code + ".png"
-            plt.savefig(filename, format='png')
-
-
-def test_plot_spline():
-
-    control_points = [[0, 0],
-                      [1, 1],
-                      [2, 10],
-                      [4, 5],
-                      [3, 2],
-                      [2, 1],
-                      [1, 3],
-                      [1, 5]
-                      ]
-    dimensions = 2
-    granularity = 1000
-    spline = CatmullRomSpline(control_points, dimensions, granularity)
-    plot_spline(spline)
-
-
-def main():
-    verify_spline()
-    # test_plot_spline()
-
-    return
-
-
-if __name__ == "__main__":
-
-    main()
