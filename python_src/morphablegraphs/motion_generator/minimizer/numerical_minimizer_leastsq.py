@@ -42,8 +42,7 @@ class NumericalMinimizerLeastSquares(NumericalMinimizerBase):
                 return initial_guess
 
             if self.verbose:
-                print "Finished optimization in ", time.clock()-start, "seconds", result
-            print "done"
+                print "Finished optimization in ", time.clock()-start, "seconds"
             return result[0]
         else:
             print "Error: No objective function set. Return initial guess instead."

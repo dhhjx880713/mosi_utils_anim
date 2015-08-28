@@ -115,31 +115,18 @@ class MotionPrimitiveSampleGenerator(object):
         if self.use_constraints and len(motion_primitive_constraints.constraints) > 0:
 
             graph_node = self._motion_primitive_graph.nodes[(self.action_name, mp_name)]
-            gmm = graph_node.gaussian_mixture_model
-
             if self.activate_cluster_search and graph_node.cluster_tree is not None:
-                #  find best sample using a directed search in a 
-                #  space partitioning data structure
                 parameters = self._search_for_best_sample_in_cluster_tree(graph_node,
                                                                           motion_primitive_constraints,
                                                                           prev_frames)
-                close_to_optimum = True
+                close_to_optimum = False
             else: 
-                #  1) get gmm and modify it based on the current state and settings
-                # Get prior gaussian mixture model from node
-                
-                if self._constrained_gmm_builder is not None:
-                    gmm = self._constrained_gmm_builder.build(self.action_name, mp_name, motion_primitive_constraints,
-                                                              self.prev_action_name, prev_mp_name, 
-                                                              prev_frames, prev_parameters)
-                                                
-                elif self.use_transition_model and prev_parameters is not None:
-                    gmm = self._predict_gmm(mp_name, prev_mp_name, prev_parameters)
-    
-                #  2) sample parameters  from the Gaussian Mixture Model based on constraints and make sure
-                #     the resulting motion is valid                
-                parameters, min_error = self._pick_best_random_sample(graph_node, gmm,
-                                                                      motion_primitive_constraints, prev_frames)
+                parameters = self._sample_from_statistical_model(graph_node,
+                                                                 mp_name,
+                                                                 motion_primitive_constraints,
+                                                                 prev_mp_name,
+                                                                 prev_frames,
+                                                                 prev_parameters)
                 close_to_optimum = True
             if not self.use_transition_model and use_optimization and not close_to_optimum:
                 data = graph_node, motion_primitive_constraints, \
@@ -148,11 +135,28 @@ class MotionPrimitiveSampleGenerator(object):
 
                 self.numerical_minimizer.set_objective_function_parameters(data)
                 parameters = self.numerical_minimizer.run(initial_guess=parameters)
-                print "done"
         else: # no constraints were given
             print "motion primitive", mp_name
             parameters = self._get_random_parameters(mp_name, prev_mp_name, prev_parameters)
          
+        return parameters
+
+    def _sample_from_statistical_model(self, graph_node, mp_name, motion_primitive_constraints, prev_mp_name, prev_frames, prev_parameters):
+        #  1) get gaussian_mixture_model and modify it based on the current state and settings
+        if self._constrained_gmm_builder is not None:
+            gmm = self._constrained_gmm_builder.build(self.action_name, mp_name, motion_primitive_constraints,
+                                                      self.prev_action_name, prev_mp_name,
+                                                      prev_frames, prev_parameters)
+
+        elif self.use_transition_model and prev_parameters is not None:
+            gmm = self._predict_gmm(mp_name, prev_mp_name, prev_parameters)
+        else:
+            gmm = graph_node.gaussian_mixture_model
+        #  2) sample parameters  from the Gaussian Mixture Model based on constraints and make sure
+        #     the resulting motion is valid
+        parameters, min_error = self.sample_from_gaussian_mixture_model(graph_node, gmm,
+                                                                        motion_primitive_constraints,
+                                                                        prev_frames)
         return parameters
 
     def _get_random_parameters(self, mp_name, prev_mp_name="", prev_parameters=None):
@@ -176,7 +180,7 @@ class MotionPrimitiveSampleGenerator(object):
         global_counter_dict["motionPrimitveErrors"].append(distance)
         return np.array(s)                                 
 
-    def _pick_best_random_sample(self, mp_node, gmm, constraints, prev_frames):
+    def sample_from_gaussian_mixture_model(self, mp_node, gmm, constraints, prev_frames):
         """samples and picks the best samples out of a given set, quality measure
         is naturalness
     
