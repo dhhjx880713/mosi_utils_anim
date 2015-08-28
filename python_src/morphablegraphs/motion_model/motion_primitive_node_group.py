@@ -94,7 +94,7 @@ class MotionPrimitiveNodeGroup(ElementaryActionMetaInfo):
         """ Get next state of the elementary action based on previous iteration.
         """
         prev_node = motion.graph_walk[-1].node_key
-        if action_constraint.trajectory is not None:
+        if action_constraint.root_trajectory is not None:
             #test end condition for trajectory constraints
             if not action_constraint.check_end_condition(motion.quat_frames,\
                                     travelled_arc_length, arc_length_of_end):
@@ -154,7 +154,7 @@ class MotionPrimitiveNodeGroup(ElementaryActionMetaInfo):
                 count += 1
         #add end node
         to_node_key = self.nodes[current_node].generate_random_transition(NODE_TYPE_END)
-        next_parameters = self.generate_next_parameters(current_node,current_parameters,to_node_key,use_transition_model)
-        entry = {"node_key": to_node_key, "parameters":next_parameters}
+        next_parameters = self.generate_next_parameters(current_node, current_parameters, to_node_key, use_transition_model)
+        entry = {"node_key": to_node_key, "parameters": next_parameters}
         graph_walk.append(entry)
         return graph_walk
