@@ -51,7 +51,9 @@ class Skeleton(object):
            to the root joint. The further away the smaller the weight.
         """
 
-        self.joint_weights = [np.exp(-self.node_names[node_name]["level"])
+        # self.joint_weights = [np.exp(-self.node_names[node_name]["level"])
+        #                       for node_name in self.node_name_map.keys()]
+        self.joint_weights = [1.0/(self.node_names[node_name]["level"] + 1.0) \
                               for node_name in self.node_name_map.keys()]
 
     def _create_filtered_node_name_map(self):

@@ -93,6 +93,7 @@ class MotionDynamicTimeWarping(MotionNormalization):
         if self.aligned_motions == {}:
             raise ValueError('No motion for DTW')
         for filename, frames in self.aligned_motions.iteritems():
+            print filename
             test_motion = {}
             test_motion['filename'] = filename
             test_motion['frames'] = frames

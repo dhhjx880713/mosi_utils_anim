@@ -51,7 +51,7 @@ class ElementaryActionMetaInfo(object):
     def _convert_keys_to_strings(self, mydict):
         copy_dict = {}
         for key in mydict.keys():
-            if isinstance(key) is tuple:
+            if isinstance(key, tuple):
                 try:
                     copy_dict[key[1]] = mydict[key]
                 except Exception as exception:
