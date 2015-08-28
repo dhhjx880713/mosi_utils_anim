@@ -47,7 +47,6 @@ class PositionAndRotationConstraint(KeyframeConstraintBase):
         self.rotation_axes = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
 
     def evaluate_motion_sample(self, aligned_quat_frames):
-        print self.start_keyframe, self.stop_keyframe
         min_error = CONSTRAINT_CONFLICT_ERROR
         # ignore a special case which should not happen in a single constraint
         for frame in aligned_quat_frames[self.start_keyframe:self.stop_keyframe]:
