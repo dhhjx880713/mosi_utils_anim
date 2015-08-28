@@ -22,3 +22,6 @@ class SpatialConstraintBase(object):
         else:
             success = False
         return error, success
+
+    def get_residual_vector(self, aligned_frames):
+        pass

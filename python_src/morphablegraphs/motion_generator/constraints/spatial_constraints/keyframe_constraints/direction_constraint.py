@@ -29,3 +29,6 @@ class DirectionConstraint(KeyframeConstraintBase):
         # to check the last frame pass rotation and trajectory constraint or not
         # put higher weights for orientation constraint
         return error
+
+    def get_residual_vector(self, aligned_quat_frames):
+        return [self.evaluate_motion_sample(aligned_quat_frames)]

@@ -56,6 +56,9 @@ class PositionAndRotationConstraint(KeyframeConstraintBase):
                     min_error = error
         return min_error
 
+    def get_residual_vector(self, aligned_frames):
+        return [self.evaluate_motion_sample(aligned_frames)]
+
     def _evaluate_frame(self, frame):
         error = 0
         if self.position is not None:

@@ -30,6 +30,7 @@ class MotionPrimitiveConstraints(object):
         self.verbose = False
         self.least_error = 0.0
         self.best_parameters = None
+        self.evaluations = 0
 
     def print_status(self):
 #        print  "starting from",last_pos,last_arc_length,"the new goal for", \
@@ -60,8 +61,28 @@ class MotionPrimitiveConstraints(object):
         if error_sum < self.least_error:
             self.least_error = error_sum
             self.best_parameters = parameters
-
+        self.evaluations += 1
         return error_sum
-        
+
+    def get_residual_vector(self, motion_primitive, parameters, prev_frames, use_time_parameters=False):
+        """
+        Get the residual vector which contains the error values from the motion sample corresponding to each constraint.
+
+        Returns
+        -------
+        * residual_vector : list
+        \tThe list of the errors for all constraints
+
+        """
+        #find aligned frames once for all constraints
+        quat_frames = motion_primitive.back_project(parameters, use_time_parameters=use_time_parameters).get_motion_vector()
+        aligned_frames = align_quaternion_frames(quat_frames, prev_frames, self.start_pose)
+
+        #evaluate constraints with the generated motion
+        residual_vector = []
+        for c in self.constraints:
+            residual_vector += c.get_residual_vector(aligned_frames)
+        self.evaluations += 1
+        return residual_vector
 
 

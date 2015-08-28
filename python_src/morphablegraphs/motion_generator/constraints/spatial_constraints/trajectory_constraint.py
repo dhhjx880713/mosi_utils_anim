@@ -28,23 +28,29 @@ class TrajectoryConstraint(ParameterizedSpline, SpatialConstraintBase):
         self.min_arc_length = self.get_absolute_arc_length_of_point(closest_point)[0]
 
     def evaluate_motion_sample(self, aligned_quat_frames):
-        """  Calculate sum of distances between discrete frames and samples with corresponding arc length from the trajectory
-             unconstrained indices are ignored
-        :param aligned_quat_frames: list of quaternion frames.
-        :return: error
         """
-        error = 0
+        :param aligned_quat_frames: list of quaternion frames.
+        :return: average error
+        """
+        print "evaluate"
+        error = np.average(self.get_residual_vector(aligned_quat_frames))
+        return error
+
+    def get_residual_vector(self, aligned_quat_frames):
+        """ Calculate distances between discrete frames and samples with corresponding arc length from the trajectory
+             unconstrained indices are ignored
+        :return: the residual vector
+        """
         self.arc_length = self.min_arc_length
         last_joint_position = None
+        errors = []
         for frame in aligned_quat_frames:
             joint_position = np.asarray(get_cartesian_coordinates_from_quaternion(self.skeleton, self.joint_name, frame))
             if last_joint_position is not None:
-                #print joint_position, last_joint_position, self.arc_length
                 self.arc_length += np.linalg.norm(joint_position - last_joint_position)
             target = self.query_point_by_absolute_arc_length(self.arc_length)
             last_joint_position = joint_position
             #target[self.unconstrained_indices] = 0
             joint_position[self.unconstrained_indices] = 0
-            error += np.linalg.norm(joint_position-target)
-            #print error, joint_position, target,self.arc_length
-        return error/len(aligned_quat_frames)
+            errors.append(np.linalg.norm(joint_position-target))
+        return np.array(errors)
