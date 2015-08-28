@@ -13,7 +13,7 @@ from python_src.morphablegraphs.external.transformations import rotation_matrix
 from keyframe_constraint_base import KeyframeConstraintBase
 
 
-RELATIVE_HUERISTIC_RANGE = 0.10  # used for setting the search range relative to the number of frames of motion primitive
+RELATIVE_HUERISTIC_RANGE = 0.05  # used for setting the search range relative to the number of frames of motion primitive
 CONSTRAINT_CONFLICT_ERROR = 100000  # returned when conflicting constraints were set
 
 
@@ -36,24 +36,24 @@ class PositionAndRotationConstraint(KeyframeConstraintBase):
             self.orientation = constraint_desc["orientation"]
         else:
             self.orientation = None
-        self.relative_heuristic_range = RELATIVE_HUERISTIC_RANGE
-        self.constrain_first_frame = constraint_desc["semanticAnnotation"]["firstFrame"]
-        self.constrain_last_frame = constraint_desc["semanticAnnotation"]["lastFrame"]
-        self._convert_annotation_to_indices()
+        self.n_canonical_frames = constraint_desc["n_canonical_frames"]
+        if "n_canonical_frames" in constraint_desc.keys():
+            self.frame_range = RELATIVE_HUERISTIC_RANGE*self.n_canonical_frames
+        else:
+            self.frame_range = 0
+        self.canonical_frame = constraint_desc["canonical_keyframe"]
+        self.start_keyframe = max(self.canonical_frame - self.frame_range, 0)
+        self.stop_keyframe = min(self.canonical_frame + self.frame_range, self.n_canonical_frames)
         self.rotation_axes = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
 
     def evaluate_motion_sample(self, aligned_quat_frames):
+        print self.start_keyframe, self.stop_keyframe
         min_error = CONSTRAINT_CONFLICT_ERROR
-        n_frames = len(aligned_quat_frames)
         # ignore a special case which should not happen in a single constraint
-        if not (self.constrain_first_frame and self.constrain_last_frame):
-            heuristic_range = int(self.relative_heuristic_range * n_frames)
-            filtered_frames = aligned_quat_frames[-heuristic_range:]
-            filtered_frame_nos = range(n_frames)            
-            for frame_no, frame in zip(filtered_frame_nos, filtered_frames):
-                error = self._evaluate_frame(frame)
-                if min_error > error:
-                    min_error = error
+        for frame in aligned_quat_frames[self.start_keyframe:self.stop_keyframe]:
+            error = self._evaluate_frame(frame)
+            if min_error > error:
+                min_error = error
         return min_error
 
     def get_residual_vector(self, aligned_frames):

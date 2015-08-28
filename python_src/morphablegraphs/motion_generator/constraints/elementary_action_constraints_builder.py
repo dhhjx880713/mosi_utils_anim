@@ -167,10 +167,12 @@ class ElementaryActionConstraintsBuilder(object):
         trajectory_constraint = TrajectoryConstraint(joint_name, control_points, 0, unconstrained_indices, self.motion_primitive_graph.skeleton, precision)
         return trajectory_constraint
 
-    def _extract_keyframe_constraint(self, joint_name, constraint, time_information):
+    def _extract_keyframe_constraint(self, keyframe_label, joint_name, constraint, time_information):
         """ Creates a dict containing all properties stated explicitly or implicitly in the input constraint
         Parameters
         ----------
+        * keyframe_label : string
+          keyframe label
         * joint_name : string
           Name of the joint
         * constraint : dict
@@ -181,16 +183,19 @@ class ElementaryActionConstraintsBuilder(object):
          Returns
          -------
          *constraint_desc : dict
-          Contains the keys joint, position, orientation, semanticAnnotation
+          Contains the keys joint, position, orientation, time, semanticAnnotation
         """
         position = [None, None, None]       
         orientation = [None, None, None]
         first_frame = None
         last_frame = None
+        time = None
         if "position" in constraint.keys():
              position = constraint["position"]
         if "orientation" in constraint.keys():
             orientation =constraint["orientation"]
+        if "time" in constraint.keys():
+            time = constraint["time"]
         #check if last or fist frame from annotation
         position = self._transform_point_from_cad_to_opengl_cs(position)
         if time_information == "lastFrame":
@@ -198,12 +203,17 @@ class ElementaryActionConstraintsBuilder(object):
         elif time_information == "firstFrame":
             first_frame = True
         if "semanticAnnotation" in constraint.keys():
-            semanticAnnotation = constraint["semanticAnnotation"]
+            semantic_annotation = constraint["semanticAnnotation"]
         else:
-            semanticAnnotation = {}
-        semanticAnnotation["firstFrame"] = first_frame
-        semanticAnnotation["lastFrame"] = last_frame
-        constraint_desc = {"joint":joint_name,"position":position,"orientation":orientation,"semanticAnnotation": semanticAnnotation}
+            semantic_annotation = {}
+        semantic_annotation["firstFrame"] = first_frame
+        semantic_annotation["lastFrame"] = last_frame
+        semantic_annotation["keyframe_label"] = keyframe_label
+        constraint_desc = {"joint":joint_name,
+                           "position":position,
+                           "orientation":orientation,
+                           "time": time,
+                           "semanticAnnotation": semantic_annotation}
         return constraint_desc
 
     def _constraint_definition_has_label(self, constraint_definition, label):
@@ -267,7 +277,7 @@ class ElementaryActionConstraintsBuilder(object):
                 for keyframe_constraint in keyframe_constraints[label][joint_name]:
                     # create constraint definition usable by the algorithm
                     # and add it to the list of constraints for that state
-                    constraint_desc = self._extract_keyframe_constraint(joint_name, keyframe_constraint, time_information)
+                    constraint_desc = self._extract_keyframe_constraint(label, joint_name, keyframe_constraint, time_information)
                     constraints[state].append(constraint_desc)
          return constraints
 
