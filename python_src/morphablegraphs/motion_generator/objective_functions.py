@@ -13,7 +13,7 @@ from . import global_counter_dict
 
 def obj_spatial_error_sum(s, data):
     """ Calculates the error of a low dimensional motion vector s 
-    given constraints.
+    given a list of constraints.
     Note: Time parameters and time constraints will be ignored. 
 
     Parameters
@@ -33,6 +33,29 @@ def obj_spatial_error_sum(s, data):
     global_counter_dict["evaluations"] += 1
     return error_sum
     
+
+def obj_spatial_error_residual_vector(s, data):
+    """ Calculates the error of a low dimensional motion vector s
+    given a list of constraints and stores the error of each constraint in a list.
+    Note: Time parameters and time constraints will be ignored.
+
+    Parameters
+    ---------
+    * s : np.ndarray
+        low dimensional motion representation
+    * data : tuple
+        Contains  motion_primitive, motion_primitive_constraints, prev_frames
+
+    Returns
+    -------
+    * residual_vector: list
+    """
+    s = np.asarray(s)
+    motion_primitive, motion_primitive_constraints, prev_frames = data
+    residual_vector = motion_primitive_constraints.get_residual_vector(motion_primitive, s, prev_frames, use_time_parameters=False)
+    global_counter_dict["evaluations"] += 1
+    return residual_vector
+
 
 def obj_spatial_error_sum_and_naturalness(s, data):
     """ Calculates the error of a low dimensional motion vector s given 
@@ -100,7 +123,7 @@ def obj_time_error_sum(s, data):
         concatenatgion of low dimensional motion representations
     * data : tuple
         Contains morhable_graph, time_constraints, motion, start_step
-        
+
     Returns
     -------
     * error: float
