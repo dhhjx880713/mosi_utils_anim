@@ -1,5 +1,5 @@
 __author__ = 'erhe01'
-
+import numpy as np
 
 class TimeConstraints(object):
     def __init__(self, start_step, start_keyframe, constraint_list):
@@ -8,6 +8,7 @@ class TimeConstraints(object):
         self.constraint_list = constraint_list
 
     def evaluate_graph_walk(self, s, motion_primitive_graph, motion):
+        print "evaluate", s
         time_functions = self._get_time_functions_from_graph_walk(s, motion_primitive_graph, motion)
         #get difference to desired time for each constraint
         frame_time = motion_primitive_graph.skeleton.frame_time
@@ -17,7 +18,12 @@ class TimeConstraints(object):
         return error_sum
 
     def _get_time_functions_from_graph_walk(self, s, motion_primitive_graph, motion):
-        #get time functions for all steps
+        """get time functions for all steps
+        :param s:
+        :param motion_primitive_graph:
+        :param motion:
+        :return:
+        """
         time_functions = []
         offset = 0
         for step in motion.graph_walk[self.start_step:]:
@@ -38,12 +44,14 @@ class TimeConstraints(object):
                 n_frames += len(time_function)
                 temp_step_index += 1
             else:
-                #inverse lookup the warped frame that maps to the labelled canonical keyframe with the time constraint
-                mapped_key_frame = min(time_function, key=lambda x: abs(x-constrained_keyframe_index))
-                n_frames += mapped_key_frame
+                #inverse lookup the warped frame that maps to the labeled canonical keyframe with the time constraint
+                closest_keyframe = min(time_function, key=lambda x: abs(x-constrained_keyframe_index))
+                mapped_keyframe = np.where(time_function==closest_keyframe)[0][0]
+                n_frames += mapped_keyframe
                 total_seconds = n_frames * frame_time
                 error = abs(desired_time-total_seconds)
-                print "time error", error, total_seconds, desired_time
+                #print time_function
+                print "time error", error, total_seconds, desired_time, mapped_keyframe, constrained_keyframe_index, n_frames
                 return error
         return 10000
 
