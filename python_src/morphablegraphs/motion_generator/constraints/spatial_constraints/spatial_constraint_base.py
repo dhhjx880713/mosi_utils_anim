@@ -11,6 +11,7 @@ class SpatialConstraintBase(object):
     def __init__(self, precision, weight_factor=1.0):
         self.precision = precision
         self.weight_factor = weight_factor
+        self.constraint_type = None
 
     def evaluate_motion_sample(self, aligned_quat_frames):
         pass
