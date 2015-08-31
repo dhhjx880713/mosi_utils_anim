@@ -131,7 +131,7 @@ class MotionPrimitiveSampleGenerator(object):
                                                              prev_frames,
                                                              prev_parameters)
             close_to_optimum = True
-        if True:# not self.use_transition_model and use_optimization and not close_to_optimum
+        if not self.use_transition_model and use_optimization and not close_to_optimum:
             data = graph_node, motion_primitive_constraints, \
                    prev_frames, self._optimization_settings["error_scale_factor"], \
                    self._optimization_settings["quality_scale_factor"]
