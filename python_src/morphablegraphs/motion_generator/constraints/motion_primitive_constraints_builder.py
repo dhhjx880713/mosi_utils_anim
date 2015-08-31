@@ -19,7 +19,6 @@ class MotionPrimitiveConstraintsBuilder(object):
     """ Extracts a list of constraints for a motion primitive from ElementaryActionConstraints 
         based on the variables set by the method set_status. Generates constraints for path following.
     """
-
     def __init__(self):
         self.action_constraints = None
         self.algorithm_config = None
@@ -67,7 +66,7 @@ class MotionPrimitiveConstraintsBuilder(object):
             self._add_path_following_constraints(mp_constraints)
             self._add_pose_constraint(mp_constraints)
         if len(self.action_constraints.keyframe_constraints.keys()) > 0:
-            self._set_keyframe_constraints(mp_constraints)
+            self._add_keyframe_constraints(mp_constraints)
             # generate frame constraints for the last step based on the previous state
             # if not already done for the trajectory following
             if self.status["is_last_step"] and not mp_constraints.pose_constraint_set:
@@ -90,6 +89,7 @@ class MotionPrimitiveConstraintsBuilder(object):
     def _add_pose_constraint(self, mp_constraints):
         if mp_constraints.settings["transition_pose_constraint_factor"] > 0.0 and self.status["prev_frames"] is not None:
             pose_constraint_desc = self._create_frame_constraint_from_preceding_motion()
+            pose_constraint_desc = self._map_label_to_canonical_keyframe(pose_constraint_desc)
             pose_constraint = PoseConstraint(self.skeleton, pose_constraint_desc, self.precision["smooth"],
                                              mp_constraints.settings["transition_pose_constraint_factor"])
             mp_constraints.constraints.append(pose_constraint)
@@ -105,13 +105,15 @@ class MotionPrimitiveConstraintsBuilder(object):
             mp_constraints.goal_arc_length = self.action_constraints.root_trajectory.full_arc_length
         mp_constraints.step_goal, orientation, dir_vector = self._get_point_and_orientation_from_arc_length(
             mp_constraints.goal_arc_length)
-
         mp_constraints.print_status()
-        root_joint_name = self.skeleton.root
+        self._add_path_following_goal_constraint(self.skeleton.root, mp_constraints, mp_constraints.step_goal)
+        self._add_path_following_direction_constraint(self.skeleton.root, mp_constraints, dir_vector)
+
+    def _add_path_following_goal_constraint(self, joint_name, mp_constraints, goal):
         if mp_constraints.settings["position_constraint_factor"] > 0.0:
-            keyframe_semantic_annotation = {"firstFrame": None, "lastFrame": True, "keyframeLabel": "end"}
-            keyframe_constraint_desc = {"joint": root_joint_name,
-                                        "position": mp_constraints.step_goal,
+            keyframe_semantic_annotation = {"keyframeLabel": "end"}
+            keyframe_constraint_desc = {"joint": joint_name,
+                                        "position": goal,
                                         "semanticAnnotation": keyframe_semantic_annotation}
             keyframe_constraint_desc = self._map_label_to_canonical_keyframe(keyframe_constraint_desc)
             keyframe_constraint = PositionAndRotationConstraint(self.skeleton,
@@ -120,15 +122,17 @@ class MotionPrimitiveConstraintsBuilder(object):
                                                                 mp_constraints.settings["position_constraint_factor"])
             mp_constraints.constraints.append(keyframe_constraint)
 
+    def _add_path_following_direction_constraint(self, joint_name, mp_constraints, dir_vector):
         if mp_constraints.settings["dir_constraint_factor"] > 0.0:
-            dir_semantic_annotation = {"firstFrame": None, "lastFrame": True}
-            dir_constraint_desc = {"joint": root_joint_name, "dir_vector": dir_vector,
+            dir_semantic_annotation = {"keyframeLabel": "end"}
+            dir_constraint_desc = {"joint": joint_name, "dir_vector": dir_vector,
                                    "semanticAnnotation": dir_semantic_annotation}
+            dir_constraint_desc = self._map_label_to_canonical_keyframe(dir_constraint_desc)
             direction_constraint = DirectionConstraint(self.skeleton, dir_constraint_desc, self.precision["rot"],
                                                        mp_constraints.settings["dir_constraint_factor"])
             mp_constraints.constraints.append(direction_constraint)
 
-    def _set_keyframe_constraints(self, mp_constraints):
+    def _add_keyframe_constraints(self, mp_constraints):
         """ Extract keyframe constraints of the motion primitive name.
         """
         if self.status["motion_primitive_name"] in self.action_constraints.keyframe_constraints.keys():
@@ -183,8 +187,8 @@ class MotionPrimitiveConstraintsBuilder(object):
         for node_name in skeleton.node_name_map.keys():
             joint_position = get_cartesian_coordinates_from_quaternion(skeleton, node_name, frame)
             position_dict[node_name] = joint_position
-        frame_constraint = {"frame_constraint": position_dict,
-                            "semanticAnnotation": {"firstFrame": True, "lastFrame": None}}
+        frame_constraint = {"keyframeLabel": "start", "frame_constraint": position_dict,
+                            "semanticAnnotation": {"keyframeLabel": "start"}}
         return frame_constraint
 
     def _make_guess_for_goal_arc_length(self):
