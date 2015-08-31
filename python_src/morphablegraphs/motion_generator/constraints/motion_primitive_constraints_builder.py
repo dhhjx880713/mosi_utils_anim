@@ -64,21 +64,21 @@ class MotionPrimitiveConstraintsBuilder(object):
         mp_constraints.precision = self.action_constraints.precision
         mp_constraints.verbose = self.algorithm_config["verbose"]
         if self.action_constraints.root_trajectory is not None:
-            self._set_path_following_constraints(mp_constraints)
-            self._set_pose_constraint(mp_constraints)
+            self._add_path_following_constraints(mp_constraints)
+            self._add_pose_constraint(mp_constraints)
         if len(self.action_constraints.keyframe_constraints.keys()) > 0:
             self._set_keyframe_constraints(mp_constraints)
             # generate frame constraints for the last step based on the previous state
             # if not already done for the trajectory following
             if self.status["is_last_step"] and not mp_constraints.pose_constraint_set:
-                self._set_pose_constraint(mp_constraints)
-        self._set_trajectory_constraints(mp_constraints)
+                self._add_pose_constraint(mp_constraints)
+        self._add_trajectory_constraints(mp_constraints)
 
         mp_constraints.use_optimization = len(self.action_constraints.keyframe_constraints.keys()) > 0 \
                                           or self.status["is_last_step"]
         return mp_constraints
 
-    def _set_trajectory_constraints(self, mp_constraints):
+    def _add_trajectory_constraints(self, mp_constraints):
         for trajectory_constraint in self.action_constraints.trajectory_constraints:
             # set the previous arc length as new min arc length
             if self.status["prev_frames"] is not None:
@@ -87,7 +87,7 @@ class MotionPrimitiveConstraintsBuilder(object):
             mp_constraints.constraints.append(trajectory_constraint)
         return
 
-    def _set_pose_constraint(self, mp_constraints):
+    def _add_pose_constraint(self, mp_constraints):
         if mp_constraints.settings["transition_pose_constraint_factor"] > 0.0 and self.status["prev_frames"] is not None:
             pose_constraint_desc = self._create_frame_constraint_from_preceding_motion()
             pose_constraint = PoseConstraint(self.skeleton, pose_constraint_desc, self.precision["smooth"],
@@ -95,7 +95,7 @@ class MotionPrimitiveConstraintsBuilder(object):
             mp_constraints.constraints.append(pose_constraint)
             mp_constraints.pose_constraint_set = True
 
-    def _set_path_following_constraints(self, mp_constraints):
+    def _add_path_following_constraints(self, mp_constraints):
         print "search for new goal"
         # if it is the last step we need to reach the point exactly otherwise
         # make a guess for a reachable point on the path that we have not visited yet
@@ -109,7 +109,7 @@ class MotionPrimitiveConstraintsBuilder(object):
         mp_constraints.print_status()
         root_joint_name = self.skeleton.root
         if mp_constraints.settings["position_constraint_factor"] > 0.0:
-            keyframe_semantic_annotation = {"firstFrame": None, "lastFrame": True}
+            keyframe_semantic_annotation = {"firstFrame": None, "lastFrame": True, "keyframeLabel": "end"}
             keyframe_constraint_desc = {"joint": root_joint_name,
                                         "position": mp_constraints.step_goal,
                                         "semanticAnnotation": keyframe_semantic_annotation}
@@ -139,17 +139,38 @@ class MotionPrimitiveConstraintsBuilder(object):
                         or "orientation" in keyframe_constraint_desc_list[i].keys() \
                         or "time" in keyframe_constraint_desc_list[i].keys():
                     constraint_desc = self._map_label_to_canonical_keyframe(keyframe_constraint_desc_list[i])
-                    mp_constraints.constraints.append(PositionAndRotationConstraint(self.skeleton,
-                                                                                    constraint_desc,
-                                                                                    self.precision["pos"],
-                                                                                    mp_constraints.settings[
-                                                                                        "position_constraint_factor"]))
+                    if constraint_desc is not None:
+                        mp_constraints.constraints.append(PositionAndRotationConstraint(self.skeleton,
+                                                                                        constraint_desc,
+                                                                                        self.precision["pos"],
+                                                                                        mp_constraints.settings[
+                                                                                            "position_constraint_factor"]))
 
-    def _map_label_to_canonical_keyframe(self, key_frame_constraint):
-        key_frame_constraint = copy(key_frame_constraint)
-        key_frame_constraint["n_canonical_frames"] = self.status["n_canonical_frames"]
-        key_frame_constraint["canonical_keyframe"] = self.status["n_canonical_frames"]-1
-        return key_frame_constraint
+    def _map_label_to_canonical_keyframe(self, keyframe_constraint):
+        """ Enhances the keyframe constraint definition with a canonical keyframe set based on label
+            for a keyframe on the canonical timeline
+        :param keyframe_constraint:
+        :return: Enhanced keyframe description or None if label was not found
+        """
+        assert "keyframeLabel" in keyframe_constraint["semanticAnnotation"].keys()
+        keyframe_constraint = copy(keyframe_constraint)
+        keyframe_constraint["n_canonical_frames"] = self.status["n_canonical_frames"]
+        keyframe_label = keyframe_constraint["semanticAnnotation"]["keyframeLabel"]
+        if keyframe_label == "end":
+            keyframe_constraint["canonical_keyframe"] = self.status["n_canonical_frames"]-1
+        elif keyframe_label == "start":
+            keyframe_constraint["canonical_keyframe"] = 0
+        else:
+            annotations = self.motion_primitive_graph.node_groups[self.action_constraints.action_name].motion_primitive_annotations
+            if self.status["motion_primitive_name"] in annotations.keys() and keyframe_label in annotations[self.status["motion_primitive_name"]].keys():
+                keyframe = annotations[self.status["motion_primitive_name"]][keyframe_label]
+                if keyframe == "-1" or keyframe == "lastFrame":# TODO set standard for keyframe values
+                    keyframe = self.status["n_canonical_frames"]-1
+                keyframe_constraint["canonical_keyframe"] = float(keyframe)
+            else:
+                print "Error could not map keyframe label", keyframe_label, annotations.keys()
+                return None
+        return keyframe_constraint
 
     def _create_frame_constraint_from_preceding_motion(self):
         """ Create frame a constraint from the preceding motion.
