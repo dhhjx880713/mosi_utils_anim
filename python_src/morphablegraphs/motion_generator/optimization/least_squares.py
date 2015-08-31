@@ -1,12 +1,11 @@
 __author__ = 'erhe01'
 
 import time
-import numpy as np
-from numerical_minimizer_base import NumericalMinimizerBase
+from optimizer_base import OptimizerBase
 from scipy.optimize import leastsq
 
 
-class NumericalMinimizerLeastSquares(NumericalMinimizerBase):
+class LeastSquares(OptimizerBase):
     """ A wrapper class for the the scipy wrapper of the Levenberg-Marquardt algorithm implemented in Minpack.
         For more details on this method, see
         http://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.optimize.leastsq.html

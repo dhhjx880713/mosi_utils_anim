@@ -20,10 +20,11 @@ LOG_FILE = "log.txt"
 
 
 class GraphWalkEntry(object):
-    def __init__(self, node_key, parameters, arc_length):
+    def __init__(self, node_key, parameters, arc_length, motion_primitive_constraints=None):
         self.node_key = node_key
         self.parameters = parameters
         self.arc_length = arc_length
+        self.motion_primitive_constraints = motion_primitive_constraints
 
 
 class MotionSample(object):
@@ -43,7 +44,6 @@ class MotionSample(object):
         self.quat_frames = None
         self.step_count = 0
         self.n_frames = 0
-
         self.mg_input = {}
 
     def append_quat_frames(self, new_frames):
@@ -73,7 +73,7 @@ class MotionSample(object):
             frame of an action.
         """
         action_frame_annotation = {}
-        action_frame_annotation["startFrame"] =  start_frame
+        action_frame_annotation["startFrame"] = start_frame
         action_frame_annotation["elementaryAction"] = action_name
         action_frame_annotation["endFrame"] = end_frame
         self.frame_annotation['elementaryActionSequence'].append(action_frame_annotation)  
@@ -83,7 +83,7 @@ class MotionSample(object):
         """
         new_action_list = self._associate_actions_to_frames(self.quat_frames, canonical_key_frame_annotation, constraints, keyframe_annotations, start_frame, last_frame)
         self.action_list.update(new_action_list)
-      
+
     def _associate_actions_to_frames(self, quat_frames, time_information, constraints, keyframe_annotations, start_frame, last_frame):
         """Associates annotations to frames
         Parameters
@@ -116,9 +116,7 @@ class MotionSample(object):
                         if "annotations" in keyframe_annotations[key_label].keys():
                             key_frame_label_pairs.add((key_frame, key_label))
         return self._extract_actions_from_keyframe_annotations(key_frame_label_pairs, keyframe_annotations)
-            
 
-    
     def _extract_actions_from_keyframe_annotations(self, key_frame_label_pairs, keyframe_annotations):
         """extract the annotations for the referred keyframes
         """
@@ -164,7 +162,7 @@ class MotionSample(object):
     
               time_stamp = unicode(datetime.now().strftime("%d%m%y_%H%M%S"))
            
-              write_to_json_file(output_dir + os.sep + output_filename + ".json", self.mg_input) 
+              write_to_json_file(output_dir + os.sep + output_filename + ".json", self.mg_input)
               write_to_json_file(output_dir + os.sep + output_filename + "_actions"+".json", self.action_list)
               
               reordered_frame_annotation = self._add_events_to_frame_annotation(self.frame_annotation)

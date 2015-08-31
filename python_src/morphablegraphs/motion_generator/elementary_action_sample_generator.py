@@ -5,7 +5,7 @@ from ..motion_model import NODE_TYPE_END, NODE_TYPE_SINGLE
 from motion_primitive_sample_generator import MotionPrimitiveSampleGenerator
 from constraints.motion_primitive_constraints_builder import MotionPrimitiveConstraintsBuilder
 from constraints.time_constraints_builder import TimeConstraintsBuilder
-from minimizer.numerical_minimizer_builder import NumericalMinimizerBuilder
+from optimization.optimizer_builder import OptimizerBuilder
 from motion_sample import GraphWalkEntry
 from objective_functions import obj_time_error_sum
 
@@ -56,7 +56,7 @@ class ElementaryActionSampleGenerator(object):
         self.motion_primitive_constraints_builder = MotionPrimitiveConstraintsBuilder()
         self.motion_primitive_constraints_builder.set_algorithm_config(
             self._algorithm_config)
-        self.numerical_minimizer = NumericalMinimizerBuilder(self._algorithm_config).build_time_error_minimizer()
+        self.numerical_minimizer = OptimizerBuilder(self._algorithm_config).build_time_error_minimizer()
         self.state = ElementaryActionSampleGeneratorState(self._algorithm_config)
         return
 
@@ -186,7 +186,7 @@ class ElementaryActionSampleGenerator(object):
         else:
             new_travelled_arc_length = 0
         motion.graph_walk.append(GraphWalkEntry(next_node, motion_primitive_sample.low_dimensional_parameters,
-                                                new_travelled_arc_length))
+                                                new_travelled_arc_length, motion_primitive_constraints))
         self.state.update(next_node, next_node_type, new_travelled_arc_length)
 
     def _optimize_over_graph_walk(self, motion):

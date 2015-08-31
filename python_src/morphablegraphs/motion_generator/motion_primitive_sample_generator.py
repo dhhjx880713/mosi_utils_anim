@@ -10,7 +10,7 @@ import numpy as np
 from ..animation_data.evaluation_methods import check_sample_validity
 from statistics.constrained_gmm_builder import ConstrainedGMMBuilder
 from ..utilities.exceptions import ConstraintError, SynthesisError
-from minimizer.numerical_minimizer_builder import NumericalMinimizerBuilder
+from optimization.optimizer_builder import OptimizerBuilder
 from . import global_counter_dict
 from objective_functions import obj_spatial_error_sum, obj_spatial_error_sum_and_naturalness
 
@@ -49,7 +49,7 @@ class MotionPrimitiveSampleGenerator(object):
                                                                   self._action_constraints.start_pose, self.skeleton)
         else:
             self._constrained_gmm_builder = None
-        self.numerical_minimizer = NumericalMinimizerBuilder(self._algorithm_config).build_spatial_error_minimizer()
+        self.numerical_minimizer = OptimizerBuilder(self._algorithm_config).build_spatial_error_minimizer()
 
     def generate_motion_primitive_sample_from_constraints(self, motion_primitive_constraints, prev_motion):
         """Calls get_optimal_parameters and backpojects the results.
@@ -131,7 +131,7 @@ class MotionPrimitiveSampleGenerator(object):
                                                              prev_frames,
                                                              prev_parameters)
             close_to_optimum = True
-        if not self.use_transition_model and use_optimization and not close_to_optimum:
+        if True:# not self.use_transition_model and use_optimization and not close_to_optimum
             data = graph_node, motion_primitive_constraints, \
                    prev_frames, self._optimization_settings["error_scale_factor"], \
                    self._optimization_settings["quality_scale_factor"]

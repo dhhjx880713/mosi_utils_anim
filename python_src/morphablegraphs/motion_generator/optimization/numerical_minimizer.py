@@ -7,12 +7,12 @@ Wrapper around scipy minimize and error function definition.
 
 @author: erhe01,hadu01
 """
-from numerical_minimizer_base import NumericalMinimizerBase
+from optimizer_base import OptimizerBase
 import time
 from scipy.optimize import minimize
 
 
-class NumericalMinimizerScipy(NumericalMinimizerBase):
+class NumericalMinimizer(OptimizerBase):
     """ A wrapper class for Scipy minimize module that implements different gradient descent and
         derivative free optimization methods.
         Please see the official documentation of that module for the supported optimization methods:
