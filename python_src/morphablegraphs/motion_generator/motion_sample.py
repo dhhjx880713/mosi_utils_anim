@@ -20,10 +20,12 @@ LOG_FILE = "log.txt"
 
 
 class GraphWalkEntry(object):
-    def __init__(self, node_key, parameters, arc_length, motion_primitive_constraints=None):
+    def __init__(self, node_key, parameters, arc_length, start_frame, end_frame, motion_primitive_constraints=None):
         self.node_key = node_key
         self.parameters = parameters
         self.arc_length = arc_length
+        self.start_frame = start_frame
+        self.end_frame = end_frame
         self.motion_primitive_constraints = motion_primitive_constraints
 
 
