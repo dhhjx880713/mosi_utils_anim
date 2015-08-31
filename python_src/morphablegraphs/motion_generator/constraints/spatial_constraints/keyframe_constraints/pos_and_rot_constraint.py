@@ -11,7 +11,7 @@ from .....animation_data.motion_editing import get_cartesian_coordinates_from_qu
                                     quaternion_to_euler
 from python_src.morphablegraphs.external.transformations import rotation_matrix
 from keyframe_constraint_base import KeyframeConstraintBase
-
+from .. import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
 
 RELATIVE_HUERISTIC_RANGE = 0.05  # used for setting the search range relative to the number of frames of motion primitive
 CONSTRAINT_CONFLICT_ERROR = 100000  # returned when conflicting constraints were set
@@ -26,6 +26,7 @@ class PositionAndRotationConstraint(KeyframeConstraintBase):
     """
     def __init__(self, skeleton, constraint_desc, precision, weight_factor=1.0):
         super(PositionAndRotationConstraint, self).__init__(constraint_desc, precision, weight_factor)
+        self.constraint_type = SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
         self.skeleton = skeleton
         self.joint_name = constraint_desc["joint"]
         if "position" in constraint_desc.keys():
@@ -41,9 +42,8 @@ class PositionAndRotationConstraint(KeyframeConstraintBase):
             self.frame_range = RELATIVE_HUERISTIC_RANGE*self.n_canonical_frames
         else:
             self.frame_range = 0
-        self.canonical_frame = constraint_desc["canonical_keyframe"]
-        self.start_keyframe = max(self.canonical_frame - self.frame_range, 0)
-        self.stop_keyframe = min(self.canonical_frame + self.frame_range, self.n_canonical_frames)
+        self.start_keyframe = max(self.canonical_keyframe - self.frame_range, 0)
+        self.stop_keyframe = min(self.canonical_keyframe + self.frame_range, self.n_canonical_frames)
         self.rotation_axes = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
 
     def evaluate_motion_sample(self, aligned_quat_frames):
