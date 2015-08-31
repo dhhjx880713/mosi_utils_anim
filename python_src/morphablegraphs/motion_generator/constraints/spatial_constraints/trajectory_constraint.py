@@ -4,6 +4,7 @@ import numpy as np
 from splines.parameterized_spline import ParameterizedSpline
 from spatial_constraint_base import SpatialConstraintBase
 from ....animation_data.motion_editing import get_cartesian_coordinates_from_quaternion
+from . import SPATIAL_CONSTRAINT_TYPE_TRAJECTORY
 
 TRAJECTORY_DIM = 3  # spline in cartesian space
 
@@ -12,6 +13,8 @@ class TrajectoryConstraint(ParameterizedSpline, SpatialConstraintBase):
     def __init__(self, joint_name, control_points, min_arc_length, unconstrained_indices, skeleton, precision, weight_factor=1.0):
         ParameterizedSpline.__init__(self, control_points, TRAJECTORY_DIM)
         SpatialConstraintBase.__init__(self, precision, weight_factor)
+
+        self.constraint_type = SPATIAL_CONSTRAINT_TYPE_TRAJECTORY
         self.joint_name = joint_name
         self.skeleton = skeleton
         self.min_arc_length = min_arc_length

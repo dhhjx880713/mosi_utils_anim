@@ -11,6 +11,7 @@ from .....animation_data.motion_editing import convert_quaternion_frame_to_carte
     transform_point_cloud,\
     calculate_point_cloud_distance
 from keyframe_constraint_base import KeyframeConstraintBase
+from .. import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE
 
 
 class PoseConstraint(KeyframeConstraintBase):
@@ -19,6 +20,7 @@ class PoseConstraint(KeyframeConstraintBase):
         super(PoseConstraint, self).__init__(constraint_desc, precision, weight_factor)
         self.skeleton = skeleton
         self.pose_constraint = constraint_desc["frame_constraint"]
+        self.constraint_type = SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE
         return
 
     def evaluate_motion_sample(self, aligned_quat_frames):
@@ -44,7 +46,7 @@ class PoseConstraint(KeyframeConstraintBase):
 
         # get point cloud of first frame
         point_cloud = convert_quaternion_frame_to_cartesian_frame(
-            self.skeleton, aligned_quat_frames[0])
+            self.skeleton, aligned_quat_frames[self.canonical_keyframe])
 
         constraint_point_cloud = []
         for joint in self.skeleton.node_name_map.keys():
