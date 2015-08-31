@@ -20,7 +20,6 @@ class MotionPrimitiveNodeGroupLoader(object):
         self.elementary_action_directory = None
         self.has_transition_models = False
         self.meta_information = None
-        self.annotation_map = {}
         self.start_states = []
         self.end_states = []
         self.motion_primitive_annotations = {}
@@ -82,7 +81,7 @@ class MotionPrimitiveNodeGroupLoader(object):
         #load morphable models
         temp_file_list = []#for files containing additional information that require the full graph to be constructed first
         meta_information = None
-        motion_primitive_node_group.annotation_map = {}
+        motion_primitive_node_group.label_to_motion_primitive_map = {}
         for root, dirs, files in os.walk(self.elementary_action_directory):
             for file_name in files:
                 if file_name == META_INFORMATION_FILE_NAME:

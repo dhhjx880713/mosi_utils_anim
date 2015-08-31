@@ -10,7 +10,7 @@ from spatial_constraints.trajectory_constraint import TrajectoryConstraint
 
 
 class ElementaryActionConstraintsBuilder(object):
-    """Generates ElementaryActionConstraints instances based in an MGINputFileReader.
+    """Generates ElementaryActionConstraints instances based in an MGInputFileReader.
     
     Parameters
     ----------
@@ -93,8 +93,6 @@ class ElementaryActionConstraintsBuilder(object):
         precision = 1.0
         control_points, unconstrained_indices = self.mg_input.get_trajectory_from_constraint_list(self.current_action_index, joint_name, scale_factor)
         if control_points is not None and unconstrained_indices is not None:
-            #print self.start_pose
-            #print "§§§§§§§§§§§§§§§§§§§§§§§", control_points, unconstrained_indices
             trajectory_constraint = TrajectoryConstraint(joint_name, control_points, 0, unconstrained_indices, self.motion_primitive_graph.skeleton, precision)
             return trajectory_constraint
         else:

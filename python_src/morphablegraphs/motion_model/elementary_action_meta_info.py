@@ -9,7 +9,7 @@ class ElementaryActionMetaInfo(object):
     def __init__(self, elementary_action_name, elementary_action_directory):
         self.elementary_action_name = elementary_action_name
         self.elementary_action_directory = elementary_action_directory
-        self.annotation_map = dict()
+        self.label_to_motion_primitive_map = dict()
         self.start_states = list()
         self.end_states = list()
         self.motion_primitive_annotations = dict()
@@ -25,16 +25,16 @@ class ElementaryActionMetaInfo(object):
         self.start_states = self.meta_information["start_states"]
         self.end_states = self.meta_information["end_states"]
         self.motion_primitive_annotations = self.meta_information["annotations"]
-        self._create_semantic_annotation()
+        self._create_label_to_motion_primitive_map()
 
-    def _create_semantic_annotation(self):
+    def _create_label_to_motion_primitive_map(self):
         """Create a map from semantic label to motion primitive
         """
         for motion_primitive in self.meta_information["annotations"].keys():
             if motion_primitive != "all_primitives":
                 motion_primitve_annotations = self.meta_information["annotations"][motion_primitive]
                 for label in motion_primitve_annotations.keys():
-                    self.annotation_map[label] = motion_primitive
+                    self.label_to_motion_primitive_map[label] = motion_primitive
 
     def get_random_start_state(self):
         """ Returns the name of a random start state. """

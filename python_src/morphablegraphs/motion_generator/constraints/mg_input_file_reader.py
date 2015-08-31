@@ -104,7 +104,7 @@ class MGInputFileReader(object):
          constraints = {}#dict of lists
          #iterate over keyframe labels
          for label in keyframe_constraints.keys():
-            state = node_group.annotation_map[label]
+            state = node_group.label_to_motion_primitive_map[label]
             time_information = node_group.motion_primitive_annotations[state][label]
             constraints[state] = []
             # iterate over joints constrained at that keyframe
@@ -113,7 +113,7 @@ class MGInputFileReader(object):
                 for keyframe_constraint in keyframe_constraints[label][joint_name]:
                     # create constraint definition usable by the algorithm
                     # and add it to the list of constraints for that state
-                    constraint_desc = self._extract_keyframe_constraint(label, joint_name, keyframe_constraint, time_information)
+                    constraint_desc = self._create_keyframe_constraint(label, joint_name, keyframe_constraint, time_information)
                     constraints[state].append(constraint_desc)
          return constraints
 
@@ -146,7 +146,7 @@ class MGInputFileReader(object):
           access as keyframe_constraints["label"]["joint"][index]
         """
         keyframe_constraints = {}
-        annotations = node_group.annotation_map.keys()
+        annotations = node_group.label_to_motion_primitive_map.keys()
         for label in annotations:
             # print "extract constraints for annotation",label
             keyframe_constraints[label] = self._extract_keyframe_constraints_for_label(constraint_list, label)
@@ -162,7 +162,7 @@ class MGInputFileReader(object):
                     return c["trajectoryConstraints"]
         return None
 
-    def _extract_keyframe_constraint(self, keyframe_label, joint_name, constraint, time_information):
+    def _create_keyframe_constraint(self, keyframe_label, joint_name, constraint, time_information):
         """ Creates a dict containing all properties stated explicitly or implicitly in the input constraint
         Parameters
         ----------
@@ -188,7 +188,7 @@ class MGInputFileReader(object):
         if "position" in constraint.keys():
              position = constraint["position"]
         if "orientation" in constraint.keys():
-            orientation =constraint["orientation"]
+            orientation = constraint["orientation"]
         if "time" in constraint.keys():
             time = constraint["time"]
         #check if last or fist frame from annotation
@@ -203,10 +203,10 @@ class MGInputFileReader(object):
             semantic_annotation = {}
         semantic_annotation["firstFrame"] = first_frame
         semantic_annotation["lastFrame"] = last_frame
-        semantic_annotation["keyframe_label"] = keyframe_label
-        constraint_desc = {"joint":joint_name,
-                           "position":position,
-                           "orientation":orientation,
+        semantic_annotation["keyframeLabel"] = keyframe_label
+        constraint_desc = {"joint": joint_name,
+                           "position": position,
+                           "orientation": orientation,
                            "time": time,
                            "semanticAnnotation": semantic_annotation}
         return constraint_desc
