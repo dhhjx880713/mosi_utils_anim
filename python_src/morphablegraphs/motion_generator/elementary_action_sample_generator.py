@@ -15,12 +15,13 @@ class ElementaryActionSampleGeneratorState(object):
             self.start_step = -1
             self.prev_action_name = None
             self.prev_mp_name = None
-            self.start_frame = -1
+            self.action_start_frame = -1
             self.current_node = None
             self.current_node_type = ""
             self.temp_step = 0
             self.travelled_arc_length = 0.0
             self.debug_max_step = algorithm_config["debug_max_step"]
+            self.step_start_frame = 0
 
         def initialize_from_previous_motion(self, motion):
             self.start_step = motion.step_count
@@ -30,7 +31,7 @@ class ElementaryActionSampleGeneratorState(object):
             else:
                 self.prev_action_name = None
                 self.prev_mp_name = None
-            self.start_frame = motion.n_frames
+            self.action_start_frame = motion.n_frames
             self.current_node = None
             self.current_node_type = ""
             self.temp_step = 0
@@ -42,10 +43,11 @@ class ElementaryActionSampleGeneratorState(object):
                    (self.debug_max_step > -1 and self.start_step + \
                     self.temp_step > self.debug_max_step)
 
-        def update(self, next_node, next_node_type, new_travelled_arc_length):
+        def update(self, next_node, next_node_type, new_travelled_arc_length, new_step_start_frame):
             self.current_node = next_node
             self.current_node_type = next_node_type
             self.travelled_arc_length = new_travelled_arc_length
+            self.step_start_frame = new_step_start_frame
             self.temp_step += 1
 
 
@@ -171,9 +173,9 @@ class ElementaryActionSampleGenerator(object):
                                            motion_primitive_sample, motion_primitive_constraints, motion)
 
         motion.step_count += self.state.temp_step
-        motion.update_frame_annotation(self.action_constraints.action_name, self.state.start_frame, motion.n_frames)
+        motion.update_frame_annotation(self.action_constraints.action_name, self.state.action_start_frame, motion.n_frames)
         if self._algorithm_config["use_global_optimization"]:
-            self._optimize_over_graph_walk(motion.graph_walk)
+            self._optimize_over_graph_walk(motion)
         print "reached end of elementary action", self.action_constraints.action_name
         return True
 
@@ -186,11 +188,13 @@ class ElementaryActionSampleGenerator(object):
         else:
             new_travelled_arc_length = 0
         motion.graph_walk.append(GraphWalkEntry(next_node, motion_primitive_sample.low_dimensional_parameters,
-                                                new_travelled_arc_length, motion_primitive_constraints))
-        self.state.update(next_node, next_node_type, new_travelled_arc_length)
+                                                new_travelled_arc_length, self.state.step_start_frame,
+                                                motion.n_frames, motion_primitive_constraints))
+        self.state.update(next_node, next_node_type, new_travelled_arc_length, motion.n_frames)
 
     def _optimize_over_graph_walk(self, motion):
-        #TODO planned feature
+        #TODO test optimization
         time_constraints = TimeConstraintsBuilder(self.action_constraints, motion, self.state.start_step).build()
-        data = (self.motion_primitive_graph, motion, time_constraints)
-        self.numerical_minimizer.set_objective_function_parameters(data)
+        if time_constraints is not None:
+            data = (self.motion_primitive_graph, motion, time_constraints)
+            self.numerical_minimizer.set_objective_function_parameters(data)
