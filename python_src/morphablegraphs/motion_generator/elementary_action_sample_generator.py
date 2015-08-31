@@ -187,7 +187,8 @@ class ElementaryActionSampleGenerator(object):
             new_travelled_arc_length = self._update_travelled_arc_length(motion.quat_frames, prev_graph_walk, self.state.travelled_arc_length)
         else:
             new_travelled_arc_length = 0
-        motion.graph_walk.append(GraphWalkEntry(next_node, motion_primitive_sample.low_dimensional_parameters,
+        motion.graph_walk.append(GraphWalkEntry(self.motion_primitive_graph, next_node,
+                                                motion_primitive_sample.low_dimensional_parameters,
                                                 new_travelled_arc_length, self.state.step_start_frame,
                                                 motion.n_frames, motion_primitive_constraints))
         self.state.update(next_node, next_node_type, new_travelled_arc_length, motion.n_frames)
@@ -198,4 +199,6 @@ class ElementaryActionSampleGenerator(object):
         if time_constraints is not None:
             data = (self.motion_primitive_graph, motion, time_constraints)
             self.numerical_minimizer.set_objective_function_parameters(data)
-            optimal_parameters = self.numerical_minimizer.run(time_constraints.get_initial_guess(motion))
+            initial_guess = time_constraints.get_initial_guess(motion)
+            print "initial_guess", initial_guess, time_constraints.constraint_list
+            optimal_parameters = self.numerical_minimizer.run(initial_guess)
