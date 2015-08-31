@@ -21,16 +21,18 @@ class TimeConstraints(object):
         time_functions = []
         offset = 0
         for step in motion.graph_walk[self.start_step:]:
-            gamma = s[offset:step.n_time_components]
+            gamma = s[offset:offset+step.n_time_components]
             time_function = motion_primitive_graph.nodes[step.node_key]._inverse_temporal_pca(gamma)
             time_functions.append(time_function)
             offset += step.n_time_components
+        return time_functions
 
     def calculate_constraint_error(self, time_functions, time_constraint, frame_time):
         constrained_step_index, constrained_keyframe_index, desired_time = time_constraint
         n_frames = self.start_keyframe #when it starts the first step start_keyframe would be 0
         temp_step_index = 0
         for time_function in time_functions: # look back n_steps
+            print "time func", temp_step_index, constrained_step_index
             if temp_step_index < constrained_step_index:# go to the graph walk entry we want to constrain
                 #simply add the number of frames
                 n_frames += len(time_function)
@@ -40,12 +42,14 @@ class TimeConstraints(object):
                 mapped_key_frame = min(time_function, key=lambda x: abs(x-constrained_keyframe_index))
                 n_frames += mapped_key_frame
                 total_seconds = n_frames * frame_time
-                return abs(desired_time-total_seconds)
+                error = abs(desired_time-total_seconds)
+                print "time error", error, total_seconds, desired_time
+                return error
         return 10000
 
     def get_initial_guess(self, motion):
         parameters = []
         for step in motion.graph_walk[self.start_step:]:
-            parameters += step.parameters.tolist()
+            parameters += step.parameters[step.n_spatial_components:].tolist()
         return parameters
 

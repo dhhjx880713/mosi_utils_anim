@@ -18,7 +18,7 @@ class TimeConstraintsBuilder(object):
         self.n_time_constraints = 0
         self._extract_time_constraints_from_graph_walk(motion.graph_walk, index_range)
 
-    def _extract_time_constraints_from_graph_walk_entry(self, step_index, graph_walk_entry):
+    def _extract_time_constraints_from_graph_walk_entry(self, constrained_step_count, graph_walk_entry):
         """Extract time constraints on any keyframe constraints used during this graph walk step
         :param step_index: int
         :param graph_walk_entry: GraphWalkEntry
@@ -27,15 +27,17 @@ class TimeConstraintsBuilder(object):
         if graph_walk_entry.motion_primitive_constraints is not None:
             for constraint in graph_walk_entry.motion_primitive_constraints.constraints:
                 if constraint.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION and constraint.desired_time is not None:
-                    time_constraint = step_index, constraint.canonical_keyframe, constraint.desired_time
+                    time_constraint = constrained_step_count, constraint.canonical_keyframe, constraint.desired_time
                     self.time_constraint_list.append(time_constraint)
                     self.n_time_constraints += 1
 
     def _extract_time_constraints_from_graph_walk(self, graph_walk, index_range):
         self.n_time_constraints = 0
         self.time_constraint_list = []
+        constrained_step_count = 0
         for step_index in index_range:
-            self._extract_time_constraints_from_graph_walk_entry(step_index, graph_walk[step_index])
+            self._extract_time_constraints_from_graph_walk_entry(constrained_step_count, graph_walk[step_index])
+            constrained_step_count += 1
 
     def build(self):
         if self.n_time_constraints > 0:

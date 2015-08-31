@@ -27,6 +27,7 @@ class GraphWalkEntry(object):
         self.start_frame = start_frame
         self.end_frame = end_frame
         self.motion_primitive_constraints = motion_primitive_constraints
+        self.n_spatial_components = motion_primitive_graph.nodes[node_key].s_pca["n_components"]
         self.n_time_components = motion_primitive_graph.nodes[node_key].t_pca["n_components"]
 
 
