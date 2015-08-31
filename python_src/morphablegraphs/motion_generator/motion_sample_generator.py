@@ -14,6 +14,7 @@ import time
 import numpy as np
 from ..utilities.io_helper_functions import load_json_file
 from ..motion_model.motion_primitive_graph_loader import MotionPrimitiveGraphLoader
+from constraints.mg_input_file_reader import MGInputFileReader
 from constraints.elementary_action_constraints_builder import ElementaryActionConstraintsBuilder
 from elementary_action_sample_generator import ElementaryActionSampleGenerator
 from . import global_counter_dict
@@ -85,7 +86,8 @@ class MotionSampleGenerator(object):
         if type(mg_input) != dict:
             mg_input = load_json_file(mg_input)
         start = time.clock()
-        elementary_action_constraints_builder = ElementaryActionConstraintsBuilder(mg_input, self.motion_primitive_graph)
+        input_file_reader = MGInputFileReader(mg_input)
+        elementary_action_constraints_builder = ElementaryActionConstraintsBuilder(input_file_reader, self.motion_primitive_graph)
         motion = self._generate_motion_from_constraints(elementary_action_constraints_builder)
         seconds = time.clock() - start
         self.print_runtime_statistics(seconds)
@@ -115,7 +117,7 @@ class MotionSampleGenerator(object):
         motion = MotionSample(self.motion_primitive_graph.skeleton,
                               elementary_action_constraints_builder.start_pose,
                               self._algorithm_config)
-        motion.mg_input = elementary_action_constraints_builder.mg_input
+        motion.mg_input = elementary_action_constraints_builder.get_mg_input_file()
 
         action_constraints = elementary_action_constraints_builder.get_next_elementary_action_constraints()
         while action_constraints is not None:

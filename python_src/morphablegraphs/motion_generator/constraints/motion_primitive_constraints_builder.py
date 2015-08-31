@@ -88,8 +88,7 @@ class MotionPrimitiveConstraintsBuilder(object):
         return
 
     def _set_pose_constraint(self, mp_constraints):
-        if mp_constraints.settings["transition_pose_constraint_factor"] > 0.0 and self.status[
-            "prev_frames"] is not None:
+        if mp_constraints.settings["transition_pose_constraint_factor"] > 0.0 and self.status["prev_frames"] is not None:
             pose_constraint_desc = self._create_frame_constraint_from_preceding_motion()
             pose_constraint = PoseConstraint(self.skeleton, pose_constraint_desc, self.precision["smooth"],
                                              mp_constraints.settings["transition_pose_constraint_factor"])
