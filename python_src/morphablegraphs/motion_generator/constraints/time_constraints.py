@@ -42,3 +42,10 @@ class TimeConstraints(object):
                 total_seconds = n_frames * frame_time
                 return abs(desired_time-total_seconds)
         return 10000
+
+    def get_initial_guess(self, motion):
+        parameters = []
+        for step in motion.graph_walk[self.start_step:]:
+            parameters += step.parameters.tolist()
+        return parameters
+

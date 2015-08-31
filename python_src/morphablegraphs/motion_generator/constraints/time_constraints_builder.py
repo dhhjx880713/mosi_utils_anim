@@ -38,9 +38,10 @@ class TimeConstraintsBuilder(object):
             self._extract_time_constraints_from_graph_walk_entry(step_index, graph_walk[step_index])
 
     def build(self):
-        if self.n_time_constraint_list > 0:
+        if self.n_time_constraints > 0:
             print "Found", self.n_time_constraints, "time constraints"
             return TimeConstraints(self.start_step, self.start_keyframe, self.time_constraint_list)
         else:
             print "Did not find time constraints"
             return None
+

@@ -198,3 +198,4 @@ class ElementaryActionSampleGenerator(object):
         if time_constraints is not None:
             data = (self.motion_primitive_graph, motion, time_constraints)
             self.numerical_minimizer.set_objective_function_parameters(data)
+            optimal_parameters = self.numerical_minimizer.run(time_constraints.get_initial_guess(motion))
