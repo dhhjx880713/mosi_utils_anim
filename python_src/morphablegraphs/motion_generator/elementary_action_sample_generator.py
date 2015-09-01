@@ -7,7 +7,6 @@ from constraints.motion_primitive_constraints_builder import MotionPrimitiveCons
 from constraints.time_constraints_builder import TimeConstraintsBuilder
 from optimization.optimizer_builder import OptimizerBuilder
 from graph_walk import GraphWalkEntry
-from objective_functions import obj_time_error_sum
 
 
 class ElementaryActionSampleGeneratorState(object):
@@ -112,11 +111,6 @@ class ElementaryActionSampleGenerator(object):
             new_travelled_arc_length = self.action_constraints.root_trajectory.full_arc_length
         return new_travelled_arc_length
 
-    def _update_motion(self, node_key, quat_frames, motion_primitive_constraints, graph_walk):
-        """ Concatenate frames to motion and apply smoothing """
-
-
-
     def _get_next_motion_primitive_constraints(self, next_node, next_node_type, graph_walk):
         try:
             is_last_step = (next_node_type == NODE_TYPE_END)
@@ -172,6 +166,7 @@ class ElementaryActionSampleGenerator(object):
         return True
 
     def _transition_to_next_state(self, next_node, next_node_type, motion_primitive_sample, motion_primitive_constraints, graph_walk):
+        """ Concatenate frames to motion and apply smoothing """
         prev_steps = graph_walk.steps
         graph_walk.append_quat_frames(motion_primitive_sample.get_motion_vector(False))
 
@@ -183,13 +178,6 @@ class ElementaryActionSampleGenerator(object):
                                         motion_primitive_sample.low_dimensional_parameters,
                                         new_travelled_arc_length, self.state.step_start_frame,
                                         graph_walk.get_num_of_frames(), motion_primitive_constraints)
-
-        #canonical_keyframe_labels = self.node_group.get_canonical_keyframe_labels(next_node[1])
-        #new_step.set_action_list(graph_walk.get_quat_frames(), motion_primitive_constraints.constraints,
-        #                         self.action_constraints.keyframe_annotations,
-        #                         canonical_keyframe_labels,
-        #                         graph_walk.get_num_of_frames(),
-        #                         graph_walk.get_num_of_frames() - 1)
         graph_walk.steps.append(new_step)
         self.state.update(next_node, next_node_type, new_travelled_arc_length, graph_walk.get_num_of_frames())
 
@@ -203,5 +191,5 @@ class ElementaryActionSampleGenerator(object):
             initial_guess = time_constraints.get_initial_guess(graph_walk)
             print "initial_guess", initial_guess, time_constraints.constraint_list
             optimal_parameters = self.numerical_minimizer.run(initial_guess)
-            graph_walk.update_time_parameters(optimal_parameters.tolist(), start_step)
+            graph_walk.update_time_parameters(optimal_parameters, start_step)
             graph_walk.convert_to_motion(start_step)
