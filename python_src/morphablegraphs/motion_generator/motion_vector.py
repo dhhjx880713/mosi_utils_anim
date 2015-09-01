@@ -47,3 +47,9 @@ class MotionVector(object):
 
     def has_frames(self):
          return self.quat_frames is not None
+
+    def clear(self, end_frame=0):
+        if end_frame == 0:
+            self.quat_frames = None
+        else:
+            self.quat_frames = self.quat_frames[:end_frame]

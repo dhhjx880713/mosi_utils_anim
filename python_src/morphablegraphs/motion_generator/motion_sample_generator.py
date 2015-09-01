@@ -114,7 +114,7 @@ class MotionSampleGenerator(object):
             for key in self._algorithm_config.keys():
                 print key, self._algorithm_config[key]
     
-        graph_walk = GraphWalk(self.motion_primitive_graph.skeleton,
+        graph_walk = GraphWalk(self.motion_primitive_graph,
                               elementary_action_constraints_builder.start_pose,
                               self._algorithm_config)
         graph_walk.mg_input = elementary_action_constraints_builder.get_mg_input_file()

@@ -10,6 +10,7 @@ class KeyframeConstraintBase(SpatialConstraintBase):
         assert "canonical_keyframe" in constraint_desc.keys()
         super(KeyframeConstraintBase, self).__init__(precision, weight_factor)
         self.semantic_annotation = constraint_desc["semanticAnnotation"]
+        self.keyframe_label = constraint_desc["semanticAnnotation"]["keyframeLabel"]
         self.canonical_keyframe = constraint_desc["canonical_keyframe"]
         if "time" in constraint_desc.keys() and constraint_desc["time"] is not None:
             print constraint_desc["time"]

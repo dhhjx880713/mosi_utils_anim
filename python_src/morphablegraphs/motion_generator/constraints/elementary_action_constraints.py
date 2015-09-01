@@ -19,6 +19,7 @@ class ElementaryActionConstraints(object):
         self.keyframe_constraints = None
         self.precision = {"pos": 1.0, "rot": 1.0, "smooth": 1.0}
         self._initialized = False
+        self.keyframe_event_list = dict()
 
     def get_node_group(self):
         return self.motion_primitive_graph.node_groups[self.action_name]
