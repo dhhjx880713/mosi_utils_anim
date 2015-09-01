@@ -5,18 +5,18 @@ from spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
 
 
 class TimeConstraintsBuilder(object):
-    def __init__(self, action_constraints, motion, start_step):
+    def __init__(self, action_constraints, graph_walk, start_step):
         self.action_constraints = action_constraints
-        self.motion = motion
+        self.graph_walk = graph_walk
         self.start_step = start_step
         if start_step > 0:
-            self.start_keyframe = motion.graph_walk[start_step-1].end_frame
+            self.start_keyframe = graph_walk.steps[start_step-1].end_frame
         else:
             self.start_keyframe = 0
-        index_range = range(self.start_step, len(motion.graph_walk))
+        index_range = range(self.start_step, len(graph_walk.steps))
         self.time_constraint_list = []
         self.n_time_constraints = 0
-        self._extract_time_constraints_from_graph_walk(motion.graph_walk, index_range)
+        self._extract_time_constraints_from_graph_walk(graph_walk.steps, index_range)
 
     def _extract_time_constraints_from_graph_walk_entry(self, constrained_step_count, graph_walk_entry):
         """Extract time constraints on any keyframe constraints used during this graph walk step

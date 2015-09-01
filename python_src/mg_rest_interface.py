@@ -52,20 +52,20 @@ class MGInputHandler(tornado.web.RequestHandler):
 
         # start algorithm if predefined keys were found
         if "elementaryActions" in mg_input.keys():
-            motion = self.application.generate_motion(mg_input)
+            graph_walk = self.application.generate_motion(mg_input)
 
-            self._handle_result(mg_input, motion)
+            self._handle_result(mg_input, graph_walk)
         else:
             print mg_input
             error_string = "Error: Did not find expected keys in the input data."
             self.write(error_string)
 
-    def _handle_result(self, mg_input, motion):
+    def _handle_result(self, mg_input, graph_walk):
         """Sends the result back as an answer to a post request.
         """
-        if motion.quat_frames is not None:
+        if graph_walk.motion_vector.has_frames():
             if self.application.use_file_output_mode:
-                motion.export(self.application.service_config["output_dir"],
+                graph_walk.export_motion(self.application.service_config["output_dir"],
                               self.application.service_config[
                                   "output_filename"],
                               add_time_stamp=False, write_log=False)
@@ -73,12 +73,12 @@ class MGInputHandler(tornado.web.RequestHandler):
             else:
                 bvh_writer = get_bvh_writer(
                     self.application.motion_generator.morphable_graph.skeleton,
-                    motion.quat_frames)
+                    graph_walk.get_quat_frames())
                 bvh_string = bvh_writer.generate_bvh_string()
                 result_list = [
                     bvh_string,
-                    motion.frame_annotation,
-                    motion.action_list]
+                    graph_walk.frame_annotation,
+                    graph_walk.action_list]
                 self.write(json.dumps(result_list))  # send result back
         else:
             error_string = "Error: Failed to generate motion data."

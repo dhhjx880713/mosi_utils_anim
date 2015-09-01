@@ -51,14 +51,14 @@ class MotionPrimitiveSampleGenerator(object):
             self._constrained_gmm_builder = None
         self.numerical_minimizer = OptimizerBuilder(self._algorithm_config).build_spatial_error_minimizer()
 
-    def generate_motion_primitive_sample_from_constraints(self, motion_primitive_constraints, prev_motion):
+    def generate_motion_primitive_sample_from_constraints(self, motion_primitive_constraints, graph_walk):
         """Calls get_optimal_parameters and backpojects the results.
         
         Parameters
         ----------
         *motion_primitive_constraints: MotionPrimitiveConstraints
             Constraints specific for the current motion primitive.
-        *prev_motion: AnnotatedMotion
+        *graph_walk: GraphWalk
             Annotated motion with information on the graph walk.
             
         Returns
@@ -66,9 +66,9 @@ class MotionPrimitiveSampleGenerator(object):
         * motion_primitive_sample: MotionPrimitiveSample
         """
         mp_name = motion_primitive_constraints.motion_primitive_name
-        if len(prev_motion.graph_walk) > 0:
-            prev_mp_name = prev_motion.graph_walk[-1].node_key[1]
-            prev_parameters = prev_motion.graph_walk[-1].parameters
+        if len(graph_walk.steps) > 0:
+            prev_mp_name = graph_walk.steps[-1].node_key[1]
+            prev_parameters = graph_walk.steps[-1].parameters
 
         else:
             prev_mp_name = ""
@@ -80,12 +80,12 @@ class MotionPrimitiveSampleGenerator(object):
                 low_dimensional_parameters = self.get_optimal_motion_primitive_parameters(mp_name,
                                                                                           motion_primitive_constraints,
                                                                                           prev_mp_name=prev_mp_name,
-                                                                                          prev_frames=prev_motion.quat_frames,
+                                                                                          prev_frames=graph_walk.get_quat_frames(),
                                                                                           prev_parameters=prev_parameters,
                                                                                           use_optimization=use_optimization)
             except ConstraintError as exception:
                 print "Exception", exception.message
-                raise SynthesisError(prev_motion.quat_frames, exception.bad_samples)
+                raise SynthesisError(graph_walk.get_quat_frames(), exception.bad_samples)
         else: # no constraints were given
                 print "motion primitive", mp_name
                 low_dimensional_parameters = self._get_random_parameters(mp_name, prev_mp_name, prev_parameters)
@@ -115,8 +115,6 @@ class MotionPrimitiveSampleGenerator(object):
         * parameters : np.ndarray
             Low dimensional parameters for the morphable model
         """
-
-
         graph_node = self._motion_primitive_graph.nodes[(self.action_name, mp_name)]
         if self.activate_cluster_search and graph_node.cluster_tree is not None:
             parameters = self._search_for_best_sample_in_cluster_tree(graph_node,

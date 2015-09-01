@@ -8,13 +8,10 @@ Created on Tue Jul 14 18:39:41 2015
 import os
 from datetime import datetime
 from copy import copy
-from ..animation_data.motion_editing import DEFAULT_SMOOTHING_WINDOW_SIZE,\
-                                          fast_quat_frames_alignment,\
-                                          transform_quaternion_frames
 from constraints.spatial_constraints.keyframe_constraints.keyframe_constraint_base import KeyframeConstraintBase
 from ..utilities.io_helper_functions import write_to_json_file,\
-                                          write_to_logfile, \
-                                          export_quat_frames_to_bvh_file
+                                          write_to_logfile
+from motion_vector import MotionVector
 
 LOG_FILE = "log.txt"
 
@@ -31,52 +28,33 @@ class GraphWalkEntry(object):
         self.n_time_components = motion_primitive_graph.nodes[node_key].t_pca["n_components"]
 
 
-class MotionSample(object):
-    """ Product of the MotionGenerate class. Contains quaternion frames,
-        the graph walk used to generate the frames, a mapping of frame segments 
+class GraphWalk(object):
+    """ Product of the MotionGenerate class. Contains the graph walk used to generate the frames,
+        a mapping of frame segments
         to elementary actions and a list of events for certain frames.
     """
     def __init__(self, skeleton, start_pose, algorithm_config):
+        self.steps = []
         self.skeleton = skeleton
-        self.start_pose = start_pose
-        self.apply_smoothing = algorithm_config["apply_smoothing"]
-        self.smoothing_window = algorithm_config["smoothing_window"]
-        self.action_list = {}
+        self.action_list = dict()
         self.frame_annotation = dict()
         self.frame_annotation['elementaryActionSequence'] = []
-        self.graph_walk = []
-        self.quat_frames = None
         self.step_count = 0
-        self.n_frames = 0
-        self.mg_input = {}
+        self.mg_input = dict()
+        self.motion_vector = MotionVector(algorithm_config)
+        self.motion_vector.start_pose = start_pose
 
-    def append_quat_frames(self, new_frames):
-        """Align quaternion frames to previous frames
-           
-        Parameters
-        ----------
-        * new_frames: list
-            A list of quaternion frames
-        """
-        if self.quat_frames is not None:
-            self.quat_frames = fast_quat_frames_alignment(self.quat_frames,
-                                                          new_frames,
-                                                          self.apply_smoothing,
-                                                          self.smoothing_window)                                              
-        elif self.start_pose is not None:
-            self.quat_frames = transform_quaternion_frames(new_frames,
-                                                      self.start_pose["orientation"],
-                                                      self.start_pose["position"])
-        else:
-            self.quat_frames = new_frames
-                            
-        self.n_frames = len(self.quat_frames)
+    def convert_to_quaternion_frames(self):
+        self.motion_vector.clear()
+        for step in self.steps:
+            quat_frames = self.motion_primitive_graph[step.node_key].back_project(step.parameters).get_motion_vector()
+            self.motion_vector.append_quat_frames(quat_frames)
 
     def update_frame_annotation(self, action_name, start_frame, end_frame):
         """Addes a dictionary to self.frame_annotation marking start and end 
             frame of an action.
         """
-        action_frame_annotation = {}
+        action_frame_annotation = dict()
         action_frame_annotation["startFrame"] = start_frame
         action_frame_annotation["elementaryAction"] = action_name
         action_frame_annotation["endFrame"] = end_frame
@@ -85,8 +63,17 @@ class MotionSample(object):
     def update_action_list(self, constraints, keyframe_annotations, canonical_key_frame_annotation, start_frame, last_frame):
         """  merge the new actions list with the existing list.
         """
-        new_action_list = self._associate_actions_to_frames(self.quat_frames, canonical_key_frame_annotation, constraints, keyframe_annotations, start_frame, last_frame)
+        new_action_list = self._associate_actions_to_frames(self.get_quat_frames(), canonical_key_frame_annotation, constraints, keyframe_annotations, start_frame, last_frame)
         self.action_list.update(new_action_list)
+
+    def append_quat_frames(self, new_frames):
+        self.motion_vector.append_quat_frames(new_frames)
+
+    def get_quat_frames(self):
+        return self.motion_vector.quat_frames
+
+    def get_num_of_frames(self):
+        return self.motion_vector.n_frames
 
     def _associate_actions_to_frames(self, quat_frames, time_information, constraints, keyframe_annotations, start_frame, last_frame):
         """Associates annotations to frames
@@ -156,24 +143,21 @@ class MotionSample(object):
                     print "event dict merge did not happen", temp_event_dict[name]
         return temp_event_dict
 
-    def export(self, output_dir, output_filename, add_time_stamp=False, write_log=False):
+    def export_motion(self, output_dir, output_filename, add_time_stamp=False, write_log=False):
           """ Saves the resulting animation frames, the annotation and actions to files. 
           Also exports the input file again to the output directory, where it is 
           used as input for the constraints visualization by the animation server.
           """
             
-          if self.quat_frames is not None:
-    
+          if self.motion_vector.has_frames():
               time_stamp = unicode(datetime.now().strftime("%d%m%y_%H%M%S"))
-           
               write_to_json_file(output_dir + os.sep + output_filename + ".json", self.mg_input)
               write_to_json_file(output_dir + os.sep + output_filename + "_actions"+".json", self.action_list)
-              
               reordered_frame_annotation = self._add_events_to_frame_annotation(self.frame_annotation)
               if write_log:
                   write_to_logfile(output_dir + os.sep + LOG_FILE, output_filename + "_" + time_stamp, self._algorithm_config)
               write_to_json_file(output_dir + os.sep + output_filename + "_annotations"+".json", reordered_frame_annotation)
-              export_quat_frames_to_bvh_file(output_dir, self.skeleton, self.quat_frames, prefix=output_filename, start_pose=None, time_stamp=add_time_stamp)        
+              self.motion_vector.export(self.skeleton, output_dir, output_filename, add_time_stamp)
           else:
              print "Error: no motion data to export"
 

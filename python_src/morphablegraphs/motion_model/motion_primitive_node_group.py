@@ -90,10 +90,10 @@ class MotionPrimitiveNodeGroup(ElementaryActionMetaInfo):
             next_parameters = self.nodes[to_node_key].sample_low_dimensional_vector()
         return next_parameters
 
-    def get_best_transition(self, motion, action_constraint, travelled_arc_length, arc_length_of_end):
+    def get_best_transition(self, graph_walk, action_constraint, travelled_arc_length, arc_length_of_end):
         """
         Select transition based on heuristic
-        :param motion:
+        :param graph_walk:
         :param action_constraint:
         :param travelled_arc_length:
         :param arc_length_of_end:
@@ -101,13 +101,13 @@ class MotionPrimitiveNodeGroup(ElementaryActionMetaInfo):
         """
         return None, None
 
-    def get_random_transition(self, motion, action_constraint, travelled_arc_length, arc_length_of_end):
+    def get_random_transition(self, graph_walk, action_constraint, travelled_arc_length, arc_length_of_end):
         """ Get next state of the elementary action based on previous iteration.
         """
-        prev_node = motion.graph_walk[-1].node_key
+        prev_node = graph_walk.steps[-1].node_key
         if action_constraint.root_trajectory is not None:
             #test end condition for trajectory constraints
-            if not action_constraint.check_end_condition(motion.quat_frames,\
+            if not action_constraint.check_end_condition(graph_walk.get_quat_frames(),\
                                     travelled_arc_length, arc_length_of_end):
 
                 #make standard transition to go on with trajectory following
