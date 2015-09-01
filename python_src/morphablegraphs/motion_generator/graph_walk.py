@@ -71,7 +71,7 @@ class GraphWalk(object):
             start_frame = step.end_frame
 
     def _create_frame_annotation(self, start_step=0):
-        self.frame_annotation['elementaryActionSequence'] = self.frame_annotation['elementaryActionSequence'][start_step:]
+        self.frame_annotation['elementaryActionSequence'] = self.frame_annotation['elementaryActionSequence'][:start_step]
         if start_step == 0:
             start_frame = 0
         else:
