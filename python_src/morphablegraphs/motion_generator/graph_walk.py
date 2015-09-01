@@ -8,6 +8,7 @@ Created on Tue Jul 14 18:39:41 2015
 import os
 from datetime import datetime
 from copy import copy
+import numpy as np
 from constraints.spatial_constraints.keyframe_constraints.keyframe_constraint_base import KeyframeConstraintBase
 from ..utilities.io_helper_functions import write_to_json_file,\
                                           write_to_logfile
@@ -51,8 +52,8 @@ class GraphWalk(object):
         self._create_frame_annotation(start_step)
         self._create_event_list()
 
-    def _convert_to_quaternion_frames(self, start_step=0, use_time_parameters=False):
-        """TODO use time paramaters
+    def _convert_to_quaternion_frames(self, start_step=0, use_time_parameters=True):
+        """TODO use time parameters
         :param start_step:
         :param use_time_parameters:
         :return:
@@ -79,11 +80,13 @@ class GraphWalk(object):
         for step in self.steps[start_step:]:
             action_name = step.node_key[0]
             if prev_step is not None and action_name != prev_step.node_key[0]:
-                #add entry for previous action
-                self.update_frame_annotation(action_name, start_frame, prev_step.end_frame)
-                start_frame = step.start_frame
+                #add entry for previous elementary action
+                print "add", prev_step.node_key[0]
+                self.update_frame_annotation(prev_step.node_key[0], start_frame, prev_step.end_frame)
+                start_frame = prev_step.end_frame
             prev_step = step
-        self.update_frame_annotation(action_name, start_frame, prev_step.end_frame)
+        print "add", prev_step.node_key[0]
+        self.update_frame_annotation(prev_step.node_key[0], start_frame, prev_step.end_frame)
 
     def _create_event_list(self):
         """
@@ -93,8 +96,11 @@ class GraphWalk(object):
         self.keyframe_events = dict()
         for step in self.steps:
             for keyframe_event in step.motion_primitive_constraints.keyframe_event_list.values():
-                warped_keyframe = int(keyframe_event["canonical_keyframe"])#TODO inverse lookup warped keyframe
-                canonical_keyframe = step.start_frame+warped_keyframe
+                # inverse lookup warped keyframe
+                time_function = self.motion_primitive_graph.nodes[step.node_key]._inverse_temporal_pca(step.parameters[step.n_spatial_components:])
+                closest_keyframe = min(time_function, key=lambda x: abs(x-int(keyframe_event["canonical_keyframe"])))
+                warped_keyframe = np.where(time_function==closest_keyframe)[0][0]
+                canonical_keyframe = step.start_frame+int(warped_keyframe)
                 print keyframe_event["event_list"]
                 n_events = len(keyframe_event["event_list"])
                 if n_events == 1:
