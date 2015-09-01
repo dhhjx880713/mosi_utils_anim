@@ -100,18 +100,18 @@ class GraphWalk(object):
                 time_function = self.motion_primitive_graph.nodes[step.node_key]._inverse_temporal_pca(step.parameters[step.n_spatial_components:])
                 closest_keyframe = min(time_function, key=lambda x: abs(x-int(keyframe_event["canonical_keyframe"])))
                 warped_keyframe = np.where(time_function==closest_keyframe)[0][0]
-                canonical_keyframe = step.start_frame+int(warped_keyframe)
+                warped_keyframe = step.start_frame+int(warped_keyframe)
                 print keyframe_event["event_list"]
                 n_events = len(keyframe_event["event_list"])
                 if n_events == 1:
                     events = keyframe_event["event_list"]
                 else:
                     events = self._merge_multiple_keyframe_events(keyframe_event["event_list"], len(keyframe_event["event_list"]))
-                if canonical_keyframe not in self.keyframe_events:
-                    self.keyframe_events[canonical_keyframe] = events
+                if warped_keyframe not in self.keyframe_events:
+                    self.keyframe_events[warped_keyframe] = events
                 else:
-                    event_list = events+self.keyframe_events[canonical_keyframe]
-                    self.keyframe_events[canonical_keyframe] = self._merge_multiple_keyframe_events(event_list, len(event_list))
+                    event_list = events+self.keyframe_events[warped_keyframe]
+                    self.keyframe_events[warped_keyframe] = self._merge_multiple_keyframe_events(event_list, len(event_list))
 
     def update_time_parameters(self, parameter_vector, start_step):
         offset = 0
