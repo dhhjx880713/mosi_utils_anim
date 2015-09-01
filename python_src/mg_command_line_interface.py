@@ -41,10 +41,10 @@ def run_pipeline(service_config, algorithm_config_file):
     motion_generator = MotionSampleGenerator(service_config, algorithm_config)
     print "Finished construction from file in", time.clock() - start, "seconds"
 
-    motion = motion_generator.generate_motion(input_file, export=False)
+    graph_walk = motion_generator.generate_motion(input_file, export=False)
 
-    if motion.quat_frames is not None:  # checks for quat_frames in result_tuple
-        motion.export(service_config["output_dir"], service_config["output_filename"])
+    if graph_walk.motion_vector.has_frames():  # checks for quat_frames in result_tuple
+        graph_walk.export_motion(service_config["output_dir"], service_config["output_filename"])
     else:
         print "Error: Failed to generate motion data."
 

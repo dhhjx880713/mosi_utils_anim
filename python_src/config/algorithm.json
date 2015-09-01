@@ -6,19 +6,19 @@
         "heuristic_step_length_factor": 1.0,
         "position_constraint_factor": 1.0,
         "step_length_approx_method": "arc_length",
-        "transition_pose_constraint_factor": 1.0
+        "transition_pose_constraint_factor": 0.6
     }, 
     "use_constrained_gmm": false, 
     "optimization_settings": {
-        "error_scale_factor": 1, 
+        "error_scale_factor": 1.0,
         "spatial_epsilon": 0.0,
-        "quality_scale_factor": 0,
+        "quality_scale_factor": 0.5,
         "tolerance": 0.05, 
-        "method": "BFGS", 
+        "method": "leastsq",
         "max_iterations": 300
     }, 
     "activate_cluster_search": true,
-    "n_cluster_search_candidates": 5,
+    "n_cluster_search_candidates": 2,
     "constrained_gmm_settings": {
         "precision": {
             "smooth": 5, 
