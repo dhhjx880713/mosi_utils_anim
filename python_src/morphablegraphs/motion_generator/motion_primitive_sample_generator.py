@@ -62,7 +62,8 @@ class MotionPrimitiveSampleGenerator(object):
             
         Returns
         -------
-        * motion_primitive_sample: MotionPrimitiveSample
+        * motion_primitive_sample: MotionSpline
+            back projected motion primitive sample
         """
         mp_name = motion_primitive_constraints.motion_primitive_name
         if len(graph_walk.steps) > 0:
@@ -115,20 +116,20 @@ class MotionPrimitiveSampleGenerator(object):
             Low dimensional parameters for the morphable model
         """
         graph_node = self._motion_primitive_graph.nodes[(self.action_name, mp_name)]
+        close_to_optimum = False
         if self.activate_cluster_search and graph_node.cluster_tree is not None:
             parameters = self._search_for_best_sample_in_cluster_tree(graph_node,
                                                                       motion_primitive_constraints,
                                                                       prev_frames)
-            close_to_optimum = True#False
-            #use_optimization = True
         else:
             parameters = self._get_best_random_sample_from_statistical_model(graph_node,
-                                                             mp_name,
-                                                             motion_primitive_constraints,
-                                                             prev_mp_name,
-                                                             prev_frames,
-                                                             prev_parameters)
-            close_to_optimum = True
+                                                                             mp_name,
+                                                                             motion_primitive_constraints,
+                                                                             prev_mp_name,
+                                                                             prev_frames,
+                                                                             prev_parameters)
+        if motion_primitive_constraints.min_error <= self._algorithm_config["optimization_settings"]["start_error_threshold"]:
+                close_to_optimum = True
         if not self.use_transition_model and use_optimization and not close_to_optimum:
             data = graph_node, motion_primitive_constraints, \
                    prev_frames, self._optimization_settings["error_scale_factor"], \

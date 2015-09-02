@@ -70,7 +70,6 @@ class MGInputFileReader(object):
         """
         keyframe_annotations = []
         for entry in elementary_action_list:
-            print  "entry#################",entry
             if "keyframeAnnotations" in entry.keys():
                 annotations = {}
 
@@ -220,7 +219,6 @@ class MGInputFileReader(object):
             if label in annotation.keys():
                 return True
         return False
-
 
     def _transform_point_from_cad_to_opengl_cs(self, point):
         """ Transforms a 3d point represented as a list from a left handed cad to a

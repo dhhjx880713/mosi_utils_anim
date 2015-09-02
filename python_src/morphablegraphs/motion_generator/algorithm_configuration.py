@@ -47,6 +47,7 @@ class AlgorithmConfigurationBuilder(object):
     def set_default_optimization_settings(self):
         self.optimization_settings = dict()
         self.optimization_settings["method"] = "Nelder-Mead"
+        self.optimization_settings["start_error_threshold"] = 5.0
         self.optimization_settings["max_iterations"] = 150
         self.optimization_settings["quality_scale_factor"] = 0.001
         self.optimization_settings["error_scale_factor"] = 0.01

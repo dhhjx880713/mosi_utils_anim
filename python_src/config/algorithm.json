@@ -14,6 +14,7 @@
     }, 
     "use_constrained_gmm": false, 
     "optimization_settings": {
+        "start_error_threshold": 10.0,
         "error_scale_factor": 1.0,
         "spatial_epsilon": 0.0,
         "quality_scale_factor": 0.5,
@@ -34,7 +35,7 @@
     }, 
     "n_random_samples": 300,
     "use_transition_model": false, 
-    "use_optimization": false, 
+    "use_optimization": true,
     "activate_parameter_check": false,
     "use_global_optimization": false,
     "use_constraints": true,
