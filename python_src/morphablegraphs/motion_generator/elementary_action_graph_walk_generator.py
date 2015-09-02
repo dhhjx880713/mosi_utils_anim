@@ -9,7 +9,7 @@ from optimization.optimizer_builder import OptimizerBuilder
 from graph_walk import GraphWalkEntry
 
 
-class ElementaryActionSampleGeneratorState(object):
+class ElementaryActionGraphWalkGeneratorState(object):
         def __init__(self, algorithm_config):
             self.start_step = -1
             self.prev_action_name = None
@@ -50,7 +50,7 @@ class ElementaryActionSampleGeneratorState(object):
             self.temp_step += 1
 
 
-class ElementaryActionSampleGenerator(object):
+class ElementaryActionGraphWalkGenerator(object):
     def __init__(self, motion_primitive_graph, algorithm_config):
         self.motion_primitive_graph = motion_primitive_graph
         self._algorithm_config = algorithm_config
@@ -58,7 +58,7 @@ class ElementaryActionSampleGenerator(object):
         self.motion_primitive_constraints_builder.set_algorithm_config(
             self._algorithm_config)
         self.numerical_minimizer = OptimizerBuilder(self._algorithm_config).build_time_error_minimizer()
-        self.state = ElementaryActionSampleGeneratorState(self._algorithm_config)
+        self.state = ElementaryActionGraphWalkGeneratorState(self._algorithm_config)
         return
 
     def set_algorithm_config(self, algorithm_config):

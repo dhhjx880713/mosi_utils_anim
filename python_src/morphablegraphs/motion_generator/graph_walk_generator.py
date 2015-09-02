@@ -16,7 +16,7 @@ from ..utilities.io_helper_functions import load_json_file
 from ..motion_model.motion_primitive_graph_loader import MotionPrimitiveGraphLoader
 from constraints.mg_input_file_reader import MGInputFileReader
 from constraints.elementary_action_constraints_builder import ElementaryActionConstraintsBuilder
-from elementary_action_sample_generator import ElementaryActionSampleGenerator
+from elementary_action_graph_walk_generator import ElementaryActionGraphWalkGenerator
 from algorithm_configuration import AlgorithmConfigurationBuilder
 from graph_walk import GraphWalk
 
@@ -44,7 +44,7 @@ class GraphWalkGenerator(object):
         graph_builder.set_data_source(SKELETON_FILE, motion_primitive_graph_directory,
                                       transition_directory, self._algorithm_config["use_transition_model"])
         self.motion_primitive_graph = graph_builder.build()
-        self.elementary_action_generator = ElementaryActionSampleGenerator(self.motion_primitive_graph,
+        self.elementary_action_generator = ElementaryActionGraphWalkGenerator(self.motion_primitive_graph,
                                                                            self._algorithm_config)
         return
 
