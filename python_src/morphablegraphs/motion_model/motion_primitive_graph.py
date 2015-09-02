@@ -59,12 +59,12 @@ class MotionPrimitiveGraph(object):
                     print "\t \t to " + str(e)
                 print "\t##########"       
 
-    def get_random_action_transition(self, motion, action_name):
+    def get_random_action_transition(self, graph_walk, action_name):
         """ Get random start state based on edge from previous elementary action if possible
         """
         next_node = None
-        if motion.step_count > 0:
-            prev_node_key = motion.graph_walk[-1].node_key
+        if graph_walk.step_count > 0:
+            prev_node_key = graph_walk.steps[-1].node_key
       
             if prev_node_key in self.nodes.keys():
                 next_node = self.nodes[prev_node_key].generate_random_action_transition(action_name)

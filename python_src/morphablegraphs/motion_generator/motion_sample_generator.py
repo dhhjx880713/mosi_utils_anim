@@ -14,11 +14,12 @@ import time
 import numpy as np
 from ..utilities.io_helper_functions import load_json_file
 from ..motion_model.motion_primitive_graph_loader import MotionPrimitiveGraphLoader
+from constraints.mg_input_file_reader import MGInputFileReader
 from constraints.elementary_action_constraints_builder import ElementaryActionConstraintsBuilder
 from elementary_action_sample_generator import ElementaryActionSampleGenerator
 from . import global_counter_dict
 from algorithm_configuration import AlgorithmConfigurationBuilder
-from motion_sample import MotionSample
+from graph_walk import GraphWalk
 
 SKELETON_FILE = "skeleton.bvh"  # TODO replace with standard skeleton in data directory
 
@@ -77,7 +78,7 @@ class MotionSampleGenerator(object):
             
         Returns
         -------
-        * motion : MotionGeneratorResult
+        * graph_walk : GraphWalk
            Contains a list of quaternion frames and their annotation based on actions.
         """
         
@@ -85,8 +86,9 @@ class MotionSampleGenerator(object):
         if type(mg_input) != dict:
             mg_input = load_json_file(mg_input)
         start = time.clock()
-        elementary_action_constraints_builder = ElementaryActionConstraintsBuilder(mg_input, self.motion_primitive_graph)
-        motion = self._generate_motion_from_constraints(elementary_action_constraints_builder)
+        input_file_reader = MGInputFileReader(mg_input)
+        elementary_action_constraints_builder = ElementaryActionConstraintsBuilder(input_file_reader, self.motion_primitive_graph)
+        graph_walk = self._generate_motion_from_constraints(elementary_action_constraints_builder)
         seconds = time.clock() - start
         self.print_runtime_statistics(seconds)
         # export the motion to a bvh file if export == True
@@ -94,9 +96,9 @@ class MotionSampleGenerator(object):
             output_filename = self._service_config["output_filename"]
             if output_filename == "" and "session" in mg_input.keys():
                 output_filename = mg_input["session"]
-                motion.frame_annotation["sessionID"] = mg_input["session"]
-            motion.export(self._service_config["output_dir"], output_filename, add_time_stamp=True, write_log=self._service_config["write_log"])
-        return motion
+                graph_walk.frame_annotation["sessionID"] = mg_input["session"]
+            graph_walk.export_motion(self._service_config["output_dir"], output_filename, add_time_stamp=True, write_log=self._service_config["write_log"])
+        return graph_walk
 
     def _generate_motion_from_constraints(self, elementary_action_constraints_builder):
         """ Converts a constrained graph walk to quaternion frames
@@ -105,21 +107,21 @@ class MotionSampleGenerator(object):
         * elementary_action_constraints_builder : ElementaryActionConstraintsBuilder
         Returns
         -------
-        * motion: MotionSample
+        * graph_walk: GraphWalk
             Contains the quaternion frames and annotations of the frames based on actions.
         """
         if self._algorithm_config["verbose"]:
             for key in self._algorithm_config.keys():
                 print key, self._algorithm_config[key]
     
-        motion = MotionSample(self.motion_primitive_graph.skeleton,
+        graph_walk = GraphWalk(self.motion_primitive_graph.skeleton,
                               elementary_action_constraints_builder.start_pose,
                               self._algorithm_config)
-        motion.mg_input = elementary_action_constraints_builder.mg_input
+        graph_walk.mg_input = elementary_action_constraints_builder.get_mg_input_file()
 
         action_constraints = elementary_action_constraints_builder.get_next_elementary_action_constraints()
         while action_constraints is not None:
-            if self._algorithm_config["debug_max_step"] > -1 and motion.step_count > self._algorithm_config["debug_max_step"]:
+            if self._algorithm_config["debug_max_step"] > -1 and graph_walk.step_count > self._algorithm_config["debug_max_step"]:
                 print "reached max step"
                 break
               
@@ -127,13 +129,13 @@ class MotionSampleGenerator(object):
                 print "convert", action_constraints.action_name, "to graph walk"
     
             self.elementary_action_generator.set_action_constraints(action_constraints)
-            success = self.elementary_action_generator.append_elementary_action_to_motion(motion)
+            success = self.elementary_action_generator.append_elementary_action_to_motion(graph_walk)
                 
             if not success:
                 print "Arborting conversion"
-                return motion
+                return graph_walk
             action_constraints = elementary_action_constraints_builder.get_next_elementary_action_constraints()
-        return motion
+        return graph_walk
 
     def print_runtime_statistics(self, time_in_seconds):
         minutes = int(time_in_seconds/60)

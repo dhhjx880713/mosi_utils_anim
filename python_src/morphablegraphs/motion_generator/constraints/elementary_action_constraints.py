@@ -28,7 +28,7 @@ class ElementaryActionConstraints(object):
 
     def check_end_condition(self, prev_frames, travelled_arc_length, arc_length_offset):
         """
-        Checks wether or not a threshold distance to the end has been reached.
+        Checks whether or not a threshold distance to the end has been reached.
         Returns
         -------
         True if yes and False if not

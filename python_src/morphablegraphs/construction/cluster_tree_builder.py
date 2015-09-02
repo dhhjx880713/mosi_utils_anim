@@ -9,10 +9,9 @@ import os
 import numpy as np
 from ..space_partitioning.cluster_tree import ClusterTree
 from ..motion_model.motion_primitive import MotionPrimitive
-
-
 MOTION_PRIMITIVE_FILE_ENDING = "mm.json"
 CLUSTER_TREE_FILE_ENDING = "cluster_tree.pck"
+
 
 class ClusterTreeBuilder(object):
     """ Creates ClusterTrees for all motion primitives by sampling from the statistical model
@@ -54,6 +53,8 @@ class ClusterTreeBuilder(object):
         cluster_tree.construct(data)
         #self.cluster_tree.save_to_file(cluster_file_name+"tree")
         cluster_tree.save_to_file_pickle(cluster_file_name + CLUSTER_TREE_FILE_ENDING)
+        n_leafs = cluster_tree.root.get_number_of_leafs()
+        print "number of leafs", n_leafs
        
     def _process_elementary_action(self, elementary_action):
         elementary_action_dir = self.morphable_model_directory + os.sep + elementary_action
@@ -70,8 +71,6 @@ class ClusterTreeBuilder(object):
         if self.random_seed is not None:
             print "apply random seed", self.random_seed
             np.random.seed(self.random_seed)
-            
-        
         if self.morphable_model_directory is not None:
             print "start construction in directory", self.morphable_model_directory
             for elementary_action in next(os.walk(self.morphable_model_directory))[1]:
