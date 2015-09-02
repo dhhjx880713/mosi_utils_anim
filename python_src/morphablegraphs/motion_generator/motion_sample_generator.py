@@ -19,7 +19,6 @@ from constraints.elementary_action_constraints_builder import ElementaryActionCo
 from elementary_action_sample_generator import ElementaryActionSampleGenerator
 from algorithm_configuration import AlgorithmConfigurationBuilder
 from graph_walk import GraphWalk
-from . import global_counter_dict
 
 SKELETON_FILE = "skeleton.bvh"  # TODO replace with standard skeleton in data directory
 
