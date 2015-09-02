@@ -4,8 +4,6 @@ from ..utilities.exceptions import PathSearchError
 from ..motion_model import NODE_TYPE_END, NODE_TYPE_SINGLE
 from motion_primitive_sample_generator import MotionPrimitiveSampleGenerator
 from constraints.motion_primitive_constraints_builder import MotionPrimitiveConstraintsBuilder
-from constraints.time_constraints_builder import TimeConstraintsBuilder
-from optimization.optimizer_builder import OptimizerBuilder
 from graph_walk import GraphWalkEntry
 
 
@@ -57,7 +55,6 @@ class ElementaryActionGraphWalkGenerator(object):
         self.motion_primitive_constraints_builder = MotionPrimitiveConstraintsBuilder()
         self.motion_primitive_constraints_builder.set_algorithm_config(
             self._algorithm_config)
-        self.numerical_minimizer = OptimizerBuilder(self._algorithm_config).build_time_error_minimizer()
         self.state = ElementaryActionGraphWalkGeneratorState(self._algorithm_config)
         return
 
@@ -160,8 +157,6 @@ class ElementaryActionGraphWalkGenerator(object):
 
         graph_walk.step_count += self.state.temp_step
         graph_walk.update_frame_annotation(self.action_constraints.action_name, self.state.action_start_frame, graph_walk.get_num_of_frames())
-        if self._algorithm_config["use_global_optimization"]:
-            self._optimize_over_graph_walk(graph_walk)
         print "reached end of elementary action", self.action_constraints.action_name
         return True
 
@@ -181,16 +176,3 @@ class ElementaryActionGraphWalkGenerator(object):
         graph_walk.steps.append(new_step)
         self.state.update(next_node, next_node_type, new_travelled_arc_length, graph_walk.get_num_of_frames())
 
-    def _optimize_over_graph_walk(self, graph_walk):
-        start_step = max(self.state.start_step-100, 0)
-        time_constraints = TimeConstraintsBuilder(graph_walk, start_step).build()
-        if time_constraints is not None:
-            data = (self.motion_primitive_graph, graph_walk, time_constraints,
-                    self._algorithm_config["optimization_settings"]["error_scale_factor"],
-                    self._algorithm_config["optimization_settings"]["quality_scale_factor"])
-            self.numerical_minimizer.set_objective_function_parameters(data)
-            initial_guess = time_constraints.get_initial_guess(graph_walk)
-            print "initial_guess", initial_guess, time_constraints.constraint_list
-            optimal_parameters = self.numerical_minimizer.run(initial_guess)
-            graph_walk.update_time_parameters(optimal_parameters, start_step)
-            graph_walk.convert_to_motion(start_step)
