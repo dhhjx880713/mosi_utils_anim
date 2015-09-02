@@ -182,9 +182,8 @@ class ElementaryActionGraphWalkGenerator(object):
         self.state.update(next_node, next_node_type, new_travelled_arc_length, graph_walk.get_num_of_frames())
 
     def _optimize_over_graph_walk(self, graph_walk):
-        #TODO test optimization
         start_step = max(self.state.start_step-100, 0)
-        time_constraints = TimeConstraintsBuilder(self.action_constraints, graph_walk, start_step).build()
+        time_constraints = TimeConstraintsBuilder(graph_walk, start_step).build()
         if time_constraints is not None:
             data = (self.motion_primitive_graph, graph_walk, time_constraints,
                     self._algorithm_config["optimization_settings"]["error_scale_factor"],
