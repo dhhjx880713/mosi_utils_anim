@@ -19,12 +19,11 @@ class AlgorithmConfigurationBuilder(object):
         self.use_constrained_gmm = False
         self.activate_parameter_check = False
         self.use_global_optimization = False
-        self.apply_smoothing = True
-        self.smoothing_window = DEFAULT_SMOOTHING_WINDOW_SIZE
         self.n_random_samples = 100
         self.constrained_gmm_settings = dict()
         self.optimization_settings = dict()
         self.trajectory_following_settings = dict()
+        self.smoothing_settings = dict()
         self.activate_cluster_search = True
         self.n_cluster_search_candidates = 2
         self.debug_max_step = -1
@@ -32,6 +31,7 @@ class AlgorithmConfigurationBuilder(object):
         self.set_default_constrained_gmm_settings()
         self.set_default_trajectory_following_settings()
         self.set_default_optimization_settings()
+        self.set_default_smoothing_settings()
         self.build()
 
     def set_default_constrained_gmm_settings(self):
@@ -61,6 +61,13 @@ class AlgorithmConfigurationBuilder(object):
         self.trajectory_following_settings["position_constraint_factor"] = 1.0
         self.trajectory_following_settings["transition_pose_constraint_factor"] = 1.0
 
+    def set_default_smoothing_settings(self):
+        self.smoothing_settings = dict()
+        self.smoothing_settings["spatial_smoothing"] = True
+        self.smoothing_settings["time_smoothing"] = True
+        self.smoothing_settings["spatial_smoothing_window"] = DEFAULT_SMOOTHING_WINDOW_SIZE
+        self.smoothing_settings["time_smoothing_window"] = 15
+
     def from_json(self, filename):
         temp_algorithm_config = load_json_file(filename)
         self.use_constraints = temp_algorithm_config["use_constraints"]
@@ -69,8 +76,7 @@ class AlgorithmConfigurationBuilder(object):
         self.use_constrained_gmm = temp_algorithm_config["use_constrained_gmm"]
         self.use_global_optimization = temp_algorithm_config["use_global_optimization"]
         self.activate_parameter_check = temp_algorithm_config["activate_parameter_check"]
-        self.apply_smoothing = temp_algorithm_config["apply_smoothing"]
-        self.smoothing_window = temp_algorithm_config["smoothing_window"]
+        self.smoothing_settings = temp_algorithm_config["smoothing_settings"]
         self.n_random_samples = temp_algorithm_config["n_random_samples"]
         self.constrained_gmm_settings = temp_algorithm_config["constrained_gmm_settings"]
         self.trajectory_following_settings = temp_algorithm_config["trajectory_following_settings"]
@@ -88,8 +94,7 @@ class AlgorithmConfigurationBuilder(object):
                 "use_global_optimization": self.use_global_optimization,
                 "n_random_samples": self.n_random_samples,
                 "activate_parameter_check": self.activate_parameter_check,
-                "apply_smoothing": self.apply_smoothing,
-                "smoothing_window": self.smoothing_window,
+                "smoothing_settings": self.smoothing_settings,
                 "optimization_settings": self.optimization_settings,
                 "constrained_gmm_settings": self.constrained_gmm_settings,
                 "trajectory_following_settings": self.trajectory_following_settings,

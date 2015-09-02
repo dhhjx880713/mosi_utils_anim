@@ -11,6 +11,8 @@ from sklearn import mixture
 import scipy.interpolate as si
 from . import B_SPLINE_DEGREE
 from motion_spline import MotionSpline
+from scipy.ndimage.filters import gaussian_filter1d
+from scipy.signal import savgol_filter
 
 
 class MotionPrimitive(object):
@@ -44,6 +46,7 @@ class MotionPrimitive(object):
         self.t_pca = dict()
         self.n_canonical_frames = 0
         self.translation_maxima = np.array([1.0, 1.0, 1.0])
+        self.smooth_time_parameters = False
         self.has_time_parameters = True
         if self.filename is not None:
             self._load(self.filename)
@@ -227,7 +230,10 @@ class MotionPrimitive(object):
         """
         canonical_time_function = self._back_transform_gamma_to_canonical_time_function(gamma)
         sample_time_function = self._invert_canonical_to_sample_time_function(canonical_time_function)
-        return sample_time_function
+        if self.smooth_time_parameters:
+            return self._smooth_time_function(sample_time_function)
+        else:
+            return sample_time_function
 
     def _back_transform_gamma_to_canonical_time_function(self, gamma):
         """backtransform gamma to a discrete timefunction reconstruct t by evaluating the harmonics and the mean
@@ -259,3 +265,15 @@ class MotionPrimitive(object):
         sample_time_function = np.insert(sample_time_function, len(sample_time_function), self.n_canonical_frames-1)
         return sample_time_function
 
+    def _smooth_time_function(self, time_function):
+        """temporary solution: smooth temporal parameters, then linearly extend
+        """
+        t_max = max(time_function)
+        # it to (0, t_max)
+        sigma = 5
+        #t = gaussian_filter1d(time_function, sigma)
+        t = savgol_filter(time_function, 15, 3)
+        #a = min(t)
+        #b = max(t)
+        #t = [(i-a)/(b-a) * t_max for i in t]
+        return np.array(t)
