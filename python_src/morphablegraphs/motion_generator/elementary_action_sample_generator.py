@@ -183,10 +183,12 @@ class ElementaryActionSampleGenerator(object):
 
     def _optimize_over_graph_walk(self, graph_walk):
         #TODO test optimization
-        start_step = max(self.state.start_step-10, 0)
+        start_step = max(self.state.start_step-100, 0)
         time_constraints = TimeConstraintsBuilder(self.action_constraints, graph_walk, start_step).build()
         if time_constraints is not None:
-            data = (self.motion_primitive_graph, graph_walk, time_constraints)
+            data = (self.motion_primitive_graph, graph_walk, time_constraints,
+                    self._algorithm_config["optimization_settings"]["error_scale_factor"],
+                    self._algorithm_config["optimization_settings"]["quality_scale_factor"])
             self.numerical_minimizer.set_objective_function_parameters(data)
             initial_guess = time_constraints.get_initial_guess(graph_walk)
             print "initial_guess", initial_guess, time_constraints.constraint_list
