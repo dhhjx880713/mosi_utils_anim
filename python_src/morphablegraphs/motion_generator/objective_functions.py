@@ -142,7 +142,6 @@ def obj_spatial_error_residual_vector_and_naturalness(s, data):
         residual_vector[i] += n_log_likelihood
     #print len(residual_vector), residual_vector
     print "error", sum(residual_vector)
-    global_counter_dict["evaluations"] += 1
     n_variables = len(s)
     while len(residual_vector) < n_variables:
         residual_vector.append(0)
