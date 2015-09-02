@@ -23,7 +23,7 @@ from graph_walk import GraphWalk
 SKELETON_FILE = "skeleton.bvh"  # TODO replace with standard skeleton in data directory
 
 
-class MotionSampleGenerator(object):
+class GraphWalkGenerator(object):
     """
     Creates a MotionPrimitiveGraph instance and provides a method to synthesize a
     motion based on a json input file
@@ -62,7 +62,7 @@ class MotionSampleGenerator(object):
             self._algorithm_config = algorithm_config
         self.elementary_action_generator.set_algorithm_config(self._algorithm_config)
 
-    def generate_motion(self, mg_input, export=True):
+    def generate_graph_walk(self, mg_input, export=True):
         """
         Converts a json input file with a list of elementary actions and constraints 
         into a motion saved to a BVH file.
