@@ -28,7 +28,7 @@ class MotionPrimitiveConstraints(object):
         self.skeleton = None
         self.precision = {"pos": 1.0, "rot": 1.0, "smooth": 1.0}
         self.verbose = False
-        self.least_error = 0.0
+        self.min_error = 0.0
         self.best_parameters = None
         self.evaluations = 0
         self.keyframe_event_list = dict()
@@ -59,9 +59,6 @@ class MotionPrimitiveConstraints(object):
         error_sum = 0
         for constraint in self.constraints:
             error_sum += constraint.weight_factor * constraint.evaluate_motion_sample(aligned_frames)
-        if error_sum < self.least_error:
-            self.least_error = error_sum
-            self.best_parameters = parameters
         self.evaluations += 1
         return error_sum
 

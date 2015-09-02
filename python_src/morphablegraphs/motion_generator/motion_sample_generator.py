@@ -137,16 +137,19 @@ class MotionSampleGenerator(object):
         return graph_walk
 
     def print_runtime_statistics(self, graph_walk, time_in_seconds):
+        n_steps = len(graph_walk.steps)
         objective_evaluations = 0
+        average_error = 0
         for step in graph_walk.steps:
             objective_evaluations += step.motion_primitive_constraints.evaluations
-
+            average_error += step.motion_primitive_constraints.min_error
+        average_error /= n_steps
         minutes = int(time_in_seconds/60)
         seconds = time_in_seconds % 60
         total_time_string = "finished synthesis in " + str(minutes) + " minutes " + str(seconds) + " seconds"
         evaluations_string = "total number of objective evaluations " + str(objective_evaluations)
-        error_string = "average error for " + str(len(global_counter_dict["motionPrimitiveErrors"])) + \
-                       " motion primitives: " + str(np.average(global_counter_dict["motionPrimitiveErrors"], axis=0))
+        error_string = "average error for " + str(n_steps) + \
+                       " motion primitives: " + str(average_error)
         print total_time_string
         print evaluations_string
         print error_string

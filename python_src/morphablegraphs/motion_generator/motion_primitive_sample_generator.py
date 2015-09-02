@@ -11,7 +11,6 @@ from ..animation_data.evaluation_methods import check_sample_validity
 from statistics.constrained_gmm_builder import ConstrainedGMMBuilder
 from ..utilities.exceptions import ConstraintError, SynthesisError
 from optimization.optimizer_builder import OptimizerBuilder
-from . import global_counter_dict
 from objective_functions import obj_spatial_error_sum, obj_spatial_error_sum_and_naturalness
 
 
@@ -174,8 +173,8 @@ class MotionPrimitiveSampleGenerator(object):
         """
         data = graph_node, constraints, prev_frames
         distance, s = graph_node.search_best_sample(obj_spatial_error_sum, data, self.n_cluster_search_candidates)
-        print "found best sample with distance:",distance
-        global_counter_dict["motionPrimitiveErrors"].append(distance)
+        print "found best sample with distance:", distance
+        constraints.min_error = distance
         return np.array(s)                                 
 
     def sample_from_gaussian_mixture_model(self, mp_node, gmm, constraints, prev_frames):
@@ -230,5 +229,5 @@ class MotionPrimitiveSampleGenerator(object):
             return best_sample, min_error
         
         print "found best sample with distance:", min_error
-        global_counter_dict["motionPrimitiveErrors"].append(min_error)
+        constraints.min_error = min_error
         return best_sample, min_error
