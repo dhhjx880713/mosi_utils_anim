@@ -53,7 +53,7 @@ class GraphWalk(object):
         self._create_event_list()
 
     def _convert_to_quaternion_frames(self, start_step=0, use_time_parameters=True):
-        """TODO use time parameters
+        """
         :param start_step:
         :param use_time_parameters:
         :return:
@@ -149,16 +149,16 @@ class GraphWalk(object):
         Also exports the input file again to the output directory, where it is
         used as input for the constraints visualization by the animation server.
         """
-        self.convert_to_motion(0)
+        self.convert_to_motion()
         if self.motion_vector.has_frames():
-            time_stamp = unicode(datetime.now().strftime("%d%m%y_%H%M%S"))
+            self.motion_vector.export(self.skeleton, output_dir, output_filename, add_time_stamp)
             write_to_json_file(output_dir + os.sep + output_filename + ".json", self.mg_input)
             self._export_event_list(output_dir + os.sep + output_filename + "_actions"+".json")
             reordered_frame_annotation = self._add_events_to_frame_annotation(self.frame_annotation, self.keyframe_events)
             write_to_json_file(output_dir + os.sep + output_filename + "_annotations"+".json", reordered_frame_annotation)
             if write_log:
+                time_stamp = unicode(datetime.now().strftime("%d%m%y_%H%M%S"))
                 write_to_logfile(output_dir + os.sep + LOG_FILE, output_filename + "_" + time_stamp, self._algorithm_config)
-            self.motion_vector.export(self.skeleton, output_dir, output_filename, add_time_stamp)
         else:
            print "Error: no motion data to export"
 
