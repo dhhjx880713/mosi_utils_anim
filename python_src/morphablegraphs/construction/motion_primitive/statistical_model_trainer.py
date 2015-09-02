@@ -27,6 +27,24 @@ class StatisticalModelTrainer(object):
         self._create_gmm()
         self._save_model(self.save_path)
 
+    def export_model_data(self, save_path):
+        save_data = {}
+        motion_data = {}
+        assert len(self._file_order) == len(self._motion_parameters)
+        harms = self._temporal_pca[self._temporal_pca.names.index('harmonics')]
+        for i in xrange(len(self._file_order)):
+            motion_data[self._file_order[i]] = self._motion_parameters[i].tolist()
+        save_data['motion_data'] = motion_data
+        save_data['motion_type'] = self._motion_primitive_name
+        save_data['eigen_vector_spatial'] = self._spatial_eigenvectors.tolist()
+        save_data['eigen_vector_temporal'] = np.array(harms[harms.names.index('coefs')]).tolist()
+        save_data['translation_maxima'] = self._scale_vec
+        save_data['n_basis_spatial'] = self._n_basis
+        save_data['n_canonical_frames'] = self._n_frames
+        save_data['n_basis_temporal'] = 8
+        with open(save_path, 'wb') as outfile:
+            json.dump(save_data, outfile)
+
     def _load_data(self, fdata):
         '''
         Load dimensional representation for motion segements from a json file
@@ -43,6 +61,7 @@ class StatisticalModelTrainer(object):
         self._n_frames = int(fdata['n_frames'])
         self._scale_vec = fdata['scale_vector']
         self._n_basis = fdata['n_basis']
+        self._file_order = fdata['file_order']
         self._mean_motion = fdata['mean_motion']
         self._n_dim_spatial = int(fdata['n_dim_spatial'])
         self._temporal_pca = fdata['temporal_pcaobj']

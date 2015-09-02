@@ -35,7 +35,7 @@ class MotionDimensionReduction(object):
         self.fdata['n_frames'] = len(self.spatial_data[self.spatial_data.keys()[0]])
         self.fdata['motion_type'] = self.params.elementary_action + '_' + \
             self.params.motion_primitive
-        self.fdata['n_dim_spatial'] = self.params.n_basis_functions_spatial
+        self.fdata['n_dim_spatial'] = 79
         self.fdata['n_basis'] = self.params.n_basis_functions_spatial
         self.fpca_temporal = None
         self.fpca_spatial = None
