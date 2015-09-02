@@ -22,7 +22,7 @@ class ElementaryActionGraphWalkGeneratorState(object):
             self.debug_max_step = algorithm_config["debug_max_step"]
             self.step_start_frame = 0
 
-        def initialize_from_previous_motion(self, graph_walk):
+        def initialize_from_previous_graph_walk(self, graph_walk):
             self.start_step = graph_walk.step_count
             if self.start_step > 0:
                 self.prev_action_name = graph_walk.steps[-1]
@@ -124,7 +124,7 @@ class ElementaryActionGraphWalkGenerator(object):
             str(e.search_parameters)
             return None
 
-    def append_elementary_action_to_motion(self, graph_walk):
+    def append_elementary_action_to_graph_walk(self, graph_walk):
         """Convert an entry in the elementary action list to a list of quaternion frames.
         Note only one trajectory constraint per elementary action is currently supported
         and it should be for the Hip joint.
@@ -143,7 +143,7 @@ class ElementaryActionGraphWalkGenerator(object):
         * success: Bool
             True if successful and False, if an error occurred during the constraints generation
         """
-        self.state.initialize_from_previous_motion(graph_walk)
+        self.state.initialize_from_previous_graph_walk(graph_walk)
         print "start converting elementary action", self.action_constraints.action_name
         while not self.state.is_end_state():
             next_node, next_node_type = self._select_next_motion_primitive_node(graph_walk)

@@ -65,14 +65,14 @@ class GraphWalkGenerator(object):
     def generate_graph_walk(self, mg_input, export=True):
         """
         Converts a json input file with a list of elementary actions and constraints 
-        into a motion saved to a BVH file.
+        into a graph_walk saved to a BVH file.
         
         Parameters
         ----------        
         * mg_input_filename : string or dict
             Dict or Path to json file that contains a list of elementary actions with constraints.
         * export : bool
-            If set to True the generated motion is exported as BVH together 
+            If set to True the generated graph_walk is exported as BVH together
             with a JSON-annotation file.
             
         Returns
@@ -86,7 +86,7 @@ class GraphWalkGenerator(object):
         start = time.clock()
         input_file_reader = MGInputFileReader(mg_input)
         elementary_action_constraints_builder = ElementaryActionConstraintsBuilder(input_file_reader, self.motion_primitive_graph)
-        graph_walk = self._generate_motion_from_constraints(elementary_action_constraints_builder)
+        graph_walk = self._generate_graph_walk_from_constraints(elementary_action_constraints_builder)
         seconds = time.clock() - start
         self.print_runtime_statistics(graph_walk, seconds)
         # export the motion to a bvh file if export == True
@@ -98,7 +98,7 @@ class GraphWalkGenerator(object):
             graph_walk.export_motion(self._service_config["output_dir"], output_filename, add_time_stamp=True, write_log=self._service_config["write_log"])
         return graph_walk
 
-    def _generate_motion_from_constraints(self, elementary_action_constraints_builder):
+    def _generate_graph_walk_from_constraints(self, elementary_action_constraints_builder):
         """ Converts a constrained graph walk to quaternion frames
          Parameters
         ----------
@@ -127,7 +127,7 @@ class GraphWalkGenerator(object):
                 print "convert", action_constraints.action_name, "to graph walk"
     
             self.elementary_action_generator.set_action_constraints(action_constraints)
-            success = self.elementary_action_generator.append_elementary_action_to_motion(graph_walk)
+            success = self.elementary_action_generator.append_elementary_action_to_graph_walk(graph_walk)
                 
             if not success:
                 print "Arborting conversion"
