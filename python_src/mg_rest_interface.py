@@ -16,7 +16,7 @@ import tornado.ioloop
 import tornado.web
 import json
 import time
-from morphablegraphs.motion_generator.motion_sample_generator import MotionSampleGenerator
+from morphablegraphs.motion_generator.graph_walk_generator import GraphWalkGenerator
 from morphablegraphs.motion_generator.algorithm_configuration import AlgorithmConfigurationBuilder
 from morphablegraphs.utilities.io_helper_functions import load_json_file, get_bvh_writer
 
@@ -52,7 +52,7 @@ class MGInputHandler(tornado.web.RequestHandler):
 
         # start algorithm if predefined keys were found
         if "elementaryActions" in mg_input.keys():
-            graph_walk = self.application.generate_motion(mg_input)
+            graph_walk = self.application.generate_graph_walk(mg_input)
 
             self._handle_result(mg_input, graph_walk)
         else:
@@ -128,7 +128,7 @@ class MGRestApplication(tornado.web.Application):
         tornado.web.Application.__init__(
             self, handlers, default_host, transforms)
         start = time.clock()
-        self.motion_generator = MotionSampleGenerator(
+        self.graph_walk_generator = GraphWalkGenerator(
             service_config, algorithm_config)
         print "finished construction from file in", time.clock() - start, "seconds"
         self.algorithm_config = algorithm_config
@@ -136,11 +136,11 @@ class MGRestApplication(tornado.web.Application):
         self.use_file_output_mode = (
             service_config["output_mode"] == "file_output")
 
-    def generate_motion(self, mg_input):
-        return self.motion_generator.generate_motion(mg_input, export=False)
+    def generate_graph_walk(self, mg_input):
+        return self.graph_walk_generator.generate_graph_walk(mg_input, export=False)
 
     def set_algorithm_config(self, algorithm_config):
-        self.motion_generator.set_algorithm_config(algorithm_config)
+        self.graph_walk_generator.set_algorithm_config(algorithm_config)
 
 
 class MorphableGraphsRESTfulInterface(object):
