@@ -18,7 +18,7 @@ class ConstrainedGMM(mixture.GMM):
 
     Parameters
     ----------
-    * motion_primitve_node : MotionPrimitiveNode
+    * motion_primitive_node : MotionPrimitiveNode
         The original MotionPrimitive which will be constrained
     * constraint : tuple, optional
         The constraint as (joint, [pos_x, pos_y, pos_z], [rot_x, rot_y, rot_z])
@@ -26,7 +26,7 @@ class ConstrainedGMM(mixture.GMM):
         which means that no constraint is set.
 
     """
-    def __init__(self, motion_primitve_node, gmm, algorithm_config, start_pose, skeleton):
+    def __init__(self, motion_primitive_node, gmm, algorithm_config, start_pose, skeleton):
         super(ConstrainedGMM, self).__init__(
             n_components=gmm.n_components,
             covariance_type=gmm.covariance_type,
@@ -38,11 +38,10 @@ class ConstrainedGMM(mixture.GMM):
             params=gmm.params,
             init_params=gmm.init_params
         )
-        self.motion_primitve_node = motion_primitve_node
         self.verbose = algorithm_config["verbose"]
         self.start_pose = start_pose
         self.skeleton = skeleton
-        self.mm_ = motion_primitve_node
+        self.mm_ = motion_primitive_node
         self.weights_ = gmm.weights_
         self.means_ = gmm.means_
         self.converged_ = gmm.converged_
