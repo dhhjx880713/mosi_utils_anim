@@ -201,3 +201,17 @@ class GraphWalk(object):
                 else:
                     print "event dict merge did not happen", temp_event_dict[name]
         return temp_event_dict
+
+    def print_statistics(self):
+        n_steps = len(self.steps)
+        objective_evaluations = 0
+        average_error = 0
+        for step in self.steps:
+            objective_evaluations += step.motion_primitive_constraints.evaluations
+            average_error += step.motion_primitive_constraints.min_error
+        average_error /= n_steps
+        evaluations_string = "total number of objective evaluations " + str(objective_evaluations)
+        error_string = "average error for " + str(n_steps) + \
+                       " motion primitives: " + str(average_error)
+        print evaluations_string
+        print error_string

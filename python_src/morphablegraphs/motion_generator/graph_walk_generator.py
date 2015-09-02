@@ -93,8 +93,11 @@ class GraphWalkGenerator(object):
         elementary_action_constraints_builder = ElementaryActionConstraintsBuilder(input_file_reader, self.motion_primitive_graph)
         graph_walk = self._generate_graph_walk_from_constraints(elementary_action_constraints_builder)
         self._optimize_over_graph_walk(graph_walk)
-        seconds = time.clock() - start
-        self.print_runtime_statistics(graph_walk, seconds)
+        time_in_seconds = time.clock() - start
+        minutes = int(time_in_seconds/60)
+        seconds = time_in_seconds % 60
+        print "finished synthesis in " + str(minutes) + " minutes " + str(seconds) + " seconds"
+        graph_walk.print_statistics()
         # export the motion to a bvh file if export == True
         if export:
             output_filename = self._service_config["output_filename"]
@@ -181,22 +184,3 @@ class GraphWalkGenerator(object):
             optimal_parameters = self.time_error_minimizer.run(initial_guess)
             graph_walk.update_time_parameters(optimal_parameters, start_step)
             graph_walk.convert_to_motion(start_step)
-
-    def print_runtime_statistics(self, graph_walk, time_in_seconds):
-        n_steps = len(graph_walk.steps)
-        objective_evaluations = 0
-        average_error = 0
-        for step in graph_walk.steps:
-            objective_evaluations += step.motion_primitive_constraints.evaluations
-            average_error += step.motion_primitive_constraints.min_error
-        average_error /= n_steps
-        minutes = int(time_in_seconds/60)
-        seconds = time_in_seconds % 60
-        total_time_string = "finished synthesis in " + str(minutes) + " minutes " + str(seconds) + " seconds"
-        evaluations_string = "total number of objective evaluations " + str(objective_evaluations)
-        error_string = "average error for " + str(n_steps) + \
-                       " motion primitives: " + str(average_error)
-        print total_time_string
-        print evaluations_string
-        print error_string
-
