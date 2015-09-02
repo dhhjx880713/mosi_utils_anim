@@ -8,7 +8,6 @@ Created on Fri Jul 31 13:21:08 2015
 import numpy as np
 from sklearn.mixture.gmm import _log_multivariate_normal_density_full
 from scipy.optimize.optimize import approx_fprime
-from . import global_counter_dict
                       
 
 def obj_spatial_error_sum(s, data):
@@ -30,7 +29,6 @@ def obj_spatial_error_sum(s, data):
     s = np.asarray(s)
     motion_primitive, motion_primitive_constraints, prev_frames = data
     error_sum = motion_primitive_constraints.evaluate(motion_primitive, s, prev_frames, use_time_parameters=False)
-    global_counter_dict["evaluations"] += 1
     return error_sum
 
 
@@ -113,7 +111,6 @@ def obj_spatial_error_residual_vector(s, data):
     residual_vector = motion_primitive_constraints.get_residual_vector(motion_primitive, s, prev_frames, use_time_parameters=False)
     #print len(residual_vector), residual_vector
     print "error", sum(residual_vector)
-    global_counter_dict["evaluations"] += 1
     n_variables = len(s)
     while len(residual_vector) < n_variables:
         residual_vector.append(0)
@@ -166,6 +163,9 @@ def obj_time_error_sum(s, data):
     * error: float
     """
     s = np.asarray(s)
-    morphable_graph, motion, time_constraints = data
-    error = time_constraints.evaluate_graph_walk(s, morphable_graph, motion)
+    morphable_graph, graph_walk, time_constraints, error_scale_factor, quality_scale_factor = data
+    time_error = time_constraints.evaluate_graph_walk(s, morphable_graph, graph_walk)
+    n_log_likelihood = -time_constraints.get_average_loglikelihood(s, morphable_graph, graph_walk)
+    error = error_scale_factor * time_error + n_log_likelihood * 0.001
+    print "time error", error, time_error, n_log_likelihood
     return error

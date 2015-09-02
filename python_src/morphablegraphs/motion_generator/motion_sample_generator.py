@@ -17,9 +17,9 @@ from ..motion_model.motion_primitive_graph_loader import MotionPrimitiveGraphLoa
 from constraints.mg_input_file_reader import MGInputFileReader
 from constraints.elementary_action_constraints_builder import ElementaryActionConstraintsBuilder
 from elementary_action_sample_generator import ElementaryActionSampleGenerator
-from . import global_counter_dict
 from algorithm_configuration import AlgorithmConfigurationBuilder
 from graph_walk import GraphWalk
+from . import global_counter_dict
 
 SKELETON_FILE = "skeleton.bvh"  # TODO replace with standard skeleton in data directory
 
@@ -81,8 +81,7 @@ class MotionSampleGenerator(object):
         * graph_walk : GraphWalk
            Contains a list of quaternion frames and their annotation based on actions.
         """
-        
-        global_counter_dict["evaluations"] = 0
+
         if type(mg_input) != dict:
             mg_input = load_json_file(mg_input)
         start = time.clock()
@@ -90,7 +89,7 @@ class MotionSampleGenerator(object):
         elementary_action_constraints_builder = ElementaryActionConstraintsBuilder(input_file_reader, self.motion_primitive_graph)
         graph_walk = self._generate_motion_from_constraints(elementary_action_constraints_builder)
         seconds = time.clock() - start
-        self.print_runtime_statistics(seconds)
+        self.print_runtime_statistics(graph_walk, seconds)
         # export the motion to a bvh file if export == True
         if export:
             output_filename = self._service_config["output_filename"]
@@ -137,12 +136,17 @@ class MotionSampleGenerator(object):
             action_constraints = elementary_action_constraints_builder.get_next_elementary_action_constraints()
         return graph_walk
 
-    def print_runtime_statistics(self, time_in_seconds):
+    def print_runtime_statistics(self, graph_walk, time_in_seconds):
+        objective_evaluations = 0
+        for step in graph_walk.steps:
+            objective_evaluations += step.motion_primitive_constraints.evaluations
+
         minutes = int(time_in_seconds/60)
         seconds = time_in_seconds % 60
         total_time_string = "finished synthesis in " + str(minutes) + " minutes " + str(seconds) + " seconds"
-        evaluations_string = "total number of objective evaluations " + str(global_counter_dict["evaluations"])
-        error_string = "average error for " + str(len(global_counter_dict["motionPrimitveErrors"])) +" motion primitives: " + str(np.average(global_counter_dict["motionPrimitveErrors"],axis=0))
+        evaluations_string = "total number of objective evaluations " + str(objective_evaluations)
+        error_string = "average error for " + str(len(global_counter_dict["motionPrimitiveErrors"])) + \
+                       " motion primitives: " + str(np.average(global_counter_dict["motionPrimitiveErrors"], axis=0))
         print total_time_string
         print evaluations_string
         print error_string

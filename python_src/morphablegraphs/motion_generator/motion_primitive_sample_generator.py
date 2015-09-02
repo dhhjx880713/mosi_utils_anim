@@ -120,7 +120,8 @@ class MotionPrimitiveSampleGenerator(object):
             parameters = self._search_for_best_sample_in_cluster_tree(graph_node,
                                                                       motion_primitive_constraints,
                                                                       prev_frames)
-            close_to_optimum = True
+            close_to_optimum = True#False
+            #use_optimization = True
         else:
             parameters = self._get_best_random_sample_from_statistical_model(graph_node,
                                                              mp_name,
@@ -174,7 +175,7 @@ class MotionPrimitiveSampleGenerator(object):
         data = graph_node, constraints, prev_frames
         distance, s = graph_node.search_best_sample(obj_spatial_error_sum, data, self.n_cluster_search_candidates)
         print "found best sample with distance:",distance
-        global_counter_dict["motionPrimitveErrors"].append(distance)
+        global_counter_dict["motionPrimitiveErrors"].append(distance)
         return np.array(s)                                 
 
     def sample_from_gaussian_mixture_model(self, mp_node, gmm, constraints, prev_frames):
@@ -229,5 +230,5 @@ class MotionPrimitiveSampleGenerator(object):
             return best_sample, min_error
         
         print "found best sample with distance:", min_error
-        global_counter_dict["motionPrimitveErrors"].append(min_error)
+        global_counter_dict["motionPrimitiveErrors"].append(min_error)
         return best_sample, min_error

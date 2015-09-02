@@ -1,7 +1,7 @@
 {
     "smoothing_settings": {
         "spatial_smoothing" : true,
-        "time_smoothing" : true,
+        "time_smoothing" : false,
         "spatial_smoothing_window" : 20,
         "time_smoothing_window" : 15
     },
