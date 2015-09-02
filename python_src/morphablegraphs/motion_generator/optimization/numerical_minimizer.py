@@ -37,7 +37,7 @@ class NumericalMinimizer(OptimizerBase):
                                   method=self.optimization_settings["method"],
                                   #jac = error_function_jac,
                                   tol=self.optimization_settings["tolerance"],
-                                  options={'maxiter': self.optimization_settings["max_iterations"], 'disp': self.verbose})
+                                  options={'maxiter': self.optimization_settings["max_iterations"], 'disp': self.verbose, 'eps': 2.0})
 
             except ValueError as e:
                 print "Warning:", e.message

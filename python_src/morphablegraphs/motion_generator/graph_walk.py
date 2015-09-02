@@ -90,7 +90,7 @@ class GraphWalk(object):
 
     def _create_event_list(self):
         """
-        Travesre elementary actions and motion primitives
+        Traverse elementary actions and motion primitives
         :return:
         """
         self.keyframe_events = dict()
@@ -113,14 +113,20 @@ class GraphWalk(object):
                     event_list = events+self.keyframe_events[warped_keyframe]
                     self.keyframe_events[warped_keyframe] = self._merge_multiple_keyframe_events(event_list, len(event_list))
 
-    def update_time_parameters(self, parameter_vector, start_step):
+    def update_spatial_parameters(self, parameter_vector, start_step=0):
+        offset = 0
+        for step in self.steps[start_step:]:
+            new_alpha = parameter_vector[offset:offset+step.n_spatial_components]
+            step.parameters[:step.n_spatial_components] = new_alpha
+            offset += step.n_spatial_components
+
+    def update_time_parameters(self, parameter_vector, start_step=0):
         offset = 0
         for step in self.steps[start_step:]:
             new_gamma = parameter_vector[offset:offset+step.n_time_components]
             print new_gamma
             step.parameters[step.n_spatial_components:] = new_gamma
             offset += step.n_time_components
-        return
 
     def update_frame_annotation(self, action_name, start_frame, end_frame):
         """Addes a dictionary to self.frame_annotation marking start and end 

@@ -18,7 +18,8 @@ class AlgorithmConfigurationBuilder(object):
         self.use_transition_model = False
         self.use_constrained_gmm = False
         self.activate_parameter_check = False
-        self.use_global_optimization = False
+        self.use_global_time_optimization = False
+        self.use_global_spatial_optimization = False
         self.n_random_samples = 100
         self.constrained_gmm_settings = dict()
         self.optimization_settings = dict()
@@ -75,7 +76,8 @@ class AlgorithmConfigurationBuilder(object):
         self.use_optimization = temp_algorithm_config["use_optimization"]
         self.use_transition_model = temp_algorithm_config["use_transition_model"]
         self.use_constrained_gmm = temp_algorithm_config["use_constrained_gmm"]
-        self.use_global_optimization = temp_algorithm_config["use_global_optimization"]
+        self.use_global_time_optimization = temp_algorithm_config["use_global_time_optimization"]
+        self.use_global_spatial_optimization = temp_algorithm_config["use_global_spatial_optimization"]
         self.activate_parameter_check = temp_algorithm_config["activate_parameter_check"]
         self.smoothing_settings = temp_algorithm_config["smoothing_settings"]
         self.n_random_samples = temp_algorithm_config["n_random_samples"]
@@ -92,7 +94,8 @@ class AlgorithmConfigurationBuilder(object):
                 "use_optimization": self.use_optimization,
                 "use_constrained_gmm": self.use_constrained_gmm,
                 "use_transition_model": self.use_transition_model,
-                "use_global_optimization": self.use_global_optimization,
+                "use_global_time_optimization": self.use_global_time_optimization,
+                "use_global_spatial_optimization": self.use_global_spatial_optimization,
                 "n_random_samples": self.n_random_samples,
                 "activate_parameter_check": self.activate_parameter_check,
                 "smoothing_settings": self.smoothing_settings,

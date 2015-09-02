@@ -22,7 +22,7 @@ class LeastSquares(OptimizerBase):
         if self._objective_function is not None and initial_guess is not None:
             if self.verbose:
                 start = time.clock()
-                print "Start optimization using", self.optimization_settings["method"]
+                print "Start optimization using LeastSquares"#, self.optimization_settings["method"]
             try:
                 result = leastsq(self._objective_function,
                                  initial_guess,
