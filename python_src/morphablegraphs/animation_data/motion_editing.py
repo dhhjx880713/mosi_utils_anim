@@ -18,6 +18,10 @@ from ..external.transformations import quaternion_matrix, euler_from_matrix, \
     quaternion_multiply
 
 DEFAULT_SMOOTHING_WINDOW_SIZE = 20
+LEN_QUAT = 4
+LEN_ROOT_POS = 3
+
+
 FK_FUNCS = [
     fk3.one_joint_fk,
     fk3.two_joints_fk,
@@ -1312,6 +1316,31 @@ def calculate_frame_distance(skeleton,
     else:
         return error
 
+def quat_distance(quat_a, quat_b):
+    # normalize quaternion vector first
+    quat_a = np.asarray(quat_a)
+    quat_b = np.asarray(quat_b)
+    quat_a /= np.linalg.norm(quat_a)
+    quat_b /= np.linalg.norm(quat_b)
+    rotmat_a = quaternion_matrix(quat_a)
+    rotmat_b = quaternion_matrix(quat_b)
+    diff_mat = rotmat_a - rotmat_b
+    tmp = np.ravel(diff_mat)
+    diff = np.linalg.norm(tmp)
+    return diff
+
+def calculate_weighted_frame_distance_quat(quat_frame_a,
+                                           quat_frame_b,
+                                           weights):
+    assert len(quat_frame_a) == len(quat_frame_b) and \
+        len(quat_frame_a) == len(weights) * LEN_QUAT + LEN_ROOT_POS
+    diff = 0
+    for i in xrange(len(weights) - 1):
+        quat1 = quat_frame_a[(i+1)*4+3: (i+2)*4+3]
+        quat2 = quat_frame_b[(i+1)*4+3: (i+2)*4+3]
+        tmp = quat_distance(quat1, quat2)*weights[i]
+        diff += tmp
+    return diff
 
 def calculate_pose_distances_from_low_dim(skeleton, mm_models, X, Y):
     """

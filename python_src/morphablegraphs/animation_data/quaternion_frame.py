@@ -7,10 +7,6 @@ Created on Fri Nov 24 14:10:21 2014
 """
 import collections
 import numpy as np
-import sys
-import os
-ROOT_DIR = os.sep.join(['..'] * 1)
-sys.path.append(ROOT_DIR)
 from ..external.transformations import euler_matrix, quaternion_from_matrix
 
 
@@ -34,11 +30,11 @@ class QuaternionFrame(collections.OrderedDict):
 
         """
         quaternions = \
-            self._get_all_nodes_quaternion_representation(
-                bvh_reader, frame_data, filter_values)
+            self._get_all_nodes_quat_repr(bvh_reader, frame_data, filter_values)
         collections.OrderedDict.__init__(self, quaternions)
 
-    def _get_quaternion_from_euler(self, euler_angles, rotation_order,
+    @classmethod
+    def _get_quaternion_from_euler(cls, euler_angles, rotation_order,
                                    filter_values):
         """Convert euler angles to quaternion vector [qw, qx, qy, qz]
 
@@ -60,48 +56,48 @@ class QuaternionFrame(collections.OrderedDict):
         euler_angles = np.deg2rad(euler_angles)
         if rotation_order[0] == 'Xrotation':
             if rotation_order[1] == 'Yrotation':
-                R = euler_matrix(euler_angles[0],
-                                 euler_angles[1],
-                                 euler_angles[2],
-                                 axes='rxyz')
+                rotmat = euler_matrix(euler_angles[0],
+                                      euler_angles[1],
+                                      euler_angles[2],
+                                      axes='rxyz')
             elif rotation_order[1] == 'Zrotation':
-                R = euler_matrix(euler_angles[0],
-                                 euler_angles[1],
-                                 euler_angles[2],
-                                 axes='rxzy')
+                rotmat = euler_matrix(euler_angles[0],
+                                      euler_angles[1],
+                                      euler_angles[2],
+                                      axes='rxzy')
         elif rotation_order[0] == 'Yrotation':
             if rotation_order[1] == 'Xrotation':
-                R = euler_matrix(euler_angles[0],
-                                 euler_angles[1],
-                                 euler_angles[2],
-                                 axes='ryxz')
+                rotmat = euler_matrix(euler_angles[0],
+                                      euler_angles[1],
+                                      euler_angles[2],
+                                      axes='ryxz')
             elif rotation_order[1] == 'Zrotation':
-                R = euler_matrix(euler_angles[0],
-                                 euler_angles[1],
-                                 euler_angles[2],
-                                 axes='ryzx')
+                rotmat = euler_matrix(euler_angles[0],
+                                      euler_angles[1],
+                                      euler_angles[2],
+                                      axes='ryzx')
         elif rotation_order[0] == 'Zrotation':
             if rotation_order[1] == 'Xrotation':
-                R = euler_matrix(euler_angles[0],
-                                 euler_angles[1],
-                                 euler_angles[2],
-                                 axes='rzxy')
+                rotmat = euler_matrix(euler_angles[0],
+                                      euler_angles[1],
+                                      euler_angles[2],
+                                      axes='rzxy')
             elif rotation_order[1] == 'Yrotation':
-                R = euler_matrix(euler_angles[0],
-                                 euler_angles[1],
-                                 euler_angles[2],
-                                 axes='rzyx')
+                rotmat = euler_matrix(euler_angles[0],
+                                      euler_angles[1],
+                                      euler_angles[2],
+                                      axes='rzyx')
         else:
             raise ValueError('Unknown rotation order')
         # convert rotation matrix R into quaternion vector (qw, qx, qy, qz)
-        q = quaternion_from_matrix(R)
+        quat = quaternion_from_matrix(rotmat)
         # filter the quaternion see
         # http://physicsforgames.blogspot.de/2010/02/quaternions.html
         if filter_values:
-            dot = np.sum(q)
+            dot = np.sum(quat)
             if dot < 0:
-                q = -q
-        return q[0], q[1], q[2], q[3]
+                quat = -quat
+        return quat[0], quat[1], quat[2], quat[3]
 
     def _get_quaternion_representation(self, bvh_reader, node_name,
                                        frame_data, filter_values=True):
@@ -137,13 +133,12 @@ class QuaternionFrame(collections.OrderedDict):
             'Xrotation',
             'Yrotation',
             'Zrotation')  # hard coded for now
-        return self._get_quaternion_from_euler(
+        return QuaternionFrame._get_quaternion_from_euler(
             euler_angles,
             rotation_order,
             filter_values)
 
-    def _get_all_nodes_quaternion_representation(self, bvh_reader, frame_data,
-                                                 filter_values):
+    def _get_all_nodes_quat_repr(self, bvh_reader, frame_data, filter_values):
         """Returns dictionary of all quaternions for all nodes except leave nodes
            Note: bvh_reader.node_names may not include EndSites
 
@@ -167,20 +162,3 @@ class QuaternionFrame(collections.OrderedDict):
                                                                      node_name,
                                                                      frame_data,
                                                                      filter_values)
-
-
-def main():
-
-    from bvh import BVHReader
-    filepath = r"C:\git-repo\ulm\morphablegraphs\test_data\animation_data/walk_001_1_rightStance_86_128.bvh"
-    bvh_reader = BVHReader(filepath)
-    quat_frame = QuaternionFrame(bvh_reader, bvh_reader.frames[0], True)
-#    joint_name = quat_frame.keys()
-    joint_value = quat_frame.values()
-#    print len(joint_name)
-#    print joint_name
-    print joint_value
-
-
-if __name__ == '__main__':
-    main()
