@@ -35,6 +35,7 @@ class MotionPrimitiveConstraintsBuilder(object):
         self.algorithm_config = algorithm_config
         self.precision = algorithm_config["constrained_gmm_settings"]["precision"]
         self.trajectory_following_settings = algorithm_config["trajectory_following_settings"]
+        self.activate_optimization = algorithm_config["use_optimization"]
 
     def set_status(self, motion_primitive_name, last_arc_length, prev_frames=None, is_last_step=False):
         self.status["motion_primitive_name"] = motion_primitive_name
@@ -72,9 +73,7 @@ class MotionPrimitiveConstraintsBuilder(object):
             if self.status["is_last_step"] and not mp_constraints.pose_constraint_set:
                 self._add_pose_constraint(mp_constraints)
         self._add_trajectory_constraints(mp_constraints)
-
-        mp_constraints.use_optimization = len(self.action_constraints.keyframe_constraints.keys()) > 0 \
-                                          or self.status["is_last_step"]
+        self._decide_on_optimization(mp_constraints)
         return mp_constraints
 
     def _add_trajectory_constraints(self, mp_constraints):
@@ -151,6 +150,10 @@ class MotionPrimitiveConstraintsBuilder(object):
                                                       "position_constraint_factor"])
                         self._add_events_to_event_list(mp_constraints, keyframe_constraint)
                         mp_constraints.constraints.append(keyframe_constraint)
+
+    def _decide_on_optimization(self, mp_constraints):
+        mp_constraints.use_optimization = len(self.action_constraints.keyframe_constraints.keys()) > 0 \
+                                          or self.status["is_last_step"] or self.activate_optimization
 
     def _add_events_to_event_list(self, mp_constraints, keyframe_constraint):
         if keyframe_constraint.keyframe_label in self.action_constraints.keyframe_annotations.keys():
