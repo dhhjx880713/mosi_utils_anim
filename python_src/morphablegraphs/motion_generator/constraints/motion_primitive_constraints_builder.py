@@ -8,7 +8,6 @@ Created on Mon Jul 27 18:38:15 2015
 from copy import copy
 import numpy as np
 from ...utilities.exceptions import PathSearchError
-from ...animation_data.motion_editing import get_cartesian_coordinates_from_quaternion
 from motion_primitive_constraints import MotionPrimitiveConstraints
 from spatial_constraints.keyframe_constraints.pose_constraint import PoseConstraint
 from spatial_constraints.keyframe_constraints.direction_constraint import DirectionConstraint
@@ -195,11 +194,7 @@ class MotionPrimitiveConstraintsBuilder(object):
 
     @classmethod
     def create_frame_constraint(cls, skeleton, frame):
-        position_dict = {}
-        for node_name in skeleton.node_name_map.keys():
-            joint_position = get_cartesian_coordinates_from_quaternion(skeleton, node_name, frame)
-            position_dict[node_name] = joint_position
-        frame_constraint = {"keyframeLabel": "start", "frame_constraint": position_dict,
+        frame_constraint = {"keyframeLabel": "start", "frame_constraint": skeleton.convert_quaternion_frame_to_cartesian_frame(frame),
                             "semanticAnnotation": {"keyframeLabel": "start"}}
         return frame_constraint
 

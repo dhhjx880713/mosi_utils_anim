@@ -45,20 +45,16 @@ class PoseConstraint(KeyframeConstraintBase):
         """
 
         # get point cloud of first frame
-        point_cloud = convert_quaternion_frame_to_cartesian_frame(
-            self.skeleton, aligned_quat_frames[self.canonical_keyframe])
-
-        constraint_point_cloud = []
-        for joint in self.skeleton.node_name_map.keys():
-            constraint_point_cloud.append(self.pose_constraint[joint])
-        theta, offset_x, offset_z = align_point_clouds_2D(constraint_point_cloud,
+        point_cloud = self.skeleton.convert_quaternion_frame_to_cartesian_frame(aligned_quat_frames[self.canonical_keyframe])
+        #print len(self.pose_constraint), len(point_cloud)
+        theta, offset_x, offset_z = align_point_clouds_2D(self.pose_constraint,
                                                           point_cloud,
                                                           self.skeleton.joint_weights)
         t_point_cloud = transform_point_cloud(
             point_cloud, theta, offset_x, offset_z)
 
         error = calculate_point_cloud_distance(
-            constraint_point_cloud, t_point_cloud)
+            self.pose_constraint, t_point_cloud)
 
         return error
 
