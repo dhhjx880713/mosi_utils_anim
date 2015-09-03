@@ -75,7 +75,7 @@ class Skeleton(object):
         return self.joint_weights
 
     def _add_tool_bones(self):
-        new_node_name = 'LeftToolBoneEndSite'
+        new_node_name = 'LeftToolEndSite'
         parent_node_name = 'LeftHand'
         new_node_offset = [9.55928, -0.145352, -0.186424]
         self._add_new_end_site(new_node_name, parent_node_name, new_node_offset)
@@ -85,14 +85,10 @@ class Skeleton(object):
         self._add_new_end_site(new_node_name, parent_node_name, new_node_offset)
         #Finger21 = 'Bip01_L_Finger21'
         #Finger21_offset = [3.801407, 0.0, 0.0]
-        #Finger21_angles = [-0.0, 0.0, 0.0]
-        #node_name = 'RightToolEndSite'
         #Finger2 = 'Bip01_R_Finger2'
         #Finger21 = 'Bip01_R_Finger21'
         #Finger2_offset = [9.559288, 0.145353, -0.186417]
-        #Finger2_angles = [-0.0, 0.0, 0.0]
         #Finger21_offset = [3.801407, 0.0, 0.0]
-        #Finger21_angles = [-0.0, 0.0, 0.0]
 
     def _add_new_end_site(self, new_node_name, parent_node, offset):
         if parent_node in self.node_name_map.keys():
@@ -148,6 +144,7 @@ class Skeleton(object):
                     j_matrix = quaternion_matrix(quaternion_frame[index: index + 4])
                     j_matrix[:, 3] = offsets[count] + [1]
                 else:
+                    print node_name
                     j_matrix = np.identity(4)
                     j_matrix[:, 3] = offsets[count] + [1]
                     break # there should not be any nodes after an end site
