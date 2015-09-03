@@ -12,7 +12,7 @@ from python_src.morphablegraphs.external.transformations import rotation_matrix
 from keyframe_constraint_base import KeyframeConstraintBase
 from .. import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
 
-RELATIVE_HUERISTIC_RANGE = 0.05  # used for setting the search range relative to the number of frames of motion primitive
+RELATIVE_HUERISTIC_RANGE = 0.00#5  # used for setting the search range relative to the number of frames of motion primitive
 CONSTRAINT_CONFLICT_ERROR = 100000  # returned when conflicting constraints were set
 
 
@@ -43,6 +43,9 @@ class PositionAndRotationConstraint(KeyframeConstraintBase):
             self.frame_range = 0
         self.start_keyframe = max(self.canonical_keyframe - self.frame_range, 0)
         self.stop_keyframe = min(self.canonical_keyframe + self.frame_range, self.n_canonical_frames)
+        if self.start_keyframe == self.stop_keyframe:
+            self.start_keyframe -= 1
+        #print "RANGE", self.start_keyframe, self.stop_keyframe
         self.rotation_axes = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
 
     def evaluate_motion_sample(self, aligned_quat_frames):
