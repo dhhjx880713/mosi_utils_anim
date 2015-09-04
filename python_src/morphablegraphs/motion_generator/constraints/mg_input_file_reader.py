@@ -92,8 +92,8 @@ class MGInputFileReader(object):
             if "keyframeAnnotations" in self.elementary_action_list[action_index].keys():
                 annotations = {}
                 for annotation in self.elementary_action_list[action_index]["keyframeAnnotations"]:
-                    key = annotation["keyframe"]
-                    annotations[key] = annotation
+                    keyframe_label = annotation["keyframe"]
+                    annotations[keyframe_label] = annotation
                 return annotations
             else:
                 return dict()

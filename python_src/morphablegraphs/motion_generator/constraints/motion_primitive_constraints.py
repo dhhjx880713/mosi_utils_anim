@@ -31,6 +31,7 @@ class MotionPrimitiveConstraints(object):
         self.least_error = 0.0
         self.best_parameters = None
         self.evaluations = 0
+        self.keyframe_event_list = dict()
 
     def print_status(self):
 #        print  "starting from",last_pos,last_arc_length,"the new goal for", \

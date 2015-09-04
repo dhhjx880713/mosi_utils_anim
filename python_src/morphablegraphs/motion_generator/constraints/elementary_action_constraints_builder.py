@@ -52,8 +52,8 @@ class ElementaryActionConstraintsBuilder(object):
             action_constraints.motion_primitive_graph = self.motion_primitive_graph
             action_constraints.action_name = self.mg_input.get_elementary_action_name(self.current_action_index)
             action_constraints.start_pose = self.start_pose
-            self._add_keyframe_annotations(action_constraints)
             self._add_keyframe_constraints(action_constraints)
+            self._add_keyframe_annotations(action_constraints)
             self._add_trajectory_constraints(action_constraints)
             action_constraints._initialized = True
             return action_constraints
@@ -62,6 +62,11 @@ class ElementaryActionConstraintsBuilder(object):
         if self.current_action_index > 0:
             action_constraints.prev_action_name = self.mg_input.get_elementary_action_name(self.current_action_index - 1)
         action_constraints.keyframe_annotations = self.mg_input.get_keyframe_annotations(self.current_action_index)
+        ### extract event
+        #action_constraints.keyframe_event_list = dict()
+        #for annotation in action_constraints.keyframe_annotations.values():
+        #    if "keyframe" in annotation.keys() and "annotations" in annotation.keys():
+         #       action_constraints.keyframe_event_list[annotation["keyframe"]] = annotation["annotations"]
 
     def _add_keyframe_constraints(self, action_constraints):
         node_group = self.motion_primitive_graph.node_groups[action_constraints.action_name]
