@@ -19,6 +19,7 @@ class ElementaryActionConstraints(object):
         self.keyframe_constraints = None
         self.precision = {"pos": 1.0, "rot": 1.0, "smooth": 1.0}
         self._initialized = False
+        self.contains_user_constraints = False
         self.keyframe_event_list = dict()
 
     def get_node_group(self):
