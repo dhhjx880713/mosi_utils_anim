@@ -79,7 +79,7 @@ class MGInputHandler(tornado.web.RequestHandler):
                 result_object = {
                     "bvh": bvh_writer.generate_bvh_string(),
                     "annotation": graph_walk.frame_annotation,
-                    "event_list": graph_walk.keyframe_event_list}
+                    "event_list": graph_walk.keyframe_events_dict}
                 self.write(json.dumps(result_object))  # send result back
         else:
             error_string = "Error: Failed to generate motion data."

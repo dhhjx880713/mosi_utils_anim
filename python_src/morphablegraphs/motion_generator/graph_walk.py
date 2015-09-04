@@ -45,12 +45,13 @@ class GraphWalk(object):
         self.mg_input = dict()
         self.motion_vector = MotionVector(algorithm_config)
         self.motion_vector.start_pose = start_pose
-        self.keyframe_event_list = []
+        self.keyframe_events_dict = dict()
 
     def convert_to_motion(self, start_step=0):
         self._convert_to_quaternion_frames(start_step)
+        self._create_event_dict()
         self._create_frame_annotation(start_step)
-        self._create_event_list()
+        self._add_event_list_to_frame_annotation()
 
     def _convert_to_quaternion_frames(self, start_step=0, use_time_parameters=True):
         """
@@ -93,7 +94,7 @@ class GraphWalk(object):
         Traverse elementary actions and motion primitives
         :return:
         """
-        keyframe_events_dict = dict()
+        self.keyframe_events_dict = dict()
         for step in self.steps:
             for keyframe_event in step.motion_primitive_constraints.keyframe_event_list.values():
                 # inverse lookup warped keyframe
@@ -107,27 +108,25 @@ class GraphWalk(object):
                     events = keyframe_event["event_list"]
                 else:
                     events = self._merge_multiple_keyframe_events(keyframe_event["event_list"], len(keyframe_event["event_list"]))
-                if warped_keyframe not in keyframe_events_dict:
-                    keyframe_events_dict[warped_keyframe] = events
+                if warped_keyframe not in self.keyframe_events_dict:
+                    self.keyframe_events_dict[warped_keyframe] = events
                 else:
-                    temp_event_list = events+keyframe_events_dict[warped_keyframe]
-                    keyframe_events_dict[warped_keyframe] = self._merge_multiple_keyframe_events(temp_event_list, len(temp_event_list))
-        return keyframe_events_dict
+                    temp_event_list = events+self.keyframe_events_dict[warped_keyframe]
+                    self.keyframe_events_dict[warped_keyframe] = self._merge_multiple_keyframe_events(temp_event_list, len(temp_event_list))
 
-    def _create_event_list(self):
-
-        keyframe_events_dict = self._create_event_dict()
-        print "keyframe event dict", keyframe_events_dict
-        self.keyframe_event_list = []
-        for keyframe in keyframe_events_dict.keys():
-            for event_desc in keyframe_events_dict[keyframe]:
+    def _add_event_list_to_frame_annotation(self):
+        #print "keyframe event dict", self.keyframe_events_dict
+        keyframe_event_list = []
+        for keyframe in self.keyframe_events_dict.keys():
+            for event_desc in self.keyframe_events_dict[keyframe]:
                 event = dict()
                 event["jointName"] = event_desc["parameters"]["joint"]
                 event_type = event_desc["event"]
                 target = event_desc["parameters"]["target"]
                 event[event_type] = target
                 event["frameNumber"] = int(keyframe)
-                self.keyframe_event_list.append(event)
+                keyframe_event_list.append(event)
+        self.frame_annotation["events"] = keyframe_event_list
 
     def update_spatial_parameters(self, parameter_vector, start_step=0):
         offset = 0
@@ -163,8 +162,9 @@ class GraphWalk(object):
     def get_num_of_frames(self):
         return self.motion_vector.n_frames
 
-    def _export_event_list(self, filename):
-        write_to_json_file(filename, self.keyframe_event_list)
+    def _export_event_dict(self, filename):
+        #print "keyframe event dict", self.keyframe_events_dict, filename
+        write_to_json_file(filename, self.keyframe_events_dict)
 
     def export_motion(self, output_dir, output_filename, add_time_stamp=False, write_log=False):
         """ Saves the resulting animation frames, the annotation and actions to files.
@@ -175,7 +175,7 @@ class GraphWalk(object):
         if self.motion_vector.has_frames():
             self.motion_vector.export(self.skeleton, output_dir, output_filename, add_time_stamp)
             write_to_json_file(output_dir + os.sep + output_filename + ".json", self.mg_input)
-            self._export_event_list(output_dir + os.sep + output_filename + "_actions"+".json")
+            self._export_event_dict(output_dir + os.sep + output_filename + "_actions"+".json")
             write_to_json_file(output_dir + os.sep + output_filename + "_annotations"+".json", self.frame_annotation)
             if write_log:
                 time_stamp = unicode(datetime.now().strftime("%d%m%y_%H%M%S"))

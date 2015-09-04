@@ -31,7 +31,7 @@ def test_rest_inteface():
     result_file = open(result_file_name, "wb")
     result_file.write(str(result))
     result_file.close()
-    print "wrote result to file"
+    print "wrote result to file", result_file_name
     #print result
     #assert str(result) == "success"
 
