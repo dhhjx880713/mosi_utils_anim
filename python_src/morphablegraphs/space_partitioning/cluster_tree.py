@@ -93,7 +93,7 @@ class ClusterTree(object):
     def find_best_example_excluding_search(self, obj, data):
         node = self.root
         level = 0
-        while level < self.max_level and node.leaf == False:
+        while level < self.max_level and not node.leaf:
             print "level", level
             index, value = node.find_best_cluster(obj, data, use_mean=True)
             node = node.clusters[index]
@@ -130,7 +130,7 @@ class ClusterTree(object):
         if len(results) > 0:
             return heapq.heappop(results)    
         else:
-            print "#################failed to find a result"
+            print "#########failed to find a result########"
             return np.inf, self.data[self.root.indices[0]]
         
     def find_best_example_excluding_search_candidates_boundary(self, obj, data, n_candidates=5):

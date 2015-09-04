@@ -81,11 +81,11 @@ class Skeleton(object):
     def _add_tool_bones(self):
         new_node_name = 'LeftToolEndSite'
         parent_node_name = 'LeftHand'
-        new_node_offset = [9.55928, -0.145352, -0.186424]
+        new_node_offset = [9.55928, -0.145352, 5.186424]
         self._add_new_end_site(new_node_name, parent_node_name, new_node_offset)
         new_node_name = 'RightToolEndSite'
         parent_node_name = 'RightHand'
-        new_node_offset = [9.559288, 0.145353, -0.186417]
+        new_node_offset = [9.559288, 0.145353, 5.186417]
         self._add_new_end_site(new_node_name, parent_node_name, new_node_offset)
         #Finger21 = 'Bip01_L_Finger21'
         #Finger21_offset = [3.801407, 0.0, 0.0]
@@ -173,5 +173,4 @@ class Skeleton(object):
         cartesian_frame = []
         for node_name in self.node_name_map.keys():
             cartesian_frame.append(self.get_cartesian_coordinates_from_quaternion(node_name, quat_frame))
-
         return cartesian_frame
