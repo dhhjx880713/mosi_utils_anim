@@ -54,13 +54,13 @@ class MGInputHandler(tornado.web.RequestHandler):
         if "elementaryActions" in mg_input.keys():
             graph_walk = self.application.generate_graph_walk(mg_input)
 
-            self._handle_result(mg_input, graph_walk)
+            self._handle_result(graph_walk)
         else:
             print mg_input
             error_string = "Error: Did not find expected keys in the input data."
             self.write(error_string)
 
-    def _handle_result(self, mg_input, graph_walk):
+    def _handle_result(self, graph_walk):
         """Sends the result back as an answer to a post request.
         """
         if graph_walk.motion_vector.has_frames():
@@ -71,15 +71,16 @@ class MGInputHandler(tornado.web.RequestHandler):
                               add_time_stamp=False, write_log=False)
                 self.write("succcess")
             else:
+                print "answer request", not self.application.use_file_output_mode
+                graph_walk.convert_to_motion()
                 bvh_writer = get_bvh_writer(
-                    self.application.motion_generator.morphable_graph.skeleton,
+                    self.application.graph_walk_generator.motion_primitive_graph.skeleton,
                     graph_walk.get_quat_frames())
-                bvh_string = bvh_writer.generate_bvh_string()
-                result_list = [
-                    bvh_string,
-                    graph_walk.frame_annotation,
-                    graph_walk.action_list]
-                self.write(json.dumps(result_list))  # send result back
+                result_object = {
+                    "bvh": bvh_writer.generate_bvh_string(),
+                    "annotation": graph_walk.frame_annotation,
+                    "event_list": graph_walk.keyframe_event_list}
+                self.write(json.dumps(result_object))  # send result back
         else:
             error_string = "Error: Failed to generate motion data."
             print error_string
@@ -133,8 +134,8 @@ class MGRestApplication(tornado.web.Application):
         print "finished construction from file in", time.clock() - start, "seconds"
         self.algorithm_config = algorithm_config
         self.service_config = service_config
-        self.use_file_output_mode = (
-            service_config["output_mode"] == "file_output")
+        self.use_file_output_mode = (service_config["output_mode"] == "file_output")
+        print "send result as answer to the request", not self.use_file_output_mode
 
     def generate_graph_walk(self, mg_input):
         return self.graph_walk_generator.generate_graph_walk(mg_input, export=False)

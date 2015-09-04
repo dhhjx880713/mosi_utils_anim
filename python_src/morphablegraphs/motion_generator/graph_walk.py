@@ -45,7 +45,7 @@ class GraphWalk(object):
         self.mg_input = dict()
         self.motion_vector = MotionVector(algorithm_config)
         self.motion_vector.start_pose = start_pose
-        self.keyframe_events = dict()
+        self.keyframe_event_list = []
 
     def convert_to_motion(self, start_step=0):
         self._convert_to_quaternion_frames(start_step)
@@ -88,12 +88,12 @@ class GraphWalk(object):
         print "add", prev_step.node_key[0]
         self.update_frame_annotation(prev_step.node_key[0], start_frame, prev_step.end_frame)
 
-    def _create_event_list(self):
+    def _create_event_dict(self):
         """
         Traverse elementary actions and motion primitives
         :return:
         """
-        self.keyframe_events = dict()
+        keyframe_events_dict = dict()
         for step in self.steps:
             for keyframe_event in step.motion_primitive_constraints.keyframe_event_list.values():
                 # inverse lookup warped keyframe
@@ -107,11 +107,27 @@ class GraphWalk(object):
                     events = keyframe_event["event_list"]
                 else:
                     events = self._merge_multiple_keyframe_events(keyframe_event["event_list"], len(keyframe_event["event_list"]))
-                if warped_keyframe not in self.keyframe_events:
-                    self.keyframe_events[warped_keyframe] = events
+                if warped_keyframe not in keyframe_events_dict:
+                    keyframe_events_dict[warped_keyframe] = events
                 else:
-                    event_list = events+self.keyframe_events[warped_keyframe]
-                    self.keyframe_events[warped_keyframe] = self._merge_multiple_keyframe_events(event_list, len(event_list))
+                    temp_event_list = events+keyframe_events_dict[warped_keyframe]
+                    keyframe_events_dict[warped_keyframe] = self._merge_multiple_keyframe_events(temp_event_list, len(temp_event_list))
+        return keyframe_events_dict
+
+    def _create_event_list(self):
+
+        keyframe_events_dict = self._create_event_dict()
+        print "keyframe event dict", keyframe_events_dict
+        self.keyframe_event_list = []
+        for keyframe in keyframe_events_dict.keys():
+            for event_desc in keyframe_events_dict[keyframe]:
+                event = dict()
+                event["jointName"] = event_desc["parameters"]["joint"]
+                event_type = event_desc["event"]
+                target = event_desc["parameters"]["target"]
+                event[event_type] = target
+                event["frameNumber"] = int(keyframe)
+                self.keyframe_event_list.append(event)
 
     def update_spatial_parameters(self, parameter_vector, start_step=0):
         offset = 0
@@ -148,7 +164,7 @@ class GraphWalk(object):
         return self.motion_vector.n_frames
 
     def _export_event_list(self, filename):
-        write_to_json_file(filename, self.keyframe_events)
+        write_to_json_file(filename, self.keyframe_event_list)
 
     def export_motion(self, output_dir, output_filename, add_time_stamp=False, write_log=False):
         """ Saves the resulting animation frames, the annotation and actions to files.
@@ -160,27 +176,12 @@ class GraphWalk(object):
             self.motion_vector.export(self.skeleton, output_dir, output_filename, add_time_stamp)
             write_to_json_file(output_dir + os.sep + output_filename + ".json", self.mg_input)
             self._export_event_list(output_dir + os.sep + output_filename + "_actions"+".json")
-            reordered_frame_annotation = self._add_events_to_frame_annotation(self.frame_annotation, self.keyframe_events)
-            write_to_json_file(output_dir + os.sep + output_filename + "_annotations"+".json", reordered_frame_annotation)
+            write_to_json_file(output_dir + os.sep + output_filename + "_annotations"+".json", self.frame_annotation)
             if write_log:
                 time_stamp = unicode(datetime.now().strftime("%d%m%y_%H%M%S"))
                 write_to_logfile(output_dir + os.sep + LOG_FILE, output_filename + "_" + time_stamp, self._algorithm_config)
         else:
            print "Error: no motion data to export"
-
-    def _add_events_to_frame_annotation(self, frame_annotation, action_list):
-        reordered_frame_annotation = copy(frame_annotation)
-        reordered_frame_annotation["events"] = []
-        for keyframe in action_list.keys():
-            for event_desc in action_list[keyframe]:
-                event = {}
-                event["jointName"] = event_desc["parameters"]["joint"]
-                event_type = event_desc["event"]
-                target = event_desc["parameters"]["target"]
-                event[event_type] = target
-                event["frameNumber"] = int(keyframe)
-                reordered_frame_annotation["events"].append(event)
-        return reordered_frame_annotation
 
     def _merge_multiple_keyframe_events(self, annotations, num_events):
         """Merge events if there are more than one event defined for the same keyframe.
