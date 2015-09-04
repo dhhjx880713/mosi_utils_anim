@@ -16,7 +16,7 @@ from datetime import datetime
 from ..animation_data.motion_editing import transform_euler_frames, \
     transform_quaternion_frames
 from ..animation_data.bvh import BVHWriter
-from ..motion_generator.constraint.splines.parameterized_spline import ParameterizedSpline
+from ..motion_generator.constraints.spatial_constraints.splines.parameterized_spline import ParameterizedSpline
 
 def write_to_logfile(path, time_string, data):
     """ Appends json data to a text file.

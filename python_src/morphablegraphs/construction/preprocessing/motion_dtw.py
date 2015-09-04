@@ -82,7 +82,8 @@ class MotionDynamicTimeWarping(MotionNormalization):
         res = MotionDynamicTimeWarping.calculate_path(distgrid)
         ref_indeces = res[0]
         test_indeces = res[1]
-        warping_index = self.get_warping_index(test_indeces, ref_indeces, distgrid.shape)
+        warping_index = self.get_warping_index(test_indeces, ref_indeces,
+                                               (len(test_indeces), len(ref_indeces)))
         warped_frames = MotionDynamicTimeWarping.get_warped_frames(warping_index,
                                                                    test_motion['frames'])
         return warped_frames, warping_index
@@ -173,7 +174,7 @@ class MotionDynamicTimeWarping(MotionNormalization):
         """
         # create Pairs:
         path_pairs = [(int(test_indices[i]) - 1, int(ref_indices[i]) - 1)
-                      for i in xrange(len(test_indices))]
+                      for i in xrange(len(ref_indices))]
         # create Pathmatirx:
         pathmatrix = np.zeros(shape)
         for pair in path_pairs:

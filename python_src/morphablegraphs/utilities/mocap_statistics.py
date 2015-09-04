@@ -2,7 +2,9 @@ __author__ = 'hadu01'
 
 import glob
 from ..animation_data.bvh import BVHReader
+from ..animation_data.skeleton import Skeleton
 from ..animation_data.motion_editing import get_step_length
+from ..animation_data.motion_editing import get_cartesian_coordinates_from_euler_full_skeleton
 import numpy as np
 import os
 
@@ -14,6 +16,8 @@ class MocapDataStats(object):
 
     def __init__(self):
         self.data_folder = None
+        self.bvhreaders = []
+        self.skeleton = None
 
     def get_data_folder(self, folder_path):
         """
@@ -31,11 +35,11 @@ class MocapDataStats(object):
 
         """
         bvh_files = glob.glob(self.data_folder + '*.bvh')
-        self.bvhreaders = []
         for item in bvh_files:
             bvh_reader = BVHReader(item)
             self.bvhreaders.append(bvh_reader)
-        self.calculate_step_len()
+        self.skeleton = Skeleton(bvh_reader)
+        # self.calculate_step_len()
 
     def calculate_step_len(self):
         """
@@ -66,3 +70,14 @@ class MocapDataStats(object):
         :return aver_len: average step length in mocap data
         """
         return np.mean(self.mocap_data_stepLen.values())
+
+    def get_joint_position_for_all_motion(self, joint_name, frame_idx):
+        joint_positions = []
+        for bvhreader in self.bvhreaders:
+            frame = bvhreader.frames[frame_idx]
+            pos = get_cartesian_coordinates_from_euler_full_skeleton(bvhreader,
+                                                                     self.skeleton,
+                                                                     joint_name,
+                                                                     frame)
+            joint_positions.append(pos)
+        return joint_positions
