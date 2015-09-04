@@ -8,12 +8,12 @@ Created on Tue Jul 14 18:39:41 2015
 import os
 from datetime import datetime
 from copy import copy
+
 import numpy as np
-from constraints.spatial_constraints.keyframe_constraints.keyframe_constraint_base import KeyframeConstraintBase
+
 from ..utilities.io_helper_functions import write_to_json_file,\
                                           write_to_logfile
-from motion_vector import MotionVector
-from constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
+from ..animation_data.motion_vector import MotionVector
 
 LOG_FILE = "log.txt"
 

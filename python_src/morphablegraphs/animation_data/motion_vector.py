@@ -1,8 +1,9 @@
 __author__ = 'erhe01'
 
-
-from ..animation_data.motion_editing import fast_quat_frames_alignment,\
-                                          transform_quaternion_frames
+import numpy as np
+from motion_editing import fast_quat_frames_alignment,\
+                                          transform_quaternion_frames,\
+                                            convert_euler_frames_to_quaternion_frames
 from ..utilities.io_helper_functions import export_quat_frames_to_bvh_file
 
 
@@ -20,6 +21,10 @@ class MotionVector(object):
         else:
             self.apply_spatial_smoothing = False
             self.smoothing_window = 0
+
+    def from_bvh_reader(self, bvh_reader):
+        self.quat_frames = np.array(convert_euler_frames_to_quaternion_frames(bvh_reader, bvh_reader.frames))
+        self.n_frames = len(self.quat_frames)
 
     def append_quat_frames(self, new_frames):
         """Align quaternion frames to previous frames
