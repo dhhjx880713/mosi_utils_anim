@@ -59,7 +59,7 @@ class ClusterTree(object):
         self.dim = data_shape[1]
         root_id = node_desc["root"]
         node_builder = ClusterTreeNodeBuilder(self.n_subdivisions, self.max_level, self.dim)
-        self.root = node_builder.construct_from_node_desc_list(root_id,node_desc,self.data)
+        self.root = node_builder.construct_from_node_desc_list(root_id, node_desc, self.data)
 
     def save_to_file_pickle(self, file_name):
         pickle_file_name = file_name
@@ -153,7 +153,7 @@ class ClusterTree(object):
             for value, node in candidates:
                 
                 if not node.leaf:
-                    good_candidates = node.find_best_cluster_canditates(obj, data, n_candidates=n_candidates)
+                    good_candidates = node.find_best_cluster_candidates(obj, data, n_candidates=n_candidates)
                     for c in good_candidates:
                          heapq.heappush(new_candidates, c)
                 else:
@@ -186,7 +186,7 @@ class ClusterTree(object):
             new_candidates = []
             for value, node in candidates:
                 if not node.leaf:
-                    good_candidates = node.find_best_cluster_canditates(obj, data, n_candidates=n_candidates)
+                    good_candidates = node.find_best_cluster_candidates(obj, data, n_candidates=n_candidates)
                     for c in good_candidates:
                         heapq.heappush(new_candidates, c)
                 else:
