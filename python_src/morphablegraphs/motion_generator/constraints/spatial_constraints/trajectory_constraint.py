@@ -30,7 +30,7 @@ class TrajectoryConstraint(ParameterizedSpline, SpatialConstraintBase):
             in the last frame of the previous frames.
         :param previous_frames: list of quaternion frames.
         """
-        point = get_cartesian_coordinates_from_quaternion(self.skeleton, self.joint_name, previous_frames[-1])
+        point = self.skeleton.get_cartesian_coordinates_from_quaternion(self.joint_name, previous_frames[-1])
         closest_point, distance = self.find_closest_point(point, min_arc_length=self.min_arc_length)
         self.min_arc_length = self.get_absolute_arc_length_of_point(closest_point)[0]
 
@@ -51,7 +51,7 @@ class TrajectoryConstraint(ParameterizedSpline, SpatialConstraintBase):
         last_joint_position = None
         errors = []
         for frame in aligned_quat_frames:
-            joint_position = np.asarray(get_cartesian_coordinates_from_quaternion(self.skeleton, self.joint_name, frame))
+            joint_position = np.asarray(self.skeleton.get_cartesian_coordinates_from_quaternion(self.joint_name, frame))
             if last_joint_position is not None:
                 self.arc_length += np.linalg.norm(joint_position - last_joint_position)
             target = self.query_point_by_absolute_arc_length(self.arc_length)

@@ -1,6 +1,10 @@
 {
-    "apply_smoothing" : true,
-    "smoothing_window" : 20,
+    "smoothing_settings": {
+        "spatial_smoothing" : true,
+        "time_smoothing" : false,
+        "spatial_smoothing_window" : 20,
+        "time_smoothing_window" : 15
+    },
     "trajectory_following_settings": {
         "dir_constraint_factor": 10.0,
         "heuristic_step_length_factor": 1.0,
@@ -10,10 +14,11 @@
     }, 
     "use_constrained_gmm": false, 
     "optimization_settings": {
+        "start_error_threshold": 50.0,
         "error_scale_factor": 1.0,
         "spatial_epsilon": 0.0,
         "quality_scale_factor": 0.5,
-        "tolerance": 0.05, 
+        "tolerance": 0.05,
         "method": "leastsq",
         "max_iterations": 300
     }, 
@@ -30,9 +35,10 @@
     }, 
     "n_random_samples": 300,
     "use_transition_model": false, 
-    "use_optimization": false, 
+    "use_optimization": true,
     "activate_parameter_check": false,
-    "use_global_optimization":false,
+    "use_global_time_optimization": false,
+    "use_global_spatial_optimization": false,
     "use_constraints": true,
     "debug_max_step": -1,
     "verbose": false

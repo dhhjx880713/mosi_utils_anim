@@ -8,7 +8,6 @@ Created on Mon Jul 27 18:38:15 2015
 from copy import copy
 import numpy as np
 from ...utilities.exceptions import PathSearchError
-from ...animation_data.motion_editing import get_cartesian_coordinates_from_quaternion
 from motion_primitive_constraints import MotionPrimitiveConstraints
 from spatial_constraints.keyframe_constraints.pose_constraint import PoseConstraint
 from spatial_constraints.keyframe_constraints.direction_constraint import DirectionConstraint
@@ -35,6 +34,7 @@ class MotionPrimitiveConstraintsBuilder(object):
         self.algorithm_config = algorithm_config
         self.precision = algorithm_config["constrained_gmm_settings"]["precision"]
         self.trajectory_following_settings = algorithm_config["trajectory_following_settings"]
+        self.activate_optimization = algorithm_config["use_optimization"]
 
     def set_status(self, motion_primitive_name, last_arc_length, prev_frames=None, is_last_step=False):
         self.status["motion_primitive_name"] = motion_primitive_name
@@ -72,9 +72,7 @@ class MotionPrimitiveConstraintsBuilder(object):
             if self.status["is_last_step"] and not mp_constraints.pose_constraint_set:
                 self._add_pose_constraint(mp_constraints)
         self._add_trajectory_constraints(mp_constraints)
-
-        mp_constraints.use_optimization = len(self.action_constraints.keyframe_constraints.keys()) > 0 \
-                                          or self.status["is_last_step"]
+        self._decide_on_optimization(mp_constraints)
         return mp_constraints
 
     def _add_trajectory_constraints(self, mp_constraints):
@@ -152,6 +150,10 @@ class MotionPrimitiveConstraintsBuilder(object):
                         self._add_events_to_event_list(mp_constraints, keyframe_constraint)
                         mp_constraints.constraints.append(keyframe_constraint)
 
+    def _decide_on_optimization(self, mp_constraints):
+        mp_constraints.use_optimization = len(self.action_constraints.keyframe_constraints.keys()) > 0 \
+                                          or self.status["is_last_step"] or self.activate_optimization
+
     def _add_events_to_event_list(self, mp_constraints, keyframe_constraint):
         if keyframe_constraint.keyframe_label in self.action_constraints.keyframe_annotations.keys():
             #simply overwrite it if it exists
@@ -192,11 +194,7 @@ class MotionPrimitiveConstraintsBuilder(object):
 
     @classmethod
     def create_frame_constraint(cls, skeleton, frame):
-        position_dict = {}
-        for node_name in skeleton.node_name_map.keys():
-            joint_position = get_cartesian_coordinates_from_quaternion(skeleton, node_name, frame)
-            position_dict[node_name] = joint_position
-        frame_constraint = {"keyframeLabel": "start", "frame_constraint": position_dict,
+        frame_constraint = {"keyframeLabel": "start", "frame_constraint": skeleton.convert_quaternion_frame_to_cartesian_frame(frame),
                             "semanticAnnotation": {"keyframeLabel": "start"}}
         return frame_constraint
 

@@ -5,9 +5,7 @@ from spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
 
 
 class TimeConstraintsBuilder(object):
-    def __init__(self, action_constraints, graph_walk, start_step):
-        self.action_constraints = action_constraints
-        self.graph_walk = graph_walk
+    def __init__(self, graph_walk, start_step):
         self.start_step = start_step
         if start_step > 0:
             self.start_keyframe = graph_walk.steps[start_step-1].end_frame

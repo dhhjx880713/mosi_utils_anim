@@ -53,7 +53,7 @@ class GraphWalk(object):
         self._create_event_list()
 
     def _convert_to_quaternion_frames(self, start_step=0, use_time_parameters=True):
-        """TODO use time parameters
+        """
         :param start_step:
         :param use_time_parameters:
         :return:
@@ -90,7 +90,7 @@ class GraphWalk(object):
 
     def _create_event_list(self):
         """
-        Travesre elementary actions and motion primitives
+        Traverse elementary actions and motion primitives
         :return:
         """
         self.keyframe_events = dict()
@@ -113,14 +113,20 @@ class GraphWalk(object):
                     event_list = events+self.keyframe_events[warped_keyframe]
                     self.keyframe_events[warped_keyframe] = self._merge_multiple_keyframe_events(event_list, len(event_list))
 
-    def update_time_parameters(self, parameter_vector, start_step):
+    def update_spatial_parameters(self, parameter_vector, start_step=0):
+        offset = 0
+        for step in self.steps[start_step:]:
+            new_alpha = parameter_vector[offset:offset+step.n_spatial_components]
+            step.parameters[:step.n_spatial_components] = new_alpha
+            offset += step.n_spatial_components
+
+    def update_time_parameters(self, parameter_vector, start_step=0):
         offset = 0
         for step in self.steps[start_step:]:
             new_gamma = parameter_vector[offset:offset+step.n_time_components]
             print new_gamma
             step.parameters[step.n_spatial_components:] = new_gamma
             offset += step.n_time_components
-        return
 
     def update_frame_annotation(self, action_name, start_frame, end_frame):
         """Addes a dictionary to self.frame_annotation marking start and end 
@@ -149,16 +155,16 @@ class GraphWalk(object):
         Also exports the input file again to the output directory, where it is
         used as input for the constraints visualization by the animation server.
         """
-        self.convert_to_motion(0)
+        self.convert_to_motion()
         if self.motion_vector.has_frames():
-            time_stamp = unicode(datetime.now().strftime("%d%m%y_%H%M%S"))
+            self.motion_vector.export(self.skeleton, output_dir, output_filename, add_time_stamp)
             write_to_json_file(output_dir + os.sep + output_filename + ".json", self.mg_input)
             self._export_event_list(output_dir + os.sep + output_filename + "_actions"+".json")
             reordered_frame_annotation = self._add_events_to_frame_annotation(self.frame_annotation, self.keyframe_events)
             write_to_json_file(output_dir + os.sep + output_filename + "_annotations"+".json", reordered_frame_annotation)
             if write_log:
+                time_stamp = unicode(datetime.now().strftime("%d%m%y_%H%M%S"))
                 write_to_logfile(output_dir + os.sep + LOG_FILE, output_filename + "_" + time_stamp, self._algorithm_config)
-            self.motion_vector.export(self.skeleton, output_dir, output_filename, add_time_stamp)
         else:
            print "Error: no motion data to export"
 
@@ -195,3 +201,17 @@ class GraphWalk(object):
                 else:
                     print "event dict merge did not happen", temp_event_dict[name]
         return temp_event_dict
+
+    def print_statistics(self):
+        n_steps = len(self.steps)
+        objective_evaluations = 0
+        average_error = 0
+        for step in self.steps:
+            objective_evaluations += step.motion_primitive_constraints.evaluations
+            average_error += step.motion_primitive_constraints.min_error
+        average_error /= n_steps
+        evaluations_string = "total number of objective evaluations " + str(objective_evaluations)
+        error_string = "average error for " + str(n_steps) + \
+                       " motion primitives: " + str(average_error)
+        print evaluations_string
+        print error_string

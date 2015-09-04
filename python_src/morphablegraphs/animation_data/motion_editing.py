@@ -63,8 +63,6 @@ def get_arc_length_from_points(points):
             delta = p - last_p
             # print delta
             arc_length += np.linalg.norm(delta)
-        else:
-            delta = p
         last_p = p
     return arc_length
 
@@ -663,7 +661,7 @@ def align_point_clouds_2D(a, b, weights):
 
      '''
     if len(a) != len(b):
-        raise ValueError("two point cloud should have the same number points")
+        raise ValueError("two point cloud should have the same number points: "+str(len(a))+","+str(len(b)))
     n_points = len(a)
     numerator_left = 0
     numerator_right = 0
@@ -1090,7 +1088,7 @@ def smooth_motion(euler_frames, discontinuity, window=20):
 
 def smoothly_concatenate(euler_frames_a, euler_frames_b, window_size=20):
     euler_frames = np.concatenate((euler_frames_a, euler_frames_b), axis=0)
-    euler_frames = smooth_motion(euler_frames, d, window_size)
+    euler_frames = smooth_motion(euler_frames, len(euler_frames_a), window_size)
     return euler_frames
 
 

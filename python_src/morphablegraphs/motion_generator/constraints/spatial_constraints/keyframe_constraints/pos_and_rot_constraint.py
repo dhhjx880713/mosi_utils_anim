@@ -7,8 +7,7 @@ Created on Mon Aug 03 19:02:55 2015
 
 from math import sqrt
 import numpy as np
-from .....animation_data.motion_editing import get_cartesian_coordinates_from_quaternion,\
-                                    quaternion_to_euler
+from .....animation_data.motion_editing import quaternion_to_euler
 from python_src.morphablegraphs.external.transformations import rotation_matrix
 from keyframe_constraint_base import KeyframeConstraintBase
 from .. import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
@@ -72,7 +71,7 @@ class PositionAndRotationConstraint(KeyframeConstraintBase):
         return self._orientation_distance(joint_orientation)
 
     def _evaluate_joint_position(self, frame):
-        joint_position = get_cartesian_coordinates_from_quaternion(self.skeleton, self.joint_name, frame)
+        joint_position = self.skeleton.get_cartesian_coordinates_from_quaternion(self.joint_name, frame)
         return self._vector_distance(self.position, joint_position)
 
     def _orientation_distance(self, joint_orientation):

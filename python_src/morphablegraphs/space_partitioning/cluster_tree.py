@@ -17,6 +17,7 @@ MIN_N_SUBDIVISIONS_PER_LEVEL = 2
 MIN_N_LEVELS = 1
 MAX_DIMENSIONS = 10
 
+
 class ClusterTree(object):
     """
     Create a hiearchy of clusters using KMeans and then use a kdtree for the leafs
@@ -107,6 +108,7 @@ class ClusterTree(object):
             Multiple candidates are kept at each level in order to find the global
             optimum.
         """
+        print "search with",n_candidates,"candidates in tree with ", self.n_subdivisions," subdivisions and ", self.max_level, "levels"
         results = []
         candidates = []
         candidates.append((np.inf, self.root))
@@ -115,7 +117,7 @@ class ClusterTree(object):
             new_candidates = []
             for value, node in candidates:
                 if not node.leaf:
-                    good_candidates = node.find_best_cluster_canditates(obj, data, n_candidates)
+                    good_candidates = node.find_best_cluster_candidates(obj, data, n_candidates)
                     for c in good_candidates:
                         heapq.heappush(new_candidates, c)
                 else:
@@ -168,7 +170,7 @@ class ClusterTree(object):
         else:
             print "#################failed to find a good result"
             return np.inf, self.data[0]
-        
+
     def find_best_example_excluding_search_candidates_knn(self, obj, data, n_candidates=1, k=50):
         """ Traverses the cluster hierarchy iteratively by evaluating the means
             of the clusters at each level based on the objective function. 

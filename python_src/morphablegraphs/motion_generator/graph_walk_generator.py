@@ -16,15 +16,17 @@ from ..utilities.io_helper_functions import load_json_file
 from ..motion_model.motion_primitive_graph_loader import MotionPrimitiveGraphLoader
 from constraints.mg_input_file_reader import MGInputFileReader
 from constraints.elementary_action_constraints_builder import ElementaryActionConstraintsBuilder
-from elementary_action_sample_generator import ElementaryActionSampleGenerator
-from . import global_counter_dict
+from elementary_action_graph_walk_generator import ElementaryActionGraphWalkGenerator
 from algorithm_configuration import AlgorithmConfigurationBuilder
+from optimization.optimizer_builder import OptimizerBuilder
+from constraints.time_constraints_builder import TimeConstraintsBuilder
+from constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE
 from graph_walk import GraphWalk
 
 SKELETON_FILE = "skeleton.bvh"  # TODO replace with standard skeleton in data directory
 
 
-class MotionSampleGenerator(object):
+class GraphWalkGenerator(object):
     """
     Creates a MotionPrimitiveGraph instance and provides a method to synthesize a
     motion based on a json input file
@@ -45,8 +47,10 @@ class MotionSampleGenerator(object):
         graph_builder.set_data_source(SKELETON_FILE, motion_primitive_graph_directory,
                                       transition_directory, self._algorithm_config["use_transition_model"])
         self.motion_primitive_graph = graph_builder.build()
-        self.elementary_action_generator = ElementaryActionSampleGenerator(self.motion_primitive_graph,
+        self.elementary_action_generator = ElementaryActionGraphWalkGenerator(self.motion_primitive_graph,
                                                                            self._algorithm_config)
+        self.time_error_minimizer = OptimizerBuilder(self._algorithm_config).build_time_error_minimizer()
+        self.global_error_minimizer = OptimizerBuilder(self._algorithm_config).build_global_error_minimizer_residual()
         return
 
     def set_algorithm_config(self, algorithm_config):
@@ -63,17 +67,17 @@ class MotionSampleGenerator(object):
             self._algorithm_config = algorithm_config
         self.elementary_action_generator.set_algorithm_config(self._algorithm_config)
 
-    def generate_motion(self, mg_input, export=True):
+    def generate_graph_walk(self, mg_input, export=True):
         """
         Converts a json input file with a list of elementary actions and constraints 
-        into a motion saved to a BVH file.
+        into a graph_walk saved to a BVH file.
         
         Parameters
         ----------        
         * mg_input_filename : string or dict
             Dict or Path to json file that contains a list of elementary actions with constraints.
         * export : bool
-            If set to True the generated motion is exported as BVH together 
+            If set to True the generated graph_walk is exported as BVH together
             with a JSON-annotation file.
             
         Returns
@@ -81,16 +85,19 @@ class MotionSampleGenerator(object):
         * graph_walk : GraphWalk
            Contains a list of quaternion frames and their annotation based on actions.
         """
-        
-        global_counter_dict["evaluations"] = 0
+
         if type(mg_input) != dict:
             mg_input = load_json_file(mg_input)
         start = time.clock()
         input_file_reader = MGInputFileReader(mg_input)
         elementary_action_constraints_builder = ElementaryActionConstraintsBuilder(input_file_reader, self.motion_primitive_graph)
-        graph_walk = self._generate_motion_from_constraints(elementary_action_constraints_builder)
-        seconds = time.clock() - start
-        self.print_runtime_statistics(seconds)
+        graph_walk = self._generate_graph_walk_from_constraints(elementary_action_constraints_builder)
+        self._optimize_over_graph_walk(graph_walk)
+        time_in_seconds = time.clock() - start
+        minutes = int(time_in_seconds/60)
+        seconds = time_in_seconds % 60
+        print "finished synthesis in " + str(minutes) + " minutes " + str(seconds) + " seconds"
+        graph_walk.print_statistics()
         # export the motion to a bvh file if export == True
         if export:
             output_filename = self._service_config["output_filename"]
@@ -100,7 +107,7 @@ class MotionSampleGenerator(object):
             graph_walk.export_motion(self._service_config["output_dir"], output_filename, add_time_stamp=True, write_log=self._service_config["write_log"])
         return graph_walk
 
-    def _generate_motion_from_constraints(self, elementary_action_constraints_builder):
+    def _generate_graph_walk_from_constraints(self, elementary_action_constraints_builder):
         """ Converts a constrained graph walk to quaternion frames
          Parameters
         ----------
@@ -129,7 +136,7 @@ class MotionSampleGenerator(object):
                 print "convert", action_constraints.action_name, "to graph walk"
     
             self.elementary_action_generator.set_action_constraints(action_constraints)
-            success = self.elementary_action_generator.append_elementary_action_to_motion(graph_walk)
+            success = self.elementary_action_generator.append_elementary_action_to_graph_walk(graph_walk)
                 
             if not success:
                 print "Arborting conversion"
@@ -137,13 +144,43 @@ class MotionSampleGenerator(object):
             action_constraints = elementary_action_constraints_builder.get_next_elementary_action_constraints()
         return graph_walk
 
-    def print_runtime_statistics(self, time_in_seconds):
-        minutes = int(time_in_seconds/60)
-        seconds = time_in_seconds % 60
-        total_time_string = "finished synthesis in " + str(minutes) + " minutes " + str(seconds) + " seconds"
-        evaluations_string = "total number of objective evaluations " + str(global_counter_dict["evaluations"])
-        error_string = "average error for " + str(len(global_counter_dict["motionPrimitveErrors"])) +" motion primitives: " + str(np.average(global_counter_dict["motionPrimitveErrors"],axis=0))
-        print total_time_string
-        print evaluations_string
-        print error_string
+    def _optimize_over_graph_walk(self, graph_walk):
 
+        #start_step = max(len(graph_walk.steps)-20, 0)
+        start_step = 0
+        if self._algorithm_config["use_global_spatial_optimization"]:
+            self._optimize_spatial_parameters_over_graph_walk(graph_walk, start_step)
+        if self._algorithm_config["use_global_time_optimization"]:
+            self._optimize_time_parameters_over_graph_walk(graph_walk)
+
+    def _optimize_spatial_parameters_over_graph_walk(self, graph_walk, start_step=0):
+        initial_guess = []
+        for step in graph_walk.steps[start_step:]:
+            step.motion_primitive_constraints.constraints = [constraint for constraint in step.motion_primitive_constraints.constraints
+                                                             if constraint.constraint_type != SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE]
+            initial_guess += step.parameters[:step.n_spatial_components].tolist()
+        if start_step == 0:
+            prev_frames = None
+        else:
+            prev_frames = graph_walk.get_quat_frames()[:graph_walk.steps[start_step].start_frame]
+        print "start global optimization", len(initial_guess)
+        self.global_error_minimizer.set_objective_function_parameters((self.motion_primitive_graph, graph_walk.steps[start_step:],
+                                self._algorithm_config["optimization_settings"]["error_scale_factor"],
+                                self._algorithm_config["optimization_settings"]["quality_scale_factor"],
+                                prev_frames))
+        optimal_parameters = self.global_error_minimizer.run(initial_guess)
+        graph_walk.update_spatial_parameters(optimal_parameters, start_step)
+
+    def _optimize_time_parameters_over_graph_walk(self, graph_walk, start_step=0):
+
+        time_constraints = TimeConstraintsBuilder(graph_walk, start_step).build()
+        if time_constraints is not None:
+            data = (self.motion_primitive_graph, graph_walk, time_constraints,
+                    self._algorithm_config["optimization_settings"]["error_scale_factor"],
+                    self._algorithm_config["optimization_settings"]["quality_scale_factor"])
+            self.time_error_minimizer.set_objective_function_parameters(data)
+            initial_guess = time_constraints.get_initial_guess(graph_walk)
+            print "initial_guess", initial_guess, time_constraints.constraint_list
+            optimal_parameters = self.time_error_minimizer.run(initial_guess)
+            graph_walk.update_time_parameters(optimal_parameters, start_step)
+            graph_walk.convert_to_motion(start_step)

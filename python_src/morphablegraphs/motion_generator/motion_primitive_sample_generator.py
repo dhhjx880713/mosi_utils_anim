@@ -11,7 +11,6 @@ from ..animation_data.evaluation_methods import check_sample_validity
 from statistics.constrained_gmm_builder import ConstrainedGMMBuilder
 from ..utilities.exceptions import ConstraintError, SynthesisError
 from optimization.optimizer_builder import OptimizerBuilder
-from . import global_counter_dict
 from objective_functions import obj_spatial_error_sum, obj_spatial_error_sum_and_naturalness
 
 
@@ -63,7 +62,8 @@ class MotionPrimitiveSampleGenerator(object):
             
         Returns
         -------
-        * motion_primitive_sample: MotionPrimitiveSample
+        * motion_primitive_sample: MotionSpline
+            back projected motion primitive sample
         """
         mp_name = motion_primitive_constraints.motion_primitive_name
         if len(graph_walk.steps) > 0:
@@ -116,19 +116,20 @@ class MotionPrimitiveSampleGenerator(object):
             Low dimensional parameters for the morphable model
         """
         graph_node = self._motion_primitive_graph.nodes[(self.action_name, mp_name)]
+        close_to_optimum = False
         if self.activate_cluster_search and graph_node.cluster_tree is not None:
             parameters = self._search_for_best_sample_in_cluster_tree(graph_node,
                                                                       motion_primitive_constraints,
                                                                       prev_frames)
-            close_to_optimum = True
         else:
             parameters = self._get_best_random_sample_from_statistical_model(graph_node,
-                                                             mp_name,
-                                                             motion_primitive_constraints,
-                                                             prev_mp_name,
-                                                             prev_frames,
-                                                             prev_parameters)
-            close_to_optimum = True
+                                                                             mp_name,
+                                                                             motion_primitive_constraints,
+                                                                             prev_mp_name,
+                                                                             prev_frames,
+                                                                             prev_parameters)
+        if motion_primitive_constraints.min_error <= self._algorithm_config["optimization_settings"]["start_error_threshold"]:
+                close_to_optimum = True
         if not self.use_transition_model and use_optimization and not close_to_optimum:
             data = graph_node, motion_primitive_constraints, \
                    prev_frames, self._optimization_settings["error_scale_factor"], \
@@ -173,8 +174,8 @@ class MotionPrimitiveSampleGenerator(object):
         """
         data = graph_node, constraints, prev_frames
         distance, s = graph_node.search_best_sample(obj_spatial_error_sum, data, self.n_cluster_search_candidates)
-        print "found best sample with distance:",distance
-        global_counter_dict["motionPrimitveErrors"].append(distance)
+        print "found best sample with distance:", distance
+        constraints.min_error = distance
         return np.array(s)                                 
 
     def sample_from_gaussian_mixture_model(self, mp_node, gmm, constraints, prev_frames):
@@ -229,5 +230,5 @@ class MotionPrimitiveSampleGenerator(object):
             return best_sample, min_error
         
         print "found best sample with distance:", min_error
-        global_counter_dict["motionPrimitveErrors"].append(min_error)
+        constraints.min_error = min_error
         return best_sample, min_error

@@ -15,10 +15,10 @@ class MotionVector(object):
         self.quat_frames = None
         self.start_pose = None
         if algorithm_config is not None:
-            self.apply_smoothing = algorithm_config["apply_smoothing"]
-            self.smoothing_window = algorithm_config["smoothing_window"]
+            self.apply_spatial_smoothing = algorithm_config["smoothing_settings"]["spatial_smoothing"]
+            self.smoothing_window = algorithm_config["smoothing_settings"]["spatial_smoothing_window"]
         else:
-            self.apply_smoothing = False
+            self.apply_spatial_smoothing = False
             self.smoothing_window = 0
 
     def append_quat_frames(self, new_frames):
@@ -32,7 +32,7 @@ class MotionVector(object):
         if self.quat_frames is not None:
             self.quat_frames = fast_quat_frames_alignment(self.quat_frames,
                                                           new_frames,
-                                                          self.apply_smoothing,
+                                                          self.apply_spatial_smoothing,
                                                           self.smoothing_window)
         elif self.start_pose is not None:
             self.quat_frames = transform_quaternion_frames(new_frames,
