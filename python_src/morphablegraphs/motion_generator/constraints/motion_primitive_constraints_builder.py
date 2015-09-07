@@ -145,8 +145,7 @@ class MotionPrimitiveConstraintsBuilder(object):
                         keyframe_constraint = PositionAndRotationConstraint(self.skeleton,
                                                       keyframe_constraint_desc,
                                                       self.precision["pos"],
-                                                      mp_constraints.settings[
-                                                      "position_constraint_factor"])
+                                                      100.0)
                         self._add_events_to_event_list(mp_constraints, keyframe_constraint)
                         mp_constraints.constraints.append(keyframe_constraint)
 
