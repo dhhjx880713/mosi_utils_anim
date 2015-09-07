@@ -16,7 +16,6 @@ class OptimizerBuilder(object):
 
     def build_spatial_error_minimizer(self):
         method = self.algorithm_settings["optimization_settings"]["method"]
-        print "build minimizer", method
         if method == "leastsq":
             minimizer = LeastSquares(self.algorithm_settings)
             minimizer.set_objective_function(obj_spatial_error_residual_vector_and_naturalness)#obj_spatial_error_residual_vector
