@@ -63,18 +63,15 @@ class PoseConstraint(KeyframeConstraintBase):
         point_cloud = convert_quaternion_frame_to_cartesian_frame(
             self.skeleton, aligned_quat_frames[0])
 
-        constraint_point_cloud = []
-        for joint in self.skeleton.node_name_map.keys():
-            constraint_point_cloud.append(self.pose_constraint[joint])
-        theta, offset_x, offset_z = align_point_clouds_2D(constraint_point_cloud,
+        theta, offset_x, offset_z = align_point_clouds_2D(self.pose_constraint,
                                                           point_cloud,
                                                           self.skeleton.joint_weights)
         t_point_cloud = transform_point_cloud(point_cloud, theta, offset_x, offset_z)
         residual_vector = []
         for i in xrange(len(t_point_cloud)):
-            d = [constraint_point_cloud[i][0] - t_point_cloud[i][0],
-                 constraint_point_cloud[i][1] - t_point_cloud[i][1],
-                 constraint_point_cloud[i][2] - t_point_cloud[i][2]]
+            d = [self.pose_constraint[i][0] - t_point_cloud[i][0],
+                 self.pose_constraint[i][1] - t_point_cloud[i][1],
+                 self.pose_constraint[i][2] - t_point_cloud[i][2]]
             residual_vector.append(sqrt(d[0] ** 2 + d[1] ** 2 + d[2] ** 2))
         return residual_vector
 
