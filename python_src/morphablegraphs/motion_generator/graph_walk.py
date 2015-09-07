@@ -215,12 +215,14 @@ class GraphWalk(object):
         evaluations_string = "total number of objective evaluations " + str(objective_evaluations)
         error_string = "average error for " + str(n_steps) + \
                        " motion primitives: " + str(average_error)
-        print "average keyframe constraint error", self.get_average_keyframe_constraint_error()
+        average_keyframe_error = self.get_average_keyframe_constraint_error()
+        print "average keyframe constraint error", average_keyframe_error
         print evaluations_string
         print error_string
 
     def get_average_keyframe_constraint_error(self):
         keyframe_constraint_errors = []
+        step_index = 0
         prev_frames = None
         for step in self.steps:
             quat_frames = self.motion_primitive_graph.nodes[step.node_key].back_project(step.parameters, use_time_parameters=False).get_motion_vector()
@@ -228,9 +230,14 @@ class GraphWalk(object):
             for constraint in step.motion_primitive_constraints.constraints:
                 if constraint.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION and\
                     not ("generated" in constraint.semantic_annotation.keys()):
+
+                    joint_position = constraint.skeleton.get_cartesian_coordinates_from_quaternion(constraint.joint_name, aligned_frames[constraint.canonical_keyframe])
+                    print "position constraint", joint_position, constraint.position
                     error = constraint.evaluate_motion_sample(aligned_frames)
+                    print error
                     keyframe_constraint_errors.append(error)
             prev_frames = aligned_frames
+            step_index += 1
 
         return np.average(keyframe_constraint_errors)
 
