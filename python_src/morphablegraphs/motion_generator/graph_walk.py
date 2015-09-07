@@ -8,12 +8,12 @@ Created on Tue Jul 14 18:39:41 2015
 import os
 from datetime import datetime
 from copy import copy
-
 import numpy as np
-
 from ..utilities.io_helper_functions import write_to_json_file,\
                                           write_to_logfile
 from ..animation_data.motion_vector import MotionVector
+from constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
+from ..animation_data.motion_editing import align_quaternion_frames
 
 LOG_FILE = "log.txt"
 
@@ -43,6 +43,7 @@ class GraphWalk(object):
         self.frame_annotation['elementaryActionSequence'] = []
         self.step_count = 0
         self.mg_input = dict()
+        self._algorithm_config = algorithm_config
         self.motion_vector = MotionVector(algorithm_config)
         self.motion_vector.start_pose = start_pose
         self.keyframe_events_dict = dict()
@@ -68,8 +69,8 @@ class GraphWalk(object):
             step.start_frame = start_frame
             quat_frames = self.motion_primitive_graph.nodes[step.node_key].back_project(step.parameters, use_time_parameters=use_time_parameters).get_motion_vector()
             self.motion_vector.append_quat_frames(quat_frames)
-            step.end_frame = self.get_num_of_frames()
-            start_frame = step.end_frame
+            step.end_frame = self.get_num_of_frames()-1
+            start_frame = step.end_frame+1
 
     def _create_frame_annotation(self, start_step=0):
         self.frame_annotation['elementaryActionSequence'] = self.frame_annotation['elementaryActionSequence'][:start_step]
@@ -214,5 +215,22 @@ class GraphWalk(object):
         evaluations_string = "total number of objective evaluations " + str(objective_evaluations)
         error_string = "average error for " + str(n_steps) + \
                        " motion primitives: " + str(average_error)
+        print "average keyframe constraint error", self.get_average_keyframe_constraint_error()
         print evaluations_string
         print error_string
+
+    def get_average_keyframe_constraint_error(self):
+        keyframe_constraint_errors = []
+        prev_frames = None
+        for step in self.steps:
+            quat_frames = self.motion_primitive_graph.nodes[step.node_key].back_project(step.parameters, use_time_parameters=False).get_motion_vector()
+            aligned_frames = align_quaternion_frames(quat_frames, prev_frames, self.motion_vector.start_pose)
+            for constraint in step.motion_primitive_constraints.constraints:
+                if constraint.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION and\
+                    not ("generated" in constraint.semantic_annotation.keys()):
+                    error = constraint.evaluate_motion_sample(aligned_frames)
+                    keyframe_constraint_errors.append(error)
+            prev_frames = aligned_frames
+
+        return np.average(keyframe_constraint_errors)
+
