@@ -1500,3 +1500,16 @@ def rotate_euler_frames(euler_frames,
                                             [0, rot_angle, 0],
                                             translation)
     return rotated_frames
+
+def is_vertical_pose_euler(euler_frame):
+    ref_vec = np.array([1, 0, 0, 1])
+    rot_angles = np.deg2rad(euler_frame[3:6])
+    rotmat = euler_matrix(rot_angles[0],
+                          rot_angles[1],
+                          rot_angles[2],
+                          'rxyz')
+    rotated_vec = np.dot(rotmat, ref_vec)
+    if rotated_vec[1] > 0.99:
+        return True
+    else:
+        return False
