@@ -129,7 +129,20 @@ class GraphWalk(object):
                 keyframe_event_list.append(event)
         self.frame_annotation["events"] = keyframe_event_list
 
+    def get_global_spatial_parameter_vector(self, start_step=0):
+        initial_guess = []
+        for step in self.steps[start_step:]:
+            initial_guess += step.parameters[:step.n_spatial_components].tolist()
+        return initial_guess
+
+    def get_global_time_parameter_vector(self, start_step=0):
+        initial_guess = []
+        for step in self.steps[start_step:]:
+            initial_guess += step.parameters[step.n_spatial_components:].tolist()
+        return initial_guess
+
     def update_spatial_parameters(self, parameter_vector, start_step=0):
+        print "update spatial parameters"
         offset = 0
         for step in self.steps[start_step:]:
             new_alpha = parameter_vector[offset:offset+step.n_spatial_components]
@@ -230,7 +243,6 @@ class GraphWalk(object):
             for constraint in step.motion_primitive_constraints.constraints:
                 if constraint.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION and\
                     not ("generated" in constraint.semantic_annotation.keys()):
-
                     joint_position = constraint.skeleton.get_cartesian_coordinates_from_quaternion(constraint.joint_name, aligned_frames[constraint.canonical_keyframe])
                     print "position constraint", joint_position, constraint.position
                     error = constraint.evaluate_motion_sample(aligned_frames)

@@ -14,16 +14,16 @@
     }, 
     "use_constrained_gmm": false, 
     "optimization_settings": {
-        "start_error_threshold": 50.0,
+        "start_error_threshold": 4.0,
         "error_scale_factor": 1.0,
         "spatial_epsilon": 0.0,
         "quality_scale_factor": 0.5,
         "tolerance": 0.05,
         "method": "leastsq",
-        "max_iterations": 300
+        "max_iterations": 500
     }, 
     "activate_cluster_search": true,
-    "n_cluster_search_candidates": 2,
+    "n_cluster_search_candidates": 1,
     "constrained_gmm_settings": {
         "precision": {
             "smooth": 5, 
@@ -38,7 +38,7 @@
     "use_optimization": true,
     "activate_parameter_check": false,
     "use_global_time_optimization": false,
-    "use_global_spatial_optimization": false,
+    "use_global_spatial_optimization": true,
     "use_constraints": true,
     "debug_max_step": -1,
     "verbose": false
