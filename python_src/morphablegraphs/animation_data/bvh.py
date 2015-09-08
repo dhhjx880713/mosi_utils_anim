@@ -296,7 +296,7 @@ class BVHWriter(object):
                                         "Bip01_L_Toe0"]:
                                     # special fix for unused toe parameters
                                     euler_frame = np.concatenate((euler_frame,
-                                                                  ([90.0, -1.00000000713e-06, 75.0])),
+                                                                  ([0.0, -90.0, 0.0])),
                                                                  axis=0)
                                 else:
                                     # print node_name
@@ -342,7 +342,7 @@ class BVHWriter(object):
                             if node_name in ["Bip01_R_Toe0", "Bip01_L_Toe0"]:
                                 # special fix for unused toe parameters
                                 euler_frame = np.concatenate(
-                                    (euler_frame, ([90.0, -1.00000000713e-06, 75.0])), axis=0)
+                                    (euler_frame, ([0.0, -90.0, 0.0])), axis=0)
                             else:
                                 # print node_name
                                 # get start index in the frame vector

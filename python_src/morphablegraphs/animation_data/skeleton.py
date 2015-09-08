@@ -21,12 +21,16 @@ class Skeleton(object):
         self.node_names = bvh_reader.node_names
         self._create_filtered_node_name_map()
         self._add_tool_bones()
-        self.max_level = max([node["level"] for node in
-                      self.node_names.values()
-                      if "level" in node.keys()])
+        self.max_level = self._get_max_level()
         self._set_joint_weights()
         self.parent_dict = self._get_parent_dict()
+        self._chain_names = self._generate_chain_names()
         print "node name map keys", self.node_name_map.keys(), len(self.node_name_map)
+
+    def _get_max_level(self):
+        return max([node["level"] for node in
+                      self.node_names.values()
+                      if "level" in node.keys()])
 
     def _get_parent_dict(self):
         """Returns a dict of node names to their parent node's name"""
@@ -77,11 +81,11 @@ class Skeleton(object):
     def _add_tool_bones(self):
         new_node_name = 'LeftToolEndSite'
         parent_node_name = 'LeftHand'
-        new_node_offset = [9.55928, -0.145352, -0.186424]
+        new_node_offset = [9.55928, -0.145352, 5.186424]
         self._add_new_end_site(new_node_name, parent_node_name, new_node_offset)
         new_node_name = 'RightToolEndSite'
         parent_node_name = 'RightHand'
-        new_node_offset = [9.559288, 0.145353, -0.186417]
+        new_node_offset = [9.559288, 0.145353, 5.186417]
         self._add_new_end_site(new_node_name, parent_node_name, new_node_offset)
         #Finger21 = 'Bip01_L_Finger21'
         #Finger21_offset = [3.801407, 0.0, 0.0]
@@ -100,8 +104,17 @@ class Skeleton(object):
             self.node_names[new_node_name] = node_desc
             self.node_name_map[new_node_name] = -1 #the nodes needs an entry but the index is only important if it has children
 
+    def _generate_chain_names(self):
+        chain_names = dict()
+        for node_name in self.node_name_map.keys():
+            chain_names[node_name] = list(self.gen_all_parents(node_name))
+            # Names are generated bottom to up --> reverse
+            chain_names[node_name].reverse()
+            chain_names[node_name] += [node_name]  # Node is not in its parent list
+        return chain_names
+
     def get_cartesian_coordinates_from_quaternion(self,
-                                                  node_name,
+                                                  target_node_name,
                                                   quaternion_frame,
                                                   return_global_matrix=False):
         """Returns cartesian coordinates for one node at one frame. Modified to
@@ -118,33 +131,25 @@ class Skeleton(object):
         \tA map from node name to index in the euler frame
 
         """
-        if self.node_names[node_name]["level"] == 0:
+        if self.node_names[target_node_name]["level"] == 0:
             root_frame_position = quaternion_frame[:3]
-            root_node_offset = self.node_names[node_name]["offset"]
-
+            root_node_offset = self.node_names[target_node_name]["offset"]
             return [t + o for t, o in
                     izip(root_frame_position, root_node_offset)]
-
         else:
-            # Names are generated bottom to up --> reverse
-            chain_names = list(self.gen_all_parents(node_name))
-            chain_names.reverse()
-            chain_names += [node_name]  # Node is not in its parent list
-
             offsets = [self.node_names[node_name]["offset"]
-                       for node_name in chain_names]
+                       for node_name in self._chain_names[target_node_name]]
             root_position = quaternion_frame[:3].flatten()
             offsets[0] = [r + o for r, o in izip(root_position, offsets[0])]
-
             j_matrices = []
             count = 0
-            for node_name in chain_names:
+            for node_name in self._chain_names[target_node_name]:
                 if "children" in self.node_names[node_name].keys():  # check if it is a joint or an end site
                     index = self.node_name_map[node_name] * 4 + 3
                     j_matrix = quaternion_matrix(quaternion_frame[index: index + 4])
                     j_matrix[:, 3] = offsets[count] + [1]
                 else:
-                    print node_name
+                    #print node_name, self._chain_names[target_node_name][count-1], offsets[count]
                     j_matrix = np.identity(4)
                     j_matrix[:, 3] = offsets[count] + [1]
                     break # there should not be any nodes after an end site
@@ -168,5 +173,4 @@ class Skeleton(object):
         cartesian_frame = []
         for node_name in self.node_name_map.keys():
             cartesian_frame.append(self.get_cartesian_coordinates_from_quaternion(node_name, quat_frame))
-
         return cartesian_frame

@@ -5,12 +5,13 @@ Created on Mon Aug 03 18:59:44 2015
 @author: erhe01
 """
 
+from math import sqrt
 from .....animation_data.motion_editing import convert_quaternion_frame_to_cartesian_frame,\
     align_point_clouds_2D,\
     transform_point_cloud,\
-    calculate_point_cloud_distance, \
-    calculate_weighted_frame_distance_quat
+    calculate_point_cloud_distance
 from keyframe_constraint_base import KeyframeConstraintBase
+from .. import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE
 
 
 class PoseConstraint(KeyframeConstraintBase):
@@ -19,7 +20,7 @@ class PoseConstraint(KeyframeConstraintBase):
         super(PoseConstraint, self).__init__(constraint_desc, precision, weight_factor)
         self.skeleton = skeleton
         self.pose_constraint = constraint_desc["frame_constraint"]
-        assert len(self.pose_constraint) == 79, ("pose_constraint is not quaternion frame")
+        self.constraint_type = SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE
         return
 
     def evaluate_motion_sample(self, aligned_quat_frames):
@@ -44,6 +45,21 @@ class PoseConstraint(KeyframeConstraintBase):
         """
 
         # get point cloud of first frame
+        point_cloud = self.skeleton.convert_quaternion_frame_to_cartesian_frame(aligned_quat_frames[self.canonical_keyframe])
+        #print len(self.pose_constraint), len(point_cloud)
+        theta, offset_x, offset_z = align_point_clouds_2D(self.pose_constraint,
+                                                          point_cloud,
+                                                          self.skeleton.joint_weights)
+        t_point_cloud = transform_point_cloud(
+            point_cloud, theta, offset_x, offset_z)
+
+        error = calculate_point_cloud_distance(
+            self.pose_constraint, t_point_cloud)
+
+        return error
+
+    def get_residual_vector(self, aligned_quat_frames):
+        # get point cloud of first frame
         point_cloud = convert_quaternion_frame_to_cartesian_frame(
             self.skeleton, aligned_quat_frames[0])
 
@@ -53,17 +69,14 @@ class PoseConstraint(KeyframeConstraintBase):
         theta, offset_x, offset_z = align_point_clouds_2D(constraint_point_cloud,
                                                           point_cloud,
                                                           self.skeleton.joint_weights)
-        t_point_cloud = transform_point_cloud(
-            point_cloud, theta, offset_x, offset_z)
+        t_point_cloud = transform_point_cloud(point_cloud, theta, offset_x, offset_z)
+        residual_vector = []
+        for i in xrange(len(t_point_cloud)):
+            d = [constraint_point_cloud[i][0] - t_point_cloud[i][0],
+                 constraint_point_cloud[i][1] - t_point_cloud[i][1],
+                 constraint_point_cloud[i][2] - t_point_cloud[i][2]]
+            residual_vector.append(sqrt(d[0] ** 2 + d[1] ** 2 + d[2] ** 2))
+        return residual_vector
 
-        error = calculate_point_cloud_distance(
-            constraint_point_cloud, t_point_cloud)
-
-        return error
-
-    def evaluate_motion_sample_angular(self, aligned_quat_frames):
-        weights = self.skeleton.get_joint_weights()
-        error = calculate_weighted_frame_distance_quat(self.pose_constraint,
-                                                       aligned_quat_frames[0],
-                                                       weights)
-        return error
+    def get_length_of_residual_vector(self):
+        return len(self.skeleton.node_name_map.keys())

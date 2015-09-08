@@ -109,7 +109,7 @@ class MotionPrimitiveConstraintsBuilder(object):
 
     def _add_path_following_goal_constraint(self, joint_name, mp_constraints, goal):
         if mp_constraints.settings["position_constraint_factor"] > 0.0:
-            keyframe_semantic_annotation = {"keyframeLabel": "end"}
+            keyframe_semantic_annotation = {"keyframeLabel": "end", "generated": True}
             keyframe_constraint_desc = {"joint": joint_name,
                                         "position": goal,
                                         "semanticAnnotation": keyframe_semantic_annotation}
@@ -122,7 +122,7 @@ class MotionPrimitiveConstraintsBuilder(object):
 
     def _add_path_following_direction_constraint(self, joint_name, mp_constraints, dir_vector):
         if mp_constraints.settings["dir_constraint_factor"] > 0.0:
-            dir_semantic_annotation = {"keyframeLabel": "end"}
+            dir_semantic_annotation = {"keyframeLabel": "end", "generated": True}
             dir_constraint_desc = {"joint": joint_name, "dir_vector": dir_vector,
                                    "semanticAnnotation": dir_semantic_annotation}
             dir_constraint_desc = self._map_label_to_canonical_keyframe(dir_constraint_desc)
@@ -145,8 +145,7 @@ class MotionPrimitiveConstraintsBuilder(object):
                         keyframe_constraint = PositionAndRotationConstraint(self.skeleton,
                                                       keyframe_constraint_desc,
                                                       self.precision["pos"],
-                                                      mp_constraints.settings[
-                                                      "position_constraint_factor"])
+                                                      100.0)
                         self._add_events_to_event_list(mp_constraints, keyframe_constraint)
                         mp_constraints.constraints.append(keyframe_constraint)
 

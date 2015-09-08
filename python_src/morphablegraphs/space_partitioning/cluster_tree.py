@@ -59,7 +59,7 @@ class ClusterTree(object):
         self.dim = data_shape[1]
         root_id = node_desc["root"]
         node_builder = ClusterTreeNodeBuilder(self.n_subdivisions, self.max_level, self.dim)
-        self.root = node_builder.construct_from_node_desc_list(root_id,node_desc,self.data)
+        self.root = node_builder.construct_from_node_desc_list(root_id, node_desc, self.data)
 
     def save_to_file_pickle(self, file_name):
         pickle_file_name = file_name
@@ -93,7 +93,7 @@ class ClusterTree(object):
     def find_best_example_excluding_search(self, obj, data):
         node = self.root
         level = 0
-        while level < self.max_level and node.leaf == False:
+        while level < self.max_level and not node.leaf:
             print "level", level
             index, value = node.find_best_cluster(obj, data, use_mean=True)
             node = node.clusters[index]
@@ -130,7 +130,7 @@ class ClusterTree(object):
         if len(results) > 0:
             return heapq.heappop(results)    
         else:
-            print "#################failed to find a result"
+            print "#########failed to find a result########"
             return np.inf, self.data[self.root.indices[0]]
         
     def find_best_example_excluding_search_candidates_boundary(self, obj, data, n_candidates=5):
@@ -153,7 +153,7 @@ class ClusterTree(object):
             for value, node in candidates:
                 
                 if not node.leaf:
-                    good_candidates = node.find_best_cluster_canditates(obj, data, n_candidates=n_candidates)
+                    good_candidates = node.find_best_cluster_candidates(obj, data, n_candidates=n_candidates)
                     for c in good_candidates:
                          heapq.heappush(new_candidates, c)
                 else:
@@ -186,7 +186,7 @@ class ClusterTree(object):
             new_candidates = []
             for value, node in candidates:
                 if not node.leaf:
-                    good_candidates = node.find_best_cluster_canditates(obj, data, n_candidates=n_candidates)
+                    good_candidates = node.find_best_cluster_candidates(obj, data, n_candidates=n_candidates)
                     for c in good_candidates:
                         heapq.heappush(new_candidates, c)
                 else:

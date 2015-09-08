@@ -50,8 +50,8 @@ class MotionSegmentation(object):
                 data_path)
         start_frame = primitive_data['frames'][0]
         end_frame = primitive_data['frames'][1]
-        filename_segments = filename[:-4].split('_')
-        return start_frame, end_frame, filename_segments
+        # filename_segments = filename[:-4].split('_')
+        return start_frame, end_frame
 
     def cut_files(self, elementary_action, primitive_type, data_path):
         if not data_path.endswith(os.sep):
@@ -65,15 +65,15 @@ class MotionSegmentation(object):
                                                          primitive_data):
                     print "find motion primitive " + elementary_action + '_' \
                           + primitive_type + ' in ' + filename
-                    start_frame, end_frame, filename_segments = \
+                    start_frame, end_frame = \
                         MotionSegmentation._get_annotation_information(data_path,
                                                                        filename,
                                                                        primitive_data)
-                    filename_segments[0] = elementary_action
+                    newfilename = elementary_action + '_' + filename[:-4]
                     cutted_frames = self._cut_one_file(data_path + filename,
                                                        start_frame,
                                                        end_frame)
-                    outfilename = '_'.join(filename_segments) + \
+                    outfilename = newfilename + \
                                   '_%s_%d_%d.bvh' % (primitive_type,
                                                      start_frame,
                                                      end_frame)

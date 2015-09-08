@@ -9,11 +9,11 @@ import os
 from datetime import datetime
 from copy import copy
 import numpy as np
-from constraints.spatial_constraints.keyframe_constraints.keyframe_constraint_base import KeyframeConstraintBase
 from ..utilities.io_helper_functions import write_to_json_file,\
                                           write_to_logfile
-from motion_vector import MotionVector
+from ..animation_data.motion_vector import MotionVector
 from constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
+from ..animation_data.motion_editing import align_quaternion_frames
 
 LOG_FILE = "log.txt"
 
@@ -43,14 +43,16 @@ class GraphWalk(object):
         self.frame_annotation['elementaryActionSequence'] = []
         self.step_count = 0
         self.mg_input = dict()
+        self._algorithm_config = algorithm_config
         self.motion_vector = MotionVector(algorithm_config)
         self.motion_vector.start_pose = start_pose
-        self.keyframe_events = dict()
+        self.keyframe_events_dict = dict()
 
     def convert_to_motion(self, start_step=0):
         self._convert_to_quaternion_frames(start_step)
+        self._create_event_dict()
         self._create_frame_annotation(start_step)
-        self._create_event_list()
+        self._add_event_list_to_frame_annotation()
 
     def _convert_to_quaternion_frames(self, start_step=0, use_time_parameters=True):
         """
@@ -67,8 +69,8 @@ class GraphWalk(object):
             step.start_frame = start_frame
             quat_frames = self.motion_primitive_graph.nodes[step.node_key].back_project(step.parameters, use_time_parameters=use_time_parameters).get_motion_vector()
             self.motion_vector.append_quat_frames(quat_frames)
-            step.end_frame = self.get_num_of_frames()
-            start_frame = step.end_frame
+            step.end_frame = self.get_num_of_frames()-1
+            start_frame = step.end_frame+1
 
     def _create_frame_annotation(self, start_step=0):
         self.frame_annotation['elementaryActionSequence'] = self.frame_annotation['elementaryActionSequence'][:start_step]
@@ -88,12 +90,12 @@ class GraphWalk(object):
         print "add", prev_step.node_key[0]
         self.update_frame_annotation(prev_step.node_key[0], start_frame, prev_step.end_frame)
 
-    def _create_event_list(self):
+    def _create_event_dict(self):
         """
         Traverse elementary actions and motion primitives
         :return:
         """
-        self.keyframe_events = dict()
+        self.keyframe_events_dict = dict()
         for step in self.steps:
             for keyframe_event in step.motion_primitive_constraints.keyframe_event_list.values():
                 # inverse lookup warped keyframe
@@ -107,11 +109,25 @@ class GraphWalk(object):
                     events = keyframe_event["event_list"]
                 else:
                     events = self._merge_multiple_keyframe_events(keyframe_event["event_list"], len(keyframe_event["event_list"]))
-                if warped_keyframe not in self.keyframe_events:
-                    self.keyframe_events[warped_keyframe] = events
+                if warped_keyframe not in self.keyframe_events_dict:
+                    self.keyframe_events_dict[warped_keyframe] = events
                 else:
-                    event_list = events+self.keyframe_events[warped_keyframe]
-                    self.keyframe_events[warped_keyframe] = self._merge_multiple_keyframe_events(event_list, len(event_list))
+                    temp_event_list = events+self.keyframe_events_dict[warped_keyframe]
+                    self.keyframe_events_dict[warped_keyframe] = self._merge_multiple_keyframe_events(temp_event_list, len(temp_event_list))
+
+    def _add_event_list_to_frame_annotation(self):
+        #print "keyframe event dict", self.keyframe_events_dict
+        keyframe_event_list = []
+        for keyframe in self.keyframe_events_dict.keys():
+            for event_desc in self.keyframe_events_dict[keyframe]:
+                event = dict()
+                event["jointName"] = event_desc["parameters"]["joint"]
+                event_type = event_desc["event"]
+                target = event_desc["parameters"]["target"]
+                event[event_type] = target
+                event["frameNumber"] = int(keyframe)
+                keyframe_event_list.append(event)
+        self.frame_annotation["events"] = keyframe_event_list
 
     def update_spatial_parameters(self, parameter_vector, start_step=0):
         offset = 0
@@ -147,8 +163,9 @@ class GraphWalk(object):
     def get_num_of_frames(self):
         return self.motion_vector.n_frames
 
-    def _export_event_list(self, filename):
-        write_to_json_file(filename, self.keyframe_events)
+    def _export_event_dict(self, filename):
+        #print "keyframe event dict", self.keyframe_events_dict, filename
+        write_to_json_file(filename, self.keyframe_events_dict)
 
     def export_motion(self, output_dir, output_filename, add_time_stamp=False, write_log=False):
         """ Saves the resulting animation frames, the annotation and actions to files.
@@ -159,28 +176,13 @@ class GraphWalk(object):
         if self.motion_vector.has_frames():
             self.motion_vector.export(self.skeleton, output_dir, output_filename, add_time_stamp)
             write_to_json_file(output_dir + os.sep + output_filename + ".json", self.mg_input)
-            self._export_event_list(output_dir + os.sep + output_filename + "_actions"+".json")
-            reordered_frame_annotation = self._add_events_to_frame_annotation(self.frame_annotation, self.keyframe_events)
-            write_to_json_file(output_dir + os.sep + output_filename + "_annotations"+".json", reordered_frame_annotation)
+            self._export_event_dict(output_dir + os.sep + output_filename + "_actions"+".json")
+            write_to_json_file(output_dir + os.sep + output_filename + "_annotations"+".json", self.frame_annotation)
             if write_log:
                 time_stamp = unicode(datetime.now().strftime("%d%m%y_%H%M%S"))
                 write_to_logfile(output_dir + os.sep + LOG_FILE, output_filename + "_" + time_stamp, self._algorithm_config)
         else:
            print "Error: no motion data to export"
-
-    def _add_events_to_frame_annotation(self, frame_annotation, action_list):
-        reordered_frame_annotation = copy(frame_annotation)
-        reordered_frame_annotation["events"] = []
-        for keyframe in action_list.keys():
-            for event_desc in action_list[keyframe]:
-                event = {}
-                event["jointName"] = event_desc["parameters"]["joint"]
-                event_type = event_desc["event"]
-                target = event_desc["parameters"]["target"]
-                event[event_type] = target
-                event["frameNumber"] = int(keyframe)
-                reordered_frame_annotation["events"].append(event)
-        return reordered_frame_annotation
 
     def _merge_multiple_keyframe_events(self, annotations, num_events):
         """Merge events if there are more than one event defined for the same keyframe.
@@ -213,5 +215,29 @@ class GraphWalk(object):
         evaluations_string = "total number of objective evaluations " + str(objective_evaluations)
         error_string = "average error for " + str(n_steps) + \
                        " motion primitives: " + str(average_error)
+        average_keyframe_error = self.get_average_keyframe_constraint_error()
+        print "average keyframe constraint error", average_keyframe_error
         print evaluations_string
         print error_string
+
+    def get_average_keyframe_constraint_error(self):
+        keyframe_constraint_errors = []
+        step_index = 0
+        prev_frames = None
+        for step in self.steps:
+            quat_frames = self.motion_primitive_graph.nodes[step.node_key].back_project(step.parameters, use_time_parameters=False).get_motion_vector()
+            aligned_frames = align_quaternion_frames(quat_frames, prev_frames, self.motion_vector.start_pose)
+            for constraint in step.motion_primitive_constraints.constraints:
+                if constraint.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION and\
+                    not ("generated" in constraint.semantic_annotation.keys()):
+
+                    joint_position = constraint.skeleton.get_cartesian_coordinates_from_quaternion(constraint.joint_name, aligned_frames[constraint.canonical_keyframe])
+                    print "position constraint", joint_position, constraint.position
+                    error = constraint.evaluate_motion_sample(aligned_frames)
+                    print error
+                    keyframe_constraint_errors.append(error)
+            prev_frames = aligned_frames
+            step_index += 1
+
+        return np.average(keyframe_constraint_errors)
+

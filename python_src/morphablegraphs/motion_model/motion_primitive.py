@@ -86,6 +86,7 @@ class MotionPrimitive(object):
         self._init_spatial_parameters_from_json(data)
         if 'eigen_vectors_time' in data.keys():
             self._init_time_parameters_from_json(data)
+            self.has_time_parameters = True
         else:
             self.has_time_parameters = False
 

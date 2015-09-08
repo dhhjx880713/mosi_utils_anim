@@ -92,7 +92,8 @@ class GraphWalkGenerator(object):
         input_file_reader = MGInputFileReader(mg_input)
         elementary_action_constraints_builder = ElementaryActionConstraintsBuilder(input_file_reader, self.motion_primitive_graph)
         graph_walk = self._generate_graph_walk_from_constraints(elementary_action_constraints_builder)
-        self._optimize_over_graph_walk(graph_walk)
+        if self._algorithm_config["use_global_time_optimization"]:
+            self._optimize_time_parameters_over_graph_walk(graph_walk)
         time_in_seconds = time.clock() - start
         minutes = int(time_in_seconds/60)
         seconds = time_in_seconds % 60
@@ -141,13 +142,19 @@ class GraphWalkGenerator(object):
             if not success:
                 print "Arborting conversion"
                 return graph_walk
+            print "has user constraints", action_constraints.contains_user_constraints
+            if self._algorithm_config["use_global_spatial_optimization"] and action_constraints.contains_user_constraints:
+                print "spatial graph walk optimization"
+                self._optimize_spatial_parameters_over_graph_walk(graph_walk, max(self.elementary_action_generator.state.start_step-2, 0))
+
             action_constraints = elementary_action_constraints_builder.get_next_elementary_action_constraints()
+
         return graph_walk
 
-    def _optimize_over_graph_walk(self, graph_walk):
-
-        #start_step = max(len(graph_walk.steps)-20, 0)
-        start_step = 0
+    def _optimize_over_graph_walk(self, graph_walk, start_step=-1):
+        #if start_step < 0:
+        #    start_step = len(graph_walk.steps)-20
+        start_step = max(start_step, 0)
         if self._algorithm_config["use_global_spatial_optimization"]:
             self._optimize_spatial_parameters_over_graph_walk(graph_walk, start_step)
         if self._algorithm_config["use_global_time_optimization"]:
@@ -159,6 +166,10 @@ class GraphWalkGenerator(object):
             step.motion_primitive_constraints.constraints = [constraint for constraint in step.motion_primitive_constraints.constraints
                                                              if constraint.constraint_type != SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE]
             initial_guess += step.parameters[:step.n_spatial_components].tolist()
+        for step in graph_walk.steps[start_step:]:
+            for constraint in step.motion_primitive_constraints.constraints:
+                if constraint.desired_time is not None:
+                    constraint.weight_factor = 1000.0
         if start_step == 0:
             prev_frames = None
         else:

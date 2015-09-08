@@ -71,6 +71,8 @@ class ElementaryActionConstraintsBuilder(object):
     def _add_keyframe_constraints(self, action_constraints):
         node_group = self.motion_primitive_graph.node_groups[action_constraints.action_name]
         action_constraints.keyframe_constraints = self.mg_input.get_keyframe_constraints(self.current_action_index, node_group)
+        if len(action_constraints.keyframe_constraints) > 0:
+                action_constraints.contains_user_constraints = True
 
     def _add_trajectory_constraints(self, action_constraints):
         """ Note: only trajectories on the Hips joint are supported for path following with direction constraints
