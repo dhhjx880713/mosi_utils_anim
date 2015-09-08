@@ -1513,3 +1513,13 @@ def is_vertical_pose_euler(euler_frame):
         return True
     else:
         return False
+
+def is_vertical_pose_quat(quat_frame):
+    quat_hip = np.asarray(quat_frame[3:7])
+    ref_vec = np.array([1, 0, 0, 1])
+    rotmat = quaternion_matrix(quat_hip)
+    rotated_vec = np.dot(rotmat, ref_vec)
+    if rotated_vec[1] > 0.99:
+        return True
+    else:
+        return False
