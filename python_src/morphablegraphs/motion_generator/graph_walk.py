@@ -8,6 +8,7 @@ Created on Tue Jul 14 18:39:41 2015
 import os
 from datetime import datetime
 from copy import copy
+import json
 import numpy as np
 from ..utilities.io_helper_functions import write_to_json_file,\
                                           write_to_logfile
@@ -218,6 +219,22 @@ class GraphWalk(object):
         return temp_event_dict
 
     def print_statistics(self):
+        statistics_string = self.get_statistics_string()
+        print statistics_string
+
+    def export_statistics(self, filename=None):
+        time_stamp = unicode(datetime.now().strftime("%d%m%y_%H%M%S"))
+        statistics_string = self.get_statistics_string()
+        constraints = self.get_generated_constraints()
+        constraints_string = json.dumps(constraints)
+        if filename is None:
+            filename = "graph_walk_statistics" + time_stamp + ".json"
+        outfile = open(filename, "wb")
+        outfile.write(statistics_string)
+        outfile.write("\n"+constraints_string)
+        outfile.close()
+
+    def get_statistics_string(self):
         n_steps = len(self.steps)
         objective_evaluations = 0
         average_error = 0
@@ -229,9 +246,8 @@ class GraphWalk(object):
         error_string = "average error for " + str(n_steps) + \
                        " motion primitives: " + str(average_error)
         average_keyframe_error = self.get_average_keyframe_constraint_error()
-        print "average keyframe constraint error", average_keyframe_error
-        print evaluations_string
-        print error_string
+        average_keyframe_error_string = "average keyframe constraint error " + str( average_keyframe_error)
+        return average_keyframe_error_string + "\n" + evaluations_string + "\n" + error_string
 
     def get_average_keyframe_constraint_error(self):
         keyframe_constraint_errors = []
@@ -252,4 +268,21 @@ class GraphWalk(object):
             step_index += 1
 
         return np.average(keyframe_constraint_errors)
+
+    def get_generated_constraints(self):
+        step_count = 0
+        generated_constraints = dict()
+        for step in self.steps:
+            key = str(step.node_key) + str(step_count)
+            generated_constraints[key] = []
+            for constraint in step.motion_primitive_constraints.constraints:
+
+                if constraint.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION and\
+                    "generated" in constraint.semantic_annotation.keys():
+                    generated_constraints[key].append(constraint.position)
+            step_count += 1
+        #generated_constraints = np.array(generated_constraints).flatten()
+        return generated_constraints
+
+
 
