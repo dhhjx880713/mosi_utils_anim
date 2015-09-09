@@ -1,11 +1,11 @@
 {
-    "model_data": "C:\\repo\\data\\3 - Motion primitives\\motion_primitives_quaternion_PCA95", 
-    "transition_data": "C:\\repo\\data\\4 - Transition model\\input", 
-    "output_dir":  "C:\\repo\\BestFitPipeline\\_Results",
-    "input_dir": "C:\\repo\\BestFitPipeline\\CNL-GUI",
+    "model_data": "E:\\projects\\INTERACT\\repository\\data\\3 - Motion primitives\\motion_primitives_quaternion_PCA95",
+    "transition_data": "E:\\projects\\INTERACT\\repository\\data\\4 - Transition model\\input",
+    "output_dir":  "E:\\projects\\INTERACT\\repository\\BestFitPipeline\\_Results",
+    "input_dir": "E:\\projects\\INTERACT\\repository\\BestFitPipeline\\CNL-GUI",
     "output_filename": "MGResult",
     "port": 8888,
-    "output_mode": "file_output",
+    "output_mode": "answer_request",
     "data_folder": "C:\\repo\\data\\1 - MoCap",
-    "write_log" : false
+    "write_log" : true
 }

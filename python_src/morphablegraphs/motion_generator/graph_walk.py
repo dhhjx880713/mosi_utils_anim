@@ -181,7 +181,7 @@ class GraphWalk(object):
         #print "keyframe event dict", self.keyframe_events_dict, filename
         write_to_json_file(filename, self.keyframe_events_dict)
 
-    def export_motion(self, output_dir, output_filename, add_time_stamp=False, write_log=False):
+    def export_motion(self, output_dir, output_filename, add_time_stamp=False, export_details=False):
         """ Saves the resulting animation frames, the annotation and actions to files.
         Also exports the input file again to the output directory, where it is
         used as input for the constraints visualization by the animation server.
@@ -192,9 +192,10 @@ class GraphWalk(object):
             write_to_json_file(output_dir + os.sep + output_filename + ".json", self.mg_input)
             self._export_event_dict(output_dir + os.sep + output_filename + "_actions"+".json")
             write_to_json_file(output_dir + os.sep + output_filename + "_annotations"+".json", self.frame_annotation)
-            if write_log:
+            if export_details:
                 time_stamp = unicode(datetime.now().strftime("%d%m%y_%H%M%S"))
-                write_to_logfile(output_dir + os.sep + LOG_FILE, output_filename + "_" + time_stamp, self._algorithm_config)
+                self.export_statistics(output_dir + os.sep + output_filename + "_statistics" + time_stamp + ".json")
+                #write_to_logfile(output_dir + os.sep + LOG_FILE, output_filename + "_" + time_stamp, self._algorithm_config)
         else:
            print "Error: no motion data to export"
 

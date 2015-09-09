@@ -20,6 +20,7 @@ from morphablegraphs.utilities.io_helper_functions import load_json_file
 ALGORITHM_CONFIG_FILE = "config" + os.sep + "algorithm.json"
 SERVICE_CONFIG_FILE = "config" + os.sep + "service.json"
 
+
 def get_newest_file_from_input_directory(service_config):
     input_file = glob.glob(service_config["input_dir"] + os.sep + "*.json")[-1]
     return input_file
@@ -44,7 +45,7 @@ def run_pipeline(service_config, algorithm_config_file):
     graph_walk = graph_walk_generator.generate_graph_walk(input_file, export=False)
 
     if graph_walk.motion_vector.has_frames():  # checks for quat_frames in result_tuple
-        graph_walk.export_motion(service_config["output_dir"], service_config["output_filename"])
+        graph_walk.export_motion(service_config["output_dir"], service_config["output_filename"], export_details=service_config["write_log"])
     else:
         print "Error: Failed to generate motion data."
 

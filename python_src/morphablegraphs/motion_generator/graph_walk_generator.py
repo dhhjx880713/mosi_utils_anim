@@ -101,7 +101,7 @@ class GraphWalkGenerator(GraphWalkOptimizer):
             if output_filename == "" and "session" in mg_input.keys():
                 output_filename = mg_input["session"]
                 graph_walk.frame_annotation["sessionID"] = mg_input["session"]
-            graph_walk.export_motion(self._service_config["output_dir"], output_filename, add_time_stamp=True, write_log=self._service_config["write_log"])
+            graph_walk.export_motion(self._service_config["output_dir"], output_filename, add_time_stamp=True, export_details=self._service_config["write_log"])
         return graph_walk
 
     def _generate_graph_walk_from_constraints(self, elementary_action_constraints_builder):
