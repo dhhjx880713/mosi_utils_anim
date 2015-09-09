@@ -49,13 +49,28 @@ class AlgorithmConfigurationBuilder(object):
 
     def set_default_optimization_settings(self):
         self.local_optimization_settings = dict()
-        self.local_optimization_settings["method"] = "Nelder-Mead"
-        self.local_optimization_settings["start_error_threshold"] = 5.0
+        self.local_optimization_settings["method"] = "leastsq"
+        self.local_optimization_settings["start_error_threshold"] = 4.0
         self.local_optimization_settings["max_iterations"] = 150
         self.local_optimization_settings["quality_scale_factor"] = 0.001
         self.local_optimization_settings["error_scale_factor"] = 0.01
         self.local_optimization_settings["tolerance"] = 0.01
         self.local_optimization_settings["spatial_epsilon"] = 0.0
+        self.global_spatial_optimization_settings = dict()
+        self.global_spatial_optimization_settings["method"] = "leastsq"
+        self.global_spatial_optimization_settings["start_error_threshold"] = 4.0
+        self.global_spatial_optimization_settings["max_iterations"] = 150
+        self.global_spatial_optimization_settings["quality_scale_factor"] = 0.001
+        self.global_spatial_optimization_settings["error_scale_factor"] = 0.01
+        self.global_spatial_optimization_settings["tolerance"] = 0.01
+        self.global_spatial_optimization_settings["spatial_epsilon"] = 0.0
+        self.global_time_optimization_settings = dict()
+        self.global_time_optimization_settings["method"] = "BFGS"
+        self.global_time_optimization_settings["max_iterations"] = 150
+        self.global_time_optimization_settings["quality_scale_factor"] = 0.001
+        self.global_time_optimization_settings["error_scale_factor"] = 0.01
+        self.global_time_optimization_settings["tolerance"] = 0.01
+        self.global_time_optimization_settings["spatial_epsilon"] = 0.0
 
     def set_default_trajectory_following_settings(self):
         self.trajectory_following_settings = dict()

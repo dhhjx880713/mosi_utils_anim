@@ -21,7 +21,7 @@ class OptimizerBuilder(object):
             minimizer = LeastSquares(self.algorithm_settings["local_optimization_settings"])
             minimizer.set_objective_function(obj_spatial_error_residual_vector_and_naturalness)#obj_spatial_error_residual_vector
         else:
-            minimizer = NumericalMinimizer(self.algorithm_settings)
+            minimizer = NumericalMinimizer(self.algorithm_settings["local_optimization_settings"])
             minimizer.set_objective_function(obj_spatial_error_sum_and_naturalness)
         return minimizer
 
