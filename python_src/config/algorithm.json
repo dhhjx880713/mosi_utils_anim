@@ -13,7 +13,7 @@
         "transition_pose_constraint_factor": 0.6
     }, 
     "use_constrained_gmm": false, 
-    "optimization_settings": {
+    "local_optimization_settings": {
         "start_error_threshold": 4.0,
         "error_scale_factor": 1.0,
         "spatial_epsilon": 0.0,
@@ -21,7 +21,22 @@
         "tolerance": 0.05,
         "method": "leastsq",
         "max_iterations": 500
-    }, 
+    },
+    "global_spatial_optimization_settings": {
+        "start_error_threshold": 4.0,
+        "error_scale_factor": 1.0,
+        "quality_scale_factor": 0.5,
+        "tolerance": 0.05,
+        "method": "leastsq",
+        "max_iterations": 500
+    },
+    "global_time_optimization_settings": {
+        "error_scale_factor": 1.0,
+        "quality_scale_factor": 0.001,
+        "tolerance": 0.05,
+        "method": "BFGS",
+        "max_iterations": 500
+    },
     "activate_cluster_search": true,
     "n_cluster_search_candidates": 1,
     "constrained_gmm_settings": {
@@ -35,10 +50,10 @@
     }, 
     "n_random_samples": 300,
     "use_transition_model": false, 
-    "use_optimization": true,
+    "local_optimization_mode": "none",
     "activate_parameter_check": false,
     "use_global_time_optimization": false,
-    "use_global_spatial_optimization": true,
+    "use_global_spatial_optimization": false,
     "use_constraints": true,
     "debug_max_step": -1,
     "verbose": false

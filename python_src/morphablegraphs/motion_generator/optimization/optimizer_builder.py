@@ -16,9 +16,9 @@ class OptimizerBuilder(object):
         self.algorithm_settings = algorithm_settings
 
     def build_spatial_error_minimizer(self):
-        method = self.algorithm_settings["optimization_settings"]["method"]
+        method = self.algorithm_settings["local_optimization_settings"]["method"]
         if method == "leastsq":
-            minimizer = LeastSquares(self.algorithm_settings)
+            minimizer = LeastSquares(self.algorithm_settings["local_optimization_settings"])
             minimizer.set_objective_function(obj_spatial_error_residual_vector_and_naturalness)#obj_spatial_error_residual_vector
         else:
             minimizer = NumericalMinimizer(self.algorithm_settings)
@@ -26,16 +26,12 @@ class OptimizerBuilder(object):
         return minimizer
 
     def build_time_error_minimizer(self):
-        algorithm_settings = copy.deepcopy(self.algorithm_settings)
-        algorithm_settings["optimization_settings"]["method"] = "BFGS"
-        minimizer = NumericalMinimizer(algorithm_settings)
+        minimizer = NumericalMinimizer(self.algorithm_settings["global_time_optimization_settings"])
         minimizer.set_objective_function(obj_time_error_sum)
         return minimizer
 
     def build_global_error_minimizer(self):
-        algorithm_settings = copy.deepcopy(self.algorithm_settings)
-        algorithm_settings["optimization_settings"]["method"] = "Nelder-Mead"
-        minimizer = NumericalMinimizer(algorithm_settings)
+        minimizer = NumericalMinimizer(self.algorithm_settings["global_spatial_optimization_settings"])
         minimizer.set_objective_function(obj_global_error_sum)
         return minimizer
 

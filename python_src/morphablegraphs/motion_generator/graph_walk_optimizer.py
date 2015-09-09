@@ -39,8 +39,8 @@ class GraphWalkOptimizer(object):
                 prev_frames = graph_walk.get_quat_frames()[:graph_walk.steps[start_step].start_frame]
             print "start global optimization", len(initial_guess), constraint_count
             self.global_error_minimizer.set_objective_function_parameters((self.motion_primitive_graph, graph_walk.steps[start_step:],
-                                    self._algorithm_config["optimization_settings"]["error_scale_factor"],
-                                    self._algorithm_config["optimization_settings"]["quality_scale_factor"],
+                                    self._algorithm_config["global_spatial_optimization_settings"]["error_scale_factor"],
+                                    self._algorithm_config["global_spatial_optimization_settings"]["quality_scale_factor"],
                                     prev_frames))
             optimal_parameters = self.global_error_minimizer.run(initial_guess)
             graph_walk.update_spatial_parameters(optimal_parameters, start_step)
@@ -57,8 +57,8 @@ class GraphWalkOptimizer(object):
         time_constraints = TimeConstraintsBuilder(graph_walk, start_step).build()
         if time_constraints is not None:
             data = (self.motion_primitive_graph, graph_walk, time_constraints,
-                    self._algorithm_config["optimization_settings"]["error_scale_factor"],
-                    self._algorithm_config["optimization_settings"]["quality_scale_factor"])
+                    self._algorithm_config["global_time_optimization_settings"]["error_scale_factor"],
+                    self._algorithm_config["global_time_optimization_settings"]["quality_scale_factor"])
             self.time_error_minimizer.set_objective_function_parameters(data)
             initial_guess = graph_walk.get_global_time_parameter_vector(start_step)
             print "initial_guess", initial_guess, time_constraints.constraint_list

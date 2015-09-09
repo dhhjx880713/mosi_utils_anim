@@ -31,13 +31,14 @@ class MotionPrimitiveSampleGenerator(object):
         self._motion_primitive_graph = self._action_constraints.motion_primitive_graph
         self.skeleton = self._action_constraints.get_skeleton()
         self._constrained_gmm_config = self._algorithm_config["constrained_gmm_settings"]
-        self._optimization_settings = self._algorithm_config["optimization_settings"]
         self.n_random_samples = self._algorithm_config["n_random_samples"]
         self.verbose = self._algorithm_config["verbose"]
         self.precision = self._constrained_gmm_config["precision"]        
         self.max_bad_samples = self._constrained_gmm_config["max_bad_samples"]
         self.use_constraints = self._algorithm_config["use_constraints"]
-        self.use_optimization = self._algorithm_config["use_optimization"]
+        self.local_optimization_mode = self._algorithm_config["local_optimization_mode"]
+        self._optimization_settings = self._algorithm_config["local_optimization_settings"]
+        self.optimization_start_error_threshold = self._optimization_settings["start_error_threshold"]
         self.use_constrained_gmm = self._algorithm_config["use_constrained_gmm"]
         self.use_transition_model = self._algorithm_config["use_transition_model"]
         self.activate_cluster_search = self._algorithm_config["activate_cluster_search"]
@@ -73,16 +74,14 @@ class MotionPrimitiveSampleGenerator(object):
         else:
             prev_mp_name = ""
             prev_parameters = None
- 
-        use_optimization = self.use_optimization or motion_primitive_constraints.use_optimization
+
         if self.use_constraints and len(motion_primitive_constraints.constraints) > 0:
             try:
                 low_dimensional_parameters = self.get_optimal_motion_primitive_parameters(mp_name,
                                                                                           motion_primitive_constraints,
                                                                                           prev_mp_name=prev_mp_name,
                                                                                           prev_frames=graph_walk.get_quat_frames(),
-                                                                                          prev_parameters=prev_parameters,
-                                                                                          use_optimization=use_optimization)
+                                                                                          prev_parameters=prev_parameters)
             except ConstraintError as exception:
                 print "Exception", exception.message
                 raise SynthesisError(graph_walk.get_quat_frames(), exception.bad_samples)
@@ -97,8 +96,7 @@ class MotionPrimitiveSampleGenerator(object):
                                                 motion_primitive_constraints,
                                                 prev_mp_name="",
                                                 prev_frames=None,
-                                                prev_parameters=None,
-                                                use_optimization=False):
+                                                prev_parameters=None):
         """Uses the constraints to find the optimal paramaters for a motion primitive.
         Parameters
         ----------
@@ -107,9 +105,7 @@ class MotionPrimitiveSampleGenerator(object):
         * motion_primitive_constraints: MotionPrimitiveConstraints
             contains a list of dict with constraints for joints
         * prev_frames: np.ndarray
-            quaternion frames               
-        * use_optimization: boolean
-            Activates or deactivates optimization (Not all motion primitives need optimization).
+            quaternion frames
         Returns
         -------
         * parameters : np.ndarray
@@ -119,8 +115,10 @@ class MotionPrimitiveSampleGenerator(object):
         close_to_optimum = False
         if self.activate_cluster_search and graph_node.cluster_tree is not None:
             parameters = self._search_for_best_sample_in_cluster_tree(graph_node,
-                                                                      motion_primitive_constraints,
-                                                                      prev_frames)
+                                                                          motion_primitive_constraints,
+                                                                          prev_frames)
+
+
         else:
             parameters = self._get_best_random_sample_from_statistical_model(graph_node,
                                                                              mp_name,
@@ -128,9 +126,10 @@ class MotionPrimitiveSampleGenerator(object):
                                                                              prev_mp_name,
                                                                              prev_frames,
                                                                              prev_parameters)
-        if motion_primitive_constraints.min_error <= self._algorithm_config["optimization_settings"]["start_error_threshold"]:
-                close_to_optimum = True
-        if not self.use_transition_model and use_optimization and not close_to_optimum:
+        if motion_primitive_constraints.min_error <= self.optimization_start_error_threshold:
+            close_to_optimum = True
+        print "condition", not self.use_transition_model, motion_primitive_constraints.use_local_optimization, not close_to_optimum, self.optimization_start_error_threshold
+        if not self.use_transition_model and motion_primitive_constraints.use_local_optimization and not close_to_optimum:
             data = graph_node, motion_primitive_constraints, \
                    prev_frames, self._optimization_settings["error_scale_factor"], \
                    self._optimization_settings["quality_scale_factor"]
