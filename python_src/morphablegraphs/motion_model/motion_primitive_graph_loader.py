@@ -11,7 +11,7 @@ from ..animation_data.skeleton import Skeleton
 from ..utilities.io_helper_functions import load_json_file
 from gp_mixture import GPMixture
 from motion_primitive_node_group_loader import MotionPrimitiveNodeGroupLoader
-from ..utilities.zip_io import read_graph_data_from_zip
+from ..utilities.zip_io import ZipReader
 from graph_edge import GraphEdge
 from motion_primitive_graph import MotionPrimitiveGraph
 from . import NODE_TYPE_START, NODE_TYPE_STANDARD, TRANSITION_DEFINITION_FILE_NAME, TRANSITION_MODEL_FILE_ENDING
@@ -61,7 +61,8 @@ class MotionPrimitiveGraphLoader(object):
 
     def _init_from_zip_file(self, motion_primitive_graph):
         zip_path = self.motion_primitive_graph_path+".zip"
-        graph_data = read_graph_data_from_zip(zip_path, pickle_objects=True)
+        zip_reader = ZipReader(zip_path, pickle_objects=True)
+        graph_data = zip_reader.get_graph_data()
         graph_definition = graph_data["transitions"]
         elementary_actions = graph_data["subgraphs"]
         for action_name in elementary_actions.keys():
