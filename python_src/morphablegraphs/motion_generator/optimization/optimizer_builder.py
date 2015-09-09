@@ -36,6 +36,6 @@ class OptimizerBuilder(object):
         return minimizer
 
     def build_global_error_minimizer_residual(self):
-        minimizer = LeastSquares(self.algorithm_settings)
+        minimizer = LeastSquares(self.algorithm_settings["global_spatial_optimization_settings"])
         minimizer.set_objective_function(obj_global_residual_vector_and_naturalness)
         return minimizer
