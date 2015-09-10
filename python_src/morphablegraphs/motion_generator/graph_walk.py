@@ -86,17 +86,17 @@ class GraphWalk(object):
         for step in self.steps[start_step:]:
             action_name = step.node_key[0]
             time_function = self.motion_primitive_graph.nodes[step.node_key]._inverse_temporal_pca(step.parameters[step.n_spatial_components:])
-            end_frame += len(time_function)
             if prev_step is not None and action_name != prev_step.node_key[0]:
                 #add entry for previous elementary action
                 print "add", prev_step.node_key[0]
                 self.update_frame_annotation(prev_step.node_key[0], start_frame, end_frame-1)
                 start_frame = end_frame
+            end_frame += len(time_function)
             prev_step = step
         print "add", prev_step.node_key[0]
-        time_function = self.motion_primitive_graph.nodes[step.node_key]._inverse_temporal_pca(step.parameters[step.n_spatial_components:])
-        end_frame += len(time_function)
-        self.update_frame_annotation(prev_step.node_key[0], start_frame, end_frame-1)
+        #time_function = self.motion_primitive_graph.nodes[step.node_key]._inverse_temporal_pca(step.parameters[step.n_spatial_components:])
+        #end_frame += len(time_function)
+        self.update_frame_annotation(prev_step.node_key[0], start_frame, step.end_frame)
 
     def _create_event_dict(self):
         """
