@@ -102,7 +102,7 @@ class Skeleton(object):
             node_desc["offset"] = offset
             self.node_names[parent_node]["children"].append(new_node_name)
             self.node_names[new_node_name] = node_desc
-            self.node_name_map[new_node_name] = -1 #the nodes needs an entry but the index is only important if it has children
+            self.node_name_map[new_node_name] = -1 #the node needs an entry but the index is only important if it has children
 
     def _generate_chain_names(self):
         chain_names = dict()
@@ -152,10 +152,9 @@ class Skeleton(object):
                     #print node_name, self._chain_names[target_node_name][count-1], offsets[count]
                     j_matrix = np.identity(4)
                     j_matrix[:, 3] = offsets[count] + [1]
-                    break # there should not be any nodes after an end site
                 j_matrices.append(j_matrix)
                 count += 1
-
+            #print node_name, len(j_matrices)
             global_matrix = np.identity(4)
             for j_matrix in j_matrices:
                 global_matrix = np.dot(global_matrix, j_matrix)
@@ -172,5 +171,6 @@ class Skeleton(object):
         """
         cartesian_frame = []
         for node_name in self.node_name_map.keys():
-            cartesian_frame.append(self.get_cartesian_coordinates_from_quaternion(node_name, quat_frame))
+            if self.node_names[node_name]["level"] <= self.max_level-1:
+                cartesian_frame.append(self.get_cartesian_coordinates_from_quaternion(node_name, quat_frame))
         return cartesian_frame
