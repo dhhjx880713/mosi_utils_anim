@@ -17,6 +17,7 @@ OPTIMIZATION_MODE_ALL = "all"
 OPTIMIZATION_MODE_KEYFRAMES = "keyframes"
 OPTIMIZATION_MODE_NONE = "none"
 
+
 class MotionPrimitiveConstraintsBuilder(object):
     """ Extracts a list of constraints for a motion primitive from ElementaryActionConstraints 
         based on the variables set by the method set_status. Generates constraints for path following.
@@ -147,8 +148,7 @@ class MotionPrimitiveConstraintsBuilder(object):
                     if keyframe_constraint_desc is not None:
                         keyframe_constraint = PositionAndRotationConstraint(self.skeleton,
                                                       keyframe_constraint_desc,
-                                                      self.precision["pos"],
-                                                      100.0)
+                                                      self.precision["pos"], mp_constraints.settings["position_constraint_factor"])
                         self._add_events_to_event_list(mp_constraints, keyframe_constraint)
                         mp_constraints.constraints.append(keyframe_constraint)
 
