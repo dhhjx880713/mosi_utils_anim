@@ -94,9 +94,7 @@ class GraphWalk(object):
             end_frame += len(time_function)
             prev_step = step
         print "add", prev_step.node_key[0]
-        #time_function = self.motion_primitive_graph.nodes[step.node_key]._inverse_temporal_pca(step.parameters[step.n_spatial_components:])
-        #end_frame += len(time_function)
-        self.update_frame_annotation(prev_step.node_key[0], start_frame, step.end_frame)
+        self.update_frame_annotation(prev_step.node_key[0], start_frame, end_frame-1)
 
     def _create_event_dict(self):
         """
@@ -270,7 +268,8 @@ class GraphWalk(object):
             for constraint in step.motion_primitive_constraints.constraints:
                 if constraint.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION and\
                     not ("generated" in constraint.semantic_annotation.keys()):
-                    joint_position = constraint.skeleton.get_cartesian_coordinates_from_quaternion(constraint.joint_name, aligned_frames[constraint.canonical_keyframe])
+                    joint_position = self.skeleton.joint_map[constraint.joint_name].get_global_position(aligned_frames[constraint.canonical_keyframe])
+                    #joint_position = constraint.skeleton.get_cartesian_coordinates_from_quaternion(constraint.joint_name, aligned_frames[constraint.canonical_keyframe])
                     print "position constraint", joint_position, constraint.position
                     error = constraint.evaluate_motion_sample(aligned_frames)
                     print error
@@ -294,6 +293,3 @@ class GraphWalk(object):
             step_count += 1
         #generated_constraints = np.array(generated_constraints).flatten()
         return generated_constraints
-
-
-
