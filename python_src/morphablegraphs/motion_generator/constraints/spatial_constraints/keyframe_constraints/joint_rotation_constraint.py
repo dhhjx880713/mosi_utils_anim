@@ -46,4 +46,4 @@ class JointRotationConstraint(KeyframeConstraintBase):
         diff_mat = self.constraint_rotmat - rotmat
         tmp = np.ravel(diff_mat)
         error = np.linalg.norm(tmp)
-        return  error
+        return error

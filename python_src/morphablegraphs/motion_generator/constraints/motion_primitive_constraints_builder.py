@@ -12,6 +12,7 @@ from motion_primitive_constraints import MotionPrimitiveConstraints
 from spatial_constraints.keyframe_constraints.pose_constraint import PoseConstraint
 from spatial_constraints.keyframe_constraints.direction_constraint import DirectionConstraint
 from spatial_constraints.keyframe_constraints.pos_and_rot_constraint import PositionAndRotationConstraint
+from spatial_constraints.keyframe_constraints.pose_constraint_quat_frame import PoseConstraintQuatFrame
 
 
 class MotionPrimitiveConstraintsBuilder(object):
@@ -92,6 +93,14 @@ class MotionPrimitiveConstraintsBuilder(object):
                                              mp_constraints.settings["transition_pose_constraint_factor"])
             mp_constraints.constraints.append(pose_constraint)
             mp_constraints.pose_constraint_set = True
+
+    def _add_pose_constraint_quat_frame(self, mp_constraints):
+        pose_constraint_desc = self._create_frame_constraint_angular_from_preceding_motion()
+        pose_constraint_quat_frame = PoseConstraintQuatFrame(self.skeleton, pose_constraint_desc,
+                                                             self.precision["smooth"],
+                                                             mp_constraints.settings["transition_pose_constraint_factor"])
+        mp_constraints.constraints.append(pose_constraint_quat_frame)
+        mp_constraints.pose_constraint_set = True
 
     def _add_path_following_constraints(self, mp_constraints):
         print "search for new goal"
@@ -191,10 +200,19 @@ class MotionPrimitiveConstraintsBuilder(object):
         """
         return MotionPrimitiveConstraintsBuilder.create_frame_constraint(self.skeleton, self.status["prev_frames"][-1])
 
+    def _create_frame_constraint_angular_from_preceding_motion(self):
+        return  MotionPrimitiveConstraintsBuilder.create_frame_constraint_angular(self.skeleton,
+                                                                                  self.status["prev_frames"][-1])
+
     @classmethod
     def create_frame_constraint(cls, skeleton, frame):
         frame_constraint = {"keyframeLabel": "start", "frame_constraint": skeleton.convert_quaternion_frame_to_cartesian_frame(frame),
                             "semanticAnnotation": {"keyframeLabel": "start"}}
+        return frame_constraint
+
+    @classmethod
+    def create_frame_constraint_angular(cls, skeleton, frame):
+        frame_constraint = {"frame_constraint": frame, "semanticAnnotation": {"firstFrame": True, "lastFrame": None}}
         return frame_constraint
 
     def _make_guess_for_goal_arc_length(self):

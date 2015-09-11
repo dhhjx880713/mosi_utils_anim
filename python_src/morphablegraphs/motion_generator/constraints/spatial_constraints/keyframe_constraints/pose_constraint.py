@@ -9,7 +9,8 @@ from math import sqrt
 from .....animation_data.motion_editing import convert_quaternion_frame_to_cartesian_frame,\
     align_point_clouds_2D,\
     transform_point_cloud,\
-    calculate_point_cloud_distance
+    calculate_point_cloud_distance, \
+    calculate_weighted_frame_distance_quat
 from keyframe_constraint_base import KeyframeConstraintBase
 from .. import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE
 
@@ -80,3 +81,10 @@ class PoseConstraint(KeyframeConstraintBase):
 
     def get_length_of_residual_vector(self):
         return len(self.skeleton.node_name_map.keys())
+
+    def evaluate_motion_sample_angular(self, aligned_quat_frames):
+        weights = self.skeleton.get_joint_weights()
+        error = calculate_weighted_frame_distance_quat(self.pose_constraint,
+                                                       aligned_quat_frames[0],
+                                                       weights)
+        return error
