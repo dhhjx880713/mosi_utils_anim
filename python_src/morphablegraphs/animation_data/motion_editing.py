@@ -342,8 +342,6 @@ def get_cartesian_coordinates_from_quaternion(skeleton,
     \tName of node
      * skeleton: Skeleton
     \tBVH data structure read from a file
-    * node_name_map: dict
-    \tA map from node name to index in the euler frame
 
     """
     if skeleton.node_names[node_name]["level"] == 0:
@@ -548,8 +546,6 @@ def get_cartesian_coordinates_from_euler(skeleton, node_name, euler_frame):
     \t skeleton structure read from a file
     * frame_number: Integer
     \tAnimation frame number that gets extracted
-    * node_name_map: dict
-    \tA map from node name to index in the euler frame
 
     """
     # print len(euler_frame),node_name
@@ -1142,8 +1138,6 @@ def align_frames(skeleton,
     \List of frames where the rotation is represented as euler angles in degrees.
     *euler_frames_b: np.ndarray
     \List of frames where the rotation is represented as euler angles in degrees.
-    *node_name_map: dict
-    \tDictionary that maps joint names to their order in the bvh file ignoring "Bip" joints
     *smooth: bool
     \t Sets whether or not smoothing is supposed to be applied on the at the transition.
      Returns
