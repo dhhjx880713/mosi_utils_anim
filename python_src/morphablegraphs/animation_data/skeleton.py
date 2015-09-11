@@ -6,6 +6,7 @@ Created on Tue Jul 14 14:18:37 2015
 """
 
 import collections
+from copy import deepcopy
 import numpy as np
 from ..external.transformations import quaternion_matrix
 from itertools import izip
@@ -17,9 +18,9 @@ class Skeleton(object):
         extracted from a BVH file with additional meta information.
     """
     def __init__(self, bvh_reader):
-        self.frame_time = bvh_reader.frame_time
-        self.root = bvh_reader.root
-        self.node_names = bvh_reader.node_names
+        self.frame_time = deepcopy(bvh_reader.frame_time)
+        self.root = deepcopy(bvh_reader.root)
+        self.node_names = deepcopy(bvh_reader.node_names)
         self._create_filtered_node_name_frame_map()
         self._add_tool_bones()
         self.max_level = self._get_max_level()
