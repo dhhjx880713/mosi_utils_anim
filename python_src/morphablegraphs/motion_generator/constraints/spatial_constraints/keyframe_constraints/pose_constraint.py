@@ -35,8 +35,6 @@ class PoseConstraint(KeyframeConstraintBase):
             Dict containing a position for each joint
         * skeleton: Skeleton
             Used for hierarchy information
-        * node_name_map : dict
-           Optional: Maps node name to index in frame vector ignoring "Bip" joints
 
         Returns
         -------
@@ -75,4 +73,4 @@ class PoseConstraint(KeyframeConstraintBase):
         return residual_vector
 
     def get_length_of_residual_vector(self):
-        return len(self.skeleton.node_name_map.keys())
+        return len(self.skeleton.node_name_frame_map.keys())

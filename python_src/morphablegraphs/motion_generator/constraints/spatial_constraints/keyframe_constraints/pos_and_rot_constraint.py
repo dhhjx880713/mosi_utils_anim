@@ -7,19 +7,17 @@ Created on Mon Aug 03 19:02:55 2015
 
 from math import sqrt
 import numpy as np
-from .....animation_data.motion_editing import quaternion_to_euler
+from .....animation_data.motion_editing import quaternion_to_euler, get_cartesian_coordinates_from_quaternion
 from python_src.morphablegraphs.external.transformations import rotation_matrix
 from keyframe_constraint_base import KeyframeConstraintBase
 from .. import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
 
-RELATIVE_HUERISTIC_RANGE = 0.00#5  # used for setting the search range relative to the number of frames of motion primitive
+RELATIVE_HUERISTIC_RANGE = 0.00 #5 # used for setting the search range relative to the number of frames of motion primitive
 CONSTRAINT_CONFLICT_ERROR = 100000  # returned when conflicting constraints were set
 
 
 class PositionAndRotationConstraint(KeyframeConstraintBase):
     """
-    * skeleton: Skeleton
-        Necessary for the evaluation of frames
     * constraint_desc: dict
         Contains joint, position, orientation and semantic Annotation
     """
@@ -69,12 +67,14 @@ class PositionAndRotationConstraint(KeyframeConstraintBase):
         return error
 
     def _evaluate_joint_orientation(self, frame):
-        joint_index = self.skeleton.node_name_map[self.joint_name]
+        joint_index = self.skeleton.node_name_frame_map[self.joint_name]
         joint_orientation = frame[joint_index:joint_index+4]
         return self._orientation_distance(joint_orientation)
 
     def _evaluate_joint_position(self, frame):
-        joint_position = self.skeleton.get_cartesian_coordinates_from_quaternion(self.joint_name, frame)
+        #joint_position = self.skeleton.get_cartesian_coordinates_from_quaternion(self.joint_name, frame)
+        joint_position = self.skeleton.joint_map[self.joint_name].get_global_position(frame)
+        #print self.joint_name, joint_position, joint_position3, self.position
         return self._vector_distance(self.position, joint_position)
 
     def _orientation_distance(self, joint_orientation):
@@ -101,19 +101,6 @@ class PositionAndRotationConstraint(KeyframeConstraintBase):
             if a[i] is not None and b[i] is not None:
                 d_sum += (a[i]-b[i])**2
         return sqrt(d_sum)
-
-    def _convert_annotation_to_indices(self):
-            start_stop_dict = {
-                (None, None): (None, None),
-                (True, None): (None, 1),
-                (False, None): (1, None),
-                (None, True): (-1, None),
-                (None, False): (None, -1),
-                (True, False): (None, 1),
-                (False, True): (-1, None),
-                (False, False): (1, -1)
-            }
-            self.start, self.stop = start_stop_dict[(self.constrain_first_frame, self.constrain_last_frame)]
 
     def get_length_of_residual_vector(self):
         return 1
