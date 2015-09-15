@@ -3,10 +3,13 @@ __author__ = 'hadu01'
 import glob
 from ..animation_data.bvh import BVHReader
 from ..animation_data.skeleton import Skeleton
-from ..animation_data.motion_editing import get_step_length
-from ..animation_data.motion_editing import get_cartesian_coordinates_from_euler_full_skeleton
+from ..animation_data.motion_editing import get_step_length, \
+                                            get_cartesian_coordinates_from_euler_full_skeleton, \
+                                            pose_orientation_quat
 import numpy as np
 import os
+from ..motion_model.motion_primitive import MotionPrimitive
+import matplotlib.pyplot as plt
 
 class MocapDataStats(object):
     """
@@ -81,3 +84,24 @@ class MocapDataStats(object):
                                                                      frame)
             joint_positions.append(pos)
         return joint_positions
+
+class MotionPrimitiveStats(object):
+    def __init__(self, mm_file):
+        self.motion_primitive_model = MotionPrimitive(mm_file)
+
+    def evaluate_sample_orientation(self, N):
+        orientation_vecs = []
+        plt.figure()
+        for i in xrange(N):
+            motion_sample = self.motion_primitive_model.sample()
+            quat_frames = motion_sample.get_motion_vector()
+            pose_orientation = pose_orientation_quat(quat_frames[0])
+            print pose_orientation
+            plt.plot([0, pose_orientation[0]], [0, pose_orientation[1]], 'r')
+            orientation_vecs.append(pose_orientation)
+        orientation_vecs = np.asarray(orientation_vecs)
+        # plt.figure()
+        # plt.plot(orientation_vecs[:,0], orientation_vecs[:,1], 'r.')
+        plt.xlim([-1, 1])
+        plt.ylim([-1, 1])
+        plt.show()
