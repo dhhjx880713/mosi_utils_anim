@@ -15,7 +15,8 @@ from scipy import stats  # linear regression
 from quaternion_frame import QuaternionFrame
 from ..external.transformations import quaternion_matrix, euler_from_matrix, \
     quaternion_from_matrix, euler_matrix, \
-    quaternion_multiply
+    quaternion_multiply, \
+    quaternion_about_axis
 
 DEFAULT_SMOOTHING_WINDOW_SIZE = 20
 LEN_QUAT = 4
@@ -954,7 +955,11 @@ def transform_quaternion_frame(quat_frame,
                                             offset,
                                             origin=origin)
     #    transformed_frame[:3] = transform_point(quat_frame[:3], [0, 0, 0], offset)
-    q = euler_to_quaternion(angles, rotation_order)
+    # q = euler_to_quaternion(angles, rotation_order) # replace
+    if round(angles[0],3) == 0 and round(angles[2], 3) == 0:
+        q = quaternion_about_axis(np.deg2rad(angles[1]), [0, 1, 0])
+    else:
+        q = euler_to_quaternion(angles, rotation_order)
     oq = quat_frame[3:7]
     rotated_q = quaternion_multiply(q, oq)
     transformed_frame[3:7] = rotated_q
