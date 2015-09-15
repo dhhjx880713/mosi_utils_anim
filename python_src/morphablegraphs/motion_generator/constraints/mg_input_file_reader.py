@@ -1,7 +1,7 @@
 __author__ = 'erhe01'
 
 import numpy as np
-
+from ...utilities.io_helper_functions import load_json_file
 
 class MGInputFileReader(object):
     """Implements functions used for the processing of the constraints from the input file
@@ -9,12 +9,27 @@ class MGInputFileReader(object):
 
     Parameters
     ----------
-    * mg_input_file : json data read from a file
+    * mg_input_file : file path or json data read from a file
         Contains elementary action list with constraints, start pose and keyframe annotations.
     """
     def __init__(self, mg_input_file):
         self.mg_input_file = mg_input_file
-        self.elementary_action_list = mg_input_file["elementaryActions"]
+        self.elementary_action_list = []
+        self.keyframe_annotations = []
+        if type(mg_input_file) != dict:
+            self.mg_input_file = load_json_file(mg_input_file)
+        else:
+            self.mg_input_file = mg_input_file
+        self._extract_elementary_actions()
+
+    def _extract_elementary_actions(self):
+        if "elementaryActions" in self.mg_input_file.keys():
+            self.elementary_action_list = self.mg_input_file["elementaryActions"]
+        elif "tasks" in self.mg_input_file.keys():
+            self.elementary_action_list = []
+            for task in self.mg_input_file["tasks"]:
+                if "elementaryActions" in task.keys():
+                    self.elementary_action_list += task["elementaryActions"]
         self.keyframe_annotations = self._extract_keyframe_annotations(self.elementary_action_list)
 
     def get_number_of_actions(self):

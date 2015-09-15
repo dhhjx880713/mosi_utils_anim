@@ -81,7 +81,7 @@ class ElementaryActionConstraintsBuilder(object):
         root_joint_name = self.motion_primitive_graph.skeleton.root
         action_constraints.root_trajectory = self._create_trajectory_from_constraint_desc(root_joint_name)
         action_constraints.trajectory_constraints = []
-        for joint_name in self.motion_primitive_graph.skeleton.node_name_map.keys():
+        for joint_name in self.motion_primitive_graph.skeleton.node_name_frame_map.keys():
             if joint_name != root_joint_name:
                 trajectory_constraint = self._create_trajectory_from_constraint_desc(joint_name)
                 if trajectory_constraint is not None:

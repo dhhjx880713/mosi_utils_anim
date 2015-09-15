@@ -6,9 +6,11 @@ Created on Tue Jul 14 14:18:37 2015
 """
 
 import collections
+from copy import deepcopy
 import numpy as np
 from ..external.transformations import quaternion_matrix
 from itertools import izip
+from skeleton_node import SkeletonRootNode, SkeletonJointNode, SkeletonEndSiteNode
 
 
 class Skeleton(object):
@@ -16,16 +18,40 @@ class Skeleton(object):
         extracted from a BVH file with additional meta information.
     """
     def __init__(self, bvh_reader):
-        self.frame_time = bvh_reader.frame_time
-        self.root = bvh_reader.root
-        self.node_names = bvh_reader.node_names
-        self._create_filtered_node_name_map()
+        self.frame_time = deepcopy(bvh_reader.frame_time)
+        self.root = deepcopy(bvh_reader.root)
+        self.node_names = deepcopy(bvh_reader.node_names)
+        self._create_filtered_node_name_frame_map()
         self._add_tool_bones()
         self.max_level = self._get_max_level()
         self._set_joint_weights()
         self.parent_dict = self._get_parent_dict()
         self._chain_names = self._generate_chain_names()
-        print "node name map keys", self.node_name_map.keys(), len(self.node_name_map)
+        print "node name map keys", self.node_name_frame_map.keys(), len(self.node_name_frame_map)
+        self.construct_hierarchy()
+
+    def construct_hierarchy(self):
+        self.root_node = SkeletonRootNode(self.root, None)
+        self.root_node.quaternion_frame_index = 3
+        self.joint_map = dict()
+        self.joint_map[self.root] = self.root_node
+        self.add_skeleton_node(self.root_node)
+        print "joints", self.joint_map.keys()
+
+    def add_skeleton_node(self, parent_node):
+        """ Currently assumes there are no EndSites
+        :param parent_node:
+        :return:
+        """
+        for child_name in self.node_names[parent_node.node_name]["children"]:
+            child_node = SkeletonJointNode(child_name, parent_node)
+            child_node.offset = self.node_names[child_name]["offset"]
+            if child_name in self.node_name_frame_map:
+                child_node.quaternion_frame_index = self.node_name_frame_map[child_name] * 4 + 3
+            if "children" in self.node_names[child_name].keys() and len(self.node_names[child_name]["children"]):
+                self.add_skeleton_node(child_node)
+            self.joint_map[child_name] = child_node
+            parent_node.children.append(child_node)
 
     def _get_max_level(self):
         return max([node["level"] for node in
@@ -58,25 +84,33 @@ class Skeleton(object):
         """
 
         # self.joint_weights = [np.exp(-self.node_names[node_name]["level"])
-        #                       for node_name in self.node_name_map.keys()]
-        self.joint_weights = [1.0/(self.node_names[node_name]["level"] + 1.0) \
-                              for node_name in self.node_name_map.keys()]
+        #                       for node_name in self.node_name_frame_map.keys()]
+        self.joint_weights = [1.0/(self.node_names[node_name]["level"] + 1.0) for node_name in self.node_name_frame_map.keys()]
+        self.joint_weight_map = collections.OrderedDict()
+        weight_index = 0
+        for node_name in self.node_name_frame_map.keys():
+            self.joint_weight_map[node_name] = self.joint_weights[weight_index]
+            weight_index += 1
+        self.joint_weight_map["RightHand"] = 2.0
+        self.joint_weight_map["LeftHand"] = 2.0
+        self.joint_weights = self.joint_weight_map.values()
 
-    def _create_filtered_node_name_map(self):
+    def _create_filtered_node_name_frame_map(self):
         """
         creates dictionary that maps node names to indices in a frame vector
         without "Bip" joints
         """
-        self.node_name_map = collections.OrderedDict()
+        self.node_name_frame_map = collections.OrderedDict()
         j = 0
         for node_name in self.node_names:
             if not node_name.startswith("Bip") and \
                     "children" in self.node_names[node_name].keys():
-                self.node_name_map[node_name] = j
+                self.node_name_frame_map[node_name] = j
                 j += 1
 
     def get_joint_weights(self):
-        return self.joint_weights
+        #return self.joint_weights#.values()
+        return self.joint_weight_map.values()
 
     def _add_tool_bones(self):
         new_node_name = 'LeftToolEndSite'
@@ -95,23 +129,24 @@ class Skeleton(object):
         #Finger21_offset = [3.801407, 0.0, 0.0]
 
     def _add_new_end_site(self, new_node_name, parent_node, offset):
-        if parent_node in self.node_name_map.keys():
+        if parent_node in self.node_name_frame_map.keys():
             level = self.node_names[parent_node]["level"] + 1
             node_desc = dict()
             node_desc["level"] = level
             node_desc["offset"] = offset
             self.node_names[parent_node]["children"].append(new_node_name)
             self.node_names[new_node_name] = node_desc
-            self.node_name_map[new_node_name] = -1 #the nodes needs an entry but the index is only important if it has children
+            self.node_name_frame_map[new_node_name] = -1 #the node needs an entry but the index is only important if it has children
 
     def _generate_chain_names(self):
         chain_names = dict()
-        for node_name in self.node_name_map.keys():
+        for node_name in self.node_name_frame_map.keys():
             chain_names[node_name] = list(self.gen_all_parents(node_name))
             # Names are generated bottom to up --> reverse
             chain_names[node_name].reverse()
             chain_names[node_name] += [node_name]  # Node is not in its parent list
         return chain_names
+
 
     def get_cartesian_coordinates_from_quaternion(self,
                                                   target_node_name,
@@ -127,8 +162,6 @@ class Skeleton(object):
         \tName of node
          * skeleton: Skeleton
         \tBVH data structure read from a file
-        * node_name_map: dict
-        \tA map from node name to index in the euler frame
 
         """
         if self.node_names[target_node_name]["level"] == 0:
@@ -145,14 +178,13 @@ class Skeleton(object):
             count = 0
             for node_name in self._chain_names[target_node_name]:
                 if "children" in self.node_names[node_name].keys():  # check if it is a joint or an end site
-                    index = self.node_name_map[node_name] * 4 + 3
+                    index = self.node_name_frame_map[node_name] * 4 + 3
                     j_matrix = quaternion_matrix(quaternion_frame[index: index + 4])
                     j_matrix[:, 3] = offsets[count] + [1]
                 else:
                     #print node_name, self._chain_names[target_node_name][count-1], offsets[count]
                     j_matrix = np.identity(4)
                     j_matrix[:, 3] = offsets[count] + [1]
-                    break # there should not be any nodes after an end site
                 j_matrices.append(j_matrix)
                 count += 1
 
@@ -164,6 +196,7 @@ class Skeleton(object):
             else:
                 point = np.array([0, 0, 0, 1])
                 point = np.dot(global_matrix, point)
+                #print target_node_name, "position", point
                 return point[:3].tolist()
 
     def convert_quaternion_frame_to_cartesian_frame(self, quat_frame):
@@ -171,6 +204,8 @@ class Skeleton(object):
         Converts quaternion frames to cartesian frames by calling get_cartesian_coordinates_from_quaternion for each joint
         """
         cartesian_frame = []
-        for node_name in self.node_name_map.keys():
-            cartesian_frame.append(self.get_cartesian_coordinates_from_quaternion(node_name, quat_frame))
+        for node_name in self.node_name_frame_map.keys():
+            position = self.joint_map[node_name].get_global_position(quat_frame)
+            cartesian_frame.append(position)
+
         return cartesian_frame

@@ -37,7 +37,7 @@ class JointRotationConstraint(KeyframeConstraintBase):
         constrained rotation matrix
 
         """
-        joint_idx = self.skeleton.node_name_map.keys().index(self.joint_name)
+        joint_idx = self.skeleton.node_name_frame_map.keys().index(self.joint_name)
         quat_value = aligned_quat_frames[self.frame_idx][LEN_ROOT_POSITION + joint_idx*LEN_QUAT :
                      LEN_ROOT_POSITION + (joint_idx + 1) * LEN_QUAT]
         quat_value = np.asarray(quat_value)

@@ -11,10 +11,9 @@ Wrapper around scipy minimize and error function definition.
 class OptimizerBase(object):
     """ Defines interface for optimization algorithms
     """
-    def __init__(self, algorithm_config):
-        self._aglortihm_config = algorithm_config
-        self.optimization_settings = algorithm_config["optimization_settings"]
-        self.verbose = algorithm_config["verbose"]
+    def __init__(self, optimization_settings):
+        self.optimization_settings = optimization_settings
+        self.verbose = True#algorithm_config["verbose"]
         self._objective_function = None
         self._error_func_params = None
 

@@ -14,6 +14,10 @@ from spatial_constraints.keyframe_constraints.direction_constraint import Direct
 from spatial_constraints.keyframe_constraints.pos_and_rot_constraint import PositionAndRotationConstraint
 from spatial_constraints.keyframe_constraints.pose_constraint_quat_frame import PoseConstraintQuatFrame
 
+OPTIMIZATION_MODE_ALL = "all"
+OPTIMIZATION_MODE_KEYFRAMES = "keyframes"
+OPTIMIZATION_MODE_NONE = "none"
+
 
 class MotionPrimitiveConstraintsBuilder(object):
     """ Extracts a list of constraints for a motion primitive from ElementaryActionConstraints 
@@ -35,7 +39,7 @@ class MotionPrimitiveConstraintsBuilder(object):
         self.algorithm_config = algorithm_config
         self.precision = algorithm_config["constrained_gmm_settings"]["precision"]
         self.trajectory_following_settings = algorithm_config["trajectory_following_settings"]
-        self.activate_optimization = algorithm_config["use_optimization"]
+        self.local_optimization_mode = algorithm_config["local_optimization_mode"]
 
     def set_status(self, motion_primitive_name, last_arc_length, prev_frames=None, is_last_step=False):
         self.status["motion_primitive_name"] = motion_primitive_name
@@ -153,14 +157,18 @@ class MotionPrimitiveConstraintsBuilder(object):
                     if keyframe_constraint_desc is not None:
                         keyframe_constraint = PositionAndRotationConstraint(self.skeleton,
                                                       keyframe_constraint_desc,
-                                                      self.precision["pos"],
-                                                      100.0)
+                                                      self.precision["pos"], mp_constraints.settings["position_constraint_factor"])
                         self._add_events_to_event_list(mp_constraints, keyframe_constraint)
                         mp_constraints.constraints.append(keyframe_constraint)
 
     def _decide_on_optimization(self, mp_constraints):
-        mp_constraints.use_optimization = len(self.action_constraints.keyframe_constraints.keys()) > 0 \
-                                          or self.status["is_last_step"] or self.activate_optimization
+        if self.local_optimization_mode == OPTIMIZATION_MODE_ALL:
+            mp_constraints.use_local_optimization = True
+        elif self.local_optimization_mode == OPTIMIZATION_MODE_KEYFRAMES:
+            mp_constraints.use_local_optimization = len(self.action_constraints.keyframe_constraints.keys()) > 0 \
+                                                    or self.status["is_last_step"]
+        else:
+            mp_constraints.use_local_optimization = False
 
     def _add_events_to_event_list(self, mp_constraints, keyframe_constraint):
         if keyframe_constraint.keyframe_label in self.action_constraints.keyframe_annotations.keys():

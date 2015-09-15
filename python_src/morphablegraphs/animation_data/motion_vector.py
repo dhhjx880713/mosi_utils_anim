@@ -48,10 +48,10 @@ class MotionVector(object):
         self.n_frames = len(self.quat_frames)
 
     def export(self, skeleton, output_dir, output_filename, add_time_stamp=True):
-        export_quat_frames_to_bvh_file(output_dir, skeleton, self.quat_frames, prefix=output_filename, start_pose=None, time_stamp=add_time_stamp)
+        export_quat_frames_to_bvh_file(output_dir, skeleton, self.quat_frames, prefix=output_filename, time_stamp=add_time_stamp)
 
     def has_frames(self):
-         return self.quat_frames is not None
+        return self.quat_frames is not None
 
     def clear(self, end_frame=0):
         if end_frame == 0:

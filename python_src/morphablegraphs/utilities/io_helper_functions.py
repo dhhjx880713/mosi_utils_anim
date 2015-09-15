@@ -209,8 +209,7 @@ def get_bvh_writer(skeleton, quat_frames, start_pose=None):
     return bvh_writer
 
 
-def export_quat_frames_to_bvh_file(output_dir, skeleton, quat_frames, prefix="",
-                                   start_pose=None, time_stamp=True):
+def export_quat_frames_to_bvh_file(output_dir, skeleton, quat_frames, prefix="", time_stamp=True):
     """ Exports a list of quat frames to a bvh file after transforming the
     frames to the start pose.
 
@@ -222,12 +221,9 @@ def export_quat_frames_to_bvh_file(output_dir, skeleton, quat_frames, prefix="",
         contains joint hiearchy information
     * quat_frames : np.ndarray
         Represents the motion
-    * start_pose : dict
-        Contains entry position and orientation each as a list with three components
 
     """
-    bvh_writer = get_bvh_writer(skeleton, quat_frames,
-                                start_pose=None)
+    bvh_writer = get_bvh_writer(skeleton, quat_frames)
     if time_stamp:
         filepath = output_dir + os.sep + prefix + "_" + \
             unicode(datetime.now().strftime("%d%m%y_%H%M%S")) + ".bvh"

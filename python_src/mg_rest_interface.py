@@ -51,7 +51,7 @@ class MGInputHandler(tornado.web.RequestHandler):
             return
 
         # start algorithm if predefined keys were found
-        if "elementaryActions" in mg_input.keys():
+        if "elementaryActions" in mg_input.keys() or "tasks" in mg_input.keys():
             graph_walk = self.application.generate_graph_walk(mg_input)
 
             self._handle_result(graph_walk)

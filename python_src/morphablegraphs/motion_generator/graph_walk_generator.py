@@ -11,22 +11,19 @@ based on previous steps.
 """
 
 import time
-import numpy as np
 from ..utilities.io_helper_functions import load_json_file
 from ..motion_model.motion_primitive_graph_loader import MotionPrimitiveGraphLoader
 from constraints.mg_input_file_reader import MGInputFileReader
 from constraints.elementary_action_constraints_builder import ElementaryActionConstraintsBuilder
 from elementary_action_graph_walk_generator import ElementaryActionGraphWalkGenerator
 from algorithm_configuration import AlgorithmConfigurationBuilder
-from optimization.optimizer_builder import OptimizerBuilder
-from constraints.time_constraints_builder import TimeConstraintsBuilder
-from constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE
 from graph_walk import GraphWalk
+from graph_walk_optimizer import GraphWalkOptimizer
 
 SKELETON_FILE = "skeleton.bvh"  # TODO replace with standard skeleton in data directory
 
 
-class GraphWalkGenerator(object):
+class GraphWalkGenerator(GraphWalkOptimizer):
     """
     Creates a MotionPrimitiveGraph instance and provides a method to synthesize a
     motion based on a json input file
@@ -41,6 +38,7 @@ class GraphWalkGenerator(object):
     def __init__(self, service_config, algorithm_config):
         self._service_config = service_config        
         self._algorithm_config = algorithm_config
+        super(GraphWalkGenerator, self).__init__(algorithm_config)
         motion_primitive_graph_directory = self._service_config["model_data"]
         transition_directory = self._service_config["transition_data"]
         graph_builder = MotionPrimitiveGraphLoader()
@@ -49,8 +47,6 @@ class GraphWalkGenerator(object):
         self.motion_primitive_graph = graph_builder.build()
         self.elementary_action_generator = ElementaryActionGraphWalkGenerator(self.motion_primitive_graph,
                                                                            self._algorithm_config)
-        self.time_error_minimizer = OptimizerBuilder(self._algorithm_config).build_time_error_minimizer()
-        self.global_error_minimizer = OptimizerBuilder(self._algorithm_config).build_global_error_minimizer_residual()
         return
 
     def set_algorithm_config(self, algorithm_config):
@@ -93,7 +89,7 @@ class GraphWalkGenerator(object):
         elementary_action_constraints_builder = ElementaryActionConstraintsBuilder(input_file_reader, self.motion_primitive_graph)
         graph_walk = self._generate_graph_walk_from_constraints(elementary_action_constraints_builder)
         if self._algorithm_config["use_global_time_optimization"]:
-            self._optimize_time_parameters_over_graph_walk(graph_walk)
+            graph_walk = self._optimize_time_parameters_over_graph_walk(graph_walk)
         time_in_seconds = time.clock() - start
         minutes = int(time_in_seconds/60)
         seconds = time_in_seconds % 60
@@ -105,7 +101,7 @@ class GraphWalkGenerator(object):
             if output_filename == "" and "session" in mg_input.keys():
                 output_filename = mg_input["session"]
                 graph_walk.frame_annotation["sessionID"] = mg_input["session"]
-            graph_walk.export_motion(self._service_config["output_dir"], output_filename, add_time_stamp=True, write_log=self._service_config["write_log"])
+            graph_walk.export_motion(self._service_config["output_dir"], output_filename, add_time_stamp=True, export_details=self._service_config["write_log"])
         return graph_walk
 
     def _generate_graph_walk_from_constraints(self, elementary_action_constraints_builder):
@@ -145,53 +141,9 @@ class GraphWalkGenerator(object):
             print "has user constraints", action_constraints.contains_user_constraints
             if self._algorithm_config["use_global_spatial_optimization"] and action_constraints.contains_user_constraints:
                 print "spatial graph walk optimization"
-                self._optimize_spatial_parameters_over_graph_walk(graph_walk, max(self.elementary_action_generator.state.start_step-2, 0))
+                graph_walk = self._optimize_spatial_parameters_over_graph_walk(graph_walk, max(self.elementary_action_generator.state.start_step-2, 0))
 
             action_constraints = elementary_action_constraints_builder.get_next_elementary_action_constraints()
 
         return graph_walk
 
-    def _optimize_over_graph_walk(self, graph_walk, start_step=-1):
-        #if start_step < 0:
-        #    start_step = len(graph_walk.steps)-20
-        start_step = max(start_step, 0)
-        if self._algorithm_config["use_global_spatial_optimization"]:
-            self._optimize_spatial_parameters_over_graph_walk(graph_walk, start_step)
-        if self._algorithm_config["use_global_time_optimization"]:
-            self._optimize_time_parameters_over_graph_walk(graph_walk)
-
-    def _optimize_spatial_parameters_over_graph_walk(self, graph_walk, start_step=0):
-        initial_guess = []
-        for step in graph_walk.steps[start_step:]:
-            step.motion_primitive_constraints.constraints = [constraint for constraint in step.motion_primitive_constraints.constraints
-                                                             if constraint.constraint_type != SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE]
-            initial_guess += step.parameters[:step.n_spatial_components].tolist()
-        for step in graph_walk.steps[start_step:]:
-            for constraint in step.motion_primitive_constraints.constraints:
-                if constraint.desired_time is not None:
-                    constraint.weight_factor = 1000.0
-        if start_step == 0:
-            prev_frames = None
-        else:
-            prev_frames = graph_walk.get_quat_frames()[:graph_walk.steps[start_step].start_frame]
-        print "start global optimization", len(initial_guess)
-        self.global_error_minimizer.set_objective_function_parameters((self.motion_primitive_graph, graph_walk.steps[start_step:],
-                                self._algorithm_config["optimization_settings"]["error_scale_factor"],
-                                self._algorithm_config["optimization_settings"]["quality_scale_factor"],
-                                prev_frames))
-        optimal_parameters = self.global_error_minimizer.run(initial_guess)
-        graph_walk.update_spatial_parameters(optimal_parameters, start_step)
-
-    def _optimize_time_parameters_over_graph_walk(self, graph_walk, start_step=0):
-
-        time_constraints = TimeConstraintsBuilder(graph_walk, start_step).build()
-        if time_constraints is not None:
-            data = (self.motion_primitive_graph, graph_walk, time_constraints,
-                    self._algorithm_config["optimization_settings"]["error_scale_factor"],
-                    self._algorithm_config["optimization_settings"]["quality_scale_factor"])
-            self.time_error_minimizer.set_objective_function_parameters(data)
-            initial_guess = time_constraints.get_initial_guess(graph_walk)
-            print "initial_guess", initial_guess, time_constraints.constraint_list
-            optimal_parameters = self.time_error_minimizer.run(initial_guess)
-            graph_walk.update_time_parameters(optimal_parameters, start_step)
-            graph_walk.convert_to_motion(start_step)
