@@ -37,19 +37,12 @@ class MotionNormalization(MotionSegmentation):
             self.cutted_motions[filename] = bvhreader.frames
 
     def translate_to_original_point(self, frames, origin_point,
-                                    touch_ground_joint):
+                                    height_offset):
         self.ref_bvhreader.frames = frames
-        skeleton = Skeleton(self.ref_bvhreader)
-        # shift the motion to ground
-        touch_point_pos = get_cartesian_coordinates_from_euler_full_skeleton(
-            self.ref_bvhreader,
-            skeleton,
-            touch_ground_joint,
-            self.ref_bvhreader.frames[0])
         root_pos = self.ref_bvhreader.frames[0][:3]
         rotation = [0, 0, 0]
         translation = np.array([origin_point[0] - root_pos[0],
-                                -touch_point_pos[1],
+                                -height_offset,
                                 origin_point[2] - root_pos[2]])
         transformed_frames = transform_euler_frames(self.ref_bvhreader.frames,
                                                     rotation,
@@ -59,7 +52,7 @@ class MotionNormalization(MotionSegmentation):
     def set_ref_bvh(self, ref_bvh):
         self.ref_bvh = ref_bvh
 
-    def normalize_root(self, origin_point, touch_ground_joint):
+    def normalize_root(self, origin_point):
         """set the offset of root joint to (0, 0, 0), and shift the motions to
            original_point, if original_point is None, the set it as (0, 0, 0)
         """
@@ -73,11 +66,29 @@ class MotionNormalization(MotionSegmentation):
         else:
             raise ValueError('No reference BVH file for skeleton information')
         self.ref_bvhreader.node_names['Hips']['offset'] = [0, 0, 0]
+        skeleton = Skeleton(self.ref_bvhreader)
         for filename, frames in self.cutted_motions.iteritems():
+            height_1 = get_cartesian_coordinates_from_euler_full_skeleton(self.ref_bvhreader,
+                                                                          skeleton,
+                                                                          'Bip01_R_Toe0',
+                                                                          frames[0])[1]
+            height_2 = get_cartesian_coordinates_from_euler_full_skeleton(self.ref_bvhreader,
+                                                                          skeleton,
+                                                                          'Bip01_L_Toe0',
+                                                                          frames[0])[1]
+            height_3 = get_cartesian_coordinates_from_euler_full_skeleton(self.ref_bvhreader,
+                                                                          skeleton,
+                                                                          'Bip01_R_Toe0',
+                                                                          frames[-1])[1]
+            height_4 = get_cartesian_coordinates_from_euler_full_skeleton(self.ref_bvhreader,
+                                                                          skeleton,
+                                                                          'Bip01_L_Toe0',
+                                                                          frames[-1])[1]
+            height_offset = (height_1 + height_2 + height_3 + height_4)/4.0
             self.translated_motions[filename] = self.translate_to_original_point(
                 frames,
                 origin_point,
-                touch_ground_joint)
+                height_offset)
 
     def align_motion(self, aligned_frame_idx, ref_orientation):
         """calculate the orientation of selected frame, get the rotation angle
