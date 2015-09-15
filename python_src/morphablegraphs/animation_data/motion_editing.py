@@ -16,7 +16,8 @@ from quaternion_frame import QuaternionFrame
 from ..external.transformations import quaternion_matrix, euler_from_matrix, \
     quaternion_from_matrix, euler_matrix, \
     quaternion_multiply, \
-    quaternion_about_axis
+    quaternion_about_axis, \
+    rotation_matrix
 
 DEFAULT_SMOOTHING_WINDOW_SIZE = 20
 LEN_QUAT = 4
@@ -773,40 +774,44 @@ def transform_point(point,
     # generate rotation matrix based on rotation order
     assert len(
         euler_angles) == 3, ('The length of rotation angles should be 3')
-    euler_angles = np.deg2rad(euler_angles)
-    if rotation_order[0] == 'Xrotation':
-        if rotation_order[1] == 'Yrotation':
-            R = euler_matrix(euler_angles[0],
-                             euler_angles[1],
-                             euler_angles[2],
-                             axes='rxyz')
-        elif rotation_order[1] == 'Zrotation':
-            R = euler_matrix(euler_angles[0],
-                             euler_angles[1],
-                             euler_angles[2],
-                             axes='rxzy')
-    elif rotation_order[0] == 'Yrotation':
-        if rotation_order[1] == 'Xrotation':
-            R = euler_matrix(euler_angles[0],
-                             euler_angles[1],
-                             euler_angles[2],
-                             axes='ryxz')
-        elif rotation_order[1] == 'Zrotation':
-            R = euler_matrix(euler_angles[0],
-                             euler_angles[1],
-                             euler_angles[2],
-                             axes='ryzx')
-    elif rotation_order[0] == 'Zrotation':
-        if rotation_order[1] == 'Xrotation':
-            R = euler_matrix(euler_angles[0],
-                             euler_angles[1],
-                             euler_angles[2],
-                             axes='rzxy')
-        elif rotation_order[1] == 'Yrotation':
-            R = euler_matrix(euler_angles[0],
-                             euler_angles[1],
-                             euler_angles[2],
-                             axes='rzyx')
+    if round(euler_angles[0], 3) == 0 and round(euler_angles[2], 3) == 0:
+        # rotation about y axis
+        R = rotation_matrix(np.deg2rad(euler_angles[1]), [0, 1, 0])
+    else:
+        euler_angles = np.deg2rad(euler_angles)
+        if rotation_order[0] == 'Xrotation':
+            if rotation_order[1] == 'Yrotation':
+                R = euler_matrix(euler_angles[0],
+                                 euler_angles[1],
+                                 euler_angles[2],
+                                 axes='rxyz')
+            elif rotation_order[1] == 'Zrotation':
+                R = euler_matrix(euler_angles[0],
+                                 euler_angles[1],
+                                 euler_angles[2],
+                                 axes='rxzy')
+        elif rotation_order[0] == 'Yrotation':
+            if rotation_order[1] == 'Xrotation':
+                R = euler_matrix(euler_angles[0],
+                                 euler_angles[1],
+                                 euler_angles[2],
+                                 axes='ryxz')
+            elif rotation_order[1] == 'Zrotation':
+                R = euler_matrix(euler_angles[0],
+                                 euler_angles[1],
+                                 euler_angles[2],
+                                 axes='ryzx')
+        elif rotation_order[0] == 'Zrotation':
+            if rotation_order[1] == 'Xrotation':
+                R = euler_matrix(euler_angles[0],
+                                 euler_angles[1],
+                                 euler_angles[2],
+                                 axes='rzxy')
+            elif rotation_order[1] == 'Yrotation':
+                R = euler_matrix(euler_angles[0],
+                                 euler_angles[1],
+                                 euler_angles[2],
+                                 axes='rzyx')
     rotated_point = np.dot(R, point)
     if origin is not None:
         rotated_point[:3] += origin
