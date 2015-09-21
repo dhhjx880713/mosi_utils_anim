@@ -46,7 +46,8 @@ class GraphWalkGenerator(GraphWalkOptimizer):
                                       transition_directory, self._algorithm_config["use_transition_model"])
         self.motion_primitive_graph = graph_builder.build()
         self.elementary_action_generator = ElementaryActionGraphWalkGenerator(self.motion_primitive_graph,
-                                                                           self._algorithm_config)
+                                                                              self._algorithm_config)
+        self._global_spatial_optimization_steps = self._algorithm_config["global_spatial_optimization_settings"]["max_steps"]
         return
 
     def set_algorithm_config(self, algorithm_config):
@@ -62,6 +63,7 @@ class GraphWalkGenerator(GraphWalkOptimizer):
         else:
             self._algorithm_config = algorithm_config
         self.elementary_action_generator.set_algorithm_config(self._algorithm_config)
+        self._global_spatial_optimization_steps = self._algorithm_config["global_spatial_optimization_settings"]["max_steps"]
 
     def generate_graph_walk(self, mg_input, export=True):
         """
@@ -141,7 +143,8 @@ class GraphWalkGenerator(GraphWalkOptimizer):
             print "has user constraints", action_constraints.contains_user_constraints
             if self._algorithm_config["use_global_spatial_optimization"] and action_constraints.contains_user_constraints:
                 print "spatial graph walk optimization"
-                graph_walk = self._optimize_spatial_parameters_over_graph_walk(graph_walk, max(self.elementary_action_generator.state.start_step-2, 0))
+                start_step = max(self.elementary_action_generator.state.start_step-self._max_global_spatial_optimization_steps, 0)
+                graph_walk = self._optimize_spatial_parameters_over_graph_walk(graph_walk, start_step)
 
             action_constraints = elementary_action_constraints_builder.get_next_elementary_action_constraints()
 
