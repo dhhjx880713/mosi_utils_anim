@@ -10,14 +10,14 @@ from ..animation_data.bvh import BVHReader
 from ..animation_data.skeleton import Skeleton
 from ..utilities.io_helper_functions import load_json_file
 from gp_mixture import GPMixture
-from motion_primitive_node_group_loader import MotionPrimitiveNodeGroupLoader
+from motion_state_group_loader import MotionStateGroupLoader
 from ..utilities.zip_io import ZipReader
-from graph_edge import GraphEdge
-from motion_primitive_graph import MotionPrimitiveGraph
+from motion_state_transition import MotionStateTransition
+from motion_state_graph import MotionStateGraph
 from . import NODE_TYPE_START, NODE_TYPE_STANDARD, TRANSITION_DEFINITION_FILE_NAME, TRANSITION_MODEL_FILE_ENDING
 
         
-class MotionPrimitiveGraphLoader(object):
+class MotionStateGraphLoader(object):
     """   Constructs a MotionPrimitiveGraph instance from a zip file or directory as data source
     """  
     def __init__(self):
@@ -27,7 +27,7 @@ class MotionPrimitiveGraphLoader(object):
         self.motion_primitive_graph_path = None
         self.elementary_action_directory = None
         self.transition_model_directory = None
-        self.motion_primitive_node_group_builder = MotionPrimitiveNodeGroupLoader()
+        self.motion_primitive_node_group_builder = MotionStateGroupLoader()
 
     def set_data_source(self, skeleton_path, motion_primitive_graph_path, transition_model_directory, load_transition_models=False, update_stats=False):
         """ Set the source which is used to load the data structure into memory.
@@ -51,7 +51,7 @@ class MotionPrimitiveGraphLoader(object):
                                                                 self.load_transition_models)
 
     def build(self):
-        motion_primitive_graph = MotionPrimitiveGraph()
+        motion_primitive_graph = MotionStateGraph()
         motion_primitive_graph.skeleton = self.skeleton
         if os.path.isfile(self.motion_primitive_graph_path+".zip"):
             self._init_from_zip_file(motion_primitive_graph)
@@ -143,5 +143,5 @@ class MotionPrimitiveGraphLoader(object):
 
     def _create_edge(self, motion_primitive_graph, from_node_key, to_node_key, transition_model=None):
         transition_type = self._get_transition_type(motion_primitive_graph, from_node_key, to_node_key)
-        edge = GraphEdge(from_node_key, to_node_key, transition_type, transition_model)
+        edge = MotionStateTransition(from_node_key, to_node_key, transition_type, transition_model)
         motion_primitive_graph.nodes[from_node_key].outgoing_edges[to_node_key] = edge

@@ -8,7 +8,7 @@ Created on Thu Jul 16 15:57:51 2015
 import collections
 
 
-class MotionPrimitiveGraph(object):
+class MotionStateGraph(object):
     """ Contains a dict of MotionPrimitiveNodes and MotionPrimitiveNodeGroups for each elementary action,
          transitions between them are stored as outgoing edges in the nodes.
     """

@@ -183,7 +183,7 @@ class MotionPrimitiveSampleGenerator(object):
     
         Parameters
         ----------
-        * mp_node : MotionPrimitiveNode
+        * mp_node : MotionState
             contains a motion primitive and meta information
         * gmm : sklearn.mixture.gmm
             The gmm to sample

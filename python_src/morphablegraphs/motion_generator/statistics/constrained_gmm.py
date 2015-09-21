@@ -18,7 +18,7 @@ class ConstrainedGMM(mixture.GMM):
 
     Parameters
     ----------
-    * motion_primitive_node : MotionPrimitiveNode
+    * motion_primitive_node : MotionState
         The original MotionPrimitive which will be constrained
     * constraint : tuple, optional
         The constraint as (joint, [pos_x, pos_y, pos_z], [rot_x, rot_y, rot_z])
@@ -57,7 +57,7 @@ class ConstrainedGMM(mixture.GMM):
         aligned_frames = align_quaternion_frames(new_frames, prev_frames, self.start_pose)
         error, in_precision = constraint.evaluate_motion_sample_with_precision(aligned_frames)
         return error, in_precision
-        
+
     def set_constraint(self, constraint, prev_frames):
         """ Constrain the GMM with the given value
 
@@ -123,6 +123,3 @@ class ConstrainedGMM(mixture.GMM):
         good_samples = np.array(good_samples)
         self.fit(good_samples)
 
-    
-    
-    

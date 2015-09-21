@@ -255,7 +255,7 @@ class GraphWalk(object):
         error_string = "average error for " + str(n_steps) + \
                        " motion primitives: " + str(average_error)
         average_keyframe_error = self.get_average_keyframe_constraint_error()
-        average_keyframe_error_string = "average keyframe constraint error " + str( average_keyframe_error)
+        average_keyframe_error_string = "average keyframe constraint error " + str(average_keyframe_error)
         return average_keyframe_error_string + "\n" + evaluations_string + "\n" + error_string
 
     def get_average_keyframe_constraint_error(self):
