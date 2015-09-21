@@ -10,7 +10,7 @@ import datetime
 from math import floor, sqrt, acos
 import heapq
 from catmull_rom_spline import CatmullRomSpline
-
+from segment_list import SegmentList
 
 def get_angle_between_vectors2d(a, b):
     """
@@ -97,8 +97,6 @@ class ParameterizedSpline(object):
         self.number_of_segments = 0
         self._relative_arc_length_map = []
         self._update_relative_arc_length_mapping_table()
-        self.closest_point_search_accuracy = 0.001
-        self.closest_point_search_max_iterations = 5000
         return
 
     def _initiate_control_points(self, control_points):
@@ -326,8 +324,7 @@ class ParameterizedSpline(object):
         # print relative_arc_length,floorL,ceilL,found_exact_value
         return floorP, ceilP, floorL, ceilL, found_exact_value
 
-    def _construct_segment_list(
-            self, min_arc_length=0, max_arc_length=-1, granularity=1000):
+    def _construct_segment_list(self, min_arc_length=0, max_arc_length=-1, granularity=1000):
         """ Constructs line segments out of the evualated points
          with the given granularity
         Returns
@@ -355,31 +352,26 @@ class ParameterizedSpline(object):
             start = np.array(points[index])
             end = np.array(points[index + 1])
             center = 0.5 * (end - start) + start
-            segment = (start, center, end)
+            segment = SplineSegment(start, center, end)
             segments.append(segment)
             index += 1
         return segments
-
-    def _divide_segment(self, segment):
-        """Divides a segment into two segments
-        Returns
-        -------
-        * segments : list of tuples
-            Contains segment_a and segment_b. Each defines a line segment and
-            contains start,center and end points
-        """
-        start_a = segment[0]
-        end_a = segment[1]
-        center_a = 0.5 * (end_a - start_a) + start_a
-        start_b = segment[1]
-        end_b = segment[2]
-        center_b = 0.5 * (end_b - start_b) + start_b
-
-#        print
-#        print "old",segment
-#        print  "new segment a",start_a,end_a
-#        print "new segment b",start_b,end_b
-        return [(start_a, center_a, end_a), (start_b, center_b, end_b)]
+    #
+    # def _divide_segment(self, segment):
+    #     """Divides a segment into two segments
+    #     Returns
+    #     -------
+    #     * segments : list of tuples
+    #         Contains segment_a and segment_b. Each defines a line segment and
+    #         contains start,center and end points
+    #     """
+    #     start_a = segment[0]
+    #     end_a = segment[1]
+    #     center_a = 0.5 * (end_a - start_a) + start_a
+    #     start_b = segment[1]
+    #     end_b = segment[2]
+    #     center_b = 0.5 * (end_b - start_b) + start_b
+    #     return [(start_a, center_a, end_a), (start_b, center_b, end_b)]
 
     def get_min_control_point(self, arc_length):
         """yields the first control point with a greater abs arclength than the
@@ -478,35 +470,34 @@ class ParameterizedSpline(object):
         else:
             return -1, None
 
-    def _find_closest_point_on_segment(self, point, segment):
-        """ Find closest point by dividing the segment until the
-            difference in the distance gets smaller than the accuracy
-        Returns
-        -------
-        * closest_point :  np.ndarray
-            point on the spline
-        * distance : float
-            distance to input point
-        """
-#        print "start closest point search",point
-        segment_length = np.inf
-        distance = np.inf
-        segments = self._divide_segment(segment)
-
-        iteration = 0
-        while segment_length > self.closest_point_search_accuracy and distance > self.closest_point_search_accuracy and iteration < self.closest_point_search_max_iterations:
-            closest_segment, distance = self._find_closest_segment(
-                point, segments)
-
-            delta = closest_segment[2] - closest_segment[0]
-            s_length = 0
-            for v in delta:
-                s_length += v**2
-            segment_length = sqrt(segment_length)
-            segments = self._divide_segment(closest_segment)
-            iteration += 1
-        closest_point = closest_segment[1]  # extract center of closest segment
-        return closest_point, distance
+    # def _find_closest_point_on_segment(self, point, segment):
+    #     """ Find closest point by dividing the segment until the
+    #         difference in the distance gets smaller than the accuracy
+    #     Returns
+    #     -------
+    #     * closest_point :  np.ndarray
+    #         point on the spline
+    #     * distance : float
+    #         distance to input point
+    #     """
+    #     segment_length = np.inf
+    #     distance = np.inf
+    #     segments = self._divide_segment(segment)
+    #
+    #     iteration = 0
+    #     while segment_length > self.closest_point_search_accuracy and distance > self.closest_point_search_accuracy and iteration < self.closest_point_search_max_iterations:
+    #         closest_segment, distance = self._find_closest_segment(
+    #             point, segments)
+    #
+    #         delta = closest_segment[2] - closest_segment[0]
+    #         s_length = 0
+    #         for v in delta:
+    #             s_length += v**2
+    #         segment_length = sqrt(segment_length)
+    #         segments = self._divide_segment(closest_segment)
+    #         iteration += 1
+    #     closest_point = closest_segment[1]  # extract center of closest segment
+    #     return closest_point, distance
 
     def find_closest_point(self, point, min_arc_length=0, max_arc_length=-1):
         """ Find closest segment by dividing the closest segments until the
@@ -518,89 +509,75 @@ class ParameterizedSpline(object):
         * distance : float
             distance to input point
         """
-        if min_arc_length >= self.full_arc_length:
-            return self.get_last_control_point(), 0.0
+
+        if min_arc_length >= self.full_arc_length:  # min arc length was too close to full arc length
+            return self.get_last_control_point(), self.full_arc_length
         else:
-            #first_control_point = self.get_min_control_point(min_arc_length)
-            segments = self._construct_segment_list(
-                min_arc_length=min_arc_length,
-                max_arc_length=max_arc_length)  # first_control_point=first_control_point
+            segment_list = SegmentList()
+            segment_list.construct_from_spline(self, min_arc_length, max_arc_length)
+            result = segment_list.find_closest_point(point)
+            if result[0] is None:
+                print "failed to generate trajectory segments for the closest point search"
+                print point, min_arc_length, max_arc_length
+                return None, -1
+            else:
+                return result
+
     #        closest_segment, distance = self._find_closest_segment(point,segments)
     #        closest_point,distance = self.find_closest_point_on_segment(point,closest_segment,accuracy,max_iterations,min_arc_length)
     #        return closest_point,distance
-            if len(segments) == 0:  # min arc length was too close to full arc length
-                print point, min_arc_length, max_arc_length, len(segments)
 
-                return self.get_last_control_point(), self.full_arc_length
-            candidates = self. _find_two_closest_segments(point, segments)
-            if len(candidates) >= 2:
-                closest_point_1, distance_1 = self._find_closest_point_on_segment(
-                    point, candidates[0][1])
-                closest_point_2, distance_2 = self._find_closest_point_on_segment(
-                    point, candidates[1][1])
 
-                if distance_1 < distance_2:
-                    return closest_point_1, distance_1
-                else:
-                    return closest_point_2, distance_2
-            elif len(candidates) == 1:
-                closest_point, distance = self._find_closest_point_on_segment(
-                    point, candidates[0][1])
-                return closest_point, distance
-            else:
-                print "failed to generate trajectory segments for the closest point search"
-                print point, min_arc_length, max_arc_length, len(segments)
-                return None, -1
-
-    def _find_closest_segment(self, point, segments):
-        """
-        Returns
-        -------
-        * closest_segment : Tuple
-           Defines line segment. Contains start,center and end
-        * min_distance : float
-          distance to this segments center
-        """
-        closest_segment = None
-        min_distance = np.inf
-        for s in segments:
-            delta = s[1] - point
-            distance = 0
-            for v in delta:
-                distance += v**2
-            distance = sqrt(distance)
-            if distance < min_distance:
-                closest_segment = s
-                min_distance = distance
-        return closest_segment, min_distance
-
-    def _find_two_closest_segments(self, point, segments):
-        """ Ueses a heap queue to find the two closest segments
-        Returns
-        -------
-        * closest_segments : List of Tuples
-           distance to the segment center
-           Defineiation of a line segment. Contains start,center and end points
-
-        """
-        heap = []  # heap queue
-        index = 0
-        while index < len(segments):
-            delta = segments[index][1] - point
-            distance = 0
-            for v in delta:
-                distance += v**2
-            distance = sqrt(distance)
-#            print point,distance,segments[index]
-#            #Push the value item onto the heap, maintaining the heap invariant.
-            heapq.heappush(heap, (distance, index))
-            index += 1
-
-        closest_segments = []
-        count = 0
-        while len(heap) > 0 and count < 2:
-            distance, index = heapq.heappop(heap)
-            segment = (distance, segments[index])
-            closest_segments.append(segment)
-            count += 1
-        return closest_segments
+    #
+    # def _find_closest_segment(self, point, segments):
+    #     """
+    #     Returns
+    #     -------
+    #     * closest_segment : Tuple
+    #        Defines line segment. Contains start,center and end
+    #     * min_distance : float
+    #       distance to this segments center
+    #     """
+    #     closest_segment = None
+    #     min_distance = np.inf
+    #     for s in segments:
+    #         delta = s[1] - point
+    #         distance = 0
+    #         for v in delta:
+    #             distance += v**2
+    #         distance = sqrt(distance)
+    #         if distance < min_distance:
+    #             closest_segment = s
+    #             min_distance = distance
+    #     return closest_segment, min_distance
+#
+#     def _find_two_closest_segments(self, point, segments):
+#         """ Ueses a heap queue to find the two closest segments
+#         Returns
+#         -------
+#         * closest_segments : List of Tuples
+#            distance to the segment center
+#            Defineiation of a line segment. Contains start,center and end points
+#
+#         """
+#         heap = []  # heap queue
+#         index = 0
+#         while index < len(segments):
+#             delta = segments[index].center - point
+#             distance = 0
+#             for v in delta:
+#                 distance += v**2
+#             distance = sqrt(distance)
+# #            print point,distance,segments[index]
+# #            #Push the value item onto the heap, maintaining the heap invariant.
+#             heapq.heappush(heap, (distance, index))
+#             index += 1
+#
+#         closest_segments = []
+#         count = 0
+#         while len(heap) > 0 and count < 2:
+#             distance, index = heapq.heappop(heap)
+#             segment = (distance, segments[index])
+#             closest_segments.append(segment)
+#             count += 1
+#         return closest_segments
