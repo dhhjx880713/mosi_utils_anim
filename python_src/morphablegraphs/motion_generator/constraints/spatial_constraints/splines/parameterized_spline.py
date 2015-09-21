@@ -97,6 +97,8 @@ class ParameterizedSpline(object):
         self.number_of_segments = 0
         self._relative_arc_length_map = []
         self._update_relative_arc_length_mapping_table()
+        self.closest_point_search_accuracy = 0.001
+        self.closest_point_search_max_iterations = 5000
         return
 
     def _initiate_control_points(self, control_points):
@@ -148,9 +150,7 @@ class ParameterizedSpline(object):
                 while d < self.spline.dimensions:
                     delta.append((point[d] - last_point[d])**2)
                     d += 1
-                # (point-last_point).length()
                 self.full_arc_length += sqrt(np.sum(delta))
-                # print self.full_arc_length
             self._relative_arc_length_map.append(
                 [accumulated_step, self.full_arc_length])
             number_of_evalulations += 1
@@ -160,9 +160,6 @@ class ParameterizedSpline(object):
         if self.full_arc_length > 0:
             for i in range(number_of_evalulations):
                 self._relative_arc_length_map[i][1] /= self.full_arc_length
-
-#        for entry in self._relative_arc_length_map:
-#            print entry
         return
 
     def get_full_arc_length(self, granularity=1000):
@@ -185,8 +182,6 @@ class ParameterizedSpline(object):
                     delta.append(sq_k)
                     d += 1
                 arc_length += sqrt(np.sum(delta))
-                # arc_length +=
-                # np.linalg.norm(point-last_point)#(point-last_point).length()
                 last_point = point
                 # print point
             else:
@@ -209,10 +204,8 @@ class ParameterizedSpline(object):
             t_i_1 = self._relative_arc_length_map[table_index + 1][0]
             a_i = self._relative_arc_length_map[table_index][1]
             a_i_1 = self._relative_arc_length_map[table_index + 1][1]
-
             arc_length = a_i + ((t - t_i) / (t_i_1 - t_i)) * (a_i_1 - a_i)
-            # unscale
-            arc_length = arc_length * self.full_arc_length
+            arc_length *= self.full_arc_length  # unscale
         else:
             arc_length = self._relative_arc_length_map[
                 table_index][1] * self.full_arc_length
@@ -453,8 +446,7 @@ class ParameterizedSpline(object):
                                             np.array([tangent_line[0], tangent_line[2]]))
         return start, tangent_line, np.degrees(angle)
 
-    def get_absolute_arc_length_of_point(
-            self, point, accuracy=10.0, min_arc_length=0):
+    def get_absolute_arc_length_of_point(self, point, min_arc_length=0):
         """ Finds the approximate arc length of a point on a spline
         Returns
         -------
@@ -463,7 +455,6 @@ class ParameterizedSpline(object):
           accuracy. If input point does not lie on the path, i.e. the accuracy
           condition can not be fullfilled -1 is returned)
         """
-
         u = 0.0
         step_size = 1.0 / self.granularity
         min_distance = np.inf
@@ -487,8 +478,7 @@ class ParameterizedSpline(object):
         else:
             return -1, None
 
-    def _find_closest_point_on_segment(
-            self, point, segment, accuracy=0.001, max_iterations=5000):
+    def _find_closest_point_on_segment(self, point, segment):
         """ Find closest point by dividing the segment until the
             difference in the distance gets smaller than the accuracy
         Returns
@@ -504,7 +494,7 @@ class ParameterizedSpline(object):
         segments = self._divide_segment(segment)
 
         iteration = 0
-        while segment_length > accuracy and distance > accuracy and iteration < max_iterations:
+        while segment_length > self.closest_point_search_accuracy and distance > self.closest_point_search_accuracy and iteration < self.closest_point_search_max_iterations:
             closest_segment, distance = self._find_closest_segment(
                 point, segments)
 
@@ -518,12 +508,7 @@ class ParameterizedSpline(object):
         closest_point = closest_segment[1]  # extract center of closest segment
         return closest_point, distance
 
-#    def find_closest_point(self, point, accuracy=0.001, max_iterations=5000, min_arc_length=0, max_arc_length=-1):
-# return self.spline.find_closest_point(point, accuracy, max_iterations,
-# min_arc_length, max_arc_length)
-
-    def find_closest_point(self, point, accuracy=0.001,
-                           max_iterations=5000, min_arc_length=0, max_arc_length=-1):
+    def find_closest_point(self, point, min_arc_length=0, max_arc_length=-1):
         """ Find closest segment by dividing the closest segments until the
             difference in the distance gets smaller than the accuracy
         Returns
@@ -550,9 +535,9 @@ class ParameterizedSpline(object):
             candidates = self. _find_two_closest_segments(point, segments)
             if len(candidates) >= 2:
                 closest_point_1, distance_1 = self._find_closest_point_on_segment(
-                    point, candidates[0][1], accuracy, max_iterations)
+                    point, candidates[0][1])
                 closest_point_2, distance_2 = self._find_closest_point_on_segment(
-                    point, candidates[1][1], accuracy, max_iterations)
+                    point, candidates[1][1])
 
                 if distance_1 < distance_2:
                     return closest_point_1, distance_1
@@ -560,7 +545,7 @@ class ParameterizedSpline(object):
                     return closest_point_2, distance_2
             elif len(candidates) == 1:
                 closest_point, distance = self._find_closest_point_on_segment(
-                    point, candidates[0][1], accuracy, max_iterations)
+                    point, candidates[0][1])
                 return closest_point, distance
             else:
                 print "failed to generate trajectory segments for the closest point search"
@@ -619,4 +604,3 @@ class ParameterizedSpline(object):
             closest_segments.append(segment)
             count += 1
         return closest_segments
-
