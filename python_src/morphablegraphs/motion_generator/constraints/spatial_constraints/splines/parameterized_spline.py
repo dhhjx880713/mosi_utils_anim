@@ -5,12 +5,10 @@ Created on Fri Jul 10 11:28:22 2015
 @author: erhe01
 """
 import numpy as np
-from matplotlib import pyplot as plt
-import datetime
-from math import floor, sqrt, acos
-import heapq
+from math import sqrt, acos
 from catmull_rom_spline import CatmullRomSpline
 from segment_list import SegmentList
+
 
 def get_angle_between_vectors2d(a, b):
     """
@@ -324,55 +322,6 @@ class ParameterizedSpline(object):
         # print relative_arc_length,floorL,ceilL,found_exact_value
         return floorP, ceilP, floorL, ceilL, found_exact_value
 
-    def _construct_segment_list(self, min_arc_length=0, max_arc_length=-1, granularity=1000):
-        """ Constructs line segments out of the evualated points
-         with the given granularity
-        Returns
-        -------
-        * segments : list of tuples
-            Each entry defines a line segment and contains
-            start,center and end points
-        """
-        points = []
-        step_size = 1.0 / granularity
-        u = 0
-        if max_arc_length <= 0:
-            max_arc_length = self.full_arc_length
-        while u <= 1.0:
-            arc_length = self.get_absolute_arc_length(u)
-            # todo make more efficient by looking up min_u
-            if arc_length >= min_arc_length and arc_length <= max_arc_length:
-                point = self.query_point_by_parameter(u)
-                points.append(point)
-            u += step_size
-
-        segments = []
-        index = 0
-        while index < len(points) - 1:
-            start = np.array(points[index])
-            end = np.array(points[index + 1])
-            center = 0.5 * (end - start) + start
-            segment = SplineSegment(start, center, end)
-            segments.append(segment)
-            index += 1
-        return segments
-    #
-    # def _divide_segment(self, segment):
-    #     """Divides a segment into two segments
-    #     Returns
-    #     -------
-    #     * segments : list of tuples
-    #         Contains segment_a and segment_b. Each defines a line segment and
-    #         contains start,center and end points
-    #     """
-    #     start_a = segment[0]
-    #     end_a = segment[1]
-    #     center_a = 0.5 * (end_a - start_a) + start_a
-    #     start_b = segment[1]
-    #     end_b = segment[2]
-    #     center_b = 0.5 * (end_b - start_b) + start_b
-    #     return [(start_a, center_a, end_a), (start_b, center_b, end_b)]
-
     def get_min_control_point(self, arc_length):
         """yields the first control point with a greater abs arclength than the
         given one"""
@@ -470,35 +419,6 @@ class ParameterizedSpline(object):
         else:
             return -1, None
 
-    # def _find_closest_point_on_segment(self, point, segment):
-    #     """ Find closest point by dividing the segment until the
-    #         difference in the distance gets smaller than the accuracy
-    #     Returns
-    #     -------
-    #     * closest_point :  np.ndarray
-    #         point on the spline
-    #     * distance : float
-    #         distance to input point
-    #     """
-    #     segment_length = np.inf
-    #     distance = np.inf
-    #     segments = self._divide_segment(segment)
-    #
-    #     iteration = 0
-    #     while segment_length > self.closest_point_search_accuracy and distance > self.closest_point_search_accuracy and iteration < self.closest_point_search_max_iterations:
-    #         closest_segment, distance = self._find_closest_segment(
-    #             point, segments)
-    #
-    #         delta = closest_segment[2] - closest_segment[0]
-    #         s_length = 0
-    #         for v in delta:
-    #             s_length += v**2
-    #         segment_length = sqrt(segment_length)
-    #         segments = self._divide_segment(closest_segment)
-    #         iteration += 1
-    #     closest_point = closest_segment[1]  # extract center of closest segment
-    #     return closest_point, distance
-
     def find_closest_point(self, point, min_arc_length=0, max_arc_length=-1):
         """ Find closest segment by dividing the closest segments until the
             difference in the distance gets smaller than the accuracy
@@ -526,58 +446,3 @@ class ParameterizedSpline(object):
     #        closest_segment, distance = self._find_closest_segment(point,segments)
     #        closest_point,distance = self.find_closest_point_on_segment(point,closest_segment,accuracy,max_iterations,min_arc_length)
     #        return closest_point,distance
-
-
-    #
-    # def _find_closest_segment(self, point, segments):
-    #     """
-    #     Returns
-    #     -------
-    #     * closest_segment : Tuple
-    #        Defines line segment. Contains start,center and end
-    #     * min_distance : float
-    #       distance to this segments center
-    #     """
-    #     closest_segment = None
-    #     min_distance = np.inf
-    #     for s in segments:
-    #         delta = s[1] - point
-    #         distance = 0
-    #         for v in delta:
-    #             distance += v**2
-    #         distance = sqrt(distance)
-    #         if distance < min_distance:
-    #             closest_segment = s
-    #             min_distance = distance
-    #     return closest_segment, min_distance
-#
-#     def _find_two_closest_segments(self, point, segments):
-#         """ Ueses a heap queue to find the two closest segments
-#         Returns
-#         -------
-#         * closest_segments : List of Tuples
-#            distance to the segment center
-#            Defineiation of a line segment. Contains start,center and end points
-#
-#         """
-#         heap = []  # heap queue
-#         index = 0
-#         while index < len(segments):
-#             delta = segments[index].center - point
-#             distance = 0
-#             for v in delta:
-#                 distance += v**2
-#             distance = sqrt(distance)
-# #            print point,distance,segments[index]
-# #            #Push the value item onto the heap, maintaining the heap invariant.
-#             heapq.heappush(heap, (distance, index))
-#             index += 1
-#
-#         closest_segments = []
-#         count = 0
-#         while len(heap) > 0 and count < 2:
-#             distance, index = heapq.heappop(heap)
-#             segment = (distance, segments[index])
-#             closest_segments.append(segment)
-#             count += 1
-#         return closest_segments
