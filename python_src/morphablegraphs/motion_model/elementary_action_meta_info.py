@@ -42,6 +42,13 @@ class ElementaryActionMetaInfo(object):
         start_state = (self.elementary_action_name, self.start_states[random_index])
         return start_state
 
+    def get_start_states(self):
+        """
+        Return all start states
+        :return:
+        """
+        return self.start_states
+
     def get_random_end_state(self):
         """ Returns the name of a random start state."""
         random_index = random.randrange(0, len(self.end_states), 1)
