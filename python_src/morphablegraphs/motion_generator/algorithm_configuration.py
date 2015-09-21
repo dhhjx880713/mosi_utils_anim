@@ -81,6 +81,8 @@ class AlgorithmConfigurationBuilder(object):
         self.trajectory_following_settings["dir_constraint_factor"] = 10.0
         self.trajectory_following_settings["position_constraint_factor"] = 1.0
         self.trajectory_following_settings["transition_pose_constraint_factor"] = 1.0
+        self.trajectory_following_settings["closest_point_search_accuracy"] = 0.001
+        self.trajectory_following_settings["closest_point_search_max_iterations"] = 5000
 
     def set_default_smoothing_settings(self):
         self.smoothing_settings = dict()
