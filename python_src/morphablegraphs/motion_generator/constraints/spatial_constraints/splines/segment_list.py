@@ -1,8 +1,8 @@
 __author__ = 'erhe01'
 
-from math import sqrt
 import heapq
 import numpy as np
+from math import sqrt
 from spline_segment import SplineSegment
 
 
@@ -56,7 +56,7 @@ class SegmentList(object):
             else:
                 return closest_point_2, distance_2
         elif len(candidates) == 1:
-            closest_point, distance = self.find_closest_point_on_segment(candidates[0][1], point)
+            closest_point, distance = self._find_closest_point_on_segment(candidates[0][1], point)
             return closest_point, distance
 
     def find_closest_segment(self, point):
