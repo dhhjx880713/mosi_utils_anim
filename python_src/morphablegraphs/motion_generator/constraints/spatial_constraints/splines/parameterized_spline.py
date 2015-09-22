@@ -163,7 +163,6 @@ class ParameterizedSpline(object):
         Apprioximate the arc length based on the sum of the finite difference using
         a step size found using the given granularity
         """
-        #granularity = self.granularity
         accumulated_steps = np.arange(granularity + 1) / float(granularity)
         arc_length = 0.0
         last_point = np.zeros((self.spline.dimensions, 1))
@@ -201,12 +200,11 @@ class ParameterizedSpline(object):
             a_i = self._relative_arc_length_map[table_index][1]
             a_i_1 = self._relative_arc_length_map[table_index + 1][1]
             arc_length = a_i + ((t - t_i) / (t_i_1 - t_i)) * (a_i_1 - a_i)
-            arc_length *= self.full_arc_length  # unscale
+            arc_length *= self.full_arc_length
         else:
             arc_length = self._relative_arc_length_map[
                 table_index][1] * self.full_arc_length
         return arc_length
-#        return t*self.full_arc_length
 
     def query_point_by_parameter(self, u):
         return self.spline.query_point_by_parameter(u)
@@ -442,7 +440,3 @@ class ParameterizedSpline(object):
                 return None, -1
             else:
                 return result
-
-    #        closest_segment, distance = self._find_closest_segment(point,segments)
-    #        closest_point,distance = self.find_closest_point_on_segment(point,closest_segment,accuracy,max_iterations,min_arc_length)
-    #        return closest_point,distance
