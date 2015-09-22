@@ -10,32 +10,6 @@ from catmull_rom_spline import CatmullRomSpline
 from segment_list import SegmentList
 
 
-def get_angle_between_vectors2d(a, b):
-    """
-    Returns
-    -------
-    angle in degrees
-    """
-    a = a / (sqrt(a[0]**2 + a[1]**2))
-    b = b / (sqrt(b[0]**2 + b[1]**2))
-    return acos((a[0] * b[0] + a[1] * b[1]))
-
-
-def sign(value):
-    if value >= 0:
-        return 1
-    else:
-        return -1
-
-
-def get_magnitude(vector):
-    magnitude = 0
-    for v in vector:
-        magnitude += v**2
-    magnitude = sqrt(magnitude)
-    return magnitude
-
-
 def get_closest_lower_value(arr, left, right, value, getter=lambda A, i: A[i]):
     """
     Uses a modification of binary search to find the closest lower value
@@ -48,30 +22,25 @@ def get_closest_lower_value(arr, left, right, value, getter=lambda A, i: A[i]):
     """
 
     delta = int(right - left)
-    # print delta
-    if (delta > 1):  # or (left ==0 and (delta> 0) ):# or (right == len(A)-1 and ()):#test if there are more than two elements to explore
+    if delta > 1:  #test if there are more than two elements to explore
         i_mid = int(left + ((right - left) / 2))
         test_value = getter(arr, i_mid)
-        # print "getter",testValue
         if test_value > value:
-            # print "right"
             return get_closest_lower_value(arr, left, i_mid, value, getter)
         elif test_value < value:
-            # print "left"
             return get_closest_lower_value(arr, i_mid, right, value, getter)
         else:
-            # print "done"
-            return (i_mid, 0)
+            return i_mid, 0
     else:  # always return the lowest closest value if no value was found, see flags for the cases
         left_value = getter(arr, left)
         right_value = getter(arr, right)
         if value >= left_value:
             if value <= right_value:
-                return (left, 1)
+                return left, 1
             else:
-                return (right, 2)
+                return right, 2
         else:
-            return(left, 3)
+            return left, 3
 
 
 class ParameterizedSpline(object):
@@ -163,7 +132,6 @@ class ParameterizedSpline(object):
         Apprioximate the arc length based on the sum of the finite difference using
         a step size found using the given granularity
         """
-        #granularity = self.granularity
         accumulated_steps = np.arange(granularity + 1) / float(granularity)
         arc_length = 0.0
         last_point = np.zeros((self.spline.dimensions, 1))
@@ -201,12 +169,11 @@ class ParameterizedSpline(object):
             a_i = self._relative_arc_length_map[table_index][1]
             a_i_1 = self._relative_arc_length_map[table_index + 1][1]
             arc_length = a_i + ((t - t_i) / (t_i_1 - t_i)) * (a_i_1 - a_i)
-            arc_length *= self.full_arc_length  # unscale
+            arc_length *= self.full_arc_length
         else:
             arc_length = self._relative_arc_length_map[
                 table_index][1] * self.full_arc_length
         return arc_length
-#        return t*self.full_arc_length
 
     def query_point_by_parameter(self, u):
         return self.spline.query_point_by_parameter(u)
@@ -356,11 +323,10 @@ class ParameterizedSpline(object):
             p1 = self.query_point_by_absolute_arc_length(l1)
             p2 = self.query_point_by_absolute_arc_length(l2)
             dir_vector = p2 - p1
-            magnitude = get_magnitude(dir_vector)
+            magnitude = np.linalg.norm(dir_vector)
             eval_range += 0.1
             if magnitude != 0:
-                dir_vector = dir_vector / magnitude
-
+                dir_vector /= magnitude
         return start, dir_vector
 
     def get_angle_at_arc_length_2d(self, arc_length, reference_vector):
@@ -381,10 +347,12 @@ class ParameterizedSpline(object):
         assert self.spline.dimensions == 3
 
         start, tangent_line = self.get_tangent_at_arc_length(arc_length)
-        # todo get angle with reference_frame[1],
-
-        angle = get_angle_between_vectors2d(reference_vector,
-                                            np.array([tangent_line[0], tangent_line[2]]))
+        # todo get angle with reference_frame[1]
+        a = reference_vector
+        b = np.array([tangent_line[0], tangent_line[2]])
+        a /= sqrt(a[0]**2 + a[1]**2)
+        b /= sqrt(b[0]**2 + b[1]**2)
+        angle = acos((a[0] * b[0] + a[1] * b[1]))
         return start, tangent_line, np.degrees(angle)
 
     def get_absolute_arc_length_of_point(self, point, min_arc_length=0):
@@ -442,7 +410,3 @@ class ParameterizedSpline(object):
                 return None, -1
             else:
                 return result
-
-    #        closest_segment, distance = self._find_closest_segment(point,segments)
-    #        closest_point,distance = self.find_closest_point_on_segment(point,closest_segment,accuracy,max_iterations,min_arc_length)
-    #        return closest_point,distance

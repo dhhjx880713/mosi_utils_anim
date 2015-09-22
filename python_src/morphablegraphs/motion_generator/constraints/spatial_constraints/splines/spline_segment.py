@@ -1,8 +1,5 @@
 __author__ = 'erhe01'
 
-import numpy as np
-from math import floor, sqrt, acos
-
 class SplineSegment(object):
     def __init__(self, start, center, end):
         self.start = start
@@ -16,7 +13,7 @@ class SplineSegment(object):
         -------
         * segments : list of SplineSegments
             Contains segment_a and segment_b. Each defines a line segment and
-            contains start,center and end points
+            contains start, center and end points
         """
         center_a = 0.5 * (self.center - self.start) + self.start
         center_b = 0.5 * (self.end - self.center) + self.center
