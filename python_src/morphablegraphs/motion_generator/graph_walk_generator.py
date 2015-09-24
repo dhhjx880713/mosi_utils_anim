@@ -143,7 +143,7 @@ class GraphWalkGenerator(GraphWalkOptimizer):
             print "has user constraints", action_constraints.contains_user_constraints
             if self._algorithm_config["use_global_spatial_optimization"] and action_constraints.contains_user_constraints:
                 print "spatial graph walk optimization"
-                start_step = max(self.elementary_action_generator.state.start_step-self._max_global_spatial_optimization_steps, 0)
+                start_step = max(self.elementary_action_generator.state.start_step-self._global_spatial_optimization_steps, 0)
                 graph_walk = self._optimize_spatial_parameters_over_graph_walk(graph_walk, start_step)
 
             action_constraints = elementary_action_constraints_builder.get_next_elementary_action_constraints()
