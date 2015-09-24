@@ -98,12 +98,11 @@ class ElementaryActionGraphWalkGenerator(object):
         else:
             return (action_name, next_nodes[0])
 
-
     def _select_next_motion_primitive_node(self, graph_walk):
         """extract from graph based on previous last step + heuristic """
 
         if self.state.current_node is None:
-            # next_node = self.motion_primitive_graph.get_random_action_transition(graph_walk, self.action_constraints.action_name)
+            #next_node = self.motion_primitive_graph.get_random_action_transition(graph_walk, self.action_constraints.action_name)
             next_node = self.get_best_start_node(graph_walk, self.action_constraints.action_name)
             next_node_type = self.motion_primitive_graph.nodes[next_node].node_type
             if next_node is None:
