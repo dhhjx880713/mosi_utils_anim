@@ -91,10 +91,13 @@ class MotionPrimitiveConstraintsBuilder(object):
 
     def _add_pose_constraint(self, mp_constraints):
         if mp_constraints.settings["transition_pose_constraint_factor"] > 0.0 and self.status["prev_frames"] is not None:
-            pose_constraint_desc = self._create_frame_constraint_from_preceding_motion()
+            # pose_constraint_desc = self._create_frame_constraint_from_preceding_motion()
+            pose_constraint_desc = self._create_frame_constraint_angular_from_preceding_motion()
             pose_constraint_desc = self._map_label_to_canonical_keyframe(pose_constraint_desc)
-            pose_constraint = PoseConstraint(self.skeleton, pose_constraint_desc, self.precision["smooth"],
-                                             mp_constraints.settings["transition_pose_constraint_factor"])
+            # pose_constraint = PoseConstraint(self.skeleton, pose_constraint_desc, self.precision["smooth"],
+            #                                  mp_constraints.settings["transition_pose_constraint_factor"])
+            pose_constraint = PoseConstraintQuatFrame(self.skeleton, pose_constraint_desc, self.precision["smooth"],
+                                                      mp_constraints.settings["transition_pose_constraint_factor"])
             mp_constraints.constraints.append(pose_constraint)
             mp_constraints.pose_constraint_set = True
 
@@ -220,7 +223,7 @@ class MotionPrimitiveConstraintsBuilder(object):
 
     @classmethod
     def create_frame_constraint_angular(cls, skeleton, frame):
-        frame_constraint = {"frame_constraint": frame, "semanticAnnotation": {"firstFrame": True, "lastFrame": None}}
+        frame_constraint = {"frame_constraint": frame, "keyframeLabel": "start", "semanticAnnotation": {"keyframeLabel": "start"}}
         return frame_constraint
 
     def _make_guess_for_goal_arc_length(self):

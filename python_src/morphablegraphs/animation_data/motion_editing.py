@@ -4,13 +4,14 @@ Created on Thu Feb 12 20:11:35 2015
 
 @author: Erik, Han, Markus
 """
-
+import os
 import numpy as np
 from math import sqrt, radians, sin, cos, isnan
 import fk3
 from itertools import izip
 from copy import deepcopy
-import time
+import glob
+from bvh import BVHReader, BVHWriter
 from scipy import stats  # linear regression
 from quaternion_frame import QuaternionFrame
 from ..external.transformations import quaternion_matrix, euler_from_matrix, \
@@ -63,7 +64,6 @@ def get_arc_length_from_points(points):
     for p in points:
         if last_p is not None:
             delta = p - last_p
-            # print delta
             arc_length += np.linalg.norm(delta)
         last_p = p
     return arc_length
@@ -453,7 +453,6 @@ def get_cartesian_coordinates_from_euler_full_skeleton(bvh_reader,
             eul_angles.append(euler_frame[indeces])
             index += 1
 
-        # print chain_names,
         # bvh_reader.node_names.keys().index("RightShoulder")*3 +
         # 3,len(euler_frame)
         rad_angles = (map(radians, eul_angle) for eul_angle in eul_angles)
@@ -474,7 +473,6 @@ def get_cartesian_coordinates_from_euler_full_skeleton(bvh_reader,
         # handled separately
 
         f_idx = len(ax) - 2
-        # print "f",f_idx
         if len(ax) - 2 < len(FK_FUNCS):
             return FK_FUNCS[f_idx](ax, ay, az, thx, thy, thz)
         else:
@@ -550,7 +548,6 @@ def get_cartesian_coordinates_from_euler(skeleton, node_name, euler_frame):
     \tAnimation frame number that gets extracted
 
     """
-    # print len(euler_frame),node_name
 
     if skeleton.node_names[node_name]["level"] == 0:
         root_frame_position = euler_frame[:3]
@@ -564,17 +561,10 @@ def get_cartesian_coordinates_from_euler(skeleton, node_name, euler_frame):
         chain_names = list(skeleton.gen_all_parents(node_name))
         chain_names.reverse()
         chain_names += [node_name]  # Node is not in its parent list
-
-        #        if node_name == "Head_EndSite":
-        #                print chain_names
         eul_angles = []
         for nodename in chain_names:
             index = skeleton.node_name_map[nodename] * 3 + 3
             eul_angles.append(euler_frame[index:index + 3])
-
-        # print chain_names,
-        # bvh_reader.node_names.keys().index("RightShoulder")*3 +
-        # 3,len(euler_frame)
         rad_angles = (map(radians, eul_angle) for eul_angle in eul_angles)
 
         thx, thy, thz = map(list, zip(*rad_angles))
@@ -593,7 +583,6 @@ def get_cartesian_coordinates_from_euler(skeleton, node_name, euler_frame):
         # handled separately
 
         f_idx = len(ax) - 2
-        # print "f",f_idx
         if len(ax) - 2 < len(FK_FUNCS):
             return FK_FUNCS[f_idx](ax, ay, az, thx, thy, thz)
         else:
@@ -604,7 +593,6 @@ def convert_euler_frame_to_cartesian_frame(skeleton, euler_frame):
     """
     converts euler frames to cartesian frames by calling get_cartesian_coordinates for each joint
     """
-    # print euler_frame.shape
     cartesian_frame = []
     for node_name in skeleton.node_names:
         # ignore Bip joints and end sites
@@ -766,7 +754,6 @@ def transform_point(point,
     point = np.asarray(point)
     if origin is not None:
         origin = np.asarray(origin)
-        # print "point",point,origin
         point = point - origin
     if not isinstance(point, list):
         point = list(point)
@@ -815,7 +802,6 @@ def transform_point(point,
     rotated_point = np.dot(R, point)
     if origin is not None:
         rotated_point[:3] += origin
-    #    print rotated_point[:3]
     transformed_point = rotated_point[:3] + offset
     return transformed_point.tolist()
 
@@ -950,7 +936,6 @@ def transform_quaternion_frame(quat_frame,
     \tTranslation
     """
 
-    #    print quat_frame
     if rotation_order is None:
         rotation_order = ["Xrotation", "Yrotation", "Zrotation"]
     transformed_frame = quat_frame[:]
@@ -1335,11 +1320,11 @@ def calculate_weighted_frame_distance_quat(quat_frame_a,
                                            quat_frame_b,
                                            weights):
     assert len(quat_frame_a) == len(quat_frame_b) and \
-        len(quat_frame_a) == len(weights) * LEN_QUAT + LEN_ROOT_POS
+        len(quat_frame_a) == (len(weights) - 2) * LEN_QUAT + LEN_ROOT_POS
     diff = 0
-    for i in xrange(len(weights) - 1):
-        quat1 = quat_frame_a[(i+1)*4+3: (i+2)*4+3]
-        quat2 = quat_frame_b[(i+1)*4+3: (i+2)*4+3]
+    for i in xrange(len(weights) - 2):
+        quat1 = quat_frame_a[(i+1)*LEN_QUAT+LEN_ROOT_POS: (i+2)*LEN_QUAT+LEN_ROOT_POS]
+        quat2 = quat_frame_b[(i+1)*LEN_QUAT+LEN_ROOT_POS: (i+2)*LEN_QUAT+LEN_ROOT_POS]
         tmp = quat_distance(quat1, quat2)*weights[i]
         diff += tmp
     return diff
@@ -1362,7 +1347,6 @@ def calculate_pose_distances_from_low_dim(skeleton, mm_models, X, Y):
     * Y: List
     \tList of low dimensional vectors
     """
-    print "test"
     assert len(X) == len(Y)
     n = len(X)
     errors = []
@@ -1423,6 +1407,7 @@ def get_trajectory_dir_from_2d_points(points):
     Step 1: fit the points with a 2d straight line
     Step 2: estimate the direction vector from first and last point
     """
+    points = np.asarray(points)
     dir_vector = points[-1] - points[0]
     slope, intercept, r_value, p_value, std_err = stats.linregress(*points.T)
     if isnan(slope):
@@ -1467,16 +1452,19 @@ def align_quaternion_frames(
     """
     # find alignment transformation or use given transformation
     if prev_frames is not None:
-        # print prev_frames
         angle, offset = fast_quat_frames_transformation(
             prev_frames, quat_frames)
-        aligning_transformation = {
-            "orientation": [
-                0,
-                angle,
-                0],
-            "position": offset}
-    if aligning_transformation is not None:
+        # aligning_transformation = {
+        #     "orientation": [
+        #         0,
+        #         angle,
+        #         0],
+        #     "position": offset}
+        transformed_frames = transform_quaternion_frames(quat_frames,
+                                                         [0, angle, 0],
+                                                         offset)
+        return transformed_frames
+    elif prev_frames is None and aligning_transformation is not None:
         # align frames
         transformed_frames = transform_quaternion_frames(
             quat_frames,
@@ -1505,6 +1493,41 @@ def rotate_euler_frames(euler_frames,
                                             translation)
     return rotated_frames
 
+def upvector_correction(filefolder,
+                        frame_idx,
+                        ref_upvector,
+                        save_folder):
+    """
+    Correct the up vector of bvh files in given file folder
+    :param filefolder:
+    :param ref_upvector:
+    :return:
+    """
+    if not filefolder.endswith(os.sep):
+        filefolder += os.sep
+    if not save_folder.endswith(os.sep):
+        save_folder += os.sep
+    bvhfiles = glob.glob(filefolder+'*.bvh')
+    for item in bvhfiles:
+        bvhreader = BVHReader(item)
+        rotated_frames = rotate_euler_frames_about_x_axis(bvhreader.frames,
+                                                          frame_idx,
+                                                          ref_upvector)
+        save_filename = save_folder + bvhreader.filename
+        BVHWriter(save_filename, bvhreader, rotated_frames, bvhreader.frame_time, False)
+
+
+def rotate_euler_frames_about_x_axis(euler_frames,
+                                     frame_idx,
+                                     ref_upvector):
+    sample_upvector = pose_up_vector_euler(euler_frames[frame_idx])
+    rot_angle = get_rotation_angle(ref_upvector, sample_upvector)
+    translation = np.array([0, 0, 0])
+    rotated_frames = transform_euler_frames(euler_frames,
+                                            [rot_angle, 0, 0],
+                                            translation)
+    return  rotated_frames
+
 def is_vertical_pose_euler(euler_frame):
     ref_vec = np.array([1, 0, 0, 1])
     rot_angles = np.deg2rad(euler_frame[3:6])
@@ -1527,3 +1550,36 @@ def is_vertical_pose_quat(quat_frame):
         return True
     else:
         return False
+
+def pose_up_vector_euler(euler_frame):
+    """
+    Estimate up vector of given euler frame. Assume the pose is aligned in negative Z axis, so the projection of
+    3D up vector into XOY plane (Y is vertical axis) is taken into consideration.
+    :param euler_frame:
+    :return:
+    """
+    ref_offset = np.array([1, 0, 0, 1])
+    rot_angles = euler_frame[3:6]
+    rot_angles_rad = np.deg2rad(rot_angles)
+    rotmat = euler_matrix(rot_angles_rad[0],
+                          rot_angles_rad[1],
+                          rot_angles_rad[2],
+                          'rxyz')
+    rotated_point = np.dot(rotmat, ref_offset)
+    up_vec = np.array([rotated_point[0], rotated_point[1]])
+    up_vec /= np.linalg.norm(up_vec)
+    return up_vec
+
+def pose_up_vector_quat(quat_frame):
+    """
+    Estimate up vector of given quaternion frame. Assume the pose is aligned in negative Z axis, so the projection of
+    3D up vector into XOY plane (Y is vertical axis) is taken into consideration.
+    :param quat_frame:
+    :return:
+    """
+    ref_offset = np.array([1, 0, 0, 1])
+    rotmat = quaternion_matrix(quat_frame[3:7])
+    rotated_point = np.dot(rotmat, ref_offset)
+    up_vec = np.array([rotated_point[0], rotated_point[2]])
+    up_vec /= np.linalg.norm(up_vec)
+    return up_vec

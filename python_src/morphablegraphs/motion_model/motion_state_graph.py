@@ -38,6 +38,7 @@ class MotionStateGraph(object):
         assert start_action in self.node_groups.keys()
         print "generate random graph walk for", start_action
         start_state = self.node_groups[start_action].get_random_start_state()
+        print start_state
         return self.node_groups[start_action].generate_random_walk(self.nodes, start_state, number_of_steps, use_transition_model)
     
     def print_information(self):
@@ -76,3 +77,28 @@ class MotionStateGraph(object):
             next_node = self.node_groups[action_name].get_random_start_state()
             print "generate random start", next_node
         return next_node
+
+    def get_start_nodes(self, graph_walk, action_name):
+        """
+        Get all start state based on edge from previous elementary action if possible
+        :param graph_walk:
+        :param action_name:
+        :return:
+        """
+        # next_node = None
+        # if graph_walk.step_count > 0:
+        #     prev_node_key = graph_walk.steps[-1].node_key
+        #
+        #     if prev_node_key in self.nodes.keys():
+        #         next_node = self.nodes[prev_node_key].generate_random_action_transition(action_name) ## next_node is a tuple (elementary_action, motion_primitive)
+        #         return next_node
+        #         print "generate start from transition of last action", prev_node_key, next_node
+        # # if there is no previous elementary action or no action transition
+        # #  use transition to random start state
+        # if next_node is None or next_node not in self.node_groups[action_name].nodes:
+        #     print next_node, "not in", action_name
+        #     next_nodes = self.node_groups[action_name].get_start_states()
+        #     print "generate all start states", next_nodes
+        # return next_nodes
+        next_nodes = self.node_groups[action_name].get_start_states()
+        return next_nodes

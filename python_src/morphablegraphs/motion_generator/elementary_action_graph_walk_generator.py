@@ -74,11 +74,37 @@ class ElementaryActionGraphWalkGenerator(object):
         self.arc_length_of_end = self.motion_primitive_graph.nodes[
             self.node_group.get_random_end_state()].average_step_length
 
+    def evaluate_next_node(self, action_name, next_node, graph_walk):
+        next_node_type = self.motion_primitive_graph.nodes[(action_name, next_node)].node_type
+        motion_primitive_constraints = self._get_next_motion_primitive_constraints((action_name, next_node),
+                                                                                   next_node_type,
+                                                                                   graph_walk)
+        motion_primitive_node = self.motion_primitive_graph.nodes[(action_name, next_node)]
+        params = self.motion_primitive_generator._search_for_best_sample_in_cluster_tree(motion_primitive_node,
+                                                                                         motion_primitive_constraints,
+                                                                                         None)
+        return motion_primitive_constraints.min_error
+
+    def get_best_start_node(self, graph_walk, action_name):
+        next_nodes = self.motion_primitive_graph.get_start_nodes(graph_walk, action_name)
+        if len(next_nodes) > 1:
+            errors = []
+            for node in next_nodes:
+                err = self.evaluate_next_node(action_name, node, graph_walk)
+                errors.append(err)
+            min_idx = min(xrange(len(errors)), key=errors.__getitem__)
+            next_node = next_nodes[min_idx]
+            return (action_name, next_node)
+        else:
+            return (action_name, next_nodes[0])
+
+
     def _select_next_motion_primitive_node(self, graph_walk):
         """extract from graph based on previous last step + heuristic """
 
         if self.state.current_node is None:
-            next_node = self.motion_primitive_graph.get_random_action_transition(graph_walk, self.action_constraints.action_name)
+            # next_node = self.motion_primitive_graph.get_random_action_transition(graph_walk, self.action_constraints.action_name)
+            next_node = self.get_best_start_node(graph_walk, self.action_constraints.action_name)
             next_node_type = self.motion_primitive_graph.nodes[next_node].node_type
             if next_node is None:
                 print "Error: Could not find a transition of type action_transition from ",\
