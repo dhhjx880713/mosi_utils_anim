@@ -1,16 +1,16 @@
 {
     "smoothing_settings": {
-        "spatial_smoothing" : false,
+        "spatial_smoothing" : true,
         "time_smoothing" : false,
         "spatial_smoothing_window" : 20,
         "time_smoothing_window" : 15
     },
     "trajectory_following_settings": {
-        "dir_constraint_factor": 10.0,
+        "dir_constraint_factor": 50.0,
         "heuristic_step_length_factor": 1.0,
         "position_constraint_factor": 1.0,
         "step_length_approx_method": "arc_length",
-        "transition_pose_constraint_factor": 0.6
+        "transition_pose_constraint_factor": 20
     }, 
     "use_constrained_gmm": false, 
     "local_optimization_settings": {

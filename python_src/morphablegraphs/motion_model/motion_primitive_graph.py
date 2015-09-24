@@ -85,18 +85,20 @@ class MotionPrimitiveGraph(object):
         :param action_name:
         :return:
         """
-        next_node = None
-        if graph_walk.step_count > 0:
-            prev_node_key = graph_walk.steps[-1].node_key
-
-            if prev_node_key in self.nodes.keys():
-                next_node = self.nodes[prev_node_key].generate_random_action_transition(action_name)
-                return next_node
-            print "generate start from transition of last action", prev_node_key, next_node
-        # if there is no previous elementary action or no action transition
-        #  use transition to random start state
-        if next_node is None or next_node not in self.node_groups[action_name].nodes:
-            print next_node, "not in", action_name
-            next_nodes = self.node_groups[action_name].get_start_states()
-            print "generate all start states", next_nodes
+        # next_node = None
+        # if graph_walk.step_count > 0:
+        #     prev_node_key = graph_walk.steps[-1].node_key
+        #
+        #     if prev_node_key in self.nodes.keys():
+        #         next_node = self.nodes[prev_node_key].generate_random_action_transition(action_name) ## next_node is a tuple (elementary_action, motion_primitive)
+        #         return next_node
+        #         print "generate start from transition of last action", prev_node_key, next_node
+        # # if there is no previous elementary action or no action transition
+        # #  use transition to random start state
+        # if next_node is None or next_node not in self.node_groups[action_name].nodes:
+        #     print next_node, "not in", action_name
+        #     next_nodes = self.node_groups[action_name].get_start_states()
+        #     print "generate all start states", next_nodes
+        # return next_nodes
+        next_nodes = self.node_groups[action_name].get_start_states()
         return next_nodes

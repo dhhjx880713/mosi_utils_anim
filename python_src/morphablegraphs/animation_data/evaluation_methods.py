@@ -14,7 +14,8 @@ from ..animation_data.bvh import BVHWriter, BVHReader
 from python_src.morphablegraphs.animation_data.motion_editing import \
     convert_euler_frames_to_cartesian_frames, \
     convert_quaternion_frames_to_euler_frames,\
-    euler_substraction
+    euler_substraction, \
+    transform_quaternion_frames
 
 
 def cartesian_frame_diff(frame_a, frame_b):
@@ -557,3 +558,12 @@ def evaluate_motion_primitive_model(test_model_file, save_data_path):
                       is_quaternion=True)
         except IOError:
             print('cannot save files')
+        # rotated_filename = save_data_path + str(i) + '_rotated.bvh'
+        # rotation_angle = 90
+        # transformed_frames = transform_quaternion_frames(quat_frames,
+        #                                                  [0, rotation_angle, 0],
+        #                                                  [0, 0, 0])
+        # BVHWriter(rotated_filename, ref_bvhreader,
+        #           transformed_frames,
+        #           ref_bvhreader.frame_time,
+        #           is_quaternion=True)

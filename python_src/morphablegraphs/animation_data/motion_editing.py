@@ -4,13 +4,14 @@ Created on Thu Feb 12 20:11:35 2015
 
 @author: Erik, Han, Markus
 """
-
+import os
 import numpy as np
 from math import sqrt, radians, sin, cos, isnan
 import fk3
 from itertools import izip
 from copy import deepcopy
-import time
+import glob
+from bvh import BVHReader, BVHWriter
 from scipy import stats  # linear regression
 from quaternion_frame import QuaternionFrame
 from ..external.transformations import quaternion_matrix, euler_from_matrix, \
@@ -1319,11 +1320,11 @@ def calculate_weighted_frame_distance_quat(quat_frame_a,
                                            quat_frame_b,
                                            weights):
     assert len(quat_frame_a) == len(quat_frame_b) and \
-        len(quat_frame_a) == len(weights) * LEN_QUAT + LEN_ROOT_POS
+        len(quat_frame_a) == (len(weights) - 2) * LEN_QUAT + LEN_ROOT_POS
     diff = 0
-    for i in xrange(len(weights) - 1):
-        quat1 = quat_frame_a[(i+1)*4+3: (i+2)*4+3]
-        quat2 = quat_frame_b[(i+1)*4+3: (i+2)*4+3]
+    for i in xrange(len(weights) - 2):
+        quat1 = quat_frame_a[(i+1)*LEN_QUAT+LEN_ROOT_POS: (i+2)*LEN_QUAT+LEN_ROOT_POS]
+        quat2 = quat_frame_b[(i+1)*LEN_QUAT+LEN_ROOT_POS: (i+2)*LEN_QUAT+LEN_ROOT_POS]
         tmp = quat_distance(quat1, quat2)*weights[i]
         diff += tmp
     return diff
@@ -1406,6 +1407,7 @@ def get_trajectory_dir_from_2d_points(points):
     Step 1: fit the points with a 2d straight line
     Step 2: estimate the direction vector from first and last point
     """
+    points = np.asarray(points)
     dir_vector = points[-1] - points[0]
     slope, intercept, r_value, p_value, std_err = stats.linregress(*points.T)
     if isnan(slope):
@@ -1491,12 +1493,40 @@ def rotate_euler_frames(euler_frames,
                                             translation)
     return rotated_frames
 
+def upvector_correction(filefolder,
+                        frame_idx,
+                        ref_upvector,
+                        save_folder):
+    """
+    Correct the up vector of bvh files in given file folder
+    :param filefolder:
+    :param ref_upvector:
+    :return:
+    """
+    if not filefolder.endswith(os.sep):
+        filefolder += os.sep
+    if not save_folder.endswith(os.sep):
+        save_folder += os.sep
+    bvhfiles = glob.glob(filefolder+'*.bvh')
+    for item in bvhfiles:
+        bvhreader = BVHReader(item)
+        rotated_frames = rotate_euler_frames_about_x_axis(bvhreader.frames,
+                                                          frame_idx,
+                                                          ref_upvector)
+        save_filename = save_folder + bvhreader.filename
+        BVHWriter(save_filename, bvhreader, rotated_frames, bvhreader.frame_time, False)
+
+
 def rotate_euler_frames_about_x_axis(euler_frames,
                                      frame_idx,
                                      ref_upvector):
     sample_upvector = pose_up_vector_euler(euler_frames[frame_idx])
     rot_angle = get_rotation_angle(ref_upvector, sample_upvector)
-
+    translation = np.array([0, 0, 0])
+    rotated_frames = transform_euler_frames(euler_frames,
+                                            [rot_angle, 0, 0],
+                                            translation)
+    return  rotated_frames
 
 def is_vertical_pose_euler(euler_frame):
     ref_vec = np.array([1, 0, 0, 1])

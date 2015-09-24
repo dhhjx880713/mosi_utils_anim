@@ -27,7 +27,7 @@ class Skeleton(object):
         self._set_joint_weights()
         self.parent_dict = self._get_parent_dict()
         self._chain_names = self._generate_chain_names()
-        print "node name map keys", self.node_name_frame_map.keys(), len(self.node_name_frame_map)
+        # print "node name map keys", self.node_name_frame_map.keys(), len(self.node_name_frame_map)
         self.construct_hierarchy()
 
     def construct_hierarchy(self):
@@ -36,7 +36,7 @@ class Skeleton(object):
         self.joint_map = dict()
         self.joint_map[self.root] = self.root_node
         self.add_skeleton_node(self.root_node)
-        print "joints", self.joint_map.keys()
+        # print "joints", self.joint_map.keys()
 
     def add_skeleton_node(self, parent_node):
         """ Currently assumes there are no EndSites
