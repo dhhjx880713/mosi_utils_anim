@@ -15,7 +15,8 @@ from python_src.morphablegraphs.animation_data.motion_editing import \
     convert_euler_frames_to_cartesian_frames, \
     convert_quaternion_frames_to_euler_frames,\
     euler_substraction, \
-    transform_quaternion_frames
+    transform_quaternion_frames, \
+    pose_orientation_quat
 
 
 def cartesian_frame_diff(frame_a, frame_b):
@@ -551,6 +552,9 @@ def evaluate_motion_primitive_model(test_model_file, save_data_path):
         print i
         sample = test_mm.sample()
         quat_frames = sample.get_motion_vector()
+        # print "position: ", [quat_frames[0][0], quat_frames[0][2]]
+        # orientation = pose_orientation_quat(quat_frames[0])
+        # print "orientation: ", orientation
         filename = save_data_path + str(i) + '.bvh'
         try:
             BVHWriter(filename, ref_bvhreader, quat_frames,

@@ -1427,6 +1427,12 @@ def get_trajectory_dir_from_2d_points(points):
     orientation_vec = orientation_vec / np.linalg.norm(orientation_vec)
     return orientation_vec
 
+def get_dir_from_2d_points(points):
+    points = np.asarray(points)
+    dir = points[-1] - points[2]
+    dir = dir/np.linalg.norm(dir)
+    return dir
+
 
 def align_quaternion_frames(
         quat_frames,
