@@ -43,4 +43,4 @@ class PoseConstraintQuatFrame(KeyframeConstraintBase):
         return residual_vector
 
     def get_length_of_residual_vector(self):
-        return  LEN_QUAT_FRAME
+        return LEN_QUAT_FRAME

@@ -120,12 +120,8 @@ class StatisticalModelTrainer(object):
         '''
         self.gmm = mixture.GMM(n_components=self.numberOfGaussian,
                                covariance_type='full')
-#        self.gmm.fit(self._spatial_parameters)
-#        scores = self.gmm.score(self._spatial_parameters)
-
         self.gmm.fit(self._motion_parameters)
         scores = self.gmm.score(self._motion_parameters)
-#        print scores
         averageScore = np.mean(scores)
         print 'average score is:' + str(averageScore)
 

@@ -105,3 +105,12 @@ class MotionPrimitiveStats(object):
         plt.xlim([-1, 1])
         plt.ylim([-1, 1])
         plt.show()
+
+    def evaluate_touch_ground_joint(self, N):
+        left_toe_first_pos = []
+        left_toe_last_pos = []
+        right_toe_first_pos = []
+        left_toe_last_pos = []
+        left_toe_joint_name = 'Bip01_L_Toe0'
+        right_toe_first_pos = 'Bip01_R_Toe0'
+

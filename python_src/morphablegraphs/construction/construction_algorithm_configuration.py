@@ -16,7 +16,7 @@ class ConstructionAlgorithmConfigurationBuilder(object):
         self.ref_orientation = {'x': 0, 'y': 0, 'z': -1}
         self.ref_position = {'x': 0, 'y': 0, 'z': 0}
         self.ref_bvh = ROOT_DIR + os.sep + 'skeleton.bvh'
-        self.n_basis_functions_spatial = 7
+        self.n_basis_functions_spatial = 47
         self.n_basis_functions_temporal = 8
         self.touch_ground_joint = 'Bip01_R_Toe0'
         self.align_frame_idx = 0
