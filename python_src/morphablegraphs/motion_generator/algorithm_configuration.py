@@ -57,6 +57,7 @@ class AlgorithmConfigurationBuilder(object):
         self.local_optimization_settings["tolerance"] = 0.01
         self.local_optimization_settings["spatial_epsilon"] = 0.0
         self.global_spatial_optimization_settings = dict()
+        self.global_spatial_optimization_settings["max_steps"] = 2
         self.global_spatial_optimization_settings["method"] = "leastsq"
         self.global_spatial_optimization_settings["start_error_threshold"] = 4.0
         self.global_spatial_optimization_settings["max_iterations"] = 150
@@ -65,6 +66,7 @@ class AlgorithmConfigurationBuilder(object):
         self.global_spatial_optimization_settings["tolerance"] = 0.01
         self.global_spatial_optimization_settings["spatial_epsilon"] = 0.0
         self.global_time_optimization_settings = dict()
+        self.global_time_optimization_settings["max_steps"] = 20
         self.global_time_optimization_settings["method"] = "BFGS"
         self.global_time_optimization_settings["max_iterations"] = 150
         self.global_time_optimization_settings["quality_scale_factor"] = 0.001
@@ -79,6 +81,8 @@ class AlgorithmConfigurationBuilder(object):
         self.trajectory_following_settings["dir_constraint_factor"] = 10.0
         self.trajectory_following_settings["position_constraint_factor"] = 1.0
         self.trajectory_following_settings["transition_pose_constraint_factor"] = 1.0
+        self.trajectory_following_settings["closest_point_search_accuracy"] = 0.001
+        self.trajectory_following_settings["closest_point_search_max_iterations"] = 5000
 
     def set_default_smoothing_settings(self):
         self.smoothing_settings = dict()

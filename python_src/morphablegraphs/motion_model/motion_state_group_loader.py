@@ -7,13 +7,13 @@ Created on Thu Jul 16 15:57:42 2015
 
 import os
 from ..utilities.io_helper_functions import load_json_file
-from motion_primitive_node import MotionPrimitiveNode
-from motion_primitive_node_group import MotionPrimitiveNodeGroup
+from motion_state import MotionState
+from motion_state_group import MotionStateGroup
 from . import META_INFORMATION_FILE_NAME
 
 
-class MotionPrimitiveNodeGroupLoader(object):
-    """ Contains a dictionary of motion primitives of an elementary action as nodes  meta information.
+class MotionStateGroupLoader(object):
+    """ Creates an instance of a MotionStateGroup from a data source
     """
     def __init__(self):
         self.elementary_action_name = None
@@ -65,10 +65,10 @@ class MotionPrimitiveNodeGroupLoader(object):
         return motion_primitive_node_group
         
     def _init_from_dict(self):
-        motion_primitive_node_group = MotionPrimitiveNodeGroup(self.elementary_action_data["name"], None)
+        motion_primitive_node_group = MotionStateGroup(self.elementary_action_data["name"], None)
         for motion_primitive_name in self.elementary_action_data["nodes"].keys():
             node_key = (self.elementary_action_data["name"], motion_primitive_name)
-            motion_primitive_node_group.nodes[node_key] = MotionPrimitiveNode()
+            motion_primitive_node_group.nodes[node_key] = MotionState()
             motion_primitive_node_group.nodes[node_key].init_from_dict(self.elementary_action_name, self.elementary_action_data["nodes"][motion_primitive_name])
         if "info" in self.elementary_action_data.keys():
             motion_primitive_node_group.set_meta_information(self.elementary_action_data["info"])
@@ -77,7 +77,7 @@ class MotionPrimitiveNodeGroupLoader(object):
         return motion_primitive_node_group
 
     def _init_from_directory(self):
-        motion_primitive_node_group = MotionPrimitiveNodeGroup(self.elementary_action_name, self.elementary_action_directory)
+        motion_primitive_node_group = MotionStateGroup(self.elementary_action_name, self.elementary_action_directory)
         #load morphable models
         temp_file_list = []#for files containing additional information that require the full graph to be constructed first
         meta_information = None
@@ -93,7 +93,7 @@ class MotionPrimitiveNodeGroupLoader(object):
                     motion_primitive_name = file_name.split("_")[1]
                     motion_primitive_file_name = self.elementary_action_directory+os.sep+file_name
                     node_key = (self.elementary_action_name, motion_primitive_name)
-                    motion_primitive_node_group.nodes[node_key] = MotionPrimitiveNode()
+                    motion_primitive_node_group.nodes[node_key] = MotionState()
                     motion_primitive_node_group.nodes[node_key].init_from_file(motion_primitive_node_group.elementary_action_name, motion_primitive_name, motion_primitive_file_name)
                 elif file_name.endswith(".stats"):
                     print "found stats", file_name

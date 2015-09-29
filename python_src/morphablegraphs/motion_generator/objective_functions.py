@@ -168,7 +168,7 @@ def obj_time_error_sum(s, data):
     morphable_graph, graph_walk, time_constraints, error_scale_factor, quality_scale_factor = data
     time_error = time_constraints.evaluate_graph_walk(s, morphable_graph, graph_walk)
     n_log_likelihood = -time_constraints.get_average_loglikelihood(s, morphable_graph, graph_walk)
-    error = error_scale_factor * time_error + n_log_likelihood * 0.001 # TODO add special time quality factor to configuration
+    error = error_scale_factor * time_error + n_log_likelihood * quality_scale_factor
     print "time error", error, time_error, n_log_likelihood
     return error
 

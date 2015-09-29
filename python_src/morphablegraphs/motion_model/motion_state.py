@@ -13,7 +13,7 @@ from ..animation_data.motion_editing import extract_root_positions_from_frames, 
 from ..space_partitioning.cluster_tree import ClusterTree
 
 
-class MotionPrimitiveNode(MotionPrimitive):
+class MotionState(MotionPrimitive):
     """ Contains a motion primitive and all its outgoing transitions. 
 
     Parameters
@@ -27,7 +27,7 @@ class MotionPrimitiveNode(MotionPrimitive):
     \tEach entry contains a tuple (transition model, transition type)
     """
     def __init__(self):
-        super(MotionPrimitiveNode, self).__init__(None)
+        super(MotionState, self).__init__(None)
         self.outgoing_edges = {}
         self.node_type = NODE_TYPE_STANDARD
         self.n_standard_transitions = 0

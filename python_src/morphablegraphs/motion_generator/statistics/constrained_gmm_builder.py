@@ -45,7 +45,7 @@ class ConstrainedGMMBuilder(object):
     
         Parameters
         ----------
-        * mp_node : MotionPrimitiveNode
+        * mp_node : MotionState
         \t\b
         * constraint : tuple
         \tof the shape (joint, [pos_x, pos_y, pos_z], [rot_x, rot_y, rot_z])
@@ -67,7 +67,7 @@ class ConstrainedGMMBuilder(object):
         """constrains a primitive with all given constraints and yields one gmm
         Parameters
         ----------
-        * mp_node : MotionPrimitiveNode
+        * mp_node : MotionState
         \t\b
     
         * constraints : list of tuples
