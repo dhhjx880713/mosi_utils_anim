@@ -56,8 +56,8 @@ class GraphWalk(object):
         self._create_event_dict()
         self._create_frame_annotation(start_step)
         self._add_event_list_to_frame_annotation()
-        #if self.hand_pose_generator is not None:
-        #    self.hand_pose_generator.generate_hand_poses(self.motion_vector, self.keyframe_events_dict)
+        if self.hand_pose_generator is not None:
+            self.hand_pose_generator.generate_hand_poses(self.motion_vector, self.keyframe_events_dict)
 
     def _convert_to_quaternion_frames(self, start_step=0):
         """

@@ -19,6 +19,7 @@ from elementary_action_graph_walk_generator import ElementaryActionGraphWalkGene
 from algorithm_configuration import AlgorithmConfigurationBuilder
 from graph_walk import GraphWalk
 from graph_walk_optimizer import GraphWalkOptimizer
+from hand_pose_generator import HandPoseGenerator
 
 SKELETON_FILE = "skeleton.bvh"  # TODO replace with standard skeleton in data directory
 
@@ -38,6 +39,7 @@ class GraphWalkGenerator(GraphWalkOptimizer):
     def __init__(self, service_config, algorithm_config):
         self._service_config = service_config        
         self._algorithm_config = algorithm_config
+
         super(GraphWalkGenerator, self).__init__(algorithm_config)
         motion_primitive_graph_directory = self._service_config["model_data"]
         transition_directory = self._service_config["transition_data"]
@@ -48,6 +50,8 @@ class GraphWalkGenerator(GraphWalkOptimizer):
         self.elementary_action_generator = ElementaryActionGraphWalkGenerator(self.motion_primitive_graph,
                                                                               self._algorithm_config)
         self._global_spatial_optimization_steps = self._algorithm_config["global_spatial_optimization_settings"]["max_steps"]
+        self.hand_pose_generator = HandPoseGenerator(self.motion_primitive_graph.skeleton)
+        self.hand_pose_generator.init_generator(self._service_config["model_data"])
         return
 
     def set_algorithm_config(self, algorithm_config):
@@ -124,7 +128,7 @@ class GraphWalkGenerator(GraphWalkOptimizer):
                               elementary_action_constraints_builder.start_pose,
                               self._algorithm_config)
         graph_walk.mg_input = elementary_action_constraints_builder.get_mg_input_file()
-
+        graph_walk.hand_pose_generator = self.hand_pose_generator
         action_constraints = elementary_action_constraints_builder.get_next_elementary_action_constraints()
         while action_constraints is not None:
             if self._algorithm_config["debug_max_step"] > -1 and graph_walk.step_count > self._algorithm_config["debug_max_step"]:
