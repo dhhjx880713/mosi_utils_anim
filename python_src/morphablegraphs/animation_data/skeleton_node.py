@@ -7,6 +7,8 @@ from ..external.transformations import quaternion_matrix
 SKELETON_NODE_TYPE_ROOT = 0
 SKELETON_NODE_TYPE_JOINT = 1
 SKELETON_NODE_TYPE_END_SITE = 2
+ROTATION_TYPE_QUAT = 0
+ROTATION_TYPE_EULER = 1
 
 
 class SkeletonNodeBase(object):
@@ -14,6 +16,7 @@ class SkeletonNodeBase(object):
         self.parent = parent
         self.node_name = node_name
         self.children = []
+        self.index = -1
         self.quaternion_frame_index = -1
         self.node_type = None
         self.offset = [0.0, 0.0, 0.0]
@@ -34,7 +37,10 @@ class SkeletonNodeBase(object):
     def get_local_matrix(self, quaternion_frame):
         pass
 
-    def get_frame_parameters(self, frame):
+    def get_frame_parameters(self, frame, rotation_type):
+        pass
+
+    def get_number_of_frame_parameters(self, rotation_type):
         pass
 
 
@@ -50,11 +56,23 @@ class SkeletonRootNode(SkeletonNodeBase):
         local_matrix[:, 3] = local_translation + [1.0]
         return local_matrix
 
-    def get_frame_parameters(self, frame):
-        if self.quaternion_frame_index >= 0:
-            return frame[:self.quaternion_frame_index+4]
+    def get_frame_parameters(self, frame, rotation_type):
+        if rotation_type == ROTATION_TYPE_QUAT:
+            if self.index >= 0:
+                return frame[:7].tolist()
+            else:
+                return [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
         else:
-            return [0.0,0.0,0.0,0.0,0.0,0.0,0.0]
+            if self.index >= 0:
+                return frame[:6].tolist()
+            else:
+                return [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+    def get_number_of_frame_parameters(self, rotation_type):
+        if rotation_type == ROTATION_TYPE_QUAT:
+            return 7
+        else:
+            return 6
 
 
 class SkeletonJointNode(SkeletonNodeBase):
@@ -71,11 +89,25 @@ class SkeletonJointNode(SkeletonNodeBase):
         local_matrix[:, 3] = self.offset + [1.0]
         return local_matrix
 
-    def get_frame_parameters(self, frame):
-        if self.quaternion_frame_index >= 0:
-            return frame[self.quaternion_frame_index:self.quaternion_frame_index+4]
+    def get_frame_parameters(self, frame, rotation_type):
+        if rotation_type == ROTATION_TYPE_QUAT:
+            if self.index >= 0:
+                quaternion_frame_index = self.index * 4 + 3
+                return frame[quaternion_frame_index:quaternion_frame_index+4].tolist()
+            else:
+                return [0.0, 0.0, 0.0, 1.0]
         else:
-            return [0.0,0.0,0.0,0.0]
+            if self.index >= 0:
+                euler_frame_index = self.index * 3 + 3
+                return frame[euler_frame_index:euler_frame_index+3].tolist()
+            else:
+                return [0.0, 0.0, 0.0]
+
+    def get_number_of_frame_parameters(self, rotation_type):
+        if rotation_type == ROTATION_TYPE_QUAT:
+            return 4
+        else:
+            return 3
 
 
 class SkeletonEndSiteNode(SkeletonNodeBase):
@@ -88,5 +120,8 @@ class SkeletonEndSiteNode(SkeletonNodeBase):
         local_matrix[:, 3] = self.offset + [1.0]
         return local_matrix
 
-    def get_frame_parameters(self, frame):
+    def get_frame_parameters(self, frame, rotation_type):
             return None
+
+    def get_number_of_frame_parameters(self, rotation_type):
+        return 0

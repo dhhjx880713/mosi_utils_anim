@@ -14,7 +14,7 @@ class QuaternionFrame(collections.OrderedDict):
 
     """OrderedDict that contains data for a quaternion frame"""
 
-    def __init__(self, bvh_reader, frame_data, filter_values=True):
+    def __init__(self, bvh_reader, frame_vector, filter_values=True, ignore_bip_joints=True):
         """Reads an animation frame from a BVH file and fills the list class
            with quaternions of the skeleton nodes
 
@@ -23,14 +23,14 @@ class QuaternionFrame(collections.OrderedDict):
 
          * bvh_reader: BVHReader
         \t Contains skeleton information
-        * frame_data: list
-        \t Contains a list of frames represented by Euler anlges
+        * frame_vector: np.ndarray
+        \t animation keyframe frame represented by Euler angles
         * filter_values: Bool
         \t enforce a unique rotation representation
 
         """
         quaternions = \
-            self._get_all_nodes_quat_repr(bvh_reader, frame_data, filter_values)
+            self._get_all_nodes_quat_repr(bvh_reader, frame_vector, filter_values, ignore_bip_joints=ignore_bip_joints)
         collections.OrderedDict.__init__(self, quaternions)
 
     @classmethod
@@ -100,7 +100,7 @@ class QuaternionFrame(collections.OrderedDict):
         return quat[0], quat[1], quat[2], quat[3]
 
     def _get_quaternion_representation(self, bvh_reader, node_name,
-                                       frame_data, filter_values=True):
+                                       frame_vector, filter_values=True):
         """Returns the rotation for one node at one frame of an animation as
            a quaternion
 
@@ -111,8 +111,8 @@ class QuaternionFrame(collections.OrderedDict):
         \tName of node
         * bvh_reader: BVHReader
         \t BVH data structure read from a file
-        * frame_number: Integer
-        \t animation frame number that gets extracted
+        * frame_vector: np.ndarray
+        \t animation keyframe frame represented by Euler angles
         * filter_values: Bool
         \t enforce a unique rotation representation
 
@@ -122,12 +122,12 @@ class QuaternionFrame(collections.OrderedDict):
         y_idx = bvh_reader.node_channels.index((node_name, 'Yrotation'))
         z_idx = bvh_reader.node_channels.index((node_name, 'Zrotation'))
         assert y_idx - x_idx == 1 and z_idx - y_idx == 1
-        euler_angles_x = frame_data[x_idx]
-        euler_angles_y = frame_data[y_idx]
-        euler_angles_z = frame_data[z_idx]
+        euler_angles_x = frame_vector[x_idx]
+        euler_angles_y = frame_vector[y_idx]
+        euler_angles_z = frame_vector[z_idx]
         euler_angles = [euler_angles_x, euler_angles_y, euler_angles_z]
-        if node_name.startswith("Bip"):
-            euler_angles = [0, 0, 0]     # Set Fingers to zero
+        #if node_name.startswith("Bip"):
+        #    euler_angles = [0, 0, 0]     # Set Fingers to zero
 
         rotation_order = (
             'Xrotation',
@@ -138,7 +138,7 @@ class QuaternionFrame(collections.OrderedDict):
             rotation_order,
             filter_values)
 
-    def _get_all_nodes_quat_repr(self, bvh_reader, frame_data, filter_values):
+    def _get_all_nodes_quat_repr(self, bvh_reader, frame_vector, filter_values, ignore_bip_joints=True):
         """Returns dictionary of all quaternions for all nodes except leave nodes
            Note: bvh_reader.node_names may not include EndSites
 
@@ -147,8 +147,8 @@ class QuaternionFrame(collections.OrderedDict):
 
          * bvh_reader: BVHReader
         \t BVH data structure read from a file
-        * frame_number: Integer
-        \t animation frame number that gets extracted
+        * frame_vector: np.ndarray
+        \t animation keyframe frame represented by Euler angles
         * filter_values: Bool
         \t enforce a unique rotation representation
 
@@ -156,9 +156,10 @@ class QuaternionFrame(collections.OrderedDict):
 
         for node_name in bvh_reader.node_names:
             # simple fix for ignoring finger joints.
-            # NOTE: Done in _get_quaternion_representation(...) now
-            if not node_name.startswith("Bip") and 'EndSite' not in node_name:
+            if (not ignore_bip_joints or not node_name.startswith("Bip")) and 'EndSite' not in node_name:
                 yield node_name, self._get_quaternion_representation(bvh_reader,
                                                                      node_name,
-                                                                     frame_data,
+                                                                     frame_vector,
                                                                      filter_values)
+
+

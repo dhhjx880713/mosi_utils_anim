@@ -272,12 +272,10 @@ class BVHWriter(object):
                             or euler data
         """
 
+        skip_joints = not self.skeleton.is_motion_vector_complete(frame_data, is_quaternion)
+        print "skip joints", skip_joints
         # convert to euler frames if necessary
         if not is_quaternion:
-            skip_joints = True
-            if len(frame_data[0]) == len(
-                    [n for n in node_names if "children" in node_names[n].keys()]) * 3 + 3:
-                skip_joints = False
             if not skip_joints:
                 euler_frames = frame_data
             else:
@@ -287,14 +285,11 @@ class BVHWriter(object):
                     euler_frames.append(euler_frame)
         else:
             # check whether or not "Bip" frames should be ignored
-            skip_joints = True
-            if len(frame_data[0]) == len(
-                    [n for n in node_names if "children" in node_names[n].keys()]) * 4 + 3:
-                skip_joints = False
+
             euler_frames = []
             for frame in frame_data:
                 euler_frame = self._get_complete_euler_frame_from_partial_quaternion_frame(frame, node_names, skip_joints)
-                print len(euler_frame), euler_frame
+                #print len(euler_frame), euler_frame
                 euler_frames.append(euler_frame)
 
         # create frame string
@@ -327,12 +322,6 @@ class BVHWriter(object):
                         # print node_name
                         # get start index in the frame vector
                         i = joint_idx * 3 + 3
-                        if node_names[node_name]["level"] == 0:
-                            channels = node_names[
-                                node_name]["channels"][3:]
-                        else:
-                            channels = node_names[
-                                node_name]["channels"]
                         euler_frame = np.concatenate((euler_frame, frame[i:i + 3]), axis=0)
                     joint_idx += 1
                 else:
@@ -369,6 +358,7 @@ class BVHWriter(object):
                             channels = node_names[node_name]["channels"][3:]
                         else:
                             channels = node_names[node_name]["channels"]
+                        #print "frame", frame[i:i + 4]
                         euler_frame = np.concatenate((euler_frame,
                              BVHWriter._quaternion_to_euler(frame[i:i + 4], channels)),
                             axis=0)
