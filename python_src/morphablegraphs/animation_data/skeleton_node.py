@@ -34,6 +34,9 @@ class SkeletonNodeBase(object):
     def get_local_matrix(self, quaternion_frame):
         pass
 
+    def get_frame_parameters(self, frame):
+        pass
+
 
 class SkeletonRootNode(SkeletonNodeBase):
     def __init__(self, node_name, parent=None):
@@ -46,6 +49,12 @@ class SkeletonRootNode(SkeletonNodeBase):
         local_translation = [t + o for t, o in izip(quaternion_frame[:3], self.offset)]
         local_matrix[:, 3] = local_translation + [1.0]
         return local_matrix
+
+    def get_frame_parameters(self, frame):
+        if self.quaternion_frame_index >= 0:
+            return frame[:self.quaternion_frame_index+4]
+        else:
+            return [0.0,0.0,0.0,0.0,0.0,0.0,0.0]
 
 
 class SkeletonJointNode(SkeletonNodeBase):
@@ -62,6 +71,12 @@ class SkeletonJointNode(SkeletonNodeBase):
         local_matrix[:, 3] = self.offset + [1.0]
         return local_matrix
 
+    def get_frame_parameters(self, frame):
+        if self.quaternion_frame_index >= 0:
+            return frame[self.quaternion_frame_index:self.quaternion_frame_index+4]
+        else:
+            return [0.0,0.0,0.0,0.0]
+
 
 class SkeletonEndSiteNode(SkeletonNodeBase):
     def __init__(self, node_name, parent=None):
@@ -72,3 +87,6 @@ class SkeletonEndSiteNode(SkeletonNodeBase):
         local_matrix = np.identity(4)
         local_matrix[:, 3] = self.offset + [1.0]
         return local_matrix
+
+    def get_frame_parameters(self, frame):
+            return None

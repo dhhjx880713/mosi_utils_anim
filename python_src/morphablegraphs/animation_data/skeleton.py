@@ -33,7 +33,7 @@ class Skeleton(object):
     def construct_hierarchy(self):
         self.root_node = SkeletonRootNode(self.root, None)
         self.root_node.quaternion_frame_index = 3
-        self.joint_map = dict()
+        self.joint_map = collections.OrderedDict()
         self.joint_map[self.root] = self.root_node
         self.add_skeleton_node(self.root_node)
         # print "joints", self.joint_map.keys()
@@ -52,6 +52,20 @@ class Skeleton(object):
                 self.add_skeleton_node(child_node)
             self.joint_map[child_name] = child_node
             parent_node.children.append(child_node)
+
+    def enhance_motion_vector(self, motion_vector):
+        new_quat_frames = []
+        for frame in motion_vector.quat_frames:
+            new_quat_frames.append(self.enhance_frame_vector(frame))
+        motion_vector.quat_frames = new_quat_frames
+
+    def enhance_frame_vector(self, frame):
+        new_frame = []
+        for joint in self.joint_map.keys():
+            joint_parameters = self.joint_map[joint].get_frame_parameters(frame)
+            if joint_parameters is not None:
+                new_frame += joint_parameters
+        return new_frame
 
     def _get_max_level(self):
         return max([node["level"] for node in
