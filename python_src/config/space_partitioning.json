@@ -4,5 +4,6 @@
      "n_levels" : 8,
      "n_subdivisions_per_level" : 4,
      "random_seed" : null,
-     "only_spatial_parameters" : true
+     "only_spatial_parameters" : true,
+     "store_data_indices_in_nodes": false
 }

@@ -3,7 +3,7 @@ import os
 import json
 from ..animation_data.bvh import BVHReader
 from ..animation_data.motion_vector import MotionVector
-
+from ..animation_data.skeleton import Skeleton
 
 class HandPose(object):
     def __init__(self):
@@ -11,18 +11,10 @@ class HandPose(object):
         self.indices = []
         self.joint_names = []
 
-    def set_in_frame(self, pose_vector):
-        """
-        Overwrites the parameters in the given pose vector with the hand pose
-        :param pose_vector:
-        :return:
-        """
-        for i in self.indices:
-            pose_vector[i] = self.pose_vector[i]
-
 
 class HandPoseGenerator(object):
-    def __init__(self):
+    def __init__(self, skeleton):
+        self.skeleton = skeleton
         self.pose_map = dict()
         self.status_change_map = dict()
         self.indices = []
@@ -32,7 +24,7 @@ class HandPoseGenerator(object):
 
     def init_generator(self, motion_primitive_directory):
         """
-        creates an index for all possible status changes
+        creates a dicitionary for all possible hand poses
         TODO define in a file
         :param directory_path:
         :return:
@@ -46,19 +38,22 @@ class HandPoseGenerator(object):
                 self.indices = hand_pose_info["indices"]
                 self.joint_names = hand_pose_info["joint_names"]
 
-        for root, dirs, files in os.walk(hand_pose_directory):
-            for file_name in files:
-                if file_name[-4:] == ".bvh":
-                    print file_name[:-4]
-                    bvh_reader = BVHReader(root+os.sep+file_name)
-                    motion_vector = MotionVector()
-                    motion_vector.from_bvh_reader(bvh_reader)
-                    hand_pose = HandPose()
-                    hand_pose.indices = self.indices
-                    hand_pose.joint_names = self.joint_names
-                    hand_pose.pose_vector = motion_vector.quat_frames[0]
-                    self.pose_map[file_name[:-4]] = hand_pose
-        self.initialized = True
+            for root, dirs, files in os.walk(hand_pose_directory):
+                for file_name in files:
+                    if file_name[-4:] == ".bvh":
+                        print file_name[:-4]
+                        bvh_reader = BVHReader(root+os.sep+file_name)
+                        skeleton = Skeleton(bvh_reader)
+                        #motion_vector = MotionVector()
+                        #motion_vector.from_bvh_reader(bvh_reader)
+                        hand_pose = HandPose()
+                        hand_pose.indices = self.indices
+                        hand_pose.joint_names = self.joint_names
+                        hand_pose.pose_vector = skeleton.reference_frame
+                        self.pose_map[file_name[:-4]] = hand_pose
+            self.initialized = True
+        else:
+            print "Error: Could not load hand poses from",hand_pose_directory
 
     def generate_hand_poses(self, motion_vector, action_list):
         if self.initialized:
@@ -67,5 +62,15 @@ class HandPoseGenerator(object):
                 if i in action_list.keys():
                     status = self.status_change_map[action_list[i][0]["event"]]#assume there is only one event
                     print "change hand status to", status
-                self.pose_map[status].set_in_frame(motion_vector.quat_frames[i])
+                self.set_pose_in_frame(status, motion_vector.quat_frames[i])
 
+    def set_pose_in_frame(self, status, pose_vector):
+        """
+        Overwrites the parameters in the given pose vector with the hand pose
+        :param pose_vector:
+        :return:
+        """
+        for i in self.pose_map[status].indices:
+            frame_index = i*4 + 3 #translation is ignored
+            if frame_index < len(pose_vector):
+                pose_vector[frame_index:frame_index+4] = self.pose_map[status].pose_vector[frame_index:frame_index+4]

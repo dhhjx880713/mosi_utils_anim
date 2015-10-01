@@ -48,14 +48,18 @@ class GraphWalk(object):
         self.motion_vector = MotionVector(algorithm_config)
         self.motion_vector.start_pose = start_pose
         self.keyframe_events_dict = dict()
+        self.hand_pose_generator = None
+        self.use_time_parameters = False
 
     def convert_to_motion(self, start_step=0):
         self._convert_to_quaternion_frames(start_step)
         self._create_event_dict()
         self._create_frame_annotation(start_step)
         self._add_event_list_to_frame_annotation()
+        if self.hand_pose_generator is not None:
+            self.hand_pose_generator.generate_hand_poses(self.motion_vector, self.keyframe_events_dict)
 
-    def _convert_to_quaternion_frames(self, start_step=0, use_time_parameters=True):
+    def _convert_to_quaternion_frames(self, start_step=0):
         """
         :param start_step:
         :param use_time_parameters:
@@ -68,10 +72,12 @@ class GraphWalk(object):
         self.motion_vector.clear(end_frame=start_frame)
         for step in self.steps[start_step:]:
             step.start_frame = start_frame
-            quat_frames = self.motion_primitive_graph.nodes[step.node_key].back_project(step.parameters, use_time_parameters=use_time_parameters).get_motion_vector()
+            quat_frames = self.motion_primitive_graph.nodes[step.node_key].back_project(step.parameters, use_time_parameters=self.use_time_parameters).get_motion_vector()
             self.motion_vector.append_quat_frames(quat_frames)
             step.end_frame = self.get_num_of_frames()-1
             start_frame = step.end_frame+1
+        self.motion_vector.quat_frames = self.skeleton.complete_motion_vector_from_reference(self.motion_vector.quat_frames)
+        #print "temp quat", temp_quat_frames[0]
 
     def _create_frame_annotation(self, start_step=0):
         self.frame_annotation['elementaryActionSequence'] = self.frame_annotation['elementaryActionSequence'][:start_step]
@@ -79,8 +85,11 @@ class GraphWalk(object):
             start_frame = 0
         else:
             step = self.steps[start_step-1]
-            time_function = self.motion_primitive_graph.nodes[step.node_key]._inverse_temporal_pca(step.parameters[step.n_spatial_components:])
-            start_frame = len(time_function)
+            if self.use_time_parameters:
+                time_function = self.motion_primitive_graph.nodes[step.node_key]._inverse_temporal_pca(step.parameters[step.n_spatial_components:])
+                start_frame = len(time_function)
+            else:
+                start_frame = step.end_frame
         end_frame = start_frame
         prev_step = None
         for step in self.steps[start_step:]:
@@ -91,7 +100,10 @@ class GraphWalk(object):
                 print "add", prev_step.node_key[0]
                 self.update_frame_annotation(prev_step.node_key[0], start_frame, end_frame-1)
                 start_frame = end_frame
-            end_frame += len(time_function)
+            if self.use_time_parameters:
+                end_frame += len(time_function)
+            else:
+                end_frame += step.end_frame - step.start_frame
             prev_step = step
         print "add", prev_step.node_key[0]
         self.update_frame_annotation(prev_step.node_key[0], start_frame, end_frame-1)
@@ -104,12 +116,16 @@ class GraphWalk(object):
         self.keyframe_events_dict = dict()
         n_frames = 0
         for step in self.steps:
-            time_function = self.motion_primitive_graph.nodes[step.node_key]._inverse_temporal_pca(step.parameters[step.n_spatial_components:])
+            if self.use_time_parameters:
+                time_function = self.motion_primitive_graph.nodes[step.node_key]._inverse_temporal_pca(step.parameters[step.n_spatial_components:])
             for keyframe_event in step.motion_primitive_constraints.keyframe_event_list.values():
                 # inverse lookup warped keyframe
-                closest_keyframe = min(time_function, key=lambda x: abs(x-int(keyframe_event["canonical_keyframe"])))
-                warped_keyframe = np.where(time_function == closest_keyframe)[0][0]
-                warped_keyframe = n_frames+int(warped_keyframe)
+                if self.use_time_parameters:
+                    closest_keyframe = min(time_function, key=lambda x: abs(x-int(keyframe_event["canonical_keyframe"])))
+                    warped_keyframe = np.where(time_function == closest_keyframe)[0][0]
+                    warped_keyframe = n_frames+int(warped_keyframe)
+                else:
+                    warped_keyframe = n_frames+int(keyframe_event["canonical_keyframe"])
 
                 print keyframe_event["event_list"]
                 n_events = len(keyframe_event["event_list"])
@@ -122,7 +138,10 @@ class GraphWalk(object):
                 else:
                     temp_event_list = events+self.keyframe_events_dict[warped_keyframe]
                     self.keyframe_events_dict[warped_keyframe] = self._merge_multiple_keyframe_events(temp_event_list, len(temp_event_list))
-            n_frames += len(time_function)
+            if self.use_time_parameters:
+                n_frames += len(time_function)
+            else:
+                n_frames += step.end_frame - step.start_frame
 
     def _add_event_list_to_frame_annotation(self):
         #print "keyframe event dict", self.keyframe_events_dict

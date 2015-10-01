@@ -23,11 +23,11 @@ class KDTreeWrapper(object):
         self.id = str(uuid.uuid1())
         self.kdtree = KDTree()
         self.dim = dim
-        self.indices = []
+        #self.indices = []
         self.type = KDTREE_WRAPPER_NODE
 
     def construct(self, data, indices):
-        self.indices = indices
+        #self.indices = indices
         self.kdtree.construct(data[indices].tolist(), self.dim)
 
     def find_best_example(self, obj, data):
@@ -68,5 +68,5 @@ class KDTreeWrapper(object):
         node_desc["id"] = str(self.id)
         node_desc["type"] = self.type
         node_desc["children"] = []
-        node_desc["indices"] = self.indices
+        node_desc["indices"] = []
         return node_desc

@@ -28,12 +28,13 @@ class ClusterTreeNodeBuilder(object):
     * dim: Integer
         Number of dimensions of the data.
     """
-    def __init__(self, n_subdivisions, max_level, dim):
+    def __init__(self, n_subdivisions, max_level, dim, store_indices):
  
         self.n_subdivisions = n_subdivisions
         self.max_level = max_level
         self.dim = dim
         self.kmeans = None#cluster.KMeans(n_clusters=self.n_subdivisions)
+        self.store_indices = store_indices
 
 
     def _calculate_mean(self, data, indices):
@@ -131,8 +132,10 @@ class ClusterTreeNodeBuilder(object):
             child_node = KDTreeWrapper(self.dim)
             child_node.construct(data, indices)
             clusters.append(child_node)
-        return ClusterTreeNode(uuid.uuid1(), depth, indices, mean, clusters, node_type, is_leaf)
-
+        if self.store_indices:
+            return ClusterTreeNode(uuid.uuid1(), depth, indices, mean, clusters, node_type, is_leaf)
+        else:
+            return ClusterTreeNode(uuid.uuid1(), depth, None, mean, clusters, node_type, is_leaf)
 
     def construct_from_node_desc_list(self,node_id, node_desc, data):
         """Recursively rebuilds the cluster tree given a dictionary containing 
