@@ -49,7 +49,7 @@ class GraphWalk(object):
         self.motion_vector.start_pose = start_pose
         self.keyframe_events_dict = dict()
         self.hand_pose_generator = None
-        self.use_time_parameters = False
+        self.use_time_parameters = True
 
     def convert_to_motion(self, start_step=0):
         self._convert_to_quaternion_frames(start_step)
