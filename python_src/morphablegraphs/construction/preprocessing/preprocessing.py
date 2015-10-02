@@ -24,6 +24,8 @@ class Preprocessor(MotionDynamicTimeWarping):
                             self.params.touch_ground_joint)
         self.align_motion(self.params.align_frame_idx,
                           self.params.ref_orientation)
+        self.correct_up_axis(self.params.align_frame_idx,
+                             self.params.ref_up_vector)
         self.dtw()
 
     def save_result(self, save_path):

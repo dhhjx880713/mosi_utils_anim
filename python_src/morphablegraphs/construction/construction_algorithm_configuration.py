@@ -15,6 +15,7 @@ class ConstructionAlgorithmConfigurationBuilder(object):
     def __init__(self, elementary_action, motion_primitive):
         self.ref_orientation = {'x': 0, 'y': 0, 'z': -1}
         self.ref_position = {'x': 0, 'y': 0, 'z': 0}
+        self.ref_up_vector = {'x': 0, 'y': 0, 'z': 1}
         self.ref_bvh = ROOT_DIR + os.sep + 'skeleton.bvh'
         self.n_basis_functions_spatial = 47
         self.n_basis_functions_temporal = 8
