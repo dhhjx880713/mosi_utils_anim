@@ -199,7 +199,7 @@ class MotionPrimitiveConstraintsBuilder(object):
                 keyframe = annotations[self.status["motion_primitive_name"]][keyframe_label]
                 if keyframe == "-1" or keyframe == "lastFrame":# TODO set standard for keyframe values
                     keyframe = self.status["n_canonical_frames"]-1
-                keyframe_constraint_desc["canonical_keyframe"] = float(keyframe)
+                keyframe_constraint_desc["canonical_keyframe"] = int(keyframe)
             else:
                 print "Error could not map keyframe label", keyframe_label, annotations.keys()
                 return None
