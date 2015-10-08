@@ -82,7 +82,7 @@ class HandPoseGenerator(object):
 
             #print self.right_hand_skeleton["indices"]
             quat_frames = np.array(motion_vector.quat_frames)
-            #self.smooth_state_transitions(motion_vector.quat_frames, left_hand_events, self.left_hand_skeleton["indices"])
+            self.smooth_state_transitions(quat_frames, left_hand_events, self.left_hand_skeleton["indices"])
             self.smooth_state_transitions(quat_frames, right_hand_events, self.right_hand_skeleton["indices"])
             motion_vector.quat_frames = quat_frames.tolist()
 
