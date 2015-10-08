@@ -4,7 +4,8 @@ import json
 from ..animation_data.bvh import BVHReader
 from ..animation_data.motion_vector import MotionVector
 from ..animation_data.skeleton import Skeleton
-
+from ..external.transformations import quaternion_slerp
+import numpy as np
 
 class HandPose(object):
     def __init__(self):
@@ -60,7 +61,8 @@ class HandPoseGenerator(object):
         if self.initialized:
             right_status = "standard"
             left_status = "standard"
-
+            left_hand_events = []
+            right_hand_events = []
             for i in xrange(motion_vector.n_frames):
                 if i in action_list.keys():
                     for event_desc in action_list[i]:
@@ -68,12 +70,21 @@ class HandPoseGenerator(object):
                         if joint_name == "RightHand" or joint_name == "RightToolEndSite":
                             right_status = self.status_change_map[event_desc["event"]]
                             print "change right hand status to", right_status
+                            right_hand_events.append(i)
                         elif joint_name == "LeftHand" or joint_name == "LeftToolEndSite":
                             left_status = self.status_change_map[event_desc["event"]]
                             print "change left hand status to", left_status
+                            left_hand_events.append(i)
 
                 self.set_pose_in_frame("RightHand", right_status, motion_vector.quat_frames[i])
                 self.set_pose_in_frame("LeftHand", left_status, motion_vector.quat_frames[i])
+
+
+            #print self.right_hand_skeleton["indices"]
+            quat_frames = np.array(motion_vector.quat_frames)
+            #self.smooth_state_transitions(motion_vector.quat_frames, left_hand_events, self.left_hand_skeleton["indices"])
+            self.smooth_state_transitions(quat_frames, right_hand_events, self.right_hand_skeleton["indices"])
+            motion_vector.quat_frames = quat_frames.tolist()
 
     def set_pose_in_frame(self, hand, status, pose_vector):
         """
@@ -85,3 +96,56 @@ class HandPoseGenerator(object):
             frame_index = i*4 + 3 #translation is ignored
             #print self.pose_map[status].pose_vector[frame_index:frame_index+4]
             pose_vector[frame_index:frame_index+4] = self.pose_map[status].pose_vector[frame_index:frame_index+4]
+
+    def smooth_state_transitions(self, quat_frames, events, indices, window=30):
+        #event_frame2 = events[0]
+        #joint_index = indices[0]*4+3
+        #print "before", quat_frames[event_frame2-window:event_frame2+window, joint_index]
+
+        for event_frame in events:
+            for i in indices:
+                index = i*4+3
+                self.smooth_quaternion_frames_using_slerp(quat_frames, range(index, index+4), event_frame, window)
+            #print "handle event", event_frame, quat_frames[event_frame][indices[0]*4+3]
+            #smooth_quaternion_frames_partially(quat_frames, indices, event_frame, window)
+            #quat_frames = smooth_quaternion_frames(quat_frames, event_frame, window)
+            #print "after smoothing", event_frame, quat_frames[event_frame][indices[0]*4+3]
+        #print "after", quat_frames[event_frame2-window:event_frame2+window, joint_index]
+
+
+    def smooth_quaternion_frames_using_slerp(self, quat_frames, joint_parameter_indices, event_frame, window):
+        start_frame = event_frame-window/2
+        end_frame = event_frame+window/2
+        start_q = quat_frames[start_frame, joint_parameter_indices]
+        end_q = quat_frames[end_frame, joint_parameter_indices]
+        for i in xrange(window):
+            t = float(i)/window
+            #nlerp_q = self.nlerp(start_q, end_q, t)
+            slerp_q = quaternion_slerp(start_q, end_q, t, spin=0, shortestpath=True)
+            #print "slerp",start_q,  end_q, t, nlerp_q, slerp_q
+            quat_frames[start_frame+i, joint_parameter_indices] = slerp_q
+
+    def nlerp(self, start, end, t):
+        """http://physicsforgames.blogspot.de/2010/02/quaternions.html
+        """
+        dot = start[0]*end[0] + start[1]*end[1] + start[2]*end[2] + start[3]*end[3]
+        result = np.array([0.0, 0.0, 0.0, 0.0])
+        i_t = 1.0 - t
+        if dot < 0.0:
+            temp = []
+            temp[0] = -end[0]
+            temp[1] = -end[1]
+            temp[2] = -end[2]
+            temp[3] = -end[3]
+            result[0] = i_t*start[0] + t*temp[0]
+            result[1] = i_t*start[1] + t*temp[1]
+            result[2] = i_t*start[2] + t*temp[2]
+            result[3] = i_t*start[3] + t*temp[3]
+
+        else:
+            result[0] = i_t*start[0] + t*end[0]
+            result[1] = i_t*start[1] + t*end[1]
+            result[2] = i_t*start[2] + t*end[2]
+            result[3] = i_t*start[3] + t*end[3]
+
+        return result/np.linalg.norm(result)
