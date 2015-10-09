@@ -57,6 +57,13 @@ class HandPoseGenerator(object):
         else:
             print "Error: Could not load hand poses from", hand_pose_directory
 
+    def _is_affecting_hand(self, hand, event_desc):
+        if hand == "RightToolEndSite":
+            hand = "RightHand"
+        elif hand == "LeftToolEndSite":
+            hand = "LeftHand"
+        return hand in event_desc["parameters"]["joint"] or hand == event_desc["parameters"]["joint"]
+
     def generate_hand_poses(self, motion_vector, action_list):
         if self.initialized:
             right_status = "standard"
@@ -66,12 +73,11 @@ class HandPoseGenerator(object):
             for i in xrange(motion_vector.n_frames):
                 if i in action_list.keys():
                     for event_desc in action_list[i]:
-                        joint_name = event_desc["parameters"]["joint"]
-                        if joint_name == "RightHand" or joint_name == "RightToolEndSite":
+                        if self._is_affecting_hand("RightHand", event_desc):
                             right_status = self.status_change_map[event_desc["event"]]
                             print "change right hand status to", right_status
                             right_hand_events.append(i)
-                        elif joint_name == "LeftHand" or joint_name == "LeftToolEndSite":
+                        if self._is_affecting_hand("LeftHand", event_desc):
                             left_status = self.status_change_map[event_desc["event"]]
                             print "change left hand status to", left_status
                             left_hand_events.append(i)
@@ -130,22 +136,22 @@ class HandPoseGenerator(object):
         """
         dot = start[0]*end[0] + start[1]*end[1] + start[2]*end[2] + start[3]*end[3]
         result = np.array([0.0, 0.0, 0.0, 0.0])
-        i_t = 1.0 - t
+        inv_t = 1.0 - t
         if dot < 0.0:
             temp = []
             temp[0] = -end[0]
             temp[1] = -end[1]
             temp[2] = -end[2]
             temp[3] = -end[3]
-            result[0] = i_t*start[0] + t*temp[0]
-            result[1] = i_t*start[1] + t*temp[1]
-            result[2] = i_t*start[2] + t*temp[2]
-            result[3] = i_t*start[3] + t*temp[3]
+            result[0] = inv_t*start[0] + t*temp[0]
+            result[1] = inv_t*start[1] + t*temp[1]
+            result[2] = inv_t*start[2] + t*temp[2]
+            result[3] = inv_t*start[3] + t*temp[3]
 
         else:
-            result[0] = i_t*start[0] + t*end[0]
-            result[1] = i_t*start[1] + t*end[1]
-            result[2] = i_t*start[2] + t*end[2]
-            result[3] = i_t*start[3] + t*end[3]
+            result[0] = inv_t*start[0] + t*end[0]
+            result[1] = inv_t*start[1] + t*end[1]
+            result[2] = inv_t*start[2] + t*end[2]
+            result[3] = inv_t*start[3] + t*end[3]
 
         return result/np.linalg.norm(result)
