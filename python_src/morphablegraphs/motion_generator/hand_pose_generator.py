@@ -59,11 +59,17 @@ class HandPoseGenerator(object):
             print "Error: Could not load hand poses from", hand_pose_directory
 
     def _is_affecting_hand(self, hand, event_desc):
-        if hand == "RightToolEndSite":
-            hand = "RightHand"
-        elif hand == "LeftToolEndSite":
-            hand = "LeftHand"
-        return hand in event_desc["parameters"]["joint"] or hand == event_desc["parameters"]["joint"]
+        if hand == "RightHand":
+            return "RightToolEndSite" in event_desc["parameters"]["joint"] or\
+                    "RightHand" in event_desc["parameters"]["joint"] or\
+                   "RightToolEndSite" == event_desc["parameters"]["joint"] or\
+                   "RightHand" == event_desc["parameters"]["joint"]
+
+        elif hand == "LeftHand":
+            return "LeftToolEndSite" in event_desc["parameters"]["joint"] or\
+                    "LeftHand" in event_desc["parameters"]["joint"] or\
+                   "LeftToolEndSite" == event_desc["parameters"]["joint"] or\
+                   "LeftHand" == event_desc["parameters"]["joint"]
 
     def generate_hand_poses(self, motion_vector, action_list):
         if self.initialized:
@@ -118,7 +124,6 @@ class HandPoseGenerator(object):
             #quat_frames = smooth_quaternion_frames(quat_frames, event_frame, window)
             #print "after smoothing", event_frame, quat_frames[event_frame][indices[0]*4+3]
         #print "after", quat_frames[event_frame2-window:event_frame2+window, joint_index]
-
 
     def smooth_quaternion_frames_using_slerp(self, quat_frames, joint_parameter_indices, event_frame, window):
         start_frame = event_frame-window/2
