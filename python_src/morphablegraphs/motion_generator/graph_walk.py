@@ -133,21 +133,25 @@ class GraphWalk(object):
                     events = keyframe_event["event_list"]
                 else:
                     events = self._merge_multiple_keyframe_events(keyframe_event["event_list"], len(keyframe_event["event_list"]))
-                if warped_keyframe not in self.keyframe_events_dict:
-                    self.keyframe_events_dict[warped_keyframe] = events
-                else:
-                    temp_event_list = events+self.keyframe_events_dict[warped_keyframe]
-                    self.keyframe_events_dict[warped_keyframe] = self._merge_multiple_keyframe_events(temp_event_list, len(temp_event_list))
+                if warped_keyframe in self.keyframe_events_dict:
+                    events = events+self.keyframe_events_dict[warped_keyframe]
+                self.keyframe_events_dict[warped_keyframe] = self._merge_multiple_keyframe_events(events, len(events))
             if self.use_time_parameters:
                 n_frames += len(time_function)
             else:
                 n_frames += step.end_frame - step.start_frame
 
     def _add_event_list_to_frame_annotation(self):
+        """
+        self.keyframe_events_dict[keyframe] m
+        :return:
+        """
         #print "keyframe event dict", self.keyframe_events_dict
         keyframe_event_list = []
         for keyframe in self.keyframe_events_dict.keys():
+            print "keyframe event dict", self.keyframe_events_dict[keyframe]
             for event_desc in self.keyframe_events_dict[keyframe]:
+                print "event description", event_desc
                 event = dict()
                 event["jointName"] = event_desc["parameters"]["joint"]
                 event_type = event_desc["event"]
@@ -244,7 +248,7 @@ class GraphWalk(object):
                     print "event dict merged", temp_event_dict[name]
                 else:
                     print "event dict merge did not happen", temp_event_dict[name]
-        return temp_event_dict
+        return temp_event_dict.values()
 
     def print_statistics(self):
         statistics_string = self.get_statistics_string()
