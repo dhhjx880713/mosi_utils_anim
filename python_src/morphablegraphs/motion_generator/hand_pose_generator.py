@@ -7,6 +7,7 @@ from ..animation_data.skeleton import Skeleton
 from ..external.transformations import quaternion_slerp
 import numpy as np
 
+
 class HandPose(object):
     def __init__(self):
         self.pose_vector = []
