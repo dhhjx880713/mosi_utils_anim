@@ -6,15 +6,14 @@
         "time_smoothing_window" : 15
     },
     "trajectory_following_settings": {
-        "dir_constraint_factor": 10.0,
+        "dir_constraint_factor": 20.0,
         "heuristic_step_length_factor": 1.0,
         "position_constraint_factor": 1.0,
         "step_length_approx_method": "arc_length",
         "transition_pose_constraint_factor": 0.6,
         "closest_point_search_accuracy": 0.001,
         "closest_point_search_max_iterations": 5000
-    }, 
-    "use_constrained_gmm": false, 
+    },
     "local_optimization_settings": {
         "start_error_threshold": 0.0,
         "error_scale_factor": 1.0,
@@ -58,6 +57,7 @@
     "activate_parameter_check": false,
     "use_global_time_optimization": false,
     "use_global_spatial_optimization": false,
+    "use_constrained_gmm": false,
     "use_constraints": true,
     "debug_max_step": -1,
     "verbose": false
