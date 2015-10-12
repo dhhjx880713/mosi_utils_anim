@@ -10,8 +10,11 @@ TRAJECTORY_DIM = 3  # spline in cartesian space
 
 
 class TrajectoryConstraint(ParameterizedSpline, SpatialConstraintBase):
-    def __init__(self, joint_name, control_points, min_arc_length, unconstrained_indices, skeleton, precision, weight_factor=1.0):
-        ParameterizedSpline.__init__(self, control_points, TRAJECTORY_DIM)
+    def __init__(self, joint_name, control_points, min_arc_length, unconstrained_indices, skeleton, precision, weight_factor=1.0,
+                 closest_point_search_accuracy=0.001, closest_point_search_max_iterations=5000):
+        ParameterizedSpline.__init__(self, control_points, TRAJECTORY_DIM,
+                                     closest_point_search_accuracy=closest_point_search_accuracy,
+                                     closest_point_search_max_iterations=closest_point_search_max_iterations)
         SpatialConstraintBase.__init__(self, precision, weight_factor)
 
         self.constraint_type = SPATIAL_CONSTRAINT_TYPE_TRAJECTORY
@@ -22,6 +25,7 @@ class TrajectoryConstraint(ParameterizedSpline, SpatialConstraintBase):
         self.arc_length = 0.0  # will store the full arc length after evaluation
         self.unconstrained_indices = unconstrained_indices
 
+
     def set_number_of_canonical_frames(self, n_canonical_frames):
         self.n_canonical_frames = n_canonical_frames
 
@@ -31,7 +35,7 @@ class TrajectoryConstraint(ParameterizedSpline, SpatialConstraintBase):
         :param previous_frames: list of quaternion frames.
         """
         point = self.skeleton.get_cartesian_coordinates_from_quaternion(self.joint_name, previous_frames[-1])
-        closest_point, distance = self.find_closest_point(point, min_arc_length=self.min_arc_length)
+        closest_point, distance = self.find_closest_point(point, self.min_arc_length, -1)
         self.min_arc_length = self.get_absolute_arc_length_of_point(closest_point)[0]
 
     def evaluate_motion_sample(self, aligned_quat_frames):

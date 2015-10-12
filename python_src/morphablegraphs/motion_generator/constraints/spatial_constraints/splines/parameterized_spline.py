@@ -56,7 +56,8 @@ class ParameterizedSpline(object):
     """
 
     def __init__(self, control_points, dimensions,
-                 granularity=1000, verbose=False):
+                 granularity=1000, closest_point_search_accuracy=0.001,
+                 closest_point_search_max_iterations=5000, verbose=False):
         self.spline = CatmullRomSpline(
             control_points, dimensions, verbose=verbose)
         self.granularity = granularity
@@ -64,7 +65,8 @@ class ParameterizedSpline(object):
         self.number_of_segments = 0
         self._relative_arc_length_map = []
         self._update_relative_arc_length_mapping_table()
-        return
+        self.closest_point_search_accuracy = closest_point_search_accuracy
+        self.closest_point_search_max_iterations = closest_point_search_max_iterations
 
     def _initiate_control_points(self, control_points):
         """
@@ -401,7 +403,7 @@ class ParameterizedSpline(object):
         if min_arc_length >= self.full_arc_length:  # min arc length was too close to full arc length
             return self.get_last_control_point(), self.full_arc_length
         else:
-            segment_list = SegmentList()
+            segment_list = SegmentList(self.closest_point_search_accuracy, self.closest_point_search_max_iterations)
             segment_list.construct_from_spline(self, min_arc_length, max_arc_length)
             result = segment_list.find_closest_point(point)
             if result[0] is None:

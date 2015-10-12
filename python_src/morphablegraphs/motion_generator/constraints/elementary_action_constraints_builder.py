@@ -19,12 +19,14 @@ class ElementaryActionConstraintsBuilder(object):
     * motion_primitive_graph : MotionPrimitiveGraph
         Contains a list of motion nodes that can generate short motion clips.
     """
-    def __init__(self, mg_input_reader, motion_primitive_graph):
+    def __init__(self, mg_input_reader, motion_primitive_graph, algorithm_config):
         self.mg_input = mg_input_reader
         self.motion_primitive_graph = motion_primitive_graph
         self.current_action_index = 0
         self.start_pose = self.mg_input.get_start_pose()
         self.n_actions = self.mg_input.get_number_of_actions()
+        self.closest_point_search_accuracy = algorithm_config["trajectory_following_settings"]["closest_point_search_accuracy"]
+        self.closest_point_search_max_iterations = algorithm_config["trajectory_following_settings"]["closest_point_search_max_iterations"]
 
     def reset_counter(self):
         self.current_action_index = 0
@@ -100,7 +102,15 @@ class ElementaryActionConstraintsBuilder(object):
         precision = 1.0
         control_points, unconstrained_indices = self.mg_input.get_trajectory_from_constraint_list(self.current_action_index, joint_name, scale_factor)
         if control_points is not None and unconstrained_indices is not None:
-            trajectory_constraint = TrajectoryConstraint(joint_name, control_points, 0, unconstrained_indices, self.motion_primitive_graph.skeleton, precision)
+            trajectory_constraint = TrajectoryConstraint(joint_name,
+                                                         control_points,
+                                                         0,
+                                                         unconstrained_indices,
+                                                         self.motion_primitive_graph.skeleton,
+                                                         precision,
+                                                         1.0,
+                                                         self.closest_point_search_accuracy,
+                                                         self.closest_point_search_max_iterations)
             return trajectory_constraint
         else:
             return None
