@@ -55,12 +55,12 @@ class Test_get_motion_vector(object):
 
     def test_buffer(self, motionSample):
         """ Test if the motion can be buffered and recalculated """
-        frames = motionSample.get_motion_vector(usebuffer=False)
+        frames = motionSample.get_motion_vector()
 
         motionSample.time_function[1] -= 0.1
 
-        bufferedframes = motionSample.get_motion_vector(usebuffer=True)
-        changedframes = motionSample.get_motion_vector(usebuffer=False)
+        bufferedframes = motionSample.get_buffered_motion_vector()
+        changedframes = motionSample.get_motion_vector()
 
         assert np.alltrue(frames == bufferedframes)
         assert np.any(frames != changedframes)

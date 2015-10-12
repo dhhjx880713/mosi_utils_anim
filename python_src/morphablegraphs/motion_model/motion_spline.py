@@ -9,6 +9,7 @@ from ..animation_data.bvh import BVHReader, BVHWriter
 import scipy.interpolate as si
 from . import B_SPLINE_DEGREE
 
+
 class MotionSpline(object):
     """ Represent a Sample from a MotionPrimitive
     * get_motion_vector(): Returns a vector of frames, representing a \
@@ -45,7 +46,7 @@ class MotionSpline(object):
         #create a b-spline for each pose parameter from the cooeffients
         self.canonical_motion_splines = [(knots, canonical_motion_coefs[i], B_SPLINE_DEGREE) for i in xrange(self.n_pose_parameters)]
 
-    def get_motion_vector(self, usebuffer=True):#TODO make it two funcs get and recompute
+    def get_motion_vector(self):
         """ Return a 2d - vector representing the motion in the new timeline
 
         Returns
@@ -53,11 +54,21 @@ class MotionSpline(object):
         * frames: numpy.ndarray
         \tThe new frames as 2d numpy.ndarray with shape (number of frames, \
         number of channels)
-        * usebuffer: boolean
-        \tWether to return the buffered frame if available
         """
-        if usebuffer and self.buffered_frames is not None:
-            return self.buffered_frames
         temp_frames = [si.splev(self.time_function, spline_def) for spline_def in self.canonical_motion_splines]
         self.buffered_frames = np.asarray(temp_frames).T
         return self.buffered_frames
+
+    def get_buffered_motion_vector(self):
+        """ Returns a buffered version  of the motion vector from the last call to get_motion_vector
+
+        Returns
+        -------
+        * frames: numpy.ndarray
+        \tThe new frames as 2d numpy.ndarray with shape (number of frames, \
+        number of channels)
+        """
+        if self.buffered_frames is not None:
+            return self.buffered_frames
+        else:
+            return self.get_motion_vector()
