@@ -9,7 +9,7 @@ from ...animation_data.motion_editing import rotate_euler_frames, \
                                              get_cartesian_coordinates_from_euler_full_skeleton, \
                                              transform_euler_frames
 from ...animation_data.bvh import BVHReader, BVHWriter
-from python_src.morphablegraphs.construction.preprocessing.motion_segmentation\
+from morphablegraphs.construction.preprocessing.motion_segmentation\
     import MotionSegmentation
 from ...animation_data.skeleton import Skeleton
 import glob

@@ -2,7 +2,7 @@ __author__ = 'erhe01'
 
 from optimization.optimizer_builder import OptimizerBuilder
 from constraints.time_constraints_builder import TimeConstraintsBuilder
-from constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE
+from constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE, SPATIAL_CONSTRAINT_TYPE_TRAJECTORY
 
 
 class GraphWalkOptimizer(object):
@@ -24,7 +24,8 @@ class GraphWalkOptimizer(object):
         constraint_count = 0
         for step in graph_walk.steps[start_step:]: #TODO add pose constraint for pick and place
             step.motion_primitive_constraints.constraints = [constraint for constraint in step.motion_primitive_constraints.constraints
-                                                             if constraint.constraint_type != SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE]
+                                                             if constraint.constraint_type != SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE
+                                                             and constraint.constraint_type != SPATIAL_CONSTRAINT_TYPE_TRAJECTORY]
             #initial_guess += step.parameters[:step.n_spatial_components].tolist()
             constraint_count += len(step.motion_primitive_constraints.constraints)
         for step in graph_walk.steps[start_step:]:

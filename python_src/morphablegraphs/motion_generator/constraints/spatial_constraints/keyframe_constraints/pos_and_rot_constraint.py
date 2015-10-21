@@ -8,7 +8,7 @@ Created on Mon Aug 03 19:02:55 2015
 from math import sqrt
 import numpy as np
 from .....animation_data.motion_editing import quaternion_to_euler, get_cartesian_coordinates_from_quaternion
-from python_src.morphablegraphs.external.transformations import rotation_matrix
+from .....external.transformations import rotation_matrix
 from keyframe_constraint_base import KeyframeConstraintBase
 from .. import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
 
