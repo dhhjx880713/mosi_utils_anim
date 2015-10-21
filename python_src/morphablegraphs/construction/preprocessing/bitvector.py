@@ -9,8 +9,9 @@ import numpy as np
 from copy import deepcopy
 import os
 import glob
+from operator import itemgetter
 from ...animation_data.skeleton import Skeleton
-from ...animation_data.bvh import BVHReader
+from ...animation_data.bvh import BVHReader, BVHWriter
 from ...animation_data.motion_editing import \
     get_cartesian_coordinates_from_euler_full_skeleton as get_cartesian_coords
 
@@ -72,21 +73,21 @@ def smooth_bitvectors(bitvectors, threshold=4):
     threshod: int
         The minimum number for a peak
     """
-    features = bitvectors[0].keys()
+    features = bitvectors.keys()
     vectors = deepcopy(bitvectors)
 
     counter = 0
     at_start = True
 
     for feature in features:
-        for i in xrange(1, len(bitvectors)):
-            if vectors[i][feature] != vectors[i-1][feature]:
+        for i in xrange(1, len(bitvectors[feature])):
+            if vectors[feature][i] != vectors[feature][i-1]:
                 if at_start:
                     at_start = False
                     counter = 0
                 elif counter < threshold:
                     for j in xrange(1, counter+2):
-                        vectors[i-j] = vectors[i]
+                        vectors[feature][i-j] = vectors[feature][i]
                 else:
                     counter = 0
             else:
@@ -94,13 +95,13 @@ def smooth_bitvectors(bitvectors, threshold=4):
     return vectors
 
 
-def calc_bitvector_walking(motion, features, skeleton=None, verbose=False,
-                           threshold=0.8):
+def calc_bitvector_walking(frames, features, skeleton=None, verbose=False,
+                           threshold=0.2):
     """ Detect a bit vector for each frame in the motion
 
     Parameters
     ----------
-    motion : numpy.ndarray
+    frames : numpy.ndarray
         The frames of the walking motion
     feature : list of str
         The Food features
@@ -130,43 +131,27 @@ def calc_bitvector_walking(motion, features, skeleton=None, verbose=False,
     # Get cartesian position frame wise. Change this for performance?
     for feature in features:
         jointpositions[feature] = []
-        for frame in motion:
-            jointpositions[feature].append(get_cartesian_coords(reader, skeleton,
-                                                                feature, frame))
+        for frame in frames:
+            jointpositions[feature].append(get_cartesian_coords(reader,
+                                                                skeleton,
+                                                                feature,
+                                                                frame))
         jointpositions[feature] = np.array(jointpositions[feature])
 
-    velocity_bitvectors_xz = [{feature: 0 for feature in features}
-                              for i in xrange(motion.shape[0])]
-
+    bitvector = {}
     xz_threshold = threshold
-
-    relativ_velo_x = {}
-    relativ_velo_y = {}
-    relativ_velo_z = {}
-    relativ_velo_xz = {}
+    relativ_velo = {}
 
     for feature in features:
-        relativ_velo_x[feature] = []
-        relativ_velo_y[feature] = []
-        relativ_velo_z[feature] = []
-        relativ_velo_xz[feature] = []
-        n = len(jointpositions[feature])
-        for i in xrange(n - 1):
-            diff = jointpositions[feature][i] - jointpositions[feature][i+1]
-            relativ_velocity_x = np.abs(diff[0])
-            relativ_velocity_z = np.abs(diff[2])
-            relativ_velocity_xz = relativ_velocity_x**2 + relativ_velocity_z**2
-            relativ_velo_xz[feature].append(relativ_velocity_xz)
-            if relativ_velocity_xz < xz_threshold:
-                velocity_bitvectors_xz[i][feature] = 1
-
-        velocity_bitvectors_xz[n-2][feature] = \
-            velocity_bitvectors_xz[n-3][feature]
-        velocity_bitvectors_xz[n-1][feature] = \
-            velocity_bitvectors_xz[n-2][feature]
+        dif = np.diff(jointpositions[feature], axis=0)
+        relativ_velo[feature] = dif[:, 0]**2 + dif[:, 1]**2 + dif[:, 2]**2
+        bitvector[feature] = relativ_velo[feature] < threshold
+        bitvector[feature] = np.concatenate((bitvector[feature],
+                                             [bitvector[feature][-1]],
+                                             [bitvector[feature][-1]]))
 
     height_bitvectors = [{feature: 0 for feature in features}
-                         for i in xrange(motion.shape[0])]
+                         for i in xrange(frames.shape[0])]
 
     height_threshold = threshold
 
@@ -177,35 +162,66 @@ def calc_bitvector_walking(motion, features, skeleton=None, verbose=False,
             if jointpositions_y[feature][i] < height_threshold:
                 height_bitvectors[i][feature] = 1
 
-
-    bitvectors_smoothed = smooth_bitvectors(velocity_bitvectors_xz,
-                                            threshold=3)
+    bitvectors_smoothed = smooth_bitvectors(bitvector, threshold=8)
+    bitvectors_smoothed = smooth_bitvectors(bitvectors_smoothed, threshold=4)
     bitvectors_smoothed = smooth_bitvectors(bitvectors_smoothed, threshold=2)
-
-    first_feature = -1
-    first_feature_pos = np.inf
-    for feature in features:
-        for i in xrange(len(bitvectors_smoothed)):
-            if bitvectors_smoothed[i][feature] == 0:
-                if first_feature_pos > i:
-                    first_feature_pos = i
-                    first_feature = feature
-                break
-    if first_feature_pos < 50:
-        for i in xrange(first_feature_pos):
-            bitvectors_smoothed[i][first_feature] = 0
+    bitvectors_smoothed = smooth_bitvectors(bitvectors_smoothed, threshold=1)
 
     if verbose:
         # Plots:
+#        plt.figure()
+#        for feature in ['Bip01_L_Toe0', 'LeftFoot']:
+#            plt.plot(bitvectors_smoothed[feature], label=feature)
+#        plt.legend()
+#        plt.ylim([0, 2])
+#        plt.title('walk')
+#        plt.xlabel('frameindex')
+#        plt.ylabel('bitvalue')
+#
+#        plt.figure()
+#        for feature in ['Bip01_R_Toe0', 'RightFoot']:
+#            plt.plot(bitvectors_smoothed[feature], label=feature)
+#        plt.legend()
+#        plt.ylim([0, 2])
+#        plt.title('walk')
+#        plt.xlabel('frameindex')
+#        plt.ylabel('bitvalue')
+
         plt.figure()
-        for feature in features:
-            tmp = [vector[feature] for vector in bitvectors_smoothed]
-            plt.plot(tmp, label=feature)
+        for feature in ['Bip01_L_Toe0', 'Bip01_R_Toe0']:
+            plt.plot(bitvectors_smoothed[feature], label=feature)
         plt.legend()
         plt.ylim([0, 2])
         plt.title('walk')
         plt.xlabel('frameindex')
         plt.ylabel('bitvalue')
+        plt.figure()
+        for feature in ['Bip01_L_Toe0', 'Bip01_R_Toe0']:
+            plt.plot(bitvector[feature], label=feature)
+        plt.legend()
+        plt.ylim([0, 2])
+        plt.title('walk')
+        plt.xlabel('frameindex')
+        plt.ylabel('bitvalue')
+
+#        plt.figure()
+#        for feature in ['LeftFoot', 'RightFoot']:
+#            plt.plot(bitvectors_smoothed[feature], label=feature)
+#        plt.legend()
+#        plt.ylim([0, 2])
+#        plt.title('walk')
+#        plt.xlabel('frameindex')
+#        plt.ylabel('bitvalue')
+
+        plt.figure()
+        line_x = range(len(relativ_velo[features[0]]))
+        line_y = [xz_threshold] * len(line_x)
+        plt.plot(line_x, line_y)
+        for feature in features:
+            plt.plot(relativ_velo[feature], label=feature)
+        plt.legend()
+        plt.xlabel('frameindex')
+        plt.ylabel('relativ velocity in xz')
 
 #        plt.figure()
 #        for feature in features:
@@ -216,17 +232,7 @@ def calc_bitvector_walking(motion, features, skeleton=None, verbose=False,
 #        plt.title('walk')
 #        plt.xlabel('frameindex')
 #        plt.ylabel('bitvalue (using height)')
-
-        plt.figure()
-        line_x = range(len(relativ_velo_xz[features[0]]))
-        line_y = [xz_threshold] * len(line_x)
-        plt.plot(line_x, line_y)
-        for feature in features:
-            plt.plot(relativ_velo_xz[feature], label=feature)
-        plt.legend()
-        plt.xlabel('frameindex')
-        plt.ylabel('relativ velocity in xz')
-
+#
 #        plt.figure()
 #        line_x = range(len(relativ_velo_xz[features[0]]))
 #        line_y = [xz_threshold] * len(line_x)
@@ -243,13 +249,13 @@ def calc_bitvector_walking(motion, features, skeleton=None, verbose=False,
     return bitvectors_smoothed
 
 
-def detect_walking_keyframes(motion, features, skeleton, verbose=False):
+def detect_walking_keyframes(frames, features, skeleton, verbose=False):
     """ FOR INTERNAL USE ONLY! Use detect_keyframes with motion_type='walking'
     Detect all Keyframes for the given Feature(s) in the given Walking Motion
 
     Parameters
     ----------
-    motion : numpy.ndarray
+    frames : numpy.ndarray
         The frames of the walking motion
     feature : list of str
         The Food features
@@ -263,44 +269,66 @@ def detect_walking_keyframes(motion, features, skeleton, verbose=False):
     A dictionary containing a list for each feature.
     Each list contains all [Startframe, Endframe] Pairs for this feature.
     """
-    bitvectors = calc_bitvector_walking(motion, features, skeleton, verbose)
+    bitvectors = calc_bitvector_walking(frames, features, skeleton, verbose)
 
     keyframes = {feature: [] for feature in features}
 
+    print features
+
+    def next_keyframe(bitvector):
+        for i in xrange(1, len(bitvector)):
+            if bitvector[i] == 0 and bitvector[i-1] == 1:
+                yield i
+
     last = 0
-    highes = 0
+    highest = 0
     highest_feature = None
 
-    for i in xrange(1, len(bitvectors)):
-        for feature in features:
-            if bitvectors[i][feature] == 0 and bitvectors[i-1][feature] == 1:
-                keyframes[feature].append([last, i])
-                last = i
-                if highes < last:
-                    highes = last
-                    highest_feature = feature
+    feature_order = [(f, next_keyframe(bitvectors[f]).next()) for f in features]
+    feature_order = sorted(feature_order, key=itemgetter(1))
+
+    gens = {feature: next_keyframe(bitvectors[feature])
+            for feature in features}
+
+    while len(gens.values()) > 0:
+        pop = []
+        for feature, _ in feature_order:
+            try:
+                i = gens[feature].next()
+            except StopIteration:
+                pop.append((feature, _))
+                continue
+            keyframes[feature].append([last, i])
+            last = i
+            if highest < i:
+                highest = i
+                highest_feature = feature
+        for f, _ in pop:
+            print "pop", f
+            gens.pop(f)
+            feature_order.remove((f, _))
 
     f = None
     for feature in features:
         if feature != highest_feature:
             f = feature
             break
-    keyframes[f].append([highes, len(bitvectors)-1])
+    keyframes[f].append([highest, len(bitvectors[f])-1])
 
     for feature in features:
         keyframes[feature].sort()
 
-    print keyframes
+    print "Keyframes:", keyframes
     return keyframes
 
 
-def detect_keyframes(motion, features, skeleton=None,
+def detect_keyframes(frames, features, skeleton=None,
                      motion_type='walking', verbose=False):
     """ Detect all Keyframes for the given Feature(s) in the given Motion
 
     Parameters
     ----------
-    motion : numpy.ndarray
+    frames : numpy.ndarray
         The frames of the walking motion
     feature : list of str
         The features corresponding to the searched Keyframes.
@@ -321,22 +349,24 @@ def detect_keyframes(motion, features, skeleton=None,
     A list containing all Keyframes.
     """
     if motion_type == 'walk' or motion_type == 'walking':
-        return detect_walking_keyframes(motion, features, skeleton, verbose)
+        return detect_walking_keyframes(frames, features, skeleton, verbose)
 
     raise ValueError('The motiontype "%s" is not supported yet' % motion_type)
 
 
-def splitt_motion(motion, keyframes,
-                  skeleton_file='Skeleton.bvh'):
+def splitt_motion(frames, keyframes, mname, skeleton_file='skeleton.bvh'):
     """ Splitt a Motion by the given Keyframes
 
     Parameters
     ----------
-    motion : AnimationData.SkeletonAnimationData
-        The motion as AnimationData.SkeletonAnimationData
+    frames : numpy.ndarray
+        The frames of the walking motion
     keyframes : dict of list of int
         A dictionary containing a list for each feature.
         Each list contains all Keyframes for this feature.
+    mname: string
+        Subfix of the splitted motions (i.e. the original name of the
+        motion)
 
     Returns
     -------
@@ -344,7 +374,6 @@ def splitt_motion(motion, keyframes,
     Each list contains all new Motions as AnimationData.SkeletonAnimationData
     """
     motion_list = {feature: [] for feature in keyframes}
-    frames = motion.getFramesData(weighted=0)
 
     # Calc number of steps for status update
     n = 0.0
@@ -360,49 +389,41 @@ def splitt_motion(motion, keyframes,
     firstframe = min(tmpmins)
     lastframe = max(tmpmax)
 
+    reader = BVHReader(skeleton_file)
+    skel = Skeleton(reader)
     for feature in keyframes:
         # save first step:
         if firstframe in keyframes[feature][0]:
             keyframe = keyframes[feature][0]
-            subframes = np.ravel(frames[keyframe[0]:keyframe[1]])
-            new_motion = AnimationData.SkeletonAnimationData()
-            new_motion.buildFromBVHFile(skeleton_file)
-            new_motion.fromVectorToMotionData(subframes, weighted=0)
-            new_motion.name = 'begin_' + str(keyframe[0]) + '_' + str(keyframe[1]) \
-                + '_' + feature + '_' + motion.name
-            motion_list[feature].append(new_motion)
+            subframes = frames[keyframe[0]:keyframe[1]]
+            name = 'begin_' + str(keyframe[0]) + '_' + str(keyframe[1]) \
+                + '_' + feature + '_' + mname
+            BVHWriter(name, skel, subframes, 0.013889)
             keyframes[feature] = keyframes[feature][1:]
 
         # last step:
         if lastframe in keyframes[feature][-1]:
             keyframe = keyframes[feature][-1]
-            subframes = np.ravel(frames[keyframe[0]:keyframe[1]])
-            new_motion = AnimationData.SkeletonAnimationData()
-            new_motion.buildFromBVHFile(skeleton_file)
-            new_motion.fromVectorToMotionData(subframes, weighted=0)
-            new_motion.name = 'end_' + str(keyframe[0]) + '_' + str(keyframe[1]) \
-                + '_' + feature + '_' + motion.name
-            motion_list[feature].append(new_motion)
+            subframes = frames[keyframe[0]:keyframe[1]]
+            name = 'end_' + str(keyframe[0]) + '_' + str(keyframe[1]) \
+                + '_' + feature + '_' + mname
+            BVHWriter(name, skel, subframes, 0.013889)
             keyframes[feature] = keyframes[feature][:-1]
 
         for keyframe in keyframes[feature]:
-            print counter / n * 100, '%'
-            subframes = np.ravel(frames[keyframe[0]:keyframe[1]])
-            new_motion = AnimationData.SkeletonAnimationData()
-            new_motion.buildFromBVHFile(skeleton_file)
-            new_motion.fromVectorToMotionData(subframes, weighted=0)
-            new_motion.name = str(keyframe[0]) + '_' + str(keyframe[1]) \
-                + '_' + feature + '_' + motion.name
-            motion_list[feature].append(new_motion)
+            subframes = frames[keyframe[0]:keyframe[1]]
+            name = str(keyframe[0]) + '_' + str(keyframe[1]) \
+                + '_' + feature + '_' + mname
+            BVHWriter(name, skel, subframes, 0.013889)
 
             counter += 1.0
 
     return motion_list
 
 
-def filter_tpose(motion, features):
+def filter_tpose(frames, features):
     """ TODO """
-    bitvectors = calc_bitvector_walking(motion, features, threshold=0.1)
+    bitvectors = calc_bitvector_walking(frames, features, threshold=0.1)
 
     converted = {feature: [] for feature in features}
     for i in xrange(len(bitvectors)):
