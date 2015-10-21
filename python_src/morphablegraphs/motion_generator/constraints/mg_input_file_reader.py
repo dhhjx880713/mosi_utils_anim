@@ -44,7 +44,13 @@ class MGInputFileReader(object):
     def get_elementary_action_name(self, action_index):
         return self.elementary_action_list[action_index]["action"]
 
-    def get_keyframe_constraints(self, action_index, node_group):
+    def get_ordered_keyframe_constraints(self, action_index, node_group):
+        """
+        Returns
+        -------
+        reordered_constraints: dict of lists
+        dict of constraints lists applicable to a specific motion primitive of the node_group
+        """
         keyframe_constraints = self._extract_all_keyframe_constraints(self.elementary_action_list[action_index]["constraints"], node_group)
         return self._reorder_keyframe_constraints_for_motion_primitves(node_group, keyframe_constraints)
 
@@ -114,22 +120,26 @@ class MGInputFileReader(object):
 
     def _reorder_keyframe_constraints_for_motion_primitves(self, node_group, keyframe_constraints):
          """ Order constraints extracted by _extract_all_keyframe_constraints for each state
+
+         Returns
+         -------
+         reordered_constraints: dict of lists
          """
-         constraints = {}#dict of lists
+         reordered_constraints = {}
          #iterate over keyframe labels
-         for label in keyframe_constraints.keys():
-            state = node_group.label_to_motion_primitive_map[label]
-            time_information = node_group.motion_primitive_annotations[state][label]
-            constraints[state] = []
+         for keyframe_label in keyframe_constraints.keys():
+            motion_primitive_name = node_group.label_to_motion_primitive_map[keyframe_label]
+            time_information = node_group.motion_primitive_annotations[motion_primitive_name][keyframe_label]
+            reordered_constraints[motion_primitive_name] = []
             # iterate over joints constrained at that keyframe
-            for joint_name in keyframe_constraints[label].keys():
+            for joint_name in keyframe_constraints[keyframe_label].keys():
                 # iterate over constraints for that joint
-                for keyframe_constraint in keyframe_constraints[label][joint_name]:
+                for keyframe_constraint in keyframe_constraints[keyframe_label][joint_name]:
                     # create constraint definition usable by the algorithm
                     # and add it to the list of constraints for that state
-                    constraint_desc = self._create_keyframe_constraint(label, joint_name, keyframe_constraint, time_information)
-                    constraints[state].append(constraint_desc)
-         return constraints
+                    constraint_desc = self._create_keyframe_constraint(keyframe_label, joint_name, keyframe_constraint, time_information)
+                    reordered_constraints[motion_primitive_name].append(constraint_desc)
+         return reordered_constraints
 
     def _extract_keyframe_constraints_for_label(self, input_constraint_list, label):
         """ Returns the constraints associated with the given label. Ordered
