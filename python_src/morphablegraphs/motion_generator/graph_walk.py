@@ -13,7 +13,7 @@ import numpy as np
 from ..utilities.io_helper_functions import write_to_json_file,\
                                           write_to_logfile
 from ..animation_data.motion_vector import MotionVector
-from constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
+from constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION
 from ..animation_data.motion_editing import align_quaternion_frames
 
 LOG_FILE = "log.txt"
@@ -290,11 +290,11 @@ class GraphWalk(object):
             quat_frames = self.motion_primitive_graph.nodes[step.node_key].back_project(step.parameters, use_time_parameters=False).get_motion_vector()
             aligned_frames = align_quaternion_frames(quat_frames, prev_frames, self.motion_vector.start_pose)
             for constraint in step.motion_primitive_constraints.constraints:
-                if constraint.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION and\
+                if (constraint.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION or constraint.constraint_type == SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION) and\
                     not ("generated" in constraint.semantic_annotation.keys()):
-                    joint_position = self.skeleton.joint_map[constraint.joint_name].get_global_position(aligned_frames[constraint.canonical_keyframe])
+                    #joint_position = self.skeleton.joint_map[constraint.joint_name].get_global_position(aligned_frames[constraint.canonical_keyframe])
                     #joint_position = constraint.skeleton.get_cartesian_coordinates_from_quaternion(constraint.joint_name, aligned_frames[constraint.canonical_keyframe])
-                    print "position constraint", joint_position, constraint.position
+                    #print "position constraint", joint_position, constraint.position
                     error = constraint.evaluate_motion_sample(aligned_frames)
                     print error
                     keyframe_constraint_errors.append(error)
