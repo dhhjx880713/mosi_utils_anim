@@ -5,7 +5,7 @@ Created on Fri Jul 31 14:38:45 2015
 @author: hadu01
 """
 
-from python_src.morphablegraphs.construction.preprocessing.motion_dtw\
+from morphablegraphs.construction.preprocessing.motion_dtw\
     import MotionDynamicTimeWarping
 
 

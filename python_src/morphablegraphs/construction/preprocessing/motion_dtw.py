@@ -6,7 +6,7 @@ Created on Thu Jul 23 10:06:37 2015
 """
 
 from ...animation_data.bvh import BVHReader, BVHWriter
-from python_src.morphablegraphs.construction.preprocessing.motion_normalization \
+from morphablegraphs.construction.preprocessing.motion_normalization \
     import MotionNormalization
 from ...animation_data.motion_editing import calculate_frame_distance
 from ...animation_data.skeleton import Skeleton
