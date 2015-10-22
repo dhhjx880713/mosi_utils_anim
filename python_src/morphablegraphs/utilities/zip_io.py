@@ -25,6 +25,7 @@ class ZipReader(object):
         self.verbose = verbose
         self.elementary_action_directory = ELEMENTARY_ACTION_DIRECTORY_NAME
         self.transition_model_directory = TRANSITION_MODEL_DIRECTORY_NAME
+        self.format_version = "1.0"
 
     def get_graph_data(self):
         """ Extracts the data from the files stored in the zip file and
@@ -32,20 +33,45 @@ class ZipReader(object):
             data structure is also deserialized into an object.
             If pickle_objects is False the space partitioning is ignored.
         """
-        data = {}
         print "Loading data from file ", self.zip_file_path, "..."
         self.zip_file = zipfile.ZipFile(self.zip_file_path, "r", zipfile.ZIP_DEFLATED)
-        data["transitions"] = json.loads(self.zip_file.read("graph_definition.json"))
-        structure_desc = self._read_elementary_action_file_structure_from_zip()
+        data = json.loads(self.zip_file.read("graph_definition.json"))
+        #print data.keys()
+        if "formatVersion" in data.keys():
+            self.format_version = data["formatVersion"]
+        else:
+            self.format_version = "1.0"
+
+        if self.format_version == "2.0":
+            #print "version 2"
+            structure_desc = self._read_elementary_action_file_structure_from_zip_v2()
+        else:
+            #print "version 1"
+            structure_desc = self._read_elementary_action_file_structure_from_zip_v1()
         self._construct_graph_data(structure_desc)
+
         data["subgraphs"] = self.graph_data
         self.zip_file.close()
         return data
 
-    def _read_elementary_action_file_structure_from_zip(self):
+    def _read_elementary_action_file_structure_from_zip_v1(self):
+        elementary_actions = dict()
+        for name in self.zip_file.namelist():
+            splitted_name = name.split("/")
+            if len(splitted_name) > 1:
+                action_directory = splitted_name[0]
+                file_name = splitted_name[1]
+                if file_name.endswith(MORPHABLE_MODEL_FILE_ENDING):
+                    if action_directory not in elementary_actions.keys():
+                        elementary_actions[action_directory] = []
+                    elementary_actions[action_directory].append(file_name[:-8])
         structure_desc = dict()
-        structure_desc[self.elementary_action_directory] = dict()
+        structure_desc[self.elementary_action_directory] = elementary_actions
         structure_desc[self.transition_model_directory] = dict()
+        return structure_desc
+
+    def _read_elementary_action_file_structure_from_zip_v2(self):
+        elementary_actions = dict()
         for name in self.zip_file.namelist():
             splitted_name = name.split("/")
             if len(splitted_name) > 2:
@@ -54,9 +80,12 @@ class ZipReader(object):
                     action_directory = splitted_name[1]
                     file_name = splitted_name[2]
                     if file_name.endswith(MORPHABLE_MODEL_FILE_ENDING):
-                        if action_directory not in structure_desc[self.elementary_action_directory].keys():
-                            structure_desc[self.elementary_action_directory][action_directory] = []
-                        structure_desc[self.elementary_action_directory][action_directory].append(file_name[:-8])
+                        if action_directory not in elementary_actions.keys():
+                            elementary_actions[action_directory] = []
+                        elementary_actions[action_directory].append(file_name[:-8])
+        structure_desc = dict()
+        structure_desc[self.elementary_action_directory] = elementary_actions
+        structure_desc[self.transition_model_directory] = dict()
         return structure_desc
 
     def _construct_graph_data(self, structure_desc):
@@ -67,25 +96,25 @@ class ZipReader(object):
                 print "action key", action_data_key
             self.graph_data[action_data_key] = {}
             self.graph_data[action_data_key]["name"] = action_data_key
-            meta_info_file = self.elementary_action_directory + "/" + structure_key + "/meta_information.json"
+            meta_info_file = self._get_meta_info_file_path(structure_key)
             if meta_info_file in self.zip_file.namelist():
                 self.graph_data[action_data_key]["info"] = json.loads(self.zip_file.read(meta_info_file))
             self.graph_data[action_data_key]["nodes"] = {}
             for mp in structure_desc[self.elementary_action_directory][structure_key]:
                 self._add_motion_primitive(action_data_key, structure_key, mp)
 
-    def _add_motion_primitive(self, action_data_key, structure_key, mp):
-        mp_data_key = (mp[:-self.type_offset]).split("_")[1]
+    def _add_motion_primitive(self, action_data_key, structure_key, motion_primitive_name):
+        mp_data_key = (motion_primitive_name[:-self.type_offset]).split("_")[1]
         self.graph_data[action_data_key]["nodes"][mp_data_key] = {}
-        self.graph_data[action_data_key]["nodes"][mp_data_key]["name"] = mp[:-self.type_offset]
-        mm_string = self.zip_file.read(self.elementary_action_directory + "/" + structure_key + "/" + mp + "_mm.json")
+        self.graph_data[action_data_key]["nodes"][mp_data_key]["name"] = motion_primitive_name[:-self.type_offset]
+        mm_string = self.zip_file.read(self._get_motion_primitive_file_path(structure_key, motion_primitive_name))
         mm_data = json.loads(mm_string)
         self.graph_data[action_data_key]["nodes"][mp_data_key]["mm"] = mm_data
         if self.verbose:
-            print "\t", mp
-        statsfile = structure_key + "/" + (mp[:-self.type_offset] + ".stats")
+            print "\t", motion_primitive_name
+        statsfile = structure_key + "/" + (motion_primitive_name[:-self.type_offset] + ".stats")
         self._add_stats(action_data_key, mp_data_key, statsfile)
-        space_partition_file = self.elementary_action_directory + "/" + structure_key + "/" + mp + "_cluster_tree.pck"
+        space_partition_file = self._get_space_partitioning_file_path(structure_key, motion_primitive_name)
         self._add_space_partioning_data_structure(action_data_key, mp_data_key, space_partition_file)
 
     def _add_stats(self, action_data_key, mp_data_key, statsfile):
@@ -102,6 +131,24 @@ class ZipReader(object):
                 space_partition_data = cPickle.loads(space_partition)
                 self.graph_data[action_data_key]["nodes"][mp_data_key][
                     "space_partition"] = space_partition_data
+
+    def _get_motion_primitive_file_path(self, structure_key, motion_primitive_name):
+        if self.format_version == "2.0":
+            return self.elementary_action_directory + "/" + structure_key + "/" + motion_primitive_name + "_mm.json"
+        else:
+            return structure_key + "/" + motion_primitive_name + "_mm.json"
+
+    def _get_space_partitioning_file_path(self, structure_key, motion_primitive_name):
+        if self.format_version == "2.0":
+            return self.elementary_action_directory + "/" + structure_key + "/" + motion_primitive_name + "_cluster_tree.pck"
+        else:
+            return structure_key + "/" + motion_primitive_name + "_cluster_tree.pck"
+
+    def _get_meta_info_file_path(self, structure_key):
+        if self.format_version == "2.0":
+            return self.elementary_action_directory + "/" + structure_key + "/meta_information.json"
+        else:
+            return structure_key + "/meta_information.json"
 
 def main():
     zip_path = "E:\\projects\\INTERACT\\repository\\data\\3 - Motion primitives\\motion_primitives_quaternion_PCA95.zip"
