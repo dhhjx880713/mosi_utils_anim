@@ -1167,6 +1167,15 @@ def fast_quat_frames_transformation(quaternion_frames_a,
     offset = [offset_x, 0.0, offset_z]
     return angle, offset
 
+def fast_euler_frames_transformation(euler_frames_a,
+                                     euler_frames_b):
+    dir_vec_a = pose_orientation_euler(euler_frames_a[-1])
+    dir_vec_b = pose_orientation_euler(euler_frames_b[0])
+    angle = get_rotation_angle(dir_vec_a, dir_vec_b)
+    offset_x = euler_frames_a[-1][0] - euler_frames_b[0][0]
+    offset_z = euler_frames_a[-1][2] - euler_frames_b[0][2]
+    offset = [offset_x, 0.0, offset_z]
+    return angle, offset
 
 def get_rotation_angle(point1, point2):
     """
@@ -1221,6 +1230,26 @@ def fast_quat_frames_alignment(quaternion_frames_a,
             window_size=smoothing_window)
     else:
         quaternion_frames = np.concatenate((quaternion_frames_a,
+                                            transformed_frames))
+    return quaternion_frames
+
+def fast_euler_frames_alignment(euler_frames_a,
+                                euler_frames_b,
+                                smooth=True,
+                                smoothing_window=DEFAULT_SMOOTHING_WINDOW_SIZE):
+    angle, offset = fast_euler_frames_transformation(
+        euler_frames_a, euler_frames_b)
+    transformed_frames = transform_euler_frames(euler_frames_b,
+                                                [0, angle, 0],
+                                                offset)
+    # concatenate the quaternion_frames_a and transformed_framess
+    if smooth:
+        euler_frames = smoothly_concatenate(
+            euler_frames_a,
+            transformed_frames,
+            window_size=smoothing_window)
+    else:
+        quaternion_frames = np.concatenate((euler_frames_a,
                                             transformed_frames))
     return quaternion_frames
 
