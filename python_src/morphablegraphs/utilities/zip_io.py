@@ -11,6 +11,7 @@ import time
 
 MORPHABLE_MODEL_FILE_ENDING = "mm.json"
 MM_TYPE = "quaternion"
+ELEMENTARY_ACTION_DIRECTORY_NAME = "elementary_action_models"
 
 
 class ZipReader(object):
@@ -30,50 +31,54 @@ class ZipReader(object):
         data = {}
         self.zip_file = zipfile.ZipFile(self.zip_file_path, "r", zipfile.ZIP_DEFLATED)
         data["transitions"] = json.loads(self.zip_file.read("graph_definition.json"))
-        structure_desc = self._read_zip_file_structure()
-        self._construct_graph_data(structure_desc)
+        structure_desc = self._read_elementary_action_file_structure_from_zip(ELEMENTARY_ACTION_DIRECTORY_NAME)
+        self._construct_graph_data(ELEMENTARY_ACTION_DIRECTORY_NAME, structure_desc)
         data["subgraphs"] = self.graph_data
         self.zip_file.close()
         return data
 
-    def _read_zip_file_structure(self):
+    def _read_elementary_action_file_structure_from_zip(self, elementary_action_directory):
         structure_desc = dict()
+        structure_desc[elementary_action_directory] = dict()
         for name in self.zip_file.namelist():
-            splitted_names = name.split("/")
-            if len(splitted_names) > 1:
-                directory = splitted_names[0]
-                file_name = splitted_names[1]
-                if file_name.endswith(MORPHABLE_MODEL_FILE_ENDING):
-                    if directory not in structure_desc.keys():
-                        structure_desc[directory] = []
-                    structure_desc[directory].append(file_name[:-8])
+            splitted_name = name.split("/")
+            if len(splitted_name) > 2:
+                mm_directory = splitted_name[0]
+                if mm_directory == elementary_action_directory:
+                    action_directory = splitted_name[1]
+                    file_name = splitted_name[2]
+                    if file_name.endswith(MORPHABLE_MODEL_FILE_ENDING):
+                        if action_directory not in structure_desc[elementary_action_directory].keys():
+                            structure_desc[elementary_action_directory][action_directory] = []
+                        structure_desc[elementary_action_directory][action_directory].append(file_name[:-8])
+
         return structure_desc
 
-    def _construct_graph_data(self, structure_desc):
+    def _construct_graph_data(self, elementary_action_directory, structure_desc):
         self.graph_data = dict()
-        for structure_key in structure_desc.keys():
+        for structure_key in structure_desc[elementary_action_directory].keys():
             action_data_key = structure_key.split("_")[2]
             print "action key", action_data_key
             self.graph_data[action_data_key] = {}
             self.graph_data[action_data_key]["name"] = action_data_key
-            meta_info_file = structure_key + "/meta_information.json"
+            meta_info_file = elementary_action_directory + "/" + structure_key + "/meta_information.json"
             if meta_info_file in self.zip_file.namelist():
                 self.graph_data[action_data_key]["info"] = json.loads(self.zip_file.read(meta_info_file))
             self.graph_data[action_data_key]["nodes"] = {}
-            for mp in structure_desc[structure_key]:
-                self._add_motion_primitive(action_data_key, structure_key, mp)
+            for mp in structure_desc[elementary_action_directory][structure_key]:
+                self._add_motion_primitive(elementary_action_directory, action_data_key, structure_key, mp)
 
-    def _add_motion_primitive(self, action_data_key, structure_key, mp):
+    def _add_motion_primitive(self, elementary_action_directory, action_data_key, structure_key, mp):
         mp_data_key = (mp[:-self.type_offset]).split("_")[1]
         self.graph_data[action_data_key]["nodes"][mp_data_key] = {}
         self.graph_data[action_data_key]["nodes"][mp_data_key]["name"] = mp[:-self.type_offset]
-        mm_string = self.zip_file.read(structure_key + "/" + mp + "_mm.json")
+        mm_string = self.zip_file.read(elementary_action_directory + "/" + structure_key + "/" + mp + "_mm.json")
         mm_data = json.loads(mm_string)
         self.graph_data[action_data_key]["nodes"][mp_data_key]["mm"] = mm_data
         print "\t", mp
         statsfile = structure_key + "/" + (mp[:-self.type_offset] + ".stats")
         self._add_stats(action_data_key, mp_data_key, statsfile)
-        space_partition_file = structure_key + "/" + mp + "_cluster_tree.pck"
+        space_partition_file = elementary_action_directory + "/" + structure_key + "/" + mp + "_cluster_tree.pck"
         self._add_space_partioning_data_structure(action_data_key, mp_data_key, space_partition_file)
 
     def _add_stats(self, action_data_key, mp_data_key, statsfile):

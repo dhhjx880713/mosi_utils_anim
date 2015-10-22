@@ -14,7 +14,7 @@ from motion_state_group_loader import MotionStateGroupLoader
 from ..utilities.zip_io import ZipReader
 from motion_state_transition import MotionStateTransition
 from motion_state_graph import MotionStateGraph
-from . import NODE_TYPE_START, NODE_TYPE_STANDARD, TRANSITION_DEFINITION_FILE_NAME, TRANSITION_MODEL_FILE_ENDING
+from . import ELEMENTARY_ACTION_DIRECTORY_NAME, TRANSITION_MODEL_DIRECTORY_NAME, NODE_TYPE_START, NODE_TYPE_STANDARD, TRANSITION_DEFINITION_FILE_NAME, TRANSITION_MODEL_FILE_ENDING
 
         
 class MotionStateGraphLoader(object):
@@ -26,10 +26,9 @@ class MotionStateGraphLoader(object):
         self.update_stats = False
         self.motion_primitive_graph_path = None
         self.elementary_action_directory = None
-        self.transition_model_directory = None
         self.motion_primitive_node_group_builder = MotionStateGroupLoader()
 
-    def set_data_source(self, skeleton_path, motion_primitive_graph_path, transition_model_directory, load_transition_models=False, update_stats=False):
+    def set_data_source(self, skeleton_path, motion_primitive_graph_path, load_transition_models=False, update_stats=False):
         """ Set the source which is used to load the data structure into memory.
         Parameters
         ----------
@@ -46,9 +45,7 @@ class MotionStateGraphLoader(object):
         self.load_transition_models = load_transition_models
         self.update_stats = update_stats
         self.motion_primitive_graph_path = motion_primitive_graph_path
-        self.transition_model_directory = transition_model_directory
-        self.motion_primitive_node_group_builder.set_properties(self.transition_model_directory,
-                                                                self.load_transition_models)
+        self.motion_primitive_node_group_builder.set_properties(self.load_transition_models)
 
     def build(self):
         motion_primitive_graph = MotionStateGraph()
@@ -79,8 +76,9 @@ class MotionStateGraphLoader(object):
         """ Initializes the class
         """
         #load graphs representing elementary actions including transitions between actions
-        for key in next(os.walk(self.motion_primitive_graph_path))[1]:
-            subgraph_path = self. motion_primitive_graph_path+os.sep+key
+        for key in next(os.walk(self.motion_primitive_graph_path + os.sep + ELEMENTARY_ACTION_DIRECTORY_NAME))[1]:
+            subgraph_path = self. motion_primitive_graph_path + os.sep + ELEMENTARY_ACTION_DIRECTORY_NAME + os.sep + key
+            print subgraph_path
             name = key.split("_")[-1]
             self.motion_primitive_node_group_builder.set_directory_as_data_source(name, subgraph_path)
             node_group = self.motion_primitive_node_group_builder.build()
@@ -120,9 +118,9 @@ class MotionStateGraphLoader(object):
 
     def _add_transition(self, motion_primitive_graph, from_node_key, to_node_key):
         transition_model = None
-        if self.load_transition_models and self.transition_model_directory is not None:
-            transition_model_file = self.transition_model_directory\
-            +os.sep+from_node_key+"_to_"+to_node_key[0]+"_"+to_node_key[1]+TRANSITION_MODEL_FILE_ENDING
+        if self.load_transition_models:
+            transition_model_file = self.motion_primitive_graph_path + os.sep + TRANSITION_MODEL_DIRECTORY_NAME\
+            + os.sep + from_node_key + "_to_" + to_node_key[0] + "_" + to_node_key[1] + TRANSITION_MODEL_FILE_ENDING
             if os.path.isfile(transition_model_file):
                 output_gmm = motion_primitive_graph.nodes[to_node_key].gaussian_mixture_model
                 transition_model = GPMixture.load(transition_model_file,\
@@ -144,4 +142,5 @@ class MotionStateGraphLoader(object):
     def _create_edge(self, motion_primitive_graph, from_node_key, to_node_key, transition_model=None):
         transition_type = self._get_transition_type(motion_primitive_graph, from_node_key, to_node_key)
         edge = MotionStateTransition(from_node_key, to_node_key, transition_type, transition_model)
+        print "create edge", from_node_key, to_node_key
         motion_primitive_graph.nodes[from_node_key].outgoing_edges[to_node_key] = edge

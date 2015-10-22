@@ -19,13 +19,14 @@ class ElementaryActionMetaInfo(object):
         """
         Identify start and end states from meta information.
         """
-        self.meta_information = meta_information
-        for key in ["annotations", "start_states", "end_states"]:
-            assert key in self.meta_information.keys()
-        self.start_states = self.meta_information["start_states"]
-        self.end_states = self.meta_information["end_states"]
-        self.motion_primitive_annotations = self.meta_information["annotations"]
-        self._create_label_to_motion_primitive_map()
+        if meta_information is not None:
+            self.meta_information = meta_information
+            for key in ["annotations", "start_states", "end_states"]:
+                assert key in self.meta_information.keys()
+            self.start_states = self.meta_information["start_states"]
+            self.end_states = self.meta_information["end_states"]
+            self.motion_primitive_annotations = self.meta_information["annotations"]
+            self._create_label_to_motion_primitive_map()
 
     def _create_label_to_motion_primitive_map(self):
         """Create a map from semantic label to motion primitive
