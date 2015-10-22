@@ -60,15 +60,15 @@ class MotionStateGraphLoader(object):
         zip_path = self.motion_primitive_graph_path+".zip"
         zip_reader = ZipReader(zip_path, pickle_objects=True)
         graph_data = zip_reader.get_graph_data()
-        graph_definition = graph_data["transitions"]
+        transition_dict = graph_data["transitions"]
         elementary_actions = graph_data["subgraphs"]
         for action_name in elementary_actions.keys():
             self.motion_primitive_node_group_builder.set_data_from_zip(elementary_actions[action_name])
             node_group = self.motion_primitive_node_group_builder.build()
             motion_primitive_graph.nodes.update(node_group.nodes)
             motion_primitive_graph.node_groups[node_group.elementary_action_name] = node_group
-        print "add transitions between nodes from", graph_definition
-        self._set_transitions_from_dict(motion_primitive_graph, graph_definition)
+        #print "add transitions between nodes from", transition_dict
+        self._set_transitions_from_dict(motion_primitive_graph, transition_dict)
 
         self._update_attributes(motion_primitive_graph, update_stats=False)
 
@@ -89,8 +89,9 @@ class MotionStateGraphLoader(object):
         #add transitions between subgraphs and load transition models
         if os.path.isfile(graph_definition_file):
             graph_definition = load_json_file(graph_definition_file)
-            print "add transitions between subgraphs from", graph_definition_file
-            self._set_transitions_from_dict(motion_primitive_graph, graph_definition)
+            if "transitions" in graph_definition.keys():
+                print "add transitions between subgraphs from", graph_definition_file
+                self._set_transitions_from_dict(motion_primitive_graph, graph_definition["transitions"])
         else:
             print "did not find graph definition file", graph_definition_file
 
@@ -100,8 +101,7 @@ class MotionStateGraphLoader(object):
         for keys in motion_primitive_graph.node_groups.keys():
             motion_primitive_graph.node_groups[keys].update_attributes(update_stats=update_stats)
 
-    def _set_transitions_from_dict(self, motion_primitive_graph, graph_definition):
-        transition_dict = graph_definition["transitions"]
+    def _set_transitions_from_dict(self, motion_primitive_graph, transition_dict):
         
         for node_key in transition_dict:
             from_action_name = node_key.split("_")[0]
