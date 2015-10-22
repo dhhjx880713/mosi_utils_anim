@@ -189,8 +189,10 @@ class StatisticalModelTrainer(object):
         else:
             if not save_path.endswith(os.sep):
                 save_path += os.sep
-            filename = save_path + 'elementary_action_%s' % (elementary_action_name) + \
-                os.sep + self._motion_primitive_name + '_quaternion_mm.json'
+            folder_path = save_path + 'elementary_action_%s' % (elementary_action_name)
+            if not os.path.exists(folder_path):
+                os.mkdir(folder_path)
+            filename = folder_path + os.sep + self._motion_primitive_name + '_quaternion_mm.json'
         weights = self.gmm.weights_.tolist()
         means = self.gmm.means_.tolist()
         covars = self.gmm.covars_.tolist()
