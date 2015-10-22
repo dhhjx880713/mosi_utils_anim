@@ -13,6 +13,7 @@ from spatial_constraints.keyframe_constraints.pose_constraint import PoseConstra
 from spatial_constraints.keyframe_constraints.direction_constraint import DirectionConstraint
 from spatial_constraints.keyframe_constraints.pos_and_rot_constraint import PositionAndRotationConstraint
 from spatial_constraints.keyframe_constraints.pose_constraint_quat_frame import PoseConstraintQuatFrame
+from spatial_constraints.keyframe_constraints.two_hand_constraint import TwoHandConstraintSet
 
 OPTIMIZATION_MODE_ALL = "all"
 OPTIMIZATION_MODE_KEYFRAMES = "keyframes"
@@ -91,13 +92,13 @@ class MotionPrimitiveConstraintsBuilder(object):
 
     def _add_pose_constraint(self, mp_constraints):
         if mp_constraints.settings["transition_pose_constraint_factor"] > 0.0 and self.status["prev_frames"] is not None:
-            # pose_constraint_desc = self._create_frame_constraint_from_preceding_motion()
-            pose_constraint_desc = self._create_frame_constraint_angular_from_preceding_motion()
+            pose_constraint_desc = self._create_frame_constraint_from_preceding_motion()
+            #pose_constraint_desc = self._create_frame_constraint_angular_from_preceding_motion()
             pose_constraint_desc = self._map_label_to_canonical_keyframe(pose_constraint_desc)
-            # pose_constraint = PoseConstraint(self.skeleton, pose_constraint_desc, self.precision["smooth"],
-            #                                  mp_constraints.settings["transition_pose_constraint_factor"])
-            pose_constraint = PoseConstraintQuatFrame(self.skeleton, pose_constraint_desc, self.precision["smooth"],
-                                                      mp_constraints.settings["transition_pose_constraint_factor"])
+            pose_constraint = PoseConstraint(self.skeleton, pose_constraint_desc, self.precision["smooth"],
+                                              mp_constraints.settings["transition_pose_constraint_factor"])
+            #pose_constraint = PoseConstraintQuatFrame(self.skeleton, pose_constraint_desc, self.precision["smooth"],
+            #                                          mp_constraints.settings["transition_pose_constraint_factor"])
             mp_constraints.constraints.append(pose_constraint)
             mp_constraints.pose_constraint_set = True
 
@@ -149,17 +150,23 @@ class MotionPrimitiveConstraintsBuilder(object):
         """ Extract keyframe constraints of the motion primitive name.
         """
         if self.status["motion_primitive_name"] in self.action_constraints.keyframe_constraints.keys():
-            keyframe_constraint_desc_list = self.action_constraints.keyframe_constraints[
-                self.status["motion_primitive_name"]]
+            keyframe_constraint_desc_list = self.action_constraints.keyframe_constraints[self.status["motion_primitive_name"]]
             for i in xrange(len(keyframe_constraint_desc_list)):
-                if "position" in keyframe_constraint_desc_list[i].keys() \
+                if "merged" in keyframe_constraint_desc_list[i].keys():
+                    keyframe_constraint_desc = self._map_label_to_canonical_keyframe(keyframe_constraint_desc_list[i])
+                    keyframe_constraint = TwoHandConstraintSet(self.skeleton,
+                                                                keyframe_constraint_desc,
+                                                                self.precision["pos"], mp_constraints.settings["position_constraint_factor"])
+                    self._add_events_to_event_list(mp_constraints, keyframe_constraint)
+                    mp_constraints.constraints.append(keyframe_constraint)
+                elif "position" in keyframe_constraint_desc_list[i].keys() \
                         or "orientation" in keyframe_constraint_desc_list[i].keys() \
                         or "time" in keyframe_constraint_desc_list[i].keys():
                     keyframe_constraint_desc = self._map_label_to_canonical_keyframe(keyframe_constraint_desc_list[i])
                     if keyframe_constraint_desc is not None:
                         keyframe_constraint = PositionAndRotationConstraint(self.skeleton,
-                                                      keyframe_constraint_desc,
-                                                      self.precision["pos"], mp_constraints.settings["position_constraint_factor"])
+                                                                            keyframe_constraint_desc,
+                                                                            self.precision["pos"], mp_constraints.settings["position_constraint_factor"])
                         self._add_events_to_event_list(mp_constraints, keyframe_constraint)
                         mp_constraints.constraints.append(keyframe_constraint)
 
@@ -250,8 +257,9 @@ class MotionPrimitiveConstraintsBuilder(object):
     def find_closest_point_to_current_position_on_trajectory(self, step_length):
         max_arc_length = self.status["last_arc_length"] + step_length * 4.0
         closest_point, distance = self.action_constraints.root_trajectory.find_closest_point(self.status["last_pos"],
-                                                                                             min_arc_length=self.status["last_arc_length"],
-                                                                                             max_arc_length=max_arc_length)
+                                                                                             self.status["last_arc_length"],
+                                                                                             max_arc_length)
+
         if closest_point is None:
             self._raise_closest_point_search_exception(max_arc_length)
         return closest_point

@@ -25,7 +25,7 @@ class SkeletonNodeBase(object):
         global_matrix = self.get_global_matrix(quaternion_frame)
         point = np.array([0, 0, 0, 1])
         point = np.dot(global_matrix, point)
-        return point[:3].tolist()
+        return point[:3]#.tolist()
 
     def get_global_matrix(self, quaternion_frame):
         if self.parent is not None:

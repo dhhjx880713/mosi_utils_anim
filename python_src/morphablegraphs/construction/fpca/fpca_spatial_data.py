@@ -5,7 +5,7 @@ Created on Mon Aug 03 10:48:53 2015
 @author: hadu01
 """
 
-from python_src.morphablegraphs.construction.fpca.pca_functional_data import PCAFunctionalData
+from morphablegraphs.construction.fpca.pca_functional_data import PCAFunctionalData
 import numpy as np
 
 

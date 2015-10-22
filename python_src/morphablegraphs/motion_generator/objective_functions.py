@@ -258,5 +258,5 @@ def obj_global_residual_vector_and_naturalness(s, data):
         prev_frames = align_quaternion_frames(sample_frames, prev_frames, step.motion_primitive_constraints.start_pose)
         residual_vector += obj_spatial_error_residual_vector_and_naturalness(alpha.tolist()+step.parameters[step.n_spatial_components:].tolist(), step_data)
         offset += step.n_spatial_components
-    print "global error", sum(residual_vector), residual_vector
+    #print "global error", sum(residual_vector), residual_vector
     return residual_vector

@@ -42,10 +42,9 @@ class GraphWalkGenerator(GraphWalkOptimizer):
 
         super(GraphWalkGenerator, self).__init__(algorithm_config)
         motion_primitive_graph_directory = self._service_config["model_data"]
-        transition_directory = self._service_config["transition_data"]
         graph_builder = MotionStateGraphLoader()
         graph_builder.set_data_source(SKELETON_FILE, motion_primitive_graph_directory,
-                                      transition_directory, self._algorithm_config["use_transition_model"])
+                                      self._algorithm_config["use_transition_model"])
         self.motion_primitive_graph = graph_builder.build()
         self.elementary_action_generator = ElementaryActionGraphWalkGenerator(self.motion_primitive_graph,
                                                                               self._algorithm_config)

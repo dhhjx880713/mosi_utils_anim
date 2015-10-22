@@ -25,12 +25,10 @@ class MotionStateGroupLoader(object):
         self.motion_primitive_annotations = {}
         self.build_from_directory = False
         self.load_transition_models = False
-        self.transition_model_directory = None
         self.elementary_action_data = None
 
-    def set_properties(self, transition_model_directory=None, load_transition_models=False):
+    def set_properties(self, load_transition_models=False):
         self.load_transition_models = load_transition_models
-        self.transition_model_directory = transition_model_directory
         return
 
     def set_data_from_zip(self, elementary_action_data):
