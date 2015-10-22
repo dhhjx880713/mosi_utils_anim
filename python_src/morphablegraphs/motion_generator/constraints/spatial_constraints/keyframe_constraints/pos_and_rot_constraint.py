@@ -39,8 +39,8 @@ class PositionAndRotationConstraint(KeyframeConstraintBase):
             self.frame_range = RELATIVE_HUERISTIC_RANGE*self.n_canonical_frames
         else:
             self.frame_range = 0
-        self.start_keyframe = max(self.canonical_keyframe - self.frame_range, 0)
-        self.stop_keyframe = min(self.canonical_keyframe + self.frame_range, self.n_canonical_frames)
+        self.start_keyframe = int(max(self.canonical_keyframe - self.frame_range, 0))
+        self.stop_keyframe = int(min(self.canonical_keyframe + self.frame_range, self.n_canonical_frames))
         if self.start_keyframe == self.stop_keyframe:
             self.start_keyframe -= 1
         #print "RANGE", self.start_keyframe, self.stop_keyframe

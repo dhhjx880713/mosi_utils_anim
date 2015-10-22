@@ -151,9 +151,15 @@ class MotionPrimitiveSampleGenerator(object):
             gmm = graph_node.gaussian_mixture_model
         #  2) sample parameters  from the Gaussian Mixture Model based on constraints and make sure
         #     the resulting motion is valid
-        parameters, min_error = self.sample_from_gaussian_mixture_model(graph_node, gmm,
+        if not self.activate_parameter_check:
+            parameters, min_error = self.sample_from_gaussian_mixture_model(graph_node, gmm,
                                                                         motion_primitive_constraints,
                                                                         prev_frames)
+        else:
+            parameters, min_error = self.sample_from_gaussian_mixture_model_with_validity_check(graph_node, gmm,
+                                                                        motion_primitive_constraints,
+                                                                        prev_frames)
+
         return parameters
 
     def _get_random_parameters(self, mp_name, prev_mp_name="", prev_parameters=None):
@@ -200,6 +206,43 @@ class MotionPrimitiveSampleGenerator(object):
         """
         best_sample = None
         min_error = 1000000.0
+        count = 0
+        while count < self.n_random_samples:
+            parameter_sample = np.ravel(gmm.sample())
+            object_function_params = mp_node, constraints, prev_frames
+            error = obj_spatial_error_sum(parameter_sample, object_function_params)
+            if min_error > error:
+                min_error = error
+                best_sample = parameter_sample
+            count += 1
+
+        print "found best sample with distance:", min_error
+        constraints.min_error = min_error
+        return best_sample, min_error
+
+    def sample_from_gaussian_mixture_model_with_validity_check(self, mp_node, gmm, constraints, prev_frames):
+        """samples and picks the best samples out of a given set, quality measure
+        is naturalness
+
+        Parameters
+        ----------
+        * mp_node : MotionState
+            contains a motion primitive and meta information
+        * gmm : sklearn.mixture.gmm
+            The gmm to sample
+        * constraints: MotionPrimitiveConstraints
+        contains a list of dict with constraints for joints
+        * prev_frames: list
+            A list of quaternion frames
+        Returns
+        -------
+        * sample : numpy.ndarray
+            The best sample out of those which have been created
+        * error : bool
+            the error of the best sample
+        """
+        best_sample = None
+        min_error = 1000000.0
         reached_max_bad_samples = False
         tmp_bad_samples = 0
         count = 0
@@ -207,12 +250,10 @@ class MotionPrimitiveSampleGenerator(object):
             if tmp_bad_samples > self.max_bad_samples:
                     reached_max_bad_samples = True
             parameter_sample = np.ravel(gmm.sample())
-            if self.activate_parameter_check:
-                # using bounding box to check sample is good or bad
-                valid = check_sample_validity(mp_node, parameter_sample, self.skeleton)
-            else:
-                valid = True
-            if valid:                 
+            # using bounding box to check sample is good or bad
+            valid = check_sample_validity(mp_node, parameter_sample, self.skeleton)
+
+            if valid:
                 object_function_params = mp_node, constraints, prev_frames
                 error = obj_spatial_error_sum(parameter_sample, object_function_params)
                 if min_error > error:
@@ -223,11 +264,11 @@ class MotionPrimitiveSampleGenerator(object):
                 if self.verbose:
                     print "sample failed validity check"
                 tmp_bad_samples += 1
-           
+
         if reached_max_bad_samples:
             print "Warning: Failed to pick good sample from GMM"
             return best_sample, min_error
-        
+
         print "found best sample with distance:", min_error
         constraints.min_error = min_error
         return best_sample, min_error

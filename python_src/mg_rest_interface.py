@@ -68,7 +68,7 @@ class MGInputHandler(tornado.web.RequestHandler):
                 graph_walk.export_motion(self.application.service_config["output_dir"],
                               self.application.service_config[
                                   "output_filename"],
-                              add_time_stamp=False, write_log=False)
+                              add_time_stamp=False, export_details=False)
                 self.write("succcess")
             else:
                 print "answer request", not self.application.use_file_output_mode

@@ -115,6 +115,8 @@ class ElementaryActionGraphWalkGenerator(object):
                 print "Error: Could not find a transition of type", next_node_type, "from state", self.state.current_node
         else:
             print "Error: Could not find a transition from state", self.state.current_node
+            next_node = self.motion_primitive_graph.node_groups[self.action_constraints.action_name].get_random_start_state()
+            next_node_type = self.motion_primitive_graph.nodes[next_node].node_type
 
         return next_node, next_node_type
 
@@ -125,8 +127,8 @@ class ElementaryActionGraphWalkGenerator(object):
             min_arc_length = prev_graph_walk[-1].arc_length
         else:
             min_arc_length = 0.0
-        closest_point, distance = self.action_constraints.root_trajectory.find_closest_point(
-            new_quat_frames[-1][:3], min_arc_length=min_arc_length)
+
+        closest_point, distance = self.action_constraints.root_trajectory.find_closest_point(new_quat_frames[-1][:3],  min_arc_length, -1)
         new_travelled_arc_length, eval_point = self.action_constraints.root_trajectory.get_absolute_arc_length_of_point(
             closest_point, min_arc_length=prev_travelled_arc_length)
         if new_travelled_arc_length == -1:
@@ -188,7 +190,7 @@ class ElementaryActionGraphWalkGenerator(object):
     def _transition_to_next_state(self, next_node, next_node_type, motion_primitive_sample, motion_primitive_constraints, graph_walk):
         """ Concatenate frames to motion and apply smoothing """
         prev_steps = graph_walk.steps
-        graph_walk.append_quat_frames(motion_primitive_sample.get_motion_vector(False))
+        graph_walk.append_quat_frames(motion_primitive_sample.get_motion_vector())
 
         if self.action_constraints.root_trajectory is not None:
             new_travelled_arc_length = self._update_travelled_arc_length(graph_walk.get_quat_frames(), prev_steps, self.state.travelled_arc_length)

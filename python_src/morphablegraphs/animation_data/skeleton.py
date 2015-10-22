@@ -110,7 +110,7 @@ class Skeleton(object):
     def get_number_of_frame_parameters(self, rotation_type):
         n_parameters = 0
         for node_name in self.joint_map.keys():
-            if not node_name in self.tool_bones:
+            if node_name not in self.tool_bones:
                 local_parameters = self.joint_map[node_name].get_number_of_frame_parameters(rotation_type)
                 n_parameters += local_parameters
 
@@ -125,7 +125,7 @@ class Skeleton(object):
     def complete_frame_vector_from_reference(self, frame):
         new_frame = []
         for joint_name in self.joint_map.keys():
-            if not joint_name in self.tool_bones:
+            if joint_name not in self.tool_bones:
                 if joint_name in self.node_name_frame_map.keys() and self.node_name_frame_map[joint_name] > -1:
                     if joint_name == self.root:
                         joint_parameters = frame[:3].tolist()

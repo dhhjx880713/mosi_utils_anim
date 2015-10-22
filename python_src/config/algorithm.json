@@ -2,7 +2,7 @@
     "smoothing_settings": {
         "spatial_smoothing" : true,
         "time_smoothing" : false,
-        "spatial_smoothing_window" : 10,
+        "spatial_smoothing_window" : 20,
         "time_smoothing_window" : 15
     },
     "trajectory_following_settings": {
@@ -10,9 +10,10 @@
         "heuristic_step_length_factor": 1.0,
         "position_constraint_factor": 1.0,
         "step_length_approx_method": "arc_length",
-        "transition_pose_constraint_factor": 10
-    }, 
-    "use_constrained_gmm": false, 
+        "transition_pose_constraint_factor": 0.6,
+        "closest_point_search_accuracy": 0.001,
+        "closest_point_search_max_iterations": 5000
+    },
     "local_optimization_settings": {
         "start_error_threshold": 0.0,
         "error_scale_factor": 1.0,
@@ -23,6 +24,7 @@
         "max_iterations": 500
     },
     "global_spatial_optimization_settings": {
+        "max_steps":  3,
         "start_error_threshold": 4.0,
         "error_scale_factor": 1.0,
         "quality_scale_factor": 0.5,
@@ -31,6 +33,7 @@
         "max_iterations": 500
     },
     "global_time_optimization_settings": {
+        "max_steps": 10,
         "error_scale_factor": 1.0,
         "quality_scale_factor": 0.001,
         "tolerance": 0.05,
@@ -38,7 +41,7 @@
         "max_iterations": 500
     },
     "activate_cluster_search": true,
-    "n_cluster_search_candidates": 5,
+    "n_cluster_search_candidates": 1,
     "constrained_gmm_settings": {
         "precision": {
             "smooth": 5, 
@@ -50,10 +53,11 @@
     }, 
     "n_random_samples": 300,
     "use_transition_model": false, 
-    "local_optimization_mode": "keyframe",
+    "local_optimization_mode": "keyframes",
     "activate_parameter_check": false,
     "use_global_time_optimization": false,
     "use_global_spatial_optimization": false,
+    "use_constrained_gmm": false,
     "use_constraints": true,
     "debug_max_step": -1,
     "verbose": false

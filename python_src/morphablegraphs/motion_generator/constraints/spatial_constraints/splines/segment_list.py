@@ -7,10 +7,10 @@ from spline_segment import SplineSegment
 
 
 class SegmentList(object):
-    def __init__(self, segments=None):
+    def __init__(self, closest_point_search_accuracy=0.001, closest_point_search_max_iterations=5000, segments=None):
         self.segments = segments
-        self.closest_point_search_accuracy = 0.001
-        self.closest_point_search_max_iterations = 5000
+        self.closest_point_search_accuracy = closest_point_search_accuracy
+        self.closest_point_search_max_iterations = closest_point_search_max_iterations
 
     def construct_from_spline(self, spline, min_arc_length=0, max_arc_length=-1, granularity=1000):
         """ Constructs line segments out of the evualated points
@@ -124,7 +124,7 @@ class SegmentList(object):
             """
             segment_length = np.inf
             distance = np.inf
-            segment_list = SegmentList(segment.divide())
+            segment_list = SegmentList(self.closest_point_search_accuracy, self.closest_point_search_max_iterations, segment.divide())
             iteration = 0
             while segment_length > self.closest_point_search_accuracy and distance > self.closest_point_search_accuracy and iteration < self.closest_point_search_max_iterations:
                 closest_segment, distance = segment_list.find_closest_segment(point)
@@ -133,7 +133,7 @@ class SegmentList(object):
                 for v in delta:
                     s_length += v**2
                 segment_length = sqrt(segment_length)
-                segment_list = SegmentList(closest_segment.divide())
+                segment_list = SegmentList(self.closest_point_search_accuracy, self.closest_point_search_max_iterations, closest_segment.divide())
                 iteration += 1
             closest_point = closest_segment.center  # extract center of closest segment
             return closest_point, distance

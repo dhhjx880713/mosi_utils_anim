@@ -49,20 +49,20 @@ class GraphWalk(object):
         self.motion_vector.start_pose = start_pose
         self.keyframe_events_dict = dict()
         self.hand_pose_generator = None
-        self.use_time_parameters = False
+        self.use_time_parameters = True
 
-    def convert_to_motion(self, start_step=0):
-        self._convert_to_quaternion_frames(start_step)
+    def convert_to_motion(self, start_step=0, complete_motion_vector=True):
+        self._convert_to_quaternion_frames(start_step, complete_motion_vector)
         self._create_event_dict()
         self._create_frame_annotation(start_step)
         self._add_event_list_to_frame_annotation()
-        if self.hand_pose_generator is not None:
+        if self.hand_pose_generator is not None and complete_motion_vector:
+            print "generate hand poses"
             self.hand_pose_generator.generate_hand_poses(self.motion_vector, self.keyframe_events_dict)
 
-    def _convert_to_quaternion_frames(self, start_step=0):
+    def _convert_to_quaternion_frames(self, start_step=0, complete_motion_vector=True):
         """
         :param start_step:
-        :param use_time_parameters:
         :return:
         """
         if start_step == 0:
@@ -76,8 +76,9 @@ class GraphWalk(object):
             self.motion_vector.append_quat_frames(quat_frames)
             step.end_frame = self.get_num_of_frames()-1
             start_frame = step.end_frame+1
-        self.motion_vector.quat_frames = self.skeleton.complete_motion_vector_from_reference(self.motion_vector.quat_frames)
-        #print "temp quat", temp_quat_frames[0]
+        if complete_motion_vector:
+            self.motion_vector.quat_frames = self.skeleton.complete_motion_vector_from_reference(self.motion_vector.quat_frames)
+            #print "temp quat", temp_quat_frames[0]
 
     def _create_frame_annotation(self, start_step=0):
         self.frame_annotation['elementaryActionSequence'] = self.frame_annotation['elementaryActionSequence'][:start_step]
@@ -133,21 +134,25 @@ class GraphWalk(object):
                     events = keyframe_event["event_list"]
                 else:
                     events = self._merge_multiple_keyframe_events(keyframe_event["event_list"], len(keyframe_event["event_list"]))
-                if warped_keyframe not in self.keyframe_events_dict:
-                    self.keyframe_events_dict[warped_keyframe] = events
-                else:
-                    temp_event_list = events+self.keyframe_events_dict[warped_keyframe]
-                    self.keyframe_events_dict[warped_keyframe] = self._merge_multiple_keyframe_events(temp_event_list, len(temp_event_list))
+                if warped_keyframe in self.keyframe_events_dict:
+                    events = events+self.keyframe_events_dict[warped_keyframe]
+                self.keyframe_events_dict[warped_keyframe] = self._merge_multiple_keyframe_events(events, len(events))
             if self.use_time_parameters:
                 n_frames += len(time_function)
             else:
                 n_frames += step.end_frame - step.start_frame
 
     def _add_event_list_to_frame_annotation(self):
+        """
+        self.keyframe_events_dict[keyframe] m
+        :return:
+        """
         #print "keyframe event dict", self.keyframe_events_dict
         keyframe_event_list = []
         for keyframe in self.keyframe_events_dict.keys():
+            print "keyframe event dict", self.keyframe_events_dict[keyframe]
             for event_desc in self.keyframe_events_dict[keyframe]:
+                print "event description", event_desc
                 event = dict()
                 event["jointName"] = event_desc["parameters"]["joint"]
                 event_type = event_desc["event"]
@@ -244,7 +249,7 @@ class GraphWalk(object):
                     print "event dict merged", temp_event_dict[name]
                 else:
                     print "event dict merge did not happen", temp_event_dict[name]
-        return temp_event_dict
+        return temp_event_dict.values()
 
     def print_statistics(self):
         statistics_string = self.get_statistics_string()
