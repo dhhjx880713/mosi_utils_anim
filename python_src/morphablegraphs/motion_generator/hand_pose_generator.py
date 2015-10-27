@@ -24,7 +24,18 @@ class HandPoseGenerator(object):
         self.initialized = False
         return
 
-    def init_generator(self, motion_primitive_directory):
+    def init_from_desc(self, hand_pose_info):
+        self.status_change_map = hand_pose_info["status_change_map"]
+        self.right_hand_skeleton = hand_pose_info["right_hand_skeleton"]
+        self.left_hand_skeleton = hand_pose_info["left_hand_skeleton"]
+        for key in hand_pose_info["skeletonStrings"]:
+            print key
+            bvh_reader = BVHReader("").init_from_string(hand_pose_info["skeletonStrings"][key])
+            skeleton = Skeleton(bvh_reader)
+            self._add_hand_pose(key, skeleton)
+        self.initialized = True
+
+    def init_generator_from_directory(self, motion_primitive_directory):
         """
         creates a dicitionary for all possible hand poses
         TODO define in a file
@@ -46,17 +57,22 @@ class HandPoseGenerator(object):
                         print file_name[:-4]
                         bvh_reader = BVHReader(root+os.sep+file_name)
                         skeleton = Skeleton(bvh_reader)
+                        self._add_hand_pose(file_name[:-4], skeleton)
                         #motion_vector = MotionVector()
                         #motion_vector.from_bvh_reader(bvh_reader)
-                        hand_pose = HandPose()
-                        hand_pose.hand_skeletons = dict()
-                        hand_pose.hand_skeletons["RightHand"] = self.right_hand_skeleton
-                        hand_pose.hand_skeletons["LeftHand"] = self.left_hand_skeleton
-                        hand_pose.pose_vector = skeleton.reference_frame
-                        self.pose_map[file_name[:-4]] = hand_pose
+
             self.initialized = True
         else:
             print "Error: Could not load hand poses from", hand_pose_directory
+
+    def _add_hand_pose(self, name, skeleton):
+
+         hand_pose = HandPose()
+         hand_pose.hand_skeletons = dict()
+         hand_pose.hand_skeletons["RightHand"] = self.right_hand_skeleton
+         hand_pose.hand_skeletons["LeftHand"] = self.left_hand_skeleton
+         hand_pose.pose_vector = skeleton.reference_frame
+         self.pose_map[name] = hand_pose
 
     def _is_affecting_hand(self, hand, event_desc):
         if hand == "RightHand":
