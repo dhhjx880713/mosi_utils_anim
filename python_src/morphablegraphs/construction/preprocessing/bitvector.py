@@ -354,7 +354,8 @@ def detect_keyframes(frames, features, skeleton=None,
     raise ValueError('The motiontype "%s" is not supported yet' % motion_type)
 
 
-def splitt_motion(frames, keyframes, mname, skeleton_file='skeleton.bvh'):
+def splitt_motion(frames, keyframes, mname, skeleton_file='skeleton.bvh',
+                  outputpath=''):
     """ Splitt a Motion by the given Keyframes
 
     Parameters
@@ -367,13 +368,16 @@ def splitt_motion(frames, keyframes, mname, skeleton_file='skeleton.bvh'):
     mname: string
         Subfix of the splitted motions (i.e. the original name of the
         motion)
+    skeleton_file: string (optional)
+        The path to the skeleton file. Default is the 'skeleton.bvh' in the
+        current folder
+    outputpath: string (optional)
+        The path where to save the motions. Default is the current folder
 
     Returns
     -------
-    A dictionary containing a list for each feature
-    Each list contains all new Motions as AnimationData.SkeletonAnimationData
+    None
     """
-    motion_list = {feature: [] for feature in keyframes}
 
     # Calc number of steps for status update
     n = 0.0
@@ -398,7 +402,7 @@ def splitt_motion(frames, keyframes, mname, skeleton_file='skeleton.bvh'):
             subframes = frames[keyframe[0]:keyframe[1]]
             name = 'begin_' + str(keyframe[0]) + '_' + str(keyframe[1]) \
                 + '_' + feature + '_' + mname
-            BVHWriter(name, skel, subframes, 0.013889)
+            BVHWriter(outputpath + os.sep + name, skel, subframes, 0.013889)
             keyframes[feature] = keyframes[feature][1:]
 
         # last step:
@@ -407,18 +411,16 @@ def splitt_motion(frames, keyframes, mname, skeleton_file='skeleton.bvh'):
             subframes = frames[keyframe[0]:keyframe[1]]
             name = 'end_' + str(keyframe[0]) + '_' + str(keyframe[1]) \
                 + '_' + feature + '_' + mname
-            BVHWriter(name, skel, subframes, 0.013889)
+            BVHWriter(outputpath + os.sep + name, skel, subframes, 0.013889)
             keyframes[feature] = keyframes[feature][:-1]
 
         for keyframe in keyframes[feature]:
             subframes = frames[keyframe[0]:keyframe[1]]
             name = str(keyframe[0]) + '_' + str(keyframe[1]) \
                 + '_' + feature + '_' + mname
-            BVHWriter(name, skel, subframes, 0.013889)
+            BVHWriter(outputpath + os.sep + name, skel, subframes, 0.013889)
 
             counter += 1.0
-
-    return motion_list
 
 
 def filter_tpose(frames, features):
