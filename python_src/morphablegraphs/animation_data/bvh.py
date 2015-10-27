@@ -39,78 +39,101 @@ class BVHReader(object):
         self.root = ""  # needed for the bvh writer
         if infilename != "":
             infile = open(infilename, "rb")
-            self.read(infile)
+            lines = infile.readlines()
+            self.process_lines(lines)
+            infile.close()
         self.filename = os.path.split(infilename)[-1]
-        infile.close()
 
-    def _read_skeleton(self, infile):
+
+    @classmethod
+    def init_from_string(cls, skeleton_string):
+        bvh_reader = cls(infilename="")
+        lines =skeleton_string.split("\n")
+        bvh_reader.process_lines(lines)
+        return bvh_reader
+
+    def _read_skeleton(self, lines, line_index=0, n_lines=-1):
         """Reads the skeleton part of a BVH file"""
-
+        line_index = line_index
         parents = []
         level = 0
         name = None
+        if n_lines == -1:
+            n_lines = len(lines)
 
-        for line in infile:
-            if "{" in line:
-                parents.append(name)
-                level += 1
-
-            if "}" in line:
-                level -= 1
-                parents.pop(-1)
-                if level == 0:
-                    break
-
-            line_split = line.strip().split()
-
-            if line_split:
-                if line_split[0] == "ROOT":
-                    name = line_split[1]
-                    self.root = name
-                    self.node_names[name] = {
-                        "children": [], "level": level, "channels": []}
-
-                elif line_split[0] == "JOINT":
-                    name = line_split[1]
-                    self.node_names[name] = {
-                        "children": [], "level": level, "channels": []}
-                    self.node_names[parents[-1]]["children"].append(name)
-
-                elif line_split[0] == "CHANNELS":
-                    for channel in line_split[2:]:
-                        self.node_channels.append((name, channel))
-                        self.node_names[name]["channels"].append(channel)
-
-                elif line_split == ["End", "Site"]:
-                    name += "_" + "".join(line_split)
-                    self.node_names[name] = {"level": level}
-                    # also the end sites need to be adde as children
-                    self.node_names[parents[-1]]["children"].append(name)
-
-                elif line_split[0] == "OFFSET" and name in self.node_names.keys():
-                    offset = [float(x) for x in line_split[1:]]
-                    self.node_names[name]["offset"] = offset
-
-    def _read_frametime(self, infile):
-        """Reads the frametime part of a BVH file"""
-
-        for line in infile:
-            if line.startswith("Frame Time:"):
-                self.frame_time = float(line.split(":")[-1].strip())
+        while line_index < n_lines:
+            if lines[line_index].startswith("MOTION"):
                 break
 
-    def _read_frames(self, infile):
+            else:
+                #print lines[line_index]
+                if "{" in lines[line_index]:
+                    parents.append(name)
+                    level += 1
+
+                if "}" in lines[line_index]:
+                    level -= 1
+                    parents.pop(-1)
+                    if level == 0:
+                        break
+
+                line_split = lines[line_index].strip().split()
+
+                if line_split:
+
+                    if line_split[0] == "ROOT":
+                        name = line_split[1]
+                        self.root = name
+                        self.node_names[name] = {
+                            "children": [], "level": level, "channels": []}
+
+                    elif line_split[0] == "JOINT":
+                        name = line_split[1]
+                        self.node_names[name] = {
+                            "children": [], "level": level, "channels": []}
+                        self.node_names[parents[-1]]["children"].append(name)
+
+                    elif line_split[0] == "CHANNELS":
+                        for channel in line_split[2:]:
+                            self.node_channels.append((name, channel))
+                            self.node_names[name]["channels"].append(channel)
+
+                    elif line_split == ["End", "Site"]:
+                        name += "_" + "".join(line_split)
+                        self.node_names[name] = {"level": level}
+                        # also the end sites need to be adde as children
+                        self.node_names[parents[-1]]["children"].append(name)
+
+                    elif line_split[0] == "OFFSET" and name in self.node_names.keys():
+                        offset = [float(x) for x in line_split[1:]]
+                        self.node_names[name]["offset"] = offset
+                line_index += 1
+        return line_index
+
+    def _read_frametime(self, lines, line_index):
+        """Reads the frametime part of a BVH file"""
+
+        if lines[line_index].startswith("Frame Time:"):
+            self.frame_time = float(lines[line_index].split(":")[-1].strip())
+        else:
+            self.frame_time = 0.013889  # TODO use constant
+
+    def _read_frames(self, lines, line_index, n_lines=-1):
         """Reads the frames part of a BVH file"""
-
+        line_index = line_index
+        if n_lines == -1:
+            n_lines = len(lines)
         frames = []
-        for line in infile:
-
-            line_split = line.strip().split()
-            frames.append(map(float, line_split))
+        while line_index < n_lines:
+            #print lines[line_index]
+            line_split = lines[line_index].strip().split()
+            frames.append(np.array(map(float, line_split)))
+            line_index += 1
 
         self.frames = np.array(frames)
+        return line_index
 
-    def read(self, infile):
+    def process_lines(self, lines):
         """Reads BVH file infile
 
         Parameters
@@ -119,19 +142,17 @@ class BVHReader(object):
         \tBVH file
 
         """
+        line_index = 0
+        n_lines = len(lines)
+        while line_index < n_lines:
+            if lines[line_index].startswith("HIERARCHY"):
+                line_index = self._read_skeleton(lines, line_index, n_lines)
+            if lines[line_index].startswith("MOTION"):
+                self._read_frametime(lines, line_index+2)
+                line_index = self._read_frames(lines, line_index+3, n_lines)
+            else:
+                line_index += 1
 
-        for line in infile:
-            if line.startswith("HIERARCHY"):
-                break
-
-        self._read_skeleton(infile)
-
-        for line in infile:
-            if line.startswith("MOTION"):
-                break
-
-        self._read_frametime(infile)
-        self._read_frames(infile)
 
     def get_angles(self, *node_channels):
         """Returns numpy array of angles in all frames for specified channels
