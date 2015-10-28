@@ -1,6 +1,6 @@
 ﻿Morphable Graphs implementation
 Developers:
-Han Du*, Markus Mauer°, Erik Herrmann*, Martin Manns°, Fabian Rupp°
+Han Du*, Erik Herrmann*, Markus Mauer°, Martin Manns°, Fabian Rupp°
 °Daimler AG
 *DFKI GmbH
 
