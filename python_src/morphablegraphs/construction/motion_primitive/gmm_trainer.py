@@ -12,6 +12,7 @@ class GMMTrainer(object):
         self.data = data
         self.train_gmm()
         self.create_gmm()
+        self.averageScore = 0
 
     def train_gmm(self, n_K=20, DEBUG=0):
         '''
@@ -46,8 +47,8 @@ class GMMTrainer(object):
                                covariance_type='full')
         self.gmm.fit(self.data)
         scores = self.gmm.score(self.data)
-        averageScore = np.mean(scores)
-        print 'average score is:' + str(averageScore)
+        self.averageScore = np.mean(scores)
+        print 'average score is:' + str(self.averageScore)
 
     def save_model(self, filename):
         model_data = {'gmm_weights': self.gmm.weights_.tolist(),

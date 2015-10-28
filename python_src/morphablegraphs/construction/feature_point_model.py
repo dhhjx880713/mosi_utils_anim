@@ -73,6 +73,7 @@ class FeaturePointModel(object):
         training_samples = np.asarray(self.feature_points)
         gmm_trainer = GMMTrainer(training_samples)
         self.feature_point_dist = gmm_trainer.gmm
+        self.threshold = gmm_trainer.averageScore - 2
 
     def save_feature_distribution(self, save_filename):
         data = {'name': self.motion_primitive_model.name,
@@ -103,3 +104,10 @@ class FeaturePointModel(object):
 
     def evaluate_target_point(self, target_point):
         return self.feature_point_dist.score([target_point,])[0]
+
+    def check_reachability(self, target_point):
+        score = self.evaluate_target_point(target_point)
+        if score < self.threshold:
+            return False
+        else:
+            return True
