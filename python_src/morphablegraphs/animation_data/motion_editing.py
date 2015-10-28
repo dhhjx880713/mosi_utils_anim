@@ -18,7 +18,8 @@ from ..external.transformations import quaternion_matrix, euler_from_matrix, \
     quaternion_from_matrix, euler_matrix, \
     quaternion_multiply, \
     quaternion_about_axis, \
-    rotation_matrix
+    rotation_matrix, \
+    quaternion_conjugate
 
 DEFAULT_SMOOTHING_WINDOW_SIZE = 20
 LEN_QUAT = 4
@@ -731,34 +732,68 @@ def rotate_around_y_axis(point, theta):
     return transfomed_point
 
 
-def transform_point(point,
-                    euler_angles,
-                    offset,
-                    origin=None,
-                    rotation_order=["Xrotation",
-                                    "Yrotation",
-                                    "Zrotation"]):
+
+
+def transform_point_by_quaternion(point, quaternion, offset, origin=None):
     """
-    rotate point around y axis and translate it by an offset
-    Parameters
-    ---------
-    *point: list
-    \t coordinates
-    *angles: list of floats
-    \tRotation angles in degrees
-    *offset: list of floats
-    \tTranslation
+    http://math.stackexchange.com/questions/40164/how-do-you-rotate-a-vector-by-a-unit-quaternion
+    :param point:
+    :param quaternion:
+    :return:
     """
-    assert len(point) == 3, ('the point should be a list of length 3')
-    # translate point to original point
-    point = np.asarray(point)
     if origin is not None:
         origin = np.asarray(origin)
+        # print "point",point,origin
         point = point - origin
-    if not isinstance(point, list):
-        point = list(point)
-    point.append(1.0)
-    # generate rotation matrix based on rotation order
+    else:
+        origin = [0,0,0]
+    homogenous_point = np.append([0], point)
+    tmp_q = quaternion_multiply(quaternion , homogenous_point)
+    temp_q = quaternion_multiply(tmp_q, quaternion_conjugate(quaternion))
+    new_point = [temp_q[i+1] + offset[i] + origin[i] for i in xrange(3)]
+    return new_point
+
+
+def transform_point_by_quaternion_faster(point, quaternion, offset, origin=None):
+    """
+    http://blog.molecular-matters.com/2013/05/24/a-faster-quaternion-vector-multiplication/
+    :param point:
+    :param quaternion:
+    :return:
+    """
+    if origin is not None:
+        origin = np.asarray(origin)
+        # print "point",point,origin
+        point = point - origin
+    else:
+        origin = [0,0,0]
+    t = 2 * np.cross(quaternion[1:], point)
+    new_point = np.array(point) + quaternion[0] * t + np.cross(quaternion[1:], t)
+    new_point = [new_point[i] + offset[i] + origin[i] for i in xrange(3)]
+    return new_point
+
+
+def transform_point_by_quaternion_faster2(point, quaternion, offset, origin=None):
+    """
+    http://gamedev.stackexchange.com/questions/28395/rotating-vector3-by-a-quaternion
+    :param point:
+    :param quaternion:
+    :return:
+    """
+    if origin is not None:
+        origin = np.asarray(origin)
+        # print "point",point,origin
+        point = point - origin
+    else:
+        origin = [0,0,0]
+    u = quaternion[1:]
+    s = quaternion[0]
+    new_point = 2.0 * np.dot(u, point) * u + (s*s - np.dot(u, u)) * point + 2.0 * s * np.cross(u, point)
+    new_point = [new_point[i] + offset[i] + origin[i] for i in xrange(3)]
+    return new_point
+
+def euler_angles_to_rotation_matrix(euler_angles, rotation_order):
+        # generate rotation matrix based on rotation order
     assert len(
         euler_angles) == 3, ('The length of rotation angles should be 3')
     if round(euler_angles[0], 3) == 0 and round(euler_angles[2], 3) == 0:
@@ -799,6 +834,36 @@ def transform_point(point,
                                  euler_angles[1],
                                  euler_angles[2],
                                  axes='rzyx')
+    return R
+
+def transform_point(point,
+                    euler_angles,
+                    offset,
+                    origin=None,
+                    rotation_order=["Xrotation",
+                                    "Yrotation",
+                                    "Zrotation"]):
+    """
+    rotate point around y axis and translate it by an offset
+    Parameters
+    ---------
+    *point: list
+    \t coordinates
+    *angles: list of floats
+    \tRotation angles in degrees
+    *offset: list of floats
+    \tTranslation
+    """
+    assert len(point) == 3, ('the point should be a list of length 3')
+    # translate point to original point
+    point = np.asarray(point)
+    if origin is not None:
+        origin = np.asarray(origin)
+        point = point - origin
+    if not isinstance(point, list):
+        point = list(point)
+    point.append(1.0)
+    R = euler_angles_to_rotation_matrix(euler_angles, rotation_order)
     rotated_point = np.dot(R, point)
     if origin is not None:
         rotated_point[:3] += origin
@@ -940,23 +1005,22 @@ def transform_quaternion_frame(quat_frame,
         rotation_order = ["Xrotation", "Yrotation", "Zrotation"]
     transformed_frame = quat_frame[:]
     #    original_point_copy = deepcopy(original_point)
-    transformed_frame[:3] = transform_point(quat_frame[:3],
-                                            angles,
-                                            offset,
-                                            origin=origin)
     #    transformed_frame[:3] = transform_point(quat_frame[:3], [0, 0, 0], offset)
     # q = euler_to_quaternion(angles, rotation_order) # replace
-    if round(angles[0],3) == 0 and round(angles[2], 3) == 0:
+    if round(angles[0], 3) == 0 and round(angles[2], 3) == 0:
         q = quaternion_about_axis(np.deg2rad(angles[1]), [0, 1, 0])
     else:
         q = euler_to_quaternion(angles, rotation_order)
+
+    transformed_frame[:3] = transform_point(quat_frame[:3], angles, offset, origin)
+    #transformed_frame[:3] = transform_point_by_quaternion_faster2(quat_frame[:3], q, offset, origin)
     oq = quat_frame[3:7]
     rotated_q = quaternion_multiply(q, oq)
     transformed_frame[3:7] = rotated_q
     return transformed_frame
 
 
-def transform_quaternion_frames(quat_frames, angles, offset):
+def transform_quaternion_frames(quat_frames, angles, offset, rotation_order=None):
     """ Applies a transformation on the root joint of a list quaternion frames.
     Parameters
     ----------
@@ -967,19 +1031,21 @@ def transform_quaternion_frames(quat_frames, angles, offset):
     *offset:  np.ndarray
     \tTranslation
     """
-    quat_frames_copy = deepcopy(quat_frames)
-    offset = np.asarray(offset)
-    original_point = quat_frames[0][:3]
-
-    transformed_quat_frames = []
-    for frame in quat_frames_copy:
-        transformed_quat_frames.append(
-            transform_quaternion_frame(
-                frame,
-                angles,
-                offset,
-                original_point))
-    return np.array(transformed_quat_frames)
+    if rotation_order is None:
+        rotation_order = ["Xrotation", "Yrotation", "Zrotation"]
+    offset = np.array(offset)
+    original_point = np.array(deepcopy(quat_frames[0][:3]))
+    if round(angles[0], 3) == 0 and round(angles[2], 3) == 0:
+        rotation_q = quaternion_about_axis(np.deg2rad(angles[1]), [0, 1, 0])
+    else:
+        rotation_q = euler_to_quaternion(angles, rotation_order)
+    rotation_matrix = euler_angles_to_rotation_matrix(angles, rotation_order)[:3, :3]
+    for frame in quat_frames:
+        ot = frame[:3]
+        oq = frame[3:7]
+        frame[:3] = np.dot(rotation_matrix, ot-original_point) + original_point + offset
+        frame[3:7] = quaternion_multiply(rotation_q, oq)
+    return quat_frames
 
 
 def smooth_quaternion_frames(quaternion_frames, discontinuity, window=20):
@@ -1029,6 +1095,69 @@ def smooth_quaternion_frames(quaternion_frames, discontinuity, window=20):
         new_quaternion_frames.append(new_value)
     new_quaternion_frames = np.array(new_quaternion_frames).T
     return new_quaternion_frames
+
+def smooth_quaternion_frames_partially(quaternion_frames, joint_parameter_indices, discontinuity, window=20):
+    """ Smooth quaternion frames given discontinuity frame
+
+    Parameters
+    ----------
+    quaternion_frames: list
+    \tA list of quaternion frames
+    parameters_indices: list
+    \tThe list of joint parameter indices that should be smoothed
+    discontinuity : int
+    The frame where the discontinuity is. (e.g. the transitionframe)
+    window : (optional) int, default is 20
+    The smoothing window
+    Returns
+    -------
+    None.
+    """
+    n_joints = (len(quaternion_frames[0]) - 3) / 4
+    # smooth quaternion
+    n_frames = len(quaternion_frames)
+    for i in xrange(n_joints):
+         for j in xrange(n_frames - 1):
+             q1 = np.array(quaternion_frames[j][3 + i * 4: 3 + (i + 1) * 4])
+             q2 = np.array(quaternion_frames[j + 1][3 + i * 4:3 + (i + 1) * 4])
+             if np.dot(q1, q2) < 0:
+                quaternion_frames[
+                    j + 1][3 + i * 4:3 + (i + 1) * 4] = -quaternion_frames[j + 1][3 + i * 4:3 + (i + 1) * 4]
+    # generate curve of smoothing factors
+    transition_frame = float(discontinuity)
+    window_size = float(window)
+    smoothing_factors = []
+    for frame_number in xrange(n_frames):
+        value = 0.0
+        if transition_frame - window_size <= frame_number < transition_frame:
+            tmp = (frame_number - transition_frame + window_size) / window_size
+            value = 0.5 * tmp ** 2
+        elif transition_frame <= frame_number <= transition_frame + window_size:
+            tmp = (frame_number - transition_frame + window_size) / window_size
+            value = -0.5 * tmp ** 2 + 2 * tmp - 2
+        smoothing_factors.append(value)
+    #smoothing_factors = np.array(smoothing_factors)
+    transition_frame = int(transition_frame)
+    #new_quaternion_frames = []
+    magnitude_vector = np.array(quaternion_frames[transition_frame]) - quaternion_frames[transition_frame-1]
+    #print "magnitude ", magnitude_vector
+    for i in joint_parameter_indices:
+        joint_parameter_index = i*4+3
+        for frame_index in xrange(n_frames):
+            quaternion_frames[frame_index][joint_parameter_index] = quaternion_frames[frame_index][joint_parameter_index]+magnitude_vector[joint_parameter_index] * smoothing_factors[frame_index]
+    #
+    # for i in xrange(len(quaternion_frames[0])):
+    #     joint_parameter_value = quaternion_frames[:, i]
+    #     if i in joint_parameter_indices:
+    #
+    #         magnitude = joint_parameter_value[transition_frame] - joint_parameter_value[transition_frame - 1]
+    #         print "smooth", i, magnitude, smoothing_factors
+    #         new_value = joint_parameter_value + (magnitude * smoothing_factors)
+    #         new_quaternion_frames.append(new_value)
+    #     else:
+    #         new_quaternion_frames.append(joint_parameter_value)
+    # new_quaternion_frames = np.array(new_quaternion_frames).T
+    #return quaternion_frames
 
 
 def smooth_motion(euler_frames, discontinuity, window=20):
@@ -1086,6 +1215,7 @@ def smoothly_concatenate(euler_frames_a, euler_frames_b, window_size=20):
 def smoothly_concatenate_quaternion_frames(quaternion_frames_a,
                                            quaternion_frames_b,
                                            window_size=20):
+
     quaternion_frames = np.concatenate((quaternion_frames_a,
                                         quaternion_frames_b), axis=0)
     d = len(quaternion_frames_a)
