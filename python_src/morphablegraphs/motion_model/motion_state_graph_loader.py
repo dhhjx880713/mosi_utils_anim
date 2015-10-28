@@ -77,8 +77,10 @@ class MotionStateGraphLoader(object):
 
         self._update_attributes(motion_primitive_graph, update_stats=False)
 
-        motion_primitive_graph.hand_pose_generator = HandPoseGenerator(motion_primitive_graph.skeleton)
-        motion_primitive_graph.hand_pose_generator.init_from_desc(graph_data["handPoseInfo"])
+        if "handPoseInfo" in graph_data.keys():
+            motion_primitive_graph.hand_pose_generator = HandPoseGenerator(motion_primitive_graph.skeleton)
+            motion_primitive_graph.hand_pose_generator.init_from_desc(graph_data["handPoseInfo"])
+
 
     def _init_from_directory(self, motion_primitive_graph, update_stats=True):
         """ Initializes the class
