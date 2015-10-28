@@ -1,9 +1,11 @@
 __author__ = 'hadu01'
 
 import os
-from ...morphablegraphs.animation_data.bvh import BVHReader
-from ...morphablegraphs.animation_data.skeleton import Skeleton
-from ...morphablegraphs.animation_data.motion_editing import *
+import sys
+ROOTDIR = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-3]) + os.sep
+from morphablegraphs.animation_data.bvh import BVHReader
+from morphablegraphs.animation_data.skeleton import Skeleton
+from morphablegraphs.animation_data.motion_editing import *
 from ..libtest import params, pytest_generate_tests
 import numpy as np
 import copy

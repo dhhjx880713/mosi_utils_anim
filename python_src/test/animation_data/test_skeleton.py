@@ -2,8 +2,10 @@ __author__ = 'du'
 
 import os
 import collections
-from ...morphablegraphs.animation_data.bvh import BVHReader
-from ...morphablegraphs.animation_data.skeleton import Skeleton
+import sys
+ROOTDIR = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-3]) + os.sep
+from morphablegraphs.animation_data.bvh import BVHReader
+from morphablegraphs.animation_data.skeleton import Skeleton
 from ..libtest import params, pytest_generate_tests
 ROOT_DIR = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-3]) + os.sep
 TEST_DATA_PATH = ROOT_DIR +  '../test_data/animation_data'

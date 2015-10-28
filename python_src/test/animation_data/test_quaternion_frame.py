@@ -9,8 +9,10 @@ Author: Han
 """
 
 import os
-from ...morphablegraphs.animation_data.bvh import BVHReader
-from ...morphablegraphs.animation_data.quaternion_frame import QuaternionFrame
+import sys
+ROOTDIR = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-3]) + os.sep
+from morphablegraphs.animation_data.bvh import BVHReader
+from morphablegraphs.animation_data.quaternion_frame import QuaternionFrame
 from ..libtest import params, pytest_generate_tests
 ROOT_DIR = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-3]) + os.sep
 TEST_LIB_PATH = ROOT_DIR + 'test'
