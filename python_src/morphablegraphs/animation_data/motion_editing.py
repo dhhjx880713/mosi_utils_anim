@@ -836,6 +836,7 @@ def euler_angles_to_rotation_matrix(euler_angles, rotation_order):
                                  axes='rzyx')
     return R
 
+
 def transform_point(point,
                     euler_angles,
                     offset,

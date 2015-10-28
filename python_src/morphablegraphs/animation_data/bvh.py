@@ -48,7 +48,7 @@ class BVHReader(object):
     @classmethod
     def init_from_string(cls, skeleton_string):
         bvh_reader = cls(infilename="")
-        lines =skeleton_string.split("\n")
+        lines = skeleton_string.split("\n")
         bvh_reader.process_lines(lines)
         return bvh_reader
 
