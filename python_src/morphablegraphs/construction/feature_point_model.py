@@ -21,8 +21,9 @@ class FeaturePointModel(object):
         self.feature_points = []
         self.orientations = []
         self.feature_point = None
+        self.threshold = None
 
-    def create_feature_points(self, joint_name, n):
+    def create_feature_points(self, joint_name_list, n, frame_idx):
         """
         Create a set of samples, calculate target point position and orientation
         The motion sample is assumed already to be well aligned.
@@ -31,17 +32,22 @@ class FeaturePointModel(object):
         :param n:
         :return:
         """
-        self.feature_point = joint_name
+        assert type(joint_name_list) == list, 'joint names should be a list'
+        self.feature_point_list = joint_name_list
         for i in xrange(n):
             low_dimension_vector = self.motion_primitive_model.sample_low_dimensional_vector()
             motion_spline = self.motion_primitive_model.back_project(low_dimension_vector)
             self.low_dimension_vectors.append(low_dimension_vector.tolist())
             quat_frames = motion_spline.get_motion_vector()
             start_root_point = np.array(quat_frames[0][:3])
-            target_point = get_cartesian_coordinates_from_quaternion(self.skeleton,
-                                                                     self.feature_point,
-                                                                     quat_frames[-1])
-            self.feature_points.append(target_point - start_root_point)
+            tmp = []
+            for joint in self.feature_point_list:
+                target_point = get_cartesian_coordinates_from_quaternion(self.skeleton,
+                                                                         joint,
+                                                                         quat_frames[frame_idx])
+                relative_target_point = target_point - start_root_point
+                tmp.append(relative_target_point)
+            self.feature_points.append(np.ravel(tmp))
             ori_vector = pose_orientation_quat(quat_frames[-1]).tolist()
             self.orientations.append(ori_vector)
 
@@ -66,21 +72,22 @@ class FeaturePointModel(object):
             training_data = json.load(infile)
         self.low_dimension_vectors = training_data['motion_vectors']
         self.feature_points = training_data["feature_points"]
-        # self.orientations = training_data["orientations"]
+        self.orientations = training_data["orientations"]
 
     def model_feature_points(self):
         # training_samples = np.concatenate((self.feature_points, self.orientations), axis=1)
         training_samples = np.asarray(self.feature_points)
         gmm_trainer = GMMTrainer(training_samples)
         self.feature_point_dist = gmm_trainer.gmm
-        self.threshold = gmm_trainer.averageScore - 2
+        self.threshold = gmm_trainer.averageScore - 5
 
     def save_feature_distribution(self, save_filename):
         data = {'name': self.motion_primitive_model.name,
                 'feature_point': self.feature_point,
                 'gmm_weights': self.feature_point_dist.weights_.tolist(),
                 'gmm_means': self.feature_point_dist.means_.tolist(),
-                'gmm_covars': self.feature_point_dist.covars_.tolist()}
+                'gmm_covars': self.feature_point_dist.covars_.tolist(),
+                'threshold': self.threshold}
         with open(save_filename, 'wb') as outfile:
             json.dump(data, outfile)
 
@@ -101,8 +108,10 @@ class FeaturePointModel(object):
         self.feature_point_dist.means_ = np.array(data['gmm_means'])
         self.feature_point_dist.converged_ = True
         self.feature_point_dist.covars_ = np.array(data['gmm_covars'])
+        self.threshold = data['threshold']
 
     def evaluate_target_point(self, target_point):
+        assert len(target_point) == len(self.feature_points[0]), 'the length of feature is not correct'
         return self.feature_point_dist.score([target_point,])[0]
 
     def check_reachability(self, target_point):

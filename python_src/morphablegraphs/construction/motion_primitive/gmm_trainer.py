@@ -9,10 +9,11 @@ from sklearn import mixture
 class GMMTrainer(object):
     def __init__(self, data):
         assert len(data.shape) == 2, ('the data should be a 2d matrix')
+        self.averageScore = 0
         self.data = data
         self.train_gmm()
         self.create_gmm()
-        self.averageScore = 0
+
 
     def train_gmm(self, n_K=20, DEBUG=0):
         '''

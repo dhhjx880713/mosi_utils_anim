@@ -147,6 +147,30 @@ def euler_to_quaternion(
             q = -q
     return q[0], q[1], q[2], q[3]
 
+def quaternion_to_euler_smooth(q, euler_ref, rotation_order=['Xrotation',
+                                                         'Yrotation',
+                                                         'Zrotation']):
+    """
+
+    :param q: list of floats, [qw, qx, qy, qz]
+    :param euler_ref: reference euler angle in degree, pick the euler value which is closer to reference rotation
+    :param rotation_order: list of str
+    :return: euler angles in degree
+    """
+    len_angle = len(euler_ref)
+    euler_angles = quaternion_to_euler(q, rotation_order)
+    for i in xrange(len_angle):
+        if euler_ref[i] < 0:
+            diff1 = abs(euler_ref[i] - euler_angles[i])
+            diff2 = abs(euler_angles[i] - 360 - euler_ref[i])
+            if diff2 < diff1:
+                euler_angles[i] -= 360
+        else:
+            diff1 = abs(euler_ref[i] - euler_angles[i])
+            diff2 = abs(euler_angles[i] + 360 -euler_ref[i])
+            if diff2 < diff1:
+                euler_angles[i] += 360
+    return euler_angles
 
 def quaternion_to_euler(q, rotation_order=['Xrotation',
                                            'Yrotation',
@@ -367,7 +391,7 @@ def get_cartesian_coordinates_from_quaternion(skeleton,
         j_matrices = []
         count = 0
         for node_name in chain_names:
-            index = skeleton.node_name_map[node_name] * 4 + 3
+            index = skeleton.node_name_frame_map[node_name] * 4 + 3
             j_matrix = quaternion_matrix(quaternion_frame[index: index + 4])
             j_matrix[:, 3] = offsets[count] + [1]
             j_matrices.append(j_matrix)
