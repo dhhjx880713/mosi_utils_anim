@@ -147,11 +147,13 @@ class ElementaryActionConstraintsBuilder(object):
         Returns
         -------
         * trajectory: ParameterizedSpline
-        \t The trajectory defined by the control points from the trajectory_constraint
+        \t The trajectory defined by the control points from the trajectory_constraint or None if there is no constraint
         """
+        trajectory_constraint = None
         precision = 1.0
-        control_points, unconstrained_indices = self.mg_input.get_trajectory_from_constraint_list(self.current_action_index, joint_name, scale_factor)
+        control_points, unconstrained_indices, active_region = self.mg_input.get_trajectory_from_constraint_list(self.current_action_index, joint_name, scale_factor)
         if control_points is not None and unconstrained_indices is not None:
+
             trajectory_constraint = TrajectoryConstraint(joint_name,
                                                          control_points,
                                                          0,
@@ -161,6 +163,9 @@ class ElementaryActionConstraintsBuilder(object):
                                                          1.0,
                                                          self.closest_point_search_accuracy,
                                                          self.closest_point_search_max_iterations)
-            return trajectory_constraint
-        else:
-            return None
+            if active_region is not None:
+                range_start, closest_point = trajectory_constraint.get_absolute_arc_length_of_point(active_region["start_point"])
+                range_end, closest_point = trajectory_constraint.get_absolute_arc_length_of_point(active_region["end_point"])
+                trajectory_constraint.set_active_range(range_start, range_end)
+
+        return trajectory_constraint

@@ -24,7 +24,13 @@ class TrajectoryConstraint(ParameterizedSpline, SpatialConstraintBase):
         self.n_canonical_frames = 0
         self.arc_length = 0.0  # will store the full arc length after evaluation
         self.unconstrained_indices = unconstrained_indices
+        self.range_start = None
+        self.range_end = None
 
+    def set_active_range(self, range_start, range_end):
+        self.range_start = range_start
+        self.range_end = range_end
+        return
 
     def set_number_of_canonical_frames(self, n_canonical_frames):
         self.n_canonical_frames = n_canonical_frames
@@ -58,11 +64,14 @@ class TrajectoryConstraint(ParameterizedSpline, SpatialConstraintBase):
             joint_position = np.asarray(self.skeleton.get_cartesian_coordinates_from_quaternion(self.joint_name, frame))
             if last_joint_position is not None:
                 self.arc_length += np.linalg.norm(joint_position - last_joint_position)
-            target = self.query_point_by_absolute_arc_length(self.arc_length)
-            last_joint_position = joint_position
-            #target[self.unconstrained_indices] = 0
-            joint_position[self.unconstrained_indices] = 0
-            errors.append(np.linalg.norm(joint_position-target))
+            if self.range_start is None or self.range_start <= self.arc_length <= self.range_end:
+                target = self.query_point_by_absolute_arc_length(self.arc_length)
+                last_joint_position = joint_position
+                #target[self.unconstrained_indices] = 0
+                joint_position[self.unconstrained_indices] = 0
+                errors.append(np.linalg.norm(joint_position-target))
+            else:
+                errors.append(0.0)
         return errors
 
     def get_length_of_residual_vector(self):

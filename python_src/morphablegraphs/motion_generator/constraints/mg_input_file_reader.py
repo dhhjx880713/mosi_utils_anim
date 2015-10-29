@@ -79,8 +79,35 @@ class MGInputFileReader(object):
                 point = [p*scale_factor if p is not None else 0 for p in c["position"]]
                 point = self._transform_point_from_cad_to_opengl_cs(point)
                 control_points.append(point)
-            return control_points, unconstrained_indices
-        return None, None
+
+            active_region = self._check_for_collision_avoidance_annotation(trajectory_constraint_desc, control_points)
+
+            return control_points, unconstrained_indices, active_region
+        return None, None, False
+
+    def _check_for_collision_avoidance_annotation(self, trajectory_constraint_desc, control_points):
+        """ find start and end control point of an active region if there exists one.
+        Note this functions expects that there are not more than one active region.
+
+        :param trajectory_constraint_desc:
+        :param control_points:
+        :return: dict containing "start_point" and "end_point" or None
+        """
+        active_region = None
+        if "semanticAnnotation" in trajectory_constraint_desc[0].keys():
+            active_region = dict()
+            active_region["start_point"] = None
+            active_region["end_point"] = None
+            c_index = 0
+            for c in trajectory_constraint_desc:
+                if "semanticAnnotation" in c.keys():
+                    if c["semanticAnnotation"]["collisionAvoidance"]:
+                        active_region["start_point"] = control_points[c_index]
+                    elif active_region["start_point"] is not None and active_region["end_point"] is None:
+                        active_region["end_point"] = control_points[c_index]
+                        break
+                c_index += 1
+        return active_region
 
     def _extract_keyframe_annotations(self, elementary_action_list):
         """
@@ -119,15 +146,14 @@ class MGInputFileReader(object):
                 return dict()
 
     def _reorder_keyframe_constraints_for_motion_primitves(self, node_group, keyframe_constraints):
-         """ Order constraints extracted by _extract_all_keyframe_constraints for each state
-
-         Returns
-         -------
-         reordered_constraints: dict of lists
-         """
-         reordered_constraints = {}
-         #iterate over keyframe labels
-         for keyframe_label in keyframe_constraints.keys():
+        """ Order constraints extracted by _extract_all_keyframe_constraints for each state
+        Returns
+        -------
+        reordered_constraints: dict of lists
+        """
+        reordered_constraints = dict()
+        # iterate over keyframe labels
+        for keyframe_label in keyframe_constraints.keys():
             motion_primitive_name = node_group.label_to_motion_primitive_map[keyframe_label]
             time_information = node_group.motion_primitive_annotations[motion_primitive_name][keyframe_label]
             reordered_constraints[motion_primitive_name] = []
@@ -139,7 +165,7 @@ class MGInputFileReader(object):
                     # and add it to the list of constraints for that state
                     constraint_desc = self._create_keyframe_constraint(keyframe_label, joint_name, keyframe_constraint, time_information)
                     reordered_constraints[motion_primitive_name].append(constraint_desc)
-         return reordered_constraints
+        return reordered_constraints
 
     def _extract_keyframe_constraints_for_label(self, input_constraint_list, label):
         """ Returns the constraints associated with the given label. Ordered
