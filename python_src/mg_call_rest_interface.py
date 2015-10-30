@@ -28,6 +28,7 @@ def run_pipeline(service_config):
        algorithm with the input_file and standard parameters.
     """
     input_file_path = get_newest_file_from_input_directory(service_config)
+    print "loading constraints from file", input_file_path
     input_file = open(input_file_path)
     input_string = input_file.read()
     input_string = input_string.replace("RightHand", "RightToolEndSite")
