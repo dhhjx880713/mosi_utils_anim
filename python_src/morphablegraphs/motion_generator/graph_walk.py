@@ -65,17 +65,18 @@ class GraphWalk(object):
         :param start_step:
         :return:
         """
+        print "convert to motion",  self.use_time_parameters, complete_motion_vector
         if start_step == 0:
             start_frame = 0
         else:
-            start_frame = self.steps[start_step-1].end_frame
+            start_frame = self.steps[start_step].start_frame
         self.motion_vector.clear(end_frame=start_frame)
         for step in self.steps[start_step:]:
             step.start_frame = start_frame
-            quat_frames = self.motion_primitive_graph.nodes[step.node_key].back_project(step.parameters, use_time_parameters=self.use_time_parameters).get_motion_vector()
+            quat_frames = self.motion_primitive_graph.nodes[step.node_key].back_project(step.parameters, use_time_parameters=(self.use_time_parameters and complete_motion_vector)).get_motion_vector()
             self.motion_vector.append_quat_frames(quat_frames)
             step.end_frame = self.get_num_of_frames()-1
-            start_frame = step.end_frame+1
+            start_frame = step.end_frame + 1
         if complete_motion_vector:
             self.motion_vector.quat_frames = self.skeleton.complete_motion_vector_from_reference(self.motion_vector.quat_frames)
             #print "temp quat", temp_quat_frames[0]
