@@ -218,7 +218,7 @@ class ElementaryActionGraphWalkGenerator(object):
         new_step = GraphWalkEntry(self.motion_primitive_graph, next_node,
                                         motion_primitive_sample.low_dimensional_parameters,
                                         new_travelled_arc_length, self.state.step_start_frame,
-                                        graph_walk.get_num_of_frames(), motion_primitive_constraints)
+                                        graph_walk.get_num_of_frames()-1, motion_primitive_constraints)
         graph_walk.steps.append(new_step)
         self.state.update(next_node, next_node_type, new_travelled_arc_length, graph_walk.get_num_of_frames())
 
