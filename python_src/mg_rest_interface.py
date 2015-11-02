@@ -174,7 +174,7 @@ class MorphableGraphsRESTfulInterface(object):
     def __init__(self, service_config_file, algorithm_config_file):
 
         #  Load configurtation files
-        service_config = load_json_file(SERVICE_CONFIG_FILE)
+        service_config = load_json_file(service_config_file)
         algorithm_config_builder = AlgorithmConfigurationBuilder()
         if os.path.isfile(algorithm_config_file):
             algorithm_config_builder.from_json(algorithm_config_file)
