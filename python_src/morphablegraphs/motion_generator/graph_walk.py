@@ -128,15 +128,18 @@ class GraphWalk(object):
                 else:
                     warped_keyframe = n_frames+int(keyframe_event["canonical_keyframe"])
 
-                print keyframe_event["event_list"]
+                #extract events from event list
                 n_events = len(keyframe_event["event_list"])
                 if n_events == 1:
                     events = keyframe_event["event_list"]
                 else:
-                    events = self._merge_multiple_keyframe_events(keyframe_event["event_list"], len(keyframe_event["event_list"]))
+                    events = self._merge_multiple_keyframe_events(keyframe_event["event_list"], n_events)
+
+                #merge events with events of previous iterations
                 if warped_keyframe in self.keyframe_events_dict:
                     events = events+self.keyframe_events_dict[warped_keyframe]
                 self.keyframe_events_dict[warped_keyframe] = self._merge_multiple_keyframe_events(events, len(events))
+
             if self.use_time_parameters:
                 n_frames += len(time_function)
             else:
@@ -155,7 +158,11 @@ class GraphWalk(object):
                 print "event description", event_desc
                 event = dict()
                 if self.mg_input is not None and self.mg_input.activate_joint_mapping:
-                    event["jointName"] = self.mg_input.inverse_map_joint(event_desc["parameters"]["joint"])
+                    if isinstance(event_desc["parameters"]["joint"], basestring):
+                        event["jointName"] = self.mg_input.inverse_map_joint(event_desc["parameters"]["joint"])
+                    else:
+                        print "apply joint mapping"
+                        event["jointName"] = map(self.mg_input.inverse_map_joint, event_desc["parameters"]["joint"])
                 else:
                     event["jointName"] = event_desc["parameters"]["joint"]
                 event_type = event_desc["event"]
@@ -235,10 +242,10 @@ class GraphWalk(object):
         else:
            print "Error: no motion data to export"
 
-    def _merge_multiple_keyframe_events(self, annotations, num_events):
+    def _merge_multiple_keyframe_events(self, events, num_events):
         """Merge events if there are more than one event defined for the same keyframe.
         """
-        event_list = [(annotations[i]["event"], annotations[i]) for i in xrange(num_events)]
+        event_list = [(events[i]["event"], events[i]) for i in xrange(num_events)]
         temp_event_dict = dict()
         for name, event in event_list:
             if name not in temp_event_dict.keys():
@@ -246,9 +253,9 @@ class GraphWalk(object):
             else:
                 if "joint" in temp_event_dict[name]["parameters"].keys():
                     existing_entry = copy(temp_event_dict[name]["parameters"]["joint"])
-                    if isinstance(existing_entry, basestring):
+                    if isinstance(existing_entry, basestring) and event["parameters"]["joint"] != existing_entry:
                         temp_event_dict[name]["parameters"]["joint"] = [existing_entry, event["parameters"]["joint"]]
-                    else:
+                    elif event["parameters"]["joint"] not in existing_entry:
                         temp_event_dict[name]["parameters"]["joint"].append(event["parameters"]["joint"])
                     print "event dict merged", temp_event_dict[name]
                 else:
