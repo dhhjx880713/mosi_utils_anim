@@ -8,6 +8,10 @@ import numpy as np
 from math import sqrt, acos
 from catmull_rom_spline import CatmullRomSpline
 from segment_list import SegmentList
+LOWER_VALUE_SEARCH_FOUND_EXTACT_VALUE = 0
+LOWER_VALUE_SEARCH_FOUND_LOWER_VALUE = 1
+LOWER_VALUE_SEARCH_VALUE_TOO_SMALL = 2
+LOWER_VALUE_SEARCH_VALUE_TOO_LARGE = 3
 
 
 def get_closest_lower_value(arr, left, right, value, getter=lambda A, i: A[i]):
@@ -30,17 +34,17 @@ def get_closest_lower_value(arr, left, right, value, getter=lambda A, i: A[i]):
         elif test_value < value:
             return get_closest_lower_value(arr, i_mid, right, value, getter)
         else:
-            return i_mid, 0
+            return i_mid, LOWER_VALUE_SEARCH_FOUND_EXTACT_VALUE
     else:  # always return the lowest closest value if no value was found, see flags for the cases
         left_value = getter(arr, left)
         right_value = getter(arr, right)
         if value >= left_value:
             if value <= right_value:
-                return left, 1
+                return left, LOWER_VALUE_SEARCH_FOUND_LOWER_VALUE
             else:
-                return right, 2
+                return right, LOWER_VALUE_SEARCH_VALUE_TOO_SMALL
         else:
-            return left, 3
+            return left, LOWER_VALUE_SEARCH_VALUE_TOO_LARGE
 
 
 class ParameterizedSpline(object):
@@ -112,12 +116,12 @@ class ParameterizedSpline(object):
         for accumulated_step in accumulated_steps:
             point = self.query_point_by_parameter(accumulated_step)
             if last_point is not None:
-                delta = []
-                d = 0
-                while d < self.spline.dimensions:
-                    delta.append((point[d] - last_point[d])**2)
-                    d += 1
-                self.full_arc_length += sqrt(np.sum(delta))
+                #delta = []
+                #d = 0
+                #while d < self.spline.dimensions:
+                #    delta.append((point[d] - last_point[d])**2)
+                #    d += 1
+                self.full_arc_length += np.linalg.norm(point-last_point)#sqrt(np.sum(delta))
             self._relative_arc_length_map.append(
                 [accumulated_step, self.full_arc_length])
             number_of_evalulations += 1
@@ -125,7 +129,7 @@ class ParameterizedSpline(object):
 
         # normalize values
         if self.full_arc_length > 0:
-            for i in range(number_of_evalulations):
+            for i in xrange(number_of_evalulations):
                 self._relative_arc_length_map[i][1] /= self.full_arc_length
         return
 
@@ -141,13 +145,13 @@ class ParameterizedSpline(object):
             # print "sample",accumulated_step
             point = self.query_point_by_parameter(accumulated_step)
             if point is not None:
-                delta = []
-                d = 0
-                while d < self.spline.dimensions:
-                    sq_k = (point[d] - last_point[d])**2
-                    delta.append(sq_k)
-                    d += 1
-                arc_length += sqrt(np.sum(delta))
+                #delta = []
+                #d = 0
+                #while d < self.spline.dimensions:
+                #    sq_k = (point[d] - last_point[d])**2
+                #    delta.append(sq_k)
+                #    d += 1
+                arc_length += np.lnalg.norm(point-last_point)#sqrt(np.sum(delta))
                 last_point = point
                 # print point
             else:
@@ -158,7 +162,7 @@ class ParameterizedSpline(object):
         return arc_length
 
     def get_absolute_arc_length(self, t):
-        """Returns the absolute arc length given a paramter value
+        """Returns the absolute arc length given a parameter value
         #SLIDE 29
         http://pages.cpsc.ucalgary.ca/~jungle/587/pdf/5-interpolation.pdf
         gets absolute arc length based on t in relative arc length [0..1]
@@ -173,8 +177,7 @@ class ParameterizedSpline(object):
             arc_length = a_i + ((t - t_i) / (t_i_1 - t_i)) * (a_i_1 - a_i)
             arc_length *= self.full_arc_length
         else:
-            arc_length = self._relative_arc_length_map[
-                table_index][1] * self.full_arc_length
+            arc_length = self._relative_arc_length_map[table_index][1] * self.full_arc_length
         return arc_length
 
     def query_point_by_parameter(self, u):
@@ -187,18 +190,17 @@ class ParameterizedSpline(object):
         http://pages.cpsc.ucalgary.ca/~jungle/587/pdf/5-interpolation.pdf
         """
 
-        point = np.zeros((1, self.spline.dimensions))  # source of bug
+        #point = np.zeros((1, self.spline.dimensions))  # source of bug
         if absolute_arc_length <= self.full_arc_length:
             # parameterize curve by arc length
             relative_arc_length = absolute_arc_length / self.full_arc_length
-            point = self.query_point_by_relative_arc_length(
-                relative_arc_length)
+            return self.query_point_by_relative_arc_length(relative_arc_length)
             #point = self.query_point_by_parameter(relative_arc_length)
         else:
             # return last control point
-            point = self.spline.get_last_control_point()
+            return self.spline.get_last_control_point()
             #raise ValueError('%f exceeded arc length %f' % (absolute_arc_length,self.full_arc_length))
-        return point
+        #return point
 
     def map_relative_arc_length_to_parameter(self, relative_arc_length):
         """
@@ -211,10 +213,9 @@ class ParameterizedSpline(object):
         if not found_exact_value:
             alpha = (relative_arc_length - floorL) / (ceilL - floorL)
             #t = floorL+alpha*(ceilL-floorL)
-            u = floorP + alpha * (ceilP - floorP)
+            return floorP + alpha * (ceilP - floorP)
         else:
-            u = floorP
-        return u
+            return floorP
 
     def query_point_by_relative_arc_length(self, relative_arc_length):
         """Converts relative arc length into a spline parameter between 0 and 1
@@ -233,7 +234,7 @@ class ParameterizedSpline(object):
         """ Evaluates a point with absoluteArcLength on self to get a point on the path
         then the distance between the given position and the point on the path is returned
         """
-        point_on_path = self.get_point_at_absolute_arc_length(
+        point_on_path = self.query_point_by_absolute_arc_length(
             absolute_arc_length)
         return np.linalg.norm(point - point_on_path)
 
@@ -258,36 +259,34 @@ class ParameterizedSpline(object):
                                          getter=lambda A, i: A[i][1])
         # print result
         index = result[0]
-        if result[1] == 0:  # found exact value
-            floorP, ceilP = self._relative_arc_length_map[index][
-                0], self._relative_arc_length_map[index][0]
-            floorL, ceilL = self._relative_arc_length_map[index][
-                1], self._relative_arc_length_map[index][1]
-            found_exact_value = True
-        elif result[1] == 1:  # found lower value
-            floorP = self._relative_arc_length_map[index][0]
-            floorL = self._relative_arc_length_map[index][1]
-            if index < len(
-                    self._relative_arc_length_map):  # check array bounds
-                ceilP = self._relative_arc_length_map[index + 1][0]
-                ceilL = self._relative_arc_length_map[index + 1][1]
-                found_exact_value = False
-            else:
-                found_exact_value = True
-                ceilP = floorP
-                ceilL = floorL
-        elif result[1] == 2:  # value smaller than smallest element in the array
+        if result[1] == LOWER_VALUE_SEARCH_VALUE_TOO_SMALL:  # value smaller than smallest element in the array, take smallest value
             ceilP = self._relative_arc_length_map[index][0]
             floorL = self._relative_arc_length_map[index][1]
             floorP = ceilP
             ceilL = floorL
-            found_exact_value = True
-        elif result[1] == 3:  # value larger than largest element in the array
+            #found_exact_value = True
+        elif result[1] == LOWER_VALUE_SEARCH_VALUE_TOO_LARGE:  # value larger than largest element in the array, take largest value
             ceilP = self._relative_arc_length_map[index][0]
             ceilL = self._relative_arc_length_map[index][1]
             floorP = ceilP
             floorL = ceilL
-            found_exact_value = True
+            #found_exact_value = True
+        elif result[1] == LOWER_VALUE_SEARCH_FOUND_EXTACT_VALUE:  # found exact value
+            floorP, ceilP = self._relative_arc_length_map[index][0], self._relative_arc_length_map[index][0]
+            floorL, ceilL = self._relative_arc_length_map[index][1], self._relative_arc_length_map[index][1]
+            #found_exact_value = True
+        elif result[1] == LOWER_VALUE_SEARCH_FOUND_LOWER_VALUE:  # found lower value
+            floorP = self._relative_arc_length_map[index][0]
+            floorL = self._relative_arc_length_map[index][1]
+            if index < len(self._relative_arc_length_map):  # check array bounds
+                ceilP = self._relative_arc_length_map[index + 1][0]
+                ceilL = self._relative_arc_length_map[index + 1][1]
+                found_exact_value = False
+            else:
+                #found_exact_value = True
+                ceilP = floorP
+                ceilL = floorL
+
         # print relative_arc_length,floorL,ceilL,found_exact_value
         return floorP, ceilP, floorL, ceilL, found_exact_value
 
@@ -298,8 +297,7 @@ class ParameterizedSpline(object):
         num_points = len(self.control_points) - 3
         index = 1
         while index < num_points:
-            eval_arc_length, eval_point = self.get_absolute_arc_length_of_point(
-                self.spline.control_points[index])
+            eval_arc_length, eval_point = self.get_absolute_arc_length_of_point(self.spline.control_points[index])
             print 'check arc length', index, eval_arc_length
             if arc_length < eval_arc_length:
                 min_index = index
@@ -373,11 +371,12 @@ class ParameterizedSpline(object):
         while u <= 1.0:
             if self.get_absolute_arc_length(u) > min_arc_length:
                 eval_point = self.query_point_by_parameter(u)
-                delta = eval_point - point
-                distance = 0
-                for v in delta:
-                    distance += v**2
-                distance = sqrt(distance)
+                #delta = eval_point - point
+                #distance = 0
+                #for v in delta:
+                #    distance += v**2
+                #distance = sqrt(distance)
+                distance = np.linalg.norm(eval_point-point)
                 if distance < min_distance:
                     min_distance = distance
                     min_u = u
