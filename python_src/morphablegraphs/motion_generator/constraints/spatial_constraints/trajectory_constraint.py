@@ -4,10 +4,10 @@ import numpy as np
 from splines.parameterized_spline import ParameterizedSpline
 from spatial_constraint_base import SpatialConstraintBase
 from ....animation_data.motion_editing import get_cartesian_coordinates_from_quaternion
+from discrete_trajectory_constraint import DiscreteTrajectoryConstraint
 from . import SPATIAL_CONSTRAINT_TYPE_TRAJECTORY
 
 TRAJECTORY_DIM = 3  # spline in cartesian space
-
 
 class TrajectoryConstraint(ParameterizedSpline, SpatialConstraintBase):
     def __init__(self, joint_name, control_points, min_arc_length, unconstrained_indices, skeleton, precision, weight_factor=1.0,
@@ -27,10 +27,14 @@ class TrajectoryConstraint(ParameterizedSpline, SpatialConstraintBase):
         self.range_start = None
         self.range_end = None
 
+    def create_discrete_trajectory(self, aligned_quat_frames):
+        discrete_trajectory_constraint = DiscreteTrajectoryConstraint(self.joint_name, self.skeleton, self.precision, self.weight_factor)
+        discrete_trajectory_constraint.init_from_trajectory(self, aligned_quat_frames, self.min_arc_length)
+        return discrete_trajectory_constraint
+
     def set_active_range(self, range_start, range_end):
         self.range_start = range_start
         self.range_end = range_end
-        return
 
     def set_number_of_canonical_frames(self, n_canonical_frames):
         self.n_canonical_frames = n_canonical_frames
@@ -42,7 +46,11 @@ class TrajectoryConstraint(ParameterizedSpline, SpatialConstraintBase):
         """
         point = self.skeleton.get_cartesian_coordinates_from_quaternion(self.joint_name, previous_frames[-1])
         closest_point, distance = self.find_closest_point(point, self.min_arc_length, -1)
-        self.min_arc_length = self.get_absolute_arc_length_of_point(closest_point)[0]
+        if closest_point is not None:
+            self.min_arc_length = self.get_absolute_arc_length_of_point(closest_point)[0]
+        else:
+            self.min_arc_length = self.full_arc_length
+
 
     def evaluate_motion_sample(self, aligned_quat_frames):
         """
@@ -58,6 +66,9 @@ class TrajectoryConstraint(ParameterizedSpline, SpatialConstraintBase):
         :return: the residual vector
         """
         self.arc_length = self.min_arc_length
+        #if self.arc_length is None:
+        #    return np.zeros(len(aligned_quat_frames))
+
         last_joint_position = None
         errors = []
         for frame in aligned_quat_frames:
