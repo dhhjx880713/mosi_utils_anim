@@ -1,14 +1,16 @@
 __author__ = 'erhe01'
 
+from copy import deepcopy
 from optimization.optimizer_builder import OptimizerBuilder
 from constraints.time_constraints_builder import TimeConstraintsBuilder
 from constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE, SPATIAL_CONSTRAINT_TYPE_TRAJECTORY
-
+from constraints.motion_primitive_constraints import MotionPrimitiveConstraints
 
 class GraphWalkOptimizer(object):
     def __init__(self, algorithm_config):
         self.time_error_minimizer = OptimizerBuilder(algorithm_config).build_time_error_minimizer()
         self.global_error_minimizer = OptimizerBuilder(algorithm_config).build_global_error_minimizer_residual()
+        self.collision_avoidance_error_minimizer = OptimizerBuilder(algorithm_config).build_spatial_error_minimizer()
 
     def _optimize_over_graph_walk(self, graph_walk, start_step=-1):
         #if start_step < 0:
@@ -45,10 +47,10 @@ class GraphWalkOptimizer(object):
                                     prev_frames))
             optimal_parameters = self.global_error_minimizer.run(initial_guess)
             graph_walk.update_spatial_parameters(optimal_parameters, start_step)
-            keyframe_error = graph_walk.get_average_keyframe_constraint_error()
+            #keyframe_error = graph_walk.get_average_keyframe_constraint_error()
             graph_walk.convert_to_motion(0, complete_motion_vector=False)
             #graph_walk.export_motion("test", "test.bvh", True)
-            print keyframe_error
+            #print keyframe_error
         else:
             print "no user defined constraints"
         return graph_walk
@@ -66,5 +68,42 @@ class GraphWalkOptimizer(object):
             optimal_parameters = self.time_error_minimizer.run(initial_guess)
             graph_walk.update_time_parameters(optimal_parameters, start_step)
             graph_walk.convert_to_motion(start_step)
+
+        return graph_walk
+
+    def _optimize_for_collision_avoidance_constraints(self, graph_walk, action_constraints, start_step=0):
+        #return graph_walk
+        #original_frames = deepcopy(graph_walk.get_quat_frames())
+        reduced_motion_vector = deepcopy(graph_walk.motion_vector)
+        reduced_motion_vector.reduce_frames(graph_walk.steps[start_step].start_frame)
+        print "start frame", graph_walk.steps[start_step].start_frame
+        step_index = start_step
+        n_steps = len(graph_walk.steps)
+        print reduced_motion_vector.n_frames, graph_walk.get_num_of_frames(), reduced_motion_vector.n_frames - graph_walk.get_num_of_frames()
+        while step_index < n_steps:
+            node = self.motion_primitive_graph.nodes[graph_walk.steps[step_index].node_key]
+            print graph_walk.steps[step_index].node_key, node.n_canonical_frames, graph_walk.steps[step_index].start_frame
+            motion_primitive_constraints = MotionPrimitiveConstraints()
+            active_constraint = False
+            for trajectory in action_constraints.collision_avoidance_constraints:
+                trajectory.set_min_arc_length_from_previous_frames(reduced_motion_vector.quat_frames)
+                ##if trajectory.range_start < trajectory.min_arc_length+50 and trajectory.min_arc_length < trajectory.range_end:
+                trajectory.set_number_of_canonical_frames(node.n_canonical_frames)
+                #discrete_trajectory = trajectory.create_discrete_trajectory(original_frames[step.start_frame:step.end_frame])
+                motion_primitive_constraints.constraints.append(trajectory)
+                active_constraint = True
+            if active_constraint:
+                data = (node, motion_primitive_constraints, reduced_motion_vector.quat_frames,
+                        self._algorithm_config["local_optimization_settings"]["error_scale_factor"],
+                        self._algorithm_config["local_optimization_settings"]["quality_scale_factor"])
+                self.collision_avoidance_error_minimizer.set_objective_function_parameters(data)
+                graph_walk.steps[step_index].parameters = self.collision_avoidance_error_minimizer.run(graph_walk.steps[step_index].parameters)
+            motion_primitive_sample = node.back_project(graph_walk.steps[step_index].parameters, use_time_parameters=False)
+            reduced_motion_vector.append_quat_frames(motion_primitive_sample.get_motion_vector())
+            step_index += 1
+        #print reduced_motion_vector.n_frames, graph_walk.get_num_of_frames()
+        print step_index, len(graph_walk.steps)
+        assert (len(graph_walk.motion_vector.quat_frames)) == len(reduced_motion_vector.quat_frames), (str(len(graph_walk.motion_vector.quat_frames))) + "," + str(len(reduced_motion_vector.quat_frames))
+        graph_walk.motion_vector = reduced_motion_vector
 
         return graph_walk

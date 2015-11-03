@@ -65,7 +65,6 @@ class GraphWalk(object):
         :param start_step:
         :return:
         """
-        print "convert to motion",  self.use_time_parameters, complete_motion_vector
         if start_step == 0:
             start_frame = 0
         else:

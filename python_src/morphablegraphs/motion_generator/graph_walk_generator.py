@@ -139,11 +139,16 @@ class GraphWalkGenerator(GraphWalkOptimizer):
             if not success:
                 print "Arborting conversion"
                 return graph_walk
-            print "has user constraints", action_constraints.contains_user_constraints
+
+            #print "has user constraints", action_constraints.contains_user_constraints
             if self._algorithm_config["use_global_spatial_optimization"] and action_constraints.contains_user_constraints:
-                print "spatial graph walk optimization"
+                #print "spatial graph walk optimization"
                 start_step = max(self.elementary_action_generator.state.start_step-self._global_spatial_optimization_steps, 0)
                 graph_walk = self._optimize_spatial_parameters_over_graph_walk(graph_walk, start_step)
+
+            if self._algorithm_config["use_collision_avoidance_constraints"] and action_constraints.collision_avoidance_constraints is not None and len(action_constraints.collision_avoidance_constraints) > 0 :
+                print "optimize collision avoidance parameters"
+                graph_walk = self._optimize_for_collision_avoidance_constraints(graph_walk, action_constraints, self.elementary_action_generator.state.start_step)
 
             action_constraints = elementary_action_constraints_builder.get_next_elementary_action_constraints()
 
