@@ -127,17 +127,21 @@ class ElementaryActionConstraintsBuilder(object):
             return constraint_list
 
     def _add_trajectory_constraints(self, action_constraints):
-        """ Note: only trajectories on the Hips joint are supported for path following with direction constraints
-           the other trajectories are only used  for calculating the euclidean distance
+        """ Extracts the root_trajectory if it is found and trajectories for other joints.
+            If semanticAnnotation is found they are treated as collision avoidance constraint.
         """
         root_joint_name = self.motion_primitive_graph.skeleton.root
         action_constraints.root_trajectory = self._create_trajectory_from_constraint_desc(root_joint_name)
         action_constraints.trajectory_constraints = []
+        action_constraints.collision_avoidance_constraints = []
         for joint_name in self.motion_primitive_graph.skeleton.node_name_frame_map.keys():
             if joint_name != root_joint_name:
                 trajectory_constraint = self._create_trajectory_from_constraint_desc(joint_name)
                 if trajectory_constraint is not None:
-                    action_constraints.trajectory_constraints.append(trajectory_constraint)
+                    if trajectory_constraint.range_start is None:
+                        action_constraints.trajectory_constraints.append(trajectory_constraint)
+                    else:
+                        action_constraints.collision_avoidance_constraints.append(trajectory_constraint)
 
     def _create_trajectory_from_constraint_desc(self, joint_name, scale_factor=1.0):
         """ Create a spline based on a trajectory constraint definition read from the input file.
