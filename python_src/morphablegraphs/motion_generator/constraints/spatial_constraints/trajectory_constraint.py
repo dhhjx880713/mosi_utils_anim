@@ -44,12 +44,15 @@ class TrajectoryConstraint(ParameterizedSpline, SpatialConstraintBase):
             in the last frame of the previous frames.
         :param previous_frames: list of quaternion frames.
         """
-        point = self.skeleton.get_cartesian_coordinates_from_quaternion(self.joint_name, previous_frames[-1])
-        closest_point, distance = self.find_closest_point(point, self.min_arc_length, -1)
-        if closest_point is not None:
-            self.min_arc_length = self.get_absolute_arc_length_of_point(closest_point)[0]
+        if len(previous_frames > 0):
+            point = self.skeleton.get_cartesian_coordinates_from_quaternion(self.joint_name, previous_frames[-1])
+            closest_point, distance = self.find_closest_point(point, self.min_arc_length, -1)
+            if closest_point is not None:
+                self.min_arc_length = self.get_absolute_arc_length_of_point(closest_point)[0]
+            else:
+                self.min_arc_length = self.full_arc_length
         else:
-            self.min_arc_length = self.full_arc_length
+            self.min_arc_length = 0.0
 
 
     def evaluate_motion_sample(self, aligned_quat_frames):
