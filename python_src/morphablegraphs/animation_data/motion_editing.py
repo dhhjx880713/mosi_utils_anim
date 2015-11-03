@@ -1097,6 +1097,7 @@ def smooth_quaternion_frames(quaternion_frames, discontinuity, window=20):
     new_quaternion_frames = np.array(new_quaternion_frames).T
     return new_quaternion_frames
 
+
 def smooth_quaternion_frames_partially(quaternion_frames, joint_parameter_indices, discontinuity, window=20):
     """ Smooth quaternion frames given discontinuity frame
 
@@ -1434,6 +1435,7 @@ def calculate_frame_distance(skeleton,
     else:
         return error
 
+
 def quat_distance(quat_a, quat_b):
     # normalize quaternion vector first
     quat_a = np.asarray(quat_a)
@@ -1446,6 +1448,7 @@ def quat_distance(quat_a, quat_b):
     tmp = np.ravel(diff_mat)
     diff = np.linalg.norm(tmp)
     return diff
+
 
 def calculate_weighted_frame_distance_quat(quat_frame_a,
                                            quat_frame_b,
@@ -1624,6 +1627,7 @@ def rotate_euler_frames(euler_frames,
                                             translation)
     return rotated_frames
 
+
 def upvector_correction(filefolder,
                         frame_idx,
                         ref_upvector,
@@ -1657,7 +1661,8 @@ def rotate_euler_frames_about_x_axis(euler_frames,
     rotated_frames = transform_euler_frames(euler_frames,
                                             [rot_angle, 0, 0],
                                             translation)
-    return  rotated_frames
+    return rotated_frames
+
 
 def is_vertical_pose_euler(euler_frame):
     ref_vec = np.array([1, 0, 0, 1])
@@ -1672,6 +1677,7 @@ def is_vertical_pose_euler(euler_frame):
     else:
         return False
 
+
 def is_vertical_pose_quat(quat_frame):
     quat_hip = np.asarray(quat_frame[3:7])
     ref_vec = np.array([1, 0, 0, 1])
@@ -1681,6 +1687,7 @@ def is_vertical_pose_quat(quat_frame):
         return True
     else:
         return False
+
 
 def pose_up_vector_euler(euler_frame):
     """
@@ -1700,6 +1707,7 @@ def pose_up_vector_euler(euler_frame):
     up_vec = np.array([rotated_point[0], rotated_point[1]])
     up_vec /= np.linalg.norm(up_vec)
     return up_vec
+
 
 def pose_up_vector_quat(quat_frame):
     """
