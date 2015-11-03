@@ -31,8 +31,8 @@ def run_pipeline(service_config):
     print "loading constraints from file", input_file_path
     input_file = open(input_file_path)
     input_string = input_file.read()
-    input_string = input_string.replace("RightHand", "RightToolEndSite")
-    input_string = input_string.replace("LeftHand", "LeftToolEndSite")
+    #input_string = input_string.replace("RightHand", "RightToolEndSite")
+    #input_string = input_string.replace("LeftHand", "LeftToolEndSite")
     mg_input = json.loads(input_string)
     #mg_input = load_json_file(input_file)
     data = json.dumps(mg_input)

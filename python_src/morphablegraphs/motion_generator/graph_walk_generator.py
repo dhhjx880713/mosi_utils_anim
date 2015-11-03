@@ -21,7 +21,6 @@ from graph_walk import GraphWalk
 from graph_walk_optimizer import GraphWalkOptimizer
 
 
-
 class GraphWalkGenerator(GraphWalkOptimizer):
     """
     Creates a MotionPrimitiveGraph instance and provides a method to synthesize a
@@ -64,7 +63,7 @@ class GraphWalkGenerator(GraphWalkOptimizer):
         self.elementary_action_generator.set_algorithm_config(self._algorithm_config)
         self._global_spatial_optimization_steps = self._algorithm_config["global_spatial_optimization_settings"]["max_steps"]
 
-    def generate_graph_walk(self, mg_input, export=True):
+    def generate_graph_walk(self, mg_input, export=True, activate_joint_map=False):
         """
         Converts a json input file with a list of elementary actions and constraints 
         into a graph_walk saved to a BVH file.
@@ -86,7 +85,7 @@ class GraphWalkGenerator(GraphWalkOptimizer):
         if type(mg_input) != dict:
             mg_input = load_json_file(mg_input)
         start = time.clock()
-        input_file_reader = MGInputFileReader(mg_input)
+        input_file_reader = MGInputFileReader(mg_input, activate_joint_map)
         elementary_action_constraints_builder = ElementaryActionConstraintsBuilder(input_file_reader, self.motion_primitive_graph, self._algorithm_config)
         graph_walk = self._generate_graph_walk_from_constraints(elementary_action_constraints_builder)
         if self._algorithm_config["use_global_time_optimization"]:
@@ -122,7 +121,7 @@ class GraphWalkGenerator(GraphWalkOptimizer):
         graph_walk = GraphWalk(self.motion_primitive_graph,
                               elementary_action_constraints_builder.start_pose,
                               self._algorithm_config)
-        graph_walk.mg_input = elementary_action_constraints_builder.get_mg_input_file()
+        graph_walk.mg_input = elementary_action_constraints_builder.mg_input
         graph_walk.hand_pose_generator = self.motion_primitive_graph.hand_pose_generator
         action_constraints = elementary_action_constraints_builder.get_next_elementary_action_constraints()
         while action_constraints is not None:

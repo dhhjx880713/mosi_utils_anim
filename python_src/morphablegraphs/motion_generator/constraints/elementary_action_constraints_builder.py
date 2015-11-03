@@ -47,9 +47,6 @@ class ElementaryActionConstraintsBuilder(object):
         else:
             return None
 
-    def get_mg_input_file(self):
-        return self.mg_input.mg_input_file
-
     def _build(self):
         if self.current_action_index < self.n_actions:
             action_constraints = ElementaryActionConstraints()

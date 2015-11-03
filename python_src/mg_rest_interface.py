@@ -135,10 +135,11 @@ class MGRestApplication(tornado.web.Application):
         self.algorithm_config = algorithm_config
         self.service_config = service_config
         self.use_file_output_mode = (service_config["output_mode"] == "file_output")
+        self.activate_joint_map = service_config["activate_joint_map"]
         print "send result as answer to the request", not self.use_file_output_mode
 
     def generate_graph_walk(self, mg_input):
-        return self.graph_walk_generator.generate_graph_walk(mg_input, export=False)
+        return self.graph_walk_generator.generate_graph_walk(mg_input, export=False, activate_joint_map=self.activate_joint_map)
 
     def set_algorithm_config(self, algorithm_config):
         self.graph_walk_generator.set_algorithm_config(algorithm_config)

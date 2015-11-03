@@ -53,7 +53,7 @@
     }, 
     "n_random_samples": 300,
     "use_transition_model": false, 
-    "local_optimization_mode": "none",
+    "local_optimization_mode": "keyframes",
     "activate_parameter_check": false,
     "use_global_time_optimization": false,
     "use_global_spatial_optimization": true,

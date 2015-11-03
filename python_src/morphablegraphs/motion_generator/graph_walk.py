@@ -43,7 +43,7 @@ class GraphWalk(object):
         self.frame_annotation = dict()
         self.frame_annotation['elementaryActionSequence'] = []
         self.step_count = 0
-        self.mg_input = dict()
+        self.mg_input = None
         self._algorithm_config = algorithm_config
         self.motion_vector = MotionVector(algorithm_config)
         self.motion_vector.start_pose = start_pose
@@ -150,11 +150,14 @@ class GraphWalk(object):
         #print "keyframe event dict", self.keyframe_events_dict
         keyframe_event_list = []
         for keyframe in self.keyframe_events_dict.keys():
-            print "keyframe event dict", self.keyframe_events_dict[keyframe]
+            #rint "keyframe event dict", self.keyframe_events_dict[keyframe]
             for event_desc in self.keyframe_events_dict[keyframe]:
                 print "event description", event_desc
                 event = dict()
-                event["jointName"] = event_desc["parameters"]["joint"]
+                if self.mg_input is not None and self.mg_input.activate_joint_mapping:
+                    event["jointName"] = self.mg_input.inverse_map_joint(event_desc["parameters"]["joint"])
+                else:
+                    event["jointName"] = event_desc["parameters"]["joint"]
                 event_type = event_desc["event"]
                 target = event_desc["parameters"]["target"]
                 event[event_type] = target
@@ -221,7 +224,8 @@ class GraphWalk(object):
         self.convert_to_motion()
         if self.motion_vector.has_frames():
             self.motion_vector.export(self.skeleton, output_dir, output_filename, add_time_stamp)
-            write_to_json_file(output_dir + os.sep + output_filename + ".json", self.mg_input)
+            if self.mg_input is not None:
+                write_to_json_file(output_dir + os.sep + output_filename + ".json", self.mg_input.mg_input_file)
             self._export_event_dict(output_dir + os.sep + output_filename + "_actions"+".json")
             write_to_json_file(output_dir + os.sep + output_filename + "_annotations"+".json", self.frame_annotation)
             if export_details:

@@ -1,7 +1,8 @@
 __author__ = 'erhe01'
 
 import numpy as np
-from ...utilities.io_helper_functions import load_json_file
+import json
+
 
 class MGInputFileReader(object):
     """Implements functions used for the processing of the constraints from the input file
@@ -12,15 +13,39 @@ class MGInputFileReader(object):
     * mg_input_file : file path or json data read from a file
         Contains elementary action list with constraints, start pose and keyframe annotations.
     """
-    def __init__(self, mg_input_file):
+    def __init__(self, mg_input_file, activate_joint_mapping=False):
+        print
         self.mg_input_file = mg_input_file
         self.elementary_action_list = []
         self.keyframe_annotations = []
+        self.joint_name_map = dict()
+        self.inverse_joint_name_map = dict()
+        self._fill_joint_name_map()
+        self.activate_joint_mapping = activate_joint_mapping
         if type(mg_input_file) != dict:
-            self.mg_input_file = load_json_file(mg_input_file)
+            mg_input_file = open(mg_input_file)
+            input_string = mg_input_file.read()
+            if self.activate_joint_mapping:
+                for key in self.joint_name_map.keys():
+                    input_string = input_string.replace(key, self.joint_name_map[key])
+            self.mg_input_file = json.loads(input_string)
+            #self.mg_input_file = load_json_file(mg_input_file)
         else:
-            self.mg_input_file = mg_input_file
+            if self.activate_joint_mapping:
+                input_string = json.dumps(mg_input_file)
+                for key in self.joint_name_map.keys():
+                    input_string = input_string.replace(key, self.joint_name_map[key])
+                self.mg_input_file = json.loads(input_string)
+            else:
+                self.mg_input_file = mg_input_file
+
         self._extract_elementary_actions()
+
+    def _fill_joint_name_map(self):
+        self.joint_name_map["RightHand"] = "RightToolEndSite"
+        self.joint_name_map["LeftHand"] = "LeftToolEndSite"
+        self.inverse_joint_name_map["RightToolEndSite"] = "RightHand"
+        self.inverse_joint_name_map["LeftToolEndSite"] = "LeftHand"
 
     def _extract_elementary_actions(self):
         if "elementaryActions" in self.mg_input_file.keys():
@@ -291,3 +316,10 @@ class MGInputFileReader(object):
             elif i == 2:
                 new_indices.append(1)
         return new_indices
+
+    def inverse_map_joint(self, joint_name):
+        if joint_name in self.inverse_joint_name_map.keys() and self.activate_joint_mapping:
+            #print "map joint", joint_name
+            return self.inverse_joint_name_map[joint_name]
+        else:
+            return joint_name
