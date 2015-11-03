@@ -86,7 +86,10 @@ class GraphWalkOptimizer(object):
             motion_primitive_constraints = MotionPrimitiveConstraints()
             active_constraint = False
             for trajectory in action_constraints.collision_avoidance_constraints:
-                trajectory.set_min_arc_length_from_previous_frames(reduced_motion_vector.quat_frames)
+                if reduced_motion_vector.quat_frames is not None:
+                    trajectory.set_min_arc_length_from_previous_frames(reduced_motion_vector.quat_frames)
+                else:
+                    trajectory.min_arc_length = 0.0
                 ##if trajectory.range_start < trajectory.min_arc_length+50 and trajectory.min_arc_length < trajectory.range_end:
                 trajectory.set_number_of_canonical_frames(node.n_canonical_frames)
                 #discrete_trajectory = trajectory.create_discrete_trajectory(original_frames[step.start_frame:step.end_frame])
