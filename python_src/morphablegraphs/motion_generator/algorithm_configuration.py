@@ -78,6 +78,7 @@ class AlgorithmConfigurationBuilder(object):
 
     def set_default_trajectory_following_settings(self):
         self.trajectory_following_settings = dict()
+        self.trajectory_following_settings["spline_type"] = 0
         self.trajectory_following_settings["step_length_approx_method"] = "arc_length"
         self.trajectory_following_settings["heuristic_step_length_factor"] = 0.8
         self.trajectory_following_settings["dir_constraint_factor"] = 10.0

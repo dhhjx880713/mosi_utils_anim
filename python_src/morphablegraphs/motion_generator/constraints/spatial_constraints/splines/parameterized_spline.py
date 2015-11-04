@@ -8,11 +8,13 @@ import numpy as np
 from math import sqrt, acos
 from catmull_rom_spline import CatmullRomSpline
 from segment_list import SegmentList
+from b_spline import BSpline
 LOWER_VALUE_SEARCH_FOUND_EXTACT_VALUE = 0
 LOWER_VALUE_SEARCH_FOUND_LOWER_VALUE = 1
 LOWER_VALUE_SEARCH_VALUE_TOO_SMALL = 2
 LOWER_VALUE_SEARCH_VALUE_TOO_LARGE = 3
-
+SPLINE_TYPE_CATMULL_ROM = 0
+SPLINE_TYPE_BSPLINE = 1
 
 def get_closest_lower_value(arr, left, right, value, getter=lambda A, i: A[i]):
     """
@@ -59,11 +61,15 @@ class ParameterizedSpline(object):
     #http://pages.cpsc.ucalgary.ca/~jungle/587/pdf/5-interpolation.pdf
     """
 
-    def __init__(self, control_points, dimensions,
+    def __init__(self, control_points,  spline_type=SPLINE_TYPE_CATMULL_ROM,
                  granularity=1000, closest_point_search_accuracy=0.001,
                  closest_point_search_max_iterations=5000, verbose=False):
-        self.spline = CatmullRomSpline(
-            control_points, dimensions, verbose=verbose)
+        if spline_type == SPLINE_TYPE_CATMULL_ROM:
+            self.spline = CatmullRomSpline(control_points, verbose=verbose)
+        elif spline_type == SPLINE_TYPE_BSPLINE:
+            self.spline = BSpline(control_points)
+        else:
+            raise NotImplementedError()
         self.granularity = granularity
         self.full_arc_length = 0
         self.number_of_segments = 0
