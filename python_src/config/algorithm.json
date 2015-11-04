@@ -6,6 +6,7 @@
         "time_smoothing_window" : 15
     },
     "trajectory_following_settings": {
+        "spline_type": 0,
         "dir_constraint_factor": 20.0,
         "heuristic_step_length_factor": 1.0,
         "position_constraint_factor": 1.0,

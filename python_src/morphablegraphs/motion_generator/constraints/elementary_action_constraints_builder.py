@@ -29,6 +29,7 @@ class ElementaryActionConstraintsBuilder(object):
         self.n_actions = self.mg_input.get_number_of_actions()
         self.closest_point_search_accuracy = algorithm_config["trajectory_following_settings"]["closest_point_search_accuracy"]
         self.closest_point_search_max_iterations = algorithm_config["trajectory_following_settings"]["closest_point_search_max_iterations"]
+        self.default_spline_type = algorithm_config["trajectory_following_settings"]["spline_type"]
 
     def reset_counter(self):
         self.current_action_index = 0
@@ -157,6 +158,7 @@ class ElementaryActionConstraintsBuilder(object):
 
             trajectory_constraint = TrajectoryConstraint(joint_name,
                                                          control_points,
+                                                         self.default_spline_type,
                                                          0,
                                                          unconstrained_indices,
                                                          self.motion_primitive_graph.skeleton,

@@ -21,7 +21,7 @@ class CatmullRomSpline(object):
     #http://pages.cpsc.ucalgary.ca/~jungle/587/pdf/5-interpolation.pdf
     """
 
-    def __init__(self, control_points, dimensions, verbose=False):
+    def __init__(self, control_points, verbose=False):
         self.verbose = verbose
 
         # http://algorithmist.net/docs/catmullrom.pdf
@@ -31,7 +31,10 @@ class CatmullRomSpline(object):
                                              [2.0, -5.0, 4.0, -1.0],
                                              [-1.0, 0.0, 1.0, 0.0],
                                              [0.0, 2.0, 0.0, 0.0]])
-        self.dimensions = dimensions
+        if isinstance(control_points[0], (int, long, float, complex)):
+            self.dimensions = 1
+        else:
+            self.dimensions = len(control_points[0])
         self.initiated = False
         self.control_points = []
         if len(control_points) > 0:
