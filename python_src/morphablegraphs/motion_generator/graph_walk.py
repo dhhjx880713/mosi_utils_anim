@@ -190,23 +190,29 @@ class GraphWalk(object):
                         self._add_transition_event(keyframe_annotations, action_entry)
 
     def _add_transition_event(self, keyframe_annotations, action_entry):
-        if len(keyframe_annotations[UNCONSTRAINED_EVENTS_TRANSFER_POINT]) == 2:
-            joint_name_a = keyframe_annotations[UNCONSTRAINED_EVENTS_TRANSFER_POINT][0]["parameters"]["joint"]
-            joint_name_b = keyframe_annotations[UNCONSTRAINED_EVENTS_TRANSFER_POINT][1]["parameters"]["joint"]
+        """
+        Look for the frame with the closest distance and add a transition event for it
+        """
+        if len(keyframe_annotations[UNCONSTRAINED_EVENTS_TRANSFER_POINT]["annotations"]) == 2:
+
+            #print "create transfer event"
+            joint_name_a = keyframe_annotations[UNCONSTRAINED_EVENTS_TRANSFER_POINT]["annotations"][0]["parameters"]["joint"]
+            joint_name_b = keyframe_annotations[UNCONSTRAINED_EVENTS_TRANSFER_POINT]["annotations"][1]["parameters"]["joint"]
             if isinstance(joint_name_a, basestring):
                 keyframe_range_start = self.steps[action_entry.start_step].start_frame
                 keyframe_range_end = min(self.steps[action_entry.end_step].end_frame+1, self.motion_vector.n_frames)
-                #TODO fk with full frame vector
                 least_distance = 1000.0
                 closest_keyframe = self.steps[action_entry.start_step].start_frame
-                for frame_index, frame in xrange(keyframe_range_start, keyframe_range_end):
+                for frame_index in xrange(keyframe_range_start, keyframe_range_end):
                     position_a = self.full_skeleton.joint_map[joint_name_a].get_global_position(self.motion_vector.quat_frames[frame_index])
                     position_b = self.full_skeleton.joint_map[joint_name_b].get_global_position(self.motion_vector.quat_frames[frame_index])
-                    distance = np.linalg.norma(position_a - position_b)
+                    distance = np.linalg.norm(position_a - position_b)
                     if distance < least_distance:
                         least_distance = distance
                         closest_keyframe = frame_index
-                self.keyframe_events_dict[closest_keyframe] = keyframe_annotations["annotations"]
+                target_object = keyframe_annotations[UNCONSTRAINED_EVENTS_TRANSFER_POINT]["annotations"][0]["parameters"]["target"]
+                self.keyframe_events_dict[closest_keyframe] = [ {"event":"transfer", "parameters": {"joint" : [joint_name_a, joint_name_b], "target": target_object}}]
+                print "added transfer event", closest_keyframe
 
     def _add_event_list_to_frame_annotation(self):
         """
@@ -264,7 +270,7 @@ class GraphWalk(object):
             offset += step.n_time_components
 
     def update_frame_annotation(self, action_name, start_frame, end_frame):
-        """Addes a dictionary to self.frame_annotation marking start and end 
+        """Addes a dictionary to self.frame_annotation marking start and end
             frame of an action.
         """
         action_frame_annotation = dict()

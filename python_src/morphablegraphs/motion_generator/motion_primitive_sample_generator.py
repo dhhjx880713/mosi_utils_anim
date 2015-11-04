@@ -86,7 +86,7 @@ class MotionPrimitiveSampleGenerator(object):
                 print "Exception", exception.message
                 raise SynthesisError(graph_walk.get_quat_frames(), exception.bad_samples)
         else: # no constraints were given
-                print "motion primitive", mp_name
+                print "pick random sample for motion primitive", mp_name
                 low_dimensional_parameters = self._get_random_parameters(mp_name, prev_mp_name, prev_parameters)
 
         motion_primitive_sample = self._motion_primitive_graph.nodes[(self.action_name, mp_name)].back_project(low_dimensional_parameters, use_time_parameters=False)

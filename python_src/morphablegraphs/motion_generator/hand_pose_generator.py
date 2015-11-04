@@ -96,14 +96,20 @@ class HandPoseGenerator(object):
             for i in xrange(motion_vector.n_frames):
                 if i in action_list.keys():
                     for event_desc in action_list[i]:
-                        if self._is_affecting_hand("RightHand", event_desc):
-                            right_status = self.status_change_map[event_desc["event"]]
-                            print "change right hand status to", right_status
+                        if event_desc["event"] != "transfer":
+                            if self._is_affecting_hand("RightHand", event_desc):
+                                right_status = self.status_change_map[event_desc["event"]]
+                                print "change right hand status to", right_status
+                                right_hand_events.append(i)
+                            if self._is_affecting_hand("LeftHand", event_desc):
+                                left_status = self.status_change_map[event_desc["event"]]
+                                print "change left hand status to", left_status
+                                left_hand_events.append(i)
+                        else:
                             right_hand_events.append(i)
-                        if self._is_affecting_hand("LeftHand", event_desc):
-                            left_status = self.status_change_map[event_desc["event"]]
-                            print "change left hand status to", left_status
                             left_hand_events.append(i)
+                            right_status = left_status
+                            left_status = right_status
 
                 self.set_pose_in_frame("RightHand", right_status, motion_vector.quat_frames[i])
                 self.set_pose_in_frame("LeftHand", left_status, motion_vector.quat_frames[i])
