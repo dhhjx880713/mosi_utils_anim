@@ -38,10 +38,10 @@ class GraphWalkGenerator(GraphWalkOptimizer):
         self._algorithm_config = algorithm_config
 
         super(GraphWalkGenerator, self).__init__(algorithm_config)
-        motion_primitive_graph_directory = self._service_config["model_data"]
-        graph_builder = MotionStateGraphLoader()
-        graph_builder.set_data_source(motion_primitive_graph_directory, self._algorithm_config["use_transition_model"])
-        self.motion_primitive_graph = graph_builder.build()
+        motion_primitive_graph_path = self._service_config["model_data"]
+        graph_loader = MotionStateGraphLoader()
+        graph_loader.set_data_source(motion_primitive_graph_path, self._algorithm_config["use_transition_model"])
+        self.motion_primitive_graph = graph_loader.build()
         self.elementary_action_generator = ElementaryActionGraphWalkGenerator(self.motion_primitive_graph,
                                                                               self._algorithm_config)
         self._global_spatial_optimization_steps = self._algorithm_config["global_spatial_optimization_settings"]["max_steps"]
@@ -148,6 +148,8 @@ class GraphWalkGenerator(GraphWalkOptimizer):
             if self._algorithm_config["use_collision_avoidance_constraints"] and action_constraints.collision_avoidance_constraints is not None and len(action_constraints.collision_avoidance_constraints) > 0 :
                 print "optimize collision avoidance parameters"
                 graph_walk = self._optimize_for_collision_avoidance_constraints(graph_walk, action_constraints, self.elementary_action_generator.state.start_step)
+
+            graph_walk.add_entry_to_action_list(action_constraints.action_name, self.elementary_action_generator.state.start_step, len(graph_walk.steps)-1)
 
             action_constraints = elementary_action_constraints_builder.get_next_elementary_action_constraints()
 

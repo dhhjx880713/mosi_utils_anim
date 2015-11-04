@@ -62,7 +62,8 @@ class MotionStateGraphLoader(object):
         zip_path = self.motion_primitive_graph_path+".zip"
         zip_reader = ZipReader(zip_path, pickle_objects=True)
         graph_data = zip_reader.get_graph_data()
-        motion_primitive_graph.skeleton = Skeleton(BVHReader("").init_from_string(graph_data["skeletonString"]))
+        motion_primitive_graph.full_skeleton = Skeleton(BVHReader("").init_from_string(graph_data["skeletonString"]))
+        motion_primitive_graph.skeleton = motion_primitive_graph.full_skeleton.create_reduced_copy()
         #skeleton_path = self.motion_primitive_graph_path + os.sep + SKELETON_FILE
         #motion_primitive_graph.skeleton = Skeleton(BVHReader(skeleton_path))
         transition_dict = graph_data["transitions"]
@@ -81,12 +82,12 @@ class MotionStateGraphLoader(object):
             motion_primitive_graph.hand_pose_generator = HandPoseGenerator(motion_primitive_graph.skeleton)
             motion_primitive_graph.hand_pose_generator.init_from_desc(graph_data["handPoseInfo"])
 
-
     def _init_from_directory(self, motion_primitive_graph, update_stats=True):
         """ Initializes the class
         """
         skeleton_path = self.motion_primitive_graph_path + os.sep + SKELETON_FILE
-        motion_primitive_graph.skeleton = Skeleton(BVHReader(skeleton_path))
+        motion_primitive_graph.full_skeleton = Skeleton(BVHReader(skeleton_path))
+        motion_primitive_graph.skeleton = motion_primitive_graph.full_skeleton.create_reduced_copy()
         #load graphs representing elementary actions including transitions between actions
         for key in next(os.walk(self.motion_primitive_graph_path + os.sep + ELEMENTARY_ACTION_DIRECTORY_NAME))[1]:
             subgraph_path = self. motion_primitive_graph_path + os.sep + ELEMENTARY_ACTION_DIRECTORY_NAME + os.sep + key
