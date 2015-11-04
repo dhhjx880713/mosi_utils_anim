@@ -21,7 +21,7 @@ Python Dependencies:
  - singledispatch 3.4.0.3 - download and install the whl file from https://pypi.python.org/pypi/singledispatch
 
 R-Dependencies
- - R3.1.2 (dowload from http://cran.r-project.org/bin/windows/base/, set R_USER variable to your windows user name and R_HOME to the R installation path)
+ - R3.1.2 (download from http://cran.r-project.org/bin/windows/base/, set R_USER variable to your windows user name and R_HOME to the R installation path)
  - fda  (use package manager of R)
 
 
@@ -70,3 +70,37 @@ Current limitations:
 Set the path to data folder for modelling in config\service.json, "data_folder"
 Call the motion primitive modelling pipeline mg_construction_pipeline.py from command line with parameters elementary_action motion_primitive
 E.g.: python mg_construction_pipeline walk rightStance
+
+
+
+Information about important algorithm configuration options:
+
+1. general settings
+use_constraints - If set to false, a random motion for the given elementary actions is generated
+debug_max_step - if > 0, it forces the algorithm to stop and output the motion after this fixed number of motion primitives
+local_optimization_mode -  Used to activate/deactivate local optimization for a single motion primitive and select the constraint set.
+                           Possible values are as follows
+                           "none": only use random sampling or the cluster search
+                           "keyframes": only optimize the keyframe constraints and ignore trajectory constraints
+                           "all": optimize trajectory and keyframe constraints
+use_global_spatial_optimization - Optimize spatial constraints over graph walk
+use_global_time_optimization - Optimize time constraints over graph walk, if they are found
+activate_cluster_search - If active, a space partitioning data structure is used for a directed search instead of random sampling
+n_cluster_search_candidates - If cluster search is active, sets the number of candidates that are kept at every level of the space partitioning structure in order to avoid local minima
+use_collision_avoidance_constraints - If active, annotated trajectories from collision avoidance are optimized separately, otherwise they are ignored
+use_transition_model - If active, the algorithm will try to load a Gaussian Process regression model to predict parameters at transitions between motion primitives
+use_constrained_gmm -  If active and cluster search is deactivated a constrained GMM is created on run time for each motion primitive and used for sampling.
+                       If transition models are used they are multiplied with predicted distributions from the Gaussian Process regression models.
+
+2. smoothing_settings
+spatial_smoothing - Applies smoothing at transitions of motion primitives
+time_smoothing - Applies smoothing on time functions of individual motion primitives
+
+3. trajectory_following_settings
+spline_type - Defines how trajectory constraints are evaluated. Possible values are 0 for Catmull-Rom and 1 for BSpline (which in this implementation does not go through every control point)
+
+4. local/global/time optimization settings
+method -  supported methods are "leastsq", "BFGS" and "Nelder-Mead"
+max_steps - Only for global and time optimization. Sets the number of steps in the graph walk that are optimized when looking back from the current step.
+
+
