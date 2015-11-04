@@ -23,7 +23,7 @@ class Skeleton(object):
         self.root = deepcopy(bvh_reader.root)
         self.node_names = deepcopy(bvh_reader.node_names)
         self.reference_frame = self._extract_reference_frame(bvh_reader)
-
+        self.joint_map = None
         self._create_filtered_node_name_frame_map()
         self.tool_bones = []
         self._add_tool_bones()

@@ -14,7 +14,6 @@ class MGInputFileReader(object):
         Contains elementary action list with constraints, start pose and keyframe annotations.
     """
     def __init__(self, mg_input_file, activate_joint_mapping=False):
-        print
         self.mg_input_file = mg_input_file
         self.elementary_action_list = []
         self.keyframe_annotations = []
@@ -26,15 +25,12 @@ class MGInputFileReader(object):
             mg_input_file = open(mg_input_file)
             input_string = mg_input_file.read()
             if self.activate_joint_mapping:
-                for key in self.joint_name_map.keys():
-                    input_string = input_string.replace(key, self.joint_name_map[key])
+                input_string = self._apply_joint_mapping_on_string(input_string)
             self.mg_input_file = json.loads(input_string)
             #self.mg_input_file = load_json_file(mg_input_file)
         else:
             if self.activate_joint_mapping:
-                input_string = json.dumps(mg_input_file)
-                for key in self.joint_name_map.keys():
-                    input_string = input_string.replace(key, self.joint_name_map[key])
+                input_string = self._apply_joint_mapping_on_string(json.dumps(mg_input_file))
                 self.mg_input_file = json.loads(input_string)
             else:
                 self.mg_input_file = mg_input_file
@@ -47,6 +43,11 @@ class MGInputFileReader(object):
         self.inverse_joint_name_map["RightToolEndSite"] = "RightHand"
         self.inverse_joint_name_map["LeftToolEndSite"] = "LeftHand"
 
+    def _apply_joint_mapping_on_string(self, input_string):
+        for key in self.joint_name_map.keys():
+            input_string = input_string.replace(key, self.joint_name_map[key])
+        return input_string
+
     def _extract_elementary_actions(self):
         if "elementaryActions" in self.mg_input_file.keys():
             self.elementary_action_list = self.mg_input_file["elementaryActions"]
@@ -55,7 +56,7 @@ class MGInputFileReader(object):
             for task in self.mg_input_file["tasks"]:
                 if "elementaryActions" in task.keys():
                     self.elementary_action_list += task["elementaryActions"]
-        self.keyframe_annotations = self._extract_keyframe_annotations(self.elementary_action_list)
+        self.keyframe_annotations = self._extract_keyframe_annotations()
 
     def get_number_of_actions(self):
         return len(self.elementary_action_list)
@@ -134,7 +135,7 @@ class MGInputFileReader(object):
                 c_index += 1
         return active_region
 
-    def _extract_keyframe_annotations(self, elementary_action_list):
+    def _extract_keyframe_annotations(self):
         """
         Returns
         ------
@@ -142,16 +143,8 @@ class MGInputFileReader(object):
           Contains for every elementary action a dict that associates of events/actions with certain keyframes
         """
         keyframe_annotations = []
-        for entry in elementary_action_list:
-            if "keyframeAnnotations" in entry.keys():
-                annotations = {}
-
-                for annotation in entry["keyframeAnnotations"]:
-                    key = annotation["keyframe"]
-                    annotations[key] = annotation
-                keyframe_annotations.append(annotations)
-            else:
-                keyframe_annotations.append({})
+        for action_index, entry in enumerate(self.elementary_action_list):
+            keyframe_annotations.append(self.get_keyframe_annotations(action_index))
         return keyframe_annotations
 
     def get_keyframe_annotations(self, action_index):
@@ -161,14 +154,12 @@ class MGInputFileReader(object):
             * keyframe_annotations : a list of dicts
               Contains for every elementary action a dict that associates of events/actions with certain keyframes
             """
+            annotations = dict()
             if "keyframeAnnotations" in self.elementary_action_list[action_index].keys():
-                annotations = {}
                 for annotation in self.elementary_action_list[action_index]["keyframeAnnotations"]:
                     keyframe_label = annotation["keyframe"]
                     annotations[keyframe_label] = annotation
-                return annotations
-            else:
-                return dict()
+            return annotations
 
     def _reorder_keyframe_constraints_for_motion_primitves(self, node_group, keyframe_constraints):
         """ Order constraints extracted by _extract_all_keyframe_constraints for each state
