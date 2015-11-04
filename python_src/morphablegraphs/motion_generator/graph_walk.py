@@ -198,6 +198,11 @@ class GraphWalk(object):
             #print "create transfer event"
             joint_name_a = keyframe_annotations[UNCONSTRAINED_EVENTS_TRANSFER_POINT]["annotations"][0]["parameters"]["joint"]
             joint_name_b = keyframe_annotations[UNCONSTRAINED_EVENTS_TRANSFER_POINT]["annotations"][1]["parameters"]["joint"]
+            attach_joint = joint_name_a
+            for event_parameters in keyframe_annotations[UNCONSTRAINED_EVENTS_TRANSFER_POINT]["annotations"]:
+                if event_parameters["event"] == "attach":
+                    attach_joint = event_parameters["parameters"]["joint"]
+
             if isinstance(joint_name_a, basestring):
                 keyframe_range_start = self.steps[action_entry.start_step].start_frame
                 keyframe_range_end = min(self.steps[action_entry.end_step].end_frame+1, self.motion_vector.n_frames)
@@ -211,7 +216,7 @@ class GraphWalk(object):
                         least_distance = distance
                         closest_keyframe = frame_index
                 target_object = keyframe_annotations[UNCONSTRAINED_EVENTS_TRANSFER_POINT]["annotations"][0]["parameters"]["target"]
-                self.keyframe_events_dict[closest_keyframe] = [ {"event":"transfer", "parameters": {"joint" : [joint_name_a, joint_name_b], "target": target_object}}]
+                self.keyframe_events_dict[closest_keyframe] = [ {"event":"transfer", "parameters": {"joint" : [attach_joint], "target": target_object}}]
                 print "added transfer event", closest_keyframe
 
     def _add_event_list_to_frame_annotation(self):
