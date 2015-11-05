@@ -101,6 +101,7 @@ spline_type - Defines how trajectory constraints are evaluated. Possible values 
                 0 for Catmull-Rom
                 1 for BSpline (which in this implementation does not go through every control point)
                 2 for Fitted BSpline
+control_point_filter_threshold - used as parameter for a filter that ignores control points that are too close to each other, a value <= 0 deactivates the control point filter.
 
 4. local/global/time optimization settings
 method -  supported methods are "leastsq", "BFGS" and "Nelder-Mead"

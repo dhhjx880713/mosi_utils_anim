@@ -11,6 +11,7 @@ from spatial_constraints.trajectory_constraint import TrajectoryConstraint
 LEFT_HAND_JOINT = "LeftToolEndSite"
 RIGHT_HAND_JOINT = "RightToolEndSite"
 
+
 class ElementaryActionConstraintsBuilder(object):
     """Generates ElementaryActionConstraints instances based in an MGInputFileReader.
     
@@ -30,6 +31,7 @@ class ElementaryActionConstraintsBuilder(object):
         self.closest_point_search_accuracy = algorithm_config["trajectory_following_settings"]["closest_point_search_accuracy"]
         self.closest_point_search_max_iterations = algorithm_config["trajectory_following_settings"]["closest_point_search_max_iterations"]
         self.default_spline_type = algorithm_config["trajectory_following_settings"]["spline_type"]
+        self.control_point_distance_threshold = algorithm_config["trajectory_following_settings"]["control_point_filter_threshold"]
 
     def reset_counter(self):
         self.current_action_index = 0
@@ -68,14 +70,19 @@ class ElementaryActionConstraintsBuilder(object):
     def _add_keyframe_constraints(self, action_constraints):
         node_group = self.motion_primitive_graph.node_groups[action_constraints.action_name]
         action_constraints.keyframe_constraints = self.mg_input.get_ordered_keyframe_constraints(self.current_action_index, node_group)
+        action_constraints.contains_user_constraints = False
         if len(action_constraints.keyframe_constraints) > 0:
-            action_constraints.contains_user_constraints = True
+            for keyframe_label_constraints in  action_constraints.keyframe_constraints.values():
+                if len(keyframe_label_constraints[0]) > 0:
+                    action_constraints.contains_user_constraints = True
+                    break
+
             self._merge_two_hand_constraints(action_constraints)
+        print action_constraints.action_name, action_constraints.keyframe_constraints, action_constraints.contains_user_constraints, "#######################"
 
     def _merge_two_hand_constraints(self, action_constraints):
         """ Create a special constraint if two hand joints are constrained on the same keyframe
         """
-
         for motion_primitive_name in action_constraints.keyframe_constraints.keys():
             #separate constraints based on keyframe label
             keyframe_label_lists = dict()
@@ -153,7 +160,7 @@ class ElementaryActionConstraintsBuilder(object):
         """
         trajectory_constraint = None
         precision = 1.0
-        control_points, unconstrained_indices, active_region = self.mg_input.get_trajectory_from_constraint_list(self.current_action_index, joint_name, scale_factor)
+        control_points, unconstrained_indices, active_region = self.mg_input.get_trajectory_from_constraint_list(self.current_action_index, joint_name, scale_factor, self.control_point_distance_threshold)
         if control_points is not None and unconstrained_indices is not None:
 
             trajectory_constraint = TrajectoryConstraint(joint_name,

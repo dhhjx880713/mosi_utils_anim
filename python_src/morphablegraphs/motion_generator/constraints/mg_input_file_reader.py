@@ -80,7 +80,7 @@ class MGInputFileReader(object):
         keyframe_constraints = self._extract_all_keyframe_constraints(self.elementary_action_list[action_index]["constraints"], node_group)
         return self._reorder_keyframe_constraints_for_motion_primitves(node_group, keyframe_constraints)
 
-    def get_trajectory_from_constraint_list(self, action_index, joint_name, scale_factor=1.0):
+    def get_trajectory_from_constraint_list(self, action_index, joint_name, scale_factor=1.0, distance_threshold=-1):
         """ Extract the trajectory information from the constraint list
         Returns:
         -------
@@ -100,11 +100,16 @@ class MGInputFileReader(object):
                 idx += 1
             unconstrained_indices = self._transform_unconstrained_indices_from_cad_to_opengl_cs(unconstrained_indices)
             control_points = []
-            for c in trajectory_constraint_desc:
+            previous_point = None
+            n_control_points = len(trajectory_constraint_desc)
+            for i in xrange(n_control_points):
                 #where the c["position"] is None set it to 0
-                point = [p*scale_factor if p is not None else 0 for p in c["position"]]
+                point = [p*scale_factor if p is not None else 0 for p in trajectory_constraint_desc[i]["position"]]
                 point = self._transform_point_from_cad_to_opengl_cs(point)
-                control_points.append(point)
+                #add the point if there is no distance threshold, it is the first point, it is the last point or larger than the distance threshold
+                if distance_threshold <= 0.0 or previous_point is None or i == n_control_points-1 or np.linalg.norm(np.array(point)-previous_point) > distance_threshold:
+                    control_points.append(point)
+                previous_point = np.array(point)
 
             active_region = self._check_for_collision_avoidance_annotation(trajectory_constraint_desc, control_points)
 
