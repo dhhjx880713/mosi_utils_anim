@@ -97,7 +97,10 @@ spatial_smoothing - Applies smoothing at transitions of motion primitives
 time_smoothing - Applies smoothing on time functions of individual motion primitives
 
 3. trajectory_following_settings
-spline_type - Defines how trajectory constraints are evaluated. Possible values are 0 for Catmull-Rom and 1 for BSpline (which in this implementation does not go through every control point)
+spline_type - Defines how trajectory constraints are evaluated. Possible values are:
+                0 for Catmull-Rom
+                1 for BSpline (which in this implementation does not go through every control point)
+                2 for Fitted BSpline
 
 4. local/global/time optimization settings
 method -  supported methods are "leastsq", "BFGS" and "Nelder-Mead"

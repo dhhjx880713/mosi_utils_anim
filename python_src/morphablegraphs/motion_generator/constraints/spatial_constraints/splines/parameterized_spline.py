@@ -9,12 +9,14 @@ from math import sqrt, acos
 from catmull_rom_spline import CatmullRomSpline
 from segment_list import SegmentList
 from b_spline import BSpline
+from fitted_b_spline import FittedBSpline
 LOWER_VALUE_SEARCH_FOUND_EXTACT_VALUE = 0
 LOWER_VALUE_SEARCH_FOUND_LOWER_VALUE = 1
 LOWER_VALUE_SEARCH_VALUE_TOO_SMALL = 2
 LOWER_VALUE_SEARCH_VALUE_TOO_LARGE = 3
 SPLINE_TYPE_CATMULL_ROM = 0
 SPLINE_TYPE_BSPLINE = 1
+SPLINE_TYPE_FITTED_BSPLINE = 2
 
 def get_closest_lower_value(arr, left, right, value, getter=lambda A, i: A[i]):
     """
@@ -68,6 +70,8 @@ class ParameterizedSpline(object):
             self.spline = CatmullRomSpline(control_points, verbose=verbose)
         elif spline_type == SPLINE_TYPE_BSPLINE:
             self.spline = BSpline(control_points)
+        elif spline_type == SPLINE_TYPE_FITTED_BSPLINE:
+            self.spline = FittedBSpline(control_points, degree=1)
         else:
             raise NotImplementedError()
         self.granularity = granularity
