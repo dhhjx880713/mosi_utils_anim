@@ -44,7 +44,6 @@ class BVHReader(object):
             infile.close()
         self.filename = os.path.split(infilename)[-1]
 
-
     @classmethod
     def init_from_string(cls, skeleton_string):
         bvh_reader = cls(infilename="")
@@ -248,7 +247,7 @@ class BVHWriter(object):
         if joint_level == 0:
             joint_string += tab_string + "ROOT " + joint + "\n"
         else:
-            if joint != "End Site" and "channels" in node_names[joint].keys():
+            if joint != "End Site" and joint in node_names.keys() and "channels" in node_names[joint].keys():
                 joint_string += tab_string + "JOINT " + joint + "\n"
             else:
                 joint_string += tab_string + "End Site" + "\n"

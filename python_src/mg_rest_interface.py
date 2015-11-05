@@ -74,7 +74,7 @@ class MGInputHandler(tornado.web.RequestHandler):
                 print "answer request", not self.application.use_file_output_mode
                 graph_walk.convert_to_motion()
                 bvh_writer = get_bvh_writer(
-                    self.application.graph_walk_generator.motion_primitive_graph.skeleton,
+                    self.application.graph_walk_generator.motion_primitive_graph.full_skeleton,
                     graph_walk.get_quat_frames())
                 result_object = {
                     "bvh": bvh_writer.generate_bvh_string(),
