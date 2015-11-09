@@ -44,7 +44,16 @@ class ClusterTreeBuilder(object):
     def _create_space_partitioning(self, motion_primitive, cluster_file_name):
         print "construct space partitioning data structure for", motion_primitive.name
 
-        data = np.array([motion_primitive.sample_low_dimensional_vector() for i in xrange(self.n_samples)])
+        # data = np.array([motion_primitive.sample_low_dimensional_vector() for i in xrange(self.n_samples)])
+        data = []
+        i = 0
+        while i < self.n_samples:
+            new_sample = motion_primitive.sample_low_dimensional_vector()
+            likelihood = motion_primitive.gaussian_mixture_model.score([new_sample,])[0]
+            if likelihood > 0:
+                data.append(new_sample)
+                i += 1
+        data = np.asarray(data)
         if self.only_spatial_parameters:
             n_dims = motion_primitive.s_pca["n_components"]
             print "maximum dimension set to", n_dims, "ignoring time parameters"

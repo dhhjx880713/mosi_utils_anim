@@ -60,7 +60,8 @@ class MotionPrimitive(object):
         \tThe path to the saved json file. If None (default) the filename
         of the object will be taken.
         """
-
+        print "##########################################"
+        print filename
         with open(filename, 'rb') as infile:
             tmp = json.load(infile)
             infile.close()

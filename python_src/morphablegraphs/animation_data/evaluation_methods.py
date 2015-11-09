@@ -11,6 +11,7 @@ from copy import copy
 import os
 from ..motion_model.motion_primitive import MotionPrimitive
 from ..animation_data.bvh import BVHWriter, BVHReader
+from ..animation_data.skeleton import Skeleton
 from python_src.morphablegraphs.animation_data.motion_editing import \
     convert_euler_frames_to_cartesian_frames, \
     convert_quaternion_frames_to_euler_frames,\
@@ -545,19 +546,23 @@ def evaluate_motion_primitive_model(test_model_file, save_data_path):
     test_mm = MotionPrimitive(test_model_file)
     # load reference skeleton file
     ref_bvhreader = BVHReader(r'../skeleton.bvh')
+    skeleton = Skeleton(ref_bvhreader)
     if not save_data_path.endswith(os.sep):
         save_data_path += os.sep
     N = 30
     for i in xrange(N):
         print i
-        sample = test_mm.sample()
-        quat_frames = sample.get_motion_vector()
+        # sample = test_mm.sample()
+        sample = test_mm.sample_low_dimensional_vector()
+        print test_mm.gaussian_mixture_model.score([sample,])[0]
+        sample_motion = test_mm.back_project(sample)
+        quat_frames = sample_motion.get_motion_vector()
         # print "position: ", [quat_frames[0][0], quat_frames[0][2]]
         # orientation = pose_orientation_quat(quat_frames[0])
         # print "orientation: ", orientation
         filename = save_data_path + str(i) + '.bvh'
         try:
-            BVHWriter(filename, ref_bvhreader, quat_frames,
+            BVHWriter(filename, skeleton, quat_frames,
                       ref_bvhreader.frame_time,
                       is_quaternion=True)
         except IOError:

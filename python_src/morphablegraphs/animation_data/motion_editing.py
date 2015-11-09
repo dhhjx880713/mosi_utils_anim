@@ -587,7 +587,7 @@ def get_cartesian_coordinates_from_euler(skeleton, node_name, euler_frame):
         chain_names += [node_name]  # Node is not in its parent list
         eul_angles = []
         for nodename in chain_names:
-            index = skeleton.node_name_map[nodename] * 3 + 3
+            index = skeleton.node_name_frame_map[nodename] * 3 + 3
             eul_angles.append(euler_frame[index:index + 3])
         rad_angles = (map(radians, eul_angle) for eul_angle in eul_angles)
 

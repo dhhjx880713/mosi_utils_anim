@@ -28,7 +28,7 @@ class GMMTrainer(object):
         for i in K:
             gmm = mixture.GMM(n_components=i, covariance_type='full')
             gmm.fit(obs)
-            BIC.append(gmm.bic(obs))
+            BIC.append(gmm.aic(obs))
             BICscores.append(BIC[-1])
             if BIC[-1] < lowestBIC:
                 lowestBIC = BIC[-1]

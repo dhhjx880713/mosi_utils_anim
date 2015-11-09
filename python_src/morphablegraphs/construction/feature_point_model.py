@@ -22,6 +22,10 @@ class FeaturePointModel(object):
         self.orientations = []
         self.feature_point = None
         self.threshold = None
+        self.root_pos = []
+        self.root_orientation = []
+        self.feature_point_dist = None
+        self.root_feature_dist = None
 
     def create_feature_points(self, joint_name_list, n, frame_idx):
         """
@@ -50,6 +54,56 @@ class FeaturePointModel(object):
             self.feature_points.append(np.ravel(tmp))
             ori_vector = pose_orientation_quat(quat_frames[-1]).tolist()
             self.orientations.append(ori_vector)
+
+    def create_root_pos_ori(self, n):
+        assert 'walk' or 'carry' in self.motion_primitive_model.name, 'root distribution only works for trajectory motion.'
+        for i in xrange(n):
+            motion_spline = self.motion_primitive_model.sample()
+            quat_frames = motion_spline.get_motion_vector()
+            rot_pos = np.array([quat_frames[-1][0], quat_frames[-1][2]])
+            rot_ori = pose_orientation_quat(quat_frames[-1])
+            self.root_pos.append(rot_pos)
+            self.root_orientation.append(rot_ori)
+
+    def model_root_dist(self):
+        training_samples = np.concatenate((np.asarray(self.root_pos),
+                                           np.asarray(self.root_orientation)),
+                                          axis=1)
+        gmm_trainer = GMMTrainer(training_samples)
+        self.root_feature_dist = gmm_trainer.gmm
+        self.root_threshold = gmm_trainer.averageScore
+
+    def sample_new_root_feature(self):
+        new_sample = np.ravel(self.root_feature_dist.sample())
+        # normalize orientation
+        new_sample[2:] = new_sample[2:]/np.linalg.norm(new_sample[2:])
+        return new_sample
+
+    def save_root_feature_dist(self, save_filename):
+        data = {'name': self.motion_primitive_model.name,
+                'feature_point': 'Hips',
+                'gmm_weights': self.root_feature_dist.weights_.tolist(),
+                'gmm_means': self.root_feature_dist.means_.tolist(),
+                'gmm_covars': self.root_feature_dist.covars_.tolist(),
+                'threshold': self.root_threshold}
+        with open(save_filename, 'wb') as outfile:
+            json.dump(data, outfile)
+
+    def load_root_feature_dist(self, model_file):
+        with open(model_file, 'rb') as infile:
+            data = json.load(infile)
+        n_components = len(data['gmm_weights'])
+        self.root_feature_dist = mixture.GMM(n_components, covariance_type='full')
+        self.root_feature_dist.weights_ = np.array(data['gmm_weights'])
+        self.root_feature_dist.means_ = np.array(data['gmm_means'])
+        self.root_feature_dist.converged_ = True
+        self.root_feature_dist.covars_ = np.array(data['gmm_covars'])
+        self.root_feature_threshold = data['threshold']
+
+    def score_trajectory_target(self, target):
+        assert len(target) == 4, 'The trajectory target should be a vector of length 4.'
+        assert self.root_feature_dist is not None, 'Please model or load root feature distribution.'
+        return self.root_feature_dist.score([target,])[0]
 
     def save_data(self, save_filename):
         output_data = {}
