@@ -219,6 +219,21 @@ class GraphWalk(object):
                 self.keyframe_events_dict[closest_keyframe] = [ {"event":"transfer", "parameters": {"joint" : [attach_joint], "target": target_object}}]
                 print "added transfer event", closest_keyframe
 
+    def _handle_both_hands_event(self, event):
+        if isinstance(event["jointName"], list):
+            if self.mg_input.activate_joint_mapping:
+                if "RightHand" in event["jointName"] and "LeftHand" in event["jointName"]:
+                    return "BothHands"
+                else:
+                    return str(event["jointName"])
+            else:
+                if "RightToolEndSite" in event["jointName"] and "LeftToolEndSite" in event["jointName"]:
+                    return "BothHands"
+                else:
+                    return str(event["jointName"])
+        else:
+            return str(event["jointName"])
+
     def _add_event_list_to_frame_annotation(self):
         """
         self.keyframe_events_dict[keyframe] m
@@ -239,6 +254,7 @@ class GraphWalk(object):
                         event["jointName"] = map(self.mg_input.inverse_map_joint, event_desc["parameters"]["joint"])
                 else:
                     event["jointName"] = event_desc["parameters"]["joint"]
+                event["jointName"] = self._handle_both_hands_event(event)
                 event_type = event_desc["event"]
                 target = event_desc["parameters"]["target"]
                 event[event_type] = target
