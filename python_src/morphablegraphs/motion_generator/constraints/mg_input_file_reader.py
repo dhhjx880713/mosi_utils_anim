@@ -110,6 +110,14 @@ class MGInputFileReader(object):
                     active_region["end_point"] = point
 
             previous_point = np.array(point)
+
+        #handle invalid region specification
+        if active_region is not None:
+            if active_region["start_point"] is None:
+                active_region["start_point"] = control_points[0]
+            if active_region["end_point"] is None:
+                active_region["end_point"] = control_points[-1]
+
         return control_points, active_region
 
     def get_trajectory_from_constraint_list(self, action_index, joint_name, scale_factor=1.0, distance_threshold=-1):
