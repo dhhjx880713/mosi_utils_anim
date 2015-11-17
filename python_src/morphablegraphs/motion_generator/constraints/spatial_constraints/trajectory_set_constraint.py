@@ -1,6 +1,6 @@
 import numpy as np
 from spatial_constraint_base import SpatialConstraintBase
-
+from copy import copy
 
 class TrajectorySetConstraint(SpatialConstraintBase):
     def __init__(self, joint_trajectories, joint_names, skeleton, precision, weight_factor):
@@ -10,6 +10,7 @@ class TrajectorySetConstraint(SpatialConstraintBase):
         self.joint_names = joint_names
         self.joint_arc_lengths = np.zeros(len(self.joint_trajectories))
         self.semantic_annotation = dict()
+        self.semantic_annotation["generated"] = True
         self.n_canonical_frames = 0
 
     def evaluate_motion_sample(self, aligned_quat_frames):
@@ -28,6 +29,7 @@ class TrajectorySetConstraint(SpatialConstraintBase):
             in the last frame of the previous frames.
         :param previous_frames: list of quaternion frames.
         """
+
         if previous_frames is not None and len(previous_frames) > 0:
             joint_positions = self._extract_joint_positions_from_frame(previous_frames[-1])
             closest_points = [joint_trajectory.find_closest_point(point, min_arc_length, -1)
@@ -49,20 +51,20 @@ class TrajectorySetConstraint(SpatialConstraintBase):
     def get_residual_vector(self, aligned_quat_frames):
         residual_vector = []
         last_joint_positions = None
-
+        joint_arc_lengths = copy(self.joint_arc_lengths)
         for frame in aligned_quat_frames:
             joint_positions = self._extract_joint_positions_from_frame(frame)
             target_joint_positions = [joint_trajectory.query_point_by_absolute_arc_length(arc_length)
                                       for joint_trajectory, arc_length
-                                      in zip(self.joint_trajectories, self.joint_arc_lengths)]
+                                      in zip(self.joint_trajectories, joint_arc_lengths)]
             actual_center = np.average(joint_positions)
             target_center = np.average(target_joint_positions)
 
             residual_vector.append(np.linalg.norm(actual_center-target_center))
             if last_joint_positions is not None:
-               self.joint_arc_lengths = [arc_length + np.linalg.norm(np.asarray(joint_position) - np.asarray(last_joint_position))
+               joint_arc_lengths = [arc_length + np.linalg.norm(np.asarray(joint_position) - np.asarray(last_joint_position))
                                     for joint_position, last_joint_position, arc_length
-                                    in zip(joint_positions, last_joint_positions, self.joint_arc_lengths)]
+                                    in zip(joint_positions, last_joint_positions, joint_arc_lengths)]
             last_joint_positions = joint_positions
         return residual_vector
 
