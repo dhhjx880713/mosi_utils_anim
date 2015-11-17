@@ -409,15 +409,19 @@ class ParameterizedSpline(object):
             distance to input point
         """
 
-        if min_arc_length >= self.full_arc_length:  # min arc length was too close to full arc length
+        eps = 0.0
+        if min_arc_length >= self.full_arc_length-eps:  # min arc length was too close to full arc length
             return self.get_last_control_point(), self.full_arc_length
         else:
             segment_list = SegmentList(self.closest_point_search_accuracy, self.closest_point_search_max_iterations)
-            segment_list.construct_from_spline(self, min_arc_length, max_arc_length)
-            result = segment_list.find_closest_point(point)
-            if result[0] is None:
-                print "failed to generate trajectory segments for the closest point search"
-                print point, min_arc_length, max_arc_length
-                return None, -1
+            range_large_enough = segment_list.construct_from_spline(self, min_arc_length, max_arc_length)
+            if range_large_enough:
+                result = segment_list.find_closest_point(point)
+                if result[0] is None:
+                    print "failed to generate trajectory segments for the closest point search"
+                    print point, min_arc_length, max_arc_length
+                    return None, -1
+                else:
+                    return result
             else:
-                return result
+                return self.get_last_control_point()
