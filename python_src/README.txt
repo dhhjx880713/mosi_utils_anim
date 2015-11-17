@@ -87,7 +87,8 @@ use_global_spatial_optimization - Optimize spatial constraints over graph walk
 use_global_time_optimization - Optimize time constraints over graph walk, if they are found
 activate_cluster_search - If active, a space partitioning data structure is used for a directed search instead of random sampling
 n_cluster_search_candidates - If cluster search is active, sets the number of candidates that are kept at every level of the space partitioning structure in order to avoid local minima
-use_collision_avoidance_constraints - If active, annotated trajectories from collision avoidance are optimized separately, otherwise they are ignored
+collision_avoidance_constraints_mode - Possible values are: "none" and "create_constraint_set". If "create_constraint_set" is set, then annotated collision avoidance constraints are included with the other constraints, otherwise they are ignored
+optimize_collision_avoidance_constraints_extra - If active, annotated trajectories from collision avoidance are optimized separately from the other constraints. This is independent of the collision_avoidance_constraints_mode.
 use_transition_model - If active, the algorithm will try to load a Gaussian Process regression model to predict parameters at transitions between motion primitives
 use_constrained_gmm -  If active and cluster search is deactivated a constrained GMM is created on run time for each motion primitive and used for sampling.
                        If transition models are used they are multiplied with predicted distributions from the Gaussian Process regression models.
