@@ -25,9 +25,11 @@ class GraphWalkOptimizer(object):
         initial_guess = graph_walk.get_global_spatial_parameter_vector(start_step)
         constraint_count = 0
         for step in graph_walk.steps[start_step:]: #TODO add pose constraint for pick and place
-            step.motion_primitive_constraints.constraints = [constraint for constraint in step.motion_primitive_constraints.constraints
-                                                             if constraint.constraint_type != SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE
-                                                             and constraint.constraint_type != SPATIAL_CONSTRAINT_TYPE_TRAJECTORY]
+            reduced_constraints = []
+            for constraint in step.motion_primitive_constraints.constraints:
+                if constraint.constraint_type != SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE and constraint.constraint_type != SPATIAL_CONSTRAINT_TYPE_TRAJECTORY:
+                     reduced_constraints.append(constraint)
+            step.motion_primitive_constraints.constraints = reduced_constraints
             #initial_guess += step.parameters[:step.n_spatial_components].tolist()
             constraint_count += len(step.motion_primitive_constraints.constraints)
         for step in graph_walk.steps[start_step:]:

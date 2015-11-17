@@ -1,3 +1,4 @@
+from . import *
 import numpy as np
 from spatial_constraint_base import SpatialConstraintBase
 from copy import copy
@@ -6,6 +7,7 @@ class TrajectorySetConstraint(SpatialConstraintBase):
     def __init__(self, joint_trajectories, joint_names, skeleton, precision, weight_factor):
         SpatialConstraintBase.__init__(self, precision, weight_factor)
         self.skeleton = skeleton
+        self.constraint_type = SPATIAL_CONSTRAINT_TYPE_TRAJECTORY_SET
         self.joint_trajectories = joint_trajectories
         self.joint_names = joint_names
         self.joint_arc_lengths = np.zeros(len(self.joint_trajectories))

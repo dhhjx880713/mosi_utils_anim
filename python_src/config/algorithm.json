@@ -7,7 +7,7 @@
     },
     "trajectory_following_settings": {
         "spline_type": 0,
-        "control_point_filter_threshold": 50.0,
+        "control_point_filter_threshold": 50,
         "dir_constraint_factor": 20.0,
         "heuristic_step_length_factor": 1.0,
         "position_constraint_factor": 1.0,
@@ -59,7 +59,8 @@
     "activate_parameter_check": false,
     "use_global_time_optimization": false,
     "use_global_spatial_optimization": true,
-    "use_collision_avoidance_constraints": false,
+    "collision_avoidance_constraints_mode": "create_constraint_set",
+    "optimize_collision_avoidance_constraints_extra": false,
     "use_constrained_gmm": false,
     "use_constraints": true,
     "debug_max_step": -1,

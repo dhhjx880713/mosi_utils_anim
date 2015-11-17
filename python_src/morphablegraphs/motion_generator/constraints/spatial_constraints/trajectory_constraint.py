@@ -54,7 +54,6 @@ class TrajectoryConstraint(ParameterizedSpline, SpatialConstraintBase):
         else:
             self.min_arc_length = 0.0
 
-
     def evaluate_motion_sample(self, aligned_quat_frames):
         """
         :param aligned_quat_frames: list of quaternion frames.

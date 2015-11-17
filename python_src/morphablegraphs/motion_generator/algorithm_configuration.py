@@ -32,7 +32,8 @@ class AlgorithmConfigurationBuilder(object):
         self.n_cluster_search_candidates = 2
         self.debug_max_step = -1
         self.verbose = False
-        self.use_collision_avoidance_constraints = False
+        self.collision_avoidance_constraints_mode = "none"
+        self.optimize_collision_avoidance_constraints_extra = False
         self.set_default_constrained_gmm_settings()
         self.set_default_trajectory_following_settings()
         self.set_default_optimization_settings()
@@ -115,7 +116,8 @@ class AlgorithmConfigurationBuilder(object):
         self.n_cluster_search_candidates = temp_algorithm_config["n_cluster_search_candidates"]
         self.debug_max_step = temp_algorithm_config["debug_max_step"]
         self.verbose = temp_algorithm_config["verbose"]
-        self.use_collision_avoidance_constraints = temp_algorithm_config["use_collision_avoidance_constraints"]
+        self.collision_avoidance_constraints_mode = temp_algorithm_config["collision_avoidance_constraints_mode"]
+        self.optimize_collision_avoidance_constraints_extra = temp_algorithm_config["optimize_collision_avoidance_constraints_extra"]
 
     def build(self):
         return {"use_constraints": self.use_constraints,
@@ -135,6 +137,7 @@ class AlgorithmConfigurationBuilder(object):
                 "activate_cluster_search": self.activate_cluster_search,
                 "n_cluster_search_candidates": self.n_cluster_search_candidates,
                 "verbose": self.verbose,
-                "use_collision_avoidance_constraints": self.use_collision_avoidance_constraints,
+                "collision_avoidance_constraints_mode": self.collision_avoidance_constraints_mode,
+                "optimize_collision_avoidance_constraints_extra": self.optimize_collision_avoidance_constraints_extra,
                 "debug_max_step": self.debug_max_step
                 }

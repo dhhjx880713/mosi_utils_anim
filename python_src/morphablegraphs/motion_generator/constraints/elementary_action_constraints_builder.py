@@ -7,10 +7,8 @@ Created on Mon Jul 27 12:00:15 2015
 
 from elementary_action_constraints import ElementaryActionConstraints
 from spatial_constraints.trajectory_constraint import TrajectoryConstraint
-
-LEFT_HAND_JOINT = "LeftToolEndSite"
-RIGHT_HAND_JOINT = "RightToolEndSite"
-
+from spatial_constraints.trajectory_set_constraint import TrajectorySetConstraint
+from . import *
 
 class ElementaryActionConstraintsBuilder(object):
     """Generates ElementaryActionConstraints instances based in an MGInputFileReader.
@@ -32,6 +30,7 @@ class ElementaryActionConstraintsBuilder(object):
         self.closest_point_search_max_iterations = algorithm_config["trajectory_following_settings"]["closest_point_search_max_iterations"]
         self.default_spline_type = algorithm_config["trajectory_following_settings"]["spline_type"]
         self.control_point_distance_threshold = algorithm_config["trajectory_following_settings"]["control_point_filter_threshold"]
+        self.collision_avoidance_constraints_mode = algorithm_config["collision_avoidance_constraints_mode"]
 
     def reset_counter(self):
         self.current_action_index = 0
@@ -143,10 +142,22 @@ class ElementaryActionConstraintsBuilder(object):
             if joint_name != root_joint_name:
                 trajectory_constraint = self._create_trajectory_from_constraint_desc(joint_name)
                 if trajectory_constraint is not None:
+                    # decide if it is a collision avoidance constraint based on whether or not it has a range
                     if trajectory_constraint.range_start is None:
                         action_constraints.trajectory_constraints.append(trajectory_constraint)
                     else:
                         action_constraints.collision_avoidance_constraints.append(trajectory_constraint)
+        if self.collision_avoidance_constraints_mode == CA_CONSTRAINTS_MODE_SET and len(action_constraints.collision_avoidance_constraints) > 0:
+            if action_constraints.root_trajectory is not None:
+                   joint_trajectories = [action_constraints.root_trajectory] + action_constraints.collision_avoidance_constraints
+                   joint_names = [action_constraints.root_trajectory.joint_name] + [traj.joint_name for traj in joint_trajectories]
+            else:
+                   joint_trajectories = action_constraints.collision_avoidance_constraints
+                   joint_names = [traj.joint_name for traj in joint_trajectories]
+
+            action_constraints.ca_trajectory_set_constraint = TrajectorySetConstraint(joint_trajectories,
+                                                                                    joint_names,
+                                                                                    self.motion_primitive_graph.skeleton, 1.0, 1.0)
 
     def _create_trajectory_from_constraint_desc(self, joint_name, scale_factor=1.0):
         """ Create a spline based on a trajectory constraint definition read from the input file.
