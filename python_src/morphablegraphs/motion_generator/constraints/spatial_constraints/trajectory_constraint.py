@@ -44,7 +44,7 @@ class TrajectoryConstraint(ParameterizedSpline, SpatialConstraintBase):
             in the last frame of the previous frames.
         :param previous_frames: list of quaternion frames.
         """
-        if len(previous_frames > 0):
+        if previous_frames is not None and len(previous_frames) > 0:
             point = self.skeleton.get_cartesian_coordinates_from_quaternion(self.joint_name, previous_frames[-1])
             closest_point, distance = self.find_closest_point(point, self.min_arc_length, -1)
             if closest_point is not None:
