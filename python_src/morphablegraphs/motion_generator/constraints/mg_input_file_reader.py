@@ -78,7 +78,7 @@ class MGInputFileReader(object):
         dict of constraints lists applicable to a specific motion primitive of the node_group
         """
         keyframe_constraints = self._extract_all_keyframe_constraints(self.elementary_action_list[action_index]["constraints"], node_group)
-        return self._reorder_keyframe_constraints_for_motion_primitves(node_group, keyframe_constraints)
+        return self._reorder_keyframe_constraints_for_motion_primitives(node_group, keyframe_constraints)
 
     def _extract_control_points_from_trajectory_constraint(self, trajectory_constraint_desc, scale_factor=1.0, distance_threshold=0.0):
         control_points = []
@@ -99,7 +99,7 @@ class MGInputFileReader(object):
             if active_region is None or (distance_threshold <= 0.0 or
                                          previous_point is None or
                                          i == n_control_points-1 or
-                                         np.linalg.norm(np.array(point)-previous_point) > distance_threshold):
+                                         np.linalg.norm(np.array(point)-previous_point) >= distance_threshold):
                 control_points.append(point)
 
             #set active region if it is a collision avoidance trajectory
@@ -197,7 +197,7 @@ class MGInputFileReader(object):
                     annotations[keyframe_label] = annotation
             return annotations
 
-    def _reorder_keyframe_constraints_for_motion_primitves(self, node_group, keyframe_constraints):
+    def _reorder_keyframe_constraints_for_motion_primitives(self, node_group, keyframe_constraints):
         """ Order constraints extracted by _extract_all_keyframe_constraints for each state
         Returns
         -------
