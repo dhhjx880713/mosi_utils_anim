@@ -100,8 +100,8 @@ time_smoothing - Applies smoothing on time functions of individual motion primit
 3. trajectory_following_settings
 spline_type - Defines how trajectory constraints are evaluated. Possible values are:
                 0 for Catmull-Rom
-                1 for BSpline (which in this implementation does not go through every control point)
-                2 for Fitted BSpline
+                1 for unfitted BSpline which does not go through every control point
+                2 for fitted BSpline which goes through every control point
 control_point_filter_threshold - used as parameter for a filter that ignores control points that are too close to each other, a value <= 0 deactivates the control point filter.
 
 4. local/global/time optimization settings
