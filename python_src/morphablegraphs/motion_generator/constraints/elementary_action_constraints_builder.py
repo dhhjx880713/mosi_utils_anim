@@ -184,7 +184,7 @@ class ElementaryActionConstraintsBuilder(object):
                                                          1.0,
                                                          self.closest_point_search_accuracy,
                                                          self.closest_point_search_max_iterations)
-            if active_region is not None:
+            if active_region is not None and active_region["start_point"] is not None and active_region["end_point"] is not None:
                 range_start, closest_point = trajectory_constraint.get_absolute_arc_length_of_point(active_region["start_point"])
                 range_end, closest_point = trajectory_constraint.get_absolute_arc_length_of_point(active_region["end_point"])
                 trajectory_constraint.set_active_range(range_start, range_end)
