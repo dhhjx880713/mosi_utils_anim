@@ -62,14 +62,15 @@ class GraphWalk(object):
     def add_entry_to_action_list(self, action_name, start_step, end_step):
         self.elementary_action_list.append(HighLevelGraphWalkEntry(action_name, start_step, end_step))
 
-    def convert_to_motion(self, start_step=0, complete_motion_vector=True):
+    def convert_to_motion(self, start_step=0, complete_motion_vector=True, create_frame_annotation=True):
         self._convert_to_quaternion_frames(start_step, complete_motion_vector)
-        self._create_event_dict()
-        self._create_frame_annotation(start_step)
-        self._add_event_list_to_frame_annotation()
-        if self.hand_pose_generator is not None and complete_motion_vector:
-            print "generate hand poses"
-            self.hand_pose_generator.generate_hand_poses(self.motion_vector, self.keyframe_events_dict)
+        if create_frame_annotation:
+            self._create_event_dict()
+            self._create_frame_annotation(start_step)
+            self._add_event_list_to_frame_annotation()
+            if self.hand_pose_generator is not None and complete_motion_vector:
+                print "generate hand poses"
+                self.hand_pose_generator.generate_hand_poses(self.motion_vector, self.keyframe_events_dict)
 
     def _convert_to_quaternion_frames(self, start_step=0, complete_motion_vector=True):
         """
