@@ -80,7 +80,7 @@ class MGInputFileReader(object):
         keyframe_constraints = self._extract_all_keyframe_constraints(self.elementary_action_list[action_index]["constraints"], node_group)
         return self._reorder_keyframe_constraints_for_motion_primitives(node_group, keyframe_constraints)
 
-    def _extract_control_points_from_trajectory_constraint(self, trajectory_constraint_desc, scale_factor=1.0, distance_threshold=0.0):
+    def _extract_control_points_from_trajectory_constraint_definition(self, trajectory_constraint_desc, scale_factor=1.0, distance_threshold=0.0):
         control_points = []
         previous_point = None
         n_control_points = len(trajectory_constraint_desc)
@@ -92,6 +92,10 @@ class MGInputFileReader(object):
             active_region = None
 
         for i in xrange(n_control_points):
+            if trajectory_constraint_desc[i]["position"] == [None, None, None]:
+                print("skip undefined control point")
+                continue
+
             #where the a component of the position is set None it is set it to 0 to allow a 3D spline definition
             point = [p*scale_factor if p is not None else 0 for p in trajectory_constraint_desc[i]["position"]]
             point = self._transform_point_from_cad_to_opengl_cs(point)
@@ -139,7 +143,7 @@ class MGInputFileReader(object):
                     unconstrained_indices.append(idx)
                 idx += 1
             unconstrained_indices = self._transform_unconstrained_indices_from_cad_to_opengl_cs(unconstrained_indices)
-            control_points, active_region = self._extract_control_points_from_trajectory_constraint(trajectory_constraint_desc, distance_threshold=distance_threshold)
+            control_points, active_region = self._extract_control_points_from_trajectory_constraint_definition(trajectory_constraint_desc, distance_threshold=distance_threshold)
             #print control_points
             #active_region = self._check_for_collision_avoidance_annotation(trajectory_constraint_desc, control_points)
 
