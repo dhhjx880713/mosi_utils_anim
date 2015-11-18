@@ -77,7 +77,7 @@ class TrajectoryConstraint(ParameterizedSpline, SpatialConstraintBase):
             joint_position = np.asarray(self.skeleton.get_cartesian_coordinates_from_quaternion(self.joint_name, frame))
             if last_joint_position is not None:
                 self.arc_length += np.linalg.norm(joint_position - last_joint_position)
-            if self.range_start is None or self.range_start <= self.arc_length <= self.range_end:
+            if self.range_start is None or self.is_active(self.arc_length):
                 target = self.query_point_by_absolute_arc_length(self.arc_length)
                 last_joint_position = joint_position
                 #target[self.unconstrained_indices] = 0
@@ -89,3 +89,6 @@ class TrajectoryConstraint(ParameterizedSpline, SpatialConstraintBase):
 
     def get_length_of_residual_vector(self):
         return self.n_canonical_frames
+
+    def is_active(self, arc_length):
+        return self.range_start is not None and self.range_start <= arc_length <= self.range_end
