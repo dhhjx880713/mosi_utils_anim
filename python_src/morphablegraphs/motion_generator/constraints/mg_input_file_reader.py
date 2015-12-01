@@ -94,6 +94,7 @@ class MGInputFileReader(object):
         else:
             active_region = None
 
+        last_distance = None
         for i in xrange(n_control_points):
             if trajectory_constraint_desc[i]["position"] == [None, None, None]:
                 print("skip undefined control point")
@@ -102,11 +103,18 @@ class MGInputFileReader(object):
             #where the a component of the position is set None it is set it to 0 to allow a 3D spline definition
             point = [p*scale_factor if p is not None else 0 for p in trajectory_constraint_desc[i]["position"]]
             point = np.asarray(self._transform_point_from_cad_to_opengl_cs(point))
+
+            if previous_point is not None:
+                distance = np.linalg.norm(point-previous_point)
+            else:
+                distance = None
             #add the point if there is no distance threshold, it is the first point, it is the last point or larger than or equal to the distance threshold
             if active_region is not None or (distance_threshold <= 0.0 or
                                              previous_point is None or
                                              np.linalg.norm(point-previous_point) >= distance_threshold):
-                control_points.append(point)
+                if last_distance is None or distance >= last_distance/10.0:
+                    control_points.append(point)
+                    last_distance = distance
             elif i == n_control_points-1:
                 last_added_point_idx = len(control_points)-1
                 if np.linalg.norm(control_points[last_added_point_idx] - point) < distance_threshold:
