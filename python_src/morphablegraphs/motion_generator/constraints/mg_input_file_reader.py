@@ -63,7 +63,10 @@ class MGInputFileReader(object):
 
     def get_start_pose(self):
         start_pose = dict()
-        start_pose["orientation"] = self._transform_point_from_cad_to_opengl_cs(self.mg_input_file["startPose"]["orientation"])
+        if None in self.mg_input_file["startPose"]["orientation"]:
+            start_pose["orientation"]  = None
+        else:
+            start_pose["orientation"] = self._transform_point_from_cad_to_opengl_cs(self.mg_input_file["startPose"]["orientation"])
         start_pose["position"] = self._transform_point_from_cad_to_opengl_cs(self.mg_input_file["startPose"]["position"])
         return start_pose
 
@@ -98,12 +101,17 @@ class MGInputFileReader(object):
 
             #where the a component of the position is set None it is set it to 0 to allow a 3D spline definition
             point = [p*scale_factor if p is not None else 0 for p in trajectory_constraint_desc[i]["position"]]
-            point = self._transform_point_from_cad_to_opengl_cs(point)
+            point = np.asarray(self._transform_point_from_cad_to_opengl_cs(point))
             #add the point if there is no distance threshold, it is the first point, it is the last point or larger than or equal to the distance threshold
             if active_region is not None or (distance_threshold <= 0.0 or
                                              previous_point is None or
-                                             i == n_control_points-1 or
-                                             np.linalg.norm(np.array(point)-previous_point) >= distance_threshold):
+                                             np.linalg.norm(point-previous_point) >= distance_threshold):
+                control_points.append(point)
+            elif i == n_control_points-1:
+                last_added_point_idx = len(control_points)-1
+                if np.linalg.norm(control_points[last_added_point_idx] - point) < distance_threshold:
+                    control_points[last_added_point_idx] = (control_points[last_added_point_idx] - point) * 1.00 + control_points[last_added_point_idx]
+                    print("shift second to last control point")
                 control_points.append(point)
 
             #set active region if it is a collision avoidance trajectory
@@ -113,7 +121,7 @@ class MGInputFileReader(object):
                 elif active_region["start_point"] is not None and active_region["end_point"] is None:
                     active_region["end_point"] = point
 
-            previous_point = np.array(point)
+            previous_point = point
 
         #handle invalid region specification
         if active_region is not None:

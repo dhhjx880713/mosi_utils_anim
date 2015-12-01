@@ -355,7 +355,6 @@ class ParameterizedSpline(object):
 
         """
         assert self.spline.dimensions == 3
-
         start, tangent_line = self.get_tangent_at_arc_length(arc_length)
         # todo get angle with reference_frame[1]
         a = reference_vector

@@ -4,7 +4,7 @@ Created on Mon Jul 27 12:00:15 2015
 
 @author: erhe01
 """
-
+import numpy as np
 from elementary_action_constraints import ElementaryActionConstraints
 from spatial_constraints.trajectory_constraint import TrajectoryConstraint
 from spatial_constraints.trajectory_set_constraint import TrajectorySetConstraint
@@ -54,12 +54,28 @@ class ElementaryActionConstraintsBuilder(object):
             action_constraints = ElementaryActionConstraints()
             action_constraints.motion_primitive_graph = self.motion_primitive_graph
             action_constraints.action_name = self.mg_input.get_elementary_action_name(self.current_action_index)
-            action_constraints.start_pose = self.start_pose
             self._add_keyframe_constraints(action_constraints)
             self._add_keyframe_annotations(action_constraints)
             self._add_trajectory_constraints(action_constraints)
+            self._set_start_pose(action_constraints)
             action_constraints._initialized = True
             return action_constraints
+
+    def _set_start_pose(self, action_constraints):
+        """ Sets the pose at the beginning of the elementary action sequence
+        Determines the optimal start orientation from the constraints if none is given.
+        :param action_constraints:
+        :return:
+        """
+        if self.start_pose["orientation"] is None:
+            if action_constraints.root_trajectory is not None:
+                ref_offset_2d = np.array([0, -1])# components correspond to x, z - we assume the motions are initially oriented into that direction
+                start, tangent, angle = action_constraints.root_trajectory.get_angle_at_arc_length_2d(0.0, ref_offset_2d)
+                self.start_pose["orientation"] = [0, angle, 0]
+            else:
+                self.start_pose["orientation"] = [0, 0, 0]
+            print "set start orientation", self.start_pose["orientation"]
+        action_constraints.start_pose = self.start_pose
 
     def _add_keyframe_annotations(self, action_constraints):
         if self.current_action_index > 0:
@@ -71,10 +87,11 @@ class ElementaryActionConstraintsBuilder(object):
         action_constraints.keyframe_constraints = self.mg_input.get_ordered_keyframe_constraints(self.current_action_index, node_group)
         action_constraints.contains_user_constraints = False
         if len(action_constraints.keyframe_constraints) > 0:
-            for keyframe_label_constraints in  action_constraints.keyframe_constraints.values():
-                if len(keyframe_label_constraints[0]) > 0:
-                    action_constraints.contains_user_constraints = True
-                    break
+            for keyframe_label_constraints in action_constraints.keyframe_constraints.values():
+                if len(keyframe_label_constraints) > 0:
+                    if len(keyframe_label_constraints[0]) > 0:
+                        action_constraints.contains_user_constraints = True
+                        break
 
             self._merge_two_hand_constraints(action_constraints)
         print action_constraints.action_name, action_constraints.keyframe_constraints, action_constraints.contains_user_constraints, "#######################"
