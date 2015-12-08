@@ -328,3 +328,7 @@ class Skeleton(object):
             cartesian_frame.append(position)
 
         return cartesian_frame
+
+    def clear_cached_global_matrices(self):
+        for joint in self.joint_map.values():
+            joint.clear_cached_global_matrix()
