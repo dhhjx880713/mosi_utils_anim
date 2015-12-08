@@ -3,6 +3,7 @@ import numpy as np
 from spatial_constraint_base import SpatialConstraintBase
 from copy import copy
 
+
 class TrajectorySetConstraint(SpatialConstraintBase):
     def __init__(self, joint_trajectories, joint_names, skeleton, precision, weight_factor):
         SpatialConstraintBase.__init__(self, precision, weight_factor)
@@ -46,28 +47,33 @@ class TrajectorySetConstraint(SpatialConstraintBase):
             self.joint_arc_lengths = np.zeros(len(self.joint_trajectories))
 
     def _extract_joint_positions_from_frame(self, frame):
-        joint_positions = [self.skeleton.get_cartesian_coordinates_from_quaternion(joint_name, frame)
+        self.skeleton.clear_cached_global_matrices()
+        joint_positions = [self.skeleton.joint_map[joint_name].get_global_position(frame, True)
                            for joint_name in self.joint_names]
         return joint_positions
 
     def get_residual_vector(self, aligned_quat_frames):
-        residual_vector = []
+        residual_vector = np.zeros(self.n_canonical_frames)
         last_joint_positions = None
         joint_arc_lengths = copy(self.joint_arc_lengths)
-        for frame in aligned_quat_frames:
-            joint_positions = self._extract_joint_positions_from_frame(frame)
-            target_joint_positions = [joint_trajectory.query_point_by_absolute_arc_length(arc_length)
-                                      for joint_trajectory, arc_length
-                                      in zip(self.joint_trajectories, joint_arc_lengths)]
-            actual_center = np.average(joint_positions)
-            target_center = np.average(target_joint_positions)
+        for i in xrange(self.n_canonical_frames):
+            joint_positions = self._extract_joint_positions_from_frame(aligned_quat_frames[i])
+            is_active = [traj.is_active(arc_length) for traj, arc_length in zip(self.joint_trajectories, joint_arc_lengths)]
+            #print is_active
+            if np.any(is_active):
+                target_joint_positions = [joint_trajectory.query_point_by_absolute_arc_length(arc_length)
+                                          for joint_trajectory, arc_length
+                                          in zip(self.joint_trajectories, joint_arc_lengths)]
+                actual_center = np.average(joint_positions)
+                target_center = np.average(target_joint_positions)
+                residual_vector[i] = np.linalg.norm(actual_center-target_center)
 
-            residual_vector.append(np.linalg.norm(actual_center-target_center))
             if last_joint_positions is not None:
                joint_arc_lengths = [arc_length + np.linalg.norm(np.asarray(joint_position) - np.asarray(last_joint_position))
                                     for joint_position, last_joint_position, arc_length
                                     in zip(joint_positions, last_joint_positions, joint_arc_lengths)]
             last_joint_positions = joint_positions
+        #print "evaluated constraint set", sum(residual_vector)/len(aligned_quat_frames)
         return residual_vector
 
     def get_length_of_residual_vector(self):
