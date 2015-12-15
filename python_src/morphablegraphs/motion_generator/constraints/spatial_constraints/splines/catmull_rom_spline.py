@@ -21,7 +21,7 @@ class CatmullRomSpline(object):
     #http://pages.cpsc.ucalgary.ca/~jungle/587/pdf/5-interpolation.pdf
     """
 
-    def __init__(self, control_points, dimensions, verbose=False):
+    def __init__(self, control_points, verbose=False):
         self.verbose = verbose
 
         # http://algorithmist.net/docs/catmullrom.pdf
@@ -31,7 +31,10 @@ class CatmullRomSpline(object):
                                              [2.0, -5.0, 4.0, -1.0],
                                              [-1.0, 0.0, 1.0, 0.0],
                                              [0.0, 2.0, 0.0, 0.0]])
-        self.dimensions = dimensions
+        if isinstance(control_points[0], (int, long, float, complex)):
+            self.dimensions = 1
+        else:
+            self.dimensions = len(control_points[0])
         self.initiated = False
         self.control_points = []
         if len(control_points) > 0:
@@ -98,9 +101,10 @@ class CatmullRomSpline(object):
         Returns the index of the segment and the corresponding relative parameter value in this segment
         """
         #get index of the segment
-        index = min(floor(self.number_of_segments * u), self.number_of_segments)
+        scaled_u = self.number_of_segments * u
+        index = min(int(floor(scaled_u)), self.number_of_segments)
         # local_u is the remainder, e.g. number_of_segments = 10 and u = 0.62 then index = 6 and local_u is 0.02
-        local_u = (self.number_of_segments * u) - index #floor(self.number_of_segments * u)
+        local_u = scaled_u - index #floor(self.number_of_segments * u)
         # increment i by 1 to ignore the first auxiliary control point
         return index + 1, local_u
 
@@ -119,10 +123,8 @@ class CatmullRomSpline(object):
         point = []
         d = 0
         while d < self.dimensions:
-            point.append(
-                self._query_component_by_parameter(
-                    weight_vector,
-                    control_point_vectors[d]))
+            point.append(self._query_component_by_parameter(
+                         weight_vector, control_point_vectors[d]))
             d += 1
         return np.array(point)
 
@@ -145,13 +147,13 @@ class CatmullRomSpline(object):
         Note the auxiliary segments should not be queried
         """
         #assert i <= self.number_of_segments
-        index = int(index)
+        #index = int(index)
         d = 0
         vectors = []
         while d < self.dimensions:
-            vectors.append([float(self.control_points[index - 1][d]),
-                            float(self.control_points[index][d]),
-                            float(self.control_points[index + 1][d]),
-                            float(self.control_points[index + 2][d])])
+            vectors.append([self.control_points[index - 1][d],
+                            self.control_points[index][d],
+                            self.control_points[index + 1][d],
+                            self.control_points[index + 2][d]])
             d += 1
         return vectors

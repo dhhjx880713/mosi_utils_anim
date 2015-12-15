@@ -14,10 +14,7 @@ from spatial_constraints.keyframe_constraints.direction_constraint import Direct
 from spatial_constraints.keyframe_constraints.pos_and_rot_constraint import PositionAndRotationConstraint
 from spatial_constraints.keyframe_constraints.pose_constraint_quat_frame import PoseConstraintQuatFrame
 from spatial_constraints.keyframe_constraints.two_hand_constraint import TwoHandConstraintSet
-
-OPTIMIZATION_MODE_ALL = "all"
-OPTIMIZATION_MODE_KEYFRAMES = "keyframes"
-OPTIMIZATION_MODE_NONE = "none"
+from . import *
 
 
 class MotionPrimitiveConstraintsBuilder(object):
@@ -41,6 +38,7 @@ class MotionPrimitiveConstraintsBuilder(object):
         self.precision = algorithm_config["constrained_gmm_settings"]["precision"]
         self.trajectory_following_settings = algorithm_config["trajectory_following_settings"]
         self.local_optimization_mode = algorithm_config["local_optimization_mode"]
+        self.ca_constrainst_mode = algorithm_config["collision_avoidance_constraints_mode"]
 
     def set_status(self, motion_primitive_name, last_arc_length, prev_frames=None, is_last_step=False):
         self.status["motion_primitive_name"] = motion_primitive_name
@@ -88,6 +86,12 @@ class MotionPrimitiveConstraintsBuilder(object):
                 trajectory_constraint.set_min_arc_length_from_previous_frames(self.status["prev_frames"])
                 trajectory_constraint.set_number_of_canonical_frames(self.status["n_canonical_frames"])
             mp_constraints.constraints.append(trajectory_constraint)
+        if self.ca_constrainst_mode == CA_CONSTRAINTS_MODE_SET and self.action_constraints.ca_trajectory_set_constraint is not None:
+            ca_trajectory_set_constraint = copy(self.action_constraints.ca_trajectory_set_constraint)
+            ca_trajectory_set_constraint.set_min_arc_length_from_previous_frames(self.status["prev_frames"])
+            ca_trajectory_set_constraint.set_number_of_canonical_frames(self.status["n_canonical_frames"])
+            print "use ca constraint set"
+            mp_constraints.constraints.append(ca_trajectory_set_constraint)
         return
 
     def _add_pose_constraint(self, mp_constraints):

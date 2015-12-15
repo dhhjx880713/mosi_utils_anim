@@ -181,7 +181,6 @@ class MotionPrimitive(object):
             time_function = np.arange(0, self.n_canonical_frames)
         return MotionSpline(low_dimensional_vector, spatial_coefs, time_function, self.s_pca["knots"])
 
-
     def _inverse_spatial_pca(self, alpha):
         """ Backtransform a lowdimensional vector alpha to a coefficients of
         a functional motion representation.

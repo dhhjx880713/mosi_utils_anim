@@ -19,9 +19,6 @@ from elementary_action_graph_walk_generator import ElementaryActionGraphWalkGene
 from algorithm_configuration import AlgorithmConfigurationBuilder
 from graph_walk import GraphWalk
 from graph_walk_optimizer import GraphWalkOptimizer
-from hand_pose_generator import HandPoseGenerator
-
-SKELETON_FILE = "skeleton.bvh"  # TODO replace with standard skeleton in data directory
 
 
 class GraphWalkGenerator(GraphWalkOptimizer):
@@ -41,16 +38,14 @@ class GraphWalkGenerator(GraphWalkOptimizer):
         self._algorithm_config = algorithm_config
 
         super(GraphWalkGenerator, self).__init__(algorithm_config)
-        motion_primitive_graph_directory = self._service_config["model_data"]
-        graph_builder = MotionStateGraphLoader()
-        graph_builder.set_data_source(SKELETON_FILE, motion_primitive_graph_directory,
-                                      self._algorithm_config["use_transition_model"])
-        self.motion_primitive_graph = graph_builder.build()
+        motion_primitive_graph_path = self._service_config["model_data"]
+        graph_loader = MotionStateGraphLoader()
+        graph_loader.set_data_source(motion_primitive_graph_path, self._algorithm_config["use_transition_model"])
+        self.motion_primitive_graph = graph_loader.build()
         self.elementary_action_generator = ElementaryActionGraphWalkGenerator(self.motion_primitive_graph,
                                                                               self._algorithm_config)
         self._global_spatial_optimization_steps = self._algorithm_config["global_spatial_optimization_settings"]["max_steps"]
-        self.hand_pose_generator = HandPoseGenerator(self.motion_primitive_graph.skeleton)
-        self.hand_pose_generator.init_generator(self._service_config["model_data"])
+
         return
 
     def set_algorithm_config(self, algorithm_config):
@@ -68,7 +63,7 @@ class GraphWalkGenerator(GraphWalkOptimizer):
         self.elementary_action_generator.set_algorithm_config(self._algorithm_config)
         self._global_spatial_optimization_steps = self._algorithm_config["global_spatial_optimization_settings"]["max_steps"]
 
-    def generate_graph_walk(self, mg_input, export=True):
+    def generate_graph_walk(self, mg_input, export=True, activate_joint_map=False):
         """
         Converts a json input file with a list of elementary actions and constraints 
         into a graph_walk saved to a BVH file.
@@ -90,7 +85,7 @@ class GraphWalkGenerator(GraphWalkOptimizer):
         if type(mg_input) != dict:
             mg_input = load_json_file(mg_input)
         start = time.clock()
-        input_file_reader = MGInputFileReader(mg_input)
+        input_file_reader = MGInputFileReader(mg_input, activate_joint_map)
         elementary_action_constraints_builder = ElementaryActionConstraintsBuilder(input_file_reader, self.motion_primitive_graph, self._algorithm_config)
         graph_walk = self._generate_graph_walk_from_constraints(elementary_action_constraints_builder)
         if self._algorithm_config["use_global_time_optimization"]:
@@ -126,8 +121,8 @@ class GraphWalkGenerator(GraphWalkOptimizer):
         graph_walk = GraphWalk(self.motion_primitive_graph,
                               elementary_action_constraints_builder.start_pose,
                               self._algorithm_config)
-        graph_walk.mg_input = elementary_action_constraints_builder.get_mg_input_file()
-        graph_walk.hand_pose_generator = self.hand_pose_generator
+        graph_walk.mg_input = elementary_action_constraints_builder.mg_input
+        graph_walk.hand_pose_generator = self.motion_primitive_graph.hand_pose_generator
         action_constraints = elementary_action_constraints_builder.get_next_elementary_action_constraints()
         while action_constraints is not None:
             if self._algorithm_config["debug_max_step"] > -1 and graph_walk.step_count > self._algorithm_config["debug_max_step"]:
@@ -143,11 +138,18 @@ class GraphWalkGenerator(GraphWalkOptimizer):
             if not success:
                 print "Arborting conversion"
                 return graph_walk
-            print "has user constraints", action_constraints.contains_user_constraints
+
+            #print "has user constraints", action_constraints.contains_user_constraints
             if self._algorithm_config["use_global_spatial_optimization"] and action_constraints.contains_user_constraints:
-                print "spatial graph walk optimization"
+                #print "spatial graph walk optimization"
                 start_step = max(self.elementary_action_generator.state.start_step-self._global_spatial_optimization_steps, 0)
                 graph_walk = self._optimize_spatial_parameters_over_graph_walk(graph_walk, start_step)
+
+            if self._algorithm_config["optimize_collision_avoidance_constraints_extra"] and action_constraints.collision_avoidance_constraints is not None and len(action_constraints.collision_avoidance_constraints) > 0 :
+                print "optimize collision avoidance parameters"
+                graph_walk = self._optimize_for_collision_avoidance_constraints(graph_walk, action_constraints, self.elementary_action_generator.state.start_step)
+
+            graph_walk.add_entry_to_action_list(action_constraints.action_name, self.elementary_action_generator.state.start_step, len(graph_walk.steps)-1)
 
             action_constraints = elementary_action_constraints_builder.get_next_elementary_action_constraints()
 

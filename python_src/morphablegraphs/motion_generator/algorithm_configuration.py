@@ -5,6 +5,7 @@ Created on Thu Jul 16 17:19:46 2015
 @author: erhe01
 """
 
+import logging
 from ..utilities.io_helper_functions import load_json_file
 from ..animation_data.motion_editing import DEFAULT_SMOOTHING_WINDOW_SIZE
 
@@ -31,6 +32,8 @@ class AlgorithmConfigurationBuilder(object):
         self.n_cluster_search_candidates = 2
         self.debug_max_step = -1
         self.verbose = False
+        self.collision_avoidance_constraints_mode = "none"
+        self.optimize_collision_avoidance_constraints_extra = False
         self.set_default_constrained_gmm_settings()
         self.set_default_trajectory_following_settings()
         self.set_default_optimization_settings()
@@ -76,6 +79,8 @@ class AlgorithmConfigurationBuilder(object):
 
     def set_default_trajectory_following_settings(self):
         self.trajectory_following_settings = dict()
+        self.trajectory_following_settings["spline_type"] = 0
+        self.trajectory_following_settings["control_point_filter_threshold"] = 50
         self.trajectory_following_settings["step_length_approx_method"] = "arc_length"
         self.trajectory_following_settings["heuristic_step_length_factor"] = 0.8
         self.trajectory_following_settings["dir_constraint_factor"] = 10.0
@@ -111,6 +116,8 @@ class AlgorithmConfigurationBuilder(object):
         self.n_cluster_search_candidates = temp_algorithm_config["n_cluster_search_candidates"]
         self.debug_max_step = temp_algorithm_config["debug_max_step"]
         self.verbose = temp_algorithm_config["verbose"]
+        self.collision_avoidance_constraints_mode = temp_algorithm_config["collision_avoidance_constraints_mode"]
+        self.optimize_collision_avoidance_constraints_extra = temp_algorithm_config["optimize_collision_avoidance_constraints_extra"]
 
     def build(self):
         return {"use_constraints": self.use_constraints,
@@ -130,5 +137,7 @@ class AlgorithmConfigurationBuilder(object):
                 "activate_cluster_search": self.activate_cluster_search,
                 "n_cluster_search_candidates": self.n_cluster_search_candidates,
                 "verbose": self.verbose,
+                "collision_avoidance_constraints_mode": self.collision_avoidance_constraints_mode,
+                "optimize_collision_avoidance_constraints_extra": self.optimize_collision_avoidance_constraints_extra,
                 "debug_max_step": self.debug_max_step
                 }

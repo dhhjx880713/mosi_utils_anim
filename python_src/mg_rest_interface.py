@@ -74,7 +74,7 @@ class MGInputHandler(tornado.web.RequestHandler):
                 print "answer request", not self.application.use_file_output_mode
                 graph_walk.convert_to_motion()
                 bvh_writer = get_bvh_writer(
-                    self.application.graph_walk_generator.motion_primitive_graph.skeleton,
+                    self.application.graph_walk_generator.motion_primitive_graph.full_skeleton,
                     graph_walk.get_quat_frames())
                 result_object = {
                     "bvh": bvh_writer.generate_bvh_string(),
@@ -135,10 +135,11 @@ class MGRestApplication(tornado.web.Application):
         self.algorithm_config = algorithm_config
         self.service_config = service_config
         self.use_file_output_mode = (service_config["output_mode"] == "file_output")
+        self.activate_joint_map = service_config["activate_joint_map"]
         print "send result as answer to the request", not self.use_file_output_mode
 
     def generate_graph_walk(self, mg_input):
-        return self.graph_walk_generator.generate_graph_walk(mg_input, export=False)
+        return self.graph_walk_generator.generate_graph_walk(mg_input, export=False, activate_joint_map=self.activate_joint_map)
 
     def set_algorithm_config(self, algorithm_config):
         self.graph_walk_generator.set_algorithm_config(algorithm_config)
@@ -174,7 +175,7 @@ class MorphableGraphsRESTfulInterface(object):
     def __init__(self, service_config_file, algorithm_config_file):
 
         #  Load configurtation files
-        service_config = load_json_file(SERVICE_CONFIG_FILE)
+        service_config = load_json_file(service_config_file)
         algorithm_config_builder = AlgorithmConfigurationBuilder()
         if os.path.isfile(algorithm_config_file):
             algorithm_config_builder.from_json(algorithm_config_file)

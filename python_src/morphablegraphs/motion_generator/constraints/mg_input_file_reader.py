@@ -1,7 +1,8 @@
 __author__ = 'erhe01'
 
 import numpy as np
-from ...utilities.io_helper_functions import load_json_file
+import json
+
 
 class MGInputFileReader(object):
     """Implements functions used for the processing of the constraints from the input file
@@ -12,15 +13,40 @@ class MGInputFileReader(object):
     * mg_input_file : file path or json data read from a file
         Contains elementary action list with constraints, start pose and keyframe annotations.
     """
-    def __init__(self, mg_input_file):
+    def __init__(self, mg_input_file, activate_joint_mapping=False):
         self.mg_input_file = mg_input_file
         self.elementary_action_list = []
         self.keyframe_annotations = []
+        self.joint_name_map = dict()
+        self.inverse_joint_name_map = dict()
+        self._fill_joint_name_map()
+        self.activate_joint_mapping = activate_joint_mapping
         if type(mg_input_file) != dict:
-            self.mg_input_file = load_json_file(mg_input_file)
+            mg_input_file = open(mg_input_file)
+            input_string = mg_input_file.read()
+            if self.activate_joint_mapping:
+                input_string = self._apply_joint_mapping_on_string(input_string)
+            self.mg_input_file = json.loads(input_string)
+            #self.mg_input_file = load_json_file(mg_input_file)
         else:
-            self.mg_input_file = mg_input_file
+            if self.activate_joint_mapping:
+                input_string = self._apply_joint_mapping_on_string(json.dumps(mg_input_file))
+                self.mg_input_file = json.loads(input_string)
+            else:
+                self.mg_input_file = mg_input_file
+
         self._extract_elementary_actions()
+
+    def _fill_joint_name_map(self):
+        self.joint_name_map["RightHand"] = "RightToolEndSite"
+        self.joint_name_map["LeftHand"] = "LeftToolEndSite"
+        self.inverse_joint_name_map["RightToolEndSite"] = "RightHand"
+        self.inverse_joint_name_map["LeftToolEndSite"] = "LeftHand"
+
+    def _apply_joint_mapping_on_string(self, input_string):
+        for key in self.joint_name_map.keys():
+            input_string = input_string.replace(key, self.joint_name_map[key])
+        return input_string
 
     def _extract_elementary_actions(self):
         if "elementaryActions" in self.mg_input_file.keys():
@@ -30,14 +56,17 @@ class MGInputFileReader(object):
             for task in self.mg_input_file["tasks"]:
                 if "elementaryActions" in task.keys():
                     self.elementary_action_list += task["elementaryActions"]
-        self.keyframe_annotations = self._extract_keyframe_annotations(self.elementary_action_list)
+        self.keyframe_annotations = self._extract_keyframe_annotations()
 
     def get_number_of_actions(self):
         return len(self.elementary_action_list)
 
     def get_start_pose(self):
         start_pose = dict()
-        start_pose["orientation"] = self._transform_point_from_cad_to_opengl_cs(self.mg_input_file["startPose"]["orientation"])
+        if None in self.mg_input_file["startPose"]["orientation"]:
+            start_pose["orientation"]  = None
+        else:
+            start_pose["orientation"] = self._transform_point_from_cad_to_opengl_cs(self.mg_input_file["startPose"]["orientation"])
         start_pose["position"] = self._transform_point_from_cad_to_opengl_cs(self.mg_input_file["startPose"]["position"])
         return start_pose
 
@@ -52,9 +81,66 @@ class MGInputFileReader(object):
         dict of constraints lists applicable to a specific motion primitive of the node_group
         """
         keyframe_constraints = self._extract_all_keyframe_constraints(self.elementary_action_list[action_index]["constraints"], node_group)
-        return self._reorder_keyframe_constraints_for_motion_primitves(node_group, keyframe_constraints)
+        return self._reorder_keyframe_constraints_for_motion_primitives(node_group, keyframe_constraints)
 
-    def get_trajectory_from_constraint_list(self, action_index, joint_name, scale_factor=1.0):
+    def _extract_control_points_from_trajectory_constraint_definition(self, trajectory_constraint_desc, scale_factor=1.0, distance_threshold=0.0):
+        control_points = []
+        previous_point = None
+        n_control_points = len(trajectory_constraint_desc)
+        if "semanticAnnotation" in trajectory_constraint_desc[0].keys():
+            active_region = dict()
+            active_region["start_point"] = None
+            active_region["end_point"] = None
+        else:
+            active_region = None
+
+        last_distance = None
+        for i in xrange(n_control_points):
+            if trajectory_constraint_desc[i]["position"] == [None, None, None]:
+                print("skip undefined control point")
+                continue
+
+            #where the a component of the position is set None it is set it to 0 to allow a 3D spline definition
+            point = [p*scale_factor if p is not None else 0 for p in trajectory_constraint_desc[i]["position"]]
+            point = np.asarray(self._transform_point_from_cad_to_opengl_cs(point))
+
+            if previous_point is not None:
+                distance = np.linalg.norm(point-previous_point)
+            else:
+                distance = None
+            #add the point if there is no distance threshold, it is the first point, it is the last point or larger than or equal to the distance threshold
+            if active_region is not None or (distance_threshold <= 0.0 or
+                                             previous_point is None or
+                                             np.linalg.norm(point-previous_point) >= distance_threshold):
+                if last_distance is None or distance >= last_distance/10.0:
+                    control_points.append(point)
+                    last_distance = distance
+            elif i == n_control_points-1:
+                last_added_point_idx = len(control_points)-1
+                if np.linalg.norm(control_points[last_added_point_idx] - point) < distance_threshold:
+                    control_points[last_added_point_idx] = (control_points[last_added_point_idx] - point) * 1.00 + control_points[last_added_point_idx]
+                    print("shift second to last control point")
+                control_points.append(point)
+
+            #set active region if it is a collision avoidance trajectory
+            if active_region is not None and "semanticAnnotation" in trajectory_constraint_desc[i].keys():
+                if trajectory_constraint_desc[i]["semanticAnnotation"]["collisionAvoidance"]:
+                    active_region["start_point"] = point
+                elif active_region["start_point"] is not None and active_region["end_point"] is None:
+                    active_region["end_point"] = point
+
+            previous_point = point
+
+        #handle invalid region specification
+        if active_region is not None:
+            if active_region["start_point"] is None:
+                active_region["start_point"] = control_points[0]
+            if active_region["end_point"] is None:
+                active_region["end_point"] = control_points[-1]
+
+        return control_points, active_region
+
+    def get_trajectory_from_constraint_list(self, action_index, joint_name, scale_factor=1.0, distance_threshold=-1):
         """ Extract the trajectory information from the constraint list
         Returns:
         -------
@@ -73,16 +159,39 @@ class MGInputFileReader(object):
                     unconstrained_indices.append(idx)
                 idx += 1
             unconstrained_indices = self._transform_unconstrained_indices_from_cad_to_opengl_cs(unconstrained_indices)
-            control_points = []
-            for c in trajectory_constraint_desc:
-                #where the c["position"] is None set it to 0
-                point = [p*scale_factor if p is not None else 0 for p in c["position"]]
-                point = self._transform_point_from_cad_to_opengl_cs(point)
-                control_points.append(point)
-            return control_points, unconstrained_indices
-        return None, None
+            control_points, active_region = self._extract_control_points_from_trajectory_constraint_definition(trajectory_constraint_desc, distance_threshold=distance_threshold)
+            #print control_points
+            #active_region = self._check_for_collision_avoidance_annotation(trajectory_constraint_desc, control_points)
 
-    def _extract_keyframe_annotations(self, elementary_action_list):
+            return control_points, unconstrained_indices, active_region
+        return None, None, False
+
+    def _check_for_collision_avoidance_annotation(self, trajectory_constraint_desc, control_points):
+        """ find start and end control point of an active region if there exists one.
+        Note this functions expects that there are not more than one active region.
+
+        :param trajectory_constraint_desc:
+        :param control_points:
+        :return: dict containing "start_point" and "end_point" or None
+        """
+        assert len(trajectory_constraint_desc) == len(control_points), str(len(trajectory_constraint_desc)) +" != " +  str(  len(control_points))
+        active_region = None
+        if "semanticAnnotation" in trajectory_constraint_desc[0].keys():
+            active_region = dict()
+            active_region["start_point"] = None
+            active_region["end_point"] = None
+            c_index = 0
+            for c in trajectory_constraint_desc:
+                if "semanticAnnotation" in c.keys():
+                    if c["semanticAnnotation"]["collisionAvoidance"]:
+                        active_region["start_point"] = control_points[c_index]
+                    elif active_region["start_point"] is not None and active_region["end_point"] is None:
+                        active_region["end_point"] = control_points[c_index]
+                        break
+                c_index += 1
+        return active_region
+
+    def _extract_keyframe_annotations(self):
         """
         Returns
         ------
@@ -90,16 +199,8 @@ class MGInputFileReader(object):
           Contains for every elementary action a dict that associates of events/actions with certain keyframes
         """
         keyframe_annotations = []
-        for entry in elementary_action_list:
-            if "keyframeAnnotations" in entry.keys():
-                annotations = {}
-
-                for annotation in entry["keyframeAnnotations"]:
-                    key = annotation["keyframe"]
-                    annotations[key] = annotation
-                keyframe_annotations.append(annotations)
-            else:
-                keyframe_annotations.append({})
+        for action_index, entry in enumerate(self.elementary_action_list):
+            keyframe_annotations.append(self.get_keyframe_annotations(action_index))
         return keyframe_annotations
 
     def get_keyframe_annotations(self, action_index):
@@ -109,25 +210,22 @@ class MGInputFileReader(object):
             * keyframe_annotations : a list of dicts
               Contains for every elementary action a dict that associates of events/actions with certain keyframes
             """
+            annotations = dict()
             if "keyframeAnnotations" in self.elementary_action_list[action_index].keys():
-                annotations = {}
                 for annotation in self.elementary_action_list[action_index]["keyframeAnnotations"]:
                     keyframe_label = annotation["keyframe"]
                     annotations[keyframe_label] = annotation
-                return annotations
-            else:
-                return dict()
+            return annotations
 
-    def _reorder_keyframe_constraints_for_motion_primitves(self, node_group, keyframe_constraints):
-         """ Order constraints extracted by _extract_all_keyframe_constraints for each state
-
-         Returns
-         -------
-         reordered_constraints: dict of lists
-         """
-         reordered_constraints = {}
-         #iterate over keyframe labels
-         for keyframe_label in keyframe_constraints.keys():
+    def _reorder_keyframe_constraints_for_motion_primitives(self, node_group, keyframe_constraints):
+        """ Order constraints extracted by _extract_all_keyframe_constraints for each state
+        Returns
+        -------
+        reordered_constraints: dict of lists
+        """
+        reordered_constraints = dict()
+        # iterate over keyframe labels
+        for keyframe_label in keyframe_constraints.keys():
             motion_primitive_name = node_group.label_to_motion_primitive_map[keyframe_label]
             time_information = node_group.motion_primitive_annotations[motion_primitive_name][keyframe_label]
             reordered_constraints[motion_primitive_name] = []
@@ -139,7 +237,7 @@ class MGInputFileReader(object):
                     # and add it to the list of constraints for that state
                     constraint_desc = self._create_keyframe_constraint(keyframe_label, joint_name, keyframe_constraint, time_information)
                     reordered_constraints[motion_primitive_name].append(constraint_desc)
-         return reordered_constraints
+        return reordered_constraints
 
     def _extract_keyframe_constraints_for_label(self, input_constraint_list, label):
         """ Returns the constraints associated with the given label. Ordered
@@ -265,3 +363,10 @@ class MGInputFileReader(object):
             elif i == 2:
                 new_indices.append(1)
         return new_indices
+
+    def inverse_map_joint(self, joint_name):
+        if joint_name in self.inverse_joint_name_map.keys() and self.activate_joint_mapping:
+            #print "map joint", joint_name
+            return self.inverse_joint_name_map[joint_name]
+        else:
+            return joint_name

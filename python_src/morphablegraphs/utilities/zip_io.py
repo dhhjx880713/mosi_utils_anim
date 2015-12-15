@@ -16,7 +16,7 @@ TRANSITION_MODEL_DIRECTORY_NAME = "transition_models"
 
 
 class ZipReader(object):
-    def __init__(self, zip_file_path, pickle_objects=True, verbose=False):
+    def __init__(self, zip_file_path, pickle_objects=True, verbose=True):
         self.zip_file_path = zip_file_path
         self.zip_file = None
         self.pickle_objects = pickle_objects
@@ -36,6 +36,7 @@ class ZipReader(object):
         print "Loading data from file ", self.zip_file_path, "..."
         self.zip_file = zipfile.ZipFile(self.zip_file_path, "r", zipfile.ZIP_DEFLATED)
         data = json.loads(self.zip_file.read("graph_definition.json"))
+        data["skeletonString"] = self.zip_file.read("skeleton.bvh")
         #print data.keys()
         if "formatVersion" in data.keys():
             self.format_version = data["formatVersion"]
@@ -43,14 +44,17 @@ class ZipReader(object):
             self.format_version = "1.0"
 
         if self.format_version == "2.0":
-            #print "version 2"
+            print "format version 2.0"
             structure_desc = self._read_elementary_action_file_structure_from_zip_v2()
+            data["handPoseInfo"] = self._read_hand_pose_data()
         else:
-            #print "version 1"
+            print "format version 1.0"
             structure_desc = self._read_elementary_action_file_structure_from_zip_v1()
         self._construct_graph_data(structure_desc)
 
         data["subgraphs"] = self.graph_data
+
+
         self.zip_file.close()
         return data
 
@@ -86,7 +90,20 @@ class ZipReader(object):
         structure_desc = dict()
         structure_desc[self.elementary_action_directory] = elementary_actions
         structure_desc[self.transition_model_directory] = dict()
+
         return structure_desc
+
+    def _read_hand_pose_data(self):
+        hand_pose_info = json.loads(self.zip_file.read("hand_poses/hand_pose_info.json"))
+        hand_pose_info["skeletonStrings"] = dict()
+        for file_path in self.zip_file.namelist():
+            splitted_name = file_path.split("/")
+            if len(splitted_name) > 1:
+                filename = splitted_name[1][:-4]
+                if splitted_name[0] == "hand_poses" and splitted_name[1][-4:] == ".bvh":
+                    hand_pose_info["skeletonStrings"][filename] = self.zip_file.read(file_path)
+
+        return hand_pose_info
 
     def _construct_graph_data(self, structure_desc):
         self.graph_data = dict()

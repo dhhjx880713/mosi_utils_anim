@@ -24,7 +24,18 @@ class HandPoseGenerator(object):
         self.initialized = False
         return
 
-    def init_generator(self, motion_primitive_directory):
+    def init_from_desc(self, hand_pose_info):
+        self.status_change_map = hand_pose_info["status_change_map"]
+        self.right_hand_skeleton = hand_pose_info["right_hand_skeleton"]
+        self.left_hand_skeleton = hand_pose_info["left_hand_skeleton"]
+        for key in hand_pose_info["skeletonStrings"]:
+            print key
+            bvh_reader = BVHReader("").init_from_string(hand_pose_info["skeletonStrings"][key])
+            skeleton = Skeleton(bvh_reader)
+            self._add_hand_pose(key, skeleton)
+        self.initialized = True
+
+    def init_generator_from_directory(self, motion_primitive_directory):
         """
         creates a dicitionary for all possible hand poses
         TODO define in a file
@@ -46,17 +57,22 @@ class HandPoseGenerator(object):
                         print file_name[:-4]
                         bvh_reader = BVHReader(root+os.sep+file_name)
                         skeleton = Skeleton(bvh_reader)
+                        self._add_hand_pose(file_name[:-4], skeleton)
                         #motion_vector = MotionVector()
                         #motion_vector.from_bvh_reader(bvh_reader)
-                        hand_pose = HandPose()
-                        hand_pose.hand_skeletons = dict()
-                        hand_pose.hand_skeletons["RightHand"] = self.right_hand_skeleton
-                        hand_pose.hand_skeletons["LeftHand"] = self.left_hand_skeleton
-                        hand_pose.pose_vector = skeleton.reference_frame
-                        self.pose_map[file_name[:-4]] = hand_pose
+
             self.initialized = True
         else:
             print "Error: Could not load hand poses from", hand_pose_directory
+
+    def _add_hand_pose(self, name, skeleton):
+
+         hand_pose = HandPose()
+         hand_pose.hand_skeletons = dict()
+         hand_pose.hand_skeletons["RightHand"] = self.right_hand_skeleton
+         hand_pose.hand_skeletons["LeftHand"] = self.left_hand_skeleton
+         hand_pose.pose_vector = skeleton.reference_frame
+         self.pose_map[name] = hand_pose
 
     def _is_affecting_hand(self, hand, event_desc):
         if hand == "RightHand":
@@ -80,14 +96,20 @@ class HandPoseGenerator(object):
             for i in xrange(motion_vector.n_frames):
                 if i in action_list.keys():
                     for event_desc in action_list[i]:
-                        if self._is_affecting_hand("RightHand", event_desc):
-                            right_status = self.status_change_map[event_desc["event"]]
-                            print "change right hand status to", right_status
+                        if event_desc["event"] != "transfer":
+                            if self._is_affecting_hand("RightHand", event_desc):
+                                right_status = self.status_change_map[event_desc["event"]]
+                                print "change right hand status to", right_status
+                                right_hand_events.append(i)
+                            if self._is_affecting_hand("LeftHand", event_desc):
+                                left_status = self.status_change_map[event_desc["event"]]
+                                print "change left hand status to", left_status
+                                left_hand_events.append(i)
+                        else:
                             right_hand_events.append(i)
-                        if self._is_affecting_hand("LeftHand", event_desc):
-                            left_status = self.status_change_map[event_desc["event"]]
-                            print "change left hand status to", left_status
                             left_hand_events.append(i)
+                            right_status = left_status
+                            left_status = right_status
 
                 self.set_pose_in_frame("RightHand", right_status, motion_vector.quat_frames[i])
                 self.set_pose_in_frame("LeftHand", left_status, motion_vector.quat_frames[i])

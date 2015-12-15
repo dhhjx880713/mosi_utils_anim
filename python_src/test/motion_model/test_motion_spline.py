@@ -19,10 +19,10 @@ import pytest
 import json
 TEST_DATA_PATH = ROOTDIR + os.sep + r'../test_data/motion_model'
 # from libtest import params, pytest_generate_tests
-from morphablegraphs.motion_model.motion_primitive_sample import MotionPrimitiveSample
+from morphablegraphs.motion_model.motion_spline import MotionSpline
 
 @pytest.fixture(scope="module")
-def motionSample():
+def motionSpline():
     testfile = TEST_DATA_PATH + os.sep + 'Motion_sample_test.json'
     with open(testfile) as f:
         data = json.load(f)
@@ -31,36 +31,36 @@ def motionSample():
     canonical_motion = np.array(data['canonical_motion'])
     time_function = np.array(data['time_function'])
     knots = np.array(data['knots'])
-    return MotionPrimitiveSample(None, canonical_motion, time_function, knots)
+    return MotionSpline(None, canonical_motion, time_function, knots)
 
 
 class Test__init__(object):
     """ Test if the MotionSample class is initialized correctly """
 
-    def test_canonical_motion_init(self, motionSample):
+    def test_canonical_motion_init(self, motionSpline):
         """ Test if the canonical_motion object has the correct shape"""
-        assert len(motionSample.canonical_motion_splines) == motionSample.n_pose_parameters
+        assert len(motionSpline.canonical_motion_splines) == motionSpline.n_pose_parameters
 
 
 
 class Test_get_motion_vector(object):
     """ Test if the MotionSample.get_motion_vector returns a framevector """
 
-    def test_length_equal_to_time_vector(self, motionSample):
+    def test_length_equal_to_time_vector(self, motionSpline):
         """
         Test if the number of frames is equal to the number of time indices
         """
-        frames = motionSample.get_motion_vector()
-        assert frames.shape[0] == len(motionSample.time_function)
+        frames = motionSpline.get_motion_vector()
+        assert frames.shape[0] == len(motionSpline.time_function)
 
-    def test_buffer(self, motionSample):
+    def test_buffer(self, motionSpline):
         """ Test if the motion can be buffered and recalculated """
-        frames = motionSample.get_motion_vector()
+        frames = motionSpline.get_motion_vector()
 
-        motionSample.time_function[1] -= 0.1
+        motionSpline.time_function[1] -= 0.1
 
-        bufferedframes = motionSample.get_buffered_motion_vector()
-        changedframes = motionSample.get_motion_vector()
+        bufferedframes = motionSpline.get_buffered_motion_vector()
+        changedframes = motionSpline.get_motion_vector()
 
         assert np.alltrue(frames == bufferedframes)
         assert np.any(frames != changedframes)

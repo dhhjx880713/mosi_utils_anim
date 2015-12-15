@@ -15,6 +15,8 @@ class ElementaryActionConstraints(object):
         self.keyframe_annotations = None
         self.start_pose = None
         self.trajectory_constraints = None
+        self.collision_avoidance_constraints = None
+        self.ca_trajectory_set_constraint = None
         self.root_trajectory = None
         self.keyframe_constraints = None
         self.precision = {"pos": 1.0, "rot": 1.0, "smooth": 1.0}

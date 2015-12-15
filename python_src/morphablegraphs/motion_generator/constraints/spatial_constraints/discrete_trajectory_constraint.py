@@ -13,6 +13,12 @@ class DiscreteTrajectoryConstraint(SpatialConstraintBase):
         self.point_list = None
         self._n_canonical_frames = 0
         self.unconstrained_indices = None
+        self.range_start = None
+        self.range_end = None
+
+    def set_active_range(self, range_start, range_end):
+        self.range_start = range_start
+        self.range_end = range_end
 
     def set_number_of_canonical_frames(self, n_canonical_frames):
         self._n_canonical_frames = n_canonical_frames

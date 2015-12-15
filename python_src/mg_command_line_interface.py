@@ -12,6 +12,7 @@ import os
  # change working directory to the script file directory
 dirname, filename = os.path.split(os.path.abspath(__file__))
 os.chdir(dirname)
+import json
 import glob
 import time
 from morphablegraphs.motion_generator.graph_walk_generator import GraphWalkGenerator
@@ -24,6 +25,15 @@ SERVICE_CONFIG_FILE = "config" + os.sep + "service.json"
 def get_newest_file_from_input_directory(service_config):
     input_file = glob.glob(service_config["input_dir"] + os.sep + "*.json")[-1]
     return input_file
+
+
+def replace_hand_joints_in_input_file(input_file_path):
+    input_file = open(input_file_path)
+    input_string = input_file.read()
+   # input_file.close()
+    #input_string = input_string.replace("RightHand", "RightToolEndSite")
+    #input_string = input_string.replace("LeftHand", "LeftToolEndSite")
+    return json.loads(input_string)
 
 
 def run_pipeline(service_config, algorithm_config_file):
@@ -42,9 +52,10 @@ def run_pipeline(service_config, algorithm_config_file):
     graph_walk_generator = GraphWalkGenerator(service_config, algorithm_config)
     print "Finished construction from file in", time.clock() - start, "seconds"
 
-    graph_walk = graph_walk_generator.generate_graph_walk(input_file, export=False)
+    mg_input = replace_hand_joints_in_input_file(input_file)
+    graph_walk = graph_walk_generator.generate_graph_walk(mg_input, export=False)
 
-    if graph_walk.motion_vector.has_frames():  # checks for quat_frames in result_tuple
+    if graph_walk.motion_vector.has_frames():
         graph_walk.export_motion(service_config["output_dir"], service_config["output_filename"], export_details=service_config["write_log"])
     else:
         print "Error: Failed to generate motion data."

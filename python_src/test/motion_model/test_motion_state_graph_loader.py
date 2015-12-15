@@ -7,12 +7,12 @@ from morphablegraphs.motion_model.motion_state_graph_loader import MotionStateGr
 
 
 def test_motion_primitive_graph_builder():
-    skeleton_file = ROOTDIR+os.sep.join(["..", "test_data", "motion_generator", "one_step_walk", "MGResult.bvh"])
+    
     motion_primitive_graph_path = ROOTDIR+os.sep.join(["..", "test_data", "motion_model", "motion_primitive_graph_dir"])
     transition_model_directory = None
     load_transition_models = False
     motion_primitive_graph_builder = MotionStateGraphLoader()
-    motion_primitive_graph_builder.set_data_source(skeleton_file, motion_primitive_graph_path, transition_model_directory, load_transition_models)
+    motion_primitive_graph_builder.set_data_source(motion_primitive_graph_path, transition_model_directory, load_transition_models)
     motion_primitive_graph = motion_primitive_graph_builder.build()
     motion_primitive_graph.print_information()
     assert ('walk', 'sidestepRight') in motion_primitive_graph.nodes.keys()

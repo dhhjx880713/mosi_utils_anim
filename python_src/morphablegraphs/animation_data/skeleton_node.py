@@ -20,19 +20,28 @@ class SkeletonNodeBase(object):
         self.quaternion_frame_index = -1
         self.node_type = None
         self.offset = [0.0, 0.0, 0.0]
+        self.cached_global_matrix = None
 
-    def get_global_position(self, quaternion_frame):
-        global_matrix = self.get_global_matrix(quaternion_frame)
+    def clear_cached_global_matrix(self):
+        self.cached_global_matrix = None
+
+    def get_global_position(self, quaternion_frame, use_cache=False):
+        global_matrix = self.get_global_matrix(quaternion_frame, use_cache)
         point = np.array([0, 0, 0, 1])
         point = np.dot(global_matrix, point)
         return point[:3]#.tolist()
 
-    def get_global_matrix(self, quaternion_frame):
-        if self.parent is not None:
-            parent_matrix = self.parent.get_global_matrix(quaternion_frame)
-            return np.dot(parent_matrix, self.get_local_matrix(quaternion_frame))
+    def get_global_matrix(self, quaternion_frame, use_cache=False):
+        if self.cached_global_matrix is not None and use_cache:
+            return self.cached_global_matrix
         else:
-            return self.get_local_matrix(quaternion_frame)
+            if self.parent is not None:
+                parent_matrix = self.parent.get_global_matrix(quaternion_frame, use_cache)
+                self.cached_global_matrix = np.dot(parent_matrix, self.get_local_matrix(quaternion_frame))
+                return self.cached_global_matrix
+            else:
+                self.cached_global_matrix = self.get_local_matrix(quaternion_frame)
+                return self.cached_global_matrix
 
     def get_local_matrix(self, quaternion_frame):
         pass

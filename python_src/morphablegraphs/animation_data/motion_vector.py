@@ -41,14 +41,23 @@ class MotionVector(object):
                                                           self.smoothing_window)
         elif self.start_pose is not None:
             self.quat_frames = transform_quaternion_frames(new_frames,
-                                                      self.start_pose["orientation"],
-                                                      self.start_pose["position"])
+                                                           self.start_pose["orientation"],
+                                                           self.start_pose["position"])
         else:
             self.quat_frames = new_frames
         self.n_frames = len(self.quat_frames)
 
     def export(self, skeleton, output_dir, output_filename, add_time_stamp=True):
         export_quat_frames_to_bvh_file(output_dir, skeleton, self.quat_frames, prefix=output_filename, time_stamp=add_time_stamp)
+
+    def reduce_frames(self, n_frames):
+        if n_frames == 0:
+            self.quat_frames = None
+            self.n_frames = 0
+        else:
+            self.quat_frames = self.quat_frames[:n_frames]
+            self.n_frames = len(self.quat_frames)
+        #assert n_frames == self.n_frames
 
     def has_frames(self):
         return self.quat_frames is not None

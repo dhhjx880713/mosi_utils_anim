@@ -6,6 +6,8 @@
         "time_smoothing_window" : 15
     },
     "trajectory_following_settings": {
+        "spline_type": 0,
+        "control_point_filter_threshold": 15,
         "dir_constraint_factor": 20.0,
         "heuristic_step_length_factor": 1.0,
         "position_constraint_factor": 1.0,
@@ -24,7 +26,7 @@
         "max_iterations": 500
     },
     "global_spatial_optimization_settings": {
-        "max_steps":  3,
+        "max_steps":  4,
         "start_error_threshold": 4.0,
         "error_scale_factor": 1.0,
         "quality_scale_factor": 0.5,
@@ -40,8 +42,6 @@
         "method": "BFGS",
         "max_iterations": 500
     },
-    "activate_cluster_search": true,
-    "n_cluster_search_candidates": 1,
     "constrained_gmm_settings": {
         "precision": {
             "smooth": 5, 
@@ -52,11 +52,15 @@
         "strict": false
     }, 
     "n_random_samples": 300,
+    "activate_cluster_search": true,
+    "n_cluster_search_candidates": 1,
     "use_transition_model": false, 
     "local_optimization_mode": "keyframes",
     "activate_parameter_check": false,
     "use_global_time_optimization": false,
-    "use_global_spatial_optimization": false,
+    "use_global_spatial_optimization": true,
+    "collision_avoidance_constraints_mode": "create_constraint_set",
+    "optimize_collision_avoidance_constraints_extra": false,
     "use_constrained_gmm": false,
     "use_constraints": true,
     "debug_max_step": -1,

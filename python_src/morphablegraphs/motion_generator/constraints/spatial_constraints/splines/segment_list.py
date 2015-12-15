@@ -20,29 +20,36 @@ class SegmentList(object):
         * segments : list of tuples
             Each entry defines a line segment and contains
             start,center and end points
+        Returns
+        -------
+        True if successful else if not
         """
         points = []
         step_size = 1.0 / granularity
-        u = 0
         if max_arc_length <= 0:
             max_arc_length = spline.full_arc_length
-        while u <= 1.0:
-            arc_length = spline.get_absolute_arc_length(u)
-            # todo make more efficient by looking up min_u
-            if arc_length >= min_arc_length and arc_length <= max_arc_length:
-                point = spline.query_point_by_parameter(u)
-                points.append(point)
-            u += step_size
+        if abs(min_arc_length-max_arc_length) > step_size:
+            u = 0
+            while u <= 1.0:
+                arc_length = spline.get_absolute_arc_length(u)
+                # todo make more efficient by looking up min_u
+                if arc_length >= min_arc_length and arc_length <= max_arc_length:
+                    point = spline.query_point_by_parameter(u)
+                    points.append(point)
+                u += step_size
+            self.segments = []
+            index = 0
+            while index < len(points) - 1:
+                start = np.array(points[index])
+                end = np.array(points[index + 1])
+                center = 0.5 * (end - start) + start
+                segment = SplineSegment(start, center, end)
+                self.segments.append(segment)
+                index += 1
+            return True
+        else:
+            return False
 
-        self.segments = []
-        index = 0
-        while index < len(points) - 1:
-            start = np.array(points[index])
-            end = np.array(points[index + 1])
-            center = 0.5 * (end - start) + start
-            segment = SplineSegment(start, center, end)
-            self.segments.append(segment)
-            index += 1
 
     def find_closest_point(self, point):
         if self.segments is None or len(self.segments) == 0:

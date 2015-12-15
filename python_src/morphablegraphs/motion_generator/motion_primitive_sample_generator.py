@@ -49,7 +49,7 @@ class MotionPrimitiveSampleGenerator(object):
                                                                   self._action_constraints.start_pose, self.skeleton)
         else:
             self._constrained_gmm_builder = None
-        self.numerical_minimizer = OptimizerBuilder(self._algorithm_config).build_spatial_error_minimizer()
+        self.numerical_minimizer = OptimizerBuilder(self._algorithm_config).build_spatial_and_naturalness_error_minimizer()
 
     def generate_motion_primitive_sample_from_constraints(self, motion_primitive_constraints, graph_walk):
         """Calls get_optimal_parameters and backpojects the results.
@@ -86,10 +86,10 @@ class MotionPrimitiveSampleGenerator(object):
                 print "Exception", exception.message
                 raise SynthesisError(graph_walk.get_quat_frames(), exception.bad_samples)
         else: # no constraints were given
-                print "motion primitive", mp_name
+                print "pick random sample for motion primitive", mp_name
                 low_dimensional_parameters = self._get_random_parameters(mp_name, prev_mp_name, prev_parameters)
 
-        motion_primitive_sample = self._motion_primitive_graph.nodes[(self.action_name, mp_name)].back_project(low_dimensional_parameters, use_time_parameters=True)
+        motion_primitive_sample = self._motion_primitive_graph.nodes[(self.action_name, mp_name)].back_project(low_dimensional_parameters, use_time_parameters=False)
         return motion_primitive_sample
 
     def get_optimal_motion_primitive_parameters(self, mp_name,
@@ -128,7 +128,7 @@ class MotionPrimitiveSampleGenerator(object):
                                                                              prev_parameters)
         if motion_primitive_constraints.min_error <= self.optimization_start_error_threshold:
             close_to_optimum = True
-        print "condition", not self.use_transition_model, motion_primitive_constraints.use_local_optimization, not close_to_optimum, self.optimization_start_error_threshold
+        #print "condition", not self.use_transition_model, motion_primitive_constraints.use_local_optimization, not close_to_optimum, self.optimization_start_error_threshold
         if not self.use_transition_model and motion_primitive_constraints.use_local_optimization and not close_to_optimum:
             data = graph_node, motion_primitive_constraints, \
                    prev_frames, self._optimization_settings["error_scale_factor"], \

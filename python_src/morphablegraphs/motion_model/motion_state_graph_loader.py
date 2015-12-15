@@ -14,26 +14,27 @@ from motion_state_group_loader import MotionStateGroupLoader
 from ..utilities.zip_io import ZipReader
 from motion_state_transition import MotionStateTransition
 from motion_state_graph import MotionStateGraph
+from ..motion_generator.hand_pose_generator import HandPoseGenerator
 from . import ELEMENTARY_ACTION_DIRECTORY_NAME, TRANSITION_MODEL_DIRECTORY_NAME, NODE_TYPE_START, NODE_TYPE_STANDARD, TRANSITION_DEFINITION_FILE_NAME, TRANSITION_MODEL_FILE_ENDING
+
+SKELETON_FILE = "skeleton.bvh"  # TODO replace with standard skeleton in data directory
 
         
 class MotionStateGraphLoader(object):
     """   Constructs a MotionPrimitiveGraph instance from a zip file or directory as data source
     """  
     def __init__(self):
-        self.skeleton = None
+        self.graph_data = None # used to store the zip file content
         self.load_transition_models = False
         self.update_stats = False
         self.motion_primitive_graph_path = None
         self.elementary_action_directory = None
         self.motion_primitive_node_group_builder = MotionStateGroupLoader()
 
-    def set_data_source(self, skeleton_path, motion_primitive_graph_path, load_transition_models=False, update_stats=False):
+    def set_data_source(self, motion_primitive_graph_path, load_transition_models=False, update_stats=False):
         """ Set the source which is used to load the data structure into memory.
         Parameters
         ----------
-        *skeleton_path: string
-        \tpath to a reference BVH file with the skeleton used with the motion data.
         * elementary_action_directory: string
         \tThe root directory of the morphable models of all elementary actions.
         * transition_model_directory: string
@@ -41,7 +42,7 @@ class MotionStateGraphLoader(object):
         * transition_model_directory: string
         \tThe directory of the transition models.
         """
-        self.skeleton = Skeleton(BVHReader(skeleton_path))
+
         self.load_transition_models = load_transition_models
         self.update_stats = update_stats
         self.motion_primitive_graph_path = motion_primitive_graph_path
@@ -49,17 +50,22 @@ class MotionStateGraphLoader(object):
 
     def build(self):
         motion_primitive_graph = MotionStateGraph()
-        motion_primitive_graph.skeleton = self.skeleton
+
         if os.path.isfile(self.motion_primitive_graph_path+".zip"):
             self._init_from_zip_file(motion_primitive_graph)
         else:
             self._init_from_directory(motion_primitive_graph)
+
         return motion_primitive_graph
 
     def _init_from_zip_file(self, motion_primitive_graph):
         zip_path = self.motion_primitive_graph_path+".zip"
         zip_reader = ZipReader(zip_path, pickle_objects=True)
         graph_data = zip_reader.get_graph_data()
+        motion_primitive_graph.full_skeleton = Skeleton(BVHReader("").init_from_string(graph_data["skeletonString"]))
+        motion_primitive_graph.skeleton = motion_primitive_graph.full_skeleton.create_reduced_copy()
+        #skeleton_path = self.motion_primitive_graph_path + os.sep + SKELETON_FILE
+        #motion_primitive_graph.skeleton = Skeleton(BVHReader(skeleton_path))
         transition_dict = graph_data["transitions"]
         elementary_actions = graph_data["subgraphs"]
         for action_name in elementary_actions.keys():
@@ -72,9 +78,16 @@ class MotionStateGraphLoader(object):
 
         self._update_attributes(motion_primitive_graph, update_stats=False)
 
+        if "handPoseInfo" in graph_data.keys():
+            motion_primitive_graph.hand_pose_generator = HandPoseGenerator(motion_primitive_graph.skeleton)
+            motion_primitive_graph.hand_pose_generator.init_from_desc(graph_data["handPoseInfo"])
+
     def _init_from_directory(self, motion_primitive_graph, update_stats=True):
         """ Initializes the class
         """
+        skeleton_path = self.motion_primitive_graph_path + os.sep + SKELETON_FILE
+        motion_primitive_graph.full_skeleton = Skeleton(BVHReader(skeleton_path))
+        motion_primitive_graph.skeleton = motion_primitive_graph.full_skeleton.create_reduced_copy()
         #load graphs representing elementary actions including transitions between actions
         for key in next(os.walk(self.motion_primitive_graph_path + os.sep + ELEMENTARY_ACTION_DIRECTORY_NAME))[1]:
             subgraph_path = self. motion_primitive_graph_path + os.sep + ELEMENTARY_ACTION_DIRECTORY_NAME + os.sep + key

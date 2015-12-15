@@ -4,15 +4,15 @@ import numpy as np
 from splines.parameterized_spline import ParameterizedSpline
 from spatial_constraint_base import SpatialConstraintBase
 from ....animation_data.motion_editing import get_cartesian_coordinates_from_quaternion
+from discrete_trajectory_constraint import DiscreteTrajectoryConstraint
 from . import SPATIAL_CONSTRAINT_TYPE_TRAJECTORY
 
 TRAJECTORY_DIM = 3  # spline in cartesian space
 
-
 class TrajectoryConstraint(ParameterizedSpline, SpatialConstraintBase):
-    def __init__(self, joint_name, control_points, min_arc_length, unconstrained_indices, skeleton, precision, weight_factor=1.0,
+    def __init__(self, joint_name, control_points, spline_type, min_arc_length, unconstrained_indices, skeleton, precision, weight_factor=1.0,
                  closest_point_search_accuracy=0.001, closest_point_search_max_iterations=5000):
-        ParameterizedSpline.__init__(self, control_points, TRAJECTORY_DIM,
+        ParameterizedSpline.__init__(self, control_points, spline_type,
                                      closest_point_search_accuracy=closest_point_search_accuracy,
                                      closest_point_search_max_iterations=closest_point_search_max_iterations)
         SpatialConstraintBase.__init__(self, precision, weight_factor)
@@ -24,7 +24,17 @@ class TrajectoryConstraint(ParameterizedSpline, SpatialConstraintBase):
         self.n_canonical_frames = 0
         self.arc_length = 0.0  # will store the full arc length after evaluation
         self.unconstrained_indices = unconstrained_indices
+        self.range_start = None
+        self.range_end = None
 
+    def create_discrete_trajectory(self, aligned_quat_frames):
+        discrete_trajectory_constraint = DiscreteTrajectoryConstraint(self.joint_name, self.skeleton, self.precision, self.weight_factor)
+        discrete_trajectory_constraint.init_from_trajectory(self, aligned_quat_frames, self.min_arc_length)
+        return discrete_trajectory_constraint
+
+    def set_active_range(self, range_start, range_end):
+        self.range_start = range_start
+        self.range_end = range_end
 
     def set_number_of_canonical_frames(self, n_canonical_frames):
         self.n_canonical_frames = n_canonical_frames
@@ -34,9 +44,15 @@ class TrajectoryConstraint(ParameterizedSpline, SpatialConstraintBase):
             in the last frame of the previous frames.
         :param previous_frames: list of quaternion frames.
         """
-        point = self.skeleton.get_cartesian_coordinates_from_quaternion(self.joint_name, previous_frames[-1])
-        closest_point, distance = self.find_closest_point(point, self.min_arc_length, -1)
-        self.min_arc_length = self.get_absolute_arc_length_of_point(closest_point)[0]
+        if previous_frames is not None and len(previous_frames) > 0:
+            point = self.skeleton.get_cartesian_coordinates_from_quaternion(self.joint_name, previous_frames[-1])
+            closest_point, distance = self.find_closest_point(point, self.min_arc_length, -1)
+            if closest_point is not None:
+                self.min_arc_length = self.get_absolute_arc_length_of_point(closest_point)[0]
+            else:
+                self.min_arc_length = self.full_arc_length
+        else:
+            self.min_arc_length = 0.0
 
     def evaluate_motion_sample(self, aligned_quat_frames):
         """
@@ -52,18 +68,27 @@ class TrajectoryConstraint(ParameterizedSpline, SpatialConstraintBase):
         :return: the residual vector
         """
         self.arc_length = self.min_arc_length
+        #if self.arc_length is None:
+        #    return np.zeros(len(aligned_quat_frames))
+
         last_joint_position = None
         errors = []
         for frame in aligned_quat_frames:
             joint_position = np.asarray(self.skeleton.get_cartesian_coordinates_from_quaternion(self.joint_name, frame))
             if last_joint_position is not None:
                 self.arc_length += np.linalg.norm(joint_position - last_joint_position)
-            target = self.query_point_by_absolute_arc_length(self.arc_length)
-            last_joint_position = joint_position
-            #target[self.unconstrained_indices] = 0
-            joint_position[self.unconstrained_indices] = 0
-            errors.append(np.linalg.norm(joint_position-target))
+            if self.range_start is None or self.is_active(self.arc_length):
+                target = self.query_point_by_absolute_arc_length(self.arc_length)
+                last_joint_position = joint_position
+                #target[self.unconstrained_indices] = 0
+                joint_position[self.unconstrained_indices] = 0
+                errors.append(np.linalg.norm(joint_position-target))
+            else:
+                errors.append(0.0)
         return errors
 
     def get_length_of_residual_vector(self):
         return self.n_canonical_frames
+
+    def is_active(self, arc_length):
+        return self.range_start is not None and self.range_start <= arc_length <= self.range_end
