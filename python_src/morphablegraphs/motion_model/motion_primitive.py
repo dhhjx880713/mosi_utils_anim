@@ -48,6 +48,7 @@ class MotionPrimitive(object):
         self.translation_maxima = np.array([1.0, 1.0, 1.0])
         self.smooth_time_parameters = False
         self.has_time_parameters = True
+        self.has_semantic_parameters = False
         if self.filename is not None:
             self._load(self.filename)
 
@@ -60,8 +61,6 @@ class MotionPrimitive(object):
         \tThe path to the saved json file. If None (default) the filename
         of the object will be taken.
         """
-        print "##########################################"
-        print filename
         with open(filename, 'rb') as infile:
             tmp = json.load(infile)
             infile.close()
@@ -80,6 +79,10 @@ class MotionPrimitive(object):
         #load name data and canonical frames of the motion
         if 'name' in data.keys():
             self.name = data['name']
+        if 'semantic_label' in data.keys():
+            print('low dimensional vector has semantic information!')
+            self.has_semantic_parameters = True
+            self.semantic_labels = data['semantic_label']
         self.n_canonical_frames = data['n_canonical_frames']
         self.canonical_time_range = np.arange(0, self.n_canonical_frames)
         # initialize parameters for the motion sampling and back projection
@@ -174,12 +177,21 @@ class MotionPrimitive(object):
         * motion: MotionSample
         \tThe sampled motion as object of type MotionSample
         """
+        semantic_annotation = None
+        if self.has_semantic_parameters:
+            semantic_label = low_dimensional_vector[-1]
+            for key, value in self.semantic_labels.iteritems():
+                if int(np.round(semantic_label)) == value:
+                    semantic_annotation = key
+            if semantic_annotation is None:
+                raise ValueError('Unknown semantic label!')
+            low_dimensional_vector = np.delete(low_dimensional_vector, -1)
         spatial_coefs = self._inverse_spatial_pca(low_dimensional_vector[:self.s_pca["n_components"]])
         if self.has_time_parameters and use_time_parameters:
             time_function = self._inverse_temporal_pca(low_dimensional_vector[self.s_pca["n_components"]:])
         else:
             time_function = np.arange(0, self.n_canonical_frames)
-        return MotionSpline(low_dimensional_vector, spatial_coefs, time_function, self.s_pca["knots"])
+        return MotionSpline(low_dimensional_vector, spatial_coefs, time_function, self.s_pca["knots"], semantic_annotation)
 
     def _inverse_spatial_pca(self, alpha):
         """ Backtransform a lowdimensional vector alpha to a coefficients of

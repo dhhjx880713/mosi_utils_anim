@@ -3,6 +3,8 @@ from statistical_model_trainer import StatisticalModelTrainer
 from gmm_trainer import GMMTrainer
 from sklearn import mixture
 import numpy as np
+import os
+import json
 
 class SemanticStatisticalModel(StatisticalModelTrainer):
 
@@ -59,3 +61,53 @@ class SemanticStatisticalModel(StatisticalModelTrainer):
     def gen_semantic_motion_primitive_model(self, savepath=None):
         self.create_gaussian_mixture_model()
         self._save_model(savepath)
+
+    def _save_model(self, save_path=None):
+        '''
+        Save model as a json file
+
+        Parameters
+        ----------
+        *filename: string
+        \tGive the file name to json file
+        '''
+        elementary_action_name = self._motion_primitive_name.split('_')[0]
+        if save_path is None:
+            filename = self._motion_primitive_name + '_quaternion_mm.json'
+        else:
+            if not save_path.endswith(os.sep):
+                save_path += os.sep
+            folder_path = save_path + 'elementary_action_%s' % (elementary_action_name)
+            if not os.path.exists(folder_path):
+                os.mkdir(folder_path)
+            filename = folder_path + os.sep + self._motion_primitive_name + '_quaternion_mm.json'
+        weights = self.gmm.weights_.tolist()
+        means = self.gmm.means_.tolist()
+        covars = self.gmm.covars_.tolist()
+        mean_fd = self._temporal_pca[self._temporal_pca.names.index('meanfd')]
+        self._mean_time_vector = np.array(
+            mean_fd[mean_fd.names.index('coefs')])
+        self._mean_time_vector = np.ravel(self._mean_time_vector)
+        n_basis_time = len(self._mean_time_vector)
+        harms = self._temporal_pca[self._temporal_pca.names.index('harmonics')]
+        self._eigen_vectors_time = np.array(harms[harms.names.index('coefs')])
+
+        data = {'name': self._motion_primitive_name,
+                'gmm_weights': weights,
+                'gmm_means': means,
+                'gmm_covars': covars,
+                'eigen_vectors_spatial': self._spatial_eigenvectors.tolist(),
+                'mean_spatial_vector': self._mean_motion.tolist(),
+                'n_canonical_frames': self._n_frames,
+                'translation_maxima': self._scale_vec,
+                'n_basis_spatial': self._n_basis,
+                'eigen_vectors_time': self._eigen_vectors_time.tolist(),
+                'mean_time_vector': self._mean_time_vector.tolist(),
+                'n_dim_spatial': self._n_dim_spatial,
+                'n_basis_time': n_basis_time,
+                'b_spline_knots_spatial': self.get_b_spline_knots(self._n_basis, self._n_frames).tolist(),
+                'b_spline_knots_time': self.get_b_spline_knots(n_basis_time, self._n_frames).tolist(),
+                'semantic_label': self.semantic_label}
+        with open(filename, 'wb') as outfile:
+            json.dump(data, outfile)
+        outfile.close()

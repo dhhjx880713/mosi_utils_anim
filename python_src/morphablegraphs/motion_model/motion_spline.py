@@ -37,7 +37,7 @@ class MotionSpline(object):
     value is the new number of frames n'
 
     """
-    def __init__(self, low_dimensional_parameters, canonical_motion_coefs, time_function, knots):
+    def __init__(self, low_dimensional_parameters, canonical_motion_coefs, time_function, knots, semantic_annotation=None):
         self.low_dimensional_parameters = low_dimensional_parameters
         self.time_function = time_function
         self.buffered_frames = None
@@ -45,6 +45,7 @@ class MotionSpline(object):
         self.n_pose_parameters = len(canonical_motion_coefs)
         #create a b-spline for each pose parameter from the cooeffients
         self.canonical_motion_splines = [(knots, canonical_motion_coefs[i], B_SPLINE_DEGREE) for i in xrange(self.n_pose_parameters)]
+        self.semantic_annotation = semantic_annotation
 
     def get_motion_vector(self):
         """ Return a 2d - vector representing the motion in the new timeline
