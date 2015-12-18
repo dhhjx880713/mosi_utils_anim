@@ -7,8 +7,8 @@ Created on Sun Aug 02 13:15:01 2015
 
 from ...animation_data.quaternion_frame import QuaternionFrame
 import numpy as np
-from python_src.morphablegraphs.construction.fpca.fpca_temporal_data import FPCATemporalData
-from python_src.morphablegraphs.construction.fpca.fpca_spatial_data import FPCASpatialData
+from morphablegraphs.construction.fpca.fpca_temporal_data import FPCATemporalData
+from morphablegraphs.construction.fpca.fpca_spatial_data import FPCASpatialData
 LEN_QUATERNION = 4
 LEN_ROOT_POSITION = 3
 
