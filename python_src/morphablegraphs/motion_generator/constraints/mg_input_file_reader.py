@@ -124,9 +124,12 @@ class MGInputFileReader(object):
 
             #set active region if it is a collision avoidance trajectory
             if active_region is not None and "semanticAnnotation" in trajectory_constraint_desc[i].keys():
-                if trajectory_constraint_desc[i]["semanticAnnotation"]["collisionAvoidance"]:
+                active = trajectory_constraint_desc[i]["semanticAnnotation"]["collisionAvoidance"]
+                if active and active_region["start_point"] is None:
+                    #print "set start", point
                     active_region["start_point"] = point
-                elif active_region["start_point"] is not None and active_region["end_point"] is None:
+                elif not active and active_region["start_point"] is not None and active_region["end_point"] is None:
+                    #print "set end", point
                     active_region["end_point"] = point
 
             previous_point = point
