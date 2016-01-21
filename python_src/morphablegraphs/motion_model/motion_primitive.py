@@ -150,14 +150,20 @@ class MotionPrimitive(object):
         assert self.gaussian_mixture_model is not None, "Motion primitive not initialized."
         return np.ravel(self.gaussian_mixture_model.sample())
 
-    def sample(self):
+    def sample(self, use_time_parameters=True):
         """ Sample the motion primitive and return a motion sample
+
+        Parameters
+        ----------
+        *use_time_parameters: boolean
+        \tIf True use time function from _inverse_temporal_pca else canonical time line
+
         Returns
         -------
         * motion: MotionSample
         \tThe sampled motion as object of type MotionPrimitiveSample
         """
-        return self.back_project(self.sample_low_dimensional_vector())
+        return self.back_project(self.sample_low_dimensional_vector(), use_time_parameters)
 
     def back_project(self, low_dimensional_vector, use_time_parameters=True):
         """ Return a motion sample based on a low dimensional motion vector.
