@@ -12,7 +12,7 @@ import os
 from ..motion_model.motion_primitive import MotionPrimitive
 from ..animation_data.bvh import BVHWriter, BVHReader
 from ..animation_data.skeleton import Skeleton
-from python_src.morphablegraphs.animation_data.motion_editing import \
+from ..animation_data.motion_editing import \
     convert_euler_frames_to_cartesian_frames, \
     convert_quaternion_frames_to_euler_frames,\
     euler_substraction, \
