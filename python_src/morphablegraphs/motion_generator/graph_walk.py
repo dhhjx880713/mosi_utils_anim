@@ -86,11 +86,11 @@ class GraphWalk(object):
         for step in self.steps[start_step:]:
             step.start_frame = start_frame
             quat_frames = self.motion_primitive_graph.nodes[step.node_key].back_project(step.parameters, use_time_parameters).get_motion_vector()
-            self.motion_vector.append_quat_frames(quat_frames)
+            self.motion_vector.append_frames(quat_frames)
             step.end_frame = self.get_num_of_frames()-1
             start_frame = step.end_frame + 1
         if complete_motion_vector:
-            self.motion_vector.quat_frames = self.full_skeleton.complete_motion_vector_from_reference(self.motion_primitive_graph.skeleton, self.motion_vector.quat_frames)
+            self.motion_vector.frames = self.full_skeleton.complete_motion_vector_from_reference(self.motion_primitive_graph.skeleton, self.motion_vector.frames)
             #print "temp quat", temp_quat_frames[0]
 
     def _create_frame_annotation(self, start_step=0):
@@ -207,11 +207,11 @@ class GraphWalk(object):
             if isinstance(joint_name_a, basestring):
                 keyframe_range_start = self.steps[action_entry.start_step].start_frame
                 keyframe_range_end = min(self.steps[action_entry.end_step].end_frame+1, self.motion_vector.n_frames)
-                least_distance = 1000.0
+                least_distance = np.inf
                 closest_keyframe = self.steps[action_entry.start_step].start_frame
                 for frame_index in xrange(keyframe_range_start, keyframe_range_end):
-                    position_a = self.full_skeleton.joint_map[joint_name_a].get_global_position(self.motion_vector.quat_frames[frame_index])
-                    position_b = self.full_skeleton.joint_map[joint_name_b].get_global_position(self.motion_vector.quat_frames[frame_index])
+                    position_a = self.full_skeleton.joint_map[joint_name_a].get_global_position(self.motion_vector.frames[frame_index])
+                    position_b = self.full_skeleton.joint_map[joint_name_b].get_global_position(self.motion_vector.frames[frame_index])
                     distance = np.linalg.norm(position_a - position_b)
                     if distance < least_distance:
                         least_distance = distance
@@ -302,10 +302,10 @@ class GraphWalk(object):
         self.frame_annotation['elementaryActionSequence'].append(action_frame_annotation)
 
     def append_quat_frames(self, new_frames):
-        self.motion_vector.append_quat_frames(new_frames)
+        self.motion_vector.append_frames(new_frames)
 
     def get_quat_frames(self):
-        return self.motion_vector.quat_frames
+        return self.motion_vector.frames
 
     def get_num_of_frames(self):
         return self.motion_vector.n_frames

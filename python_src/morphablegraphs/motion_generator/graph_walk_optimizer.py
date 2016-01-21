@@ -88,8 +88,8 @@ class GraphWalkOptimizer(object):
             motion_primitive_constraints = MotionPrimitiveConstraints()
             active_constraint = False
             for trajectory in action_constraints.collision_avoidance_constraints:
-                if reduced_motion_vector.quat_frames is not None:
-                    trajectory.set_min_arc_length_from_previous_frames(reduced_motion_vector.quat_frames)
+                if reduced_motion_vector.frames is not None:
+                    trajectory.set_min_arc_length_from_previous_frames(reduced_motion_vector.frames)
                 else:
                     trajectory.min_arc_length = 0.0
                 ##if trajectory.range_start < trajectory.min_arc_length+50 and trajectory.min_arc_length < trajectory.range_end:
@@ -98,7 +98,7 @@ class GraphWalkOptimizer(object):
                 motion_primitive_constraints.constraints.append(trajectory)
                 active_constraint = True
             if active_constraint:
-                data = (node, motion_primitive_constraints, reduced_motion_vector.quat_frames,
+                data = (node, motion_primitive_constraints, reduced_motion_vector.frames,
                         self._algorithm_config["local_optimization_settings"]["error_scale_factor"],
                         self._algorithm_config["local_optimization_settings"]["quality_scale_factor"])
                 self.collision_avoidance_error_minimizer.set_objective_function_parameters(data)
@@ -108,7 +108,7 @@ class GraphWalkOptimizer(object):
             step_index += 1
         #print reduced_motion_vector.n_frames, graph_walk.get_num_of_frames()
         print step_index, len(graph_walk.steps)
-        assert (len(graph_walk.motion_vector.quat_frames)) == len(reduced_motion_vector.quat_frames), (str(len(graph_walk.motion_vector.quat_frames))) + "," + str(len(reduced_motion_vector.quat_frames))
+        assert (len(graph_walk.motion_vector.frames)) == len(reduced_motion_vector.frames), (str(len(graph_walk.motion_vector.frames))) + "," + str(len(reduced_motion_vector.frames))
         graph_walk.motion_vector = reduced_motion_vector
 
         return graph_walk

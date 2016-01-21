@@ -18,6 +18,7 @@ import json
 from morphablegraphs.utilities.io_helper_functions import load_json_file
 SERVICE_CONFIG_FILE = "config" + os.sep + "service.json"
 
+
 def get_newest_file_from_input_directory(service_config):
     input_file = glob.glob(service_config["input_dir"] + os.sep + "*.json")[-1]
     return input_file
@@ -33,8 +34,8 @@ def run_pipeline(service_config):
     input_string = input_file.read()
     #input_string = input_string.replace("RightHand", "RightToolEndSite")
     #input_string = input_string.replace("LeftHand", "LeftToolEndSite")
-    mg_input = json.loads(input_string)
-    #mg_input = load_json_file(input_file)
+    #mg_input = json.loads(input_string)
+    mg_input = load_json_file(input_file_path)
     data = json.dumps(mg_input)
     mg_server_url = 'http://localhost:8888/run_morphablegraphs'
     request = urllib2.Request(mg_server_url, data)
