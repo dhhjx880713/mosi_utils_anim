@@ -11,14 +11,15 @@ import numpy as np
 from ..external.transformations import quaternion_matrix
 from quaternion_frame import QuaternionFrame
 from itertools import izip
-from skeleton_node import SkeletonRootNode, SkeletonJointNode, SkeletonEndSiteNode, ROTATION_TYPE_QUAT, ROTATION_TYPE_EULER
+from skeleton_node import SkeletonRootNode, SkeletonJointNode, SkeletonEndSiteNode
+from . import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER
 
 
 class Skeleton(object):
     """ Data structure that stores the skeleton hierarchy information
         extracted from a BVH file with additional meta information.
     """
-    def __init__(self, bvh_reader):
+    def __init__(self, bvh_reader, rotation_type=ROTATION_TYPE_QUATERNION):
         self.frame_time = deepcopy(bvh_reader.frame_time)
         self.root = deepcopy(bvh_reader.root)
         self.node_names = deepcopy(bvh_reader.node_names)
@@ -31,10 +32,11 @@ class Skeleton(object):
         self._set_joint_weights()
         self.parent_dict = self._get_parent_dict()
         self._chain_names = self._generate_chain_names()
+        self.rotation_type = rotation_type
         self.construct_hierarchy_iterative()
         #print "node name map keys", len(self.node_names), len(self.node_name_frame_map), self.node_name_frame_map.keys()
         print "shape of reference frame", (self.reference_frame.shape)
-        #print "number of parameters", self.get_number_of_frame_parameters(ROTATION_TYPE_QUAT)
+        #print "number of parameters", self.get_number_of_frame_parameters(ROTATION_TYPE_QUATERNION)
         #for joint in self.joint_map.keys():
         #    print joint, self.joint_map[joint].index
 
@@ -60,7 +62,8 @@ class Skeleton(object):
         return np.array(bvh_reader.frames[0][:3].tolist() + quaternion_frame.tolist())
 
     def construct_hierarchy_iterative(self):
-        index = 0
+        joint_index = 0
+
         self.joint_map = collections.OrderedDict()
         for node_name in self.node_names.keys():
             if "children" in self.node_names[node_name].keys():
@@ -69,18 +72,17 @@ class Skeleton(object):
                 is_endsite = True
 
             if node_name == self.root:
-                node = SkeletonRootNode(node_name, None)
-                node.index = index
-                index += 1
+                node = SkeletonRootNode(node_name, None, self.rotation_type)
+                node.index = joint_index
+                joint_index += 1
             elif not is_endsite:
-                node = SkeletonJointNode(node_name, None)
-                node.index = index
-                index += 1
+                node = SkeletonJointNode(node_name, None, self.rotation_type)
+                node.index = joint_index
+                joint_index += 1
             else:
-                node = SkeletonEndSiteNode(node_name, None)
+                node = SkeletonEndSiteNode(node_name, None, self.rotation_type)
 
             if node_name in self.node_name_frame_map and self.node_name_frame_map[node_name] >= 0:
-                #node.quaternion_frame_index = self.node_name_frame_map[node_name] * 4 + 3
                 node.quaternion_frame_index = node.index * 4 + 3
 
             node.offset = self.node_names[node_name]["offset"]
@@ -120,7 +122,7 @@ class Skeleton(object):
 
     def is_motion_vector_complete(self, frames, is_quaternion):
         if is_quaternion:
-            rotation_type = ROTATION_TYPE_QUAT
+            rotation_type = ROTATION_TYPE_QUATERNION
         else:
             rotation_type = ROTATION_TYPE_EULER
         return len(frames[0]) == self.get_number_of_frame_parameters(rotation_type)
@@ -160,9 +162,9 @@ class Skeleton(object):
                     else:
                         joint_parameters = []
                     joint_parameters += reduced_frame[reduced_skeleton.joint_map[joint_name].quaternion_frame_index:reduced_skeleton.joint_map[joint_name].quaternion_frame_index + 4].tolist()
-                    #joint_parameters = self.joint_map[joint_name].get_frame_parameters(frame, ROTATION_TYPE_QUAT)
+                    #joint_parameters = self.joint_map[joint_name].get_frame_parameters(frame, ROTATION_TYPE_QUATERNION)
                 else:
-                    joint_parameters = self.joint_map[joint_name].get_frame_parameters(self.reference_frame, ROTATION_TYPE_QUAT)
+                    joint_parameters = self.joint_map[joint_name].get_frame_parameters(self.reference_frame, ROTATION_TYPE_QUATERNION)
                     #print "from reference", joint_name,joint_parameters
                 if joint_parameters is not None:
                     #print joint_name, joint_parameters
