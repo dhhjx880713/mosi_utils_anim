@@ -148,6 +148,30 @@ def euler_to_quaternion(
             q = -q
     return q[0], q[1], q[2], q[3]
 
+def quaternion_to_euler_smooth(q, euler_ref, rotation_order=['Xrotation',
+                                                         'Yrotation',
+                                                         'Zrotation']):
+    """
+
+    :param q: list of floats, [qw, qx, qy, qz]
+    :param euler_ref: reference euler angle in degree, pick the euler value which is closer to reference rotation
+    :param rotation_order: list of str
+    :return: euler angles in degree
+    """
+    len_angle = len(euler_ref)
+    euler_angles = quaternion_to_euler(q, rotation_order)
+    for i in xrange(len_angle):
+        if euler_ref[i] < 0:
+            diff1 = abs(euler_ref[i] - euler_angles[i])
+            diff2 = abs(euler_angles[i] - 360 - euler_ref[i])
+            if diff2 < diff1:
+                euler_angles[i] -= 360
+        else:
+            diff1 = abs(euler_ref[i] - euler_angles[i])
+            diff2 = abs(euler_angles[i] + 360 -euler_ref[i])
+            if diff2 < diff1:
+                euler_angles[i] += 360
+    return euler_angles
 
 def quaternion_to_euler(q, rotation_order=['Xrotation',
                                            'Yrotation',
@@ -368,7 +392,7 @@ def get_cartesian_coordinates_from_quaternion(skeleton,
         j_matrices = []
         count = 0
         for node_name in chain_names:
-            index = skeleton.node_name_map[node_name] * 4 + 3
+            index = skeleton.node_name_frame_map[node_name] * 4 + 3
             j_matrix = quaternion_matrix(quaternion_frame[index: index + 4])
             j_matrix[:, 3] = offsets[count] + [1]
             j_matrices.append(j_matrix)
@@ -564,7 +588,7 @@ def get_cartesian_coordinates_from_euler(skeleton, node_name, euler_frame):
         chain_names += [node_name]  # Node is not in its parent list
         eul_angles = []
         for nodename in chain_names:
-            index = skeleton.node_name_map[nodename] * 3 + 3
+            index = skeleton.node_name_frame_map[nodename] * 3 + 3
             eul_angles.append(euler_frame[index:index + 3])
         rad_angles = (map(radians, eul_angle) for eul_angle in eul_angles)
 
@@ -1299,6 +1323,15 @@ def fast_quat_frames_transformation(quaternion_frames_a,
     offset = [offset_x, 0.0, offset_z]
     return angle, offset
 
+def fast_euler_frames_transformation(euler_frames_a,
+                                     euler_frames_b):
+    dir_vec_a = pose_orientation_euler(euler_frames_a[-1])
+    dir_vec_b = pose_orientation_euler(euler_frames_b[0])
+    angle = get_rotation_angle(dir_vec_a, dir_vec_b)
+    offset_x = euler_frames_a[-1][0] - euler_frames_b[0][0]
+    offset_z = euler_frames_a[-1][2] - euler_frames_b[0][2]
+    offset = [offset_x, 0.0, offset_z]
+    return angle, offset
 
 def get_rotation_angle(point1, point2):
     """
@@ -1353,6 +1386,26 @@ def fast_quat_frames_alignment(quaternion_frames_a,
             window_size=smoothing_window)
     else:
         quaternion_frames = np.concatenate((quaternion_frames_a,
+                                            transformed_frames))
+    return quaternion_frames
+
+def fast_euler_frames_alignment(euler_frames_a,
+                                euler_frames_b,
+                                smooth=True,
+                                smoothing_window=DEFAULT_SMOOTHING_WINDOW_SIZE):
+    angle, offset = fast_euler_frames_transformation(
+        euler_frames_a, euler_frames_b)
+    transformed_frames = transform_euler_frames(euler_frames_b,
+                                                [0, angle, 0],
+                                                offset)
+    # concatenate the quaternion_frames_a and transformed_framess
+    if smooth:
+        euler_frames = smoothly_concatenate(
+            euler_frames_a,
+            transformed_frames,
+            window_size=smoothing_window)
+    else:
+        quaternion_frames = np.concatenate((euler_frames_a,
                                             transformed_frames))
     return quaternion_frames
 
@@ -1560,6 +1613,12 @@ def get_trajectory_dir_from_2d_points(points):
         orientation_vec = orientation_vec2
     orientation_vec = orientation_vec / np.linalg.norm(orientation_vec)
     return orientation_vec
+
+def get_dir_from_2d_points(points):
+    points = np.asarray(points)
+    dir = points[-1] - points[2]
+    dir = dir/np.linalg.norm(dir)
+    return dir
 
 
 def align_quaternion_frames(

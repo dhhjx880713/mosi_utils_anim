@@ -7,7 +7,8 @@ Created on Tue Jul 07 10:34:25 2015
 import os
 from ...animation_data.motion_editing import rotate_euler_frames, \
                                              get_cartesian_coordinates_from_euler_full_skeleton, \
-                                             transform_euler_frames
+                                             transform_euler_frames, \
+                                             rotate_euler_frames_about_x_axis
 from ...animation_data.bvh import BVHReader, BVHWriter
 from morphablegraphs.construction.preprocessing.motion_segmentation\
     import MotionSegmentation
@@ -100,6 +101,13 @@ class MotionNormalization(MotionSegmentation):
             self.aligned_motions[filename] = rotate_euler_frames(frames,
                                                                  aligned_frame_idx,
                                                                  ref_orientation)
+
+    def correct_up_axis(self, frame_idx, ref_up_vector):
+        ref_up_vector = [ref_up_vector['y'], ref_up_vector['z']]
+        for filename, frames in self.aligned_motions.iteritems():
+            self.aligned_motions[filename] = rotate_euler_frames_about_x_axis(frames,
+                                                                              frame_idx,
+                                                                              ref_up_vector)
 
     def save_motion(self, save_path):
         if not save_path.endswith(os.sep):

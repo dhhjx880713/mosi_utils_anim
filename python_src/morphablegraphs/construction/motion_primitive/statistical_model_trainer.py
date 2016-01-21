@@ -120,12 +120,8 @@ class StatisticalModelTrainer(object):
         '''
         self.gmm = mixture.GMM(n_components=self.numberOfGaussian,
                                covariance_type='full')
-#        self.gmm.fit(self._spatial_parameters)
-#        scores = self.gmm.score(self._spatial_parameters)
-
         self.gmm.fit(self._motion_parameters)
         scores = self.gmm.score(self._motion_parameters)
-#        print scores
         averageScore = np.mean(scores)
         print 'average score is:' + str(averageScore)
 
@@ -193,8 +189,10 @@ class StatisticalModelTrainer(object):
         else:
             if not save_path.endswith(os.sep):
                 save_path += os.sep
-            filename = save_path + 'elementary_action_%s' % (elementary_action_name) + \
-                os.sep + self._motion_primitive_name + '_quaternion_mm.json'
+            folder_path = save_path + 'elementary_action_%s' % (elementary_action_name)
+            if not os.path.exists(folder_path):
+                os.mkdir(folder_path)
+            filename = folder_path + os.sep + self._motion_primitive_name + '_quaternion_mm.json'
         weights = self.gmm.weights_.tolist()
         means = self.gmm.means_.tolist()
         covars = self.gmm.covars_.tolist()
