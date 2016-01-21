@@ -54,11 +54,11 @@ class BSpline(object):
         #the positions of control points, the positions of knots, and the degree of the curve.
         # given n+1 control points and m+1 knots the following property must be true
         #m = n + p + 1. // p+1 = m-n
-        # for a campled curve the last knot must be of multiplicity p+1
+        # for a clamped curve the last knot must be of multiplicity p+1
      
         If you have n+1 control points (n=9) and p = 3. 
         Then, m must be 13 so that the knot vector has 14 knots
-         The remaining 14 - (4 + 4) = 6 knots can be anywhere in the domain. 
+        The remaining 14 - (4 + 4) = 6 knots can be anywhere in the domain. 
         U = { 0, 0, 0, 0, 0.14, 0.28, 0.42, 0.57, 0.71, 0.85, 1, 1, 1, 1 }. 
         how do find the knot points C(ui).
         """
