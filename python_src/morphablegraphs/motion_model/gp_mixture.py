@@ -24,17 +24,17 @@ class GPMixture(object):
     \tEach list entry is a numpy.ndarray with the X Values of the ith cluster
     * Y : list of numpy.ndarray
     \tEach list entry is a numpy.ndarray with the corresponding Y Values
-    * gmm : sklearn.mixtures.gmm
+    * classifier_gmm : sklearn.mixtures.gmm
     \tThe GMM of the input data
     * output_gmm : (optional) sklearn.mixtures.gmm
     \tThe GMM of the output data, default to None # can be removed
-    * opt_args: (optional) tuple
-    \tA tuple with the arguments for the optimizer
+    * gp_optimizer: (optional) string
+    \tA string with the the optimizer name
     \tdefault is: ('scg')
-    * opt_kwargs : (optional) dict
-    \tA dictionary with the keyword arguments for the optimizizer
-    \texample would be: {messages=True, max_iters=10}
-    \tdefault is: {max_iters=10}
+    * max_iter : (optional) int
+    \t Sets the number of iterations of the gp optimizer
+    * messages : (optional) bool
+    \t Activates debug messages for the gp optimizer
 
     Attributes
     ----------
@@ -46,7 +46,7 @@ class GPMixture(object):
 
     """
 
-    def __init__(self, X, Y, gmm, output_gmm=None, optimizer='scg',
+    def __init__(self, X, Y, classifier_gmm, output_gmm=None, gp_optimizer='scg',
                  max_iters=200, messages=False):
         self.X = X
         self.Y = Y
@@ -63,11 +63,11 @@ class GPMixture(object):
                 self.input_dim = -1
                 self.output_dim = -1
                 succes = True
-        self.gmm = gmm
+        self.classifier_gmm = classifier_gmm
         self.output_gmm = output_gmm
-        self.optimizer = optimizer
-        self.gps = []
-        self.weights_ = []
+        self.gp_optimizer = gp_optimizer
+        self.gp_list = []
+        self.cluster_to_gp_weights_ = []
         self.max_iters = max_iters
         self.opt_kwargs = {"max_iters": max_iters, "messages": messages}
 
@@ -75,39 +75,45 @@ class GPMixture(object):
         """
         trains a GPMixture object with given data
         """
-        inputcluster = len(self.gmm.weights_)
+        inputcluster = len(self.classifier_gmm.weights_)
         outputcluster = len(self.X)
-        weights_ = [[] for i in xrange(inputcluster)]
-        for c in xrange(outputcluster):
-            X_c = self.X[c]
-            Y_c = self.Y[c]
-            xlabels = self.gmm.predict(X_c).tolist()
+        # a list for each input cluster containing the votes for each output cluster
+        input_to_output_cluster_votes_ = [[] for i in xrange(inputcluster)]
+        for output_cluster_index in xrange(outputcluster):
+            X_c = self.X[output_cluster_index]
+            Y_c = self.Y[output_cluster_index]
+            #predict the clusters of each input sample and count votes to estimate weights for the clusters from the gp
+            xlabels = self.classifier_gmm.predict(X_c).tolist()
             for i in xrange(inputcluster):
-                weights_[i].append(xlabels.count(i))
+                votes = xlabels.count(i)
+                input_to_output_cluster_votes_[i].append(votes)
+
             if X_c.shape[0] == 0:
                 continue
             success = False
             while not success:
                 try:
                     gp = GPMulti(X_c, Y_c)
-                    gp.optimize(self.optimizer, **self.opt_kwargs)
+                    gp.optimize(self.gp_optimizer, **self.opt_kwargs)
                     success = True
                 except np.linalg.linalg.LinAlgError:
                     self.opt_kwargs['max_iters'] /= 2
             self.opt_kwargs['max_iters'] = self.max_iters
-            self.gps.append(gp)
+            self.gp_list.append(gp)
 
-        for i in xrange(inputcluster):
-            if sum(weights_[i]) != 0:
-                self.weights_.append(
-                    [float(w) / sum(weights_[i]) for w in weights_[i]])
+        for input_cluster_index in xrange(inputcluster):
+            if sum(input_to_output_cluster_votes_[input_cluster_index]) != 0:
+                self.cluster_to_gp_weights_.append(
+                    [float(votes) / sum(input_to_output_cluster_votes_[input_cluster_index]) for votes in input_to_output_cluster_votes_[input_cluster_index]])
             else:
-                weights_[i] = [i + 1 for i in weights_[i]]
-                self.weights_.append(
-                    [float(w) / sum(weights_[i]) for w in weights_[i]])
+                input_to_output_cluster_votes_[input_cluster_index] = [input_cluster_index + 1 for input_cluster_index in input_to_output_cluster_votes_[input_cluster_index]]
+
+                self.cluster_to_gp_weights_.append(
+                    [float(votes) / sum(input_to_output_cluster_votes_[input_cluster_index]) for votes in input_to_output_cluster_votes_[input_cluster_index]])
 
     def predict(self, Xnew):
-        """ Predict a GMM distribution for the output values
+        """ Predict a GMM distribution for the output values by
+            using a list of predicted gaussian distributions as components with offline trained weights
 
         Parameters
         ----------
@@ -124,14 +130,13 @@ class GPMixture(object):
         weights_ = []
 
         # self.gmm.predict(Xnew[None, :])[0] suspected to cause problems
-        cluster_index = self.gmm.predict(Xnew)[0]
-        for c, gp in enumerate(self.gps):
-            if self.weights_[cluster_index][c] != 0:
-
-                p = gp.predict(Xnew, full_cov=True)
-                means_.append(np.ravel(p[0]))
-                covars_.append(p[1])
-                weights_.append(self.weights_[cluster_index][c])
+        input_cluster_index = self.classifier_gmm.predict(Xnew)[0]
+        for gp_index, gp in enumerate(self.gp_list):
+            if self.cluster_to_gp_weights_[input_cluster_index][gp_index] != 0:
+                gaussian_distribution = gp.predict(Xnew, full_cov=True)
+                means_.append(np.ravel(gaussian_distribution[0]))
+                covars_.append(gaussian_distribution[1])
+                weights_.append(self.cluster_to_gp_weights_[input_cluster_index][gp_index])
 
         gmm = mixture.GMM(len(weights_), covariance_type='full')
         gmm.weights_ = np.array(weights_)
@@ -139,7 +144,7 @@ class GPMixture(object):
         gmm.covars_ = np.array(covars_)
         gmm.converged_ = True
         print "New GMM has %d clusters, the original has %d" % \
-            (len(weights_), len(self.gmm.weights_))
+            (len(weights_), len(self.classifier_gmm.weights_))
 
         return gmm
 
@@ -156,7 +161,7 @@ class GPMixture(object):
         folder = fpath.split(os.sep)[:-1]
         folder = os.sep.join(folder)
         zfile = zipfile.ZipFile(filepath, "w", zipfile.ZIP_DEFLATED)
-        for i, gp in enumerate(self.gps):
+        for i, gp in enumerate(self.gp_list):
             gpname = 'gp%d.pickle' % i
             gppath = folder + os.sep + gpname
             gp.pickle(gppath)
@@ -165,7 +170,7 @@ class GPMixture(object):
 
         weightfile = folder + os.sep + "weights"
         with open(weightfile, 'w') as outfile:
-            json.dump(self.weights_, outfile, sort_keys=True,
+            json.dump(self.cluster_to_gp_weights_, outfile, sort_keys=True,
                       indent=4, separators=(',', ': '))
 
         zfile.write(weightfile, "weights.json")
@@ -174,10 +179,10 @@ class GPMixture(object):
 
     @classmethod
     def load(cls, filepath, input_gmm, output_gmm=None):
-        """Updates self.gps from a zip file"""
+        """Updates self.gp_list from a zip file"""
         gpm = cls(X=None, Y=None, gmm=input_gmm, output_gmm=output_gmm)
 
-        gpm.gps = []
+        gpm.gp_list = []
         gpm.weights_ = []
 
         zfile = zipfile.ZipFile(filepath, "r", zipfile.ZIP_DEFLATED)
@@ -189,7 +194,7 @@ class GPMixture(object):
                 continue
             data = zfile.read(f)
             gp = pickle.loads(data)
-            gpm.gps.append(gp)
+            gpm.gp_list.append(gp)
         return gpm
 
 
