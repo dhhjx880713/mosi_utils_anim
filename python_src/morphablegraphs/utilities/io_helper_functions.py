@@ -192,7 +192,7 @@ def export_euler_frames_to_bvh(
         is_quaternion=False)
 
 
-def get_bvh_writer(skeleton, quat_frames, start_pose=None):
+def get_bvh_writer(skeleton, quat_frames, start_pose=None, is_quaternion=True):
     """
     Returns
     -------
@@ -205,13 +205,12 @@ def get_bvh_writer(skeleton, quat_frames, start_pose=None):
                                                   start_pose["position"])
 
     bvh_writer = BVHWriter(None, skeleton, quat_frames, skeleton.frame_time,
-                           is_quaternion=True)
+                           is_quaternion)
     return bvh_writer
 
 
-def export_quat_frames_to_bvh_file(output_dir, skeleton, quat_frames, prefix="", time_stamp=True):
-    """ Exports a list of quat frames to a bvh file after transforming the
-    frames to the start pose.
+def export_frames_to_bvh_file(output_dir, skeleton, frames, prefix="", time_stamp=True, is_quaternion=True):
+    """ Exports a list of frames to a bvh file
 
     Parameters
     ---------
@@ -219,11 +218,11 @@ def export_quat_frames_to_bvh_file(output_dir, skeleton, quat_frames, prefix="",
         directory without trailing os.sep
     * skeleton : Skeleton
         contains joint hiearchy information
-    * quat_frames : np.ndarray
+    * frames : np.ndarray
         Represents the motion
 
     """
-    bvh_writer = get_bvh_writer(skeleton, quat_frames)
+    bvh_writer = get_bvh_writer(skeleton, frames, is_quaternion=is_quaternion)
     if time_stamp:
         filepath = output_dir + os.sep + prefix + "_" + \
             unicode(datetime.now().strftime("%d%m%y_%H%M%S")) + ".bvh"
