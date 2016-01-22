@@ -207,7 +207,7 @@ class GraphWalk(object):
             if isinstance(joint_name_a, basestring):
                 keyframe_range_start = self.steps[action_entry.start_step].start_frame
                 keyframe_range_end = min(self.steps[action_entry.end_step].end_frame+1, self.motion_vector.n_frames)
-                least_distance = np.inf
+                least_distance = 1000.0
                 closest_keyframe = self.steps[action_entry.start_step].start_frame
                 for frame_index in xrange(keyframe_range_start, keyframe_range_end):
                     position_a = self.full_skeleton.joint_map[joint_name_a].get_global_position(self.motion_vector.frames[frame_index])
@@ -402,8 +402,10 @@ class GraphWalk(object):
                     keyframe_constraint_errors.append(error)
             prev_frames = aligned_frames
             step_index += 1
-
-        return np.average(keyframe_constraint_errors)
+        if len(keyframe_constraint_errors) > 0:
+            return np.average(keyframe_constraint_errors)
+        else:
+            return -1
 
     def get_generated_constraints(self):
         step_count = 0
