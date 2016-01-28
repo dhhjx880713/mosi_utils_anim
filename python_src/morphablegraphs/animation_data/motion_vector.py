@@ -8,15 +8,15 @@ from ..utilities.io_helper_functions import export_frames_to_bvh_file
 from . import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER
 
 
-def concatenate_frames(frames, new_frames,start_pose,rotation_type, apply_spatial_smoothing=True, smoothing_window=20):
-    if frames is not None:
+def concatenate_frames(prev_frames, new_frames,start_pose,rotation_type, apply_spatial_smoothing=True, smoothing_window=20):
+    if prev_frames is not None:
         if rotation_type == ROTATION_TYPE_QUATERNION:
-           return fast_quat_frames_alignment(frames,
-                                                     new_frames,
-                                                     apply_spatial_smoothing,
-                                                     smoothing_window)
+            return fast_quat_frames_alignment(prev_frames,
+                                             new_frames,
+                                            apply_spatial_smoothing,
+                                            smoothing_window)
         elif rotation_type == ROTATION_TYPE_EULER:
-                return align_frames(frames, new_frames)
+            return align_frames(prev_frames, new_frames)
     elif start_pose is not None:
         if rotation_type == ROTATION_TYPE_QUATERNION:
             return transform_quaternion_frames(new_frames,
@@ -27,7 +27,7 @@ def concatenate_frames(frames, new_frames,start_pose,rotation_type, apply_spatia
                                                  start_pose["orientation"],
                                                  start_pose["position"])
     else:
-        return frames
+        return new_frames
 
 
 class MotionVector(object):

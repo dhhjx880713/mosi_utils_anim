@@ -29,7 +29,6 @@ class HandPoseGenerator(object):
         self.right_hand_skeleton = hand_pose_info["right_hand_skeleton"]
         self.left_hand_skeleton = hand_pose_info["left_hand_skeleton"]
         for key in hand_pose_info["skeletonStrings"]:
-            print key
             bvh_reader = BVHReader("").init_from_string(hand_pose_info["skeletonStrings"][key])
             skeleton = Skeleton(bvh_reader)
             self._add_hand_pose(key, skeleton)
