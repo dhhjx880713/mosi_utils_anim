@@ -13,7 +13,7 @@ class MGInputFileReader(object):
     * mg_input_file : file path or json data read from a file
         Contains elementary action list with constraints, start pose and keyframe annotations.
     """
-    def __init__(self, mg_input_file, activate_joint_mapping=False):
+    def __init__(self, mg_input_file, activate_joint_mapping=False, activate_coordinate_transform=True):
         self.mg_input_file = mg_input_file
         self.elementary_action_list = []
         self.keyframe_annotations = []
@@ -21,6 +21,7 @@ class MGInputFileReader(object):
         self.inverse_joint_name_map = dict()
         self._fill_joint_name_map()
         self.activate_joint_mapping = activate_joint_mapping
+        self.activate_coordinate_transform = activate_coordinate_transform
         if type(mg_input_file) != dict:
             mg_input_file = open(mg_input_file)
             input_string = mg_input_file.read()
@@ -140,7 +141,7 @@ class MGInputFileReader(object):
                 active_region["start_point"] = control_points[0]
             if active_region["end_point"] is None:
                 active_region["end_point"] = control_points[-1]
-
+        print "loaded", len(control_points), "points"
         return control_points, active_region
 
     def get_trajectory_from_constraint_list(self, action_index, joint_name, scale_factor=1.0, distance_threshold=-1):
@@ -350,22 +351,28 @@ class MGInputFileReader(object):
         """ Transforms a 3d point represented as a list from a left handed cad to a
             right handed opengl coordinate system
         """
-        transform_matrix = np.array([[1, 0, 0], [0, 0, 1], [0, -1, 0]])
-        return np.dot(transform_matrix, point).tolist()
+        if self.activate_coordinate_transform:
+            transform_matrix = np.array([[1, 0, 0], [0, 0, 1], [0, -1, 0]])
+            return np.dot(transform_matrix, point).tolist()
+        else:
+            return point
 
     def _transform_unconstrained_indices_from_cad_to_opengl_cs(self, indices):
         """ Transforms a list indicating unconstrained dimensions from cad to opengl
             coordinate system.
         """
-        new_indices = []
-        for i in indices:
-            if i == 0:
-                new_indices.append(0)
-            elif i == 1:
-                new_indices.append(2)
-            elif i == 2:
-                new_indices.append(1)
-        return new_indices
+        if self.activate_coordinate_transform:
+            new_indices = []
+            for i in indices:
+                if i == 0:
+                    new_indices.append(0)
+                elif i == 1:
+                    new_indices.append(2)
+                elif i == 2:
+                    new_indices.append(1)
+            return new_indices
+        else:
+            return indices
 
     def inverse_map_joint(self, joint_name):
         if joint_name in self.inverse_joint_name_map.keys() and self.activate_joint_mapping:

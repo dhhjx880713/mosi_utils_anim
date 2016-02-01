@@ -63,7 +63,7 @@ class GraphWalkGenerator(GraphWalkOptimizer):
         self.elementary_action_generator.set_algorithm_config(self._algorithm_config)
         self._global_spatial_optimization_steps = self._algorithm_config["global_spatial_optimization_settings"]["max_steps"]
 
-    def generate_graph_walk(self, mg_input, export=True, activate_joint_map=False):
+    def generate_graph_walk(self, mg_input, export=True, activate_joint_map=False, activate_coordinate_transform=False):
         """
         Converts a json input file with a list of elementary actions and constraints 
         into a graph_walk saved to a BVH file.
@@ -75,6 +75,10 @@ class GraphWalkGenerator(GraphWalkOptimizer):
         * export : bool
             If set to True the generated graph_walk is exported as BVH together
             with a JSON-annotation file.
+        * activate_joint_map: bool
+            Maps left hand to left hand endsite and right hand to right hand endsite
+        * activate_coordinate_transform: bool
+            Converts input coordinates from CAD coordinate system to OpenGL coordinate system
             
         Returns
         -------
@@ -85,7 +89,7 @@ class GraphWalkGenerator(GraphWalkOptimizer):
         if type(mg_input) != dict:
             mg_input = load_json_file(mg_input)
         start = time.clock()
-        input_file_reader = MGInputFileReader(mg_input, activate_joint_map)
+        input_file_reader = MGInputFileReader(mg_input, activate_joint_map, activate_coordinate_transform)
         elementary_action_constraints_builder = ElementaryActionConstraintsBuilder(input_file_reader, self.motion_primitive_graph, self._algorithm_config)
         graph_walk = self._generate_graph_walk_from_constraints(elementary_action_constraints_builder)
         if self._algorithm_config["use_global_time_optimization"]:

@@ -1,5 +1,5 @@
 {
-    "model_data": "E:\\projects\\INTERACT\\repository\\data\\3 - Motion primitives\\motion_primitives_quaternion_PCA95 m24-integration-2.0",
+    "model_data": "E:\\projects\\INTERACT\\repository\\data\\3 - Motion primitives\\motion_primitives_quaternion_PCA95 m24-integration-4.0",
     "transition_data": "E:\\projects\\INTERACT\\repository\\data\\4 - Transition model\\input",
     "output_dir":  "E:\\projects\\INTERACT\\repository\\BestFitPipeline\\_Results",
     "input_dir": "E:\\projects\\INTERACT\\repository\\BestFitPipeline\\CNL-GUI",
@@ -7,6 +7,7 @@
     "port": 8888,
     "output_mode": "file_output",
     "activate_joint_map": true,
+    "activate_coordinate_transform": true,
     "data_folder": "C:\\repo\\data\\1 - MoCap",
     "write_log" : true
 }
