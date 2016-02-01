@@ -2,7 +2,7 @@ __author__ = 'erhe01'
 
 import numpy as np
 from itertools import izip
-from ..external.transformations import quaternion_matrix, euler_matrix
+from ..external.transformations import quaternion_matrix, euler_matrix, euler_from_matrix, quaternion_from_matrix
 from . import ROTATION_TYPE_EULER, ROTATION_TYPE_QUATERNION
 
 SKELETON_NODE_TYPE_ROOT = 0
@@ -30,6 +30,14 @@ class SkeletonNodeBase(object):
         point = np.array([0, 0, 0, 1])
         point = np.dot(global_matrix, point)
         return point[:3]#.tolist()
+
+    def get_global_orientation_quaternion(self, quaternion_frame, use_cache=False):
+        global_matrix = self.get_global_matrix(quaternion_frame, use_cache)
+        return quaternion_from_matrix(global_matrix)
+
+    def get_global_orientation_euler(self, quaternion_frame, use_cache=False):
+        global_matrix = self.get_global_matrix(quaternion_frame, use_cache)
+        return euler_from_matrix(global_matrix)
 
     def get_global_matrix(self, quaternion_frame, use_cache=False):
         if self.cached_global_matrix is not None and use_cache:
