@@ -5,7 +5,7 @@ Created on Thu Jul 16 14:42:13 2015
 @author: erhe01
 """
 from ...animation_data.motion_editing import align_quaternion_frames
-
+from .spatial_constraints.keyframe_constraints.global_transform_constraint import GlobalTransformConstraint
 
 class MotionPrimitiveConstraints(object):
     """ Represents the input to the generate_motion_primitive_from_constraints
@@ -36,11 +36,11 @@ class MotionPrimitiveConstraints(object):
     def print_status(self):
 #        print  "starting from",last_pos,last_arc_length,"the new goal for", \
 #                current_motion_primitive,"is",goal,"at arc length",arc_length
-        print "starting from: "
-        print self.step_start
-        print "the new goal for " + self.motion_primitive_name
-        print self.step_goal
-        print "arc length is: " + str(self.goal_arc_length)
+        print("starting from: ")
+        print(self.step_start)
+        print("the new goal for " + self.motion_primitive_name)
+        print(self.step_goal)
+        print("arc length is: " + str(self.goal_arc_length))
 
     def evaluate(self, motion_primitive, parameters, prev_frames, use_time_parameters=False):
         """
@@ -56,8 +56,12 @@ class MotionPrimitiveConstraints(object):
         quat_frames = motion_primitive.back_project(parameters, use_time_parameters=use_time_parameters).get_motion_vector()
         aligned_frames = align_quaternion_frames(quat_frames, prev_frames, self.start_pose)
         #evaluate constraints with the generated motion
+        #print("n_contraints", len(self.constraints))
         error_sum = 0
         for constraint in self.constraints:
+            #if isinstance(constraint, GlobalTransformConstraint):
+            #    print("constrain", constraint.joint_name)
+            #    print(constraint.position)
             error_sum += constraint.weight_factor * constraint.evaluate_motion_sample(aligned_frames)
         self.evaluations += 1
         return error_sum
@@ -87,7 +91,9 @@ class MotionPrimitiveConstraints(object):
 
     def get_length_of_residual_vector(self):
         """ If a trajectory is found it also counts each canonical frame of the graph node as individual constraint
-        :return:
+        Returns
+        -------
+        * residual_vector_length : int
         """
         n_constraints = 0
         for constraint in self.constraints:

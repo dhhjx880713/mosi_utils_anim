@@ -6,10 +6,10 @@ from ..motion_model import NODE_TYPE_END, NODE_TYPE_SINGLE
 from motion_primitive_sample_generator import MotionPrimitiveSampleGenerator
 from constraints.motion_primitive_constraints_builder import MotionPrimitiveConstraintsBuilder
 from graph_walk import GraphWalkEntry
-from constraints.motion_primitive_constraints import  MotionPrimitiveConstraints
+from constraints.motion_primitive_constraints import MotionPrimitiveConstraints
 from constraints.spatial_constraints.keyframe_constraints.direction_constraint import DirectionConstraint
-from constraints.spatial_constraints.keyframe_constraints.pos_and_rot_constraint import PositionAndRotationConstraint
-
+from constraints.spatial_constraints.keyframe_constraints.global_transform_constraint import GlobalTransformConstraint
+LOOK_AHEAD_DISTANCE = 500.0
 
 class ElementaryActionGraphWalkGeneratorState(object):
         def __init__(self, algorithm_config):
@@ -80,33 +80,33 @@ class ElementaryActionGraphWalkGenerator(object):
 
     def get_best_start_node(self, graph_walk, action_name):
         next_nodes = self.motion_primitive_graph.get_start_nodes(graph_walk, action_name)
-        if len(next_nodes) > 1:
-            goal_arc_length = self.state.travelled_arc_length + 500.0
+        n_nodes = len(next_nodes)
+        if n_nodes > 1:
+            goal_arc_length = self.state.travelled_arc_length + LOOK_AHEAD_DISTANCE
             goal_position = self.action_constraints.root_trajectory.query_point_by_absolute_arc_length(goal_arc_length)
 
             dir_vector = [0,0]
-            #reference_vector = np.array([0, 1])  # in z direction
-            #start, dir_vector, angle = self.action_constraints.root_trajectory.get_angle_at_arc_length_2d(goal_arc_length, reference_vector)
             constraint_desc = {"joint": "Hips", "dir_vector": dir_vector, "canonical_keyframe": -1, "position": goal_position, "n_canonical_frames": 0,
                                "semanticAnnotation":  {"keyframeLabel": "end", "generated": True}}
-            #direction_constraint = DirectionConstraint(self.motion_primitive_graph.skeleton, constraint_desc, 1.0, 1.0)
-            pos_constraint = PositionAndRotationConstraint(self.motion_primitive_graph.skeleton, constraint_desc, 1.0, 1.0)
+            pos_constraint = GlobalTransformConstraint(self.motion_primitive_graph.skeleton, constraint_desc, 1.0, 1.0)
             motion_primitive_constraints = MotionPrimitiveConstraints()
-            #motion_primitive_constraints.constraints.append(direction_constraint)
             motion_primitive_constraints.constraints.append(pos_constraint)
             if graph_walk.get_num_of_frames() > 0:
                 prev_frames = graph_walk.get_quat_frames()
             else:
                 prev_frames = None
-            errors = []
+
+            errors = np.empty(n_nodes)
+            index = 0
             for node_name in next_nodes:
                 motion_primitive_node = self.motion_primitive_graph.nodes[(action_name, node_name)]
-                params = self.motion_primitive_generator._search_for_best_sample_in_cluster_tree(motion_primitive_node,
+                self.motion_primitive_generator._search_for_best_sample_in_cluster_tree(motion_primitive_node,
                                                                                                  motion_primitive_constraints,
                                                                                                  prev_frames)
                 #print node_name, motion_primitive_constraints.min_error, "#######################"
-                errors.append(motion_primitive_constraints.min_error)
-            min_idx = min(xrange(len(errors)), key=errors.__getitem__)
+                errors[index] = motion_primitive_constraints.min_error
+            index += 1
+            min_idx = min(xrange(n_nodes), key=errors.__getitem__)
             next_node = next_nodes[min_idx]
             return (action_name, next_node)
         else:
@@ -156,9 +156,10 @@ class ElementaryActionGraphWalkGenerator(object):
     def _get_next_motion_primitive_constraints(self, next_node, next_node_type, graph_walk):
         try:
             is_last_step = (next_node_type == NODE_TYPE_END)
-            print next_node
-            self.motion_primitive_constraints_builder.set_status(
-                next_node[1], self.state.travelled_arc_length, graph_walk.get_quat_frames(), is_last_step)
+            self.motion_primitive_constraints_builder.set_status(next_node,
+                                                                 self.state.travelled_arc_length,
+                                                                 graph_walk,
+                                                                 is_last_step)
             return self.motion_primitive_constraints_builder.build()
 
         except PathSearchError as e:

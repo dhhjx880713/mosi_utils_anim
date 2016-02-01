@@ -8,12 +8,13 @@ Created on Mon Jul 27 18:38:15 2015
 from copy import copy
 import numpy as np
 from ...utilities.exceptions import PathSearchError
-from motion_primitive_constraints import MotionPrimitiveConstraints
-from spatial_constraints.keyframe_constraints.pose_constraint import PoseConstraint
-from spatial_constraints.keyframe_constraints.direction_constraint import DirectionConstraint
-from spatial_constraints.keyframe_constraints.pos_and_rot_constraint import PositionAndRotationConstraint
-from spatial_constraints.keyframe_constraints.pose_constraint_quat_frame import PoseConstraintQuatFrame
-from spatial_constraints.keyframe_constraints.two_hand_constraint import TwoHandConstraintSet
+from .motion_primitive_constraints import MotionPrimitiveConstraints
+from .spatial_constraints.keyframe_constraints.pose_constraint import PoseConstraint
+from .spatial_constraints.keyframe_constraints.direction_constraint import DirectionConstraint
+from .spatial_constraints.keyframe_constraints.global_transform_constraint import GlobalTransformConstraint
+from .spatial_constraints.keyframe_constraints.pose_constraint_quat_frame import PoseConstraintQuatFrame
+from .spatial_constraints.keyframe_constraints.two_hand_constraint import TwoHandConstraintSet
+from ...animation_data.motion_vector import concatenate_frames
 from . import *
 
 
@@ -40,11 +41,19 @@ class MotionPrimitiveConstraintsBuilder(object):
         self.local_optimization_mode = algorithm_config["local_optimization_mode"]
         self.ca_constrainst_mode = algorithm_config["collision_avoidance_constraints_mode"]
 
-    def set_status(self, motion_primitive_name, last_arc_length, prev_frames=None, is_last_step=False):
-        self.status["motion_primitive_name"] = motion_primitive_name
-        self.status["n_canonical_frames"] = self.motion_primitive_graph.nodes[
-            (self.action_constraints.action_name, motion_primitive_name)].n_canonical_frames
+    def set_status(self, node_key, last_arc_length, graph_walk, is_last_step=False):
+        n_prev_frames = graph_walk.get_num_of_frames()
+        prev_frames = graph_walk.get_quat_frames()
+        #create a sample to estimate the trajectory arc lengths
+        aligned_sample_frames = concatenate_frames(prev_frames,
+                                                   self.motion_primitive_graph.nodes[node_key].sample(False).get_motion_vector(),
+                                                   graph_walk.motion_vector.start_pose, graph_walk.motion_vector.rotation_type)
+
+
+        self.status["motion_primitive_name"] = node_key[1]
+        self.status["n_canonical_frames"] = self.motion_primitive_graph.nodes[node_key].n_canonical_frames
         self.status["last_arc_length"] = last_arc_length
+        self.status["aligned_sample_frames"] = aligned_sample_frames[n_prev_frames:]
         if prev_frames is None:
             last_pos = self.action_constraints.start_pose["position"]
         else:
@@ -90,9 +99,8 @@ class MotionPrimitiveConstraintsBuilder(object):
             ca_trajectory_set_constraint = copy(self.action_constraints.ca_trajectory_set_constraint)
             ca_trajectory_set_constraint.set_min_arc_length_from_previous_frames(self.status["prev_frames"])
             ca_trajectory_set_constraint.set_number_of_canonical_frames(self.status["n_canonical_frames"])
-            print "use ca constraint set"
             mp_constraints.constraints.append(ca_trajectory_set_constraint)
-        return
+            print "use ca constraint set"
 
     def _add_pose_constraint(self, mp_constraints):
         if mp_constraints.settings["transition_pose_constraint_factor"] > 0.0 and self.status["prev_frames"] is not None:
@@ -134,7 +142,7 @@ class MotionPrimitiveConstraintsBuilder(object):
                                         "position": goal,
                                         "semanticAnnotation": keyframe_semantic_annotation}
             keyframe_constraint_desc = self._map_label_to_canonical_keyframe(keyframe_constraint_desc)
-            keyframe_constraint = PositionAndRotationConstraint(self.skeleton,
+            keyframe_constraint = GlobalTransformConstraint(self.skeleton,
                                                                 keyframe_constraint_desc,
                                                                 self.precision["pos"],
                                                                 mp_constraints.settings["position_constraint_factor"])
@@ -163,12 +171,12 @@ class MotionPrimitiveConstraintsBuilder(object):
                                                                 self.precision["pos"], mp_constraints.settings["position_constraint_factor"])
                     self._add_events_to_event_list(mp_constraints, keyframe_constraint)
                     mp_constraints.constraints.append(keyframe_constraint)
-                elif "position" in keyframe_constraint_desc_list[i].keys() \
+                elif "position" in list(keyframe_constraint_desc_list[i].keys()) \
                         or "orientation" in keyframe_constraint_desc_list[i].keys() \
                         or "time" in keyframe_constraint_desc_list[i].keys():
                     keyframe_constraint_desc = self._map_label_to_canonical_keyframe(keyframe_constraint_desc_list[i])
                     if keyframe_constraint_desc is not None:
-                        keyframe_constraint = PositionAndRotationConstraint(self.skeleton,
+                        keyframe_constraint = GlobalTransformConstraint(self.skeleton,
                                                                             keyframe_constraint_desc,
                                                                             self.precision["pos"], mp_constraints.settings["position_constraint_factor"])
                         self._add_events_to_event_list(mp_constraints, keyframe_constraint)
