@@ -126,20 +126,28 @@ class MGRestApplication(tornado.web.Application):
 
     def __init__(self, service_config, algorithm_config,
                  handlers=None, default_host="", transforms=None, **settings):
-        tornado.web.Application.__init__(
-            self, handlers, default_host, transforms)
-        start = time.clock()
-        self.graph_walk_generator = GraphWalkGenerator(
-            service_config, algorithm_config)
-        print "finished construction from file in", time.clock() - start, "seconds"
+        tornado.web.Application.__init__(self, handlers, default_host, transforms)
+
         self.algorithm_config = algorithm_config
         self.service_config = service_config
-        self.use_file_output_mode = (service_config["output_mode"] == "file_output")
-        self.activate_joint_map = service_config["activate_joint_map"]
-        print "send result as answer to the request", not self.use_file_output_mode
+        start = time.clock()
+        self.graph_walk_generator = GraphWalkGenerator(self.service_config, self.algorithm_config)
+        print "Finished construction from file in", time.clock() - start, "seconds"
+        self.use_file_output_mode = (service_config["output_mode"] == "file_output" and "output_dir" in self.service_config.keys())
+        self.activate_joint_map = True
+        self.apply_coordinate_transform = True
+        try:
+            self.activate_joint_map = service_config["activate_joint_map"]
+            self.activate_coordinate_transform = service_config["activate_coordinate_transform"]
+        except KeyError, e:
+            print "Could not find parameter in service configuration", e.message
+        if self.use_file_output_mode:
+            print "Results are written as file to the directory", self.service_config["output_dir"]
+        else:
+            print "Results are send as answers to the request"
 
     def generate_graph_walk(self, mg_input):
-        return self.graph_walk_generator.generate_graph_walk(mg_input, export=False, activate_joint_map=self.activate_joint_map)
+        return self.graph_walk_generator.generate_graph_walk(mg_input, export=False, activate_joint_map=self.activate_joint_map, activate_coordinate_transform=self.activate_coordinate_transform)
 
     def set_algorithm_config(self, algorithm_config):
         self.graph_walk_generator.set_algorithm_config(algorithm_config)
