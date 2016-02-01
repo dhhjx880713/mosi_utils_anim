@@ -103,11 +103,12 @@ class ElementaryActionGraphWalkGenerator(object):
                 self.motion_primitive_generator._search_for_best_sample_in_cluster_tree(motion_primitive_node,
                                                                                                  motion_primitive_constraints,
                                                                                                  prev_frames)
-                #print node_name, motion_primitive_constraints.min_error, "#######################"
+                print "evaluated start option",node_name, motion_primitive_constraints.min_error, "#######################"
                 errors[index] = motion_primitive_constraints.min_error
-            index += 1
-            min_idx = min(xrange(n_nodes), key=errors.__getitem__)
+                index += 1
+            min_idx = np.argmin(errors)
             next_node = next_nodes[min_idx]
+            print "next node is", next_node, "with an error of", errors[min_idx]
             return (action_name, next_node)
         else:
             return (action_name, next_nodes[0])
