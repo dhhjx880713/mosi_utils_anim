@@ -7,14 +7,15 @@
     },
     "trajectory_following_settings": {
         "spline_type": 0,
-        "control_point_filter_threshold": 15,
+        "control_point_filter_threshold": 0,
         "dir_constraint_factor": 20.0,
         "heuristic_step_length_factor": 1.0,
         "position_constraint_factor": 1.0,
         "step_length_approx_method": "arc_length",
         "transition_pose_constraint_factor": 0.6,
         "closest_point_search_accuracy": 0.001,
-        "closest_point_search_max_iterations": 5000
+        "closest_point_search_max_iterations": 5000,
+        "look_ahead_distance": 500
     },
     "local_optimization_settings": {
         "start_error_threshold": 0.0,
@@ -52,10 +53,11 @@
         "strict": false
     }, 
     "n_random_samples": 300,
+    "average_elementary_action_error_threshold": 500,
     "activate_cluster_search": true,
     "n_cluster_search_candidates": 1,
     "use_transition_model": false, 
-    "local_optimization_mode": "keyframes",
+    "local_optimization_mode": "none",
     "activate_parameter_check": false,
     "use_global_time_optimization": false,
     "use_global_spatial_optimization": true,

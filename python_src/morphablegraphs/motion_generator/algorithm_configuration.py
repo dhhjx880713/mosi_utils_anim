@@ -32,6 +32,7 @@ class AlgorithmConfigurationBuilder(object):
         self.n_cluster_search_candidates = 2
         self.debug_max_step = -1
         self.verbose = False
+        self.average_elementary_action_error_threshold = 500
         self.collision_avoidance_constraints_mode = "none"
         self.optimize_collision_avoidance_constraints_extra = False
         self.set_default_constrained_gmm_settings()
@@ -88,6 +89,7 @@ class AlgorithmConfigurationBuilder(object):
         self.trajectory_following_settings["transition_pose_constraint_factor"] = 1.0
         self.trajectory_following_settings["closest_point_search_accuracy"] = 0.001
         self.trajectory_following_settings["closest_point_search_max_iterations"] = 5000
+        self.trajectory_following_settings[" look_ahead_distance"] = 500
 
     def set_default_smoothing_settings(self):
         self.smoothing_settings = dict()
@@ -116,6 +118,7 @@ class AlgorithmConfigurationBuilder(object):
         self.n_cluster_search_candidates = temp_algorithm_config["n_cluster_search_candidates"]
         self.debug_max_step = temp_algorithm_config["debug_max_step"]
         self.verbose = temp_algorithm_config["verbose"]
+        self.average_elementary_action_error_threshold = temp_algorithm_config["average_elementary_action_error_threshold"]
         self.collision_avoidance_constraints_mode = temp_algorithm_config["collision_avoidance_constraints_mode"]
         self.optimize_collision_avoidance_constraints_extra = temp_algorithm_config["optimize_collision_avoidance_constraints_extra"]
 
@@ -137,6 +140,7 @@ class AlgorithmConfigurationBuilder(object):
                 "activate_cluster_search": self.activate_cluster_search,
                 "n_cluster_search_candidates": self.n_cluster_search_candidates,
                 "verbose": self.verbose,
+                "average_elementary_action_error_threshold": self.average_elementary_action_error_threshold,
                 "collision_avoidance_constraints_mode": self.collision_avoidance_constraints_mode,
                 "optimize_collision_avoidance_constraints_extra": self.optimize_collision_avoidance_constraints_extra,
                 "debug_max_step": self.debug_max_step

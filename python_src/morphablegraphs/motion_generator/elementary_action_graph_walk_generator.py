@@ -9,7 +9,7 @@ from graph_walk import GraphWalkEntry
 from constraints.motion_primitive_constraints import MotionPrimitiveConstraints
 from constraints.spatial_constraints.keyframe_constraints.direction_constraint import DirectionConstraint
 from constraints.spatial_constraints.keyframe_constraints.global_transform_constraint import GlobalTransformConstraint
-LOOK_AHEAD_DISTANCE = 500.0
+
 
 class ElementaryActionGraphWalkGeneratorState(object):
         def __init__(self, algorithm_config):
@@ -57,16 +57,17 @@ class ElementaryActionGraphWalkGenerator(object):
         self.motion_primitive_graph = motion_primitive_graph
         self._algorithm_config = algorithm_config
         self.motion_primitive_constraints_builder = MotionPrimitiveConstraintsBuilder()
-        self.motion_primitive_constraints_builder.set_algorithm_config(
-            self._algorithm_config)
+        self.motion_primitive_constraints_builder.set_algorithm_config(self._algorithm_config)
         self.state = ElementaryActionGraphWalkGeneratorState(self._algorithm_config)
-        return
+        self.start_node_selection_look_ahead_distance = algorithm_config["trajectory_following_settings"]["look_ahead_distance"]
+        self.average_elementary_action_error_threshold = algorithm_config["average_elementary_action_error_threshold"]
 
     def set_algorithm_config(self, algorithm_config):
         self._algorithm_config = algorithm_config
         self.state.debug_max_step = algorithm_config["debug_max_step"]
-        self.motion_primitive_constraints_builder.set_algorithm_config(
-            self._algorithm_config)
+        self.start_node_selection_look_ahead_distance = algorithm_config["trajectory_following_settings"]["look_ahead_distance"]
+        self.average_elementary_action_error_threshold = algorithm_config["average_elementary_action_error_threshold"]
+        self.motion_primitive_constraints_builder.set_algorithm_config(self._algorithm_config)
 
     def set_action_constraints(self, action_constraints):
         self.action_constraints = action_constraints
@@ -82,14 +83,13 @@ class ElementaryActionGraphWalkGenerator(object):
         next_nodes = self.motion_primitive_graph.get_start_nodes(graph_walk, action_name)
         n_nodes = len(next_nodes)
         if n_nodes > 1:
-            goal_arc_length = self.state.travelled_arc_length + LOOK_AHEAD_DISTANCE
+            goal_arc_length = self.state.travelled_arc_length + self.start_node_selection_look_ahead_distance
             goal_position = self.action_constraints.root_trajectory.query_point_by_absolute_arc_length(goal_arc_length)
-
-            dir_vector = [0,0]
-            constraint_desc = {"joint": "Hips", "dir_vector": dir_vector, "canonical_keyframe": -1, "position": goal_position, "n_canonical_frames": 0,
+            constraint_desc = {"joint": "Hips", "canonical_keyframe": -1, "position": goal_position, "n_canonical_frames": 0,
                                "semanticAnnotation":  {"keyframeLabel": "end", "generated": True}}
             pos_constraint = GlobalTransformConstraint(self.motion_primitive_graph.skeleton, constraint_desc, 1.0, 1.0)
             motion_primitive_constraints = MotionPrimitiveConstraints()
+            motion_primitive_constraints.start_pose = graph_walk.motion_vector.start_pose
             motion_primitive_constraints.constraints.append(pos_constraint)
             if graph_walk.get_num_of_frames() > 0:
                 prev_frames = graph_walk.get_quat_frames()
@@ -103,12 +103,12 @@ class ElementaryActionGraphWalkGenerator(object):
                 self.motion_primitive_generator._search_for_best_sample_in_cluster_tree(motion_primitive_node,
                                                                                                  motion_primitive_constraints,
                                                                                                  prev_frames)
-                print "evaluated start option",node_name, motion_primitive_constraints.min_error, "#######################"
+                print "evaluated start option",node_name, motion_primitive_constraints.min_error
                 errors[index] = motion_primitive_constraints.min_error
                 index += 1
             min_idx = np.argmin(errors)
             next_node = next_nodes[min_idx]
-            print "next node is", next_node, "with an error of", errors[min_idx]
+            print "next node is", next_node, "with an error of", errors[min_idx], "towards",goal_position
             return (action_name, next_node)
         else:
             return (action_name, next_nodes[0])
@@ -173,8 +173,9 @@ class ElementaryActionGraphWalkGenerator(object):
         Note only one trajectory constraint per elementary action is currently supported
         and it should be for the Hip joint.
 
-        If there is a trajectory constraint it is used otherwise a random graph walk is used
-        if there is a keyframe constraint it is assigned to the motion primitives
+        If there is a trajectory constraint the algorithm will try to follow it otherwise
+        a random graph walk is generated based on predefined transitions in the graph
+        If there is a keyframe constraint it is assigned to the motion primitives
         in the graph walk
 
         Paramaters
@@ -189,6 +190,7 @@ class ElementaryActionGraphWalkGenerator(object):
         """
         self.state.initialize_from_previous_graph_walk(graph_walk)
         print "start converting elementary action", self.action_constraints.action_name
+        errors = [0]
         while not self.state.is_end_state():
             next_node, next_node_type = self._select_next_motion_primitive_node(graph_walk)
             if next_node is None:
@@ -198,14 +200,16 @@ class ElementaryActionGraphWalkGenerator(object):
             if motion_primitive_constraints is None:
                 return False
             motion_primitive_sample = self.motion_primitive_generator.generate_motion_primitive_sample_from_constraints(
-                motion_primitive_constraints, graph_walk)
+                                                                                motion_primitive_constraints, graph_walk)
+            errors.append(motion_primitive_constraints.min_error)
             self._transition_to_next_state(next_node, next_node_type,
                                            motion_primitive_sample, motion_primitive_constraints, graph_walk)
 
         graph_walk.step_count += self.state.temp_step
         graph_walk.update_frame_annotation(self.action_constraints.action_name, self.state.action_start_frame, graph_walk.get_num_of_frames())
-        print "reached end of elementary action", self.action_constraints.action_name
-        return True
+        avg_error = np.average(errors)
+        print "reached end of elementary action", self.action_constraints.action_name, "with an average error of",avg_error
+        return avg_error < self.average_elementary_action_error_threshold
 
     def _transition_to_next_state(self, next_node, next_node_type, motion_primitive_sample, motion_primitive_constraints, graph_walk):
         """ Concatenate frames to motion and apply smoothing """
