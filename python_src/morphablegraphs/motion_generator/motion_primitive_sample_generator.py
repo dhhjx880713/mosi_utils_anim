@@ -6,7 +6,7 @@ Created on Wed Mar 10 17:15:22 2015
 """
 
 import numpy as np
-
+import time
 from ..animation_data.evaluation_methods import check_sample_validity
 from statistics.constrained_gmm_builder import ConstrainedGMMBuilder
 from ..utilities.exceptions import ConstraintError, SynthesisError
@@ -51,7 +51,7 @@ class MotionPrimitiveSampleGenerator(object):
             self._constrained_gmm_builder = None
         self.numerical_minimizer = OptimizerBuilder(self._algorithm_config).build_spatial_and_naturalness_error_minimizer()
 
-    def generate_motion_primitive_sample_from_constraints(self, motion_primitive_constraints, graph_walk):
+    def generate_motion_primitive_sample(self, motion_primitive_constraints, graph_walk):
         """Calls get_optimal_parameters and backpojects the results.
         
         Parameters
@@ -70,11 +70,11 @@ class MotionPrimitiveSampleGenerator(object):
         if len(graph_walk.steps) > 0:
             prev_mp_name = graph_walk.steps[-1].node_key[1]
             prev_parameters = graph_walk.steps[-1].parameters
-
         else:
             prev_mp_name = ""
             prev_parameters = None
 
+        start = time.clock()
         if self.use_constraints and len(motion_primitive_constraints.constraints) > 0:
             try:
                 low_dimensional_parameters = self.get_optimal_motion_primitive_parameters(mp_name,
@@ -85,9 +85,11 @@ class MotionPrimitiveSampleGenerator(object):
             except ConstraintError as exception:
                 print "Exception", exception.message
                 raise SynthesisError(graph_walk.get_quat_frames(), exception.bad_samples)
-        else: # no constraints were given
+        else:  # no constraints were given
                 print "pick random sample for motion primitive", mp_name
                 low_dimensional_parameters = self._get_random_parameters(mp_name, prev_mp_name, prev_parameters)
+        time_in_seconds = time.clock() - start
+        print "found best fit motion primitive sample in " + str(time_in_seconds) + " seconds"
 
         motion_primitive_sample = self._motion_primitive_graph.nodes[(self.action_name, mp_name)].back_project(low_dimensional_parameters, use_time_parameters=False)
         return motion_primitive_sample
@@ -115,8 +117,8 @@ class MotionPrimitiveSampleGenerator(object):
         close_to_optimum = False
         if self.activate_cluster_search and graph_node.cluster_tree is not None:
             parameters = self._search_for_best_sample_in_cluster_tree(graph_node,
-                                                                          motion_primitive_constraints,
-                                                                          prev_frames)
+                                                                      motion_primitive_constraints,
+                                                                      prev_frames)
 
 
         else:

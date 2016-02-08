@@ -13,8 +13,6 @@ class GraphWalkOptimizer(object):
         self.collision_avoidance_error_minimizer = OptimizerBuilder(algorithm_config).build_spatial_error_minimizer()
 
     def _optimize_over_graph_walk(self, graph_walk, start_step=-1):
-        #if start_step < 0:
-        #    start_step = len(graph_walk.steps)-20
         start_step = max(start_step, 0)
         if self._algorithm_config["use_global_spatial_optimization"]:
             self._optimize_spatial_parameters_over_graph_walk(graph_walk, start_step)
