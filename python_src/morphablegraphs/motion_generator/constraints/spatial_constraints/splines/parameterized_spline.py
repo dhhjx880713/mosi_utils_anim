@@ -429,15 +429,17 @@ class ParameterizedSpline(object):
             #print eval_point, target
             return np.linalg.norm(eval_point-target)
         data = self, point
-        guess_t = np.array([0.5])
+
         #cons = (
 		#	{"type": 'ineq',
 		#	 "fun": lambda x: 1.0 - x})
-        min_u = 0.0 #min_arc_length / self.full_arc_length
+        min_u = min_arc_length #/ self.full_arc_length0.0
+        guess_t = np.array([min_arc_length]).flatten()
         if max_arc_length >0:
-            max_u = max_arc_length / self.full_arc_length
+            max_u = max_arc_length #/ self.full_arc_length
         else:
             max_u = 1.0
-        #print "bounds",min_arc_length, max_arc_length
-        result = minimize(dist_objective, guess_t.flatten(), data, method="L-BFGS-B", bounds=[(min_u, max_u)])
+        print "bounds",min_u, max_u
+        result = minimize(dist_objective, guess_t, data, method="L-BFGS-B", bounds=[(min_u, max_u)])
+        print dist_objective(result['x'], self, point)
         return self.query_point_by_parameter(result['x']), result['x']
