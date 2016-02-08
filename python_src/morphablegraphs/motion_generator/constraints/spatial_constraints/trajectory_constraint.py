@@ -1,13 +1,13 @@
 __author__ = 'herrmann'
 import numpy as np
 
-from splines.parameterized_spline import ParameterizedSpline
-from spatial_constraint_base import SpatialConstraintBase
-from ....animation_data.motion_editing import get_cartesian_coordinates_from_quaternion
-from discrete_trajectory_constraint import DiscreteTrajectoryConstraint
+from .splines.parameterized_spline import ParameterizedSpline
+from .spatial_constraint_base import SpatialConstraintBase
+from .discrete_trajectory_constraint import DiscreteTrajectoryConstraint
 from . import SPATIAL_CONSTRAINT_TYPE_TRAJECTORY
 
 TRAJECTORY_DIM = 3  # spline in cartesian space
+
 
 class TrajectoryConstraint(ParameterizedSpline, SpatialConstraintBase):
     def __init__(self, joint_name, control_points, spline_type, min_arc_length, unconstrained_indices, skeleton, precision, weight_factor=1.0,
@@ -32,9 +32,10 @@ class TrajectoryConstraint(ParameterizedSpline, SpatialConstraintBase):
         discrete_trajectory_constraint.init_from_trajectory(self, aligned_quat_frames, self.min_arc_length)
         return discrete_trajectory_constraint
 
-    def set_active_range(self, range_start, range_end):
-        self.range_start = range_start
-        self.range_end = range_end
+    def set_active_range(self, new_range_start, new_range_end):
+        print("set range", new_range_start, new_range_end)
+        self.range_start = new_range_start
+        self.range_end = new_range_end
 
     def set_number_of_canonical_frames(self, n_canonical_frames):
         self.n_canonical_frames = n_canonical_frames
@@ -67,12 +68,38 @@ class TrajectoryConstraint(ParameterizedSpline, SpatialConstraintBase):
              unconstrained indices are ignored
         :return: the residual vector
         """
+        self._n_canonical_frames = len(aligned_quat_frames)
+        errors = np.empty(self._n_canonical_frames)
+        index = 0
+        min_u = self.min_arc_length/self.full_arc_length
+        for frame in aligned_quat_frames:
+            if index < self._n_canonical_frames:
+                joint_position = np.asarray(self.skeleton.get_cartesian_coordinates_from_quaternion(self.joint_name, frame))
+                #target = self.point_list[index]
+                target, u = self.find_closest_point_fast(joint_position, min_u)
+                #target[self.unconstrained_indices] = 0
+                #joint_position[self.unconstrained_indices] = 0
+                #print joint_position, target
+                errors[index] = np.linalg.norm(joint_position-target)
+                min_u = u# *self.source.full_arc_length
+            else:
+                errors[index] = 1000
+            index += 1
+        #print errors
+        return errors
+
+    def get_residual_vector2(self, aligned_quat_frames):
+        """ Calculate distances between discrete frames and samples with corresponding arc length from the trajectory
+             unconstrained indices are ignored
+        :return: the residual vector
+        """
         self.arc_length = self.min_arc_length
         #if self.arc_length is None:
         #    return np.zeros(len(aligned_quat_frames))
 
         last_joint_position = None
-        errors = []
+        errors = np.empty(len(aligned_quat_frames))
+        index = 0
         for frame in aligned_quat_frames:
             joint_position = np.asarray(self.skeleton.get_cartesian_coordinates_from_quaternion(self.joint_name, frame))
             if last_joint_position is not None:
@@ -81,10 +108,13 @@ class TrajectoryConstraint(ParameterizedSpline, SpatialConstraintBase):
                 target = self.query_point_by_absolute_arc_length(self.arc_length)
                 last_joint_position = joint_position
                 #target[self.unconstrained_indices] = 0
-                joint_position[self.unconstrained_indices] = 0
-                errors.append(np.linalg.norm(joint_position-target))
+                #joint_position[self.unconstrained_indices] = 0
+                errors[index] = np.linalg.norm(joint_position-target)
             else:
-                errors.append(0.0)
+                errors[index] = 1000
+            index += 1
+        errors.fill(np.average(errors))
+        print(errors)
         return errors
 
     def get_length_of_residual_vector(self):
