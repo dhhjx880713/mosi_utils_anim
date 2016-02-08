@@ -10,6 +10,7 @@ from catmull_rom_spline import CatmullRomSpline
 from segment_list import SegmentList
 from b_spline import BSpline
 from fitted_b_spline import FittedBSpline
+from scipy.optimize import minimize
 LOWER_VALUE_SEARCH_FOUND_EXTACT_VALUE = 0
 LOWER_VALUE_SEARCH_FOUND_LOWER_VALUE = 1
 LOWER_VALUE_SEARCH_VALUE_TOO_SMALL = 2
@@ -121,25 +122,22 @@ class ParameterizedSpline(object):
         granularity = self.granularity
         accumulated_steps = np.arange(granularity + 1) / float(granularity)
         last_point = None
-        number_of_evalulations = 0
+        number_of_evaluations = 0
         self._relative_arc_length_map = []
         for accumulated_step in accumulated_steps:
             point = self.query_point_by_parameter(accumulated_step)
+            #print point
             if last_point is not None:
-                #delta = []
-                #d = 0
-                #while d < self.spline.dimensions:
-                #    delta.append((point[d] - last_point[d])**2)
-                #    d += 1
-                self.full_arc_length += np.linalg.norm(point-last_point)#sqrt(np.sum(delta))
-            self._relative_arc_length_map.append(
-                [accumulated_step, self.full_arc_length])
-            number_of_evalulations += 1
+                self.full_arc_length += np.linalg.norm(point-last_point)
+            self._relative_arc_length_map.append([accumulated_step, self.full_arc_length])
+            number_of_evaluations += 1
             last_point = point
+        if self.full_arc_length == 0:
+            raise ValueError("Not enough control points in trajectory constraint definition")
 
         # normalize values
         if self.full_arc_length > 0:
-            for i in xrange(number_of_evalulations):
+            for i in xrange(number_of_evaluations):
                 self._relative_arc_length_map[i][1] /= self.full_arc_length
         return
 
@@ -410,7 +408,7 @@ class ParameterizedSpline(object):
 
         eps = 0.0
         if min_arc_length >= self.full_arc_length-eps:  # min arc length was too close to full arc length
-            return self.get_last_control_point(), self.full_arc_length
+            return self.get_last_control_point(), 0.0
         else:
             segment_list = SegmentList(self.closest_point_search_accuracy, self.closest_point_search_max_iterations)
             range_large_enough = segment_list.construct_from_spline(self, min_arc_length, max_arc_length)
@@ -423,4 +421,23 @@ class ParameterizedSpline(object):
                 else:
                     return result
             else:
-                return self.get_last_control_point()
+                return self.get_last_control_point(), 0.0
+
+    def find_closest_point_fast(self, point, min_arc_length=0, max_arc_length=-1):
+        def dist_objective(x, spline, target):
+            eval_point = spline.query_point_by_parameter(x)
+            #print eval_point, target
+            return np.linalg.norm(eval_point-target)
+        data = self, point
+        guess_t = np.array([0.5])
+        #cons = (
+		#	{"type": 'ineq',
+		#	 "fun": lambda x: 1.0 - x})
+        min_u = 0.0 #min_arc_length / self.full_arc_length
+        if max_arc_length >0:
+            max_u = max_arc_length / self.full_arc_length
+        else:
+            max_u = 1.0
+        #print "bounds",min_arc_length, max_arc_length
+        result = minimize(dist_objective, guess_t.flatten(), data, method="L-BFGS-B", bounds=[(min_u, max_u)])
+        return self.query_point_by_parameter(result['x']), result['x']
