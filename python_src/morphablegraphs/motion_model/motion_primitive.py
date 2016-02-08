@@ -121,11 +121,11 @@ class MotionPrimitive(object):
         """
         self.translation_maxima = np.array(data['translation_maxima'])
         self.s_pca = dict()
-        self.s_pca["eigen_vectors"] = np.array(data['eigen_vectors_spatial'])
+        self.s_pca["eigen_vectors"] = np.transpose(np.array(data['eigen_vectors_spatial']))
         self.s_pca["mean_vector"] = np.array(data['mean_spatial_vector'])
         self.s_pca["n_basis"] = int(data['n_basis_spatial'])
         self.s_pca["n_dim"] = int(data['n_dim_spatial'])
-        self.s_pca["n_components"] = len(self.s_pca["eigen_vectors"])
+        self.s_pca["n_components"] = len(self.s_pca["eigen_vectors"].T)
         self.s_pca["knots"] = np.asarray(data['b_spline_knots_spatial'])
 
     def _init_time_parameters_from_json(self, data):
@@ -214,7 +214,7 @@ class MotionPrimitive(object):
         \t Reconstructed coefficients of the functional motion representation.
         """
         #reconstruct coefs of the functionial representation
-        coefs = np.dot(np.transpose(self.s_pca["eigen_vectors"]), alpha.T)
+        coefs = np.dot(self.s_pca["eigen_vectors"], alpha)
         coefs += self.s_pca["mean_vector"]
         coefs = coefs.reshape((self.s_pca["n_basis"], self.s_pca["n_dim"]))
         #undo the scaling on the translation
