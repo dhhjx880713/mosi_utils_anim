@@ -16,7 +16,7 @@ import tornado.ioloop
 import tornado.web
 import json
 import time
-from morphablegraphs.motion_generator.graph_walk_generator import GraphWalkGenerator
+from morphablegraphs.motion_generator.motion_generator import MotionGenerator
 from morphablegraphs.motion_generator.algorithm_configuration import AlgorithmConfigurationBuilder
 from morphablegraphs.utilities.io_helper_functions import load_json_file, get_bvh_writer
 
@@ -52,7 +52,7 @@ class MGInputHandler(tornado.web.RequestHandler):
 
         # start algorithm if predefined keys were found
         if "elementaryActions" in mg_input.keys() or "tasks" in mg_input.keys():
-            graph_walk = self.application.generate_graph_walk(mg_input)
+            graph_walk = self.application.generate_motion(mg_input)
 
             self._handle_result(graph_walk)
         else:
@@ -131,7 +131,7 @@ class MGRestApplication(tornado.web.Application):
         self.algorithm_config = algorithm_config
         self.service_config = service_config
         start = time.clock()
-        self.graph_walk_generator = GraphWalkGenerator(self.service_config, self.algorithm_config)
+        self.motion_generator = MotionGenerator(self.service_config, self.algorithm_config)
         print "Finished construction from file in", time.clock() - start, "seconds"
         self.use_file_output_mode = (service_config["output_mode"] == "file_output" and "output_dir" in self.service_config.keys())
         self.activate_joint_map = True
@@ -146,11 +146,11 @@ class MGRestApplication(tornado.web.Application):
         else:
             print "Results are send as answers to the request"
 
-    def generate_graph_walk(self, mg_input):
-        return self.graph_walk_generator.generate_graph_walk(mg_input, export=False, activate_joint_map=self.activate_joint_map, activate_coordinate_transform=self.activate_coordinate_transform)
+    def generate_motion(self, mg_input):
+        return self.motion_generator.generate_motion(mg_input, export=False, activate_joint_map=self.activate_joint_map, activate_coordinate_transform=self.activate_coordinate_transform)
 
     def set_algorithm_config(self, algorithm_config):
-        self.graph_walk_generator.set_algorithm_config(algorithm_config)
+        self.motion_generator.set_algorithm_config(algorithm_config)
 
 
 class MorphableGraphsRESTfulInterface(object):

@@ -3,7 +3,7 @@ __author__ = 'erhe01'
 import numpy as np
 from ..utilities.exceptions import PathSearchError
 from ..motion_model import NODE_TYPE_END, NODE_TYPE_SINGLE
-from motion_primitive_sample_generator import MotionPrimitiveSampleGenerator
+from motion_primitive_generator import MotionPrimitiveGenerator
 from constraints.motion_primitive_constraints_builder import MotionPrimitiveConstraintsBuilder
 from graph_walk import GraphWalkEntry
 from constraints.motion_primitive_constraints import MotionPrimitiveConstraints
@@ -11,7 +11,7 @@ from constraints.spatial_constraints.keyframe_constraints.direction_constraint i
 from constraints.spatial_constraints.keyframe_constraints.global_transform_constraint import GlobalTransformConstraint
 
 
-class ElementaryActionGraphWalkGeneratorState(object):
+class ElementaryActionGeneratorState(object):
         def __init__(self, algorithm_config):
             self.start_step = -1
             self.prev_action_name = None
@@ -50,13 +50,13 @@ class ElementaryActionGraphWalkGeneratorState(object):
             self.temp_step += 1
 
 
-class ElementaryActionGraphWalkGenerator(object):
+class ElementaryActionGenerator(object):
     def __init__(self, motion_primitive_graph, algorithm_config):
         self.motion_primitive_graph = motion_primitive_graph
         self._algorithm_config = algorithm_config
         self.motion_primitive_constraints_builder = MotionPrimitiveConstraintsBuilder()
         self.motion_primitive_constraints_builder.set_algorithm_config(self._algorithm_config)
-        self.action_state = ElementaryActionGraphWalkGeneratorState(self._algorithm_config)
+        self.action_state = ElementaryActionGeneratorState(self._algorithm_config)
         self.start_node_selection_look_ahead_distance = algorithm_config["trajectory_following_settings"]["look_ahead_distance"]
         self.average_elementary_action_error_threshold = algorithm_config["average_elementary_action_error_threshold"]
 
@@ -71,8 +71,7 @@ class ElementaryActionGraphWalkGenerator(object):
         self.action_constraints = action_constraints
         self.motion_primitive_constraints_builder.set_action_constraints(
             self.action_constraints)
-        self.motion_primitive_generator = MotionPrimitiveSampleGenerator(
-            self.action_constraints, self._algorithm_config)
+        self.motion_primitive_generator = MotionPrimitiveGenerator(self.action_constraints, self._algorithm_config)
         self.node_group = self.action_constraints.get_node_group()
         self.arc_length_of_end = self.motion_primitive_graph.nodes[
             self.node_group.get_random_end_state()].average_step_length
@@ -191,7 +190,7 @@ class ElementaryActionGraphWalkGenerator(object):
         errors = [0]
         while not self.action_state.is_end_state():
             try:
-                error = self._transition_to_next_state(graph_walk)
+                error = self._transition_to_next_action_state(graph_walk)
                 errors.append(error)
             except ValueError, e:
                 print e.message
@@ -203,7 +202,7 @@ class ElementaryActionGraphWalkGenerator(object):
         print "reached end of elementary action", self.action_constraints.action_name, "with an average error of",avg_error
         return avg_error < self.average_elementary_action_error_threshold
 
-    def _transition_to_next_state(self, graph_walk):
+    def _transition_to_next_action_state(self, graph_walk):
 
         next_node, next_node_type = self._select_next_motion_primitive_node(graph_walk)
         if next_node is None:

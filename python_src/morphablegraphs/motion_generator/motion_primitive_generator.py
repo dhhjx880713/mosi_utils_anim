@@ -14,7 +14,7 @@ from optimization.optimizer_builder import OptimizerBuilder
 from objective_functions import obj_spatial_error_sum, obj_spatial_error_sum_and_naturalness
 
 
-class MotionPrimitiveSampleGenerator(object):
+class MotionPrimitiveGenerator(object):
     """
     Parameters
     ----------

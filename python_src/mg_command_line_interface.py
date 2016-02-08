@@ -15,7 +15,7 @@ os.chdir(dirname)
 import json
 import glob
 import time
-from morphablegraphs.motion_generator.graph_walk_generator import GraphWalkGenerator
+from morphablegraphs.motion_generator.motion_generator import MotionGenerator
 from morphablegraphs.motion_generator.algorithm_configuration import AlgorithmConfigurationBuilder
 from morphablegraphs.utilities.io_helper_functions import load_json_file
 ALGORITHM_CONFIG_FILE = "config" + os.sep + "algorithm.json"
@@ -49,11 +49,11 @@ def run_pipeline(service_config, algorithm_config_file):
     algorithm_config = algorithm_config_builder.build()
 
     start = time.clock()
-    graph_walk_generator = GraphWalkGenerator(service_config, algorithm_config)
+    motion_generator = MotionGenerator(service_config, algorithm_config)
     print "Finished construction from file in", time.clock() - start, "seconds"
 
     mg_input = replace_hand_joints_in_input_file(input_file)
-    graph_walk = graph_walk_generator.generate_graph_walk(mg_input, export=False)
+    graph_walk = motion_generator.generate_motion(mg_input, export=False)
 
     if graph_walk.motion_vector.has_frames():
         graph_walk.export_motion(service_config["output_dir"], service_config["output_filename"], export_details=service_config["write_log"])

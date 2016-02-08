@@ -6,20 +6,40 @@ from constraints.time_constraints_builder import TimeConstraintsBuilder
 from constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE, SPATIAL_CONSTRAINT_TYPE_TRAJECTORY
 from constraints.motion_primitive_constraints import MotionPrimitiveConstraints
 
+
 class GraphWalkOptimizer(object):
-    def __init__(self, algorithm_config):
+    def __init__(self, motion_primitive_graph, algorithm_config):
+        self.motion_primitive_graph = motion_primitive_graph
         self.time_error_minimizer = OptimizerBuilder(algorithm_config).build_time_error_minimizer()
         self.global_error_minimizer = OptimizerBuilder(algorithm_config).build_global_error_minimizer_residual()
         self.collision_avoidance_error_minimizer = OptimizerBuilder(algorithm_config).build_spatial_error_minimizer()
+        self.set_algorithm_config(algorithm_config)
+
+    def set_algorithm_config(self, algorithm_config):
+        self._algorithm_config = algorithm_config
+        self.use_global_spatial_optimization = algorithm_config["use_global_spatial_optimization"]
+        self.optimize_collision_avoidance_constraints_extra = algorithm_config["optimize_collision_avoidance_constraints_extra"]
+        self._global_spatial_optimization_steps = algorithm_config["global_spatial_optimization_settings"]["max_steps"]
+
+    def optimize(self, graph_walk, action_generator, action_constraints):
+         #print "has user constraints", action_constraints.contains_user_constraints
+        if self.use_global_spatial_optimization and action_constraints.contains_user_constraints:
+            start_step = max(action_generator.action_state.start_step - self._global_spatial_optimization_steps, 0)
+            print "start spatial graph walk optimization at", start_step, "looking back", self._global_spatial_optimization_steps, "steps"
+            graph_walk = self.optimize_spatial_parameters_over_graph_walk(graph_walk, start_step)
+        if self.optimize_collision_avoidance_constraints_extra and action_constraints.collision_avoidance_constraints is not None and len(action_constraints.collision_avoidance_constraints) > 0 :
+            print "optimize collision avoidance parameters"
+            graph_walk = self.optimize_for_collision_avoidance_constraints(graph_walk, action_constraints, action_generator.action_state.start_step)
+        return graph_walk
 
     def _optimize_over_graph_walk(self, graph_walk, start_step=-1):
         start_step = max(start_step, 0)
         if self._algorithm_config["use_global_spatial_optimization"]:
-            self._optimize_spatial_parameters_over_graph_walk(graph_walk, start_step)
+            self.optimize_spatial_parameters_over_graph_walk(graph_walk, start_step)
         if self._algorithm_config["use_global_time_optimization"]:
-            self._optimize_time_parameters_over_graph_walk(graph_walk)
+            self.optimize_time_parameters_over_graph_walk(graph_walk)
 
-    def _optimize_spatial_parameters_over_graph_walk(self, graph_walk, start_step=0):
+    def optimize_spatial_parameters_over_graph_walk(self, graph_walk, start_step=0):
         initial_guess = graph_walk.get_global_spatial_parameter_vector(start_step)
         constraint_count = 0
         for step in graph_walk.steps[start_step:]: #TODO add pose constraint for pick and place
@@ -55,7 +75,7 @@ class GraphWalkOptimizer(object):
             print "no user defined constraints"
         return graph_walk
 
-    def _optimize_time_parameters_over_graph_walk(self, graph_walk, start_step=0):
+    def optimize_time_parameters_over_graph_walk(self, graph_walk, start_step=0):
 
         time_constraints = TimeConstraintsBuilder(graph_walk, start_step).build()
         if time_constraints is not None:
@@ -71,7 +91,7 @@ class GraphWalkOptimizer(object):
 
         return graph_walk
 
-    def _optimize_for_collision_avoidance_constraints(self, graph_walk, action_constraints, start_step=0):
+    def optimize_for_collision_avoidance_constraints(self, graph_walk, action_constraints, start_step=0):
         #return graph_walk
         #original_frames = deepcopy(graph_walk.get_quat_frames())
         reduced_motion_vector = deepcopy(graph_walk.motion_vector)
