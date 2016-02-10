@@ -76,13 +76,13 @@ class MotionStateGraphLoader(object):
         #print "add transitions between nodes from", transition_dict
         self._set_transitions_from_dict(motion_primitive_graph, transition_dict)
 
-        self._update_attributes(motion_primitive_graph, update_stats=False)
+        self._update_motion_state_stats(motion_primitive_graph, update_stats=False)
 
         if "handPoseInfo" in graph_data.keys():
             motion_primitive_graph.hand_pose_generator = HandPoseGenerator(motion_primitive_graph.skeleton)
             motion_primitive_graph.hand_pose_generator.init_from_desc(graph_data["handPoseInfo"])
 
-    def _init_from_directory(self, motion_primitive_graph, update_stats=True):
+    def _init_from_directory(self, motion_primitive_graph, recalculate_motion_stats=True):
         """ Initializes the class
         """
         skeleton_path = self.motion_primitive_graph_path + os.sep + SKELETON_FILE
@@ -108,11 +108,11 @@ class MotionStateGraphLoader(object):
         else:
             print "did not find graph definition file", graph_definition_file
 
-        self._update_attributes(motion_primitive_graph, update_stats=update_stats)
+        self._update_motion_state_stats(motion_primitive_graph, recalculate=recalculate_motion_stats)
 
-    def _update_attributes(self, motion_primitive_graph, update_stats=False):
+    def _update_motion_state_stats(self, motion_primitive_graph, recalculate=False):
         for keys in motion_primitive_graph.node_groups.keys():
-            motion_primitive_graph.node_groups[keys].update_attributes(update_stats=update_stats)
+            motion_primitive_graph.node_groups[keys]._update_motion_state_stats(recalculate=recalculate)
 
     def _set_transitions_from_dict(self, motion_primitive_graph, transition_dict):
         for node_key in transition_dict:
@@ -154,5 +154,5 @@ class MotionStateGraphLoader(object):
             transition_model = self._load_transition_model(motion_primitive_graph, from_node_key, to_node_key)
         transition_type = self._get_transition_type(motion_primitive_graph, from_node_key, to_node_key)
         edge = MotionStateTransition(from_node_key, to_node_key, transition_type, transition_model)
-        print "create edge", from_node_key, to_node_key
+        #print "create edge", from_node_key, to_node_key
         motion_primitive_graph.nodes[from_node_key].outgoing_edges[to_node_key] = edge

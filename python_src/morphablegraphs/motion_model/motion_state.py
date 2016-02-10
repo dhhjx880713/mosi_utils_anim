@@ -130,8 +130,8 @@ class MotionState(MotionPrimitiveWrapper):
                 return to_node_key
         return None
 
-    def update_attributes(self, n_samples=50, method="median"):
-        """ Updates attributes for faster look up
+    def update_motion_stats(self, n_samples=50, method="median"):
+        """ Calculates motion stats for faster look up
         """
         self.n_standard_transitions = len([e for e in self.outgoing_edges.keys()
                                            if self.outgoing_edges[e].transition_type == NODE_TYPE_STANDARD])

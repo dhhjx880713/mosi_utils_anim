@@ -36,16 +36,15 @@ class MotionStateGroup(ElementaryActionMetaInfo):
             for k in self.end_states:
                 self.nodes[(self.elementary_action_name, k)].node_type = NODE_TYPE_END
 
-    def update_attributes(self, update_stats=False):
-        """
-        Update attributes of motion primitives for faster lookup. #
+    def _update_motion_state_stats(self, recalculate=False):
+        """  Update stats of motion states for faster lookup.
         """
         changed_meta_info = False
-        if update_stats:
+        if recalculate:
             changed_meta_info = True
             self.meta_information["stats"] = {}
             for node_key in self.nodes.keys():
-                self.nodes[node_key].update_attributes()
+                self.nodes[node_key].update_motion_stats()
                 self.meta_information["stats"][node_key[1]] = {"average_step_length": self.nodes[node_key].average_step_length,
                                                                "n_standard_transitions": self.nodes[node_key].n_standard_transitions}
                 print"n standard transitions", node_key, self.nodes[node_key].n_standard_transitions
@@ -60,7 +59,7 @@ class MotionStateGroup(ElementaryActionMetaInfo):
                     self.nodes[node_key].n_standard_transitions = self.meta_information["stats"][node_key[1]]["n_standard_transitions"]
                     self.nodes[node_key].average_step_length = self.meta_information["stats"][node_key[1]]["average_step_length"]
                 else:
-                    self.nodes[node_key].update_attributes()
+                    self.nodes[node_key].update_motion_stats()
                     self.meta_information["stats"][node_key[1]] = {"average_step_length": self.nodes[node_key].average_step_length,
                                                                    "n_standard_transitions": self.nodes[node_key].n_standard_transitions }
                     changed_meta_info = True
