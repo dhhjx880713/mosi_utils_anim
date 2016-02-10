@@ -115,7 +115,6 @@ class MotionStateGraphLoader(object):
             motion_primitive_graph.node_groups[keys].update_attributes(update_stats=update_stats)
 
     def _set_transitions_from_dict(self, motion_primitive_graph, transition_dict):
-        
         for node_key in transition_dict:
             from_action_name = node_key.split("_")[0]
             from_motion_primitive_name = node_key.split("_")[1]
@@ -129,18 +128,15 @@ class MotionStateGraphLoader(object):
                     if to_node_key in motion_primitive_graph.nodes.keys():
                         self._add_transition(motion_primitive_graph, from_node_key, to_node_key)
 
-    def _add_transition(self, motion_primitive_graph, from_node_key, to_node_key):
-        transition_model = None
-        if self.load_transition_models:
-            transition_model_file = self.motion_primitive_graph_path + os.sep + TRANSITION_MODEL_DIRECTORY_NAME\
-            + os.sep + from_node_key + "_to_" + to_node_key[0] + "_" + to_node_key[1] + TRANSITION_MODEL_FILE_ENDING
-            if os.path.isfile(transition_model_file):
-                output_gmm = motion_primitive_graph.nodes[to_node_key].gaussian_mixture_model
-                transition_model = GPMixture.load(transition_model_file,\
-                motion_primitive_graph.nodes[from_node_key].gaussian_mixture_model,output_gmm)
-            else:
-                print "did not find transition model file", transition_model_file
-        self._create_edge(motion_primitive_graph, from_node_key, to_node_key, transition_model)
+    def _load_transition_model(self, motion_primitive_graph, from_node_key, to_node_key):
+        transition_model_file = self.motion_primitive_graph_path + os.sep + TRANSITION_MODEL_DIRECTORY_NAME\
+        + os.sep + from_node_key + "_to_" + to_node_key[0] + "_" + to_node_key[1] + TRANSITION_MODEL_FILE_ENDING
+        if os.path.isfile(transition_model_file):
+            output_gmm = motion_primitive_graph.nodes[to_node_key].gaussian_mixture_model
+            return GPMixture.load(transition_model_file, motion_primitive_graph.nodes[from_node_key].gaussian_mixture_model,output_gmm)
+        else:
+            print "did not find transition model file", transition_model_file
+            return None
 
     def _get_transition_type(self, motion_primitive_graph, from_node_key, to_node_key):
         if to_node_key[0] == from_node_key[0]:
@@ -152,7 +148,10 @@ class MotionStateGraphLoader(object):
             transition_type = "action_transition"
         return transition_type
 
-    def _create_edge(self, motion_primitive_graph, from_node_key, to_node_key, transition_model=None):
+    def _add_transition(self, motion_primitive_graph, from_node_key, to_node_key):
+        transition_model = None
+        if self.load_transition_models:
+            transition_model = self._load_transition_model(motion_primitive_graph, from_node_key, to_node_key)
         transition_type = self._get_transition_type(motion_primitive_graph, from_node_key, to_node_key)
         edge = MotionStateTransition(from_node_key, to_node_key, transition_type, transition_model)
         print "create edge", from_node_key, to_node_key
