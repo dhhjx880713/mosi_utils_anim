@@ -6,11 +6,12 @@ Implemented according to the following tutorial:
 http://www.drdobbs.com/open-source/building-restful-apis-with-tornado/240160382?pgno=1
 @author: erhe01
 """
-
 import os
 # change working directory to the script file directory
 file_dir_name, file_name = os.path.split(os.path.abspath(__file__))
 os.chdir(file_dir_name)
+import sys
+sys.path.append(os.sep.join([file_dir_name,  'mgrd']))  # add mgrd package to import path
 import tornado.escape
 import tornado.ioloop
 import tornado.web
