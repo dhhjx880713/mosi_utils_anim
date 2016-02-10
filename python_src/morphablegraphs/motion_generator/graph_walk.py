@@ -10,11 +10,9 @@ from datetime import datetime
 from copy import copy
 import json
 import numpy as np
-from ..utilities.io_helper_functions import write_to_json_file,\
-                                          write_to_logfile
-from ..animation_data.motion_vector import MotionVector
+from ..utilities import write_to_json_file, write_to_logfile
+from ..animation_data import MotionVector, align_quaternion_frames
 from constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION
-from ..animation_data.motion_editing import align_quaternion_frames
 
 LOG_FILE = "log.txt"
 UNCONSTRAINED_EVENTS_TRANSFER_POINT = "transfer_point"

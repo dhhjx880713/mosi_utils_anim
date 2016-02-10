@@ -9,3 +9,4 @@ META_INFORMATION_FILE_NAME = "meta_information.json"
 TRANSITION_DEFINITION_FILE_NAME = "graph_definition.json"
 TRANSITION_MODEL_FILE_ENDING = ".GPM"
 
+from motion_state_graph_loader import MotionStateGraphLoader

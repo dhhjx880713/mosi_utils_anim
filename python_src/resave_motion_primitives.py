@@ -9,7 +9,7 @@ from rpy2 import robjects
 class MotionPrimitiveExporter(MotionPrimitive):
 
 
-   def _initialize_from_json(self,data):
+    def _initialize_from_json(self,data):
         robjects.r('library("fda")')  #initialize fda for later operations
         super(MotionPrimitiveExporter, self)._initialize_from_json(data)
 

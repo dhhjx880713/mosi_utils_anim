@@ -11,14 +11,13 @@ based on previous steps.
 """
 
 import time
-from ..utilities.io_helper_functions import load_json_file
-from ..motion_model.motion_state_graph_loader import MotionStateGraphLoader
-from constraints.mg_input_file_reader import MGInputFileReader
-from constraints.elementary_action_constraints_builder import ElementaryActionConstraintsBuilder
+from ..motion_model import MotionStateGraphLoader
+from constraints import MGInputFileReader, ElementaryActionConstraintsBuilder
 from elementary_action_generator import ElementaryActionGenerator
 from algorithm_configuration import AlgorithmConfigurationBuilder
 from graph_walk import GraphWalk
 from graph_walk_optimizer import GraphWalkOptimizer
+from ..utilities import load_json_file
 
 
 class MotionGenerator(object):
