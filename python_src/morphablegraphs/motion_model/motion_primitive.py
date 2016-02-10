@@ -111,7 +111,7 @@ class MotionPrimitive(object):
         self.gaussian_mixture_model.covars_ = np.array(data['gmm_covars'])
 
     def _init_spatial_parameters_from_json(self, data):
-        """  Set the parameters for the _inverse_spatial_pca function.
+        """  Set the parameters for back_project_spatial_function.
 
         Parameters
         ----------
@@ -129,7 +129,7 @@ class MotionPrimitive(object):
         self.s_pca["knots"] = np.asarray(data['b_spline_knots_spatial'])
 
     def _init_time_parameters_from_json(self, data):
-        """  Set the parameters for the _inverse_temporal_pca function.
+        """  Set the parameters for back_project_time_function.
 
         Parameters
         ----------
@@ -192,14 +192,14 @@ class MotionPrimitive(object):
             if semantic_annotation is None:
                 raise ValueError('Unknown semantic label!')
             low_dimensional_vector = np.delete(low_dimensional_vector, -1)
-        spatial_coefs = self._inverse_spatial_pca(low_dimensional_vector[:self.s_pca["n_components"]])
+        spatial_coefs = self.back_project_spatial_function(low_dimensional_vector[:self.s_pca["n_components"]])
         if self.has_time_parameters and use_time_parameters:
-            time_function = self._inverse_temporal_pca(low_dimensional_vector[self.s_pca["n_components"]:])
+            time_function = self.back_project_time_function(low_dimensional_vector[self.s_pca["n_components"]:])
         else:
             time_function = np.arange(0, self.n_canonical_frames)
         return MotionSpline(low_dimensional_vector, spatial_coefs, time_function, self.s_pca["knots"], semantic_annotation)
 
-    def _inverse_spatial_pca(self, alpha):
+    def back_project_spatial_function(self, alpha):
         """ Backtransform a lowdimensional vector alpha to a coefficients of
         a functional motion representation.
 
@@ -233,7 +233,7 @@ class MotionPrimitive(object):
         mean_tck = (self.t_pca["knots"], self.t_pca["mean_vector"], 3)
         return si.splev(self.canonical_time_range, mean_tck)
 
-    def _inverse_temporal_pca(self, gamma):
+    def back_project_time_function(self, gamma):
         """ Backtransform a lowdimensional vector gamma to the timewarping
         function t(t') and inverse it to t'(t).
 
@@ -296,3 +296,12 @@ class MotionPrimitive(object):
         #b = max(t)
         #t = [(i-a)/(b-a) * t_max for i in t]
         return np.array(t)
+
+    def get_n_canonical_frames(self):
+        return self.n_canonical_frames
+
+    def get_n_spatial_components(self):
+        return self.s_pca["n_components"]
+
+    def get_n_time_components(self):
+        return self.t_pca["n_components"]

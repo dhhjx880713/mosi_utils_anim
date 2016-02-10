@@ -25,8 +25,8 @@ class GraphWalkEntry(object):
         self.start_frame = start_frame
         self.end_frame = end_frame
         self.motion_primitive_constraints = motion_primitive_constraints
-        self.n_spatial_components = motion_primitive_graph.nodes[node_key].s_pca["n_components"]
-        self.n_time_components = motion_primitive_graph.nodes[node_key].t_pca["n_components"]
+        self.n_spatial_components = motion_primitive_graph.nodes[node_key].get_n_spatial_components()
+        self.n_time_components = motion_primitive_graph.nodes[node_key].get_n_time_components()
 
 
 class HighLevelGraphWalkEntry(object):
@@ -98,7 +98,7 @@ class GraphWalk(object):
         else:
             step = self.steps[start_step-1]
             if self.use_time_parameters:
-                time_function = self.motion_primitive_graph.nodes[step.node_key]._inverse_temporal_pca(step.parameters[step.n_spatial_components:])
+                time_function = self.motion_primitive_graph.nodes[step.node_key].back_project_time_function(step.parameters[step.n_spatial_components:])
                 start_frame = len(time_function)
             else:
                 start_frame = step.end_frame
@@ -106,7 +106,7 @@ class GraphWalk(object):
         prev_step = None
         for step in self.steps[start_step:]:
             action_name = step.node_key[0]
-            time_function = self.motion_primitive_graph.nodes[step.node_key]._inverse_temporal_pca(step.parameters[step.n_spatial_components:])
+            time_function = self.motion_primitive_graph.nodes[step.node_key].back_project_time_function(step.parameters[step.n_spatial_components:])
             if prev_step is not None and action_name != prev_step.node_key[0]:
                 #add entry for previous elementary action
                 print "add", prev_step.node_key[0]
@@ -162,7 +162,7 @@ class GraphWalk(object):
         n_frames = 0
         for step in self.steps:
             if self.use_time_parameters:
-                time_function = self.motion_primitive_graph.nodes[step.node_key]._inverse_temporal_pca(step.parameters[step.n_spatial_components:])
+                time_function = self.motion_primitive_graph.nodes[step.node_key].back_project_time_function(step.parameters[step.n_spatial_components:])
             for keyframe_event in step.motion_primitive_constraints.keyframe_event_list.values():
                 event_keyframe_index = self._extract_keyframe_index(keyframe_event, time_function, n_frames)
                 events = self._extract_event_list(keyframe_event)

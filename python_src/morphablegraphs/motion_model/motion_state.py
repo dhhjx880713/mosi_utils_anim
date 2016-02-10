@@ -8,12 +8,12 @@ import os
 import random
 import numpy as np
 from . import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END
-from motion_primitive import MotionPrimitive
+from motion_primitive_wrapper import MotionPrimitiveWrapper
 from ..animation_data.motion_editing import extract_root_positions_from_frames, get_arc_length_from_points
-from ..space_partitioning.cluster_tree import ClusterTree
+from ..space_partitioning import ClusterTree
 
 
-class MotionState(MotionPrimitive):
+class MotionState(MotionPrimitiveWrapper):
     """ Contains a motion primitive and all its outgoing transitions. 
 
     Parameters
@@ -27,7 +27,7 @@ class MotionState(MotionPrimitive):
     \tEach entry contains a tuple (transition model, transition type)
     """
     def __init__(self):
-        super(MotionState, self).__init__(None)
+        super(MotionState, self).__init__()
         self.outgoing_edges = {}
         self.node_type = NODE_TYPE_STANDARD
         self.n_standard_transitions = 0
