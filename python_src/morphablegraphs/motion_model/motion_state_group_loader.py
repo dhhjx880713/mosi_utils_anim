@@ -66,7 +66,7 @@ class MotionStateGroupLoader(object):
         motion_primitive_node_group = MotionStateGroup(self.elementary_action_data["name"], None, motion_state_graph)
         for motion_primitive_name in self.elementary_action_data["nodes"].keys():
             node_key = (self.elementary_action_data["name"], motion_primitive_name)
-            motion_primitive_node_group.nodes[node_key] = MotionState(self)
+            motion_primitive_node_group.nodes[node_key] = MotionState(motion_primitive_node_group)
             motion_primitive_node_group.nodes[node_key].init_from_dict(self.elementary_action_name, self.elementary_action_data["nodes"][motion_primitive_name])
         if "info" in self.elementary_action_data.keys():
             motion_primitive_node_group.set_meta_information(self.elementary_action_data["info"])
@@ -91,7 +91,7 @@ class MotionStateGroupLoader(object):
                     motion_primitive_name = file_name.split("_")[1]
                     motion_primitive_file_name = self.elementary_action_directory+os.sep+file_name
                     node_key = (self.elementary_action_name, motion_primitive_name)
-                    motion_primitive_node_group.nodes[node_key] = MotionState(self)
+                    motion_primitive_node_group.nodes[node_key] = MotionState(motion_primitive_node_group)
                     motion_primitive_node_group.nodes[node_key].init_from_file(motion_primitive_node_group.elementary_action_name, motion_primitive_name, motion_primitive_file_name)
                 elif file_name.endswith(".stats"):
                     print "found stats", file_name
