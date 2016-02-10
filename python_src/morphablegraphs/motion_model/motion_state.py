@@ -49,7 +49,7 @@ class MotionState(MotionPrimitiveWrapper):
         self.average_step_length = 0
         self.action_name = action_name
         self.primitive_name = primitive_name
-        self._load(motion_primitive_filename)
+        self._load_from_file(motion_primitive_filename)
         self.cluster_tree = None
         cluster_file_name = motion_primitive_filename[:-7]
         self._construct_space_partition(cluster_file_name)
