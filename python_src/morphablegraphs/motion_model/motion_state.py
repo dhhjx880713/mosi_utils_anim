@@ -25,9 +25,12 @@ class MotionState(MotionPrimitiveWrapper):
     ----------
     * outgoing_edges: OrderedDict containing tuples
     \tEach entry contains a tuple (transition model, transition type)
+    * motion_state_group: MotionStateGroup
+    \t Represents the elementary action that this state is a part of.
     """
-    def __init__(self):
+    def __init__(self, motion_state_group):
         super(MotionState, self).__init__()
+        self.motion_state_group = motion_state_group
         self.outgoing_edges = {}
         self.node_type = NODE_TYPE_STANDARD
         self.n_standard_transitions = 0

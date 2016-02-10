@@ -70,7 +70,7 @@ class MotionStateGraphLoader(object):
         elementary_actions = graph_data["subgraphs"]
         for action_name in elementary_actions.keys():
             self.motion_primitive_node_group_builder.set_data_from_zip(elementary_actions[action_name])
-            node_group = self.motion_primitive_node_group_builder.build()
+            node_group = self.motion_primitive_node_group_builder.build(motion_primitive_graph)
             motion_primitive_graph.nodes.update(node_group.nodes)
             motion_primitive_graph.node_groups[node_group.elementary_action_name] = node_group
         #print "add transitions between nodes from", transition_dict
@@ -94,7 +94,7 @@ class MotionStateGraphLoader(object):
             print subgraph_path
             name = key.split("_")[-1]
             self.motion_primitive_node_group_builder.set_directory_as_data_source(name, subgraph_path)
-            node_group = self.motion_primitive_node_group_builder.build()
+            node_group = self.motion_primitive_node_group_builder.build(motion_primitive_graph)
             motion_primitive_graph.nodes.update(node_group.nodes)
             motion_primitive_graph.node_groups[node_group.elementary_action_name] = node_group
 

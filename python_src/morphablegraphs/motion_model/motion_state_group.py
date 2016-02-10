@@ -12,8 +12,9 @@ from elementary_action_meta_info import ElementaryActionMetaInfo
 class MotionStateGroup(ElementaryActionMetaInfo):
     """ Contains the motion primitives of an elementary action as nodes.
     """
-    def __init__(self, elementary_action_name, elementary_action_directory):
+    def __init__(self, elementary_action_name, elementary_action_directory, motion_state_graph):
         super(MotionStateGroup, self).__init__(elementary_action_name, elementary_action_directory)
+        self.motion_state_graph = motion_state_graph
         self.nodes = dict()
         self.has_transition_models = False
         self.loaded_from_dict = elementary_action_directory is None
