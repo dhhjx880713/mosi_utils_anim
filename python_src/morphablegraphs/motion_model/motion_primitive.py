@@ -155,7 +155,7 @@ class MotionPrimitive(object):
         return np.ravel(self.gaussian_mixture_model.sample())
 
     def sample(self, use_time_parameters=True):
-        """ Sample the motion primitive and return a motion sample
+        """ Sample the motion primitive and return a motion spline
 
         Parameters
         ----------
@@ -192,14 +192,14 @@ class MotionPrimitive(object):
             if semantic_annotation is None:
                 raise ValueError('Unknown semantic label!')
             low_dimensional_vector = np.delete(low_dimensional_vector, -1)
-        spatial_coefs = self.back_project_spatial_function(low_dimensional_vector[:self.s_pca["n_components"]])
+        spatial_coefs = self.back_project_spatial_coeffs(low_dimensional_vector[:self.s_pca["n_components"]])
         if self.has_time_parameters and use_time_parameters:
             time_function = self.back_project_time_function(low_dimensional_vector[self.s_pca["n_components"]:])
         else:
             time_function = np.arange(0, self.n_canonical_frames)
         return MotionSpline(low_dimensional_vector, spatial_coefs, time_function, self.s_pca["knots"], semantic_annotation)
 
-    def back_project_spatial_function(self, alpha):
+    def back_project_spatial_coeffs(self, alpha):
         """ Backtransform a lowdimensional vector alpha to a coefficients of
         a functional motion representation.
 

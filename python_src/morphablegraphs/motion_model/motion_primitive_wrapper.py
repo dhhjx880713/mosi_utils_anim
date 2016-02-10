@@ -24,7 +24,15 @@ class MotionPrimitiveWrapper(object):
             self.motion_primitive._initialize_from_json(data)
 
     def sample(self, use_time=True):
-        return self.motion_primitive.sample(use_time)
+        if self.use_mgrd:
+            s_vec = self.sample_low_dimensional_vector()
+            quat_spline = self.back_project(s_vec)
+            if use_time:
+                time_spline = self.motion_primitive.create_time_spline(s_vec)
+                quat_spline = time_spline.warp(quat_spline, time_spline.model.frame_time)
+            return quat_spline
+        else:
+            return self.motion_primitive.sample(use_time)
 
     def sample_low_dimensional_vector(self):
         if self.use_mgrd:
@@ -34,9 +42,15 @@ class MotionPrimitiveWrapper(object):
 
     def back_project(self, s_vec, use_time_parameters=True):
         if self.use_mgrd:
-            return self.motion_primitive.create_spatial_spline(s_vec)#.get_motion_vector()
+            return self.motion_primitive.create_spatial_spline(s_vec)
         else:
             return self.motion_primitive.back_project(s_vec, use_time_parameters)
+
+    def back_project_time_function(self, parameters):
+        if self.use_mgrd:
+            return np.asarray(self.motion_primitive.create_time_spline(parameters, labels=[]).evaluate_domain(step_size=1.0))#[:,0]
+        else:
+            return self.motion_primitive.back_project_time_function(parameters)
 
     def get_n_canonical_frames(self):
         if self.use_mgrd:
@@ -45,13 +59,13 @@ class MotionPrimitiveWrapper(object):
             return self.motion_primitive.n_canonical_frames
 
     def get_n_spatial_components(self):
-        return self.motion_primitive.get_n_spatial_components()
+        if self.use_mgrd:
+            return self.motion_primitive.spatial.fpca.n_components
+        else:
+            return self.motion_primitive.get_n_spatial_components()
 
     def get_n_time_components(self):
-        return self.motion_primitive.get_n_spatial_components()
-
-    def back_project_spatial_function(self, parameters):
-        return self.motion_primitive.back_project_spatial_function(parameters)
-
-    def back_project_time_function(self, parameters):
-        return self.motion_primitive.back_project_time_function(parameters)
+        if self.use_mgrd:
+            return self.motion_primitive.time.fpca.n_components
+        else:
+            return self.motion_primitive.get_n_time_components()
