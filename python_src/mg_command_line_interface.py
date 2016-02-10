@@ -15,9 +15,7 @@ os.chdir(dirname)
 import json
 import glob
 import time
-from morphablegraphs.motion_generator.motion_generator import MotionGenerator
-from morphablegraphs.motion_generator.algorithm_configuration import AlgorithmConfigurationBuilder
-from morphablegraphs.utilities.io_helper_functions import load_json_file
+from morphablegraphs import MotionGenerator, AlgorithmConfigurationBuilder, load_json_file
 ALGORITHM_CONFIG_FILE = "config" + os.sep + "algorithm.json"
 SERVICE_CONFIG_FILE = "config" + os.sep + "service.json"
 

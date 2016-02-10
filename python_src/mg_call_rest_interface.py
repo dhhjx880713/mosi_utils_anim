@@ -15,7 +15,7 @@ os.chdir(dirname)
 import glob
 import urllib2
 import json
-from morphablegraphs.utilities.io_helper_functions import load_json_file
+from morphablegraphs import load_json_file
 SERVICE_CONFIG_FILE = "config" + os.sep + "service.json"
 
 
@@ -30,11 +30,6 @@ def run_pipeline(service_config):
     """
     input_file_path = get_newest_file_from_input_directory(service_config)
     print "loading constraints from file", input_file_path
-    input_file = open(input_file_path)
-    input_string = input_file.read()
-    #input_string = input_string.replace("RightHand", "RightToolEndSite")
-    #input_string = input_string.replace("LeftHand", "LeftToolEndSite")
-    #mg_input = json.loads(input_string)
     mg_input = load_json_file(input_file_path)
     data = json.dumps(mg_input)
     mg_server_url = 'http://localhost:8888/run_morphablegraphs'

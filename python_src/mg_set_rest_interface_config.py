@@ -17,7 +17,7 @@ import time
 import sys
 import urllib2
 import json
-from morphablegraphs.utilities.io_helper_functions import load_json_file
+from morphablegraphs import load_json_file
 SERVICE_CONFIG_FILE = "config" + os.sep + "service.json"
 ALGORITHM_CONFIG_FILE = "config" + os.sep + "algorithm.json"
 

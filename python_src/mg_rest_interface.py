@@ -10,16 +10,12 @@ import os
 # change working directory to the script file directory
 file_dir_name, file_name = os.path.split(os.path.abspath(__file__))
 os.chdir(file_dir_name)
-import sys
-sys.path.append(os.sep.join([file_dir_name,  'mgrd']))  # add mgrd package to import path
 import tornado.escape
 import tornado.ioloop
 import tornado.web
 import json
 import time
-from morphablegraphs.motion_generator.motion_generator import MotionGenerator
-from morphablegraphs.motion_generator.algorithm_configuration import AlgorithmConfigurationBuilder
-from morphablegraphs.utilities.io_helper_functions import load_json_file, get_bvh_writer
+from morphablegraphs import MotionGenerator, AlgorithmConfigurationBuilder, load_json_file, get_bvh_writer
 
 
 ALGORITHM_CONFIG_FILE = "config" + os.sep + "algorithm.json"
