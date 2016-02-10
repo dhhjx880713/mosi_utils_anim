@@ -15,7 +15,7 @@ from ..utilities.zip_io import ZipReader
 from motion_state_transition import MotionStateTransition
 from motion_state_graph import MotionStateGraph
 from ..motion_generator.hand_pose_generator import HandPoseGenerator
-from . import ELEMENTARY_ACTION_DIRECTORY_NAME, TRANSITION_MODEL_DIRECTORY_NAME, NODE_TYPE_START, NODE_TYPE_STANDARD, TRANSITION_DEFINITION_FILE_NAME, TRANSITION_MODEL_FILE_ENDING
+from . import ELEMENTARY_ACTION_DIRECTORY_NAME, TRANSITION_MODEL_DIRECTORY_NAME, NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END, TRANSITION_DEFINITION_FILE_NAME, TRANSITION_MODEL_FILE_ENDING
 
 SKELETON_FILE = "skeleton.bvh"  # TODO replace with standard skeleton in data directory
 
@@ -76,7 +76,7 @@ class MotionStateGraphLoader(object):
         #print "add transitions between nodes from", transition_dict
         self._set_transitions_from_dict(motion_primitive_graph, transition_dict)
 
-        self._update_motion_state_stats(motion_primitive_graph, update_stats=False)
+        self._update_motion_state_stats(motion_primitive_graph, recalculate=False)
 
         if "handPoseInfo" in graph_data.keys():
             motion_primitive_graph.hand_pose_generator = HandPoseGenerator(motion_primitive_graph.skeleton)
@@ -153,6 +153,5 @@ class MotionStateGraphLoader(object):
         if self.load_transition_models:
             transition_model = self._load_transition_model(motion_primitive_graph, from_node_key, to_node_key)
         transition_type = self._get_transition_type(motion_primitive_graph, from_node_key, to_node_key)
-        edge = MotionStateTransition(from_node_key, to_node_key, transition_type, transition_model)
         #print "create edge", from_node_key, to_node_key
-        motion_primitive_graph.nodes[from_node_key].outgoing_edges[to_node_key] = edge
+        motion_primitive_graph.nodes[from_node_key].outgoing_edges[to_node_key] = MotionStateTransition(from_node_key, to_node_key, transition_type, transition_model)

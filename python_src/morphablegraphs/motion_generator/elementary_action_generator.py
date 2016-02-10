@@ -42,9 +42,9 @@ class ElementaryActionGeneratorState(object):
             reached_debug_max_step = self.start_step + self.temp_step > self.debug_max_step and self.debug_max_step > -1
             return self.current_node_type == NODE_TYPE_END or self.current_node_type == NODE_TYPE_SINGLE or reached_debug_max_step
 
-        def update(self, next_node, next_node_type, new_travelled_arc_length, new_step_start_frame):
-            self.current_node = next_node
-            self.current_node_type = next_node_type
+        def transition(self, new_node, new_node_type, new_travelled_arc_length, new_step_start_frame):
+            self.current_node = new_node
+            self.current_node_type = new_node_type
             self.travelled_arc_length = new_travelled_arc_length
             self.step_start_frame = new_step_start_frame
             self.temp_step += 1
@@ -114,7 +114,6 @@ class ElementaryActionGenerator(object):
         """extract from graph based on previous last step + heuristic """
 
         if self.action_state.current_node is None:
-
             if self.action_constraints.root_trajectory is not None:
                 next_node = self.get_best_start_node(graph_walk, self.action_constraints.action_name)
             else:
@@ -122,11 +121,9 @@ class ElementaryActionGenerator(object):
 
             next_node_type = self.motion_primitive_graph.nodes[next_node].node_type
             if next_node is None:
-                print "Error: Could not find a transition of type action_transition from ",\
-                    self.action_state.prev_action_name, self.action_state.prev_mp_name, " to state", self.action_state.current_node
+                print "Error: Could not find a transition of type action_transition from ", self.action_state.prev_action_name, self.action_state.prev_mp_name, " to state", self.action_state.current_node
         elif len(self.motion_primitive_graph.nodes[self.action_state.current_node].outgoing_edges) > 0:
-            next_node, next_node_type = self.node_group.get_random_transition(
-                graph_walk, self.action_constraints, self.action_state.travelled_arc_length, self.arc_length_of_end)
+            next_node, next_node_type = self.node_group.get_random_transition(graph_walk, self.action_constraints, self.action_state.travelled_arc_length, self.arc_length_of_end)
             if next_node is None:
                 print "Error: Could not find a transition of type", next_node_type, "from state", self.action_state.current_node
         else:
@@ -214,10 +211,13 @@ class ElementaryActionGenerator(object):
             raise ValueError("Failed to generator constraints")
         motion_primitive_sample = self.motion_primitive_generator.generate_motion_primitive_sample(motion_primitive_constraints, graph_walk)
 
-        self._create_graph_walk_entry(next_node, next_node_type, motion_primitive_sample, motion_primitive_constraints, graph_walk)
+        new_travelled_arc_length = self._create_graph_walk_entry(next_node, next_node_type, motion_primitive_sample, motion_primitive_constraints, graph_walk)
+
+        self.action_state.transition(next_node, next_node_type, new_travelled_arc_length, graph_walk.get_num_of_frames())
+
         return motion_primitive_constraints.min_error
 
-    def _create_graph_walk_entry(self, next_node, next_node_type, motion_primitive_sample, motion_primitive_constraints, graph_walk):
+    def _create_graph_walk_entry(self, new_node, new_node_type, motion_primitive_sample, motion_primitive_constraints, graph_walk):
         """ Concatenate frames to motion and apply smoothing """
         prev_steps = graph_walk.steps
         graph_walk.append_quat_frames(motion_primitive_sample.get_motion_vector())
@@ -227,10 +227,12 @@ class ElementaryActionGenerator(object):
         else:
             new_travelled_arc_length = 0
         #new_travelled_arc_length = motion_primitive_constraints.goal_arc_length
-        new_step = GraphWalkEntry(self.motion_primitive_graph, next_node,
+
+        new_step = GraphWalkEntry(self.motion_primitive_graph, new_node,
                                   motion_primitive_sample.low_dimensional_parameters,
                                   new_travelled_arc_length, self.action_state.step_start_frame,
                                   graph_walk.get_num_of_frames() - 1, motion_primitive_constraints)
         graph_walk.steps.append(new_step)
-        self.action_state.update(next_node, next_node_type, new_travelled_arc_length, graph_walk.get_num_of_frames())
+        return new_travelled_arc_length
+
 
