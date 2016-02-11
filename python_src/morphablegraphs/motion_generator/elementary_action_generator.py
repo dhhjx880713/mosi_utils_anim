@@ -201,26 +201,26 @@ class ElementaryActionGenerator(object):
 
     def _transition_to_next_action_state(self, graph_walk):
 
-        next_node, next_node_type = self._select_next_motion_primitive_node(graph_walk)
-        if next_node is None:
+        new_node, new_node_type = self._select_next_motion_primitive_node(graph_walk)
+        if new_node is None:
             raise ValueError("Failed to find a transition")
-        print "transitioned to state", next_node
+        print "transitioned to state", new_node
 
-        motion_primitive_constraints = self._gen_motion_primitive_constraints(next_node, next_node_type, graph_walk)
-        if motion_primitive_constraints is None:
+        constraints = self._gen_motion_primitive_constraints(new_node, new_node_type, graph_walk)
+        if constraints is None:
             raise ValueError("Failed to generator constraints")
-        motion_primitive_sample = self.motion_primitive_generator.generate_motion_primitive_sample(motion_primitive_constraints, graph_walk)
+        new_motion_spline, new_parameters = self.motion_primitive_generator.generate_constrained_motion_spline(constraints, graph_walk)
 
-        new_travelled_arc_length = self._create_graph_walk_entry(next_node, next_node_type, motion_primitive_sample, motion_primitive_constraints, graph_walk)
+        new_travelled_arc_length = self._create_graph_walk_entry(new_node, new_motion_spline, constraints, graph_walk)
 
-        self.action_state.transition(next_node, next_node_type, new_travelled_arc_length, graph_walk.get_num_of_frames())
+        self.action_state.transition(new_node, new_node_type, new_travelled_arc_length, graph_walk.get_num_of_frames())
 
-        return motion_primitive_constraints.min_error
+        return constraints.min_error
 
-    def _create_graph_walk_entry(self, new_node, new_node_type, motion_primitive_sample, motion_primitive_constraints, graph_walk):
+    def _create_graph_walk_entry(self, new_node, new_motion_spline, constraints, graph_walk):
         """ Concatenate frames to motion and apply smoothing """
         prev_steps = graph_walk.steps
-        graph_walk.append_quat_frames(motion_primitive_sample.get_motion_vector())
+        graph_walk.append_quat_frames(new_motion_spline.get_motion_vector())
 
         if self.action_constraints.root_trajectory is not None:
             new_travelled_arc_length = self._update_travelled_arc_length(graph_walk.get_quat_frames(), prev_steps, self.action_state.travelled_arc_length)
@@ -229,9 +229,9 @@ class ElementaryActionGenerator(object):
         #new_travelled_arc_length = motion_primitive_constraints.goal_arc_length
 
         new_step = GraphWalkEntry(self.motion_primitive_graph, new_node,
-                                  motion_primitive_sample.low_dimensional_parameters,
+                                  new_motion_spline.low_dimensional_parameters,
                                   new_travelled_arc_length, self.action_state.step_start_frame,
-                                  graph_walk.get_num_of_frames() - 1, motion_primitive_constraints)
+                                  graph_walk.get_num_of_frames() - 1, constraints)
         graph_walk.steps.append(new_step)
         return new_travelled_arc_length
 
