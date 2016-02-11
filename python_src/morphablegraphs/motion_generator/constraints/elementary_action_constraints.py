@@ -9,7 +9,7 @@ import numpy as np
 
 class ElementaryActionConstraints(object):
     def __init__(self):
-        self.motion_primitive_graph = None
+        self.motion_state_graph = None
         self.action_name = None
         self.prev_action_name = ""
         self.keyframe_annotations = None
@@ -25,10 +25,10 @@ class ElementaryActionConstraints(object):
         self.keyframe_event_list = dict()
 
     def get_node_group(self):
-        return self.motion_primitive_graph.node_groups[self.action_name]
+        return self.motion_state_graph.node_groups[self.action_name]
 
     def get_skeleton(self):
-        return self.motion_primitive_graph.skeleton
+        return self.motion_state_graph.skeleton
 
     def check_end_condition(self, prev_frames, travelled_arc_length, arc_length_offset):
         """

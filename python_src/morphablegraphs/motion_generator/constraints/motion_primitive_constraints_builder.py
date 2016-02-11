@@ -26,11 +26,11 @@ class MotionPrimitiveConstraintsBuilder(object):
         self.action_constraints = None
         self.algorithm_config = None
         self.status = {}
-        self.motion_primitive_graph = None
+        self.motion_state_graph = None
 
     def set_action_constraints(self, action_constraints):
         self.action_constraints = action_constraints
-        self.motion_primitive_graph = action_constraints.motion_primitive_graph
+        self.motion_state_graph = action_constraints.motion_state_graph
         self.node_group = self.action_constraints.get_node_group()
         self.skeleton = self.action_constraints.get_skeleton()
 
@@ -46,12 +46,12 @@ class MotionPrimitiveConstraintsBuilder(object):
         prev_frames = graph_walk.get_quat_frames()
         #create a sample to estimate the trajectory arc lengths
         aligned_sample_frames = concatenate_frames(prev_frames,
-                                                   self.motion_primitive_graph.nodes[node_key].sample(False).get_motion_vector(),
+                                                   self.motion_state_graph.nodes[node_key].sample(False).get_motion_vector(),
                                                    graph_walk.motion_vector.start_pose, graph_walk.motion_vector.rotation_type)
 
 
         self.status["motion_primitive_name"] = node_key[1]
-        self.status["n_canonical_frames"] = self.motion_primitive_graph.nodes[node_key].n_canonical_frames
+        self.status["n_canonical_frames"] = self.motion_state_graph.nodes[node_key].get_n_canonical_frames()
         self.status["last_arc_length"] = last_arc_length
         self.status["aligned_sample_frames"] = aligned_sample_frames[n_prev_frames:]
         if prev_frames is None:
@@ -220,7 +220,7 @@ class MotionPrimitiveConstraintsBuilder(object):
         elif keyframe_label == "start":
             keyframe_constraint_desc["canonical_keyframe"] = 0
         else:
-            annotations = self.motion_primitive_graph.node_groups[self.action_constraints.action_name].motion_primitive_annotations
+            annotations = self.motion_state_graph.node_groups[self.action_constraints.action_name].motion_primitive_annotations
             if self.status["motion_primitive_name"] in annotations.keys() and keyframe_label in annotations[self.status["motion_primitive_name"]].keys():
                 keyframe = annotations[self.status["motion_primitive_name"]][keyframe_label]
                 if keyframe == "-1" or keyframe == "lastFrame":# TODO set standard for keyframe values
@@ -261,7 +261,7 @@ class MotionPrimitiveConstraintsBuilder(object):
           The goal should then be extracted using get_point_and_orientation_from_arc_length
         """
         node_key = (self.action_constraints.action_name, self.status["motion_primitive_name"])
-        step_length = self.motion_primitive_graph.nodes[node_key].average_step_length \
+        step_length = self.motion_state_graph.nodes[node_key].average_step_length \
                      * self.trajectory_following_settings["heuristic_step_length_factor"]
         # find closest point in the range of the last_arc_length and max_arc_length
         closest_point = self.find_closest_point_to_current_position_on_trajectory(step_length)

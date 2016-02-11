@@ -28,7 +28,7 @@ class MotionPrimitiveGenerator(object):
         self._algorithm_config = algorithm_config
         self.action_name = action_constraints.action_name
         self.prev_action_name = action_constraints.prev_action_name
-        self._motion_primitive_graph = self._action_constraints.motion_primitive_graph
+        self._motion_state_graph = self._action_constraints.motion_state_graph
         self.skeleton = self._action_constraints.get_skeleton()
         self._constrained_gmm_config = self._algorithm_config["constrained_gmm_settings"]
         self.n_random_samples = self._algorithm_config["n_random_samples"]
@@ -45,7 +45,7 @@ class MotionPrimitiveGenerator(object):
         self.activate_parameter_check = self._algorithm_config["activate_parameter_check"]
         self.n_cluster_search_candidates = self._algorithm_config["n_cluster_search_candidates"]
         if self.use_constrained_gmm:
-            self._constrained_gmm_builder = ConstrainedGMMBuilder(self._motion_primitive_graph, self._algorithm_config,
+            self._constrained_gmm_builder = ConstrainedGMMBuilder(self._motion_state_graph, self._algorithm_config,
                                                                   self._action_constraints.start_pose, self.skeleton)
         else:
             self._constrained_gmm_builder = None
@@ -93,7 +93,7 @@ class MotionPrimitiveGenerator(object):
         time_in_seconds = time.clock() - start
         print "found best fit motion primitive sample in " + str(time_in_seconds) + " seconds"
 
-        motion_spline = self._motion_primitive_graph.nodes[(self.action_name, mp_name)].back_project(parameters, use_time_parameters=False)
+        motion_spline = self._motion_state_graph.nodes[(self.action_name, mp_name)].back_project(parameters, use_time_parameters=False)
         return motion_spline, parameters
 
     def generate_constrained_sample(self, mp_name, mp_constraints, prev_mp_name="", prev_frames=None, prev_parameters=None):
@@ -111,7 +111,7 @@ class MotionPrimitiveGenerator(object):
         * parameters : np.ndarray
             Low dimensional parameters for the morphable model
         """
-        graph_node = self._motion_primitive_graph.nodes[(self.action_name, mp_name)]
+        graph_node = self._motion_state_graph.nodes[(self.action_name, mp_name)]
         close_to_optimum = False
         if self.activate_cluster_search and graph_node.cluster_tree is not None:
             parameters = self._search_for_best_fit_sample_in_cluster_tree(graph_node, mp_constraints, prev_frames)
@@ -153,15 +153,15 @@ class MotionPrimitiveGenerator(object):
         return parameters
 
     def generate_random_sample(self, mp_name, prev_mp_name="", prev_parameters=None):
-        if self.use_transition_model and prev_parameters is not None and self._motion_primitive_graph.nodes[(self.prev_action_name, prev_mp_name)].has_transition_model((self.action_name, mp_name)):
-            parameters = self._motion_primitive_graph.nodes[(self.prev_action_name, prev_mp_name)].predict_parameters((self.action_name, mp_name), prev_parameters)
+        if self.use_transition_model and prev_parameters is not None and self._motion_state_graph.nodes[(self.prev_action_name, prev_mp_name)].has_transition_model((self.action_name, mp_name)):
+            parameters = self._motion_state_graph.nodes[(self.prev_action_name, prev_mp_name)].predict_parameters((self.action_name, mp_name), prev_parameters)
         else:
-            parameters = self._motion_primitive_graph.nodes[(self.action_name, mp_name)].sample_low_dimensional_vector()
+            parameters = self._motion_state_graph.nodes[(self.action_name, mp_name)].sample_low_dimensional_vector()
         return parameters
 
     def _predict_gmm(self, mp_name, prev_mp_name, prev_parameters):
         to_key = (self.action_name, mp_name)
-        gmm = self._motion_primitive_graph.nodes[(self.prev_action_name,prev_mp_name)].predict_gmm(to_key, prev_parameters)
+        gmm = self._motion_state_graph.nodes[(self.prev_action_name,prev_mp_name)].predict_gmm(to_key, prev_parameters)
         return gmm
 
     def _search_for_best_fit_sample_in_cluster_tree(self, graph_node, constraints, prev_frames):

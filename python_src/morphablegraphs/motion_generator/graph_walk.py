@@ -18,15 +18,15 @@ LOG_FILE = "log.txt"
 UNCONSTRAINED_EVENTS_TRANSFER_POINT = "transfer_point"
 
 class GraphWalkEntry(object):
-    def __init__(self, motion_primitive_graph, node_key, parameters, arc_length, start_frame, end_frame, motion_primitive_constraints=None):
+    def __init__(self, motion_state_graph, node_key, parameters, arc_length, start_frame, end_frame, motion_primitive_constraints=None):
         self.node_key = node_key
         self.parameters = parameters
         self.arc_length = arc_length
         self.start_frame = start_frame
         self.end_frame = end_frame
         self.motion_primitive_constraints = motion_primitive_constraints
-        self.n_spatial_components = motion_primitive_graph.nodes[node_key].get_n_spatial_components()
-        self.n_time_components = motion_primitive_graph.nodes[node_key].get_n_time_components()
+        self.n_spatial_components = motion_state_graph.nodes[node_key].get_n_spatial_components()
+        self.n_time_components = motion_state_graph.nodes[node_key].get_n_time_components()
 
 
 class HighLevelGraphWalkEntry(object):
@@ -41,11 +41,11 @@ class GraphWalk(object):
         a mapping of frame segments
         to elementary actions and a list of events for certain frames.
     """
-    def __init__(self, motion_primitive_graph, start_pose, algorithm_config):
+    def __init__(self, motion_state_graph, start_pose, algorithm_config):
         self.elementary_action_list = []
         self.steps = []
-        self.motion_primitive_graph = motion_primitive_graph
-        self.full_skeleton = motion_primitive_graph.full_skeleton
+        self.motion_state_graph = motion_state_graph
+        self.full_skeleton = motion_state_graph.full_skeleton
         self.frame_annotation = dict()
         self.frame_annotation['elementaryActionSequence'] = []
         self.step_count = 0
@@ -83,12 +83,12 @@ class GraphWalk(object):
         use_time_parameters = self.use_time_parameters and complete_motion_vector
         for step in self.steps[start_step:]:
             step.start_frame = start_frame
-            quat_frames = self.motion_primitive_graph.nodes[step.node_key].back_project(step.parameters, use_time_parameters).get_motion_vector()
+            quat_frames = self.motion_state_graph.nodes[step.node_key].back_project(step.parameters, use_time_parameters).get_motion_vector()
             self.motion_vector.append_frames(quat_frames)
             step.end_frame = self.get_num_of_frames()-1
             start_frame = step.end_frame + 1
         if complete_motion_vector:
-            self.motion_vector.frames = self.full_skeleton.complete_motion_vector_from_reference(self.motion_primitive_graph.skeleton, self.motion_vector.frames)
+            self.motion_vector.frames = self.full_skeleton.complete_motion_vector_from_reference(self.motion_state_graph.skeleton, self.motion_vector.frames)
             #print "temp quat", temp_quat_frames[0]
 
     def _create_frame_annotation(self, start_step=0):
@@ -98,7 +98,7 @@ class GraphWalk(object):
         else:
             step = self.steps[start_step-1]
             if self.use_time_parameters:
-                time_function = self.motion_primitive_graph.nodes[step.node_key].back_project_time_function(step.parameters[step.n_spatial_components:])
+                time_function = self.motion_state_graph.nodes[step.node_key].back_project_time_function(step.parameters[step.n_spatial_components:])
                 start_frame = len(time_function)
             else:
                 start_frame = step.end_frame
@@ -106,7 +106,7 @@ class GraphWalk(object):
         prev_step = None
         for step in self.steps[start_step:]:
             action_name = step.node_key[0]
-            time_function = self.motion_primitive_graph.nodes[step.node_key].back_project_time_function(step.parameters[step.n_spatial_components:])
+            time_function = self.motion_state_graph.nodes[step.node_key].back_project_time_function(step.parameters[step.n_spatial_components:])
             if prev_step is not None and action_name != prev_step.node_key[0]:
                 #add entry for previous elementary action
                 print "add", prev_step.node_key[0]
@@ -162,7 +162,7 @@ class GraphWalk(object):
         n_frames = 0
         for step in self.steps:
             if self.use_time_parameters:
-                time_function = self.motion_primitive_graph.nodes[step.node_key].back_project_time_function(step.parameters[step.n_spatial_components:])
+                time_function = self.motion_state_graph.nodes[step.node_key].back_project_time_function(step.parameters[step.n_spatial_components:])
             for keyframe_event in step.motion_primitive_constraints.keyframe_event_list.values():
                 event_keyframe_index = self._extract_keyframe_index(keyframe_event, time_function, n_frames)
                 events = self._extract_event_list(keyframe_event)
@@ -387,7 +387,7 @@ class GraphWalk(object):
         step_index = 0
         prev_frames = None
         for step in self.steps:
-            quat_frames = self.motion_primitive_graph.nodes[step.node_key].back_project(step.parameters, use_time_parameters=False).get_motion_vector()
+            quat_frames = self.motion_state_graph.nodes[step.node_key].back_project(step.parameters, use_time_parameters=False).get_motion_vector()
             aligned_frames = align_quaternion_frames(quat_frames, prev_frames, self.motion_vector.start_pose)
             for constraint in step.motion_primitive_constraints.constraints:
                 if (constraint.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION or constraint.constraint_type == SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION) and\

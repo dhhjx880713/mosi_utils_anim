@@ -17,12 +17,12 @@ class ElementaryActionConstraintsBuilder(object):
     ----------
     * mg_input : MGInputFileReader
         Class to access constraints defined in an input file.
-    * motion_primitive_graph : MotionPrimitiveGraph
+    * motion_state_graph : MotionStateGraph
         Contains a list of motion nodes that can generate short motion clips.
     """
-    def __init__(self, mg_input_reader, motion_primitive_graph, algorithm_config):
+    def __init__(self, mg_input_reader, motion_state_graph, algorithm_config):
         self.mg_input = mg_input_reader
-        self.motion_primitive_graph = motion_primitive_graph
+        self.motion_state_graph = motion_state_graph
         self.current_action_index = 0
         self.start_pose = self.mg_input.get_start_pose()
         self.n_actions = self.mg_input.get_number_of_actions()
@@ -52,7 +52,7 @@ class ElementaryActionConstraintsBuilder(object):
     def _build(self):
         if self.current_action_index < self.n_actions:
             action_constraints = ElementaryActionConstraints()
-            action_constraints.motion_primitive_graph = self.motion_primitive_graph
+            action_constraints.motion_state_graph = self.motion_state_graph
             action_constraints.action_name = self.mg_input.get_elementary_action_name(self.current_action_index)
             self._add_keyframe_constraints(action_constraints)
             self._add_keyframe_annotations(action_constraints)
@@ -83,7 +83,7 @@ class ElementaryActionConstraintsBuilder(object):
         action_constraints.keyframe_annotations = self.mg_input.get_keyframe_annotations(self.current_action_index)
 
     def _add_keyframe_constraints(self, action_constraints):
-        node_group = self.motion_primitive_graph.node_groups[action_constraints.action_name]
+        node_group = self.motion_state_graph.node_groups[action_constraints.action_name]
         action_constraints.keyframe_constraints = self.mg_input.get_ordered_keyframe_constraints(self.current_action_index, node_group)
         action_constraints.contains_user_constraints = False
         if len(action_constraints.keyframe_constraints) > 0:
@@ -151,11 +151,11 @@ class ElementaryActionConstraintsBuilder(object):
         """ Extracts the root_trajectory if it is found and trajectories for other joints.
             If semanticAnnotation is found they are treated as collision avoidance constraint.
         """
-        root_joint_name = self.motion_primitive_graph.skeleton.root
+        root_joint_name = self.motion_state_graph.skeleton.root
         action_constraints.root_trajectory = self._create_trajectory_from_constraint_desc(root_joint_name)
         action_constraints.trajectory_constraints = []
         action_constraints.collision_avoidance_constraints = []
-        for joint_name in self.motion_primitive_graph.skeleton.node_name_frame_map.keys():
+        for joint_name in self.motion_state_graph.skeleton.node_name_frame_map.keys():
             if joint_name != root_joint_name:
                 trajectory_constraint = self._create_trajectory_from_constraint_desc(joint_name)
                 if trajectory_constraint is not None:
@@ -174,7 +174,7 @@ class ElementaryActionConstraintsBuilder(object):
 
             action_constraints.ca_trajectory_set_constraint = TrajectorySetConstraint(joint_trajectories,
                                                                                     joint_names,
-                                                                                    self.motion_primitive_graph.skeleton, 1.0, 1.0)
+                                                                                    self.motion_state_graph.skeleton, 1.0, 1.0)
 
     def _create_trajectory_from_constraint_desc(self, joint_name, scale_factor=1.0):
         """ Create a spline based on a trajectory constraint definition read from the input file.
@@ -196,7 +196,7 @@ class ElementaryActionConstraintsBuilder(object):
                                                          self.default_spline_type,
                                                          0,
                                                          unconstrained_indices,
-                                                         self.motion_primitive_graph.skeleton,
+                                                         self.motion_state_graph.skeleton,
                                                          precision,
                                                          1.0,
                                                          self.closest_point_search_accuracy,
