@@ -105,7 +105,7 @@ class MotionState(MotionPrimitiveWrapper):
         Parameters
         ----------
         * transition_type: string
-        \t Idententifies edges as either standard or end transitions
+        \t Identifies edges as either standard or end transitions
         """
         if self.outgoing_edges:
             edges = [edge_key for edge_key in self.outgoing_edges.keys()

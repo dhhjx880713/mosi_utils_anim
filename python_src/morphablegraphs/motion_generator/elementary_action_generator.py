@@ -106,12 +106,12 @@ class ElementaryActionGenerator(object):
                 motion_primitive_node = self.motion_primitive_graph.nodes[(action_name, node_name)]
                 self.motion_primitive_generator._search_for_best_fit_sample_in_cluster_tree(motion_primitive_node,
                                                                                             mp_constraints, prev_frames)
-                print "evaluated start option",node_name, mp_constraints.min_error
+                print "Evaluated start option",node_name, mp_constraints.min_error
                 errors[index] = mp_constraints.min_error
                 index += 1
             min_idx = np.argmin(errors)
             next_node = next_nodes[min_idx]
-            print "next node is", next_node, "with an error of", errors[min_idx], "towards",goal_position
+            print "Next node is", next_node, "with an error of", errors[min_idx], "towards",goal_position
             return (action_name, next_node)
         else:
             return (action_name, next_nodes[0])
@@ -164,8 +164,7 @@ class ElementaryActionGenerator(object):
             return self.motion_primitive_constraints_builder.build()
 
         except PathSearchError as e:
-            print "moved beyond end point using parameters",
-            str(e.search_parameters)
+            print "Moved beyond end point using parameters", str(e.search_parameters)
             return None
 
     def append_action_to_graph_walk(self, graph_walk):
@@ -194,7 +193,7 @@ class ElementaryActionGenerator(object):
             max_arc_length = np.inf
 
         self.action_state.initialize_from_previous_graph_walk(graph_walk, max_arc_length)
-        print "start converting elementary action", self.action_constraints.action_name
+        print "Start synthesis of elementary action", self.action_constraints.action_name
         errors = [0]
         while not self.action_state.is_end_state():
             try:
@@ -207,7 +206,7 @@ class ElementaryActionGenerator(object):
         graph_walk.step_count += self.action_state.temp_step
         graph_walk.update_frame_annotation(self.action_constraints.action_name, self.action_state.action_start_frame, graph_walk.get_num_of_frames())
         avg_error = np.average(errors)
-        print "reached end of elementary action", self.action_constraints.action_name, "with an average error of",avg_error
+        print "Reached end of elementary action", self.action_constraints.action_name, "with an average error of", avg_error
         return avg_error < self.average_elementary_action_error_threshold
 
     def _transition_to_next_action_state(self, graph_walk):
@@ -215,11 +214,11 @@ class ElementaryActionGenerator(object):
         new_node, new_node_type = self._select_next_motion_primitive_node(graph_walk)
         if new_node is None:
             raise ValueError("Failed to find a transition")
-        print "transitioned to state", new_node
+        print "Transition to state", new_node
 
         mp_constraints = self._gen_motion_primitive_constraints(new_node, new_node_type, graph_walk)
         if mp_constraints is None:
-            raise ValueError("Failed to generator constraints")
+            raise ValueError("Failed to generate constraints")
         new_motion_spline, new_parameters = self.motion_primitive_generator.generate_constrained_motion_spline(mp_constraints, graph_walk)
 
         new_arc_length = self._create_graph_walk_entry(new_node, new_motion_spline, new_parameters, mp_constraints, graph_walk)
@@ -239,8 +238,7 @@ class ElementaryActionGenerator(object):
             new_travelled_arc_length = 0
         #new_travelled_arc_length = mp_constraints.goal_arc_length
 
-        new_step = GraphWalkEntry(self.motion_primitive_graph, new_node,
-                                  new_parameters,
+        new_step = GraphWalkEntry(self.motion_primitive_graph, new_node, new_parameters,
                                   new_travelled_arc_length, self.action_state.step_start_frame,
                                   graph_walk.get_num_of_frames() - 1, mp_constraints)
         graph_walk.steps.append(new_step)

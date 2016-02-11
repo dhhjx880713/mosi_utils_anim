@@ -374,7 +374,8 @@ class GraphWalk(object):
         for step in self.steps:
             objective_evaluations += step.motion_primitive_constraints.evaluations
             average_error += step.motion_primitive_constraints.min_error
-        average_error /= n_steps
+        if average_error >0:
+            average_error /= n_steps
         evaluations_string = "total number of objective evaluations " + str(objective_evaluations)
         error_string = "average error for " + str(n_steps) + \
                        " motion primitives: " + str(average_error)
