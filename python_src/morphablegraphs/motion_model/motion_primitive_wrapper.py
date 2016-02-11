@@ -58,7 +58,7 @@ class MotionPrimitiveWrapper(object):
             return np.asarray(self.motion_primitive.create_time_spline(parameters, labels=[]).evaluate_domain(step_size=1.0))#[:,0]
         else:
 
-            time_parameters = parameters[self.get_n_spatial_components:]
+            time_parameters = parameters[self.get_n_spatial_components():]
             #print time_parameters, step.n_spatial_components, step.n_time_components, len(step.parameters)
             return self.motion_primitive.back_project_time_function(time_parameters)
 
