@@ -32,7 +32,7 @@ class SegmentList(object):
             u = 0
             while u <= 1.0:
                 arc_length = spline.get_absolute_arc_length(u)
-                # todo make more efficient by looking up min_u
+                # TODO make more efficient by looking up min_u
                 if arc_length >= min_arc_length and arc_length <= max_arc_length:
                     point = spline.query_point_by_parameter(u)
                     points.append(point)
@@ -46,10 +46,9 @@ class SegmentList(object):
                 segment = SplineSegment(start, center, end)
                 self.segments.append(segment)
                 index += 1
-            return True
+            return len(self.segments) > 0
         else:
             return False
-
 
     def find_closest_point(self, point):
         if self.segments is None or len(self.segments) == 0:
