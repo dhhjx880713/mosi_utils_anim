@@ -12,6 +12,7 @@ from statistics import ConstrainedGMMBuilder
 from ..utilities.exceptions import ConstraintError, SynthesisError
 from optimization import OptimizerBuilder
 from objective_functions import obj_spatial_error_sum, obj_spatial_error_sum_and_naturalness
+from mgrd import score_samples_with_pose_and_semantic_constraints, motion_primitive_get_random_samples
 
 
 class MotionPrimitiveGenerator(object):
@@ -113,11 +114,20 @@ class MotionPrimitiveGenerator(object):
         """
         graph_node = self._motion_state_graph.nodes[(self.action_name, mp_name)]
         close_to_optimum = False
-        if self.activate_cluster_search and graph_node.cluster_tree is not None:
-            parameters = self._search_for_best_fit_sample_in_cluster_tree(graph_node, mp_constraints, prev_frames)
+        if graph_node.use_mgrd:
+            #TODO handle transformation of motion primitive to global coordinate system based on the previous motion or constraints to local coordinate system of motion primitive
+            samples = motion_primitive_get_random_samples(graph_node.motion_primitive, self.n_random_samples)
+            scores = score_samples_with_pose_and_semantic_constraints(graph_node.motion_primitive, samples,
+                                                                          mp_constraints.convert_to_mgrd_constraints(),
+                                                                          pose_constraint_weights=(1.0, 1.0))
+            best_idx = np.argmin(scores)
+            parameters = samples[best_idx]
         else:
-            parameters = self._get_best_fit_random_sample_from_statistical_model(graph_node, mp_name, mp_constraints,
-                                                                             prev_mp_name, prev_frames, prev_parameters)
+            if self.activate_cluster_search and graph_node.cluster_tree is not None:
+                parameters = self._search_for_best_fit_sample_in_cluster_tree(graph_node, mp_constraints, prev_frames)
+            else:
+                parameters = self._get_best_fit_random_sample_from_statistical_model(graph_node, mp_name, mp_constraints,
+                                                                                    prev_mp_name, prev_frames, prev_parameters)
         if mp_constraints.min_error <= self.optimization_start_error_threshold:
             close_to_optimum = True
         #print "condition", not self.use_transition_model, mp_constraints.use_local_optimization, not close_to_optimum, self.optimization_start_error_threshold

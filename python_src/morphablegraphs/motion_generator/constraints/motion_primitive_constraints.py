@@ -6,6 +6,10 @@ Created on Thu Jul 16 14:42:13 2015
 """
 from ...animation_data.motion_editing import align_quaternion_frames
 from .spatial_constraints.keyframe_constraints.global_transform_constraint import GlobalTransformConstraint
+from .spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
+from mgrd import KeyframeConstraint as MGRDKeyframeConstraint
+from mgrd import PoseConstraint as MGRDPoseConstraint
+from mgrd import SemanticConstraint as MGRDSemanticConstraint
 
 class MotionPrimitiveConstraints(object):
     """ Represents the input to the generate_motion_primitive_from_constraints
@@ -99,3 +103,17 @@ class MotionPrimitiveConstraints(object):
         for constraint in self.constraints:
             n_constraints += constraint.get_length_of_residual_vector()
         return n_constraints
+
+    def convert_to_mgrd_constraints(self):
+        mgrd_constraints = []
+        for c in self.constraints:
+            if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION:
+                pose_constraint = MGRDPoseConstraint(c.joint_name, c.weight_factor, c.position, orientation=[None, None, None, None])
+                label = c.semantic_annotation["keyframeLabel"]# "LeftFootContact"# TODO add "end" annotation label to all motion primitives
+                active = True
+                annotations = {label: active}
+                semantic_constraint = MGRDSemanticConstraint(annotations, time=None)
+                keyframe_constraint = MGRDKeyframeConstraint(pose_constraint, semantic_constraint)
+                print("create constraint",annotations)
+                mgrd_constraints.append(keyframe_constraint)
+        return mgrd_constraints
