@@ -11,7 +11,9 @@ class ElementaryActionMetaInfo(object):
         self.elementary_action_directory = elementary_action_directory
         self.label_to_motion_primitive_map = dict()
         self.start_states = list()
+        self.n_start_states = 0
         self.end_states = list()
+        self.n_end_states = 0
         self.motion_primitive_annotations = dict()
         self.meta_information = None
 
@@ -24,7 +26,9 @@ class ElementaryActionMetaInfo(object):
             for key in ["annotations", "start_states", "end_states"]:
                 assert key in self.meta_information.keys()
             self.start_states = self.meta_information["start_states"]
+            self.n_start_states = len(self.start_states)
             self.end_states = self.meta_information["end_states"]
+            self.n_end_states = len(self.end_states)
             self.motion_primitive_annotations = self.meta_information["annotations"]
             self._create_annotation_label_to_motion_primitive_map()
 
@@ -39,9 +43,9 @@ class ElementaryActionMetaInfo(object):
 
     def get_random_start_state(self):
         """ Returns the name of a random start state. """
-        random_index = random.randrange(0, len(self.start_states), 1)
-        start_state = (self.elementary_action_name, self.start_states[random_index])
-        return start_state
+        if self.n_start_states > 0:
+            random_index = random.randrange(0, self.n_start_states, 1)
+            return self.elementary_action_name, self.start_states[random_index]
 
     def get_start_states(self):
         """
@@ -52,9 +56,9 @@ class ElementaryActionMetaInfo(object):
 
     def get_random_end_state(self):
         """ Returns the name of a random start state."""
-        random_index = random.randrange(0, len(self.end_states), 1)
-        start_state = (self.elementary_action_name, self.end_states[random_index])
-        return start_state
+        if self.n_end_states > 0:
+            random_index = random.randrange(0, self.n_end_states, 1)
+            return self.elementary_action_name, self.end_states[random_index]
 
     def _convert_keys_to_strings(self, mydict):
         copy_dict = {}

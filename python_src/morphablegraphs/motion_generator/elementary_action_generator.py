@@ -23,8 +23,9 @@ class ElementaryActionGeneratorState(object):
             self.travelled_arc_length = 0.0
             self.debug_max_step = algorithm_config["debug_max_step"]
             self.step_start_frame = 0
+            self.max_arc_length = np.inf
 
-        def initialize_from_previous_graph_walk(self, graph_walk):
+        def initialize_from_previous_graph_walk(self, graph_walk, max_arc_length):
             self.start_step = graph_walk.step_count
             if self.start_step > 0:
                 self.prev_action_name = graph_walk.steps[-1]
@@ -37,10 +38,13 @@ class ElementaryActionGeneratorState(object):
             self.current_node_type = ""
             self.temp_step = 0
             self.travelled_arc_length = 0.0
+            self.max_arc_length = max_arc_length
 
         def is_end_state(self):
             reached_debug_max_step = self.start_step + self.temp_step > self.debug_max_step and self.debug_max_step > -1
-            return self.current_node_type == NODE_TYPE_END or self.current_node_type == NODE_TYPE_SINGLE or reached_debug_max_step
+            is_last_node = self.current_node_type == NODE_TYPE_END or self.current_node_type == NODE_TYPE_SINGLE
+            reached_max_arc_length = self.travelled_arc_length >= self.max_arc_length
+            return is_last_node or reached_debug_max_step or reached_max_arc_length
 
         def transition(self, new_node, new_node_type, new_travelled_arc_length, new_step_start_frame):
             self.current_node = new_node
@@ -73,8 +77,11 @@ class ElementaryActionGenerator(object):
             self.action_constraints)
         self.motion_primitive_generator = MotionPrimitiveGenerator(self.action_constraints, self._algorithm_config)
         self.node_group = self.action_constraints.get_node_group()
-        self.arc_length_of_end = self.motion_primitive_graph.nodes[
-            self.node_group.get_random_end_state()].average_step_length
+        end_state = self.node_group.get_random_end_state()
+        if end_state is not None:
+            self.arc_length_of_end = self.motion_primitive_graph.nodes[end_state].average_step_length
+        else:
+            self.arc_length_of_end = 0.0
 
     def get_best_start_node(self, graph_walk, action_name):
         next_nodes = self.motion_primitive_graph.get_start_nodes(graph_walk, action_name)
@@ -98,8 +105,7 @@ class ElementaryActionGenerator(object):
             for node_name in next_nodes:
                 motion_primitive_node = self.motion_primitive_graph.nodes[(action_name, node_name)]
                 self.motion_primitive_generator._search_for_best_fit_sample_in_cluster_tree(motion_primitive_node,
-                                                                                        mp_constraints,
-                                                                                        prev_frames)
+                                                                                            mp_constraints, prev_frames)
                 print "evaluated start option",node_name, mp_constraints.min_error
                 errors[index] = mp_constraints.min_error
                 index += 1
@@ -182,7 +188,12 @@ class ElementaryActionGenerator(object):
         * success: Bool
             True if successful and False, if an error occurred during the constraints generation
         """
-        self.action_state.initialize_from_previous_graph_walk(graph_walk)
+        if self.action_constraints.root_trajectory is not None:
+            max_arc_length = self.action_constraints.root_trajectory.full_arc_length
+        else:
+            max_arc_length = np.inf
+
+        self.action_state.initialize_from_previous_graph_walk(graph_walk, max_arc_length)
         print "start converting elementary action", self.action_constraints.action_name
         errors = [0]
         while not self.action_state.is_end_state():
@@ -211,13 +222,13 @@ class ElementaryActionGenerator(object):
             raise ValueError("Failed to generator constraints")
         new_motion_spline, new_parameters = self.motion_primitive_generator.generate_constrained_motion_spline(mp_constraints, graph_walk)
 
-        new_arc_length = self._create_graph_walk_entry(new_node, new_motion_spline, mp_constraints, graph_walk)
+        new_arc_length = self._create_graph_walk_entry(new_node, new_motion_spline, new_parameters, mp_constraints, graph_walk)
 
         self.action_state.transition(new_node, new_node_type, new_arc_length, graph_walk.get_num_of_frames())
 
         return mp_constraints.min_error
 
-    def _create_graph_walk_entry(self, new_node, new_motion_spline, constraints, graph_walk):
+    def _create_graph_walk_entry(self, new_node, new_motion_spline, new_parameters, mp_constraints, graph_walk):
         """ Concatenate frames to motion and apply smoothing """
         prev_steps = graph_walk.steps
         graph_walk.append_quat_frames(new_motion_spline.get_motion_vector())
@@ -229,9 +240,9 @@ class ElementaryActionGenerator(object):
         #new_travelled_arc_length = mp_constraints.goal_arc_length
 
         new_step = GraphWalkEntry(self.motion_primitive_graph, new_node,
-                                  new_motion_spline.low_dimensional_parameters,
+                                  new_parameters,
                                   new_travelled_arc_length, self.action_state.step_start_frame,
-                                  graph_walk.get_num_of_frames() - 1, constraints)
+                                  graph_walk.get_num_of_frames() - 1, mp_constraints)
         graph_walk.steps.append(new_step)
         return new_travelled_arc_length
 
