@@ -85,9 +85,9 @@ class ElementaryActionGenerator(object):
             constraint_desc = {"joint": "Hips", "canonical_keyframe": -1, "position": goal_position, "n_canonical_frames": 0,
                                "semanticAnnotation":  {"keyframeLabel": "end", "generated": True}}
             pos_constraint = GlobalTransformConstraint(self.motion_primitive_graph.skeleton, constraint_desc, 1.0, 1.0)
-            motion_primitive_constraints = MotionPrimitiveConstraints()
-            motion_primitive_constraints.start_pose = graph_walk.motion_vector.start_pose
-            motion_primitive_constraints.constraints.append(pos_constraint)
+            mp_constraints = MotionPrimitiveConstraints()
+            mp_constraints.start_pose = graph_walk.motion_vector.start_pose
+            mp_constraints.constraints.append(pos_constraint)
             if graph_walk.get_num_of_frames() > 0:
                 prev_frames = graph_walk.get_quat_frames()
             else:
@@ -97,11 +97,11 @@ class ElementaryActionGenerator(object):
             index = 0
             for node_name in next_nodes:
                 motion_primitive_node = self.motion_primitive_graph.nodes[(action_name, node_name)]
-                self.motion_primitive_generator._search_for_best_sample_in_cluster_tree(motion_primitive_node,
-                                                                                        motion_primitive_constraints,
+                self.motion_primitive_generator._search_for_best_fit_sample_in_cluster_tree(motion_primitive_node,
+                                                                                        mp_constraints,
                                                                                         prev_frames)
-                print "evaluated start option",node_name, motion_primitive_constraints.min_error
-                errors[index] = motion_primitive_constraints.min_error
+                print "evaluated start option",node_name, mp_constraints.min_error
+                errors[index] = mp_constraints.min_error
                 index += 1
             min_idx = np.argmin(errors)
             next_node = next_nodes[min_idx]
@@ -206,16 +206,16 @@ class ElementaryActionGenerator(object):
             raise ValueError("Failed to find a transition")
         print "transitioned to state", new_node
 
-        constraints = self._gen_motion_primitive_constraints(new_node, new_node_type, graph_walk)
-        if constraints is None:
+        mp_constraints = self._gen_motion_primitive_constraints(new_node, new_node_type, graph_walk)
+        if mp_constraints is None:
             raise ValueError("Failed to generator constraints")
-        new_motion_spline, new_parameters = self.motion_primitive_generator.generate_constrained_motion_spline(constraints, graph_walk)
+        new_motion_spline, new_parameters = self.motion_primitive_generator.generate_constrained_motion_spline(mp_constraints, graph_walk)
 
-        new_travelled_arc_length = self._create_graph_walk_entry(new_node, new_motion_spline, constraints, graph_walk)
+        new_travelled_arc_length = self._create_graph_walk_entry(new_node, new_motion_spline, mp_constraints, graph_walk)
 
         self.action_state.transition(new_node, new_node_type, new_travelled_arc_length, graph_walk.get_num_of_frames())
 
-        return constraints.min_error
+        return mp_constraints.min_error
 
     def _create_graph_walk_entry(self, new_node, new_motion_spline, constraints, graph_walk):
         """ Concatenate frames to motion and apply smoothing """
@@ -226,7 +226,7 @@ class ElementaryActionGenerator(object):
             new_travelled_arc_length = self._update_travelled_arc_length(graph_walk.get_quat_frames(), prev_steps, self.action_state.travelled_arc_length)
         else:
             new_travelled_arc_length = 0
-        #new_travelled_arc_length = motion_primitive_constraints.goal_arc_length
+        #new_travelled_arc_length = mp_constraints.goal_arc_length
 
         new_step = GraphWalkEntry(self.motion_primitive_graph, new_node,
                                   new_motion_spline.low_dimensional_parameters,
