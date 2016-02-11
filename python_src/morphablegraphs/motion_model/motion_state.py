@@ -88,14 +88,16 @@ class MotionState(MotionPrimitiveWrapper):
         
         Returns
          -------
+         * error: float
+            Sum of all constraint errors for the returned parameters.
          * parameters: numpy.ndarray or None
              Low dimensional motion parameters. 
-             None is returned if data structure was not initialized
+             None is returned if the ClusterTree was not initialized.
         """
         if self.cluster_tree is not None:
             return self.cluster_tree.find_best_example_excluding_search_candidates(obj, data, n_candidates)
         else:
-            return None
+            return np.inf, None
 
     def generate_random_transition(self, transition_type=NODE_TYPE_STANDARD):
         """ Returns the key of a random transition.
