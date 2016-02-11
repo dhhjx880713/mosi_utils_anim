@@ -211,9 +211,9 @@ class ElementaryActionGenerator(object):
             raise ValueError("Failed to generator constraints")
         new_motion_spline, new_parameters = self.motion_primitive_generator.generate_constrained_motion_spline(mp_constraints, graph_walk)
 
-        new_travelled_arc_length = self._create_graph_walk_entry(new_node, new_motion_spline, mp_constraints, graph_walk)
+        new_arc_length = self._create_graph_walk_entry(new_node, new_motion_spline, mp_constraints, graph_walk)
 
-        self.action_state.transition(new_node, new_node_type, new_travelled_arc_length, graph_walk.get_num_of_frames())
+        self.action_state.transition(new_node, new_node_type, new_arc_length, graph_walk.get_num_of_frames())
 
         return mp_constraints.min_error
 
