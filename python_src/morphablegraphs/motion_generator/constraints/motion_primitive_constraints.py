@@ -4,7 +4,8 @@ Created on Thu Jul 16 14:42:13 2015
 
 @author: erhe01
 """
-from ...animation_data.motion_editing import align_quaternion_frames
+import numpy as np
+from ...animation_data.motion_editing import align_quaternion_frames, transform_point
 from .spatial_constraints.keyframe_constraints.global_transform_constraint import GlobalTransformConstraint
 from .spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
 from mgrd import KeyframeConstraint as MGRDKeyframeConstraint
@@ -36,6 +37,7 @@ class MotionPrimitiveConstraints(object):
         self.best_parameters = None
         self.evaluations = 0
         self.keyframe_event_list = dict()
+        self.aligning_transform = None  # used to bring constraints in the local coordinate system of a motion primitive
 
     def print_status(self):
 #        print  "starting from",last_pos,last_arc_length,"the new goal for", \
@@ -108,8 +110,16 @@ class MotionPrimitiveConstraints(object):
         mgrd_constraints = []
         for c in self.constraints:
             if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION:
-                pose_constraint = MGRDPoseConstraint(c.joint_name, c.weight_factor, c.position, orientation=[None, None, None, None])
-                label = c.semantic_annotation["keyframeLabel"]# "LeftFootContact"# TODO add "end" annotation label to all motion primitives
+                position = c.position
+                if position is not None and self.aligning_transform is not None:
+                    orig_position = position
+                    if position[1] is None:
+                        position[1] = 0
+                    position = transform_point(position, self.aligning_transform[0], self.aligning_transform[1])
+                    position[1] = None
+                    print "transformed constraint",orig_position, position
+                pose_constraint = MGRDPoseConstraint(c.joint_name, c.weight_factor, position, orientation=None)#[None, None, None, None]
+                label = "LeftFootContact"# c.semantic_annotation["keyframeLabel"]# TODO add "end" annotation label to all motion primitives
                 active = True
                 annotations = {label: active}
                 semantic_constraint = MGRDSemanticConstraint(annotations, time=None)

@@ -15,6 +15,7 @@ from .spatial_constraints.keyframe_constraints.global_transform_constraint impor
 from .spatial_constraints.keyframe_constraints.pose_constraint_quat_frame import PoseConstraintQuatFrame
 from .spatial_constraints.keyframe_constraints.two_hand_constraint import TwoHandConstraintSet
 from ...animation_data.motion_vector import concatenate_frames
+from ...animation_data.motion_editing import get_2d_pose_transform, inverse_pose_transform
 from . import *
 
 
@@ -27,7 +28,7 @@ class MotionPrimitiveConstraintsBuilder(object):
         self.algorithm_config = None
         self.status = {}
         self.motion_state_graph = None
-
+    
     def set_action_constraints(self, action_constraints):
         self.action_constraints = action_constraints
         self.motion_state_graph = action_constraints.motion_state_graph
@@ -39,25 +40,28 @@ class MotionPrimitiveConstraintsBuilder(object):
         self.precision = algorithm_config["constrained_gmm_settings"]["precision"]
         self.trajectory_following_settings = algorithm_config["trajectory_following_settings"]
         self.local_optimization_mode = algorithm_config["local_optimization_mode"]
-        self.ca_constrainst_mode = algorithm_config["collision_avoidance_constraints_mode"]
+        self.ca_constraint_mode = algorithm_config["collision_avoidance_constraints_mode"]
 
     def set_status(self, node_key, last_arc_length, graph_walk, is_last_step=False):
         n_prev_frames = graph_walk.get_num_of_frames()
         prev_frames = graph_walk.get_quat_frames()
+        n_canonical_frames = self.motion_state_graph.nodes[node_key].get_n_canonical_frames()
         #create a sample to estimate the trajectory arc lengths
         aligned_sample_frames = concatenate_frames(prev_frames,
                                                    self.motion_state_graph.nodes[node_key].sample(False).get_motion_vector(),
                                                    graph_walk.motion_vector.start_pose, graph_walk.motion_vector.rotation_type)
-
-
         self.status["motion_primitive_name"] = node_key[1]
-        self.status["n_canonical_frames"] = self.motion_state_graph.nodes[node_key].get_n_canonical_frames()
+        self.status["n_canonical_frames"] = n_canonical_frames
         self.status["last_arc_length"] = last_arc_length
         self.status["aligned_sample_frames"] = aligned_sample_frames[n_prev_frames:]
+
         if prev_frames is None:
             last_pos = self.action_constraints.start_pose["position"]
+            aligning_transform = last_pos, self.action_constraints.start_pose["orientation"]
         else:
             last_pos = prev_frames[-1][:3]
+            aligning_transform = get_2d_pose_transform(prev_frames, -1)
+        self.status["aligning_transform"] = inverse_pose_transform(aligning_transform[0],aligning_transform[1])
         last_pos = copy(last_pos)
         last_pos[1] = 0.0
         self.status["last_pos"] = last_pos
@@ -67,6 +71,7 @@ class MotionPrimitiveConstraintsBuilder(object):
     def build(self):
         mp_constraints = MotionPrimitiveConstraints()
         mp_constraints.motion_primitive_name = self.status["motion_primitive_name"]
+        mp_constraints.aligning_transform = self.status["aligning_transform"]
         mp_constraints.settings = self.trajectory_following_settings
         mp_constraints.constraints = []
         mp_constraints.goal_arc_length = 0
@@ -95,7 +100,7 @@ class MotionPrimitiveConstraintsBuilder(object):
                 trajectory_constraint.set_min_arc_length_from_previous_frames(self.status["prev_frames"])
                 trajectory_constraint.set_number_of_canonical_frames(self.status["n_canonical_frames"])
             mp_constraints.constraints.append(trajectory_constraint)
-        if self.ca_constrainst_mode == CA_CONSTRAINTS_MODE_SET and self.action_constraints.ca_trajectory_set_constraint is not None:
+        if self.ca_constraint_mode == CA_CONSTRAINTS_MODE_SET and self.action_constraints.ca_trajectory_set_constraint is not None:
             ca_trajectory_set_constraint = copy(self.action_constraints.ca_trajectory_set_constraint)
             #ca_trajectory_set_constraint.set_min_arc_length_from_previous_frames(self.status["prev_frames"])
             #ca_trajectory_set_constraint.set_number_of_canonical_frames(self.status["n_canonical_frames"])

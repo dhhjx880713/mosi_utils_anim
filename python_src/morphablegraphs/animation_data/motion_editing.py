@@ -20,7 +20,7 @@ from ..external.transformations import quaternion_matrix, euler_from_matrix, \
     quaternion_about_axis, \
     rotation_matrix, \
     quaternion_conjugate
-
+DEFAULT_ROTATION_ORDER = ['Xrotation','Yrotation','Zrotation']
 DEFAULT_SMOOTHING_WINDOW_SIZE = 20
 LEN_QUAT = 4
 LEN_ROOT_POS = 3
@@ -46,6 +46,18 @@ FK_FUNC_JACS = [
     fk3.seven_joints_fk_jacobian,
     fk3.eight_joints_fk_jacobian,
 ]
+
+
+def rotation_order_to_string(rotation_order):
+    r_order_string = "r"
+    for c in rotation_order:
+        if c == "Xrotation":
+            r_order_string += "x"
+        elif c == "Yrotation":
+            r_order_string += "y"
+        elif c == "Zrotation":
+            r_order_string += "z"
+    return r_order_string
 
 def extract_root_positions_from_frames(frames):
     roots = []
@@ -81,13 +93,13 @@ def get_step_length(frames):
     return step_len
 
 
-def euler_to_quaternion(
-        euler_angles,
-        rotation_order=[
-            'Xrotation',
-            'Yrotation',
-            'Zrotation'],
-        filter_value=True):
+def inverse_pose_transform(translation, euler_angles):
+    inv_translation = -translation[0],-translation[1],-translation[2]
+    inv_euler_angles = -euler_angles[0],-euler_angles[1],-euler_angles[2]
+    return inv_translation, inv_euler_angles
+
+
+def euler_to_quaternion(euler_angles, rotation_order=DEFAULT_ROTATION_ORDER, filter_value=True):
     """Convert euler angles to quaternion vector [qw, qx, qy, qz]
 
     Parameters
@@ -148,9 +160,8 @@ def euler_to_quaternion(
             q = -q
     return q[0], q[1], q[2], q[3]
 
-def quaternion_to_euler_smooth(q, euler_ref, rotation_order=['Xrotation',
-                                                         'Yrotation',
-                                                         'Zrotation']):
+
+def quaternion_to_euler_smooth(q, euler_ref, rotation_order=DEFAULT_ROTATION_ORDER):
     """
 
     :param q: list of floats, [qw, qx, qy, qz]
@@ -173,9 +184,8 @@ def quaternion_to_euler_smooth(q, euler_ref, rotation_order=['Xrotation',
                 euler_angles[i] += 360
     return euler_angles
 
-def quaternion_to_euler(q, rotation_order=['Xrotation',
-                                           'Yrotation',
-                                           'Zrotation']):
+
+def quaternion_to_euler(q, rotation_order=DEFAULT_ROTATION_ORDER):
     """
     Parameters
     ----------
@@ -193,29 +203,15 @@ def quaternion_to_euler(q, rotation_order=['Xrotation',
     # create rotation matrix from quaternion
     Rq = quaternion_matrix(q)
     # map rotation order
-    if rotation_order[0] == 'Xrotation':
-        if rotation_order[1] == 'Yrotation':
-            euler_angles = np.rad2deg(euler_from_matrix(Rq, 'rxyz'))
-        elif rotation_order[1] == 'Zrotation':
-            euler_angles = np.rad2deg(euler_from_matrix(Rq, 'rxzy'))
-    elif rotation_order[0] == 'Yrotation':
-        if rotation_order[1] == 'Xrotation':
-            euler_angles = np.rad2deg(euler_from_matrix(Rq, 'ryxz'))
-        elif rotation_order[1] == 'Zrotation':
-            euler_angles = np.rad2deg(euler_from_matrix(Rq, 'ryzx'))
-    elif rotation_order[0] == 'Zrotation':
-        if rotation_order[1] == 'Xrotation':
-            euler_angles = np.rad2deg(euler_from_matrix(Rq, 'rzxy'))
-        elif rotation_order[1] == 'Yrotation':
-            euler_angles = np.rad2deg(euler_from_matrix(Rq, 'rzyx'))
-    return euler_angles.tolist()
+    r_order_string = rotation_order_to_string(rotation_order)
+    return np.rad2deg(euler_from_matrix(Rq, r_order_string)).tolist()
 
 
 def convert_euler_frames_to_quaternion_frames(bvhreader, euler_frames):
     """
     :param bvhreader: a BVHReader instance to store skeleton information
     :param euler_frames: a list of euler frames
-    :return: a list of quatenrion frames
+    :return: a list of quaternion frames
     """
     quat_frames = []
     last_quat_frame = None
@@ -329,8 +325,7 @@ def convert_quaternion_to_euler(quaternion_frames):
 
 
 def euler_substraction(theta1, theta2):
-    '''
-    @brief: compute the angular distance from theta2 to theta1, positive value is anti-clockwise, negative is clockwise
+    ''' compute the angular distance from theta2 to theta1, positive value is anti-clockwise, negative is clockwise
     @param theta1, theta2: angles in degree
     '''
     theta1 %= 360
@@ -355,10 +350,7 @@ def euler_substraction(theta1, theta2):
     return theta
 
 
-def get_cartesian_coordinates_from_quaternion(skeleton,
-                                              node_name,
-                                              quaternion_frame,
-                                              return_gloabl_matrix=False):
+def get_cartesian_coordinates_from_quaternion(skeleton, node_name, quaternion_frame, return_gloabl_matrix=False):
     """Returns cartesian coordinates for one node at one frame. Modified to
      handle frames with omitted values for joints starting with "Bip"
 
@@ -825,49 +817,11 @@ def euler_angles_to_rotation_matrix(euler_angles, rotation_order):
         R = rotation_matrix(np.deg2rad(euler_angles[1]), [0, 1, 0])
     else:
         euler_angles = np.deg2rad(euler_angles)
-        if rotation_order[0] == 'Xrotation':
-            if rotation_order[1] == 'Yrotation':
-                R = euler_matrix(euler_angles[0],
-                                 euler_angles[1],
-                                 euler_angles[2],
-                                 axes='rxyz')
-            elif rotation_order[1] == 'Zrotation':
-                R = euler_matrix(euler_angles[0],
-                                 euler_angles[1],
-                                 euler_angles[2],
-                                 axes='rxzy')
-        elif rotation_order[0] == 'Yrotation':
-            if rotation_order[1] == 'Xrotation':
-                R = euler_matrix(euler_angles[0],
-                                 euler_angles[1],
-                                 euler_angles[2],
-                                 axes='ryxz')
-            elif rotation_order[1] == 'Zrotation':
-                R = euler_matrix(euler_angles[0],
-                                 euler_angles[1],
-                                 euler_angles[2],
-                                 axes='ryzx')
-        elif rotation_order[0] == 'Zrotation':
-            if rotation_order[1] == 'Xrotation':
-                R = euler_matrix(euler_angles[0],
-                                 euler_angles[1],
-                                 euler_angles[2],
-                                 axes='rzxy')
-            elif rotation_order[1] == 'Yrotation':
-                R = euler_matrix(euler_angles[0],
-                                 euler_angles[1],
-                                 euler_angles[2],
-                                 axes='rzyx')
+        R = euler_matrix(euler_angles[0], euler_angles[1], euler_angles[2], axes=rotation_order_to_string(rotation_order))
     return R
 
 
-def transform_point(point,
-                    euler_angles,
-                    offset,
-                    origin=None,
-                    rotation_order=["Xrotation",
-                                    "Yrotation",
-                                    "Zrotation"]):
+def transform_point(point, euler_angles, offset, origin=None, rotation_order=DEFAULT_ROTATION_ORDER):
     """
     rotate point around y axis and translate it by an offset
     Parameters
@@ -1238,22 +1192,15 @@ def smoothly_concatenate(euler_frames_a, euler_frames_b, window_size=20):
     return euler_frames
 
 
-def smoothly_concatenate_quaternion_frames(quaternion_frames_a,
-                                           quaternion_frames_b,
-                                           window_size=20):
+def smoothly_concatenate_quaternion_frames(quaternion_frames_a, quaternion_frames_b, window_size=20):
 
-    quaternion_frames = np.concatenate((quaternion_frames_a,
-                                        quaternion_frames_b), axis=0)
+    quaternion_frames = np.concatenate((quaternion_frames_a, quaternion_frames_b), axis=0)
     d = len(quaternion_frames_a)
-    quaternion_frames = smooth_quaternion_frames(quaternion_frames,
-                                                 d,
-                                                 window_size)
+    quaternion_frames = smooth_quaternion_frames(quaternion_frames, d, window_size)
     return quaternion_frames
 
 
-def shift_euler_frames_to_ground(euler_frames,
-                                 ground_contact_joint,
-                                 skeleton):
+def shift_euler_frames_to_ground(euler_frames, ground_contact_joint, skeleton):
     """
     shift all euler frames of motion to ground, which means the y-axis for
     gound contact joint should be 0
@@ -1264,20 +1211,14 @@ def shift_euler_frames_to_ground(euler_frames,
     """
     tmp_frames = deepcopy(euler_frames)
     for frame in tmp_frames:
-        contact_point_position = get_cartesian_coordinates_from_euler(
-            skeleton,
-            ground_contact_joint,
-            frame)
+        contact_point_position = get_cartesian_coordinates_from_euler(skeleton, ground_contact_joint, frame)
         offset_y = contact_point_position[1]
         # shift root position by offset_y
         frame[1] = frame[1] - offset_y
     return tmp_frames
 
 
-def align_frames(skeleton,
-                 euler_frames_a,
-                 euler_frames_b,
-                 smooth=True):
+def align_frames(skeleton, euler_frames_a, euler_frames_b, smooth=True):
     """
     calls find_aligning_transformation and concatenates the frames based on the
     resulting transformation
@@ -1296,8 +1237,7 @@ def align_frames(skeleton,
     *aligned_frames : np.ndarray
     \tAligned and optionally smoothed motion
     """
-    theta, offset_x, offset_z = find_aligning_transformation(
-        skeleton, euler_frames_a, euler_frames_b)
+    theta, offset_x, offset_z = find_aligning_transformation(skeleton, euler_frames_a, euler_frames_b)
 
     # apply 2d transformation
     offset = np.array([offset_x, 0, offset_z])
@@ -1312,6 +1252,13 @@ def align_frames(skeleton,
         euler_frames = np.concatenate((euler_frames_a, euler_frames_b), axis=0)
     return euler_frames
 
+
+def get_2d_pose_transform(quaternion_frames, frame_number):
+    dir_vec = pose_orientation_quat(quaternion_frames[frame_number])
+    angle = get_rotation_angle(dir_vec, [0, 1])
+    offset_x = quaternion_frames[frame_number][0]
+    offset_z = quaternion_frames[frame_number][2]
+    return [offset_x, 0.0, offset_z], [0,angle,0]
 
 def fast_quat_frames_transformation(quaternion_frames_a,
                                     quaternion_frames_b):
