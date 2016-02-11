@@ -5,6 +5,13 @@ from mgrd import MotionPrimitiveModel as MGRDMotionPrimitive
 from ..utilities import load_json_file
 
 
+class MixtureModelWrapper(object):
+    def __init__(self, mgrd_mixture_model):
+        self.mixture_model = mgrd_mixture_model
+
+    def sample(self):
+        return self.mixture_model.sample(1)[0]
+
 class MotionPrimitiveWrapper(object):
     def __init__(self):
         self.motion_primitive=None
@@ -50,11 +57,14 @@ class MotionPrimitiveWrapper(object):
         if self.use_mgrd:
             return np.asarray(self.motion_primitive.create_time_spline(parameters, labels=[]).evaluate_domain(step_size=1.0))#[:,0]
         else:
-            return self.motion_primitive.back_project_time_function(parameters)
+
+            time_parameters = parameters[self.get_n_spatial_components:]
+            #print time_parameters, step.n_spatial_components, step.n_time_components, len(step.parameters)
+            return self.motion_primitive.back_project_time_function(time_parameters)
 
     def get_n_canonical_frames(self):
         if self.use_mgrd:
-            return self.motion_primitive.time.n_canonical_frames
+            return self.motion_primitive.time.n_canonical_frames-1
         else:
             return self.motion_primitive.n_canonical_frames
 
@@ -69,3 +79,9 @@ class MotionPrimitiveWrapper(object):
             return self.motion_primitive.time.fpca.n_components
         else:
             return self.motion_primitive.get_n_time_components()
+
+    def get_gaussian_mixture_model(self):
+        if self.use_mgrd:
+            return MixtureModelWrapper(self.motion_primitive.mixture)
+        else:
+            return self.motion_primitive.gaussian_mixture_model

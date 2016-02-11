@@ -140,7 +140,7 @@ class MotionPrimitiveGenerator(object):
         elif self.use_transition_model and prev_parameters is not None:
             gmm = self._predict_gmm(mp_name, prev_mp_name, prev_parameters)
         else:
-            gmm = graph_node.gaussian_mixture_model
+            gmm = graph_node.get_gaussian_mixture_model()
         #  2) sample parameters  from the Gaussian Mixture Model based on constraints and make sure
         #     the resulting motion is valid
         if not self.activate_parameter_check:
