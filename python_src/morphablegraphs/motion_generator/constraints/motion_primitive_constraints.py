@@ -115,7 +115,8 @@ class MotionPrimitiveConstraints(object):
                     orig_position = position
                     if position[1] is None:
                         position[1] = 0
-                    position = transform_point(position, self.aligning_transform[0], self.aligning_transform[1])
+                        print "aligning transform", self.aligning_transform
+                    position = transform_point(position,  self.aligning_transform["orientation"], self.aligning_transform["translation"])
                     position[1] = None
                     print "transformed constraint",orig_position, position
                 pose_constraint = MGRDPoseConstraint(c.joint_name, c.weight_factor, position, orientation=None)#[None, None, None, None]
@@ -124,6 +125,5 @@ class MotionPrimitiveConstraints(object):
                 annotations = {label: active}
                 semantic_constraint = MGRDSemanticConstraint(annotations, time=None)
                 keyframe_constraint = MGRDKeyframeConstraint(pose_constraint, semantic_constraint)
-                print("create constraint",annotations)
                 mgrd_constraints.append(keyframe_constraint)
         return mgrd_constraints
