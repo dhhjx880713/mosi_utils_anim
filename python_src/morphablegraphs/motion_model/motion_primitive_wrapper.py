@@ -21,7 +21,7 @@ class MotionPrimitiveModelWrapper(object):
 
     """
     def __init__(self):
-        self.motion_primitive=None
+        self.motion_primitive = None
         self.use_mgrd = False
         self.is_mgrd = True
 
@@ -31,7 +31,7 @@ class MotionPrimitiveModelWrapper(object):
             self._initialize_from_json(mgrd_skeleton, data)
 
     def _initialize_from_json(self, mgrd_skeleton, data):
-        if "version" in data.keys():
+        if "semantic_annotation" in data.keys():
             self.motion_primitive = MGRDMotionPrimitive.load_from_dict(mgrd_skeleton, data)
             self.use_mgrd = True
         else:
