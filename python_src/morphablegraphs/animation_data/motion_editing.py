@@ -808,10 +808,9 @@ def transform_point_by_quaternion_faster2(point, quaternion, offset, origin=None
     new_point = [new_point[i] + offset[i] + origin[i] for i in xrange(3)]
     return new_point
 
-def euler_angles_to_rotation_matrix(euler_angles, rotation_order):
+def euler_angles_to_rotation_matrix(euler_angles, rotation_order=DEFAULT_ROTATION_ORDER):
         # generate rotation matrix based on rotation order
-    assert len(
-        euler_angles) == 3, ('The length of rotation angles should be 3')
+    assert len(euler_angles) == 3, ('The length of rotation angles should be 3')
     if round(euler_angles[0], 3) == 0 and round(euler_angles[2], 3) == 0:
         # rotation about y axis
         R = rotation_matrix(np.deg2rad(euler_angles[1]), [0, 1, 0])
@@ -819,6 +818,13 @@ def euler_angles_to_rotation_matrix(euler_angles, rotation_order):
         euler_angles = np.deg2rad(euler_angles)
         R = euler_matrix(euler_angles[0], euler_angles[1], euler_angles[2], axes=rotation_order_to_string(rotation_order))
     return R
+
+
+def create_transformation_matrix(translation, euler_angles, rotation_order=DEFAULT_ROTATION_ORDER):
+    #m = np.eye(4,4)
+    m = euler_angles_to_rotation_matrix(euler_angles, rotation_order)
+    m[:3,3] = translation
+    return m
 
 
 def transform_point(point, euler_angles, offset, origin=None, rotation_order=DEFAULT_ROTATION_ORDER):
@@ -846,6 +852,7 @@ def transform_point(point, euler_angles, offset, origin=None, rotation_order=DEF
     rotated_point = np.dot(R, point)
     if origin is not None:
         rotated_point[:3] += origin
+    #print rotated_point,
     transformed_point = rotated_point[:3] + offset
     return transformed_point.tolist()
 
@@ -1011,9 +1018,8 @@ def transform_quaternion_frames(quat_frames, angles, offset, rotation_order=None
     \tTranslation
     """
     if rotation_order is None:
-        rotation_order = ["Xrotation", "Yrotation", "Zrotation"]
+        rotation_order = DEFAULT_ROTATION_ORDER
     offset = np.array(offset)
-    original_point = np.array(deepcopy(quat_frames[0][:3]))
     if round(angles[0], 3) == 0 and round(angles[2], 3) == 0:
         rotation_q = quaternion_about_axis(np.deg2rad(angles[1]), [0, 1, 0])
     else:
@@ -1022,7 +1028,7 @@ def transform_quaternion_frames(quat_frames, angles, offset, rotation_order=None
     for frame in quat_frames:
         ot = frame[:3]
         oq = frame[3:7]
-        frame[:3] = np.dot(rotation_matrix, ot-original_point) + original_point + offset
+        frame[:3] = np.dot(rotation_matrix, ot) + offset
         frame[3:7] = quaternion_multiply(rotation_q, oq)
     return quat_frames
 
@@ -1255,10 +1261,11 @@ def align_frames(skeleton, euler_frames_a, euler_frames_b, smooth=True):
 
 def get_2d_pose_transform(quaternion_frames, frame_number):
     dir_vec = pose_orientation_quat(quaternion_frames[frame_number])
-    angle = get_rotation_angle(dir_vec, [0, 1])
+    angle = get_rotation_angle(dir_vec, [0, -1])
     offset_x = quaternion_frames[frame_number][0]
     offset_z = quaternion_frames[frame_number][2]
     return [offset_x, 0.0, offset_z], [0,angle,0]
+
 
 def fast_quat_frames_transformation(quaternion_frames_a,
                                     quaternion_frames_b):
@@ -1269,6 +1276,7 @@ def fast_quat_frames_transformation(quaternion_frames_a,
     offset_z = quaternion_frames_a[-1][2] - quaternion_frames_b[0][2]
     offset = [offset_x, 0.0, offset_z]
     return angle, offset
+
 
 def fast_euler_frames_transformation(euler_frames_a,
                                      euler_frames_b):
@@ -1320,8 +1328,7 @@ def fast_quat_frames_alignment(quaternion_frames_a,
        of last frame of first motion and first frame of second motion
     """
 
-    angle, offset = fast_quat_frames_transformation(
-        quaternion_frames_a, quaternion_frames_b)
+    angle, offset = fast_quat_frames_transformation(quaternion_frames_a, quaternion_frames_b)
     transformed_frames = transform_quaternion_frames(quaternion_frames_b,
                                                      [0, angle, 0],
                                                      offset)
@@ -1568,10 +1575,7 @@ def get_dir_from_2d_points(points):
     return dir
 
 
-def align_quaternion_frames(
-        quat_frames,
-        prev_frames=None,
-        aligning_transformation=None):
+def align_quaternion_frames(quat_frames, prev_frames=None, transformation=None):
     """Concatenate and align quaternion frames based on previous frames or
         given transformation
 
@@ -1581,7 +1585,7 @@ def align_quaternion_frames(
          A list of quaternion frames
     * prev_frames: list
         A list of quaternion frames
-   *  aligning_transformation: dict
+   *  transformation: dict
        Contains translation and orientation in Euler angles
     Returns:
     --------
@@ -1604,12 +1608,9 @@ def align_quaternion_frames(
                                                          [0, angle, 0],
                                                          offset)
         return transformed_frames
-    elif prev_frames is None and aligning_transformation is not None:
+    elif prev_frames is None and transformation is not None:
         # align frames
-        transformed_frames = transform_quaternion_frames(
-            quat_frames,
-            aligning_transformation["orientation"],
-            aligning_transformation["position"])
+        transformed_frames = transform_quaternion_frames(quat_frames, transformation["orientation"], transformation["position"])
         return transformed_frames
     else:
         return quat_frames
