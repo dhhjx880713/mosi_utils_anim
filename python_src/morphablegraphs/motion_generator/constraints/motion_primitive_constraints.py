@@ -12,6 +12,7 @@ from mgrd import KeyframeConstraint as MGRDKeyframeConstraint
 from mgrd import PoseConstraint as MGRDPoseConstraint
 from mgrd import SemanticConstraint as MGRDSemanticConstraint
 
+
 class MotionPrimitiveConstraints(object):
     """ Represents the input to the generate_motion_primitive_from_constraints
         method of the MotionPrimitiveGenerator class.
@@ -110,16 +111,7 @@ class MotionPrimitiveConstraints(object):
         mgrd_constraints = []
         for c in self.constraints:
             if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION:
-                position = c.position
-                if position is not None and self.aligning_transform is not None:
-                    orig_position = position
-                    if position[1] is None:
-                        position[1] = 0
-                        print "aligning transform", self.aligning_transform
-                    position = transform_point(position,  self.aligning_transform["orientation"], self.aligning_transform["translation"])
-                    position[1] = None
-                    print "transformed constraint",orig_position, position
-                pose_constraint = MGRDPoseConstraint(c.joint_name, c.weight_factor, position, orientation=None)#[None, None, None, None]
+                pose_constraint = MGRDPoseConstraint(c.joint_name, c.weight_factor, c.position, orientation=None)#[None, None, None, None]
                 label = "LeftFootContact"# c.semantic_annotation["keyframeLabel"]# TODO add "end" annotation label to all motion primitives
                 active = True
                 annotations = {label: active}
@@ -127,3 +119,29 @@ class MotionPrimitiveConstraints(object):
                 keyframe_constraint = MGRDKeyframeConstraint(pose_constraint, semantic_constraint)
                 mgrd_constraints.append(keyframe_constraint)
         return mgrd_constraints
+
+    def transform_constraints_to_local_cos(self):
+        inv_aligning_transform = np.linalg.inv(self.aligning_transform)
+        mp_constraints = MotionPrimitiveConstraints()
+        mp_constraints.start_pose = {"orientation": [0,0,0], "position": [0,0,0]}
+        for c in self.constraints:
+            if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION:
+                position = c.position
+                if position is not None:
+                    orig_position = position
+                    if position[1] is None:
+                        position[1] = 0
+                        #print "aligning transform", self.aligning_transform
+
+                    position = np.dot(inv_aligning_transform, position+[1])[:3]
+                    #position = transform_point(position,  self.aligning_transform["orientation"], self.aligning_transform["translation"])
+                    print "transformed constraint",orig_position, position
+                    position[1] = None
+                    keyframe_constraint_desc = {"joint": c.joint_name,
+                                                "position": position,
+                                                "n_canonical_frames": c.n_canonical_frames,
+                                                "canonical_keyframe":  c.canonical_keyframe,
+                                                "semanticAnnotation": c.semantic_annotation}
+                    precision = 1.0
+                    mp_constraints.constraints.append(GlobalTransformConstraint(self.skeleton, keyframe_constraint_desc, precision))
+        return mp_constraints

@@ -117,15 +117,18 @@ class MotionPrimitiveGenerator(object):
         if graph_node.use_mgrd:
             #TODO handle transformation of motion primitive to global coordinate system or constraints to local coordinate system of motion primitive based on the previous motion
             samples = motion_primitive_get_random_samples(graph_node.motion_primitive, self.n_random_samples)
+            transform = mp_constraints.aligning_transform
             scores = score_samples_with_pose_and_semantic_constraints(graph_node.motion_primitive, samples,
                                                                           mp_constraints.convert_to_mgrd_constraints(),
-                                                                          pose_constraint_weights=(1.0, 1.0))
+                                                                          pose_constraint_weights=(1.0, 1.0), transform=transform)
 
             best_idx = np.argmin(scores)
             mp_constraints.min_error = scores[best_idx]
             print "Found best sample with score", scores[best_idx]
             parameters = samples[best_idx]
         else:
+            #prev_frames = None
+            #mp_constraints = mp_constraints.transform_constraints_to_local_cos()
             if self.activate_cluster_search and graph_node.cluster_tree is not None:
                 parameters = self._search_for_best_fit_sample_in_cluster_tree(graph_node, mp_constraints, prev_frames)
             else:

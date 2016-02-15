@@ -15,7 +15,7 @@ from .spatial_constraints.keyframe_constraints.global_transform_constraint impor
 from .spatial_constraints.keyframe_constraints.pose_constraint_quat_frame import PoseConstraintQuatFrame
 from .spatial_constraints.keyframe_constraints.two_hand_constraint import TwoHandConstraintSet
 from ...animation_data.motion_vector import concatenate_frames
-from ...animation_data.motion_editing import get_2d_pose_transform, inverse_pose_transform, fast_quat_frames_transformation
+from ...animation_data.motion_editing import get_2d_pose_transform, inverse_pose_transform, fast_quat_frames_transformation, create_transformation_matrix
 from . import *
 
 
@@ -48,8 +48,8 @@ class MotionPrimitiveConstraintsBuilder(object):
         n_canonical_frames = self.motion_state_graph.nodes[node_key].get_n_canonical_frames()
         #create a sample to estimate the trajectory arc lengths
         mp_sample_frames = self.motion_state_graph.nodes[node_key].sample(False).get_motion_vector()
-        aligned_sample_frames = concatenate_frames(prev_frames, mp_sample_frames,
-                                                   graph_walk.motion_vector.start_pose, graph_walk.motion_vector.rotation_type)
+        #origin = copy(mp_sample_frames[0][:3])
+        aligned_sample_frames = concatenate_frames(prev_frames, mp_sample_frames, graph_walk.motion_vector.start_pose, graph_walk.motion_vector.rotation_type)
         self.status["motion_primitive_name"] = node_key[1]
         self.status["n_canonical_frames"] = n_canonical_frames
         self.status["last_arc_length"] = last_arc_length
@@ -57,21 +57,32 @@ class MotionPrimitiveConstraintsBuilder(object):
 
         if prev_frames is None:
             last_pos = self.action_constraints.start_pose["position"]
-            transform = inverse_pose_transform(self.action_constraints.start_pose["position"],self.action_constraints.start_pose["orientation"])
-            self.status["aligning_transform"] = {"translation": transform[0],"orientation":transform[1]}
-
         else:
             last_pos = prev_frames[-1][:3]
-            aligning_angle, aligning_offset = fast_quat_frames_transformation(prev_frames, self.motion_state_graph.nodes[node_key].sample(False).get_motion_vector()) #TODO return from concatenate_frames
-            print "aligning_transform", aligning_angle, aligning_offset
-            transform = inverse_pose_transform(aligning_offset,[0,aligning_angle,0])
-            self.status["aligning_transform"] = {"translation": transform[0],"orientation":transform[1]}
-            #aligning_transform = get_2d_pose_transform(prev_frames, -1)
         last_pos = copy(last_pos)
         last_pos[1] = 0.0
         self.status["last_pos"] = last_pos
         self.status["prev_frames"] = prev_frames
         self.status["is_last_step"] = is_last_step
+        self._set_aligning_transform(node_key, prev_frames)
+
+    def _set_aligning_transform(self, node_key, prev_frames):
+        if prev_frames is None:
+            print "create aligning transform from start pose",self.action_constraints.start_pose
+            #transform = inverse_pose_transform(self.action_constraints.start_pose["position"],self.action_constraints.start_pose["orientation"])
+            #self.status["aligning_transform"] = {"translation": transform[0],"orientation":[0,0,0]}
+            transform = self.action_constraints.start_pose
+            #transform["position"]= [0,0, 100]
+            #transform["orientation"]= [0,45,0]
+        else:
+            aligning_angle, aligning_offset = fast_quat_frames_transformation(prev_frames, self.motion_state_graph.nodes[node_key].sample(False).get_motion_vector()) #TODO return from concatenate_frames
+            transform = {"position": aligning_offset,"orientation":[0,aligning_angle,0]}
+            print "aligning_transform", aligning_angle, aligning_offset
+            #aligning_transform = get_2d_pose_transform(prev_frames, -1)
+            #transform = inverse_pose_transform(aligning_offset,[0,aligning_angle,0])
+            #self.status["aligning_transform"] = {"translation": transform[0],"orientation":transform[1]}
+
+        self.status["aligning_transform"] = create_transformation_matrix(transform["position"],transform["orientation"])
 
     def build(self):
         mp_constraints = MotionPrimitiveConstraints()
