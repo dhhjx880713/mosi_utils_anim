@@ -65,7 +65,7 @@ class MGInputFileReader(object):
     def get_start_pose(self):
         start_pose = dict()
         if None in self.mg_input_file["startPose"]["orientation"]:
-            start_pose["orientation"]  = None
+            start_pose["orientation"] = None
         else:
             start_pose["orientation"] = self._transform_point_from_cad_to_opengl_cs(self.mg_input_file["startPose"]["orientation"])
         start_pose["position"] = self._transform_point_from_cad_to_opengl_cs(self.mg_input_file["startPose"]["position"])

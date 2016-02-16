@@ -24,10 +24,10 @@ class Skeleton(object):
         self.root = deepcopy(bvh_reader.root)
         self.node_names = deepcopy(bvh_reader.node_names)
         self.reference_frame = self._extract_reference_frame(bvh_reader)
-        self.joint_map = None
+        self.nodes = None
         self._create_filtered_node_name_frame_map()
-        self.tool_bones = []
-        self._add_tool_bones()
+        self.tool_nodes = []
+        self._add_tool_nodes()
         self.max_level = self._get_max_level()
         self._set_joint_weights()
         self.parent_dict = self._get_parent_dict()
@@ -37,8 +37,8 @@ class Skeleton(object):
         #print "node name map keys", len(self.node_names), len(self.node_name_frame_map), self.node_name_frame_map.keys()
         print "shape of reference frame", (self.reference_frame.shape)
         #print "number of parameters", self.get_number_of_frame_parameters(ROTATION_TYPE_QUATERNION)
-        #for joint in self.joint_map.keys():
-        #    print joint, self.joint_map[joint].index
+        #for joint in self.nodes.keys():
+        #    print joint, self.nodes[joint].index
 
     def create_reduced_copy(self):
         reduced_skeleton = deepcopy(self)
@@ -49,7 +49,7 @@ class Skeleton(object):
         reduced_skeleton.reference_frame = None
         reduced_skeleton._create_filtered_node_name_frame_map()
         reduced_skeleton.tool_bones = []
-        reduced_skeleton._add_tool_bones()
+        reduced_skeleton._add_tool_nodes()
         reduced_skeleton.max_level = self._get_max_level()
         reduced_skeleton._set_joint_weights()
         reduced_skeleton.parent_dict = self._get_parent_dict()
@@ -64,7 +64,7 @@ class Skeleton(object):
     def construct_hierarchy_iterative(self):
         joint_index = 0
 
-        self.joint_map = collections.OrderedDict()
+        self.nodes = collections.OrderedDict()
         for node_name in self.node_names.keys():
             if "children" in self.node_names[node_name].keys():
                 is_endsite = len(self.node_names[node_name]["children"]) <= 0
@@ -89,20 +89,20 @@ class Skeleton(object):
 
             if node_name in self.parent_dict.keys():
                 parent_node_name = self.parent_dict[node_name]
-                if parent_node_name in self.joint_map.keys():
-                    node.parent = self.joint_map[parent_node_name]
-                    self.joint_map[parent_node_name].children.append(node)
+                if parent_node_name in self.nodes.keys():
+                    node.parent = self.nodes[parent_node_name]
+                    self.nodes[parent_node_name].children.append(node)
 
-            self.joint_map[node_name] = node
+            self.nodes[node_name] = node
 
     def construct_hierarchy(self):
         self.root_node = SkeletonRootNode(self.root, None)
         self.root_node.index = 0
         self.root_node.quaternion_frame_index = 3
-        self.joint_map = collections.OrderedDict()
-        self.joint_map[self.root] = self.root_node
+        self.nodes = collections.OrderedDict()
+        self.nodes[self.root] = self.root_node
         self.add_skeleton_node(self.root_node)
-        # print "joints", self.joint_map.keys()
+        # print "joints", self.nodes.keys()
 
     def add_skeleton_node(self, parent_node):
         """ Currently assumes there are no EndSites
@@ -111,13 +111,13 @@ class Skeleton(object):
         """
         for child_name in self.node_names[parent_node.node_name]["children"]:
             child_node = SkeletonJointNode(child_name, parent_node)
-            child_node.index = len(self.joint_map.keys())
+            child_node.index = len(self.nodes.keys())
             child_node.offset = self.node_names[child_name]["offset"]
             if child_name in self.node_name_frame_map:
                 child_node.quaternion_frame_index = self.node_name_frame_map[child_name] * 4 + 3
             if "children" in self.node_names[child_name].keys() and len(self.node_names[child_name]["children"]):
                 self.add_skeleton_node(child_node)
-            self.joint_map[child_name] = child_node
+            self.nodes[child_name] = child_node
             parent_node.children.append(child_node)
 
     def is_motion_vector_complete(self, frames, is_quaternion):
@@ -129,9 +129,9 @@ class Skeleton(object):
 
     def get_number_of_frame_parameters(self, rotation_type):
         n_parameters = 0
-        for node_name in self.joint_map.keys():
-            if node_name not in self.tool_bones:
-                local_parameters = self.joint_map[node_name].get_number_of_frame_parameters(rotation_type)
+        for node_name in self.nodes.keys():
+            if node_name not in self.tool_nodes:
+                local_parameters = self.nodes[node_name].get_number_of_frame_parameters(rotation_type)
                 n_parameters += local_parameters
 
         return n_parameters
@@ -154,17 +154,17 @@ class Skeleton(object):
         :return:
         """
         new_frame = []
-        for joint_name in self.joint_map.keys():
-            if joint_name not in self.tool_bones:
+        for joint_name in self.nodes.keys():
+            if joint_name not in self.tool_nodes:
                 if joint_name in reduced_skeleton.node_name_frame_map.keys() and reduced_skeleton.node_name_frame_map[joint_name] > -1:
                     if joint_name == self.root:
                         joint_parameters = reduced_frame[:3].tolist()
                     else:
                         joint_parameters = []
-                    joint_parameters += reduced_frame[reduced_skeleton.joint_map[joint_name].quaternion_frame_index:reduced_skeleton.joint_map[joint_name].quaternion_frame_index + 4].tolist()
-                    #joint_parameters = self.joint_map[joint_name].get_frame_parameters(frame, ROTATION_TYPE_QUATERNION)
+                    joint_parameters += reduced_frame[reduced_skeleton.nodes[joint_name].quaternion_frame_index:reduced_skeleton.nodes[joint_name].quaternion_frame_index + 4].tolist()
+                    #joint_parameters = self.nodes[joint_name].get_frame_parameters(frame, ROTATION_TYPE_QUATERNION)
                 else:
-                    joint_parameters = self.joint_map[joint_name].get_frame_parameters(self.reference_frame, ROTATION_TYPE_QUATERNION)
+                    joint_parameters = self.nodes[joint_name].get_frame_parameters(self.reference_frame, ROTATION_TYPE_QUATERNION)
                     #print "from reference", joint_name,joint_parameters
                 if joint_parameters is not None:
                     #print joint_name, joint_parameters
@@ -231,17 +231,17 @@ class Skeleton(object):
         #return self.joint_weights#.values()
         return self.joint_weight_map.values()
 
-    def _add_tool_bones(self):
+    def _add_tool_nodes(self):
         new_node_name = 'LeftToolEndSite'
         parent_node_name = 'LeftHand'
         new_node_offset = [9.55928, -0.145352, 5.186424]
         self._add_new_end_site(new_node_name, parent_node_name, new_node_offset)
-        self.tool_bones.append(new_node_name)
+        self.tool_nodes.append(new_node_name)
         new_node_name = 'RightToolEndSite'
         parent_node_name = 'RightHand'
         new_node_offset = [9.559288, 0.145353, 5.186417]
         self._add_new_end_site(new_node_name, parent_node_name, new_node_offset)
-        self.tool_bones.append(new_node_name)
+        self.tool_nodes.append(new_node_name)
         #Finger21 = 'Bip01_L_Finger21'
         #Finger21_offset = [3.801407, 0.0, 0.0]
         #Finger2 = 'Bip01_R_Finger2'
@@ -268,11 +268,7 @@ class Skeleton(object):
             chain_names[node_name] += [node_name]  # Node is not in its parent list
         return chain_names
 
-
-    def get_cartesian_coordinates_from_quaternion(self,
-                                                  target_node_name,
-                                                  quaternion_frame,
-                                                  return_global_matrix=False):
+    def get_cartesian_coordinates_from_quaternion(self, target_node_name, quaternion_frame, return_global_matrix=False):
         """Returns cartesian coordinates for one node at one frame. Modified to
          handle frames with omitted values for joints starting with "Bip"
 
@@ -326,11 +322,11 @@ class Skeleton(object):
         """
         cartesian_frame = []
         for node_name in self.node_name_frame_map.keys():
-            position = self.joint_map[node_name].get_global_position(quat_frame)
+            position = self.nodes[node_name].get_global_position(quat_frame)
             cartesian_frame.append(position)
 
         return cartesian_frame
 
     def clear_cached_global_matrices(self):
-        for joint in self.joint_map.values():
+        for joint in self.nodes.values():
             joint.clear_cached_global_matrix()

@@ -208,8 +208,8 @@ class GraphWalk(object):
                 least_distance = 1000.0
                 closest_keyframe = self.steps[action_entry.start_step].start_frame
                 for frame_index in xrange(keyframe_range_start, keyframe_range_end):
-                    position_a = self.full_skeleton.joint_map[joint_name_a].get_global_position(self.motion_vector.frames[frame_index])
-                    position_b = self.full_skeleton.joint_map[joint_name_b].get_global_position(self.motion_vector.frames[frame_index])
+                    position_a = self.full_skeleton.nodes[joint_name_a].get_global_position(self.motion_vector.frames[frame_index])
+                    position_b = self.full_skeleton.nodes[joint_name_b].get_global_position(self.motion_vector.frames[frame_index])
                     distance = np.linalg.norm(position_a - position_b)
                     if distance < least_distance:
                         least_distance = distance
@@ -393,7 +393,7 @@ class GraphWalk(object):
             for constraint in step.motion_primitive_constraints.constraints:
                 if (constraint.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION or constraint.constraint_type == SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION) and\
                     not ("generated" in constraint.semantic_annotation.keys()):
-                    #joint_position = self.skeleton.joint_map[constraint.joint_name].get_global_position(aligned_frames[constraint.canonical_keyframe])
+                    #joint_position = self.skeleton.nodes[constraint.joint_name].get_global_position(aligned_frames[constraint.canonical_keyframe])
                     #joint_position = constraint.skeleton.get_cartesian_coordinates_from_quaternion(constraint.joint_name, aligned_frames[constraint.canonical_keyframe])
                     #print "position constraint", joint_position, constraint.position
                     error = constraint.evaluate_motion_sample(aligned_frames)

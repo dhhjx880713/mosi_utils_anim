@@ -28,8 +28,8 @@ class TwoHandConstraintSet(KeyframeConstraintBase):
         self.n_canonical_frames = constraint_desc["n_canonical_frames"]
 
     def _get_global_hand_positions(self, aligned_quat_frames):
-        left_hand_position = self.skeleton.joint_map[self.joint_names[0]].get_global_position(aligned_quat_frames[self.canonical_keyframe])
-        right_hand_position = self.skeleton.joint_map[self.joint_names[1]].get_global_position(aligned_quat_frames[self.canonical_keyframe])
+        left_hand_position = self.skeleton.nodes[self.joint_names[0]].get_global_position(aligned_quat_frames[self.canonical_keyframe])
+        right_hand_position = self.skeleton.nodes[self.joint_names[1]].get_global_position(aligned_quat_frames[self.canonical_keyframe])
         return left_hand_position, right_hand_position
 
     def evaluate_motion_sample(self, aligned_quat_frames):

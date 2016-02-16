@@ -74,8 +74,8 @@ class GlobalTransformConstraint(KeyframeConstraintBase):
 
     def _evaluate_joint_position(self, frame):
         #joint_position = self.skeleton.get_cartesian_coordinates_from_quaternion(self.joint_name, frame)
-        joint_position = self.skeleton.joint_map[self.joint_name].get_global_position(frame)
-        #print self.joint_name, joint_position, joint_position3, self.position
+        joint_position = self.skeleton.nodes[self.joint_name].get_global_position(frame)
+        #print self.joint_name, joint_position, self.position# joint_position3,
         return self._vector_distance(self.position, joint_position)
 
     def _orientation_distance(self, joint_orientation):
