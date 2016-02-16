@@ -46,8 +46,7 @@ class CatmullRomSpline(object):
         @param ordered control_points array of class accessible by control_points[index][dimension]
         """
         self.number_of_segments = len(control_points) - 1
-        self.control_points = [control_points[
-            0]] + control_points + [control_points[-1], control_points[-1]]
+        self.control_points = [control_points[0]] + control_points + [control_points[-1], control_points[-1]]
         if self.verbose:
             print "length of control point list ", len(self.control_points)
             print "number of segments ", self.number_of_segments
@@ -117,16 +116,20 @@ class CatmullRomSpline(object):
         P
         """
         segment_index, local_u = self.map_parameter_to_segment(u)
-        # defines the influence of the 4 closest control points
-        weight_vector = [local_u**3, local_u**2, local_u, 1]
-        control_point_vectors = self._get_control_point_vectors(segment_index)
-        point = []
-        d = 0
-        while d < self.dimensions:
-            point.append(self._query_component_by_parameter(
-                         weight_vector, control_point_vectors[d]))
-            d += 1
-        return np.array(point)
+        #print u, segment_index, local_u,self.number_of_segments
+        if segment_index <= self.number_of_segments:
+            # defines the influence of the 4 closest control points
+            weight_vector = [local_u**3, local_u**2, local_u, 1]
+            control_point_vectors = self._get_control_point_vectors(segment_index)
+            point = []
+            d = 0
+            while d < self.dimensions:
+                point.append(self._query_component_by_parameter(
+                             weight_vector, control_point_vectors[d]))
+                d += 1
+            return np.array(point)
+        else:
+            return self.control_points[-1]
 
     def _query_component_by_parameter(
             self, weight_vector, control_point_vector):
@@ -146,7 +149,7 @@ class CatmullRomSpline(object):
         Returns the 4 control points that influence values within the i-th segment
         Note the auxiliary segments should not be queried
         """
-        #assert i <= self.number_of_segments
+        #assert index <= self.number_of_segments
         #index = int(index)
         d = 0
         vectors = []

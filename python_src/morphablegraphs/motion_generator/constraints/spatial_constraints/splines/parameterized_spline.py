@@ -415,7 +415,7 @@ class ParameterizedSpline(object):
             if range_large_enough:
                 result = segment_list.find_closest_point(point)
                 if result[0] is None:
-                    print "failed to generate trajectory segments for the closest point search"
+                    print "Failed to generate trajectory segments for the closest point search"
                     print point, min_arc_length, max_arc_length
                     return None, -1
                 else:
@@ -439,7 +439,7 @@ class ParameterizedSpline(object):
             max_u = max_arc_length #/ self.full_arc_length
         else:
             max_u = 1.0
-        print "bounds",min_u, max_u
+        #print "bounds",min_u, max_u
         result = minimize(dist_objective, guess_t, data, method="L-BFGS-B", bounds=[(min_u, max_u)])
-        print dist_objective(result['x'], self, point)
+        #print dist_objective(result['x'], self, point)
         return self.query_point_by_parameter(result['x']), result['x']
