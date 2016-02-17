@@ -10,14 +10,10 @@ based on previous steps.
 @author: Erik Herrmann, Han Du, Fabian Rupp, Markus Mauer
 """
 
-import time
-from ..motion_model import MotionStateGraphLoader
-from constraints import MGInputFileReader, ElementaryActionConstraintsBuilder
+from constraints import ElementaryActionConstraintsBuilder
 from elementary_action_generator import ElementaryActionGenerator
-from algorithm_configuration import AlgorithmConfigurationBuilder
 from graph_walk import GraphWalk
 from graph_walk_optimizer import GraphWalkOptimizer
-from ..utilities import load_json_file
 
 
 class GraphWalkGenerator(object):
