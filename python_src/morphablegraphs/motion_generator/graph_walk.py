@@ -12,6 +12,7 @@ import json
 import numpy as np
 from ..utilities import write_to_json_file, write_to_logfile
 from ..animation_data import MotionVector, align_quaternion_frames
+from annotated_motion_vector import AnnotatedMotionVector
 from constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION
 
 LOG_FILE = "log.txt"
@@ -54,23 +55,29 @@ class GraphWalk(object):
         self.motion_vector = MotionVector(algorithm_config)
         self.motion_vector.start_pose = start_pose
         self.keyframe_events_dict = dict()
-        self.hand_pose_generator = None
         self.use_time_parameters = True
 
     def add_entry_to_action_list(self, action_name, start_step, end_step):
         self.elementary_action_list.append(HighLevelGraphWalkEntry(action_name, start_step, end_step))
 
-    def convert_to_motion(self, start_step=0, complete_motion_vector=True, create_frame_annotation=True):
-        self._convert_to_quaternion_frames(start_step, complete_motion_vector)
+    def update_temp_motion_vector(self, start_step=0, create_frame_annotation=True, use_time_parameters=False):
+        self._convert_graph_walk_to_quaternion_frames(start_step, use_time_parameters=use_time_parameters)
         if create_frame_annotation:
             self._create_event_dict()
             self._create_frame_annotation(start_step)
             self._add_event_list_to_frame_annotation()
-            if self.hand_pose_generator is not None and complete_motion_vector:
-                print "generate hand poses"
-                self.hand_pose_generator.generate_hand_poses(self.motion_vector, self.keyframe_events_dict)
 
-    def _convert_to_quaternion_frames(self, start_step=0, complete_motion_vector=True):
+    def convert_to_annotated_motion(self):
+        self.update_temp_motion_vector(use_time_parameters=self.use_time_parameters)
+        annotated_motion_vector = AnnotatedMotionVector()
+        annotated_motion_vector.frames = self.full_skeleton.complete_motion_vector_from_reference(self.motion_state_graph.skeleton, self.motion_vector.frames)
+        annotated_motion_vector.keyframe_events_dict = self.keyframe_events_dict
+        annotated_motion_vector.frame_annotation = self.frame_annotation
+        annotated_motion_vector.skeleton = self.full_skeleton
+        annotated_motion_vector.mg_input = self.mg_input
+        return annotated_motion_vector
+
+    def _convert_graph_walk_to_quaternion_frames(self, start_step=0, use_time_parameters=False):
         """
         :param start_step:
         :return:
@@ -80,15 +87,12 @@ class GraphWalk(object):
         else:
             start_frame = self.steps[start_step].start_frame
         self.motion_vector.clear(end_frame=start_frame)
-        use_time_parameters = self.use_time_parameters and complete_motion_vector
         for step in self.steps[start_step:]:
             step.start_frame = start_frame
             quat_frames = self.motion_state_graph.nodes[step.node_key].back_project(step.parameters, use_time_parameters).get_motion_vector()
             self.motion_vector.append_frames(quat_frames)
             step.end_frame = self.get_num_of_frames()-1
             start_frame = step.end_frame + 1
-        if complete_motion_vector:
-            self.motion_vector.frames = self.full_skeleton.complete_motion_vector_from_reference(self.motion_state_graph.skeleton, self.motion_vector.frames)
             #print "temp quat", temp_quat_frames[0]
 
     def _create_frame_annotation(self, start_step=0):
@@ -307,29 +311,6 @@ class GraphWalk(object):
 
     def get_num_of_frames(self):
         return self.motion_vector.n_frames
-
-    def _export_event_dict(self, filename):
-        #print "keyframe event dict", self.keyframe_events_dict, filename
-        write_to_json_file(filename, self.keyframe_events_dict)
-
-    def export_motion(self, output_dir, output_filename, add_time_stamp=False, export_details=False):
-        """ Saves the resulting animation frames, the annotation and actions to files.
-        Also exports the input file again to the output directory, where it is
-        used as input for the constraints visualization by the animation server.
-        """
-        self.convert_to_motion()
-        if self.motion_vector.has_frames():
-            self.motion_vector.export(self.full_skeleton, output_dir, output_filename, add_time_stamp)
-            if self.mg_input is not None:
-                write_to_json_file(output_dir + os.sep + output_filename + ".json", self.mg_input.mg_input_file)
-            self._export_event_dict(output_dir + os.sep + output_filename + "_actions"+".json")
-            write_to_json_file(output_dir + os.sep + output_filename + "_annotations"+".json", self.frame_annotation)
-            if export_details:
-                time_stamp = unicode(datetime.now().strftime("%d%m%y_%H%M%S"))
-                self.export_statistics(output_dir + os.sep + output_filename + "_statistics" + time_stamp + ".json")
-                #write_to_logfile(output_dir + os.sep + LOG_FILE, output_filename + "_" + time_stamp, self._algorithm_config)
-        else:
-           print "Error: no motion data to export"
 
     def _merge_multiple_keyframe_events(self, events, num_events):
         """Merge events if there are more than one event defined for the same keyframe.

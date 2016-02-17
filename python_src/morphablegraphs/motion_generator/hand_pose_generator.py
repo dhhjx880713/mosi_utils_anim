@@ -86,15 +86,15 @@ class HandPoseGenerator(object):
                    "LeftToolEndSite" == event_desc["parameters"]["joint"] or\
                    "LeftHand" == event_desc["parameters"]["joint"]
 
-    def generate_hand_poses(self, motion_vector, action_list):
+    def generate_hand_poses(self, motion_vector):
         if self.initialized:
             right_status = "standard"
             left_status = "standard"
             left_hand_events = []
             right_hand_events = []
             for i in xrange(motion_vector.n_frames):
-                if i in action_list.keys():
-                    for event_desc in action_list[i]:
+                if i in motion_vector.action_list.keys():
+                    for event_desc in motion_vector.action_list[i]:
                         if event_desc["event"] != "transfer":
                             if self._is_affecting_hand("RightHand", event_desc):
                                 right_status = self.status_change_map[event_desc["event"]]

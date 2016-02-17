@@ -63,7 +63,6 @@ class GraphWalkGenerator(object):
         action_constraints_builder = ElementaryActionConstraintsBuilder(input_file_reader, self.motion_primitive_graph, self._algorithm_config)
         graph_walk = GraphWalk(self.motion_primitive_graph, action_constraints_builder.start_pose, self._algorithm_config)
         graph_walk.mg_input = action_constraints_builder.mg_input
-        graph_walk.hand_pose_generator = self.motion_primitive_graph.hand_pose_generator
         action_constraints = action_constraints_builder.get_next_elementary_action_constraints()
         while action_constraints is not None:
             if self._algorithm_config["debug_max_step"] > -1 and graph_walk.step_count > self._algorithm_config["debug_max_step"]:

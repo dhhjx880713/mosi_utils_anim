@@ -68,7 +68,7 @@ class GraphWalkOptimizer(object):
             optimal_parameters = self.global_error_minimizer.run(initial_guess)
             graph_walk.update_spatial_parameters(optimal_parameters, start_step)
             #keyframe_error = graph_walk.get_average_keyframe_constraint_error()
-            graph_walk.convert_to_motion(0, complete_motion_vector=False, create_frame_annotation=False)
+            graph_walk.update_temp_motion_vector(0, create_frame_annotation=False)
             #graph_walk.export_motion("test", "test.bvh", True)
             #print keyframe_error
         else:
@@ -87,7 +87,7 @@ class GraphWalkOptimizer(object):
             print "initial_guess", initial_guess, time_constraints.constraint_list
             optimal_parameters = self.time_error_minimizer.run(initial_guess)
             graph_walk.update_time_parameters(optimal_parameters, start_step)
-            graph_walk.convert_to_motion(start_step, 0, complete_motion_vector=False)
+            graph_walk.update_temp_motion_vector(start_step, 0)
 
         return graph_walk
 

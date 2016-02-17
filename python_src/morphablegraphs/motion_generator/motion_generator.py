@@ -1,10 +1,13 @@
 import time
+import os
+import datetime
 from ..motion_model import MotionStateGraphLoader
 from constraints import MGInputFileReader
 from algorithm_configuration import AlgorithmConfigurationBuilder
 from graph_walk import GraphWalk
 from graph_walk_generator import GraphWalkGenerator
 from graph_walk_optimizer import GraphWalkOptimizer
+from hand_pose_generator import HandPoseGenerator
 from ..utilities import load_json_file
 
 
@@ -41,9 +44,8 @@ class MotionGenerator(object):
         else:
             self._algorithm_config = algorithm_config
         self.graph_walk_optimizer.set_algorithm_config(self._algorithm_config)
-        self._global_spatial_optimization_steps = self._algorithm_config["global_spatial_optimization_settings"]["max_steps"]
 
-    def generate_motion(self, mg_input, export=True, activate_joint_map=False, activate_coordinate_transform=False):
+    def generate_motion(self, mg_input, export=True, activate_joint_map=False, activate_coordinate_transform=False, export_details = False):
             """
             Converts a json input file with a list of elementary actions and constraints
             into a graph_walk saved to a BVH file.
@@ -74,6 +76,10 @@ class MotionGenerator(object):
             if self._algorithm_config["use_global_time_optimization"]:
                 graph_walk = self.graph_walk_optimizer.optimize_time_parameters_over_graph_walk(graph_walk)
 
+            motion_vector = graph_walk.convert_to_annotated_motion()
+            if self.motion_primitive_graph.hand_pose_generator is not None:
+                print "generate hand poses"
+                self.motion_primitive_graph.hand_pose_generator.generate_hand_poses(motion_vector)
 
             time_in_seconds = time.clock() - start
             minutes = int(time_in_seconds/60)
@@ -84,7 +90,13 @@ class MotionGenerator(object):
                 output_filename = self._service_config["output_filename"]
                 if output_filename == "" and "session" in mg_input.keys():
                     output_filename = mg_input["session"]
-                    graph_walk.frame_annotation["sessionID"] = mg_input["session"]
-                graph_walk.export_motion(self._service_config["output_dir"], output_filename, add_time_stamp=True, export_details=self._service_config["write_log"])
-            #TODO return AnnotatedMotionVector
-            return graph_walk
+                    motion_vector.frame_annotation["sessionID"] = mg_input["session"]
+                if motion_vector.has_frames():
+                    motion_vector.export(self._service_config["output_dir"], output_filename, add_time_stamp=True, export_details=self._service_config["write_log"])
+                    if export_details:
+                        time_stamp = unicode(datetime.now().strftime("%d%m%y_%H%M%S"))
+                        graph_walk.export_statistics(self._service_config["output_dir"] + os.sep + output_filename + "_statistics" + time_stamp + ".json")
+                        #write_to_logfile(output_dir + os.sep + LOG_FILE, output_filename + "_" + time_stamp, self._algorithm_config)
+                else:
+                    print "Error: no motion data to export"
+            return motion_vector

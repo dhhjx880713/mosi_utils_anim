@@ -49,34 +49,31 @@ class MGInputHandler(tornado.web.RequestHandler):
 
         # start algorithm if predefined keys were found
         if "elementaryActions" in mg_input.keys() or "tasks" in mg_input.keys():
-            graph_walk = self.application.generate_motion(mg_input)
+            motion_vector = self.application.generate_motion(mg_input)
 
-            self._handle_result(graph_walk)
+            self._handle_result(motion_vector)
         else:
             print mg_input
             error_string = "Error: Did not find expected keys in the input data."
             self.write(error_string)
 
-    def _handle_result(self, graph_walk):
+    def _handle_result(self, motion_vector):
         """Sends the result back as an answer to a post request.
         """
-        if graph_walk.motion_vector.has_frames():
+        if motion_vector.has_frames():
             if self.application.use_file_output_mode:
-                graph_walk.export_motion(self.application.service_config["output_dir"],
-                              self.application.service_config[
-                                  "output_filename"],
-                              add_time_stamp=False, export_details=False)
+                motion_vector.export(self.application.service_config["output_dir"],
+                                     self.application.service_config["output_filename"], add_time_stamp=False)
                 self.write("succcess")
             else:
                 print "answer request", not self.application.use_file_output_mode
-                graph_walk.convert_to_motion()
                 bvh_writer = get_bvh_writer(
                     self.application.graph_walk_generator.motion_primitive_graph.full_skeleton,
-                    graph_walk.get_quat_frames())
+                    motion_vector.get_quat_frames())
                 result_object = {
                     "bvh": bvh_writer.generate_bvh_string(),
-                    "annotation": graph_walk.frame_annotation,
-                    "event_list": graph_walk.keyframe_events_dict}
+                    "annotation": motion_vector.frame_annotation,
+                    "event_list": motion_vector.keyframe_events_dict}
                 self.write(json.dumps(result_object))  # send result back
         else:
             error_string = "Error: Failed to generate motion data."
@@ -121,8 +118,7 @@ class MGRestApplication(tornado.web.Application):
         This allows access to the data in the MGInputHandler class
     '''
 
-    def __init__(self, service_config, algorithm_config,
-                 handlers=None, default_host="", transforms=None, **settings):
+    def __init__(self, service_config, algorithm_config, handlers=None, default_host="", transforms=None, **settings):
         tornado.web.Application.__init__(self, handlers, default_host, transforms)
 
         self.algorithm_config = algorithm_config
@@ -144,7 +140,8 @@ class MGRestApplication(tornado.web.Application):
             print "Results are send as answers to the request"
 
     def generate_motion(self, mg_input):
-        return self.motion_generator.generate_motion(mg_input, export=False, activate_joint_map=self.activate_joint_map, activate_coordinate_transform=self.activate_coordinate_transform)
+        return self.motion_generator.generate_motion(mg_input, export=False, activate_joint_map=self.activate_joint_map,
+                                                     activate_coordinate_transform=self.activate_coordinate_transform)
 
     def set_algorithm_config(self, algorithm_config):
         self.motion_generator.set_algorithm_config(algorithm_config)
@@ -189,8 +186,7 @@ class MorphableGraphsRESTfulInterface(object):
         #  Construct morphable graph from files
         self.application = MGRestApplication(service_config, algorithm_config,
                                              [(r"/run_morphablegraphs", MGInputHandler),
-                                              (r"/config_morphablegraphs",
-                                               MGConfiguratiohHandler)
+                                              (r"/config_morphablegraphs", MGConfiguratiohHandler)
                                               ])
 
         self.port = service_config["port"]
@@ -203,10 +199,8 @@ class MorphableGraphsRESTfulInterface(object):
 
 
 def main():
-    if os.path.isfile(SERVICE_CONFIG_FILE) and os.path.isfile(
-            ALGORITHM_CONFIG_FILE):
-        mg_service = MorphableGraphsRESTfulInterface(
-            SERVICE_CONFIG_FILE, ALGORITHM_CONFIG_FILE)
+    if os.path.isfile(SERVICE_CONFIG_FILE) and os.path.isfile(ALGORITHM_CONFIG_FILE):
+        mg_service = MorphableGraphsRESTfulInterface(SERVICE_CONFIG_FILE, ALGORITHM_CONFIG_FILE)
         mg_service.start()
     else:
         print "Error: could not open service or algorithm configuration file"
