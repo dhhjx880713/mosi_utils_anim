@@ -101,7 +101,7 @@ class MotionPrimitiveGenerator(object):
         Parameters
         ----------
         * mp_name : string
-            name of the motion primitive and node in the subgraph of the elemantary action
+            name of the motion primitive and node in the subgraph of the elementary action
         * mp_constraints: MotionPrimitiveConstraints
             contains a list of dict with constraints for joints
         * prev_frames: np.ndarray
@@ -130,8 +130,8 @@ class MotionPrimitiveGenerator(object):
         samples = motion_primitive_get_random_samples(graph_node.motion_primitive, self.n_random_samples)
         transform = mp_constraints.aligning_transform
         scores = score_samples_with_pose_and_semantic_constraints(graph_node.motion_primitive, samples,
-                                                                      mp_constraints.convert_to_mgrd_constraints(),
-                                                                      pose_constraint_weights=(1.0, 1.0), transform=transform)
+                                                                  mp_constraints.convert_to_mgrd_constraints(),
+                                                                  pose_constraint_weights=(1.0, 1.0), transform=transform)
         best_idx = np.argmin(scores)
         mp_constraints.min_error = scores[best_idx]
         print "Found best sample with score", scores[best_idx]
@@ -163,6 +163,7 @@ class MotionPrimitiveGenerator(object):
                                                                                                mp_constraints,
                                                                                                prev_frames)
 
+        print "Found best sample with distance:", min_error
         return parameters
 
     def generate_random_sample(self, mp_name, prev_mp_name="", prev_parameters=None):
@@ -218,8 +219,6 @@ class MotionPrimitiveGenerator(object):
                 min_error = error
                 best_sample = samples[idx]
             idx += 1
-
-        print "found best sample with distance:", min_error
         constraints.min_error = min_error
         return best_sample, min_error
 
@@ -266,13 +265,9 @@ class MotionPrimitiveGenerator(object):
                 if self.verbose:
                     print "sample failed validity check"
                 tmp_bad_samples += 1
-
             idx += 1
-
         if reached_max_bad_samples:
             print "Warning: Failed to pick good sample from GMM"
             return best_sample, min_error
-
-        print "found best sample with distance:", min_error
         constraints.min_error = min_error
         return best_sample, min_error

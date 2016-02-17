@@ -28,7 +28,7 @@ def obj_spatial_error_sum(s, data):
     -------
     * error: float
     """
-    s = np.asarray(s)
+    #s = np.asarray(s)
     motion_primitive, motion_primitive_constraints, prev_frames = data
     motion_primitive_constraints.min_error = motion_primitive_constraints.evaluate(motion_primitive, s, prev_frames,
                                                                                    use_time_parameters=False)
@@ -109,7 +109,7 @@ def obj_spatial_error_residual_vector(s, data):
     -------
     * residual_vector: list
     """
-    s = np.asarray(s)
+    #s = np.asarray(s)
     motion_primitive, motion_primitive_constraints, prev_frames, error_scale_factor, quality_scale_factor = data
     residual_vector = motion_primitive_constraints.get_residual_vector(motion_primitive, s, prev_frames, use_time_parameters=False)
     motion_primitive_constraints.min_error = np.sum(residual_vector)
@@ -139,7 +139,7 @@ def obj_spatial_error_residual_vector_and_naturalness(s, data):
     -------
     * residual_vector: list
     """
-    s = np.asarray(s)
+    #s = np.asarray(s)
     motion_primitive, motion_primitive_constraints, prev_frames, error_scale_factor, quality_scale_factor = data
     n_log_likelihood = -data[0].gaussian_mixture_model.score([s, ])[0] * quality_scale_factor
     residual_vector = motion_primitive_constraints.get_residual_vector(motion_primitive, s, prev_frames, use_time_parameters=False)
@@ -170,7 +170,7 @@ def obj_time_error_sum(s, data):
     -------
     * error: float
     """
-    s = np.asarray(s)
+    #s = np.asarray(s)
     morphable_graph, graph_walk, time_constraints, error_scale_factor, quality_scale_factor = data
     time_error = time_constraints.evaluate_graph_walk(s, morphable_graph, graph_walk)
     n_log_likelihood = -time_constraints.get_average_loglikelihood(s, morphable_graph, graph_walk)
@@ -192,7 +192,7 @@ def obj_global_error_sum(s, data):
     -------
     * error: float
     """
-    s = np.asarray(s)
+    #s = np.asarray(s)
     offset = 0
     error = 0
     motion_primitive_graph, graph_walk_steps, error_scale_factor, quality_scale_factor, prev_frames = data
@@ -222,7 +222,7 @@ def obj_global_residual_vector(s, data):
     -------
     * residual_vector: list
     """
-    s = np.asarray(s)
+    #s = np.asarray(s)
     offset = 0
     residual_vector = []
     motion_primitive_graph, graph_walk_steps, error_scale_factor, quality_scale_factor, prev_frames = data
@@ -252,7 +252,7 @@ def obj_global_residual_vector_and_naturalness(s, data):
     -------
     * residual_vector: list
     """
-    s = np.asarray(s)
+    #s = np.asarray(s)
     offset = 0
     residual_vector = []
     motion_primitive_graph, graph_walk_steps, error_scale_factor, quality_scale_factor, prev_frames = data
