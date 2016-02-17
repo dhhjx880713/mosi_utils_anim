@@ -51,12 +51,9 @@ def run_pipeline(service_config, algorithm_config_file):
     print "Finished construction from file in", time.clock() - start, "seconds"
 
     mg_input = replace_hand_joints_in_input_file(input_file)
-    graph_walk = motion_generator.generate_motion(mg_input, export=False)
+    motion_vector = motion_generator.generate_motion(mg_input, export=False)
+    motion_vector.export(service_config["output_dir"], service_config["output_filename"])
 
-    if graph_walk.motion_vector.has_frames():
-        graph_walk.export_motion(service_config["output_dir"], service_config["output_filename"], export_details=service_config["write_log"])
-    else:
-        print "Error: Failed to generate motion data."
 
 
 def main():
