@@ -84,9 +84,9 @@ class MotionPrimitiveGenerator(object):
             try:
                 parameters = self.generate_constrained_sample(mp_name,
                                                               mp_constraints,
-                                                              prev_mp_name=prev_mp_name,
-                                                              prev_frames=prev_graph_walk.get_quat_frames(),
-                                                              prev_parameters=prev_parameters)
+                                                              prev_mp_name,
+                                                              prev_graph_walk.get_quat_frames(),
+                                                              prev_parameters)
             except ConstraintError as exception:
                 print "Exception", exception.message
                 raise SynthesisError(prev_graph_walk.get_quat_frames(), exception.bad_samples)
@@ -115,17 +115,16 @@ class MotionPrimitiveGenerator(object):
             Low dimensional parameters for the morphable model
         """
         graph_node = self._motion_state_graph.nodes[(self.action_name, mp_name)]
-        close_to_optimum = False
         #prev_frames = None
         #mp_constraints = mp_constraints.transform_constraints_to_local_cos()
         if self.constrained_sampling_mode == SAMPLING_MODE_RANDOM_SPLINE:
             parameters = self._get_best_fit_random_sample_using_mgrd(graph_node, mp_constraints)
         elif self.constrained_sampling_mode == SAMPLING_MODE_CLUSTER_SEARCH and graph_node.cluster_tree is not None:
             parameters = self._search_for_best_fit_sample_in_cluster_tree(graph_node, mp_constraints, prev_frames)
-        else:#use random sample
+        else:
             parameters = self._get_best_fit_random_sample_from_statistical_model(graph_node, mp_name, mp_constraints,
                                                                                 prev_mp_name, prev_frames, prev_parameters)
-        if not self.use_transition_model and mp_constraints.use_local_optimization and not mp_constraints.min_error <= self.optimization_start_error_threshold:
+        if not self.use_transition_model and mp_constraints.use_local_optimization and mp_constraints.min_error <= self.optimization_start_error_threshold:
             parameters = self._optimize_parameters_numerically(parameters, graph_node, mp_constraints, prev_frames)
         return parameters
 
