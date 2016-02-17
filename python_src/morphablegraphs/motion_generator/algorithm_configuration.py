@@ -27,10 +27,12 @@ class AlgorithmConfigurationBuilder(object):
         self.global_spatial_optimization_settings = dict()
         self.global_time_optimization_settings = dict()
         self.trajectory_following_settings = dict()
+        self.inverse_kinematics_settings = dict()
         self.smoothing_settings = dict()
         self.constrained_sampling_mode = "random"
         self.n_cluster_search_candidates = 2
         self.debug_max_step = -1
+        self.activate_inverse_kinematics = False
         self.verbose = False
         self.average_elementary_action_error_threshold = 500
         self.collision_avoidance_constraints_mode = "none"
@@ -39,6 +41,7 @@ class AlgorithmConfigurationBuilder(object):
         self.set_default_trajectory_following_settings()
         self.set_default_optimization_settings()
         self.set_default_smoothing_settings()
+        self.set_default_inverse_kinematics_settings()
         self.build()
 
     def set_default_constrained_gmm_settings(self):
@@ -89,7 +92,7 @@ class AlgorithmConfigurationBuilder(object):
         self.trajectory_following_settings["transition_pose_constraint_factor"] = 1.0
         self.trajectory_following_settings["closest_point_search_accuracy"] = 0.001
         self.trajectory_following_settings["closest_point_search_max_iterations"] = 5000
-        self.trajectory_following_settings[" look_ahead_distance"] = 500
+        self.trajectory_following_settings["look_ahead_distance"] = 500
 
     def set_default_smoothing_settings(self):
         self.smoothing_settings = dict()
@@ -97,6 +100,12 @@ class AlgorithmConfigurationBuilder(object):
         self.smoothing_settings["time_smoothing"] = True
         self.smoothing_settings["spatial_smoothing_window"] = DEFAULT_SMOOTHING_WINDOW_SIZE
         self.smoothing_settings["time_smoothing_window"] = 15
+
+    def set_default_inverse_kinematics_settings(self):
+        self.inverse_kinematics_settings = dict()
+        self.inverse_kinematics_settings["method"] = "BFGS"
+        self.inverse_kinematics_settings["tolerance"] = 1e-10
+        self.inverse_kinematics_settings["max_iterations"] = 500
 
     def from_json(self, filename):
         temp_algorithm_config = load_json_file(filename)
@@ -121,6 +130,8 @@ class AlgorithmConfigurationBuilder(object):
         self.average_elementary_action_error_threshold = temp_algorithm_config["average_elementary_action_error_threshold"]
         self.collision_avoidance_constraints_mode = temp_algorithm_config["collision_avoidance_constraints_mode"]
         self.optimize_collision_avoidance_constraints_extra = temp_algorithm_config["optimize_collision_avoidance_constraints_extra"]
+        self.activate_inverse_kinematics = temp_algorithm_config["activate_inverse_kinematics"]
+        self.inverse_kinematics_settings = temp_algorithm_config["inverse_kinematics_settings"]
 
     def build(self):
         return {"use_constraints": self.use_constraints,
@@ -137,8 +148,10 @@ class AlgorithmConfigurationBuilder(object):
                 "global_time_optimization_settings": self.global_time_optimization_settings,
                 "constrained_gmm_settings": self.constrained_gmm_settings,
                 "trajectory_following_settings": self.trajectory_following_settings,
+                "inverse_kinematics_settings": self.inverse_kinematics_settings,
                 "constrained_sampling_mode": self.constrained_sampling_mode,
                 "n_cluster_search_candidates": self.n_cluster_search_candidates,
+                "activate_inverse_kinematics": self.activate_inverse_kinematics,
                 "verbose": self.verbose,
                 "average_elementary_action_error_threshold": self.average_elementary_action_error_threshold,
                 "collision_avoidance_constraints_mode": self.collision_avoidance_constraints_mode,
