@@ -82,11 +82,8 @@ class MotionPrimitiveGenerator(object):
         start = time.clock()
         if self.use_constraints and len(mp_constraints.constraints) > 0:
             try:
-                parameters = self.generate_constrained_sample(mp_name,
-                                                              mp_constraints,
-                                                              prev_mp_name,
-                                                              prev_graph_walk.get_quat_frames(),
-                                                              prev_parameters)
+                parameters = self.generate_constrained_sample(mp_name, mp_constraints,prev_mp_name,
+                                                              prev_graph_walk.get_quat_frames(), prev_parameters)
             except ConstraintError as exception:
                 print "Exception", exception.message
                 raise SynthesisError(prev_graph_walk.get_quat_frames(), exception.bad_samples)
@@ -122,8 +119,8 @@ class MotionPrimitiveGenerator(object):
         elif self.constrained_sampling_mode == SAMPLING_MODE_CLUSTER_SEARCH and graph_node.cluster_tree is not None:
             parameters = self._search_for_best_fit_sample_in_cluster_tree(graph_node, mp_constraints, prev_frames)
         else:
-            parameters = self._get_best_fit_random_sample_from_statistical_model(graph_node, mp_name, mp_constraints,
-                                                                                prev_mp_name, prev_frames, prev_parameters)
+            parameters = self._get_best_fit_random_sample(graph_node, mp_name, mp_constraints,
+                                                          prev_mp_name, prev_frames, prev_parameters)
         if not self.use_transition_model and mp_constraints.use_local_optimization and mp_constraints.min_error <= self.optimization_start_error_threshold:
             parameters = self._optimize_parameters_numerically(parameters, graph_node, mp_constraints, prev_frames)
         return parameters
@@ -146,7 +143,7 @@ class MotionPrimitiveGenerator(object):
         self.numerical_minimizer.set_objective_function_parameters(data)
         return self.numerical_minimizer.run(initial_guess=inital_guess)
 
-    def _get_best_fit_random_sample_from_statistical_model(self, graph_node, mp_name, mp_constraints, prev_mp_name, prev_frames, prev_parameters):
+    def _get_best_fit_random_sample(self, graph_node, mp_name, mp_constraints, prev_mp_name, prev_frames, prev_parameters):
         #  1) get gaussian_mixture_model and modify it based on the current state and settings
         if self._constrained_gmm_builder is not None:
             gmm = self._constrained_gmm_builder.build(self.action_name, mp_name, mp_constraints,
@@ -211,16 +208,16 @@ class MotionPrimitiveGenerator(object):
             the error of the best sample
         """
         best_sample = None
-        min_error = 1000000.0
-        count = 0
-        while count < self.n_random_samples:
-            parameter_sample = np.ravel(gmm.sample())
+        min_error = np.inf
+        idx = 0
+        samples = gmm.sample(self.n_random_samples)
+        while idx < self.n_random_samples:
             object_function_params = mp_node, constraints, prev_frames
-            error = obj_spatial_error_sum(parameter_sample, object_function_params)
+            error = obj_spatial_error_sum(samples[idx], object_function_params)
             if min_error > error:
                 min_error = error
-                best_sample = parameter_sample
-            count += 1
+                best_sample = samples[idx]
+            idx += 1
 
         print "found best sample with distance:", min_error
         constraints.min_error = min_error
@@ -248,28 +245,29 @@ class MotionPrimitiveGenerator(object):
             the error of the best sample
         """
         best_sample = None
-        min_error = 1000000.0
+        min_error = np.inf
         reached_max_bad_samples = False
         tmp_bad_samples = 0
-        count = 0
-        while count < self.n_random_samples:
+        idx = 0
+        samples = np.ravel(gmm.sample(self.n_random_samples))
+        while idx < self.n_random_samples:
             if tmp_bad_samples > self.max_bad_samples:
                     reached_max_bad_samples = True
-            parameter_sample = np.ravel(gmm.sample())
             # using bounding box to check sample is good or bad
-            valid = check_sample_validity(mp_node, parameter_sample, self.skeleton)
+            valid = check_sample_validity(mp_node, samples[idx], self.skeleton)
 
             if valid:
                 object_function_params = mp_node, constraints, prev_frames
-                error = obj_spatial_error_sum(parameter_sample, object_function_params)
+                error = obj_spatial_error_sum(samples[idx], object_function_params)
                 if min_error > error:
                     min_error = error
-                    best_sample = parameter_sample
-                count += 1
+                    best_sample = samples[idx]
             else:
                 if self.verbose:
                     print "sample failed validity check"
                 tmp_bad_samples += 1
+
+            idx += 1
 
         if reached_max_bad_samples:
             print "Warning: Failed to pick good sample from GMM"

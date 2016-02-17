@@ -12,8 +12,8 @@ class MixtureModelWrapper(object):
     def __init__(self, mgrd_mixture_model):
         self.mixture_model = mgrd_mixture_model
 
-    def sample(self):
-        return self.mixture_model.sample(1)[0]
+    def sample(self, n_samples=1):
+        return self.mixture_model.sample(n_samples)
 
 
 class MotionPrimitiveModelWrapper(object):
