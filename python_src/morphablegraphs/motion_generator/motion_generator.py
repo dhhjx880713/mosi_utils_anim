@@ -6,6 +6,7 @@ from constraints import MGInputFileReader
 from algorithm_configuration import AlgorithmConfigurationBuilder
 from graph_walk_generator import GraphWalkGenerator
 from graph_walk_optimizer import GraphWalkOptimizer
+from inverse_kinematics import InverseKinematics
 from ..utilities import load_json_file
 
 
@@ -28,6 +29,7 @@ class MotionGenerator(object):
         self.motion_primitive_graph = graph_loader.build()
         self.graph_walk_generator = GraphWalkGenerator(self.motion_primitive_graph, algorithm_config)
         self.graph_walk_optimizer = GraphWalkOptimizer(self.motion_primitive_graph, algorithm_config)
+        self.inverse_kinematics = InverseKinematics(self.motion_primitive_graph.full_skeleton, self._algorithm_config)
 
     def set_algorithm_config(self, algorithm_config):
         """
@@ -79,6 +81,9 @@ class MotionGenerator(object):
             if self.motion_primitive_graph.hand_pose_generator is not None:
                 print "generate hand poses"
                 self.motion_primitive_graph.hand_pose_generator.generate_hand_poses(motion_vector)
+
+            if self._algorithm_config["activate_inverse_kinematics"]:
+                self.inverse_kinematics.modify_motion_vector(motion_vector)
 
             time_in_seconds = time.clock() - start
             minutes = int(time_in_seconds/60)

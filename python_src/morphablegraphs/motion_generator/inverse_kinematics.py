@@ -10,6 +10,9 @@ def obj_inverse_kinematics(s, data):
 
 
 class AnimationFrame(object):
+    """
+    TODO wrap parameters to allow use with constrained euler, e.g. to rotate an arm using a single parameter
+    """
     def __init__(self, frame_parameters, channels):
         self.frame_parameters = frame_parameters
         self.channels = channels
@@ -42,10 +45,10 @@ class AnimationFrame(object):
 
 
 class InverseKinematics(object):
-    def __init__(self, skeleton, optimization_settings):
+    def __init__(self, skeleton, algorithm_settings):
         self.skeleton = skeleton
         self.frame = None
-        self.optimization_settings = optimization_settings
+        self._ik_settings = algorithm_settings["inverse_kinematics_settings"]
         self.verbose = False
 
     def set_reference_frame(self, reference_frame):
@@ -60,9 +63,9 @@ class InverseKinematics(object):
         result = minimize(obj_inverse_kinematics,
                           initial_guess,
                           args=(data,),
-                          method=self.optimization_settings["method"],
-                          tol=self.optimization_settings["tolerance"],
-                          options={'maxiter': self.optimization_settings["max_iterations"], 'disp': self.verbose})
+                          method=self._ik_settings["method"],
+                          tol=self._ik_settings["tolerance"],
+                          options={'maxiter': self._ik_settings["max_iterations"], 'disp': self.verbose})
         return self.frame.get_frame_parameters()
 
     def _extract_free_parameters(self, free_joints):
@@ -83,4 +86,8 @@ class InverseKinematics(object):
         position = self.evaluate(target_joint, parameters, free_joints)
         d = position - target_position
         return np.dot(d, d)
+
+    def modify_motion_vector(self, motion_vector):
+        for event in motion_vector.keyframe_events_dict.items():
+            print(event)
 

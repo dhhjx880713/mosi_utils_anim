@@ -43,6 +43,11 @@
         "method": "BFGS",
         "max_iterations": 500
     },
+    "inverse_kinematics_settings":{
+        "tolerance": 0.05,
+        "method": "BFGS",
+        "max_iterations": 500
+    },
     "constrained_gmm_settings": {
         "precision": {
             "smooth": 5, 
@@ -55,6 +60,7 @@
     "n_random_samples": 300,
     "average_elementary_action_error_threshold": 500,
     "constrained_sampling_mode": "cluster_search",
+    "activate_inverse_kinematics": false,
     "n_cluster_search_candidates": 1,
     "use_transition_model": false, 
     "local_optimization_mode": "none",
