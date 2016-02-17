@@ -24,6 +24,9 @@ class Skeleton(object):
         self.root = deepcopy(bvh_reader.root)
         self.node_names = deepcopy(bvh_reader.node_names)
         self.reference_frame = self._extract_reference_frame(bvh_reader)
+        self.node_channels = collections.OrderedDict()
+        for node_idx, node_name in enumerate(self.node_names):
+            self.node_channels[node_name] = bvh_reader.node_channels[node_idx]
         self.nodes = None
         self._create_filtered_node_name_frame_map()
         self.tool_nodes = []
@@ -43,9 +46,11 @@ class Skeleton(object):
     def create_reduced_copy(self):
         reduced_skeleton = deepcopy(self)
         reduced_skeleton.node_names = collections.OrderedDict()
+        reduced_skeleton.node_channels = collections.OrderedDict()
         for node_name in self.node_names.keys():
             if not node_name.startswith("Bip") and "children" in self.node_names[node_name].keys():
                 reduced_skeleton.node_names[node_name] = deepcopy(self.node_names[node_name])
+                reduced_skeleton.node_channels[node_name] = self.node_channels[node_name]
         reduced_skeleton.reference_frame = None
         reduced_skeleton._create_filtered_node_name_frame_map()
         reduced_skeleton.tool_bones = []
@@ -72,15 +77,15 @@ class Skeleton(object):
                 is_endsite = True
 
             if node_name == self.root:
-                node = SkeletonRootNode(node_name, None, self.rotation_type)
+                node = SkeletonRootNode(node_name, self.node_channels[node_name], None, self.rotation_type)
                 node.index = joint_index
                 joint_index += 1
             elif not is_endsite:
-                node = SkeletonJointNode(node_name, None, self.rotation_type)
+                node = SkeletonJointNode(node_name, self.node_channels[node_name], None, self.rotation_type)
                 node.index = joint_index
                 joint_index += 1
             else:
-                node = SkeletonEndSiteNode(node_name, None, self.rotation_type)
+                node = SkeletonEndSiteNode(node_name, [], None, self.rotation_type)
 
             if node_name in self.node_name_frame_map and self.node_name_frame_map[node_name] >= 0:
                 node.quaternion_frame_index = node.index * 4 + 3
@@ -96,7 +101,7 @@ class Skeleton(object):
             self.nodes[node_name] = node
 
     def construct_hierarchy(self):
-        self.root_node = SkeletonRootNode(self.root, None)
+        self.root_node = SkeletonRootNode(self.root, self.node_channels[self.root], None)
         self.root_node.index = 0
         self.root_node.quaternion_frame_index = 3
         self.nodes = collections.OrderedDict()
@@ -110,7 +115,7 @@ class Skeleton(object):
         :return:
         """
         for child_name in self.node_names[parent_node.node_name]["children"]:
-            child_node = SkeletonJointNode(child_name, parent_node)
+            child_node = SkeletonJointNode(child_name, self.node_channels[child_name], parent_node)
             child_node.index = len(self.nodes.keys())
             child_node.offset = self.node_names[child_name]["offset"]
             if child_name in self.node_name_frame_map:
