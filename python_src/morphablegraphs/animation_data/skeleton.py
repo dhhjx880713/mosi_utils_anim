@@ -25,8 +25,7 @@ class Skeleton(object):
         self.node_names = deepcopy(bvh_reader.node_names)
         self.reference_frame = self._extract_reference_frame(bvh_reader)
         self.node_channels = collections.OrderedDict()
-        for node_idx, node_name in enumerate(self.node_names):
-            self.node_channels[node_name] = bvh_reader.node_channels[node_idx]
+        self.extract_channels()
         self.nodes = None
         self._create_filtered_node_name_frame_map()
         self.tool_nodes = []
@@ -42,6 +41,13 @@ class Skeleton(object):
         #print "number of parameters", self.get_number_of_frame_parameters(ROTATION_TYPE_QUATERNION)
         #for joint in self.nodes.keys():
         #    print joint, self.nodes[joint].index
+
+    def extract_channels(self):
+        for node_idx, node_name in enumerate(self.node_names):
+            if "channels" in self.node_names[node_name].keys():
+                channels = self.node_names[node_name]["channels"]
+                self.node_channels[node_name] = channels
+                #print("set channels",node_name ,channels)
 
     def create_reduced_copy(self):
         reduced_skeleton = deepcopy(self)
