@@ -3,6 +3,8 @@ from copy import copy
 from scipy.optimize import minimize
 from collections import OrderedDict
 
+LEN_QUATERNION = 4
+LEN_TRANSLATION = 3
 
 def obj_inverse_kinematics(s, data):
     ik, free_joints, target_joint, target_position = data
@@ -18,11 +20,19 @@ class AnimationFrame(object):
         self.channels = channels
         self.n_channels = {}
         self.channels_start = {}
+        self.types = {}
         channel_idx = 0
         for joint, channels in self.channels.items():
             self.channels_start[joint] = channel_idx
             self.n_channels[joint] = len(channels)
+            if len(channels) == LEN_QUATERNION:
+                self.types[joint] = "rot"
+            elif len(channels) == LEN_TRANSLATION + LEN_QUATERNION:
+                self.types[joint] = "trans"
+            else:
+                self.types[joint] = "rot"
             channel_idx += self.n_channels[joint]
+
 
     def set_channel_values(self, parameters, free_joints):
         p_idx = 0
@@ -34,6 +44,12 @@ class AnimationFrame(object):
             self.frame_parameters[f_start:f_end] += parameters[p_idx:p_end]
             p_idx += n_channels
         return self.frame_parameters
+
+    def set_rotation_of_joint(self, joint_name, axis, angle):
+        n_channels = self.n_channels[joint_name]
+        f_start = self.channels_start[joint_name]
+        f_end = f_start + n_channels
+        return
 
     def extract_parameters(self, joint_name):
         f_start = self.channels_start[joint_name]
@@ -54,6 +70,9 @@ class InverseKinematics(object):
     def set_reference_frame(self, reference_frame):
         channels = OrderedDict()
         for node in self.skeleton.nodes:
+            node_channels = copy(node.channels)
+            if np.all([ch in node_channels for ch in ["Xrotation", "Yrotation", "Zrotation"]]):
+                node_channels += ["Wrotation"] #TODO fix order
             channels[node.name] = node.channels
         self.frame = AnimationFrame(reference_frame, channels)
 
