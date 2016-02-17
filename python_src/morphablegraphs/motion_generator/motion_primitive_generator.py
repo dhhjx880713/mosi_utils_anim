@@ -13,7 +13,9 @@ from ..utilities.exceptions import ConstraintError, SynthesisError
 from optimization import OptimizerBuilder
 from objective_functions import obj_spatial_error_sum, obj_spatial_error_sum_and_naturalness
 from mgrd import score_samples_with_pose_and_semantic_constraints, motion_primitive_get_random_samples
-
+SAMPLING_MODE_RANDOM = "random_discrete"
+SAMPLING_MODE_CLUSTER_SEARCH = "cluster_search"
+SAMPLING_MODE_RANDOM_SPLINE = "random_spline"
 
 class MotionPrimitiveGenerator(object):
     """
@@ -42,7 +44,7 @@ class MotionPrimitiveGenerator(object):
         self.optimization_start_error_threshold = self._optimization_settings["start_error_threshold"]
         self.use_constrained_gmm = self._algorithm_config["use_constrained_gmm"]
         self.use_transition_model = self._algorithm_config["use_transition_model"]
-        self.activate_cluster_search = self._algorithm_config["activate_cluster_search"]
+        self.constrained_sampling_mode = self._algorithm_config["constrained_sampling_mode"]
         self.activate_parameter_check = self._algorithm_config["activate_parameter_check"]
         self.n_cluster_search_candidates = self._algorithm_config["n_cluster_search_candidates"]
         if self.use_constrained_gmm:
@@ -114,37 +116,36 @@ class MotionPrimitiveGenerator(object):
         """
         graph_node = self._motion_state_graph.nodes[(self.action_name, mp_name)]
         close_to_optimum = False
-        if graph_node.use_mgrd:
-            #TODO handle transformation of motion primitive to global coordinate system or constraints to local coordinate system of motion primitive based on the previous motion
-            samples = motion_primitive_get_random_samples(graph_node.motion_primitive, self.n_random_samples)
-            transform = mp_constraints.aligning_transform
-            scores = score_samples_with_pose_and_semantic_constraints(graph_node.motion_primitive, samples,
-                                                                          mp_constraints.convert_to_mgrd_constraints(),
-                                                                          pose_constraint_weights=(1.0, 1.0), transform=transform)
-
-            best_idx = np.argmin(scores)
-            mp_constraints.min_error = scores[best_idx]
-            print "Found best sample with score", scores[best_idx]
-            parameters = samples[best_idx]
-        else:
-            #prev_frames = None
-            #mp_constraints = mp_constraints.transform_constraints_to_local_cos()
-            if self.activate_cluster_search and graph_node.cluster_tree is not None:
-                parameters = self._search_for_best_fit_sample_in_cluster_tree(graph_node, mp_constraints, prev_frames)
-            else:
-                parameters = self._get_best_fit_random_sample_from_statistical_model(graph_node, mp_name, mp_constraints,
-                                                                                    prev_mp_name, prev_frames, prev_parameters)
-        if mp_constraints.min_error <= self.optimization_start_error_threshold:
-            close_to_optimum = True
-        #print "condition", not self.use_transition_model, mp_constraints.use_local_optimization, not close_to_optimum, self.optimization_start_error_threshold
-        if not self.use_transition_model and mp_constraints.use_local_optimization and not close_to_optimum:
-            data = graph_node, mp_constraints, prev_frames, \
-                   self._optimization_settings["error_scale_factor"], \
-                   self._optimization_settings["quality_scale_factor"]
-
-            self.numerical_minimizer.set_objective_function_parameters(data)
-            parameters = self.numerical_minimizer.run(initial_guess=parameters)
+        #prev_frames = None
+        #mp_constraints = mp_constraints.transform_constraints_to_local_cos()
+        if self.constrained_sampling_mode == SAMPLING_MODE_RANDOM_SPLINE:
+            parameters = self._get_best_fit_random_sample_using_mgrd(graph_node, mp_constraints)
+        elif self.constrained_sampling_mode == SAMPLING_MODE_CLUSTER_SEARCH and graph_node.cluster_tree is not None:
+            parameters = self._search_for_best_fit_sample_in_cluster_tree(graph_node, mp_constraints, prev_frames)
+        else:#use random sample
+            parameters = self._get_best_fit_random_sample_from_statistical_model(graph_node, mp_name, mp_constraints,
+                                                                                prev_mp_name, prev_frames, prev_parameters)
+        if not self.use_transition_model and mp_constraints.use_local_optimization and not mp_constraints.min_error <= self.optimization_start_error_threshold:
+            parameters = self._optimize_parameters_numerically(parameters, graph_node, mp_constraints, prev_frames)
         return parameters
+
+    def _get_best_fit_random_sample_using_mgrd(self, graph_node, mp_constraints):
+        #TODO handle transformation of motion primitive to global coordinate system or constraints to local coordinate system of motion primitive based on the previous motion
+        samples = motion_primitive_get_random_samples(graph_node.motion_primitive, self.n_random_samples)
+        transform = mp_constraints.aligning_transform
+        scores = score_samples_with_pose_and_semantic_constraints(graph_node.motion_primitive, samples,
+                                                                      mp_constraints.convert_to_mgrd_constraints(),
+                                                                      pose_constraint_weights=(1.0, 1.0), transform=transform)
+        best_idx = np.argmin(scores)
+        mp_constraints.min_error = scores[best_idx]
+        print "Found best sample with score", scores[best_idx]
+        return samples[best_idx]
+
+    def _optimize_parameters_numerically(self, inital_guess, graph_node, mp_constraints, prev_frames):
+         #print "condition", not self.use_transition_model, mp_constraints.use_local_optimization, not close_to_optimum, self.optimization_start_error_threshold
+        data = graph_node, mp_constraints, prev_frames, self._optimization_settings["error_scale_factor"], self._optimization_settings["quality_scale_factor"]
+        self.numerical_minimizer.set_objective_function_parameters(data)
+        return self.numerical_minimizer.run(initial_guess=inital_guess)
 
     def _get_best_fit_random_sample_from_statistical_model(self, graph_node, mp_name, mp_constraints, prev_mp_name, prev_frames, prev_parameters):
         #  1) get gaussian_mixture_model and modify it based on the current state and settings

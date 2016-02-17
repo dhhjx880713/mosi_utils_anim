@@ -85,7 +85,10 @@ local_optimization_mode -  Used to activate/deactivate local optimization for a 
                            "all": optimize trajectory and keyframe constraints
 use_global_spatial_optimization - Optimize spatial constraints over graph walk
 use_global_time_optimization - Optimize time constraints over graph walk, if they are found
-activate_cluster_search - If active, a space partitioning data structure is used for a directed search instead of random sampling
+constrained_sampling mode - Used to select the method of the initial guess generation from the statistical model. Possible values are as follows
+                            "random_discrete": Draws random samples and converts them into discrete frame representations.
+                            "random_spline": Draws random samples and converts them into functional representations.
+                            "cluster_search": If active, a space partitioning data structure is used for a directed search instead of random sampling.
 n_cluster_search_candidates - If cluster search is active, sets the number of candidates that are kept at every level of the space partitioning structure in order to avoid local minima
 collision_avoidance_constraints_mode - Possible values are: "none" and "create_constraint_set". If "create_constraint_set" is set, then annotated collision avoidance constraints are included with the other constraints, otherwise they are ignored
 optimize_collision_avoidance_constraints_extra - If active, annotated trajectories from collision avoidance are optimized separately from the other constraints. This is independent of the collision_avoidance_constraints_mode.

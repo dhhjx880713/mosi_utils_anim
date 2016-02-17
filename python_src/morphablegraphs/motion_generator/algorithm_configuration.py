@@ -28,7 +28,7 @@ class AlgorithmConfigurationBuilder(object):
         self.global_time_optimization_settings = dict()
         self.trajectory_following_settings = dict()
         self.smoothing_settings = dict()
-        self.activate_cluster_search = True
+        self.constrained_sampling_mode = "random"
         self.n_cluster_search_candidates = 2
         self.debug_max_step = -1
         self.verbose = False
@@ -114,7 +114,7 @@ class AlgorithmConfigurationBuilder(object):
         self.local_optimization_settings = temp_algorithm_config["local_optimization_settings"]
         self.global_spatial_optimization_settings = temp_algorithm_config["global_spatial_optimization_settings"]
         self.global_time_optimization_settings = temp_algorithm_config["global_time_optimization_settings"]
-        self.activate_cluster_search = temp_algorithm_config["activate_cluster_search"]
+        self.constrained_sampling_mode = temp_algorithm_config["constrained_sampling_mode"]
         self.n_cluster_search_candidates = temp_algorithm_config["n_cluster_search_candidates"]
         self.debug_max_step = temp_algorithm_config["debug_max_step"]
         self.verbose = temp_algorithm_config["verbose"]
@@ -137,7 +137,7 @@ class AlgorithmConfigurationBuilder(object):
                 "global_time_optimization_settings": self.global_time_optimization_settings,
                 "constrained_gmm_settings": self.constrained_gmm_settings,
                 "trajectory_following_settings": self.trajectory_following_settings,
-                "activate_cluster_search": self.activate_cluster_search,
+                "constrained_sampling_mode": self.constrained_sampling_mode,
                 "n_cluster_search_candidates": self.n_cluster_search_candidates,
                 "verbose": self.verbose,
                 "average_elementary_action_error_threshold": self.average_elementary_action_error_threshold,
