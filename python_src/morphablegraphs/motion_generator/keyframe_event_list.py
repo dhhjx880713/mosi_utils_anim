@@ -10,6 +10,7 @@ class KeyframeEventList(object):
         self.frame_annotation = dict()
         self.frame_annotation['elementaryActionSequence'] = []
         self.keyframe_events_dict = dict()
+        self.ik_constraints = dict()
 
     def update_events(self, graph_walk, start_step):
         self._create_event_dict(graph_walk)
@@ -79,13 +80,18 @@ class KeyframeEventList(object):
             event_keyframe_index = n_frames + canonical_keyframe
         return event_keyframe_index
 
-    def _extract_event_list(self, keyframe_event):
+    def _extract_event_list(self, keyframe_event, event_keyframe_index):
         #extract events from event list
         n_events = len(keyframe_event["event_list"])
         if n_events == 1:
             events = keyframe_event["event_list"]
         else:
             events = self._merge_multiple_keyframe_events(keyframe_event["event_list"], n_events)
+
+        ##merge events with events of previous iterations
+        if event_keyframe_index in self.keyframe_events_dict:
+            events = events + self.keyframe_events_dict[event_keyframe_index]
+        events = self._merge_multiple_keyframe_events(events, len(events))
         return events
 
     def _create_events_from_keyframe_constraints(self, graph_walk):
@@ -93,25 +99,74 @@ class KeyframeEventList(object):
         :return:
         """
         self.keyframe_events_dict = dict()
-        ik_constraints = dict()
+        self.ik_constraints = dict()
         n_frames = 0
         for step in graph_walk.steps:
             if graph_walk.use_time_parameters:
                 time_function = graph_walk.motion_state_graph.nodes[step.node_key].back_project_time_function(step.parameters)
             for keyframe_event in step.motion_primitive_constraints.keyframe_event_list.values():
                 event_keyframe_index = self._extract_keyframe_index(keyframe_event, time_function, n_frames, graph_walk.use_time_parameters)
-                events = self._extract_event_list(keyframe_event)
-                ##merge events with events of previous iterations
-                if event_keyframe_index in self.keyframe_events_dict:
-                    events = events + self.keyframe_events_dict[event_keyframe_index]
-                events = self._merge_multiple_keyframe_events(events, len(events))
-                self.keyframe_events_dict[event_keyframe_index] = events
-                #ik_constraints[event_keyframe_index] =
+
+                self.keyframe_events_dict[event_keyframe_index] = self._extract_event_list(keyframe_event, event_keyframe_index)
+                self.ik_constraints[event_keyframe_index] = []
 
             if graph_walk.use_time_parameters:
                 n_frames += len(time_function)
             else:
                 n_frames += step.end_frame - step.start_frame
+
+    def _add_event_list_to_frame_annotation(self, graph_walk):
+        """
+        self.keyframe_events_dict[keyframe] m
+        :return:
+        """
+        #print "keyframe event dict", self.keyframe_events_dict
+        keyframe_event_list = []
+        for keyframe in self.keyframe_events_dict.keys():
+            #rint "keyframe event dict", self.keyframe_events_dict[keyframe]
+            for event_desc in self.keyframe_events_dict[keyframe]:
+                print "event description", event_desc
+                event = dict()
+                if graph_walk.mg_input is not None and graph_walk.mg_input.activate_joint_mapping:
+                    if isinstance(event_desc["parameters"]["joint"], basestring):
+                        event["jointName"] = graph_walk.mg_input.inverse_map_joint(event_desc["parameters"]["joint"])
+                    else:
+                        print "apply joint mapping"
+                        event["jointName"] = map(graph_walk.mg_input.inverse_map_joint, event_desc["parameters"]["joint"])
+                else:
+                    event["jointName"] = event_desc["parameters"]["joint"]
+                event["jointName"] = self._handle_both_hands_event(event)
+                event_type = event_desc["event"]
+                target = event_desc["parameters"]["target"]
+                event[event_type] = target
+                event["frameNumber"] = int(keyframe)
+                keyframe_event_list.append(event)
+        self.frame_annotation["events"] = keyframe_event_list
+
+    def _merge_multiple_keyframe_events(self, events, num_events):
+        """Merge events if there are more than one event defined for the same keyframe.
+        """
+        event_list = [(events[i]["event"], events[i]) for i in xrange(num_events)]
+        temp_event_dict = dict()
+        for name, event in event_list:
+            if name not in temp_event_dict.keys():
+               temp_event_dict[name] = event
+            else:
+                if "joint" in temp_event_dict[name]["parameters"].keys():
+                    existing_entry = copy(temp_event_dict[name]["parameters"]["joint"])
+                    if isinstance(existing_entry, basestring) and event["parameters"]["joint"] != existing_entry:
+                        temp_event_dict[name]["parameters"]["joint"] = [existing_entry, event["parameters"]["joint"]]
+                    elif event["parameters"]["joint"] not in existing_entry:
+                        temp_event_dict[name]["parameters"]["joint"].append(event["parameters"]["joint"])
+                    print "event dict merged", temp_event_dict[name]
+                else:
+                    print "event dict merge did not happen", temp_event_dict[name]
+        return temp_event_dict.values()
+
+    def export_to_file(self, prefix):
+        write_to_json_file(prefix + "_annotations"+".json", self.frame_annotation)
+        #print "keyframe event dict", self.keyframe_events_dict, filename
+        write_to_json_file(prefix + "_actions"+".json", self.keyframe_events_dict)
 
     def _add_unconstrained_events_from_annotation(self, graph_walk):
         """The method assumes the start and end frames of each step were already warped by calling convert_to_motion
@@ -166,56 +221,3 @@ class KeyframeEventList(object):
                     return str(event["jointName"])
         else:
             return str(event["jointName"])
-
-    def _add_event_list_to_frame_annotation(self, graph_walk):
-        """
-        self.keyframe_events_dict[keyframe] m
-        :return:
-        """
-        #print "keyframe event dict", self.keyframe_events_dict
-        keyframe_event_list = []
-        for keyframe in self.keyframe_events_dict.keys():
-            #rint "keyframe event dict", self.keyframe_events_dict[keyframe]
-            for event_desc in self.keyframe_events_dict[keyframe]:
-                print "event description", event_desc
-                event = dict()
-                if graph_walk.mg_input is not None and graph_walk.mg_input.activate_joint_mapping:
-                    if isinstance(event_desc["parameters"]["joint"], basestring):
-                        event["jointName"] = graph_walk.mg_input.inverse_map_joint(event_desc["parameters"]["joint"])
-                    else:
-                        print "apply joint mapping"
-                        event["jointName"] = map(graph_walk.mg_input.inverse_map_joint, event_desc["parameters"]["joint"])
-                else:
-                    event["jointName"] = event_desc["parameters"]["joint"]
-                event["jointName"] = self._handle_both_hands_event(event)
-                event_type = event_desc["event"]
-                target = event_desc["parameters"]["target"]
-                event[event_type] = target
-                event["frameNumber"] = int(keyframe)
-                keyframe_event_list.append(event)
-        self.frame_annotation["events"] = keyframe_event_list
-
-    def _merge_multiple_keyframe_events(self, events, num_events):
-        """Merge events if there are more than one event defined for the same keyframe.
-        """
-        event_list = [(events[i]["event"], events[i]) for i in xrange(num_events)]
-        temp_event_dict = dict()
-        for name, event in event_list:
-            if name not in temp_event_dict.keys():
-               temp_event_dict[name] = event
-            else:
-                if "joint" in temp_event_dict[name]["parameters"].keys():
-                    existing_entry = copy(temp_event_dict[name]["parameters"]["joint"])
-                    if isinstance(existing_entry, basestring) and event["parameters"]["joint"] != existing_entry:
-                        temp_event_dict[name]["parameters"]["joint"] = [existing_entry, event["parameters"]["joint"]]
-                    elif event["parameters"]["joint"] not in existing_entry:
-                        temp_event_dict[name]["parameters"]["joint"].append(event["parameters"]["joint"])
-                    print "event dict merged", temp_event_dict[name]
-                else:
-                    print "event dict merge did not happen", temp_event_dict[name]
-        return temp_event_dict.values()
-
-    def export_to_file(self, prefix):
-        write_to_json_file(prefix + "_annotations"+".json", self.frame_annotation)
-        #print "keyframe event dict", self.keyframe_events_dict, filename
-        write_to_json_file(prefix + "_actions"+".json", self.keyframe_events_dict)
