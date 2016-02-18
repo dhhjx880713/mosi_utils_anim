@@ -84,7 +84,11 @@ class MotionPrimitiveModelWrapper(object):
 
         """
         #if self.is_mgrd:
-        return self.motion_primitive.create_spatial_spline(s_vec)
+        quat_spline = self.motion_primitive.create_spatial_spline(s_vec)
+        if use_time_parameters:
+            time_spline = self.motion_primitive.create_time_spline(s_vec)
+            quat_spline = time_spline.warp(quat_spline)
+        return quat_spline
         #else:
          #   return self.motion_primitive.back_project(s_vec, use_time_parameters)
 
@@ -106,7 +110,7 @@ class MotionPrimitiveModelWrapper(object):
 
     def get_n_canonical_frames(self):
         #if self.is_mgrd:
-            return self.motion_primitive.time.n_canonical_frames-1
+        return self.motion_primitive.time.n_canonical_frames-1
         #else:
         #    return self.motion_primitive.n_canonical_frames
 
@@ -124,6 +128,6 @@ class MotionPrimitiveModelWrapper(object):
 
     def get_gaussian_mixture_model(self):
         #if self.is_mgrd:
-        return self.motion_primitive.mixture#MixtureModelWrapper()
+        return self.motion_primitive.mixture
         #else:
         #    return self.motion_primitive.gaussian_mixture_model
