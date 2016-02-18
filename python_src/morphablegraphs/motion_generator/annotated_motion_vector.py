@@ -7,12 +7,8 @@ from ..utilities import write_to_json_file, write_to_logfile
 class AnnotatedMotionVector(MotionVector):
     def __init__(self, algorithm_config=None, rotation_type=ROTATION_TYPE_QUATERNION):
         super(AnnotatedMotionVector, self).__init__(algorithm_config, rotation_type)
-        self.frame_annotation = dict()
-        self.frame_annotation['elementaryActionSequence'] = []
-        self.step_count = 0
+        self.keyframe_event_list = None
         self.mg_input = None
-        self._algorithm_config = algorithm_config
-        self.keyframe_events_dict = dict()
         self.skeleton = None
 
     def export(self, output_dir, output_filename, add_time_stamp=False, export_details=False):
@@ -25,10 +21,5 @@ class AnnotatedMotionVector(MotionVector):
 
         if self.mg_input is not None:
             write_to_json_file(output_dir + os.sep + output_filename + ".json", self.mg_input.mg_input_file)
-        self._export_event_dict(output_dir + os.sep + output_filename + "_actions"+".json")
-        write_to_json_file(output_dir + os.sep + output_filename + "_annotations"+".json", self.frame_annotation)
-
-
-    def _export_event_dict(self, filename):
-        #print "keyframe event dict", self.keyframe_events_dict, filename
-        write_to_json_file(filename, self.keyframe_events_dict)
+        if self.keyframe_event_list is not None:
+            self.keyframe_event_list.export_to_file(output_dir + os.sep + output_filename)

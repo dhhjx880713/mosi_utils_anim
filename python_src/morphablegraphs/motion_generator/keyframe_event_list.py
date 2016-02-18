@@ -1,5 +1,6 @@
 import numpy as np
 from copy import copy
+from ..utilities import write_to_json_file
 
 UNCONSTRAINED_EVENTS_TRANSFER_POINT = "transfer_point"
 
@@ -213,3 +214,8 @@ class KeyframeEventList(object):
                 else:
                     print "event dict merge did not happen", temp_event_dict[name]
         return temp_event_dict.values()
+
+    def export_to_file(self, prefix):
+        write_to_json_file(prefix + "_annotations"+".json", self.frame_annotation)
+        #print "keyframe event dict", self.keyframe_events_dict, filename
+        write_to_json_file(prefix + "_actions"+".json", self.keyframe_events_dict)

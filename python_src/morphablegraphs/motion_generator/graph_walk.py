@@ -64,8 +64,7 @@ class GraphWalk(object):
         self.update_temp_motion_vector(use_time_parameters=self.use_time_parameters)
         annotated_motion_vector = AnnotatedMotionVector()
         annotated_motion_vector.frames = self.full_skeleton.complete_motion_vector_from_reference(self.motion_state_graph.skeleton, self.motion_vector.frames)
-        annotated_motion_vector.keyframe_events_dict = self.keyframe_event_list.keyframe_events_dict
-        annotated_motion_vector.frame_annotation = self.keyframe_event_list.frame_annotation
+        annotated_motion_vector.keyframe_event_list = self.keyframe_event_list
         annotated_motion_vector.skeleton = self.full_skeleton
         annotated_motion_vector.mg_input = self.mg_input
         return annotated_motion_vector
