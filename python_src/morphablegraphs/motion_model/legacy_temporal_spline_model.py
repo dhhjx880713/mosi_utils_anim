@@ -39,7 +39,7 @@ class LegacyTemporalSplineModel(object):
 
     def back_project_time_function(self, gamma):
         """ Backtransform a lowdimensional vector gamma to the timewarping
-        function t(t') and inverse it to t'(t).
+        function t(t').
 
         Parameters
         ----------
@@ -49,14 +49,14 @@ class LegacyTemporalSplineModel(object):
         Returns
         -------
         * time_function: numpy.ndarray
-        \tThe indices of the timewarping function t'(t)
+        \tThe indices of the timewarping function t(t')
         """
         canonical_time_function = self._back_transform_gamma_to_canonical_time_function(gamma)
-        sample_time_function = self._invert_canonical_to_sample_time_function(canonical_time_function)
+        #sample_time_function = self._invert_canonical_to_sample_time_function(canonical_time_function)
         if self.smooth_time_parameters:
-            return self._smooth_time_function(sample_time_function)
+            return self._smooth_time_function(canonical_time_function)
         else:
-            return sample_time_function
+            return canonical_time_function
 
     def _back_transform_gamma_to_canonical_time_function(self, gamma):
         """backtransform gamma to a discrete timefunction reconstruct t by evaluating the harmonics and the mean
@@ -73,17 +73,17 @@ class LegacyTemporalSplineModel(object):
         canonical_time_function -= 1.0
         return canonical_time_function
 
-    def _invert_canonical_to_sample_time_function(self, canonical_time_function):
-        """ calculate inverse spline and then sample that inverse spline
-            # i.e. calculate t'(t) from t(t')
-        """
-        # 1 get a valid inverse spline
-        x_sample = np.arange(self.n_canonical_frames)
-        sample_time_spline = si.splrep(canonical_time_function, x_sample, w=None, k=3)
-        # 2 sample discrete data from inverse spline
-        # canonical_time_function gets inverted to map from sample to canonical time
-        frames = np.linspace(1, stop=canonical_time_function[-2], num=np.round(canonical_time_function[-2]))
-        sample_time_function = si.splev(frames, sample_time_spline)
-        sample_time_function = np.insert(sample_time_function, 0, 0)
-        sample_time_function = np.insert(sample_time_function, len(sample_time_function), self.n_canonical_frames-1)
-        return sample_time_function
+    # def _invert_canonical_to_sample_time_function(self, canonical_time_function):
+    #     """ calculate inverse spline and then sample that inverse spline
+    #         # i.e. calculate t'(t) from t(t')
+    #     """
+    #     # 1 get a valid inverse spline
+    #     x_sample = np.arange(self.n_canonical_frames)
+    #     sample_time_spline = si.splrep(canonical_time_function, x_sample, w=None, k=3)
+    #     # 2 sample discrete data from inverse spline
+    #     # canonical_time_function gets inverted to map from sample to canonical time
+    #     frames = np.linspace(1, stop=canonical_time_function[-2], num=np.round(canonical_time_function[-2]))
+    #     sample_time_function = si.splev(frames, sample_time_spline)
+    #     sample_time_function = np.insert(sample_time_function, 0, 0)
+    #     sample_time_function = np.insert(sample_time_function, len(sample_time_function), self.n_canonical_frames-1)
+    #     return sample_time_function

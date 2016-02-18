@@ -10,7 +10,6 @@ class KeyframeEventList(object):
         self.frame_annotation = dict()
         self.frame_annotation['elementaryActionSequence'] = []
         self.keyframe_events_dict = dict()
-        self.ik_constraints = dict()
 
     def update_events(self, graph_walk, start_step):
         self._create_event_dict(graph_walk)
@@ -39,7 +38,7 @@ class KeyframeEventList(object):
             step = graph_walk.steps[start_step-1]
             if graph_walk.use_time_parameters:
                 time_function = graph_walk.motion_state_graph.nodes[step.node_key].back_project_time_function(step.parameters)
-                start_frame = len(time_function)
+                start_frame = int(time_function[-1])
             else:
                 start_frame = step.end_frame
         end_frame = start_frame
@@ -53,29 +52,28 @@ class KeyframeEventList(object):
                 self.update_frame_annotation(prev_step.node_key[0], start_frame, end_frame-1)
                 start_frame = end_frame
             if graph_walk.use_time_parameters:
-                end_frame += len(time_function)
+                end_frame += int(time_function[-1])
             else:
                 end_frame += step.end_frame - step.start_frame
             prev_step = step
         print "add", prev_step.node_key[0]
         self.update_frame_annotation(prev_step.node_key[0], start_frame, end_frame-1)
 
-
-    def _warp_keyframe_index(self, time_function, key_frame_index):
-        """ Inverse lookup of warped keyframe
-        :param time_function:
-        :param key_frame_index:
-        :return:
-        """
-        closest_keyframe = min(time_function, key=lambda x: abs(x - key_frame_index))
-        warped_keyframe = np.where(time_function == closest_keyframe)[0][0]
-        return warped_keyframe
+    #def _warp_keyframe_index(self, time_function, key_frame_index):
+    #    """ Inverse lookup of warped keyframe
+    #    :param time_function:
+    #    :param key_frame_index:
+    #    :return:
+    #    """
+    #    closest_keyframe = min(time_function, key=lambda x: abs(x - key_frame_index))
+    #    warped_keyframe = np.where(time_function == closest_keyframe)[0][0]
+    #    return warped_keyframe
 
     def _extract_keyframe_index(self, keyframe_event, time_function, n_frames, use_time_parameters):
         canonical_keyframe = int(keyframe_event["canonical_keyframe"])
         if use_time_parameters:
-            warped_keyframe = self._warp_keyframe_index(time_function, canonical_keyframe)
-            event_keyframe_index = n_frames + int(warped_keyframe)
+            #warped_keyframe = self._warp_keyframe_index(time_function, canonical_keyframe)
+            event_keyframe_index = n_frames + int(time_function[canonical_keyframe])
         else:
             event_keyframe_index = n_frames + canonical_keyframe
         return event_keyframe_index
@@ -99,7 +97,6 @@ class KeyframeEventList(object):
         :return:
         """
         self.keyframe_events_dict = dict()
-        self.ik_constraints = dict()
         n_frames = 0
         for step in graph_walk.steps:
             if graph_walk.use_time_parameters:
@@ -108,10 +105,9 @@ class KeyframeEventList(object):
                 event_keyframe_index = self._extract_keyframe_index(keyframe_event, time_function, n_frames, graph_walk.use_time_parameters)
 
                 self.keyframe_events_dict[event_keyframe_index] = self._extract_event_list(keyframe_event, event_keyframe_index)
-                self.ik_constraints[event_keyframe_index] = []
 
             if graph_walk.use_time_parameters:
-                n_frames += len(time_function)
+                n_frames += int(time_function[-1])
             else:
                 n_frames += step.end_frame - step.start_frame
 
