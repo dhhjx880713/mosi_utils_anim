@@ -56,7 +56,7 @@ def obj_spatial_error_sum_and_naturalness(s, data):
     #print "s-vector",optimize_theta
     error_scale_factor = data[-2]
     quality_scale_factor = data[-1]
-    n_log_likelihood = -data[0].gaussian_mixture_model.score([s, ])[0]
+    n_log_likelihood = -data[0].get_gaussian_mixture_model().score(s)
     print "naturalness is: " + str(n_log_likelihood)
     error = error_scale_factor * spatial_error + n_log_likelihood * quality_scale_factor
     print "error", error
@@ -69,7 +69,7 @@ def obj_spatial_error_sum_and_naturalness_jac(s, data):
     """
     #  Extract relevant parameters from data tuple. 
     #  Note other parameters are used for calling obj_error_sum
-    gmm = data[0].gaussian_mixture_model
+    gmm = data[0].get_gaussian_mixture_model()
     error_scale_factor = data[-1]
     quality_scale_factor = data[-2]
     
@@ -86,7 +86,7 @@ def obj_spatial_error_sum_and_naturalness_jac(s, data):
         numerator += np.exp(logLikelihoods[i]) * gmm.weights_[i] * np.dot(np.linalg.inv(gmm.covars_[i]), (s - gmm.means_[i]))
 #    numerator = numerator
     denominator = np.exp(gmm.score([s])[0])
-#    denominator = motion_primitive.gaussian_mixture_model.score([x0])[0]
+#    denominator = motion_primitive.get_gaussian_mixture_model().score(x0)
     logLikelihood_jac = numerator / denominator
     kinematic_jac = approx_fprime(s, obj_spatial_error_sum, 1e-7, data[-2:])# ignore the kinematic factor and quality factor
     jac = logLikelihood_jac * quality_scale_factor + kinematic_jac * error_scale_factor
@@ -141,13 +141,13 @@ def obj_spatial_error_residual_vector_and_naturalness(s, data):
     """
     #s = np.asarray(s)
     motion_primitive, motion_primitive_constraints, prev_frames, error_scale_factor, quality_scale_factor = data
-    n_log_likelihood = -data[0].gaussian_mixture_model.score([s, ])[0] * quality_scale_factor
+    negative_log_likelihood = -data[0].get_gaussian_mixture_model().score(s) * quality_scale_factor
     residual_vector = motion_primitive_constraints.get_residual_vector(motion_primitive, s, prev_frames, use_time_parameters=False)
     motion_primitive_constraints.min_error = np.sum(residual_vector)
     n_error_values = len(residual_vector)
     for i in xrange(n_error_values):
         residual_vector[i] *= error_scale_factor
-        residual_vector[i] += n_log_likelihood
+        residual_vector[i] += negative_log_likelihood
     #print len(residual_vector), residual_vector
     #print "error", motion_primitive_constraints.min_error # sum(residual_vector)
     n_variables = s.shape[0]
@@ -266,7 +266,9 @@ def obj_global_residual_vector_and_naturalness(s, data):
         step_data = motion_primitive_graph.nodes[step.node_key], step.motion_primitive_constraints,\
                        prev_frames, error_scale_factor, quality_scale_factor
         prev_frames = align_quaternion_frames(sample_frames, prev_frames, step.motion_primitive_constraints.start_pose)
-        residual_vector += obj_spatial_error_residual_vector_and_naturalness(alpha.tolist()+step.parameters[step.n_spatial_components:].tolist(), step_data)
+        concat_alpha = np.hstack((alpha, step.parameters[step.n_spatial_components:]))
+        residual_vector += obj_spatial_error_residual_vector_and_naturalness(concat_alpha, step_data)
         offset += step.n_spatial_components
     #print "global error", sum(residual_vector), residual_vector
     return residual_vector
+
