@@ -192,23 +192,19 @@ class MotionPrimitiveConstraintsBuilder(object):
         if self.status["motion_primitive_name"] in self.action_constraints.keyframe_constraints.keys():
             keyframe_constraint_desc_list = self.action_constraints.keyframe_constraints[self.status["motion_primitive_name"]]
             for i in xrange(len(keyframe_constraint_desc_list)):
+                keyframe_constraint = None
                 if "merged" in keyframe_constraint_desc_list[i].keys():
                     keyframe_constraint_desc = self._map_label_to_canonical_keyframe(keyframe_constraint_desc_list[i])
-                    keyframe_constraint = TwoHandConstraintSet(self.skeleton,
-                                                                keyframe_constraint_desc,
-                                                                self.precision["pos"], mp_constraints.settings["position_constraint_factor"])
-                    self._add_events_to_event_list(mp_constraints, keyframe_constraint)
-                    mp_constraints.constraints.append(keyframe_constraint)
-                elif "position" in list(keyframe_constraint_desc_list[i].keys()) \
-                        or "orientation" in keyframe_constraint_desc_list[i].keys() \
-                        or "time" in keyframe_constraint_desc_list[i].keys():
+                    keyframe_constraint = TwoHandConstraintSet(self.skeleton, keyframe_constraint_desc,
+                                                               self.precision["pos"], mp_constraints.settings["position_constraint_factor"])
+                elif np.any([c_type in keyframe_constraint_desc_list[i].keys() for c_type in ["position", "orientation", "time"]]):
                     keyframe_constraint_desc = self._map_label_to_canonical_keyframe(keyframe_constraint_desc_list[i])
                     if keyframe_constraint_desc is not None:
-                        keyframe_constraint = GlobalTransformConstraint(self.skeleton,
-                                                                            keyframe_constraint_desc,
-                                                                            self.precision["pos"], mp_constraints.settings["position_constraint_factor"])
-                        self._add_events_to_event_list(mp_constraints, keyframe_constraint)
-                        mp_constraints.constraints.append(keyframe_constraint)
+                        keyframe_constraint = GlobalTransformConstraint(self.skeleton, keyframe_constraint_desc,
+                                                                        self.precision["pos"], mp_constraints.settings["position_constraint_factor"])
+                if keyframe_constraint is not None:
+                    self._add_events_to_event_list(mp_constraints, keyframe_constraint)
+                    mp_constraints.constraints.append(keyframe_constraint)
 
     def _decide_on_optimization(self, mp_constraints):
         if self.local_optimization_mode == OPTIMIZATION_MODE_ALL:
@@ -222,8 +218,8 @@ class MotionPrimitiveConstraintsBuilder(object):
     def _add_events_to_event_list(self, mp_constraints, keyframe_constraint):
         if keyframe_constraint.keyframe_label in self.action_constraints.keyframe_annotations.keys():
             #simply overwrite it if it exists
-            keyframe_event = {"canonical_keyframe": keyframe_constraint.canonical_keyframe,
-                           "event_list":  self.action_constraints.keyframe_annotations[keyframe_constraint.keyframe_label]["annotations"]}
+            event_list = self.action_constraints.keyframe_annotations[keyframe_constraint.keyframe_label]["annotations"]
+            keyframe_event = {"canonical_keyframe": keyframe_constraint.canonical_keyframe, "event_list":  event_list}
             mp_constraints.keyframe_event_list[keyframe_constraint.keyframe_label] = keyframe_event
 
     def _map_label_to_canonical_keyframe(self, keyframe_constraint_desc):
