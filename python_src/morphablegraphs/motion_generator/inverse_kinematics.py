@@ -107,6 +107,6 @@ class InverseKinematics(object):
         return np.dot(d, d)
 
     def modify_motion_vector(self, motion_vector):
-        for event in motion_vector.keyframe_events_dict.items():
-            print(event)
+        for keyframe, constraints in motion_vector.ik_constraints.items():
+            print(keyframe, constraints)
 
