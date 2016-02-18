@@ -74,15 +74,18 @@ class MotionGenerator(object):
             start = time.clock()
             input_file_reader = MGInputFileReader(mg_input, activate_joint_map, activate_coordinate_transform)
             graph_walk = self.graph_walk_generator.generate_graph_walk_from_constraints(input_file_reader)
+
             if self._algorithm_config["use_global_time_optimization"]:
                 graph_walk = self.graph_walk_optimizer.optimize_time_parameters_over_graph_walk(graph_walk)
 
             motion_vector = graph_walk.convert_to_annotated_motion()
+
             if self.motion_primitive_graph.hand_pose_generator is not None:
                 print "generate hand poses"
                 self.motion_primitive_graph.hand_pose_generator.generate_hand_poses(motion_vector)
 
             if self._algorithm_config["activate_inverse_kinematics"]:
+                print "modify using inverse kinematics"
                 self.inverse_kinematics.modify_motion_vector(motion_vector)
 
             time_in_seconds = time.clock() - start

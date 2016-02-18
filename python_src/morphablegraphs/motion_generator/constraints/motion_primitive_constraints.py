@@ -152,7 +152,7 @@ class MotionPrimitiveConstraints(object):
                 else:
                     keyframe = c.canonical_keyframe
                 if keyframe not in ik_constraints.keys():
-                    ik_constraints[keyframe] = []
+                    ik_constraints[frame_offset+keyframe] = []
                 ik_constraint = {"canonical_frame": frame_offset+keyframe, "position": c.position, "joint": c.joint_name}
-                ik_constraints[keyframe].append(ik_constraint)
+                ik_constraints[frame_offset+keyframe].append(ik_constraint)
         return ik_constraints
