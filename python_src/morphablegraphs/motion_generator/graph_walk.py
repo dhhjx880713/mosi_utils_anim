@@ -67,6 +67,18 @@ class GraphWalk(object):
         annotated_motion_vector.keyframe_event_list = self.keyframe_event_list
         annotated_motion_vector.skeleton = self.full_skeleton
         annotated_motion_vector.mg_input = self.mg_input
+        frame_offset = 0
+        annotated_motion_vector.ik_constraints = []
+        for step in self.steps:
+            time_function = None
+            if self.use_time_parameters:
+                time_function = self.motion_state_graph.nodes[step.node_key].back_project_time_function(step.parameters)
+            step_constraints = step.motion_primitive_constraints.convert_to_ik_constraints(frame_offset, time_function)
+            annotated_motion_vector.ik_constraints += step_constraints
+            if time_function is not None:
+                frame_offset += int(time_function[-1])
+            else:
+                frame_offset += self.motion_state_graph.nodes[step.node_key].get_n_canonical_frames()
         return annotated_motion_vector
 
     def _convert_graph_walk_to_quaternion_frames(self, start_step=0, use_time_parameters=False):

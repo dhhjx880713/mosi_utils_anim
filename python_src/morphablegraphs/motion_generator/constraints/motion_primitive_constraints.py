@@ -142,3 +142,15 @@ class MotionPrimitiveConstraints(object):
                     precision = 1.0
                     mp_constraints.constraints.append(GlobalTransformConstraint(self.skeleton, keyframe_constraint_desc, precision))
         return mp_constraints
+
+    def convert_to_ik_constraints(self, frame_offset=0, time_function=None):
+        ik_constraints = []
+        for c in self.constraints:
+            if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION:
+                if time_function is not None:
+                    keyframe = time_function[c.canonical_keyframe]
+                else:
+                    keyframe = c.canonical_keyframe
+                ik_constraint = {"canonical_frame": frame_offset+keyframe, "position": c.position, "joint": c.joint_name}
+                ik_constraints.append(ik_constraint)
+        return ik_constraints
