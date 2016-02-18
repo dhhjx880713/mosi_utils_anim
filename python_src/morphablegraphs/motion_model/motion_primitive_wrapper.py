@@ -22,8 +22,7 @@ class MotionPrimitiveModelWrapper(object):
     """
     def __init__(self):
         self.motion_primitive = None
-        self.use_mgrd = False
-        self.is_mgrd = True
+        #self.is_mgrd = True
 
     def _load_from_file(self, mgrd_skeleton, file_name):
         data = load_json_file(file_name)
@@ -33,7 +32,6 @@ class MotionPrimitiveModelWrapper(object):
     def _initialize_from_json(self, mgrd_skeleton, data):
         if "semantic_annotation" in data.keys():
             self.motion_primitive = MGRDMotionPrimitive.load_from_dict(mgrd_skeleton, data)
-            self.use_mgrd = True
         else:
             mm = MGRDMixtureModel.load_from_json({'covars': data['gmm_covars'], 'means': data['gmm_means'],
                                                  'weights': data['gmm_weights'] })
@@ -57,60 +55,75 @@ class MotionPrimitiveModelWrapper(object):
             self.motion_primitive = MGRDMotionPrimitive(mgrd_skeleton, sspm, tspm, mm)
             #self.motion_primitive = MGMotionPrimitive(None)
             #self.motion_primitive._initialize_from_json(data)
-            self.use_mgrd = False
 
     def sample(self, use_time=True):
-        if self.is_mgrd:
-            s_vec = self.sample_low_dimensional_vector()
-            quat_spline = self.back_project(s_vec)
-            if use_time:
-                time_spline = self.motion_primitive.create_time_spline(s_vec)
-                quat_spline = time_spline.warp(quat_spline, time_spline.model.frame_time)
-            return quat_spline
-        else:
-            return self.motion_primitive.sample(use_time)
+        #if self.is_mgrd:
+        s_vec = self.sample_low_dimensional_vector()
+        quat_spline = self.back_project(s_vec)
+        if use_time:
+            time_spline = self.motion_primitive.create_time_spline(s_vec)
+            quat_spline = time_spline.warp(quat_spline, time_spline.model.frame_time)
+        return quat_spline
+        #else:
+        #    return self.motion_primitive.sample(use_time)
 
     def sample_low_dimensional_vector(self):
-        if self.is_mgrd:
-            return self.motion_primitive.get_random_samples(1)[0]
-        else:
-            return self.motion_primitive.sample_low_dimensional_vector()
+        #if self.is_mgrd:
+        return self.motion_primitive.get_random_samples(1)[0]
+        #else:
+        #    return self.motion_primitive.sample_low_dimensional_vector()
 
     def back_project(self, s_vec, use_time_parameters=True):
-        if self.is_mgrd:
-            return self.motion_primitive.create_spatial_spline(s_vec)
-        else:
-            return self.motion_primitive.back_project(s_vec, use_time_parameters)
+        """ Returns a QuaternionSpline
 
-    def back_project_time_function(self, parameters):
-        if self.is_mgrd:
-            return np.asarray(self.motion_primitive.create_time_spline(parameters, labels=[]).evaluate_domain(step_size=1.0))#[:,0]
-        else:
+        Parameters
+            s_vec (np.ndarray):
 
-            time_parameters = parameters[self.get_n_spatial_components():]
-            #print time_parameters, step.n_spatial_components, step.n_time_components, len(step.parameters)
-            return self.motion_primitive.back_project_time_function(time_parameters)
+        Returns
+            mgrd.QuatSpline
+
+        """
+        #if self.is_mgrd:
+        return self.motion_primitive.create_spatial_spline(s_vec)
+        #else:
+         #   return self.motion_primitive.back_project(s_vec, use_time_parameters)
+
+    def back_project_time_function(self, s_vec):
+        """
+
+        Parameters
+            s_vec (np.ndarray):
+
+        Returns
+            np.ndarray
+
+        """
+        #if self.is_mgrd:
+        return np.asarray(self.motion_primitive.create_time_spline(s_vec, labels=[]).evaluate_domain(step_size=1.0))#[:,0]
+        #else:
+         #   #print time_parameters, step.n_spatial_components, step.n_time_components, len(step.parameters)
+         #   return self.motion_primitive.back_project_time_function(s_vec[self.get_n_spatial_components():])
 
     def get_n_canonical_frames(self):
-        if self.is_mgrd:
+        #if self.is_mgrd:
             return self.motion_primitive.time.n_canonical_frames-1
-        else:
-            return self.motion_primitive.n_canonical_frames
+        #else:
+        #    return self.motion_primitive.n_canonical_frames
 
     def get_n_spatial_components(self):
-        if self.is_mgrd:
-            return self.motion_primitive.spatial.get_n_components()
-        else:
-            return self.motion_primitive.get_n_spatial_components()
+        #if self.is_mgrd:
+        return self.motion_primitive.spatial.get_n_components()
+        #else:
+        #    return self.motion_primitive.get_n_spatial_components()
 
     def get_n_time_components(self):
-        if self.is_mgrd:
-            return self.motion_primitive.time.get_n_components()
-        else:
-            return self.motion_primitive.get_n_time_components()
+        #if self.is_mgrd:
+        return self.motion_primitive.time.get_n_components()
+        #else:
+        #    return self.motion_primitive.get_n_time_components()
 
     def get_gaussian_mixture_model(self):
-        if self.is_mgrd:
-            return MixtureModelWrapper(self.motion_primitive.mixture)
-        else:
-            return self.motion_primitive.gaussian_mixture_model
+        #if self.is_mgrd:
+        return self.motion_primitive.mixture#MixtureModelWrapper()
+        #else:
+        #    return self.motion_primitive.gaussian_mixture_model
