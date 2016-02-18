@@ -41,13 +41,13 @@ class MotionPrimitiveConstraints(object):
         self.aligning_transform = None  # used to bring constraints in the local coordinate system of a motion primitive
 
     def print_status(self):
-#        print  "starting from",last_pos,last_arc_length,"the new goal for", \
-#                current_motion_primitive,"is",goal,"at arc length",arc_length
         print("starting from: ")
         print(self.step_start)
         print("the new goal for " + self.motion_primitive_name)
         print(self.step_goal)
         print("arc length is: " + str(self.goal_arc_length))
+#        print  "starting from",last_pos,last_arc_length,"the new goal for", \
+#                current_motion_primitive,"is",goal,"at arc length",arc_length
 
     def evaluate(self, motion_primitive, parameters, prev_frames, use_time_parameters=False):
         """
@@ -60,15 +60,12 @@ class MotionPrimitiveConstraints(object):
     
         """
         #find aligned frames once for all constraints
-        quat_frames = motion_primitive.back_project(parameters, use_time_parameters=use_time_parameters).get_motion_vector()
+        quat_frames = motion_primitive.back_project(parameters, use_time_parameters).get_motion_vector()
         aligned_frames = align_quaternion_frames(quat_frames, prev_frames, self.start_pose)
         #evaluate constraints with the generated motion
         #print("n_contraints", len(self.constraints))
         error_sum = 0
         for constraint in self.constraints:
-            #if isinstance(constraint, GlobalTransformConstraint):
-            #    print("constrain", constraint.joint_name)
-            #    print(constraint.position)
             error_sum += constraint.weight_factor * constraint.evaluate_motion_sample(aligned_frames)
         self.evaluations += 1
         return error_sum
@@ -84,7 +81,7 @@ class MotionPrimitiveConstraints(object):
 
         """
         #find aligned frames once for all constraints
-        quat_frames = motion_primitive.back_project(parameters, use_time_parameters=use_time_parameters).get_motion_vector()
+        quat_frames = motion_primitive.back_project(parameters, use_time_parameters).get_motion_vector()
         aligned_frames = align_quaternion_frames(quat_frames, prev_frames, self.start_pose)
 
         #evaluate constraints with the generated motion

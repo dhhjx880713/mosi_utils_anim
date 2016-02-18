@@ -28,6 +28,12 @@ class MotionPrimitiveConstraintsBuilder(object):
         self.algorithm_config = None
         self.status = {}
         self.motion_state_graph = None
+        self.node_group = None
+        self.skeleton = None
+        self.precision = 1.0
+        self.trajectory_following_settings = None
+        self.local_optimization_mode = "None"
+        self.ca_constraint_mode = "None"
     
     def set_action_constraints(self, action_constraints):
         self.action_constraints = action_constraints
@@ -72,8 +78,6 @@ class MotionPrimitiveConstraintsBuilder(object):
             #transform = inverse_pose_transform(self.action_constraints.start_pose["position"],self.action_constraints.start_pose["orientation"])
             #self.status["aligning_transform"] = {"translation": transform[0],"orientation":[0,0,0]}
             transform = self.action_constraints.start_pose
-            #transform["position"]= [0,0, 100]
-            #transform["orientation"]= [0,45,0]
         else:
             aligning_angle, aligning_offset = fast_quat_frames_transformation(prev_frames, self.motion_state_graph.nodes[node_key].sample(False).get_motion_vector()) #TODO return from concatenate_frames
             transform = {"position": aligning_offset,"orientation":[0,aligning_angle,0]}
@@ -278,8 +282,7 @@ class MotionPrimitiveConstraintsBuilder(object):
           The goal should then be extracted using get_point_and_orientation_from_arc_length
         """
         node_key = (self.action_constraints.action_name, self.status["motion_primitive_name"])
-        step_length = self.motion_state_graph.nodes[node_key].average_step_length \
-                     * self.trajectory_following_settings["heuristic_step_length_factor"]
+        step_length = self.motion_state_graph.nodes[node_key].average_step_length * self.trajectory_following_settings["heuristic_step_length_factor"]
         # find closest point in the range of the last_arc_length and max_arc_length
         closest_point = self.find_closest_point_to_current_position_on_trajectory(step_length)
         # approximate arc length of the point closest to the current position
@@ -295,7 +298,6 @@ class MotionPrimitiveConstraintsBuilder(object):
         closest_point, distance = self.action_constraints.root_trajectory.find_closest_point(self.status["last_pos"],
                                                                                              self.status["last_arc_length"],
                                                                                              max_arc_length)
-
         if closest_point is None:
             self._raise_closest_point_search_exception(max_arc_length)
         return closest_point
