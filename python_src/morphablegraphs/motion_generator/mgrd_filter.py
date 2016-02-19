@@ -17,7 +17,7 @@ class MGRDFilter(object):
         Args:
             motion_primitive (mgrd.MotionPrimitiveModel): the motion primitive to backproject the samples.
             samples(List<Array<float>>): a list of samples generated from the motion primitive.
-            constraints (List<mgrd.KeyframeConstraint>): a list of KeyframeConstraints each describing the target position and orientation of a joint for a semantic annotation
+            constraints (List<MGRDKeyframeConstraint>): a list of KeyframeConstraints each describing the target position and orientation of a joint for a semantic annotation
             pose_constraint_weights (Vec2F): weight factors for the position and orientation errors
             transform (Matrix4F): optional transformation matrix of the samples into the global coordinate system.
 
@@ -31,7 +31,7 @@ class MGRDFilter(object):
         constrained_intervals = None
         if len(labels) > 0:
             print("Search time spline for semantic labels", labels)
-            tsplines = [motion_primitive.create_time_spline(svec,labels) for svec in samples]
+            tsplines = [motion_primitive.create_time_spline(svec, labels) for svec in samples]
             start = time.clock()
             constrained_intervals = SemanticConstraint.get_constrained_intervals(tsplines, constraints)
             print("finished interval selection in ", time.clock()-start, "seconds")
