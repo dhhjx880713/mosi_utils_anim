@@ -81,7 +81,7 @@ class MotionStateGraphLoader(object):
         self._update_motion_state_stats(motion_state_graph, recalculate=False)
 
         if "handPoseInfo" in graph_data.keys():
-            motion_state_graph.hand_pose_generator = HandPoseGenerator(motion_state_graph.skeleton)
+            motion_state_graph.hand_pose_generator = HandPoseGenerator(motion_state_graph.full_skeleton)
             motion_state_graph.hand_pose_generator.init_from_desc(graph_data["handPoseInfo"])
 
     def _init_from_directory(self, motion_state_graph, recalculate_motion_stats=True):

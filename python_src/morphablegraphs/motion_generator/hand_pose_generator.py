@@ -87,31 +87,32 @@ class HandPoseGenerator(object):
                    "LeftHand" == event_desc["parameters"]["joint"]
 
     def generate_hand_poses(self, motion_vector):
+        print "is initialized", self.initialized
         if self.initialized:
             right_status = "standard"
             left_status = "standard"
             left_hand_events = []
             right_hand_events = []
-            for i in xrange(motion_vector.n_frames):
-                if i in motion_vector.action_list.keys():
-                    for event_desc in motion_vector.action_list[i]:
+            for frame_idx in xrange(motion_vector.n_frames):
+                if frame_idx in motion_vector.keyframe_event_list.keyframe_events_dict.keys():
+                    for event_desc in motion_vector.keyframe_event_list.keyframe_events_dict[frame_idx]:
                         if event_desc["event"] != "transfer":
                             if self._is_affecting_hand("RightHand", event_desc):
                                 right_status = self.status_change_map[event_desc["event"]]
                                 print "change right hand status to", right_status
-                                right_hand_events.append(i)
+                                right_hand_events.append(frame_idx)
                             if self._is_affecting_hand("LeftHand", event_desc):
                                 left_status = self.status_change_map[event_desc["event"]]
                                 print "change left hand status to", left_status
-                                left_hand_events.append(i)
+                                left_hand_events.append(frame_idx)
                         else:
-                            right_hand_events.append(i)
-                            left_hand_events.append(i)
+                            right_hand_events.append(frame_idx)
+                            left_hand_events.append(frame_idx)
                             right_status = left_status
                             left_status = right_status
 
-                self.set_pose_in_frame("RightHand", right_status, motion_vector.frames[i])
-                self.set_pose_in_frame("LeftHand", left_status, motion_vector.frames[i])
+                self.set_pose_in_frame("RightHand", right_status, motion_vector.frames[frame_idx])
+                self.set_pose_in_frame("LeftHand", left_status, motion_vector.frames[frame_idx])
 
 
             #print self.right_hand_skeleton["indices"]
@@ -127,9 +128,9 @@ class HandPoseGenerator(object):
         :return:
         """
         for i in self.pose_map[status].hand_skeletons[hand]["indices"]:
-            frame_index = i*4 + 3 #translation is ignored
+            param_index = i*4 + 3 #translation is ignored
             #print self.pose_map[status].pose_vector[frame_index:frame_index+4]
-            pose_vector[frame_index:frame_index+4] = self.pose_map[status].pose_vector[frame_index:frame_index+4]
+            pose_vector[param_index:param_index+4] = self.pose_map[status].pose_vector[param_index:param_index+4]
 
     def smooth_state_transitions(self, quat_frames, events, indices, window=30):
         #event_frame2 = events[0]
