@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from ..animation_data import MotionVector, ROTATION_TYPE_QUATERNION
+from ..animation_data import MotionVector, ROTATION_TYPE_QUATERNION, Skeleton, BVHReader
 from ..utilities import write_to_json_file, write_to_logfile
 
 
@@ -24,3 +24,8 @@ class AnnotatedMotionVector(MotionVector):
             write_to_json_file(output_dir + os.sep + output_filename + ".json", self.mg_input.mg_input_file)
         if self.keyframe_event_list is not None:
             self.keyframe_event_list.export_to_file(output_dir + os.sep + output_filename)
+
+    def load_from_file(self, file_name, filter_joints=True):
+        bvh = BVHReader(file_name)
+        self.skeleton = Skeleton(bvh)
+        self.from_bvh_reader(bvh, filter_joints=filter_joints)
