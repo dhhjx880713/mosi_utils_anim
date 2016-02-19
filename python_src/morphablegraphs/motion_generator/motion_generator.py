@@ -26,10 +26,10 @@ class MotionGenerator(object):
         self._algorithm_config = algorithm_config
         graph_loader = MotionStateGraphLoader()
         graph_loader.set_data_source(self._service_config["model_data"], self._algorithm_config["use_transition_model"])
-        self.motion_primitive_graph = graph_loader.build()
-        self.graph_walk_generator = GraphWalkGenerator(self.motion_primitive_graph, algorithm_config)
-        self.graph_walk_optimizer = GraphWalkOptimizer(self.motion_primitive_graph, algorithm_config)
-        self.inverse_kinematics = InverseKinematics(self.motion_primitive_graph.full_skeleton, self._algorithm_config)
+        self.motion_state_graph = graph_loader.build()
+        self.graph_walk_generator = GraphWalkGenerator(self.motion_state_graph, algorithm_config)
+        self.graph_walk_optimizer = GraphWalkOptimizer(self.motion_state_graph, algorithm_config)
+        self.inverse_kinematics = InverseKinematics(self.motion_state_graph.skeleton, self._algorithm_config)
 
     def set_algorithm_config(self, algorithm_config):
         """
@@ -80,13 +80,16 @@ class MotionGenerator(object):
 
             motion_vector = graph_walk.convert_to_annotated_motion()
 
-            if self.motion_primitive_graph.hand_pose_generator is not None:
-                print "generate hand poses"
-                self.motion_primitive_graph.hand_pose_generator.generate_hand_poses(motion_vector)
-
             if self._algorithm_config["activate_inverse_kinematics"]:
                 print "modify using inverse kinematics"
                 self.inverse_kinematics.modify_motion_vector(motion_vector)
+
+            motion_vector.frames = self.motion_state_graph.full_skeleton.complete_motion_vector_from_reference(self.motion_state_graph.skeleton, motion_vector.frames)
+
+            if self.motion_state_graph.hand_pose_generator is not None:
+                print "generate hand poses"
+                self.motion_state_graph.hand_pose_generator.generate_hand_poses(motion_vector)
+
 
             time_in_seconds = time.clock() - start
             minutes = int(time_in_seconds/60)

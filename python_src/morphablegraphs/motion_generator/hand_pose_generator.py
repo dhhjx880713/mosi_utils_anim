@@ -87,7 +87,6 @@ class HandPoseGenerator(object):
                    "LeftHand" == event_desc["parameters"]["joint"]
 
     def generate_hand_poses(self, motion_vector):
-        print "is initialized", self.initialized
         if self.initialized:
             right_status = "standard"
             left_status = "standard"

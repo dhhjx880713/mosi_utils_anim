@@ -69,9 +69,9 @@ class KeyframeEventList(object):
     #    warped_keyframe = np.where(time_function == closest_keyframe)[0][0]
     #    return warped_keyframe
 
-    def _extract_keyframe_index(self, keyframe_event, time_function, n_frames, use_time_parameters):
+    def _extract_keyframe_index(self, keyframe_event, time_function, n_frames):
         canonical_keyframe = int(keyframe_event["canonical_keyframe"])
-        if use_time_parameters:
+        if time_function is not None:
             #warped_keyframe = self._warp_keyframe_index(time_function, canonical_keyframe)
             event_keyframe_index = n_frames + int(time_function[canonical_keyframe])
         else:
@@ -99,14 +99,15 @@ class KeyframeEventList(object):
         self.keyframe_events_dict = dict()
         n_frames = 0
         for step in graph_walk.steps:
+            time_function = None
             if graph_walk.use_time_parameters:
                 time_function = graph_walk.motion_state_graph.nodes[step.node_key].back_project_time_function(step.parameters)
             for keyframe_event in step.motion_primitive_constraints.keyframe_event_list.values():
-                event_keyframe_index = self._extract_keyframe_index(keyframe_event, time_function, n_frames, graph_walk.use_time_parameters)
+                event_keyframe_index = self._extract_keyframe_index(keyframe_event, time_function, n_frames)
 
                 self.keyframe_events_dict[event_keyframe_index] = self._extract_event_list(keyframe_event, event_keyframe_index)
 
-            if graph_walk.use_time_parameters:
+            if time_function is not None:
                 n_frames += int(time_function[-1])
             else:
                 n_frames += step.end_frame - step.start_frame
@@ -190,7 +191,7 @@ class KeyframeEventList(object):
             if isinstance(joint_name_a, basestring):
                 keyframe_range_start = graph_walk.steps[action_entry.start_step].start_frame
                 keyframe_range_end = min(graph_walk.steps[action_entry.end_step].end_frame+1, graph_walk.motion_vector.n_frames)
-                least_distance = 1000.0
+                least_distance = np.inf
                 closest_keyframe = graph_walk.steps[action_entry.start_step].start_frame
                 for frame_index in xrange(keyframe_range_start, keyframe_range_end):
                     position_a = graph_walk.full_skeleton.nodes[joint_name_a].get_global_position(graph_walk.motion_vector.frames[frame_index])

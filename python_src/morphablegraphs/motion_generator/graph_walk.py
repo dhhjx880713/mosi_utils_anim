@@ -49,7 +49,7 @@ class GraphWalk(object):
         self._algorithm_config = algorithm_config
         self.motion_vector = MotionVector(algorithm_config)
         self.motion_vector.start_pose = start_pose
-        self.use_time_parameters = True
+        self.use_time_parameters = False# TODO fix export of motion using time warping 
         self.keyframe_event_list = KeyframeEventList()
 
     def add_entry_to_action_list(self, action_name, start_step, end_step):
@@ -63,7 +63,8 @@ class GraphWalk(object):
     def convert_to_annotated_motion(self):
         self.update_temp_motion_vector(use_time_parameters=self.use_time_parameters)
         annotated_motion_vector = AnnotatedMotionVector()
-        annotated_motion_vector.frames = self.full_skeleton.complete_motion_vector_from_reference(self.motion_state_graph.skeleton, self.motion_vector.frames)
+        annotated_motion_vector.frames = self.motion_vector.frames
+        annotated_motion_vector.n_frames = self.motion_vector.n_frames
         annotated_motion_vector.keyframe_event_list = self.keyframe_event_list
         annotated_motion_vector.skeleton = self.full_skeleton
         annotated_motion_vector.mg_input = self.mg_input
