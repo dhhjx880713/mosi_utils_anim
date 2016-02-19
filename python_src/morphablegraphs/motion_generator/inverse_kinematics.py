@@ -38,7 +38,7 @@ class SkeletonPose(object):
                 self.types[joint] = "rot"
             channel_idx += self.n_channels[joint]
         print "maximum channel", channel_idx
-        #TODO read from data
+        #TODO read data from file
         self.free_joints_map = {"LeftHand":["LeftShoulder","LeftArm",  "LeftForeArm"],
                            "RightHand":[ "RightShoulder","RightArm","RightForeArm"],
                            "LeftToolEndSite":[ "LeftShoulder","LeftArm","LeftForeArm"],
@@ -96,6 +96,10 @@ class InverseKinematics(object):
         self.pose = SkeletonPose(reference_frame, self.channels)
 
     def generate_constraints(self, free_joints):
+        """ TODO add bounds on axis components of the quaternion according to
+        Inverse Kinematics with Dual-Quaternions, Exponential-Maps, and Joint Limits by Ben Kenwright
+        or try out euler based ik
+        """
         cons = []
         idx = 0
         for joint_name in free_joints:
@@ -151,7 +155,7 @@ class InverseKinematics(object):
     def evaluate_delta(self, parameters, target_joint, target_position, free_joints):
         position = self.evaluate(target_joint, parameters, free_joints)
         d = position - target_position
-        print target_joint, position, target_position
+        #print target_joint, position, target_position
         return np.dot(d, d)
 
     def modify_motion_vector(self, motion_vector):
@@ -167,11 +171,11 @@ class InverseKinematics(object):
                     free_joints = self.pose.free_joints_map[joint_name]
                     target = c["position"]
                     self.run(joint_name, target, free_joints)
-            motion_vector.frames[keyframe] = self.pose.get_vector()
-            #interpolate
-            joint_parameter_indices = self._extract_free_parameter_indices(self.pose.free_joints_map[joint_name])
-            for joint_name in self.pose.free_joints_map[joint_name]:
-                self.smooth_quaternion_frames_using_slerp(motion_vector.frames,joint_parameter_indices[joint_name], keyframe, self.window)
+                motion_vector.frames[keyframe] = self.pose.get_vector()
+                #interpolate
+                joint_parameter_indices = self._extract_free_parameter_indices(self.pose.free_joints_map[joint_name])
+                for joint_name in self.pose.free_joints_map[joint_name]:
+                    self.smooth_quaternion_frames_using_slerp(motion_vector.frames,joint_parameter_indices[joint_name], keyframe, self.window)
 
     def smooth_quaternion_frames_using_slerp(self, quat_frames, joint_parameter_indices, event_frame, window):
         h_window = window/2
@@ -187,5 +191,5 @@ class InverseKinematics(object):
             t = float(i)/steps
             #nlerp_q = self.nlerp(start_q, end_q, t)
             slerp_q = quaternion_slerp(start_q, end_q, t, spin=0, shortestpath=True)
-            print "slerp",start_q,  end_q, t, slerp_q
+            #print "slerp",start_q,  end_q, t, slerp_q
             quat_frames[start_frame+i, joint_parameter_indices] = slerp_q
