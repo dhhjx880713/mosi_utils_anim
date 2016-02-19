@@ -9,14 +9,10 @@ from copy import copy
 import numpy as np
 from ...utilities.exceptions import PathSearchError
 from .motion_primitive_constraints import MotionPrimitiveConstraints
-from .spatial_constraints.keyframe_constraints.pose_constraint import PoseConstraint
-from .spatial_constraints.keyframe_constraints.direction_constraint import DirectionConstraint
-from .spatial_constraints.keyframe_constraints.global_transform_constraint import GlobalTransformConstraint
-from .spatial_constraints.keyframe_constraints.pose_constraint_quat_frame import PoseConstraintQuatFrame
-from .spatial_constraints.keyframe_constraints.two_hand_constraint import TwoHandConstraintSet
+from .spatial_constraints import PoseConstraint, DirectionConstraint, GlobalTransformConstraint, PoseConstraintQuatFrame, TwoHandConstraintSet
 from ...animation_data.motion_vector import concatenate_frames
 from ...animation_data.motion_editing import get_2d_pose_transform, inverse_pose_transform, fast_quat_frames_transformation, create_transformation_matrix
-from . import *
+from . import CA_CONSTRAINTS_MODE_SET, OPTIMIZATION_MODE_ALL, OPTIMIZATION_MODE_KEYFRAMES
 
 
 class MotionPrimitiveConstraintsBuilder(object):

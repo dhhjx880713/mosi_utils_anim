@@ -8,7 +8,7 @@ import numpy as np
 from ...animation_data.motion_editing import align_quaternion_frames, transform_point
 from .spatial_constraints.keyframe_constraints.global_transform_constraint import GlobalTransformConstraint
 from .spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
-from mgrd import KeyframeConstraint as MGRDKeyframeConstraint
+from .spatial_constraints import MGRDKeyframeConstraint
 from mgrd import PoseConstraint as MGRDPoseConstraint
 from mgrd import SemanticConstraint as MGRDSemanticConstraint
 

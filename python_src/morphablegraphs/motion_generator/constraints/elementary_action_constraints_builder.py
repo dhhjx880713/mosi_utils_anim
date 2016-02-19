@@ -6,8 +6,8 @@ Created on Mon Jul 27 12:00:15 2015
 """
 import numpy as np
 from elementary_action_constraints import ElementaryActionConstraints
-from spatial_constraints.trajectory_constraint import TrajectoryConstraint
-from spatial_constraints.trajectory_set_constraint import TrajectorySetConstraint
+from spatial_constraints import TrajectoryConstraint
+from spatial_constraints import TrajectorySetConstraint
 from . import *
 
 class ElementaryActionConstraintsBuilder(object):
