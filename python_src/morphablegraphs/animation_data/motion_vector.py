@@ -46,9 +46,9 @@ class MotionVector(object):
             self.apply_spatial_smoothing = False
             self.smoothing_window = 0
 
-    def from_bvh_reader(self, bvh_reader):
+    def from_bvh_reader(self, bvh_reader, filter_joints=True):
         if self.rotation_type == ROTATION_TYPE_QUATERNION:
-            self.frames = np.array(convert_euler_frames_to_quaternion_frames(bvh_reader, bvh_reader.frames))
+            self.frames = np.array(convert_euler_frames_to_quaternion_frames(bvh_reader, bvh_reader.frames, filter_joints))
         elif self.rotation_type == ROTATION_TYPE_EULER:
             self.frames = bvh_reader.frames
         self.n_frames = len(self.frames)
