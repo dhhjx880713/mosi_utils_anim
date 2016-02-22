@@ -46,7 +46,8 @@
     "inverse_kinematics_settings":{
         "tolerance": 0.05,
         "method": "BFGS",
-        "max_iterations": 500
+        "max_iterations": 500,
+        "interpolation_window":120
     },
     "constrained_gmm_settings": {
         "precision": {

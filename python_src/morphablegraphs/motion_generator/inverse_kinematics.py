@@ -82,7 +82,7 @@ class InverseKinematics(object):
         self.skeleton = skeleton
         self.pose = None
         self._ik_settings = algorithm_settings["inverse_kinematics_settings"]
-        self.window = 30
+        self.window = self._ik_settings["interpolation_window"]
         self.verbose = False
         self.channels = OrderedDict()
         for node in self.skeleton.nodes.values():
