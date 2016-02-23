@@ -1,6 +1,5 @@
-__author__ = 'herrmann'
 
-
+from .. import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
 from ..spatial_constraint_base import SpatialConstraintBase
 
 
@@ -17,3 +16,6 @@ class KeyframeConstraintBase(SpatialConstraintBase):
             self.desired_time = float(constraint_desc["time"])
         else:
             self.desired_time = None
+
+    def is_generated(self):
+        return self.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION and "generated" in self.semantic_annotation.keys()

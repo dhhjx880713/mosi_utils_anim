@@ -49,7 +49,7 @@ class GraphWalk(object):
         self._algorithm_config = algorithm_config
         self.motion_vector = MotionVector(algorithm_config)
         self.motion_vector.start_pose = start_pose
-        self.use_time_parameters = False# TODO fix export of motion using time warping 
+        self.use_time_parameters = False# TODO fix export of motion using time warping
         self.keyframe_event_list = KeyframeEventList()
 
     def add_entry_to_action_list(self, action_name, start_step, end_step):
@@ -137,36 +137,11 @@ class GraphWalk(object):
     def get_num_of_frames(self):
         return self.motion_vector.n_frames
 
-    def print_statistics(self):
-        print self.get_statistics_string()
-
-    def export_statistics(self, filename=None):
-        time_stamp = unicode(datetime.now().strftime("%d%m%y_%H%M%S"))
-        statistics_string = self.get_statistics_string()
-        constraints = self.get_generated_constraints()
-        constraints_string = json.dumps(constraints)
-        if filename is None:
-            filename = "graph_walk_statistics" + time_stamp + ".json"
-        outfile = open(filename, "wb")
-        outfile.write(statistics_string)
-        outfile.write("\n"+constraints_string)
-        outfile.close()
-
-    def get_statistics_string(self):
-        n_steps = len(self.steps)
-        objective_evaluations = 0
-        average_error = 0
-        for step in self.steps:
-            objective_evaluations += step.motion_primitive_constraints.evaluations
-            average_error += step.motion_primitive_constraints.min_error
-        if average_error >0:
-            average_error /= n_steps
-        evaluations_string = "total number of objective evaluations " + str(objective_evaluations)
-        error_string = "average error for " + str(n_steps) + \
-                       " motion primitives: " + str(average_error)
-        average_keyframe_error = self.get_average_keyframe_constraint_error()
-        average_keyframe_error_string = "average keyframe constraint error " + str(average_keyframe_error)
-        return average_keyframe_error_string + "\n" + evaluations_string + "\n" + error_string
+    def update_frame_annotation(self, action_name, start_frame, end_frame):
+        """ Adds a dictionary to self.frame_annotation marking start and end
+            frame of an action.
+        """
+        self.keyframe_event_list.update_frame_annotation(action_name, start_frame, end_frame)
 
     def get_average_keyframe_constraint_error(self):
         keyframe_constraint_errors = []
@@ -198,15 +173,34 @@ class GraphWalk(object):
             key = str(step.node_key) + str(step_count)
             generated_constraints[key] = []
             for constraint in step.motion_primitive_constraints.constraints:
-                if constraint.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION and\
-                    "generated" in constraint.semantic_annotation.keys():
+                if constraint.is_generated():
                     generated_constraints[key].append(constraint.position)
             step_count += 1
         #generated_constraints = np.array(generated_constraints).flatten()
         return generated_constraints
 
-    def update_frame_annotation(self, action_name, start_frame, end_frame):
-        """ Adds a dictionary to self.frame_annotation marking start and end
-            frame of an action.
-        """
-        self.keyframe_event_list.update_frame_annotation(action_name, start_frame, end_frame)
+    def get_average_error(self):
+        average_error = 0
+        for step in self.steps:
+            average_error += step.motion_primitive_constraints.min_error
+        if average_error > 0:
+            average_error /= len(self.steps)
+        return average_error
+
+    def get_number_of_object_evaluations(self):
+        objective_evaluations = 0
+        for step in self.steps:
+            objective_evaluations += step.motion_primitive_constraints.evaluations
+        return objective_evaluations
+
+    def print_statistics(self):
+        print self.get_statistics_string()
+
+    def get_statistics_string(self):
+        average_error = self.get_average_error()
+        evaluations_string = "total number of objective evaluations " + str(self.get_number_of_object_evaluations())
+        error_string = "average error for " + str(len(self.steps)) + \
+                       " motion primitives: " + str(average_error)
+        average_keyframe_error = self.get_average_keyframe_constraint_error()
+        average_keyframe_error_string = "average keyframe constraint error " + str(average_keyframe_error)
+        return average_keyframe_error_string + "\n" + evaluations_string + "\n" + error_string

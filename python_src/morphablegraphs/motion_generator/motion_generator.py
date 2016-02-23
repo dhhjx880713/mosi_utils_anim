@@ -1,6 +1,7 @@
 import time
 import os
 import datetime
+import json
 from ..motion_model import MotionStateGraphLoader
 from constraints import MGInputFileReader
 from algorithm_configuration import AlgorithmConfigurationBuilder
@@ -90,12 +91,10 @@ class MotionGenerator(object):
                 print "generate hand poses"
                 self.motion_state_graph.hand_pose_generator.generate_hand_poses(motion_vector)
 
-
             time_in_seconds = time.clock() - start
             minutes = int(time_in_seconds/60)
             seconds = time_in_seconds % 60
-            print "finished synthesis in " + str(minutes) + " minutes " + str(seconds) + " seconds"
-            graph_walk.print_statistics()
+
             if export:  # export the motion to a bvh file if export == True
                 output_filename = self._service_config["output_filename"]
                 if output_filename == "" and "session" in mg_input.keys():
@@ -104,8 +103,28 @@ class MotionGenerator(object):
                 if motion_vector.has_frames():
                     motion_vector.export(self._service_config["output_dir"], output_filename, add_time_stamp=True, export_details=self._service_config["write_log"])
                     time_stamp = unicode(datetime.now().strftime("%d%m%y_%H%M%S"))
-                    graph_walk.export_statistics(self._service_config["output_dir"] + os.sep + output_filename + "_statistics" + time_stamp + ".json")
+                    self.export_statistics(graph_walk, self._service_config["output_dir"] + os.sep + output_filename + "_statistics" + time_stamp + ".json")
                     #write_to_logfile(output_dir + os.sep + LOG_FILE, output_filename + "_" + time_stamp, self._algorithm_config)
                 else:
                     print "Error: no motion data to export"
+
+
+            print "finished synthesis in " + str(minutes) + " minutes " + str(seconds) + " seconds"
+            graph_walk.print_statistics()
+
             return motion_vector
+
+    def export_statistics(self, graph_walk,  filename):
+        time_stamp = unicode(datetime.now().strftime("%d%m%y_%H%M%S"))
+        statistics_string = graph_walk.get_statistics_string()
+        constraints = graph_walk.get_generated_constraints()
+        constraints_string = json.dumps(constraints)
+        if filename is None:
+            filename = "graph_walk_statistics" + time_stamp + ".json"
+        outfile = open(filename, "wb")
+        outfile.write(statistics_string)
+        outfile.write("\n"+constraints_string)
+        outfile.close()
+
+
+
