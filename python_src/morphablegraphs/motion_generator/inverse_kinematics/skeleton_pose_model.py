@@ -51,12 +51,12 @@ class SkeletonPoseModel(object):
         print "modelled joints",self.modelled_joints
         print "maximum channel", channel_idx
         #TODO read data from file
-        self.free_joints_map = {"LeftHand":["LeftArm",  "LeftForeArm"],#"LeftShoulder",
-                           "RightHand":["RightArm","RightForeArm"],# "RightShoulder",
-                           "LeftToolEndSite":[ "LeftShoulder","LeftArm","LeftForeArm"],
-                           "RightToolEndSite":["RightArm", "RightForeArm"]}#"RightShoulder",
-        self.bounds = {"LeftArm":[{"dim": 1, "min": 0, "max": 90}],
-                       "RightArm":[{"dim": 1, "min": 0, "max": 90},{"dim": 0, "min": 0, "max": 90}]}
+        self.free_joints_map = {"LeftHand":["Spine","LeftArm",  "LeftForeArm"],#"LeftShoulder",
+                           "RightHand":["Spine","RightArm","RightForeArm"],# "RightShoulder",
+                           "LeftToolEndSite":["Spine", "LeftShoulder","LeftArm","LeftForeArm"],
+                           "RightToolEndSite":["Spine","RightArm", "RightForeArm"]}#"RightShoulder",
+        self.bounds = {"LeftArm":[],#{"dim": 1, "min": 0, "max": 90}
+                       "RightArm":[]}#{"dim": 1, "min": 0, "max": 90},{"dim": 0, "min": 0, "max": 90}
 
     def set_channel_values(self, parameters, free_joints):
         p_idx = 0
@@ -91,6 +91,13 @@ class SkeletonPoseModel(object):
             return convert_euler_to_quat(self.pose_parameters, self.modelled_joints)#convert to quat
         else:
             return self.pose_parameters
+
+    def evaluate_position_with_cache(self, target_joint, free_joints):
+        """ run fk
+        """
+        for joint in free_joints:
+            self.skeleton.nodes[joint].get_global_position(self.pose_parameters, use_cache=True)
+        return self.skeleton.nodes[target_joint].get_global_position(self.pose_parameters, use_cache=True)#get_vector()
 
     def evaluate_position(self, target_joint):
         """ run fk
@@ -146,3 +153,6 @@ class SkeletonPoseModel(object):
                         cons.append(({"type": 'ineq', "fun": lambda x: bound["max"]-x[start+bound["dim"]]}))
             idx += self.n_channels[joint_name]
         return tuple(cons)
+
+    def clear_cache(self):
+        self.skeleton.clear_cached_global_matrices()
