@@ -1,5 +1,6 @@
 import numpy as np
 from copy import copy
+import time
 from scipy.optimize import minimize
 from collections import OrderedDict
 from ...animation_data import ROTATION_TYPE_EULER,ROTATION_TYPE_QUATERNION
@@ -41,42 +42,63 @@ class InverseKinematics(object):
     def set_reference_frame(self, reference_frame):
         self.pose = SkeletonPoseModel(self.skeleton, reference_frame, self.channels, self.use_euler)
 
-    def generate_constraints(self, free_joints):
-        """ TODO add bounds on axis components of the quaternion according to
-        Inverse Kinematics with Dual-Quaternions, Exponential-Maps, and Joint Limits by Ben Kenwright
-        or try out euler based ik
-        """
-        cons = []
-        idx = 0
-        for joint_name in free_joints:
-            if joint_name in self.pose.bounds.keys():
-                start = idx
-                for bound in self.pose.bounds[joint_name]:
-                    if "min" in bound.keys():
-                        cons.append(({"type": 'ineq', "fun": lambda x: x[start+bound["dim"]]-bound["min"]}))
-                    if "max" in bound.keys():
-                        cons.append(({"type": 'ineq', "fun": lambda x: bound["max"]-x[start+bound["dim"]]}))
-            idx += self.pose.n_channels[joint_name]
-        return tuple(cons)
 
-    def run(self, target_joint, target_position, free_joints):
+    def run_optimization(self, target_joint, target_position, free_joints):
         initial_guess = self._extract_free_parameters(free_joints)
         data = self, free_joints, target_joint, target_position
         print "start optimization for joint", target_joint, len(initial_guess),len(free_joints)
-        cons = None#self.generate_constraints(free_joints)
+        cons = None#self.pose.generate_constraints(free_joints)
         result = minimize(obj_inverse_kinematics,
                 initial_guess,
                 args=(data,),
-                method=self._ik_settings["method"],#"SLSQP",
+                method=self._ik_settings["method"],#"SLSQP",#best result using L-BFGS-B
                 constraints=cons,
                 tol=self._ik_settings["tolerance"],
                 options={'maxiter': self._ik_settings["max_iterations"], 'disp': self.verbose})#,'eps':1.0
         print "finished optimization",result["x"].tolist(), initial_guess.tolist()
         self.pose.set_channel_values(result["x"], free_joints)
 
+    def optimize_joint(self, target_joint, target_position, free_joint):
+        #optimize x y z
+        initial_guess = self.pose.extract_parameters(free_joint)#self._extract_free_parameters([free_joint])
+        data = self, [free_joint], target_joint, target_position
+        result = minimize(obj_inverse_kinematics,
+                initial_guess,
+                args=(data,),
+                method=self._ik_settings["method"],#"SLSQP",#best result using L-BFGS-B
+                constraints=None,
+                tol=self._ik_settings["tolerance"],
+                options={'maxiter': self._ik_settings["max_iterations"], 'disp': self.verbose})#,'eps':1.0
+        #apply constraints here
+        self.pose.apply_bounds(free_joint)
+        return result["x"]
+
+    def run_cyclic_coordinate_descent(self, target_joint, target_position, free_joints):
+        reversed_chain = copy(free_joints)
+        reversed_chain.reverse()
+        delta = np.inf
+        epsilon = self._ik_settings["tolerance"]
+        max_iter = self._ik_settings["max_iterations"]
+        terminate = False
+        iteration = 0
+        start = time.clock()
+        while not terminate:
+            for free_joint in reversed_chain:
+                self.optimize_joint(target_joint, target_position, free_joint)
+                #self.pose.set_channel_values(joint_result, [free_joint])
+            position = self.pose.evaluate_position(target_joint)
+            new_delta = np.linalg.norm(position-target_position)
+            if delta < epsilon or abs(delta-new_delta) < epsilon or iteration > max_iter:
+                terminate = True
+            delta = new_delta
+            iteration += 1
+        print "finished optimization after", iteration, "iterations with error",delta, "in",time.clock()-start,"seconds"
+        return
 
     def evaluate_delta(self, parameters, target_joint, target_position, free_joints):
-        position = self.pose.evaluate_position(target_joint, parameters, free_joints)
+
+        self.pose.set_channel_values(parameters, free_joints) #update frame
+        position = self.pose.evaluate_position(target_joint)
         d = position - target_position
         #print target_joint, position, target_position, parameters
         #print parameters.tolist()
@@ -94,7 +116,8 @@ class InverseKinematics(object):
                 if joint_name in self.pose.free_joints_map.keys():
                     free_joints = self.pose.free_joints_map[joint_name]
                     target = c["position"]
-                    self.run(joint_name, target, free_joints)
+                    #self.run_optimization(joint_name, target, free_joints)
+                    self.run_cyclic_coordinate_descent(joint_name, target, free_joints)
                 motion_vector.frames[keyframe] = self.pose.get_vector()
                 #interpolate
                 if self.window > 0:

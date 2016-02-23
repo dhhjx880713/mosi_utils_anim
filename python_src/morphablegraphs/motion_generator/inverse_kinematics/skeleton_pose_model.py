@@ -1,6 +1,6 @@
 import numpy as np
 from ...animation_data.motion_editing import convert_quaternion_frames_to_euler_frames as convert_quat_to_euler
-from ...animation_data.motion_editing import euler_to_quaternion
+from ...animation_data.motion_editing import euler_to_quaternion, quaternion_to_euler
 LEN_QUATERNION = 4
 LEN_TRANSLATION = 3
 
@@ -55,8 +55,8 @@ class SkeletonPoseModel(object):
                            "RightHand":["RightArm","RightForeArm"],# "RightShoulder",
                            "LeftToolEndSite":[ "LeftShoulder","LeftArm","LeftForeArm"],
                            "RightToolEndSite":["RightArm", "RightForeArm"]}#"RightShoulder",
-        self.bounds = {"LeftArm":[{"dim": 1, "min": 0, "max": 180}],
-                       "RightArm":[{"dim": 1, "min": 0, "max": 180}]}
+        self.bounds = {"LeftArm":[{"dim": 1, "min": 0, "max": 90}],
+                       "RightArm":[{"dim": 1, "min": 0, "max": 90},{"dim": 0, "min": 0, "max": 90}]}
 
     def set_channel_values(self, parameters, free_joints):
         p_idx = 0
@@ -83,7 +83,7 @@ class SkeletonPoseModel(object):
 
     def extract_parameters(self, joint_name):
         f_start, f_end = self.extract_parameters_indices(joint_name)
-        print joint_name, f_start, f_end, self.pose_parameters[f_start: f_end].tolist(), len(self.pose_parameters)
+        #print joint_name, f_start, f_end, self.pose_parameters[f_start: f_end].tolist(), len(self.pose_parameters)
         return self.pose_parameters[f_start: f_end]
 
     def get_vector(self):
@@ -92,9 +92,57 @@ class SkeletonPoseModel(object):
         else:
             return self.pose_parameters
 
-    def evaluate_position(self, target_joint, parameters, free_joints):
-        """create frame and run fk
+    def evaluate_position(self, target_joint):
+        """ run fk
         """
-        self.set_channel_values(parameters, free_joints)
-        #self.skeleton.set_rotation_type(ROTATION_TYPE_EULER)#change to euler
         return self.skeleton.nodes[target_joint].get_global_position(self.pose_parameters)#get_vector()
+
+    def apply_bounds(self, free_joint):
+        if free_joint in self.bounds.keys():
+            euler_angles = self.get_euler_angles(free_joint)
+            for bound in self.bounds[free_joint]:
+                self.apply_bound_on_joint(euler_angles, bound)
+
+            if self.use_euler:
+                self.set_channel_values(euler_angles, [free_joint])
+            else:
+                q = euler_to_quaternion(euler_angles)
+                #print("apply bound")
+                self.set_channel_values(q, [free_joint])
+        return
+
+    def apply_bound_on_joint(self, euler_angles, bound):
+        #self.pose_parameters[start+bound["dim"]] =
+        #print euler_angles
+        if "min" in bound.keys():
+            euler_angles[bound["dim"]] = max(euler_angles[bound["dim"]],bound["min"])
+        if "max" in bound.keys():
+            euler_angles[bound["dim"]] = min(euler_angles[bound["dim"]],bound["max"])
+        #print "after",euler_angles
+
+    def get_euler_angles(self, joint):
+        if self.use_euler:
+            euler_angles = self.extract_parameters(joint)
+        else:
+            q = self.extract_parameters(joint)
+            euler_angles = quaternion_to_euler(q)
+        return euler_angles
+
+
+    def generate_constraints(self, free_joints):
+        """ TODO add bounds on axis components of the quaternion according to
+        Inverse Kinematics with Dual-Quaternions, Exponential-Maps, and Joint Limits by Ben Kenwright
+        or try out euler based ik
+        """
+        cons = []
+        idx = 0
+        for joint_name in free_joints:
+            if joint_name in self.bounds.keys():
+                start = idx
+                for bound in self.bounds[joint_name]:
+                    if "min" in bound.keys():
+                        cons.append(({"type": 'ineq', "fun": lambda x: x[start+bound["dim"]]-bound["min"]}))
+                    if "max" in bound.keys():
+                        cons.append(({"type": 'ineq', "fun": lambda x: bound["max"]-x[start+bound["dim"]]}))
+            idx += self.n_channels[joint_name]
+        return tuple(cons)
