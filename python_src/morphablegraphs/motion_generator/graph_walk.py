@@ -79,7 +79,7 @@ class GraphWalk(object):
             if time_function is not None:
                 frame_offset += int(time_function[-1])
             else:
-                frame_offset += self.motion_state_graph.nodes[step.node_key].get_n_canonical_frames()
+                frame_offset += step.end_frame - step.start_frame#self.motion_state_graph.nodes[step.node_key].get_n_canonical_frames()
         return annotated_motion_vector
 
     def _convert_graph_walk_to_quaternion_frames(self, start_step=0, use_time_parameters=False):
