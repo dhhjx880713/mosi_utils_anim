@@ -103,11 +103,12 @@ class AlgorithmConfigurationBuilder(object):
 
     def set_default_inverse_kinematics_settings(self):
         self.inverse_kinematics_settings = dict()
-        self.inverse_kinematics_settings["method"] = "BFGS"
+        self.inverse_kinematics_settings["optimization_method"] = "L-BFGS-B"
         self.inverse_kinematics_settings["tolerance"] = 1e-10
         self.inverse_kinematics_settings["max_iterations"] = 500
         self.inverse_kinematics_settings["interpolation_window"] = 120
         self.inverse_kinematics_settings["use_euler_representation"] = False
+        self.inverse_kinematics_settings["solving_method"] = "unconstrained"
 
     def from_json(self, filename):
         temp_algorithm_config = load_json_file(filename)

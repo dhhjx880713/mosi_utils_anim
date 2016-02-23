@@ -11,6 +11,8 @@ from skeleton_pose_model import SkeletonPoseModel
 LEN_QUATERNION = 4
 LEN_TRANSLATION = 3
 
+IK_METHOD_UNCONSTRAINED_OPTIMIZATION = "unconstrained"
+IK_METHOD_CYCLIC_COORDINATTE_DESCENT = "ccd"
 
 def obj_inverse_kinematics(s, data):
     ik, free_joints, target_joint, target_position = data
@@ -27,6 +29,7 @@ class InverseKinematics(object):
         self.window = self._ik_settings["interpolation_window"]
         self.verbose = False
         self.use_euler = self._ik_settings["use_euler_representation"]
+        self.solving_method = self._ik_settings["solving_method"]
         if self.use_euler:
             self.skeleton.set_rotation_type(ROTATION_TYPE_EULER)#change to euler
         self.channels = OrderedDict()
@@ -41,21 +44,25 @@ class InverseKinematics(object):
 
     def set_reference_frame(self, reference_frame):
         self.pose = SkeletonPoseModel(self.skeleton, reference_frame, self.channels, self.use_euler)
+        self.pose.clear_cache()
 
 
     def run_optimization(self, target_joint, target_position, free_joints):
         initial_guess = self._extract_free_parameters(free_joints)
         data = self, free_joints, target_joint, target_position
         print "start optimization for joint", target_joint, len(initial_guess),len(free_joints)
+        start = time.clock()
         cons = None#self.pose.generate_constraints(free_joints)
         result = minimize(obj_inverse_kinematics,
                 initial_guess,
                 args=(data,),
-                method=self._ik_settings["method"],#"SLSQP",#best result using L-BFGS-B
+                method=self._ik_settings["optimization_method"],#"SLSQP",#best result using L-BFGS-B
                 constraints=cons,
                 tol=self._ik_settings["tolerance"],
                 options={'maxiter': self._ik_settings["max_iterations"], 'disp': self.verbose})#,'eps':1.0
-        print "finished optimization",result["x"].tolist(), initial_guess.tolist()
+
+        position = self.pose.evaluate_position(target_joint)
+        print "finished optimization in",time.clock()-start,"seconds with error",np.linalg.norm(position-target_position)#,result["x"].tolist(), initial_guess.tolist()
         self.pose.set_channel_values(result["x"], free_joints)
 
     def optimize_joint(self, target_joint, target_position, free_joint):
@@ -65,7 +72,7 @@ class InverseKinematics(object):
         result = minimize(obj_inverse_kinematics,
                 initial_guess,
                 args=(data,),
-                method=self._ik_settings["method"],#"SLSQP",#best result using L-BFGS-B
+                method=self._ik_settings["optimization_method"],#"SLSQP",#best result using L-BFGS-B
                 constraints=None,
                 tol=self._ik_settings["tolerance"],
                 options={'maxiter': self._ik_settings["max_iterations"], 'disp': self.verbose})#,'eps':1.0
@@ -116,8 +123,10 @@ class InverseKinematics(object):
                 if joint_name in self.pose.free_joints_map.keys():
                     free_joints = self.pose.free_joints_map[joint_name]
                     target = c["position"]
-                    #self.run_optimization(joint_name, target, free_joints)
-                    self.run_cyclic_coordinate_descent(joint_name, target, free_joints)
+                    if self.solving_method == IK_METHOD_CYCLIC_COORDINATTE_DESCENT:
+                        self.run_cyclic_coordinate_descent(joint_name, target, free_joints)
+                    else:
+                        self.run_optimization(joint_name, target, free_joints)
                 motion_vector.frames[keyframe] = self.pose.get_vector()
                 #interpolate
                 if self.window > 0:

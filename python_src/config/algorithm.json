@@ -45,10 +45,11 @@
     },
     "inverse_kinematics_settings":{
         "tolerance": 0.05,
-        "method": "BFGS",
+        "optimization_method": "L-BFGS-B",
         "max_iterations": 500,
         "interpolation_window":120,
-        "use_euler_representation": false
+        "use_euler_representation": false,
+        "solving_method": "unconstrained"
     },
     "constrained_gmm_settings": {
         "precision": {
@@ -62,13 +63,13 @@
     "n_random_samples": 300,
     "average_elementary_action_error_threshold": 500,
     "constrained_sampling_mode": "cluster_search",
-    "activate_inverse_kinematics": false,
+    "activate_inverse_kinematics": true,
     "n_cluster_search_candidates": 1,
     "use_transition_model": false, 
     "local_optimization_mode": "none",
     "activate_parameter_check": false,
     "use_global_time_optimization": false,
-    "use_global_spatial_optimization": true,
+    "use_global_spatial_optimization": false,
     "collision_avoidance_constraints_mode": "create_constraint_set",
     "optimize_collision_avoidance_constraints_extra": false,
     "use_constrained_gmm": false,

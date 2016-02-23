@@ -29,8 +29,10 @@ class QuaternionFrame(collections.OrderedDict):
         \t enforce a unique rotation representation
 
         """
-        quaternions = \
-            self._get_all_nodes_quat_repr(bvh_reader, frame_vector, filter_values, ignore_bip_joints=ignore_bip_joints)
+        quaternions = self._get_all_nodes_quat_repr(bvh_reader,
+                                                    frame_vector,
+                                                    filter_values,
+                                                    ignore_bip_joints=ignore_bip_joints)
         collections.OrderedDict.__init__(self, quaternions)
 
     @classmethod
@@ -50,8 +52,7 @@ class QuaternionFrame(collections.OrderedDict):
         """
         # convert euler angles into rotation matrix, then convert rotation matrix
         # into quaternion
-        assert len(
-            euler_angles) == 3, ('The length of euler angles should be 3!')
+        assert len(euler_angles) == 3, ('The length of euler angles should be 3!')
         # convert euler angle from degree into radians
         euler_angles = np.deg2rad(euler_angles)
         if rotation_order[0] == 'Xrotation':
@@ -134,9 +135,9 @@ class QuaternionFrame(collections.OrderedDict):
             'Yrotation',
             'Zrotation')  # hard coded for now
         return QuaternionFrame._get_quaternion_from_euler(
-            euler_angles,
-            rotation_order,
-            filter_values)
+                                euler_angles,
+                                rotation_order,
+                                filter_values)
 
     def _get_all_nodes_quat_repr(self, bvh_reader, frame_vector, filter_values, ignore_bip_joints=True):
         """Returns dictionary of all quaternions for all nodes except leave nodes
