@@ -47,7 +47,8 @@
         "tolerance": 0.05,
         "method": "BFGS",
         "max_iterations": 500,
-        "interpolation_window":120
+        "interpolation_window":120,
+        "use_euler_representation": false
     },
     "constrained_gmm_settings": {
         "precision": {
