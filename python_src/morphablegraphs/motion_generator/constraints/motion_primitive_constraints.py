@@ -39,6 +39,7 @@ class MotionPrimitiveConstraints(object):
         self.evaluations = 0
         self.keyframe_event_list = dict()
         self.aligning_transform = None  # used to bring constraints in the local coordinate system of a motion primitive
+        self.is_local = False
 
     def print_status(self):
         print("starting from: ")
@@ -59,14 +60,17 @@ class MotionPrimitiveConstraints(object):
         \tThe sum of the errors for all constraints
     
         """
-        #find aligned frames once for all constraints
-        quat_frames = motion_primitive.back_project(parameters, use_time_parameters).get_motion_vector()
-        aligned_frames = align_quaternion_frames(quat_frames, prev_frames, self.start_pose)
+
+        motion_spline = motion_primitive.back_project(parameters, use_time_parameters)
+        quat_frames = motion_spline.get_motion_vector()
+        if not self.is_local:
+            #find aligned frames once for all constraints
+            quat_frames = align_quaternion_frames(quat_frames, prev_frames, self.start_pose)
+
         #evaluate constraints with the generated motion
-        #print("n_contraints", len(self.constraints))
         error_sum = 0
         for constraint in self.constraints:
-            error_sum += constraint.weight_factor * constraint.evaluate_motion_sample(aligned_frames)
+            error_sum += constraint.weight_factor * constraint.evaluate_motion_sample(quat_frames)
         self.evaluations += 1
         return error_sum
 
@@ -80,14 +84,17 @@ class MotionPrimitiveConstraints(object):
         \tThe list of the errors for all constraints
 
         """
-        #find aligned frames once for all constraints
-        quat_frames = motion_primitive.back_project(parameters, use_time_parameters).get_motion_vector()
-        aligned_frames = align_quaternion_frames(quat_frames, prev_frames, self.start_pose)
+
+        motion_spline = motion_primitive.back_project(parameters, use_time_parameters)
+        quat_frames = motion_spline.get_motion_vector()
+        if not self.is_local:
+            #find aligned frames once for all constraints
+            quat_frames = align_quaternion_frames(quat_frames, prev_frames, self.start_pose)
 
         #evaluate constraints with the generated motion
         residual_vector = []
         for constraint in self.constraints:
-            vector = constraint.get_residual_vector(aligned_frames)
+            vector = constraint.get_residual_vector(quat_frames)
             for value in vector:
                 residual_vector.append(value*constraint.weight_factor)
         self.evaluations += 1
@@ -118,30 +125,36 @@ class MotionPrimitiveConstraints(object):
         return mgrd_constraints
 
     def transform_constraints_to_local_cos(self):
-        inv_aligning_transform = np.linalg.inv(self.aligning_transform)
-        mp_constraints = MotionPrimitiveConstraints()
-        mp_constraints.start_pose = {"orientation": [0,0,0], "position": [0,0,0]}
-        for c in self.constraints:
-            if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION:
-                position = c.position
-                if position is not None:
-                    orig_position = position
-                    if position[1] is None:
-                        position[1] = 0
-                        #print "aligning transform", self.aligning_transform
-
-                    position = np.dot(inv_aligning_transform, position+[1])[:3]
-                    #position = transform_point(position,  self.aligning_transform["orientation"], self.aligning_transform["translation"])
-                    print "transformed constraint",orig_position, position
-                    position[1] = None
-                    keyframe_constraint_desc = {"joint": c.joint_name,
-                                                "position": position,
-                                                "n_canonical_frames": c.n_canonical_frames,
-                                                "canonical_keyframe":  c.canonical_keyframe,
-                                                "semanticAnnotation": c.semantic_annotation}
-                    precision = 1.0
-                    mp_constraints.constraints.append(GlobalTransformConstraint(self.skeleton, keyframe_constraint_desc, precision))
-        return mp_constraints
+        print "transform to local cos"
+        if self.is_local:
+            return self
+        else:
+            inv_aligning_transform = np.linalg.inv(self.aligning_transform)
+            mp_constraints = MotionPrimitiveConstraints()
+            mp_constraints.start_pose = {"orientation": [0,0,0], "position": [0,0,0]}
+            mp_constraints.is_local = True
+            for c in self.constraints:
+                if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION:
+                    position = c.position + [1]
+                    if position is not None:
+                        orig_position = position
+                        indices = [i for i in range(3) if position[i] is None]
+                        for i in indices:
+                            position[i] = 0
+                        #position = [position[0], 0, position[2], 1]
+                        print position
+                        position = np.dot(inv_aligning_transform, position)[:3].tolist()
+                        for i in indices:
+                            position[i] = None
+                        #position = transform_point(position,  self.aligning_transform["orientation"], self.aligning_transform["translation"])
+                        print "transformed constraint",orig_position, position
+                        keyframe_constraint_desc = {"joint": c.joint_name,
+                                                    "position": position,
+                                                    "n_canonical_frames": c.n_canonical_frames,
+                                                    "canonical_keyframe":  c.canonical_keyframe,
+                                                    "semanticAnnotation": c.semantic_annotation}
+                        mp_constraints.constraints.append(GlobalTransformConstraint(self.skeleton, keyframe_constraint_desc, 1.0))
+            return mp_constraints
 
     def convert_to_ik_constraints(self, frame_offset=0, time_function=None):
         ik_constraints = {}
