@@ -12,7 +12,7 @@ from statistics import ConstrainedGMMBuilder
 from ..utilities.exceptions import ConstraintError, SynthesisError
 from optimization import OptimizerBuilder
 from objective_functions import obj_spatial_error_sum, obj_spatial_error_sum_and_naturalness
-#from mgrd import score_samples_with_pose_and_semantic_constraints, motion_primitive_get_random_samples
+from mgrd import motion_primitive_get_random_samples
 from mgrd_filter import MGRDFilter
 SAMPLING_MODE_RANDOM = "random_discrete"
 SAMPLING_MODE_CLUSTER_SEARCH = "cluster_search"
@@ -131,9 +131,7 @@ class MotionPrimitiveGenerator(object):
     def _get_best_fit_random_sample_using_mgrd(self, graph_node, mp_constraints):
         #TODO handle transformation of motion primitive to global coordinate system or constraints to local coordinate system of motion primitive based on the previous motion
         samples = motion_primitive_get_random_samples(graph_node.motion_primitive, self.n_random_samples)
-        scores = self.mgrd_filter.score_samples(graph_node.motion_primitive, samples,
-                                                mp_constraints.convert_to_mgrd_constraints(),
-                                                mp_constraints.aligning_transform)
+        scores = self.mgrd_filter.score_samples(graph_node.motion_primitive, samples, mp_constraints)
         best_idx = np.argmin(scores)
         mp_constraints.min_error = scores[best_idx]
         print "Found best sample with score", scores[best_idx]

@@ -1,16 +1,72 @@
 import numpy
 import time
-from mgrd import Constraint, SemanticConstraint
+from constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
+from mgrd import Constraint, SemanticConstraint, CartesianConstraint
 from mgrd.utils import ForwardKinematics as MGRDForwardKinematics
 
 
 class MGRDFilter(object):
     """ Implements the filter pipeline to estimate the best fit parameters for one motion primitive.
     """
-    def __init__(self, pose_constraint_weights = (1,1)):
+    def __init__(self, pose_constraint_weights=(1,1)):
         self.pose_constraint_weights = pose_constraint_weights
 
-    def score_samples(self, motion_primitive, samples, constraints, transform=None):
+    @staticmethod
+    def convert_motion_primitive_constraints_to_mgrd_constraints(mp_constraints):
+        #local_transform = numpy.linalg.inv(mp_constraints.aligning_transform)
+        mgrd_constraints = []
+        for c in mp_constraints.constraints:
+            if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION:
+                position = c.position#+[1]
+                #position[1] = 0
+                #print local_transform, position
+                #local_position = numpy.dot(local_transform, position)[:3]
+                local_position = position
+                cartesian_constraint = CartesianConstraint(local_position, c.joint_name, c.weight_factor)
+                mgrd_constraints.append(cartesian_constraint)
+        return mgrd_constraints
+
+    def score_samples(self, motion_primitive, samples, mp_constraints):
+        """ Scores splines using cartesian constraints only.
+
+        Args:
+            motion_primitive (mgrd.MotionPrimitiveModel): the motion primitive to backproject the samples.
+            samples(List<Array<float>>): list of samples generated from the motion primitive.
+            constraints (MotionPrimitiveConstraints>):  a set of motion primitive constraints
+            transform (Matrix4F):optional transformation matrix of the samples into the global coordinate system.
+
+        Returns:
+            Array<float>
+        """
+        cartesian_constraints = MGRDFilter.convert_motion_primitive_constraints_to_mgrd_constraints(mp_constraints)
+        quat_splines = motion_primitive.create_multiple_spatial_splines(samples, joints=None)
+        #TODO transform constraints instead to local coordinate system
+        if mp_constraints.aligning_transform is not None:
+            for qs in quat_splines:
+                qs.transform_coeffs(mp_constraints.aligning_transform)
+        scores = CartesianConstraint.score_splines(quat_splines, cartesian_constraints)
+        return scores
+
+    def score_samples_using_cartesian_constraints(self, motion_primitive, samples, constraints, transform=None):
+        """ Scores splines using cartesian constraints only.
+
+        Args:
+            motion_primitive (mgrd.MotionPrimitiveModel): the motion primitive to backproject the samples.
+            samples(List<Array<float>>): list of samples generated from the motion primitive.
+            constraints (List<mgrd.CartesianConstraint>):  a list of cartesian constraints each describing the target position of a joint.
+            transform (Matrix4F):optional transformation matrix of the samples into the global coordinate system.
+
+        Returns:
+            Array<float>
+        """
+        quat_splines = motion_primitive.create_multiple_spatial_splines(samples, joints=None)
+        if transform is not None:
+            for qs in quat_splines:
+                qs.transform_coeffs(transform)
+        scores = CartesianConstraint.score_splines(quat_splines, constraints)
+        return scores
+
+    def score_samples_using_keyframe_constraints(self, motion_primitive, samples, constraints, transform=None):
         """ Selects constrained intervals from TimeSplines using SemanticConstraints and scores the splines with
             PoseConstraints using the constrained intervals as bounds to the closest point search.
 
@@ -22,7 +78,7 @@ class MGRDFilter(object):
             transform (Matrix4F): optional transformation matrix of the samples into the global coordinate system.
 
         Returns:
-            float
+            Array<float>
         """
 
         # Evaluate semantic and time constraints
@@ -58,7 +114,7 @@ class MGRDFilter(object):
             constrained_intervals(list<Vec2f>):
 
         Returns:
-            float
+            Array<float>
 
         """
         constrain_position = Constraint.is_constraining_position(constraints)
