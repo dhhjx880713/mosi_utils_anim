@@ -118,17 +118,21 @@ class MotionPrimitiveGenerator(object):
         #prev_frames = None
         #mp_constraints = mp_constraints.transform_constraints_to_local_cos()
         if self.constrained_sampling_mode == SAMPLING_MODE_RANDOM_SPLINE:
-            sample = self._get_best_fit_random_sample_using_mgrd(graph_node, mp_constraints)
+            sample = self._get_best_fit_sample_using_mgrd(graph_node, mp_constraints)
         elif self.constrained_sampling_mode == SAMPLING_MODE_CLUSTER_SEARCH and graph_node.cluster_tree is not None:
-            sample = self._search_for_best_fit_sample_in_cluster_tree(graph_node, mp_constraints, prev_frames)
+            sample = self._get_best_fit_sample_using_cluster_tree(graph_node, mp_constraints, prev_frames)
         else:
-            sample = self._get_best_fit_random_sample(graph_node, mp_name, mp_constraints,
-                                                          prev_mp_name, prev_frames, prev_parameters)
-        if not self.use_transition_model and mp_constraints.use_local_optimization and mp_constraints.min_error <= self.optimization_start_error_threshold:
+            sample = self._get_best_fit_sample_using_gmm(graph_node, mp_name, mp_constraints, prev_mp_name,
+                                                         prev_frames, prev_parameters)
+        if self._is_optimization_required(mp_constraints):
             sample = self._optimize_parameters_numerically(sample, graph_node, mp_constraints, prev_frames)
         return sample
 
-    def _get_best_fit_random_sample_using_mgrd(self, graph_node, mp_constraints):
+    def _is_optimization_required(self, mp_constraints):
+        return mp_constraints.use_local_optimization and not self.use_transition_model and \
+               mp_constraints.min_error <= self.optimization_start_error_threshold
+
+    def _get_best_fit_sample_using_mgrd(self, graph_node, mp_constraints):
         #TODO handle transformation of motion primitive to global coordinate system or constraints to local coordinate system of motion primitive based on the previous motion
         samples = motion_primitive_get_random_samples(graph_node.motion_primitive, self.n_random_samples)
         scores = self.mgrd_filter.score_samples(graph_node.motion_primitive, samples, mp_constraints)
@@ -143,7 +147,7 @@ class MotionPrimitiveGenerator(object):
         self.numerical_minimizer.set_objective_function_parameters(data)
         return self.numerical_minimizer.run(initial_guess=inital_guess)
 
-    def _get_best_fit_random_sample(self, graph_node, mp_name, mp_constraints, prev_mp_name, prev_frames, prev_parameters):
+    def _get_best_fit_sample_using_gmm(self, graph_node, mp_name, mp_constraints, prev_mp_name, prev_frames, prev_parameters):
         #  1) get gaussian_mixture_model and modify it based on the current state and settings
         if self._constrained_gmm_builder is not None:
             gmm = self._constrained_gmm_builder.build(self.action_name, mp_name, mp_constraints,
@@ -162,7 +166,6 @@ class MotionPrimitiveGenerator(object):
             parameters, min_error = self._sample_from_gmm_using_constraints_and_validity_check(graph_node, gmm,
                                                                                                mp_constraints,
                                                                                                prev_frames)
-
         print "Found best sample with distance:", min_error
         return parameters
 
@@ -178,7 +181,7 @@ class MotionPrimitiveGenerator(object):
         gmm = self._motion_state_graph.nodes[(self.prev_action_name,prev_mp_name)].predict_gmm(to_key, prev_parameters)
         return gmm
 
-    def _search_for_best_fit_sample_in_cluster_tree(self, graph_node, constraints, prev_frames):
+    def _get_best_fit_sample_using_cluster_tree(self, graph_node, constraints, prev_frames):
         """ Directed search in precomputed hierarchical space partitioning data structure
         """
         data = graph_node, constraints, prev_frames

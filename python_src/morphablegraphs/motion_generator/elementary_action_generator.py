@@ -41,10 +41,17 @@ class ElementaryActionGeneratorState(object):
             self.max_arc_length = max_arc_length
 
         def is_end_state(self):
-            reached_debug_max_step = self.start_step + self.temp_step > self.debug_max_step and self.debug_max_step > -1
-            is_last_node = self.current_node_type == NODE_TYPE_END or self.current_node_type == NODE_TYPE_SINGLE
-            reached_max_arc_length = self.travelled_arc_length >= self.max_arc_length
-            return is_last_node or reached_debug_max_step or reached_max_arc_length
+            #print is_last_node , reached_debug_max_step , reached_max_arc_length,self.max_arc_length
+            return self.is_last_node() or self.reached_debug_max_step() or self.reached_max_arc_length()
+
+        def reached_debug_max_step(self):
+            return self.start_step + self.temp_step > self.debug_max_step and self.debug_max_step > -1
+
+        def reached_max_arc_length(self):
+            return self.travelled_arc_length >= self.max_arc_length
+
+        def is_last_node(self):
+            return self.current_node_type == NODE_TYPE_END or self.current_node_type == NODE_TYPE_SINGLE
 
         def transition(self, new_node, new_node_type, new_travelled_arc_length, new_step_start_frame):
             self.current_node = new_node
@@ -104,8 +111,8 @@ class ElementaryActionGenerator(object):
             index = 0
             for node_name in next_nodes:
                 motion_primitive_node = self.motion_primitive_graph.nodes[(action_name, node_name)]
-                self.motion_primitive_generator._search_for_best_fit_sample_in_cluster_tree(motion_primitive_node,
-                                                                                            mp_constraints, prev_frames)
+                self.motion_primitive_generator._get_best_fit_sample_using_cluster_tree(motion_primitive_node,
+                                                                                        mp_constraints, prev_frames)
                 print "Evaluated start option",node_name, mp_constraints.min_error
                 errors[index] = mp_constraints.min_error
                 index += 1
@@ -139,8 +146,7 @@ class ElementaryActionGenerator(object):
 
         return next_node, next_node_type
 
-    def _update_travelled_arc_length(
-            self, new_quat_frames, prev_graph_walk, prev_travelled_arc_length):
+    def _update_travelled_arc_length(self, new_quat_frames, prev_graph_walk, prev_travelled_arc_length):
         """update travelled arc length based on new closest point on trajectory """
         if len(prev_graph_walk) > 0:
             min_arc_length = prev_graph_walk[-1].arc_length
@@ -191,7 +197,6 @@ class ElementaryActionGenerator(object):
             max_arc_length = self.action_constraints.root_trajectory.full_arc_length
         else:
             max_arc_length = np.inf
-
         self.action_state.initialize_from_previous_graph_walk(graph_walk, max_arc_length)
         print "Start synthesis of elementary action", self.action_constraints.action_name
         errors = [0]
