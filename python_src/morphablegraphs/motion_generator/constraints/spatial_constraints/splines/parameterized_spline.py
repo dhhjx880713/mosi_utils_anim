@@ -16,6 +16,7 @@ SPLINE_TYPE_CATMULL_ROM = 0
 SPLINE_TYPE_BSPLINE = 1
 SPLINE_TYPE_FITTED_BSPLINE = 2
 
+
 class ParameterizedSpline(object):
     """ Parameterize a spline by arc length using a mapping table from parameter
     to relative arch length
@@ -85,7 +86,7 @@ class ParameterizedSpline(object):
         last_point = np.zeros((self.spline.dimensions, 1))
         for accumulated_step in accumulated_steps:
             # print "sample",accumulated_step
-            point = self.query_point_by_parameter(accumulated_step)
+            point = self.spline.query_point_by_parameter(accumulated_step)
             if point is not None:
                 #delta = []
                 #d = 0
@@ -130,7 +131,7 @@ class ParameterizedSpline(object):
             and queries the spline for the point.
         """
         u = self.arc_length_map.map_relative_arc_length_to_parameter(relative_arc_length)
-        return self.query_point_by_parameter(u)
+        return self.spline.query_point_by_parameter(u)
 
     def get_last_control_point(self):
         """
@@ -224,7 +225,7 @@ class ParameterizedSpline(object):
         min_u = None
         while u <= 1.0:
             if self.arc_length_map.get_absolute_arc_length(u) > min_arc_length:
-                eval_point = self.query_point_by_parameter(u)
+                eval_point = self.spline.query_point_by_parameter(u)
                 #delta = eval_point - point
                 #distance = 0
                 #for v in delta:
@@ -289,7 +290,7 @@ class ParameterizedSpline(object):
         #print "bounds",min_u, max_u
         result = minimize(dist_objective, guess_t, data, method="L-BFGS-B", bounds=[(min_u, max_u)])
         #print dist_objective(result['x'], self, point)
-        return self.query_point_by_parameter(result['x']), result['x']
+        return self.spline.query_point_by_parameter(result['x']), result['x']
 
 
     def get_absolute_arc_length(self, u):
