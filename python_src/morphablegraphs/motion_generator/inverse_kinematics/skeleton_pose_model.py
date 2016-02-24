@@ -53,7 +53,7 @@ class SkeletonPoseModel(object):
         #TODO read data from file
         self.free_joints_map = {"LeftHand":["Spine","LeftArm",  "LeftForeArm"],#"LeftShoulder",
                            "RightHand":["Spine","RightArm","RightForeArm"],# "RightShoulder",
-                           "LeftToolEndSite":["Spine", "LeftShoulder","LeftArm","LeftForeArm"],
+                           "LeftToolEndSite":["Spine", "LeftArm","LeftForeArm"],
                            "RightToolEndSite":["Spine","RightArm", "RightForeArm"]}#"RightShoulder",
         self.bounds = {"LeftArm":[],#{"dim": 1, "min": 0, "max": 90}
                        "RightArm":[]}#{"dim": 1, "min": 0, "max": 90},{"dim": 0, "min": 0, "max": 90}
