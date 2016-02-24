@@ -1,7 +1,8 @@
 import numpy
 import time
 from constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
-from mgrd import Constraint, SemanticConstraint, CartesianConstraint
+from mgrd import Constraint, SemanticConstraint
+from mgrd import CartesianConstraint as MGRDCartesianConstraint
 from mgrd.utils import ForwardKinematics as MGRDForwardKinematics
 
 
@@ -12,40 +13,41 @@ class MGRDFilter(object):
         self.pose_constraint_weights = pose_constraint_weights
 
     @staticmethod
-    def convert_motion_primitive_constraints_to_mgrd_constraints(mp_constraints):
-        #local_transform = numpy.linalg.inv(mp_constraints.aligning_transform)
+    def extract_cartesian_constraints(mp_constraints):
         mgrd_constraints = []
         for c in mp_constraints.constraints:
             if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION:
-                position = c.position#+[1]
-                #position[1] = 0
-                #print local_transform, position
-                #local_position = numpy.dot(local_transform, position)[:3]
-                local_position = position
-                cartesian_constraint = CartesianConstraint(local_position, c.joint_name, c.weight_factor)
+                position = [p if p is not None else 0 for p in c.position]
+                #print "local", position, c.joint_name
+                cartesian_constraint = MGRDCartesianConstraint(position, c.joint_name, c.weight_factor)
                 mgrd_constraints.append(cartesian_constraint)
         return mgrd_constraints
 
-    def score_samples(self, motion_primitive, samples, mp_constraints):
-        """ Scores splines using cartesian constraints only.
+    @staticmethod
+    def score_samples(motion_primitive, samples, local_constraints):
+        """ Scores splines using only cartesian constraints.
 
         Args:
             motion_primitive (mgrd.MotionPrimitiveModel): the motion primitive to backproject the samples.
             samples(List<Array<float>>): list of samples generated from the motion primitive.
-            constraints (MotionPrimitiveConstraints>):  a set of motion primitive constraints
+            local_constraints (MotionPrimitiveConstraints>):  a set of motion primitive constraints in the local coordinate system of the motion primitive.
             transform (Matrix4F):optional transformation matrix of the samples into the global coordinate system.
 
         Returns:
             Array<float>
         """
-        cartesian_constraints = MGRDFilter.convert_motion_primitive_constraints_to_mgrd_constraints(mp_constraints)
-        quat_splines = motion_primitive.create_multiple_spatial_splines(samples, joints=None)
-        #TODO transform constraints instead to local coordinate system
-        if mp_constraints.aligning_transform is not None:
-            for qs in quat_splines:
-                qs.transform_coeffs(mp_constraints.aligning_transform)
-        scores = CartesianConstraint.score_splines(quat_splines, cartesian_constraints)
-        return scores
+        cartesian_constraints = MGRDFilter.extract_cartesian_constraints(local_constraints)
+        if len(cartesian_constraints) > 0:
+            quat_splines = motion_primitive.create_multiple_spatial_splines(samples, joints=None)
+            #if mp_constraints.aligning_transform is not None:
+            #   for qs in quat_splines:
+            #        qs.transform_coeffs(mp_constraints.aligning_transform)
+            return MGRDCartesianConstraint.score_splines(quat_splines, cartesian_constraints)
+        else:
+            return [0]
+
+
+
 
     def score_samples_using_cartesian_constraints(self, motion_primitive, samples, constraints, transform=None):
         """ Scores splines using cartesian constraints only.
@@ -63,7 +65,7 @@ class MGRDFilter(object):
         if transform is not None:
             for qs in quat_splines:
                 qs.transform_coeffs(transform)
-        scores = CartesianConstraint.score_splines(quat_splines, constraints)
+        scores = MGRDCartesianConstraint.score_splines(quat_splines, constraints)
         return scores
 
     def score_samples_using_keyframe_constraints(self, motion_primitive, samples, constraints, transform=None):
@@ -189,3 +191,48 @@ class MGRDFilter(object):
         else:
             joint_spline = motion_spline.extract_joint_spline(constraint.joint_name)
         return joint_spline
+
+    @staticmethod
+    def create_transformation_matrix(rot,trans, out):
+        #print (rot, trans)
+        # normalize quaternion
+        s = 1.0 / numpy.linalg.norm(rot)
+
+        x = rot[1] * s
+        y = rot[2] * s
+        z = rot[3] * s
+        w = rot[0] * s
+
+        x2 = x + x
+        y2 = y + y
+        z2 = z + z
+
+        xx = x * x2
+        yx = y * x2
+        yy = y * y2
+        zx = z * x2
+        zy = z * y2
+        zz = z * z2
+        wx = w * x2
+        wy = w * y2
+        wz = w * z2
+
+        out[0,0] = 1 - yy - zz
+        out[0,1] = yx - wz
+        out[0,2] = zx + wy
+        out[0,3] = trans[0]
+
+        out[1,0] = yx + wz
+        out[1,1] = 1 - xx - zz
+        out[1,2] = zy - wx
+        out[1,3] = trans[1]
+
+        out[2,0] = zx - wy
+        out[2,1] = zy + wx
+        out[2,2] = 1 - xx - yy
+        out[2,3] = trans[2]
+
+        out[3,0] = 0
+        out[3,1] = 0
+        out[3,2] = 0
+        out[3,3] = 1

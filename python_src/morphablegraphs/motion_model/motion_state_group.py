@@ -128,7 +128,6 @@ class MotionStateGroup(ElementaryActionMetaInfo):
             print "generate", next_node_type, "transition without trajectory", n_standard_transitions
         to_node_key = self.nodes[prev_node].generate_random_transition(next_node_type)
         if to_node_key is not None:
-            print to_node_key
             return to_node_key, next_node_type
         else:
             return None, next_node_type

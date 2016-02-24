@@ -12,7 +12,7 @@ LEN_QUATERNION = 4
 LEN_TRANSLATION = 3
 
 IK_METHOD_UNCONSTRAINED_OPTIMIZATION = "unconstrained"
-IK_METHOD_CYCLIC_COORDINATTE_DESCENT = "ccd"
+IK_METHOD_CYCLIC_COORDINATE_DESCENT = "ccd"
 
 def obj_inverse_kinematics(s, data):
     ik, free_joints, target_joint, target_position = data
@@ -123,7 +123,7 @@ class InverseKinematics(object):
                 if joint_name in self.pose.free_joints_map.keys():
                     free_joints = self.pose.free_joints_map[joint_name]
                     target = c["position"]
-                    if self.solving_method == IK_METHOD_CYCLIC_COORDINATTE_DESCENT:
+                    if self.solving_method == IK_METHOD_CYCLIC_COORDINATE_DESCENT:
                         self.run_cyclic_coordinate_descent(joint_name, target, free_joints)
                     else:
                         self.run_optimization(joint_name, target, free_joints)
