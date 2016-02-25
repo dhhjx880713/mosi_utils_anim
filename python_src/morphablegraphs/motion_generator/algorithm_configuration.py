@@ -34,6 +34,7 @@ class AlgorithmConfigurationBuilder(object):
         self.debug_max_step = -1
         self.activate_inverse_kinematics = False
         self.verbose = False
+        self.use_local_coordinates = False
         self.average_elementary_action_error_threshold = 500
         self.collision_avoidance_constraints_mode = "none"
         self.optimize_collision_avoidance_constraints_extra = False
@@ -135,6 +136,7 @@ class AlgorithmConfigurationBuilder(object):
         self.optimize_collision_avoidance_constraints_extra = temp_algorithm_config["optimize_collision_avoidance_constraints_extra"]
         self.activate_inverse_kinematics = temp_algorithm_config["activate_inverse_kinematics"]
         self.inverse_kinematics_settings = temp_algorithm_config["inverse_kinematics_settings"]
+        self.use_local_coordinates = temp_algorithm_config["use_local_coordinates"]
 
     def build(self):
         return {"use_constraints": self.use_constraints,
@@ -159,5 +161,6 @@ class AlgorithmConfigurationBuilder(object):
                 "average_elementary_action_error_threshold": self.average_elementary_action_error_threshold,
                 "collision_avoidance_constraints_mode": self.collision_avoidance_constraints_mode,
                 "optimize_collision_avoidance_constraints_extra": self.optimize_collision_avoidance_constraints_extra,
-                "debug_max_step": self.debug_max_step
+                "debug_max_step": self.debug_max_step,
+                "use_local_coordinates": self.use_local_coordinates
                 }

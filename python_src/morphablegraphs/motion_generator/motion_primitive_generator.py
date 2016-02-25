@@ -56,6 +56,7 @@ class MotionPrimitiveGenerator(object):
             self._constrained_gmm_builder = None
         self.numerical_minimizer = OptimizerBuilder(self._algorithm_config).build_spatial_and_naturalness_error_minimizer()
         self.mgrd_filter = MGRDFilter()
+        self.use_local_coordinates = self._algorithm_config["use_local_coordinates"]
 
     def generate_constrained_motion_spline(self, mp_constraints, prev_graph_walk):
         """Calls generate_constrained_sample and backpojects the result to a MotionSpline.
@@ -115,17 +116,21 @@ class MotionPrimitiveGenerator(object):
             Low dimensional parameters for the morphable model
         """
         graph_node = self._motion_state_graph.nodes[(self.action_name, mp_name)]
-        #prev_frames = None
-        #mp_constraints = mp_constraints.transform_constraints_to_local_cos()
+        if self.use_local_coordinates:
+            prev_frames_copy = None
+            mp_constraints = mp_constraints.transform_constraints_to_local_cos()
+        else:
+            prev_frames_copy = prev_frames
+
         if self.constrained_sampling_mode == SAMPLING_MODE_RANDOM_SPLINE:
             sample = self._get_best_fit_sample_using_mgrd(graph_node, mp_constraints)
         elif self.constrained_sampling_mode == SAMPLING_MODE_CLUSTER_SEARCH and graph_node.cluster_tree is not None:
-            sample = self._get_best_fit_sample_using_cluster_tree(graph_node, mp_constraints, prev_frames)
+            sample = self._get_best_fit_sample_using_cluster_tree(graph_node, mp_constraints, prev_frames_copy)
         else:
             sample = self._get_best_fit_sample_using_gmm(graph_node, mp_name, mp_constraints, prev_mp_name,
-                                                         prev_frames, prev_parameters)
+                                                         prev_frames_copy, prev_parameters)
         if self._is_optimization_required(mp_constraints):
-            sample = self._optimize_parameters_numerically(sample, graph_node, mp_constraints, prev_frames)
+            sample = self._optimize_parameters_numerically(sample, graph_node, mp_constraints, prev_frames_copy)
         return sample
 
     def _is_optimization_required(self, mp_constraints):
@@ -133,9 +138,8 @@ class MotionPrimitiveGenerator(object):
                mp_constraints.min_error <= self.optimization_start_error_threshold
 
     def _get_best_fit_sample_using_mgrd(self, graph_node, mp_constraints):
-        #TODO handle transformation of motion primitive to global coordinate system or constraints to local coordinate system of motion primitive based on the previous motion
         samples = motion_primitive_get_random_samples(graph_node.motion_primitive, self.n_random_samples)
-        scores = self.mgrd_filter.score_samples(graph_node.motion_primitive, samples, mp_constraints)
+        scores = MGRDFilter.score_samples(graph_node.motion_primitive, samples, mp_constraints.transform_constraints_to_local_cos())
         best_idx = np.argmin(scores)
         mp_constraints.min_error = scores[best_idx]
         print "Found best sample with score", scores[best_idx]

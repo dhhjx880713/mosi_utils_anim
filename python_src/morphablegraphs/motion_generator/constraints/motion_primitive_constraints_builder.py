@@ -30,6 +30,7 @@ class MotionPrimitiveConstraintsBuilder(object):
         self.trajectory_following_settings = None
         self.local_optimization_mode = "None"
         self.ca_constraint_mode = "None"
+        self.use_local_coordinates = False
     
     def set_action_constraints(self, action_constraints):
         self.action_constraints = action_constraints
@@ -43,6 +44,7 @@ class MotionPrimitiveConstraintsBuilder(object):
         self.trajectory_following_settings = algorithm_config["trajectory_following_settings"]
         self.local_optimization_mode = algorithm_config["local_optimization_mode"]
         self.ca_constraint_mode = algorithm_config["collision_avoidance_constraints_mode"]
+        self.use_local_coordinates = algorithm_config["use_local_coordinates"]
 
     def set_status(self, node_key, last_arc_length, graph_walk, is_last_step=False):
         n_prev_frames = graph_walk.get_num_of_frames()
@@ -73,7 +75,7 @@ class MotionPrimitiveConstraintsBuilder(object):
             print "create aligning transform from start pose",self.action_constraints.start_pose
             #transform = inverse_pose_transform(self.action_constraints.start_pose["position"],self.action_constraints.start_pose["orientation"])
             #self.status["aligning_transform"] = {"translation": transform[0],"orientation":[0,0,0]}
-            transform = self.action_constraints.start_pose
+            transform = copy(self.action_constraints.start_pose)
         else:
             aligning_angle, aligning_offset = fast_quat_frames_transformation(prev_frames, self.motion_state_graph.nodes[node_key].sample(False).get_motion_vector()) #TODO return from concatenate_frames
             transform = {"position": aligning_offset,"orientation":[0,aligning_angle,0]}
@@ -82,7 +84,7 @@ class MotionPrimitiveConstraintsBuilder(object):
             #transform = inverse_pose_transform(aligning_offset,[0,aligning_angle,0])
             #self.status["aligning_transform"] = {"translation": transform[0],"orientation":transform[1]}
 
-        self.status["aligning_transform"] = create_transformation_matrix(transform["position"],transform["orientation"])
+        self.status["aligning_transform"] = create_transformation_matrix(transform["position"], transform["orientation"])
 
     def build(self):
         mp_constraints = MotionPrimitiveConstraints()
@@ -92,7 +94,10 @@ class MotionPrimitiveConstraintsBuilder(object):
         mp_constraints.constraints = []
         mp_constraints.goal_arc_length = 0
         mp_constraints.step_start = self.status["last_pos"]
-        mp_constraints.start_pose = self.action_constraints.start_pose
+        if self.use_local_coordinates:
+            mp_constraints.start_pose = None
+        else:
+            mp_constraints.start_pose = self.action_constraints.start_pose
         mp_constraints.skeleton = self.action_constraints.get_skeleton()
         mp_constraints.precision = self.action_constraints.precision
         mp_constraints.verbose = self.algorithm_config["verbose"]

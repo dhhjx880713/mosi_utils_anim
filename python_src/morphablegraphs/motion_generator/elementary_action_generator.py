@@ -3,6 +3,7 @@ __author__ = 'erhe01'
 import numpy as np
 from ..utilities.exceptions import PathSearchError
 from ..motion_model import NODE_TYPE_END, NODE_TYPE_SINGLE
+from ..animation_data.motion_editing import create_transformation_matrix
 from motion_primitive_generator import MotionPrimitiveGenerator
 from constraints.motion_primitive_constraints_builder import MotionPrimitiveConstraintsBuilder
 from graph_walk import GraphWalkEntry
@@ -70,12 +71,14 @@ class ElementaryActionGenerator(object):
         self.action_state = ElementaryActionGeneratorState(self._algorithm_config)
         self.start_node_selection_look_ahead_distance = algorithm_config["trajectory_following_settings"]["look_ahead_distance"]
         self.average_elementary_action_error_threshold = algorithm_config["average_elementary_action_error_threshold"]
+        self.use_local_coordinates = self._algorithm_config["use_local_coordinates"]
 
     def set_algorithm_config(self, algorithm_config):
         self._algorithm_config = algorithm_config
         self.action_state.debug_max_step = algorithm_config["debug_max_step"]
         self.start_node_selection_look_ahead_distance = algorithm_config["trajectory_following_settings"]["look_ahead_distance"]
         self.average_elementary_action_error_threshold = algorithm_config["average_elementary_action_error_threshold"]
+        self.use_local_coordinates = self._algorithm_config["use_local_coordinates"]
         self.motion_primitive_constraints_builder.set_algorithm_config(self._algorithm_config)
 
     def set_action_constraints(self, action_constraints):
@@ -91,21 +94,26 @@ class ElementaryActionGenerator(object):
             self.arc_length_of_end = 0.0
 
     def get_best_start_node(self, graph_walk, action_name):
+        #return ("walk","beginLeftStance")
         next_nodes = self.motion_primitive_graph.get_start_nodes(graph_walk, action_name)
         n_nodes = len(next_nodes)
         if n_nodes > 1:
             goal_arc_length = self.action_state.travelled_arc_length + self.start_node_selection_look_ahead_distance
             goal_position = self.action_constraints.root_trajectory.query_point_by_absolute_arc_length(goal_arc_length)
-            constraint_desc = {"joint": "Hips", "canonical_keyframe": -1, "position": goal_position, "n_canonical_frames": 0,
+            constraint_desc = {"joint": "Hips", "canonical_keyframe": -1, "position": goal_position.tolist(), "n_canonical_frames": 0,
                                "semanticAnnotation":  {"keyframeLabel": "end", "generated": True}}
             pos_constraint = GlobalTransformConstraint(self.motion_primitive_graph.skeleton, constraint_desc, 1.0, 1.0)
             mp_constraints = MotionPrimitiveConstraints()
+            mp_constraints.skeleton = self.action_constraints.get_skeleton()
+            mp_constraints.aligning_transform = create_transformation_matrix(graph_walk.motion_vector.start_pose["position"], graph_walk.motion_vector.start_pose["orientation"])
             mp_constraints.start_pose = graph_walk.motion_vector.start_pose
             mp_constraints.constraints.append(pos_constraint)
-            if graph_walk.get_num_of_frames() > 0:
+
+            prev_frames = None
+            if self.use_local_coordinates:
+                mp_constraints = mp_constraints.transform_constraints_to_local_cos()
+            elif graph_walk.get_num_of_frames() > 0:
                 prev_frames = graph_walk.get_quat_frames()
-            else:
-                prev_frames = None
 
             errors = np.empty(n_nodes)
             index = 0

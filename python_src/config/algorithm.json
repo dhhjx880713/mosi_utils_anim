@@ -64,7 +64,7 @@
     "average_elementary_action_error_threshold": 500,
     "constrained_sampling_mode": "cluster_search",
     "activate_inverse_kinematics": true,
-    "n_cluster_search_candidates": 1,
+    "n_cluster_search_candidates": 2,
     "use_transition_model": false, 
     "local_optimization_mode": "none",
     "activate_parameter_check": false,
@@ -74,6 +74,7 @@
     "optimize_collision_avoidance_constraints_extra": false,
     "use_constrained_gmm": false,
     "use_constraints": true,
+    "use_local_coordinates": false,
     "debug_max_step": -1,
     "verbose": false
 }
