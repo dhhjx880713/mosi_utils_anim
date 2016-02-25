@@ -10,6 +10,7 @@ from graph_walk import GraphWalkEntry
 from constraints.motion_primitive_constraints import MotionPrimitiveConstraints
 from constraints.spatial_constraints.keyframe_constraints.direction_constraint import DirectionConstraint
 from constraints.spatial_constraints.keyframe_constraints.global_transform_constraint import GlobalTransformConstraint
+from ..utilities import write_log
 
 
 class ElementaryActionGeneratorState(object):
@@ -121,12 +122,12 @@ class ElementaryActionGenerator(object):
                 motion_primitive_node = self.motion_primitive_graph.nodes[(action_name, node_name)]
                 self.motion_primitive_generator._get_best_fit_sample_using_cluster_tree(motion_primitive_node,
                                                                                         mp_constraints, prev_frames)
-                print "Evaluated start option",node_name, mp_constraints.min_error
+                write_log("Evaluated start option",node_name, mp_constraints.min_error)
                 errors[index] = mp_constraints.min_error
                 index += 1
             min_idx = np.argmin(errors)
             next_node = next_nodes[min_idx]
-            print "Next node is", next_node, "with an error of", errors[min_idx], "towards",goal_position
+            write_log("Next node is", next_node, "with an error of", errors[min_idx], "towards",goal_position)
             return (action_name, next_node)
         else:
             return (action_name, next_nodes[0])
@@ -142,13 +143,13 @@ class ElementaryActionGenerator(object):
 
             next_node_type = self.motion_primitive_graph.nodes[next_node].node_type
             if next_node is None:
-                print "Error: Could not find a transition of type action_transition from ", self.action_state.prev_action_name, self.action_state.prev_mp_name, " to state", self.action_state.current_node
+                write_log("Error: Could not find a transition of type action_transition from ", self.action_state.prev_action_name, self.action_state.prev_mp_name, " to state", self.action_state.current_node)
         elif len(self.motion_primitive_graph.nodes[self.action_state.current_node].outgoing_edges) > 0:
             next_node, next_node_type = self.node_group.get_random_transition(graph_walk, self.action_constraints, self.action_state.travelled_arc_length, self.arc_length_of_end)
             if next_node is None:
-                print "Error: Could not find a transition of type", next_node_type, "from state", self.action_state.current_node
+                write_log("Error: Could not find a transition of type", next_node_type, "from state", self.action_state.current_node)
         else:
-            print "Error: Could not find a transition from state", self.action_state.current_node
+            write_log("Error: Could not find a transition from state", self.action_state.current_node)
             next_node = self.motion_primitive_graph.node_groups[self.action_constraints.action_name].get_random_start_state()
             next_node_type = self.motion_primitive_graph.nodes[next_node].node_type
 
@@ -178,7 +179,7 @@ class ElementaryActionGenerator(object):
             return self.motion_primitive_constraints_builder.build()
 
         except PathSearchError as e:
-            print "Moved beyond end point using parameters", str(e.search_parameters)
+            write_log( "Moved beyond end point using parameters", str(e.search_parameters))
             return None
 
     def append_action_to_graph_walk(self, graph_walk):
