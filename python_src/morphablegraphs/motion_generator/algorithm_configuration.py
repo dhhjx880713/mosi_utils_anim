@@ -113,30 +113,9 @@ class AlgorithmConfigurationBuilder(object):
 
     def from_json(self, filename):
         temp_algorithm_config = load_json_file(filename)
-        self.use_constraints = temp_algorithm_config["use_constraints"]
-        self.local_optimization_mode = temp_algorithm_config["local_optimization_mode"]
-        self.use_transition_model = temp_algorithm_config["use_transition_model"]
-        self.use_constrained_gmm = temp_algorithm_config["use_constrained_gmm"]
-        self.use_global_time_optimization = temp_algorithm_config["use_global_time_optimization"]
-        self.use_global_spatial_optimization = temp_algorithm_config["use_global_spatial_optimization"]
-        self.activate_parameter_check = temp_algorithm_config["activate_parameter_check"]
-        self.smoothing_settings = temp_algorithm_config["smoothing_settings"]
-        self.n_random_samples = temp_algorithm_config["n_random_samples"]
-        self.constrained_gmm_settings = temp_algorithm_config["constrained_gmm_settings"]
-        self.trajectory_following_settings = temp_algorithm_config["trajectory_following_settings"]
-        self.local_optimization_settings = temp_algorithm_config["local_optimization_settings"]
-        self.global_spatial_optimization_settings = temp_algorithm_config["global_spatial_optimization_settings"]
-        self.global_time_optimization_settings = temp_algorithm_config["global_time_optimization_settings"]
-        self.constrained_sampling_mode = temp_algorithm_config["constrained_sampling_mode"]
-        self.n_cluster_search_candidates = temp_algorithm_config["n_cluster_search_candidates"]
-        self.debug_max_step = temp_algorithm_config["debug_max_step"]
-        self.verbose = temp_algorithm_config["verbose"]
-        self.average_elementary_action_error_threshold = temp_algorithm_config["average_elementary_action_error_threshold"]
-        self.collision_avoidance_constraints_mode = temp_algorithm_config["collision_avoidance_constraints_mode"]
-        self.optimize_collision_avoidance_constraints_extra = temp_algorithm_config["optimize_collision_avoidance_constraints_extra"]
-        self.activate_inverse_kinematics = temp_algorithm_config["activate_inverse_kinematics"]
-        self.inverse_kinematics_settings = temp_algorithm_config["inverse_kinematics_settings"]
-        self.use_local_coordinates = temp_algorithm_config["use_local_coordinates"]
+        for name in temp_algorithm_config.keys():
+            if hasattr(self, name):
+                setattr(self, name, temp_algorithm_config[name])
 
     def build(self):
         return {"use_constraints": self.use_constraints,
