@@ -18,8 +18,7 @@ import time
 from morphablegraphs import MotionGenerator, AlgorithmConfigurationBuilder, load_json_file, get_bvh_writer
 
 
-ALGORITHM_CONFIG_FILE = "config" + os.sep + "algorithm.json"
-SERVICE_CONFIG_FILE = "config" + os.sep + "service.json"
+SERVICE_CONFIG_FILE = "config" + os.sep + "service.config"
 
 
 class MGInputHandler(tornado.web.RequestHandler):
@@ -154,8 +153,6 @@ class MorphableGraphsRESTfulInterface(object):
     ----------
     * service_config_file : String
         Path to service settings
-    * algorithm_config_file : String
-        Path to algorithm settings
     * output_mode : String
         Can be either "answer_request" or "file_output".
         answer_request: send result to HTTP client
@@ -174,13 +171,17 @@ class MorphableGraphsRESTfulInterface(object):
     'http://localhost:port/configmorphablegraphs'
     """
 
-    def __init__(self, service_config_file, algorithm_config_file):
+    def __init__(self, service_config_file):
 
         #  Load configuration files
         service_config = load_json_file(service_config_file)
         algorithm_config_builder = AlgorithmConfigurationBuilder()
+        algorithm_config_file = "config" + os.sep + service_config["algorithm_settings"] + "_algorithm.config"
         if os.path.isfile(algorithm_config_file):
+            print "Load algorithm configuration from", algorithm_config_file
             algorithm_config_builder.from_json(algorithm_config_file)
+        else:
+            print "Did not find algorithm configuration file", algorithm_config_file
         algorithm_config = algorithm_config_builder.build()
 
         #  Construct morphable graph from files
@@ -199,8 +200,8 @@ class MorphableGraphsRESTfulInterface(object):
 
 
 def main():
-    if os.path.isfile(SERVICE_CONFIG_FILE) and os.path.isfile(ALGORITHM_CONFIG_FILE):
-        mg_service = MorphableGraphsRESTfulInterface(SERVICE_CONFIG_FILE, ALGORITHM_CONFIG_FILE)
+    if os.path.isfile(SERVICE_CONFIG_FILE):
+        mg_service = MorphableGraphsRESTfulInterface(SERVICE_CONFIG_FILE)
         mg_service.start()
     else:
         print "Error: could not open service or algorithm configuration file"

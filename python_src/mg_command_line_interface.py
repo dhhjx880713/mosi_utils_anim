@@ -16,8 +16,7 @@ import json
 import glob
 import time
 from morphablegraphs import MotionGenerator, AlgorithmConfigurationBuilder, load_json_file
-ALGORITHM_CONFIG_FILE = "config" + os.sep + "algorithm.json"
-SERVICE_CONFIG_FILE = "config" + os.sep + "service.json"
+SERVICE_CONFIG_FILE = "config" + os.sep + "service.config"
 
 
 def get_newest_file_from_input_directory(service_config):
@@ -34,14 +33,16 @@ def replace_hand_joints_in_input_file(input_file_path):
     return json.loads(input_string)
 
 
-def run_pipeline(service_config, algorithm_config_file):
+def run_pipeline(service_config):
     """Creates an instance of the morphable graph and runs the synthesis
        algorithm with the input_file and standard parameters.
     """
 
     input_file = get_newest_file_from_input_directory(service_config)
-    
+
     algorithm_config_builder = AlgorithmConfigurationBuilder()
+
+    algorithm_config_file = "config" + os.sep + service_config["algorithm_settings"] + "_algorithm.config"
     if os.path.isfile(algorithm_config_file):
         algorithm_config_builder.from_json(algorithm_config_file)
     algorithm_config = algorithm_config_builder.build()
@@ -64,8 +65,7 @@ def main():
 #    np.random.seed(SEED_CONSTANT)
     if os.path.isfile(SERVICE_CONFIG_FILE):
         service_config = load_json_file(SERVICE_CONFIG_FILE)
-
-        run_pipeline(service_config, ALGORITHM_CONFIG_FILE)
+        run_pipeline(service_config)
     else:
         print "Error: Could not read service config file", SERVICE_CONFIG_FILE
 

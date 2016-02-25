@@ -16,7 +16,7 @@ import glob
 import urllib2
 import json
 from morphablegraphs import load_json_file
-SERVICE_CONFIG_FILE = "config" + os.sep + "service.json"
+SERVICE_CONFIG_FILE = "config" + os.sep + "service.config"
 
 
 def get_newest_file_from_input_directory(service_config):

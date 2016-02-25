@@ -18,8 +18,8 @@ import sys
 import urllib2
 import json
 from morphablegraphs import load_json_file
-SERVICE_CONFIG_FILE = "config" + os.sep + "service.json"
-ALGORITHM_CONFIG_FILE = "config" + os.sep + "algorithm.json"
+SERVICE_CONFIG_FILE = "config" + os.sep + "service.config"
+ALGORITHM_CONFIG_FILE = "config" + os.sep + "standard_algorithm.config"
 
 
 def config_pipeline(service_config):
