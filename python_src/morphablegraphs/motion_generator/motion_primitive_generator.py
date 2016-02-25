@@ -15,7 +15,7 @@ from objective_functions import obj_spatial_error_sum, obj_spatial_error_sum_and
 from mgrd import motion_primitive_get_random_samples
 from mgrd_filter import MGRDFilter
 SAMPLING_MODE_RANDOM = "random_discrete"
-SAMPLING_MODE_CLUSTER_SEARCH = "cluster_search"
+SAMPLING_MODE_CLUSTER_TREE_SEARCH = "cluster_tree_search"
 SAMPLING_MODE_RANDOM_SPLINE = "random_spline"
 
 
@@ -124,7 +124,7 @@ class MotionPrimitiveGenerator(object):
 
         if self.constrained_sampling_mode == SAMPLING_MODE_RANDOM_SPLINE:
             sample = self._get_best_fit_sample_using_mgrd(graph_node, mp_constraints)
-        elif self.constrained_sampling_mode == SAMPLING_MODE_CLUSTER_SEARCH and graph_node.cluster_tree is not None:
+        elif self.constrained_sampling_mode == SAMPLING_MODE_CLUSTER_TREE_SEARCH and graph_node.cluster_tree is not None:
             sample = self._get_best_fit_sample_using_cluster_tree(graph_node, mp_constraints, prev_frames_copy)
         else:
             sample = self._get_best_fit_sample_using_gmm(graph_node, mp_name, mp_constraints, prev_mp_name,
@@ -139,7 +139,7 @@ class MotionPrimitiveGenerator(object):
 
     def _get_best_fit_sample_using_mgrd(self, graph_node, mp_constraints):
         samples = motion_primitive_get_random_samples(graph_node.motion_primitive, self.n_random_samples)
-        scores = MGRDFilter.score_samples(graph_node.motion_primitive, samples, mp_constraints.transform_constraints_to_local_cos())
+        scores = MGRDFilter.score_samples(graph_node.motion_primitive, samples, mp_constraints)
         best_idx = np.argmin(scores)
         mp_constraints.min_error = scores[best_idx]
         print "Found best sample with score", scores[best_idx]
