@@ -7,14 +7,17 @@ from mgrd import QuaternionSplineModel as MGRDQuaternionSplineModel
 from mgrd import TemporalSplineModel as MGRDTemporalSplineModel
 from ..utilities import load_json_file
 from legacy_temporal_spline_model import LegacyTemporalSplineModel
+from sklearn.mixture.gmm import GMM
 
 
 class MotionPrimitiveModelWrapper(object):
     """ Class that wraps the MGRD MotionPrimitiveModel
 
     """
+    SPLINE_DEGREE = 3
     def __init__(self):
         self.motion_primitive = None
+        self.use_mgrd_mixture_model = False
 
     def _load_from_file(self, mgrd_skeleton, file_name):
         data = load_json_file(file_name)
@@ -23,10 +26,9 @@ class MotionPrimitiveModelWrapper(object):
 
     def _initialize_from_json(self, mgrd_skeleton, data):
         if "semantic_annotation" in data.keys():
-            self.motion_primitive = MotionPrimitiveModelWrapper.load_model_from_json(mgrd_skeleton, data)
+            self.motion_primitive = MotionPrimitiveModelWrapper.load_model_from_json(mgrd_skeleton, data, self.use_mgrd_mixture_model)
         else:
-            mm = ExtendedMGRDMixtureModel.load_from_json({'covars': data['gmm_covars'], 'means': data['gmm_means'],
-                                                          'weights': data['gmm_weights'] })
+            mm = MotionPrimitiveModelWrapper.load_mixture_model(data, self.use_mgrd_mixture_model)
 
             tspm = LegacyTemporalSplineModel(data)
             #animated_joints = []
@@ -34,14 +36,13 @@ class MotionPrimitiveModelWrapper(object):
             #    if node.get_type != "end" and  node.get_type != "fixed-joint":
             #        animated_joints.append(node.name)
             animated_joints = ["Hips", "Spine", "Spine_1", "Neck", "Head", "LeftShoulder", "LeftArm", "LeftForeArm", "LeftHand", "RightShoulder", "RightArm", "RightForeArm", "RightHand", "LeftUpLeg", "LeftLeg", "LeftFoot", "RightUpLeg", "RightLeg", "RightFoot"]
-            #print np.asarray(data['eigen_vectors_spatial']).shape, np.asarray(data['mean_spatial_vector']).shape
             sspm = MGRDQuaternionSplineModel.load_from_json({
                                                         'eigen': np.asarray(data['eigen_vectors_spatial']).T,
                                                         'mean': np.asarray(data['mean_spatial_vector']),
                                                         'n_coeffs': data['n_basis_spatial'],
                                                         'n_dims': data['n_dim_spatial'],
                                                         'knots': np.asarray(data['b_spline_knots_spatial']),
-                                                        'degree': 3,
+                                                        'degree': self.SPLINE_DEGREE,
                                                         'translation_maxima': np.asarray(data['translation_maxima']),
                                                         'animated_joints': animated_joints
                                                     })
@@ -49,54 +50,6 @@ class MotionPrimitiveModelWrapper(object):
             #self.motion_primitive = MGMotionPrimitive(None)
             #self.motion_primitive._initialize_from_json(data)
 
-
-    @staticmethod
-    def load_model_from_json(skeleton, mm_data):
-
-        #N_DIM_TIME = 1
-        SPLINE_DEGREE = 3
-
-        # the eigen vectors for spatial spline is stored column major
-        mm_data['eigen_vectors_spatial'] = np.ascontiguousarray(np.asarray(mm_data['eigen_vectors_spatial']).transpose())
-        mm_data['eigen_vectors_temporal_semantic'] = np.ascontiguousarray(np.asarray(mm_data['eigen_vectors_temporal_semantic']).transpose())
-        # TODO: serialize as objects to avoid mapping names
-        sspm = MGRDQuaternionSplineModel.load_from_json({
-            'eigen': mm_data['eigen_vectors_spatial'],
-            'mean': mm_data['mean_spatial_vector'],
-            'n_coeffs': mm_data['n_basis_spatial'],
-            'n_dims': mm_data['n_dim_spatial'],
-            'knots': mm_data['b_spline_knots_spatial'],
-            'degree': SPLINE_DEGREE,
-            'translation_maxima': mm_data['translation_maxima'],
-            'animated_joints': mm_data['animated_joints']
-        })
-        tspm = MGRDTemporalSplineModel.load_from_json({
-            'eigen': mm_data['eigen_vectors_temporal_semantic'],
-            'mean': mm_data['mean_temporal_semantic_vector'],
-            'n_coeffs': mm_data['n_basis_temporal_semantic'],
-            'n_dims': mm_data['n_dim_temporal_semantic'],
-            'knots': mm_data['b_spline_knots_temporal_semantic'],
-            'degree': SPLINE_DEGREE,
-            'n_canonical_frames': mm_data['n_canonical_frames'],
-            'semantic_annotation': mm_data['semantic_annotation'],
-            'frame_time' : mm_data['frame_time'],
-            'semantic_labels': mm_data['semantic_annotation']
-        })
-        # TODO: serialize each cluster separately
-        # TODO: store eigen and mean for each cluster to avoid prepare_eigen_vectors()
-        n_components = len(np.array(mm_data['gmm_weights']))
-        #mm = GMM(n_components, covariance_type='full')
-        #mm.weights_ = numpy.array(mm_data['gmm_weights'])
-        #mm.means_ = numpy.array(mm_data['gmm_means'])
-        #mm.converged_ = True
-        #mm.covars_ = numpy.array(mm_data['gmm_covars'])
-        mm = ExtendedMGRDMixtureModel.load_from_json({
-            'covars': mm_data['gmm_covars'],
-            'means': mm_data['gmm_means'],
-            'weights': mm_data['gmm_weights']
-        })
-
-        return MGRDMotionPrimitiveModel(skeleton, sspm, tspm, mm)
 
     def sample(self, use_time=True):
         #if self.is_mgrd:
@@ -145,7 +98,9 @@ class MotionPrimitiveModelWrapper(object):
 
         """
         #if self.is_mgrd:
-        return np.asarray(self.motion_primitive.create_time_spline(s_vec, labels=[]).evaluate_domain(step_size=1.0))#[:,0]
+        time_spline = self.motion_primitive.create_time_spline(s_vec, labels=[])
+        #print time_spline.coeffs.shape
+        return np.asarray(time_spline.evaluate_domain(step_size=1.0))#[:,0]
         #else:
          #   #print time_parameters, step.n_spatial_components, step.n_time_components, len(step.parameters)
          #   return self.motion_primitive.back_project_time_function(s_vec[self.get_n_spatial_components():])
@@ -173,3 +128,59 @@ class MotionPrimitiveModelWrapper(object):
         return self.motion_primitive.mixture
         #else:
         #    return self.motion_primitive.gaussian_mixture_model
+
+
+
+    @staticmethod
+    def load_model_from_json(skeleton, mm_data, use_mgrd_mixture_model=True):
+
+
+        # the eigen vectors for spatial spline is stored column major
+        mm_data['eigen_vectors_spatial'] = np.ascontiguousarray(np.asarray(mm_data['eigen_vectors_spatial']).transpose())
+        mm_data['eigen_vectors_temporal_semantic'] = np.ascontiguousarray(np.asarray(mm_data['eigen_vectors_temporal_semantic']).transpose())
+        # TODO: serialize as objects to avoid mapping names
+        sspm = MGRDQuaternionSplineModel.load_from_json({
+            'eigen': mm_data['eigen_vectors_spatial'],
+            'mean': mm_data['mean_spatial_vector'],
+            'n_coeffs': mm_data['n_basis_spatial'],
+            'n_dims': mm_data['n_dim_spatial'],
+            'knots': mm_data['b_spline_knots_spatial'],
+            'degree': MotionPrimitiveModelWrapper.SPLINE_DEGREE,
+            'translation_maxima': mm_data['translation_maxima'],
+            'animated_joints': mm_data['animated_joints']
+        })
+        tspm = MGRDTemporalSplineModel.load_from_json({
+            'eigen': mm_data['eigen_vectors_temporal_semantic'],
+            'mean': mm_data['mean_temporal_semantic_vector'],
+            'n_coeffs': mm_data['n_basis_temporal_semantic'],
+            'n_dims': mm_data['n_dim_temporal_semantic'],
+            'knots': mm_data['b_spline_knots_temporal_semantic'],
+            'degree': MotionPrimitiveModelWrapper.SPLINE_DEGREE,
+            'n_canonical_frames': mm_data['n_canonical_frames'],
+            'semantic_annotation': mm_data['semantic_annotation'],
+            'frame_time' : mm_data['frame_time'],
+            'semantic_labels': mm_data['semantic_annotation']
+        })
+        # TODO: serialize each cluster separately
+        # TODO: store eigen and mean for each cluster to avoid prepare_eigen_vectors()
+        mm = MotionPrimitiveModelWrapper.load_mixture_model(mm_data, use_mgrd_mixture_model)
+
+        return MGRDMotionPrimitiveModel(skeleton, sspm, tspm, mm)
+
+    @staticmethod
+    def load_mixture_model(data, use_mgrd=True):
+        if use_mgrd:
+            mm = ExtendedMGRDMixtureModel.load_from_json({
+                'covars': data['gmm_covars'],
+                'means': data['gmm_means'],
+                'weights': data['gmm_weights']
+            })
+        else:
+            n_components = len(np.array(data['gmm_weights']))
+            mm = GMM(n_components, covariance_type='full')
+            mm.weights_ = np.array(data['gmm_weights'])
+            mm.means_ = np.array(data['gmm_means'])
+            mm.converged_ = True
+            mm.covars_ = np.array(data['gmm_covars'])
+            mm.n_dims = len(mm.covars_[0])
+        return mm
