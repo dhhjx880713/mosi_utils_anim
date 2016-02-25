@@ -25,6 +25,7 @@ class LegacyTemporalSplineModel(object):
     def create_spline(self, gamma, labels = None):
         sample_time_function = self._back_transform_gamma_to_canonical_time_function(gamma)
         knots, time_coeffs, degree = si.splrep(self.canonical_time_range, sample_time_function, w=None, k=3)
+        time_coeffs = time_coeffs.reshape(len(time_coeffs), 1)
         return MGRDTimeSpline(time_coeffs, knots, 1, degree, self.semantic_labels, self)
 
     def _mean_temporal(self):
