@@ -2,31 +2,36 @@ import numpy as np
 import scipy.interpolate as si
 from mgrd import TimeSpline as MGRDTimeSpline
 
-
+DEFAULT_FRAME_TIME = 0.013889
+SPLINE_DEGREE = 3
+N_TIME_DIM = 1
 class LegacyTemporalSplineModel(object):
-    def __init__(self, data):
+    def __init__(self, data, frame_time=DEFAULT_FRAME_TIME, smooth_time_parameters=False):
         self.eigen_vectors = np.array(data['eigen_vectors_time'])
         self.mean_vector = np.array(data['mean_time_vector'])
         self.n_basis = int(data['n_basis_time'])
-        self.n_dim = 1
+        self.n_dim = N_TIME_DIM
         self.n_components = len(self.eigen_vectors.T)
         self.knots = np.asarray(data['b_spline_knots_time'])
         self.eigen_coefs = zip(* self.eigen_vectors)
         self.n_canonical_frames = data['n_canonical_frames']
         self.canonical_time_range = np.arange(0, self.n_canonical_frames)
 
-        self.frame_time = 0.013889
+        self.frame_time = frame_time
         self.semantic_labels = []
         self.motion_primitive = None  # TODO improve: this has to be set currently from the outside because the motion primitive model is constructed after the spline model
+        self.smooth_time_parameters = smooth_time_parameters
 
     def get_n_components(self):
         return self.n_components
 
-    def create_spline(self, gamma, labels = None):
+    def create_spline(self, gamma, labels=None):
         sample_time_function = self._back_transform_gamma_to_canonical_time_function(gamma)
-        knots, time_coeffs, degree = si.splrep(self.canonical_time_range, sample_time_function, w=None, k=3)
+        knots, time_coeffs, degree = si.splrep(self.canonical_time_range, sample_time_function, w=None, k=SPLINE_DEGREE)
+        time_coeffs = time_coeffs[:-4]
         time_coeffs = time_coeffs.reshape(len(time_coeffs), 1)
-        return MGRDTimeSpline(time_coeffs, knots, 1, degree, self.semantic_labels, self)
+        #knots = knots.reshape(len(knots))
+        return MGRDTimeSpline(time_coeffs, knots, N_TIME_DIM, degree, self.semantic_labels, self)
 
     def _mean_temporal(self):
         """Evaluates the mean time b-spline for the canonical time range.
@@ -35,7 +40,7 @@ class LegacyTemporalSplineModel(object):
         * mean_t: np.ndarray
             Discretized mean time function.
         """
-        mean_tck = (self.knots, self.mean_vector, 3)
+        mean_tck = (self.knots, self.mean_vector, SPLINE_DEGREE)
         return si.splev(self.canonical_time_range, mean_tck)
 
     def back_project_time_function(self, gamma):

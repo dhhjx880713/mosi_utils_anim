@@ -54,10 +54,7 @@ class MotionPrimitiveModelWrapper(object):
     def sample(self, use_time=True):
         #if self.is_mgrd:
         s_vec = self.sample_low_dimensional_vector()
-        quat_spline = self.back_project(s_vec)
-        if use_time:
-            time_spline = self.motion_primitive.create_time_spline(s_vec)
-            quat_spline = time_spline.warp(quat_spline, time_spline.model.frame_time)
+        quat_spline = self.back_project(s_vec, use_time)
         return quat_spline
         #else:
         #    return self.motion_primitive.sample(use_time)
