@@ -68,7 +68,7 @@ class GraphWalkGenerator(object):
                 break
             success = self._add_elementary_action_to_graph_walk(action_constraints, graph_walk)
             if not success:
-                write_log("Aborting motion synthes: Error from constraints has become too high. due to unreachable constraints.")
+                write_log("Aborting motion synthesis: Error from constraints has become too high. due to unreachable constraints.")
                 return graph_walk
             action_constraints = action_constraints_builder.get_next_elementary_action_constraints()
         return graph_walk
@@ -81,7 +81,7 @@ class GraphWalkGenerator(object):
         success = self.action_generator.append_action_to_graph_walk(graph_walk)
         if success:
             graph_walk = self.graph_walk_optimizer.optimize(graph_walk, self.action_generator, action_constraints)
-            graph_walk.add_entry_to_action_list(action_constraints.action_name, self.action_generator.action_state.start_step, len(graph_walk.steps) - 1)
+            graph_walk.add_entry_to_action_list(action_constraints.action_name, self.action_generator.action_state.start_step, len(graph_walk.steps) - 1, action_constraints)
         return success
 
     def print_algorithm_config(self):

@@ -12,6 +12,7 @@ from ..animation_data import MotionVector, align_quaternion_frames
 from annotated_motion_vector import AnnotatedMotionVector
 from constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION
 from keyframe_event_list import KeyframeEventList
+from ..utilities import write_log
 LOG_FILE = "log.txt"
 
 
@@ -28,10 +29,11 @@ class GraphWalkEntry(object):
 
 
 class HighLevelGraphWalkEntry(object):
-    def __init__(self, action_name, start_step, end_step):
+    def __init__(self, action_name, start_step, end_step, action_constraints):
         self.action_name = action_name
         self.start_step = start_step
         self.end_step = end_step
+        self.action_constraints = action_constraints
 
 
 class GraphWalk(object):
@@ -49,11 +51,11 @@ class GraphWalk(object):
         self._algorithm_config = algorithm_config
         self.motion_vector = MotionVector(algorithm_config)
         self.motion_vector.start_pose = start_pose
-        self.use_time_parameters = False# TODO fix export of motion using time warping
+        self.use_time_parameters = True# TODO set as algorithm config parameter
         self.keyframe_event_list = KeyframeEventList()
 
-    def add_entry_to_action_list(self, action_name, start_step, end_step):
-        self.elementary_action_list.append(HighLevelGraphWalkEntry(action_name, start_step, end_step))
+    def add_entry_to_action_list(self, action_name, start_step, end_step, action_constraints):
+        self.elementary_action_list.append(HighLevelGraphWalkEntry(action_name, start_step, end_step, action_constraints))
 
     def update_temp_motion_vector(self, start_step=0, create_frame_annotation=True, use_time_parameters=False):
         self._convert_graph_walk_to_quaternion_frames(start_step, use_time_parameters=use_time_parameters)
@@ -69,17 +71,35 @@ class GraphWalk(object):
         annotated_motion_vector.skeleton = self.full_skeleton
         annotated_motion_vector.mg_input = self.mg_input
         frame_offset = 0
-        annotated_motion_vector.ik_constraints = {}
+        ik_constraints = dict()
+        ik_constraints["keyframes"] = dict()
         for step in self.steps:
             time_function = None
             if self.use_time_parameters:
                 time_function = self.motion_state_graph.nodes[step.node_key].back_project_time_function(step.parameters)
             step_constraints = step.motion_primitive_constraints.convert_to_ik_constraints(frame_offset, time_function)
-            annotated_motion_vector.ik_constraints.update(step_constraints)
+            ik_constraints["keyframes"].update(step_constraints)
             if time_function is not None:
                 frame_offset += int(time_function[-1])
             else:
                 frame_offset += step.end_frame - step.start_frame#self.motion_state_graph.nodes[step.node_key].get_n_canonical_frames()
+            #write_log("Frame offset", frame_offset, int(time_function[-1]))
+
+        ik_constraints["trajectories"] = list()
+        n_actions = len(self.elementary_action_list)
+        for action_idx in xrange(n_actions):
+            frame_annotation = self.keyframe_event_list.frame_annotation['elementaryActionSequence'][action_idx]
+            high_level_step = self.elementary_action_list[action_idx]
+            for ca_constraint in high_level_step.action_constraints.collision_avoidance_constraints:
+                traj_constraint = dict()
+                traj_constraint["trajectory"] = ca_constraint
+                traj_constraint["start_frame"] = frame_annotation["startFrame"]
+                traj_constraint["end_frame"] = frame_annotation["endFrame"]
+                traj_constraint["joint_name"] = ca_constraint.joint_name
+                traj_constraint["delta"] = 1.0
+                ik_constraints["trajectories"].append(traj_constraint)
+
+        annotated_motion_vector.ik_constraints = ik_constraints
         return annotated_motion_vector
 
     def _convert_graph_walk_to_quaternion_frames(self, start_step=0, use_time_parameters=False):
@@ -95,10 +115,10 @@ class GraphWalk(object):
         for step in self.steps[start_step:]:
             step.start_frame = start_frame
             quat_frames = self.motion_state_graph.nodes[step.node_key].back_project(step.parameters, use_time_parameters).get_motion_vector()
+            #write_log(step.node_key, len(quat_frames), use_time_parameters)
             self.motion_vector.append_frames(quat_frames)
             step.end_frame = self.get_num_of_frames()-1
             start_frame = step.end_frame + 1
-            #print "temp quat", temp_quat_frames[0]
 
     def get_global_spatial_parameter_vector(self, start_step=0):
         initial_guess = []
@@ -113,7 +133,7 @@ class GraphWalk(object):
         return initial_guess
 
     def update_spatial_parameters(self, parameter_vector, start_step=0):
-        print "update spatial parameters"
+        write_log("update spatial parameters")
         offset = 0
         for step in self.steps[start_step:]:
             new_alpha = parameter_vector[offset:offset+step.n_spatial_components]
