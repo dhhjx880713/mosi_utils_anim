@@ -46,7 +46,7 @@ class SegmentList(object):
                 segment = SplineSegment(start, center, end)
                 self.segments.append(segment)
                 index += 1
-            return len(self.segments) > 0
+            return index > 0
         else:
             return False
 
@@ -77,11 +77,7 @@ class SegmentList(object):
         closest_segment = None
         min_distance = np.inf
         for s in self.segments:
-            delta = s.center - point
-            distance = 0
-            for v in delta:
-                distance += v**2
-            distance = sqrt(distance)
+            distance = np.linalg.norm(s.center-point)
             if distance < min_distance:
                 closest_segment = s
                 min_distance = distance
@@ -97,21 +93,17 @@ class SegmentList(object):
 
         """
         heap = []  # heap queue
-        index = 0
-        while index < len(self.segments):
-            delta = self.segments[index].center - point
-            distance = 0
-            for v in delta:
-                distance += v**2
-            distance = sqrt(distance)
+        idx = 0
+        while idx < len(self.segments):
+            distance = np.linalg.norm(self.segments[idx].center-point)
 #            print point,distance,segments[index]
 #            #Push the value item onto the heap, maintaining the heap invariant.
-            heapq.heappush(heap, (distance, index))
-            index += 1
+            heapq.heappush(heap, (distance, idx))
+            idx += 1
 
         closest_segments = []
         count = 0
-        while len(heap) > 0 and count < 2:
+        while idx-count > 0 and count < 2:
             distance, index = heapq.heappop(heap)
             segment = (distance, self.segments[index])
             closest_segments.append(segment)
@@ -134,11 +126,7 @@ class SegmentList(object):
             iteration = 0
             while segment_length > self.closest_point_search_accuracy and distance > self.closest_point_search_accuracy and iteration < self.closest_point_search_max_iterations:
                 closest_segment, distance = segment_list.find_closest_segment(point)
-                delta = closest_segment.end - closest_segment.start
-                s_length = 0
-                for v in delta:
-                    s_length += v**2
-                segment_length = sqrt(segment_length)
+                segment_length = np.linalg.norm(closest_segment.end-closest_segment.start)
                 segment_list = SegmentList(self.closest_point_search_accuracy, self.closest_point_search_max_iterations, closest_segment.divide())
                 iteration += 1
             closest_point = closest_segment.center  # extract center of closest segment
