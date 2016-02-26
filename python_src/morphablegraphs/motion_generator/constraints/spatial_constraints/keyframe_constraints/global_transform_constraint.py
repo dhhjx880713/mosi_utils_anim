@@ -11,6 +11,7 @@ from .....animation_data.motion_editing import quaternion_to_euler, get_cartesia
 from .....external.transformations import rotation_matrix
 from keyframe_constraint_base import KeyframeConstraintBase
 from .. import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
+import time
 
 RELATIVE_HUERISTIC_RANGE = 0.00 #5 # used for setting the search range relative to the number of frames of motion primitive
 CONSTRAINT_CONFLICT_ERROR = 100000  # returned when conflicting constraints were set
@@ -21,6 +22,9 @@ class GlobalTransformConstraint(KeyframeConstraintBase):
     * constraint_desc: dict
         Contains joint, position, orientation and semantic Annotation
     """
+
+    ROTATION_AXIS = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+
     def __init__(self, skeleton, constraint_desc, precision, weight_factor=1.0):
         super(GlobalTransformConstraint, self).__init__(constraint_desc, precision, weight_factor)
         self.constraint_type = SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
@@ -44,7 +48,6 @@ class GlobalTransformConstraint(KeyframeConstraintBase):
         if self.start_keyframe == self.stop_keyframe:
             self.start_keyframe -= 1
         #print "RANGE", self.start_keyframe, self.stop_keyframe
-        self.rotation_axes = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
 
     def evaluate_motion_sample(self, aligned_quat_frames):
         #min_error = CONSTRAINT_CONFLICT_ERROR
@@ -54,7 +57,12 @@ class GlobalTransformConstraint(KeyframeConstraintBase):
         #    if min_error > error:
         #        min_error = error
         #return min_error
-        return self._evaluate_frame(aligned_quat_frames[self.canonical_keyframe])
+        error = 0
+        if self.position is not None:
+            error += self._evaluate_joint_position(aligned_quat_frames[self.canonical_keyframe])
+        if self.orientation is not None:
+            error += self._evaluate_joint_orientation(aligned_quat_frames[self.canonical_keyframe])
+        return error
 
     def get_residual_vector(self, aligned_frames):
         return [self.evaluate_motion_sample(aligned_frames)]
@@ -74,9 +82,14 @@ class GlobalTransformConstraint(KeyframeConstraintBase):
 
     def _evaluate_joint_position(self, frame):
         #joint_position = self.skeleton.get_cartesian_coordinates_from_quaternion(self.joint_name, frame)
+        #start = time.clock()
         joint_position = self.skeleton.nodes[self.joint_name].get_global_position(frame)
+        #print "old",time.clock()-start
+        #start = time.clock()
+        #joint_position = self.skeleton.get_cartesian_coordinate(self.joint_name, frame)
+        #print "new", time.clock()-start
         #print self.joint_name, joint_position, self.position# joint_position3,
-        return self._vector_distance(self.position, joint_position)
+        return GlobalTransformConstraint._point_distance(self.position, joint_position)
 
     def _orientation_distance(self, joint_orientation):
         joint_euler_angles = quaternion_to_euler(joint_orientation)
@@ -84,18 +97,29 @@ class GlobalTransformConstraint(KeyframeConstraintBase):
         rotmat_target = np.eye(4)
         for i in xrange(3):
             if self.orientation[i] is not None:
-                tmp_constraint = rotation_matrix(np.deg2rad(self.orientation[i]), self.rotation_axes[i])
+                tmp_constraint = rotation_matrix(np.deg2rad(self.orientation[i]), self.ROTATION_AXIS[i])
                 rotmat_constraint = np.dot(tmp_constraint, rotmat_constraint)
-                tmp_target = rotation_matrix(np.deg2rad(joint_euler_angles[i]), self.rotation_axes[i])
+                tmp_target = rotation_matrix(np.deg2rad(joint_euler_angles[i]), self.ROTATION_AXIS[i])
                 rotmat_target = np.dot(tmp_target, rotmat_target)
-        rotation_distance = self._vector_distance(np.ravel(rotmat_constraint), np.ravel(rotmat_target))
+        rotation_distance = GlobalTransformConstraint._vector_distance(np.ravel(rotmat_constraint), np.ravel(rotmat_target), 16)
         return rotation_distance
 
-    def _vector_distance(self, a, b):
+    @staticmethod
+    def _point_distance(target_p, sample_p):
         """Returns the distance ignoring entries with None
         """
         d_sum = 0
-        for i in xrange(len(a)):
+        for i in xrange(3):
+            if target_p[i] is not None:
+                d_sum += (target_p[i]-sample_p[i])**2
+        return sqrt(d_sum)
+
+    @staticmethod
+    def _vector_distance(a, b, length):
+        """Returns the distance ignoring entries with None
+        """
+        d_sum = 0
+        for i in xrange(length):
             if a[i] is not None and b[i] is not None:
                 d_sum += (a[i]-b[i])**2
         return sqrt(d_sum)
