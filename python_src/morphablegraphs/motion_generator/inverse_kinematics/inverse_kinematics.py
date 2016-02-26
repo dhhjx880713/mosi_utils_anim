@@ -6,6 +6,7 @@ from collections import OrderedDict
 from ...animation_data import ROTATION_TYPE_EULER,ROTATION_TYPE_QUATERNION
 from blending import smooth_quaternion_frames_using_slerp, smooth_quaternion_frames_using_slerp_overwrite_frames
 from skeleton_pose_model import SkeletonPoseModel
+from ...utilities import write_log
 
 
 LEN_QUATERNION = 4
@@ -40,17 +41,25 @@ class InverseKinematics(object):
                 if np.all([ch in node_channels for ch in ["Xrotation", "Yrotation", "Zrotation"]]):
                     node_channels += ["Wrotation"] #TODO fix order
             self.channels[node.node_name] = node_channels
-        print "channels", self.channels
+        #print "channels", self.channels
 
-    def set_reference_frame(self, reference_frame):
+    def set_pose_from_frame(self, reference_frame):
+        #TODO initialize pose once and just update the frame
         self.pose = SkeletonPoseModel(self.skeleton, reference_frame, self.channels, self.use_euler)
         self.pose.clear_cache()
 
+    def _modify_pose(self, joint_name, target):
+        if joint_name in self.pose.free_joints_map.keys():
+            free_joints = self.pose.free_joints_map[joint_name]
+            if self.solving_method == IK_METHOD_CYCLIC_COORDINATE_DESCENT:
+                self.run_cyclic_coordinate_descent(joint_name, target, free_joints)
+            else:
+                self.run_optimization(joint_name, target, free_joints)
 
     def run_optimization(self, target_joint, target_position, free_joints):
         initial_guess = self._extract_free_parameters(free_joints)
         data = self, free_joints, target_joint, target_position
-        print "start optimization for joint", target_joint, len(initial_guess),len(free_joints)
+        write_log("start optimization for joint", target_joint, len(initial_guess),len(free_joints))
         start = time.clock()
         cons = None#self.pose.generate_constraints(free_joints)
         result = minimize(obj_inverse_kinematics,
@@ -62,7 +71,7 @@ class InverseKinematics(object):
                 options={'maxiter': self._ik_settings["max_iterations"], 'disp': self.verbose})#,'eps':1.0
 
         position = self.pose.evaluate_position(target_joint)
-        print "finished optimization in",time.clock()-start,"seconds with error",np.linalg.norm(position-target_position)#,result["x"].tolist(), initial_guess.tolist()
+        write_log("finished optimization in",time.clock()-start,"seconds with error",np.linalg.norm(position-target_position)) #,result["x"].tolist(), initial_guess.tolist()
         self.pose.set_channel_values(result["x"], free_joints)
 
     def optimize_joint(self, target_joint, target_position, free_joint):
@@ -99,7 +108,7 @@ class InverseKinematics(object):
                 terminate = True
             delta = new_delta
             iteration += 1
-        print "finished optimization after", iteration, "iterations with error",delta, "in",time.clock()-start,"seconds"
+        write_log("finished optimization after", iteration, "iterations with error",delta, "in",time.clock()-start,"seconds")
         return
 
     def evaluate_delta(self, parameters, target_joint, target_position, free_joints):
@@ -112,29 +121,52 @@ class InverseKinematics(object):
         return np.dot(d, d)
 
     def modify_motion_vector(self, motion_vector):
-
         #modify individual keyframes based on constraints
-        print "number of ik constraints", len(motion_vector.ik_constraints)
-        for keyframe, constraints in motion_vector.ik_constraints.items():
-            print(keyframe, constraints)
-            self.set_reference_frame(motion_vector.frames[keyframe])
+        if "keyframes" in motion_vector.ik_constraints.keys():
+            self._modify_motion_vector_using_keyframe_constraint_list(motion_vector, motion_vector.ik_constraints["keyframes"])
+        if "trajectories" in motion_vector.ik_constraints.keys():
+            self._modify_motion_vector_using_trajectory_constraint_list(motion_vector, motion_vector.ik_constraints["trajectories"])
+
+    def _modify_motion_vector_using_keyframe_constraint_list(self, motion_vector, constraints):
+        write_log("number of ik keyframe constraints", len(constraints))
+        for keyframe, constraints in constraints.items():
+            write_log(keyframe, constraints)
+            self.set_pose_from_frame(motion_vector.frames[keyframe])
             for c in constraints:
-                joint_name = c["joint_name"]
-                if joint_name in self.pose.free_joints_map.keys():
-                    free_joints = self.pose.free_joints_map[joint_name]
-                    target = c["position"]
-                    if self.solving_method == IK_METHOD_CYCLIC_COORDINATE_DESCENT:
-                        self.run_cyclic_coordinate_descent(joint_name, target, free_joints)
-                    else:
-                        self.run_optimization(joint_name, target, free_joints)
-                motion_vector.frames[keyframe] = self.pose.get_vector()
-                #interpolate
-                if self.window > 0:
-                    print "smooth and interpolate",self.window
-                    joint_parameter_indices = self._extract_free_parameter_indices(self.pose.free_joints_map[joint_name])
-                    for joint_name in self.pose.free_joints_map[joint_name]:
-                        print joint_name
-                        smooth_quaternion_frames_using_slerp(motion_vector.frames, joint_parameter_indices[joint_name], keyframe, self.window)
+                self._modify_frame_using_keyframe_constraint(motion_vector, c, keyframe)
+
+    def _modify_frame_using_keyframe_constraint(self, motion_vector, constraint, keyframe):
+        joint_name = constraint["joint_name"]
+        self._modify_pose(joint_name, constraint["position"])
+        motion_vector.frames[keyframe] = self.pose.get_vector()
+        #interpolate
+        if self.window > 0:
+            write_log("smooth and interpolate", self.window)
+            joint_parameter_indices = self._extract_free_parameter_indices(self.pose.free_joints_map[joint_name])
+            for joint_name in self.pose.free_joints_map[joint_name]:
+                print joint_name
+                smooth_quaternion_frames_using_slerp(motion_vector.frames, joint_parameter_indices[joint_name], keyframe, self.window)
+
+    def _modify_motion_vector_using_trajectory_constraint_list(self, motion_vector, constraints):
+        write_log("number of ik trajectory constraints", len(constraints))
+        for c in constraints:
+            self._modify_motion_vector_using_trajectory_constraint(motion_vector, c)
+
+    def _modify_motion_vector_using_trajectory_constraint(self, motion_vector, constraint):
+        write_log("ca constraint for joint", constraint["joint_name"])
+        d = constraint["delta"]
+        trajectory = constraint["trajectory"]
+        n_frames = constraint["end_frame"]-constraint["start_frame"]
+        full_length = n_frames*d
+        for idx in xrange(n_frames):
+            t = (idx*d)/full_length
+            target = trajectory.query_point_by_parameter(t)
+            keyframe = constraint["start_frame"]+idx
+            write_log("change frame",idx, t, target, constraint["joint_name"])
+            self.set_pose_from_frame(motion_vector.frames[keyframe])
+            self._modify_pose(constraint["joint_name"], target)
+            #self._modify_pose(constraint["joint_name"], target)
+            motion_vector.frames[keyframe] = self.pose.get_vector()
 
     def _extract_free_parameters(self, free_joints):
         """get parameters of joints from reference frame
@@ -151,5 +183,5 @@ class InverseKinematics(object):
         indices = {}
         for joint_name in free_joints:
             indices[joint_name] = list(range(*self.pose.extract_parameters_indices(joint_name)))
-            print ("indices", indices)
+            #print ("indices", indices)
         return indices

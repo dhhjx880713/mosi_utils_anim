@@ -48,8 +48,8 @@ class SkeletonPoseModel(object):
             channel_idx += self.n_channels[joint]
             if self.n_channels[joint] > 0 :
                 self.modelled_joints.append(joint)
-        print "modelled joints",self.modelled_joints
-        print "maximum channel", channel_idx
+        #print "modelled joints",self.modelled_joints
+        #print "maximum channel", channel_idx
         #TODO read data from file
         self.free_joints_map = {"LeftHand":["Spine","LeftArm",  "LeftForeArm"],#"LeftShoulder",
                            "RightHand":["Spine","RightArm","RightForeArm"],# "RightShoulder",
@@ -134,7 +134,6 @@ class SkeletonPoseModel(object):
             q = self.extract_parameters(joint)
             euler_angles = quaternion_to_euler(q)
         return euler_angles
-
 
     def generate_constraints(self, free_joints):
         """ TODO add bounds on axis components of the quaternion according to
