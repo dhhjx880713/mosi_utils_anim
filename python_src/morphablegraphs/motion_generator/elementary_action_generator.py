@@ -207,7 +207,7 @@ class ElementaryActionGenerator(object):
         else:
             max_arc_length = np.inf
         self.action_state.initialize_from_previous_graph_walk(graph_walk, max_arc_length)
-        print "Start synthesis of elementary action", self.action_constraints.action_name
+        write_log("Start synthesis of elementary action", self.action_constraints.action_name)
         errors = [0]
         while not self.action_state.is_end_state():
             try:
@@ -220,7 +220,7 @@ class ElementaryActionGenerator(object):
         graph_walk.step_count += self.action_state.temp_step
         graph_walk.update_frame_annotation(self.action_constraints.action_name, self.action_state.action_start_frame, graph_walk.get_num_of_frames())
         avg_error = np.average(errors)
-        print "Reached end of elementary action", self.action_constraints.action_name, "with an average error of", avg_error
+        write_log("Reached end of elementary action", self.action_constraints.action_name, "with an average error of", avg_error)
         return avg_error < self.average_elementary_action_error_threshold
 
     def _transition_to_next_action_state(self, graph_walk):
@@ -228,7 +228,7 @@ class ElementaryActionGenerator(object):
         new_node, new_node_type = self._select_next_motion_primitive_node(graph_walk)
         if new_node is None:
             raise ValueError("Failed to find a transition")
-        print "Transition to state", new_node
+        write_log("Transition to state", new_node)
 
         mp_constraints = self._gen_motion_primitive_constraints(new_node, new_node_type, graph_walk)
         if mp_constraints is None:
