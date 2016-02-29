@@ -24,8 +24,9 @@ def write_log(*args):
 
 def save_log(filename):
     global _lines
-    with open(filename) as outfile:
-        outfile.writelines(_lines)
+    with open(filename, "wb") as outfile:
+        for l in _lines:
+            outfile.write(l+"\n")
 
 
 def clear_log():

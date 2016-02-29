@@ -130,7 +130,7 @@ class MotionPrimitiveGenerator(object):
         else:
             sample = self._get_best_fit_sample_using_gmm(graph_node, mp_name, mp_constraints, prev_mp_name,
                                                          prev_frames_copy, prev_parameters)
-        write_log("start optimization", self._is_optimization_required(mp_constraints),mp_constraints.use_local_optimization,mp_constraints.min_error,self.optimization_start_error_threshold)
+        #write_log("start optimization", self._is_optimization_required(mp_constraints),mp_constraints.use_local_optimization,mp_constraints.min_error,self.optimization_start_error_threshold)
         if self._is_optimization_required(mp_constraints):
 
             sample = self._optimize_parameters_numerically(sample, graph_node, mp_constraints, prev_frames_copy)

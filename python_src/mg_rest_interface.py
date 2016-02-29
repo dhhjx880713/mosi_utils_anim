@@ -139,7 +139,7 @@ class MGRestApplication(tornado.web.Application):
             print "Results are send as answers to the request"
 
     def generate_motion(self, mg_input):
-        return self.motion_generator.generate_motion(mg_input, export=False, activate_joint_map=self.activate_joint_map,
+        return self.motion_generator.generate_motion(mg_input, activate_joint_map=self.activate_joint_map,
                                                      activate_coordinate_transform=self.activate_coordinate_transform)
 
     def set_algorithm_config(self, algorithm_config):
