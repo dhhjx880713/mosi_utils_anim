@@ -9,9 +9,11 @@ from ...animation_data.motion_editing import align_quaternion_frames, transform_
 from .spatial_constraints.keyframe_constraints.global_transform_constraint import GlobalTransformConstraint
 from .spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
 from .spatial_constraints import MGRDKeyframeConstraint
-from mgrd import PoseConstraint as MGRDPoseConstraint
-from mgrd import SemanticConstraint as MGRDSemanticConstraint
-
+try:
+    from mgrd import PoseConstraint as MGRDPoseConstraint
+    from mgrd import SemanticConstraint as MGRDSemanticConstraint
+except ImportError:
+    pass
 
 class MotionPrimitiveConstraints(object):
     """ Represents the input to the generate_motion_primitive_from_constraints

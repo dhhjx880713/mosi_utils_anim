@@ -1,7 +1,5 @@
-from mgrd import PoseConstraint, SemanticConstraint
 
-
-class MGRDKeyframeConstraint(PoseConstraint, SemanticConstraint):
+class MGRDKeyframeConstraint(object):
     """  A combination of a PoseConstraint and a SemanticConstraint for the integration with interact.
 
     Attributes:
@@ -20,9 +18,3 @@ class MGRDKeyframeConstraint(PoseConstraint, SemanticConstraint):
         self.orientation = pose_constraint.orientation
         self.annotations = semantic_constraint.annotations
         self.time = semantic_constraint.time
-
-    @staticmethod
-    def from_json(json_data):
-        pose_constraint = PoseConstraint.from_json(json_data)
-        semantic_constraint = SemanticConstraint.from_json(json_data)
-        return MGRDKeyframeConstraint(pose_constraint, semantic_constraint)

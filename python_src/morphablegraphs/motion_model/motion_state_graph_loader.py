@@ -16,7 +16,12 @@ from motion_state_transition import MotionStateTransition
 from motion_state_graph import MotionStateGraph
 from ..motion_generator.hand_pose_generator import HandPoseGenerator
 from . import ELEMENTARY_ACTION_DIRECTORY_NAME, TRANSITION_MODEL_DIRECTORY_NAME, NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END, TRANSITION_DEFINITION_FILE_NAME, TRANSITION_MODEL_FILE_ENDING
-from mgrd import Skeleton as MGRDSkeleton
+try:
+    from mgrd import Skeleton as MGRDSkeleton
+    has_mgrd = True
+except ImportError:
+    has_mgrd = False
+    pass
 
 SKELETON_FILE = "skeleton.bvh"  # TODO replace with standard skeleton in data directory
 
@@ -65,7 +70,10 @@ class MotionStateGraphLoader(object):
         graph_data = zip_reader.get_graph_data()
         motion_state_graph.full_skeleton = Skeleton(BVHReader("").init_from_string(graph_data["skeletonString"]))
         motion_state_graph.skeleton = motion_state_graph.full_skeleton.create_reduced_copy()
-        motion_state_graph.mgrd_skeleton = MGRDSkeleton.load_from_file("skeleton.bvh")#TODO convert from graph skeleton or load from string
+        if has_mgrd:
+            motion_state_graph.mgrd_skeleton = MGRDSkeleton.load_from_file("skeleton.bvh")#TODO convert from graph skeleton or load from string
+        else:
+            motion_state_graph.mgrd_skeleton = None
         #skeleton_path = self.motion_state_graph_path + os.sep + SKELETON_FILE
         #motion_state_graph.skeleton = Skeleton(BVHReader(skeleton_path))
         transition_dict = graph_data["transitions"]
@@ -90,7 +98,10 @@ class MotionStateGraphLoader(object):
         skeleton_path = self.motion_state_graph_path + os.sep + SKELETON_FILE
         motion_state_graph.full_skeleton = Skeleton(BVHReader(skeleton_path))
         motion_state_graph.skeleton = motion_state_graph.full_skeleton.create_reduced_copy()
-        motion_state_graph.mgrd_skeleton = MGRDSkeleton.load_from_file(skeleton_path)#TODO convert from graph skeleton
+        if has_mgrd:
+            motion_state_graph.mgrd_skeleton = MGRDSkeleton.load_from_file(skeleton_path)#TODO convert from graph skeleton
+        else:
+            motion_state_graph.mgrd_skeleton = None
         #load graphs representing elementary actions including transitions between actions
         for key in next(os.walk(self.motion_state_graph_path + os.sep + ELEMENTARY_ACTION_DIRECTORY_NAME))[1]:
             subgraph_path = self. motion_state_graph_path + os.sep + ELEMENTARY_ACTION_DIRECTORY_NAME + os.sep + key

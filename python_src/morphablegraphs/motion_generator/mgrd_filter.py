@@ -1,9 +1,13 @@
 import numpy
 import time
-from constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
-from mgrd import Constraint, SemanticConstraint
-from mgrd import CartesianConstraint as MGRDCartesianConstraint
-from mgrd.utils import ForwardKinematics as MGRDForwardKinematics
+from .constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
+try:
+    from mgrd import Constraint, SemanticConstraint
+    from mgrd import CartesianConstraint as MGRDCartesianConstraint
+    from mgrd.utils import ForwardKinematics as MGRDForwardKinematics
+except ImportError:
+    pass
+    has_mgrd = False
 
 
 class MGRDFilter(object):
@@ -36,18 +40,18 @@ class MGRDFilter(object):
         Returns:
             Array<float>
         """
-        cartesian_constraints = MGRDFilter.extract_cartesian_constraints(mp_constraints)
-        if len(cartesian_constraints) > 0:
-            quat_splines = motion_primitive.create_multiple_spatial_splines(samples, joints=None)
-            # transform the splines if the constraints are not in the local coordinate system of the motion primitive
-            if not mp_constraints.is_local and mp_constraints.aligning_transform is not None:
-                start = time.clock()
-                for qs in quat_splines:
-                    qs.transform_coeffs(mp_constraints.aligning_transform)
-                print "transformed splines in", time.clock()-start, "seconds"
-            return MGRDCartesianConstraint.score_splines(quat_splines, cartesian_constraints)
-        else:
-            return [0]
+        if has_mgrd:
+            cartesian_constraints = MGRDFilter.extract_cartesian_constraints(mp_constraints)
+            if len(cartesian_constraints) > 0:
+                quat_splines = motion_primitive.create_multiple_spatial_splines(samples, joints=None)
+                # transform the splines if the constraints are not in the local coordinate system of the motion primitive
+                if not mp_constraints.is_local and mp_constraints.aligning_transform is not None:
+                    start = time.clock()
+                    for qs in quat_splines:
+                        qs.transform_coeffs(mp_constraints.aligning_transform)
+                    print "transformed splines in", time.clock()-start, "seconds"
+                return MGRDCartesianConstraint.score_splines(quat_splines, cartesian_constraints)
+        return [0]
 
     @staticmethod
     def score_samples_using_cartesian_constraints(motion_primitive, samples, constraints, transform=None):
@@ -62,12 +66,13 @@ class MGRDFilter(object):
         Returns:
             Array<float>
         """
-        quat_splines = motion_primitive.create_multiple_spatial_splines(samples, joints=None)
-        if transform is not None:
-            for qs in quat_splines:
-                qs.transform_coeffs(transform)
-        scores = MGRDCartesianConstraint.score_splines(quat_splines, constraints)
-        return scores
+        if has_mgrd:
+            quat_splines = motion_primitive.create_multiple_spatial_splines(samples, joints=None)
+            if transform is not None:
+                for qs in quat_splines:
+                    qs.transform_coeffs(transform)
+            scores = MGRDCartesianConstraint.score_splines(quat_splines, constraints)
+            return scores
 
     def score_samples_using_keyframe_constraints(self, motion_primitive, samples, constraints, transform=None):
         """ Selects constrained intervals from TimeSplines using SemanticConstraints and scores the splines with
