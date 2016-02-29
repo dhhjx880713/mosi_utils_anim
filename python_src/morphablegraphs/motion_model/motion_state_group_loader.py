@@ -10,6 +10,7 @@ from ..utilities.io_helper_functions import load_json_file
 from motion_state import MotionState
 from motion_state_group import MotionStateGroup
 from . import META_INFORMATION_FILE_NAME
+from ..utilities import write_log
 
 
 class MotionStateGroupLoader(object):
@@ -83,22 +84,23 @@ class MotionStateGroupLoader(object):
         for root, dirs, files in os.walk(self.elementary_action_directory):
             for file_name in files:
                 if file_name == META_INFORMATION_FILE_NAME:
-                    print "found meta information for", self.elementary_action_name
+                    write_log("found meta information for", self.elementary_action_name)
+
                     meta_information = load_json_file(self.elementary_action_directory+os.sep+file_name)
                     
                 elif file_name.endswith("mm.json"):
-                    print "found motion primitive", file_name
+                    write_log("found motion primitive", file_name)
                     motion_primitive_name = file_name.split("_")[1]
                     motion_primitive_file_name = self.elementary_action_directory+os.sep+file_name
                     node_key = (self.elementary_action_name, motion_primitive_name)
                     motion_primitive_node_group.nodes[node_key] = MotionState(motion_primitive_node_group)
                     motion_primitive_node_group.nodes[node_key].init_from_file(motion_primitive_node_group.elementary_action_name, motion_primitive_name, motion_primitive_file_name)
                 elif file_name.endswith(".stats"):
-                    print "found stats", file_name
+                    write_log("found stats", file_name)
                     temp_file_list.append(file_name)
 
                 else:
-                    print "ignored", file_name
+                    write_log("ignored", file_name)
         motion_primitive_node_group.set_meta_information(meta_information)
         #load information about training data if available
         for file_name in temp_file_list:

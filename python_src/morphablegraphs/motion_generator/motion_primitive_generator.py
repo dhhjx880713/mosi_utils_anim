@@ -14,6 +14,7 @@ from optimization import OptimizerBuilder
 from objective_functions import obj_spatial_error_sum, obj_spatial_error_sum_and_naturalness
 from mgrd import motion_primitive_get_random_samples
 from mgrd_filter import MGRDFilter
+from ..utilities import write_log
 SAMPLING_MODE_RANDOM = "random_discrete"
 SAMPLING_MODE_CLUSTER_TREE_SEARCH = "cluster_tree_search"
 SAMPLING_MODE_RANDOM_SPLINE = "random_spline"
@@ -89,13 +90,13 @@ class MotionPrimitiveGenerator(object):
                 parameters = self.generate_constrained_sample(mp_name, mp_constraints,prev_mp_name,
                                                               prev_graph_walk.get_quat_frames(), prev_parameters)
             except ConstraintError as exception:
-                print "Exception", exception.message
+                write_log("Exception", exception.message)
                 raise SynthesisError(prev_graph_walk.get_quat_frames(), exception.bad_samples)
         else:  # no constraints were given
-            print "pick random sample for motion primitive", mp_name
+            write_log("No constraints specified pick random sample instead")
             parameters = self.generate_random_sample(mp_name, prev_mp_name, prev_parameters)
         time_in_seconds = time.clock() - start
-        print "found best fit motion primitive sample in " + str(time_in_seconds) + " seconds"
+        write_log("Found best fit motion primitive sample in " + str(time_in_seconds) + " seconds")
 
         motion_spline = self._motion_state_graph.nodes[(self.action_name, mp_name)].back_project(parameters, use_time_parameters=False)
         return motion_spline, parameters
@@ -129,20 +130,22 @@ class MotionPrimitiveGenerator(object):
         else:
             sample = self._get_best_fit_sample_using_gmm(graph_node, mp_name, mp_constraints, prev_mp_name,
                                                          prev_frames_copy, prev_parameters)
+        write_log("start optimization", self._is_optimization_required(mp_constraints),mp_constraints.use_local_optimization,mp_constraints.min_error,self.optimization_start_error_threshold)
         if self._is_optimization_required(mp_constraints):
+
             sample = self._optimize_parameters_numerically(sample, graph_node, mp_constraints, prev_frames_copy)
         return sample
 
     def _is_optimization_required(self, mp_constraints):
         return mp_constraints.use_local_optimization and not self.use_transition_model and \
-               mp_constraints.min_error <= self.optimization_start_error_threshold
+               mp_constraints.min_error >= self.optimization_start_error_threshold
 
     def _get_best_fit_sample_using_mgrd(self, graph_node, mp_constraints):
         samples = motion_primitive_get_random_samples(graph_node.motion_primitive, self.n_random_samples)
         scores = MGRDFilter.score_samples(graph_node.motion_primitive, samples, mp_constraints)
         best_idx = np.argmin(scores)
         mp_constraints.min_error = scores[best_idx]
-        print "Found best sample with score", scores[best_idx]
+        write_log("Found best sample with score", scores[best_idx])
         return samples[best_idx]
 
     def _optimize_parameters_numerically(self, inital_guess, graph_node, mp_constraints, prev_frames):
@@ -170,7 +173,7 @@ class MotionPrimitiveGenerator(object):
             parameters, min_error = self._sample_from_gmm_using_constraints_and_validity_check(graph_node, gmm,
                                                                                                mp_constraints,
                                                                                                prev_frames)
-        print "Found best sample with distance:", min_error
+        write_log("Found best sample with distance:", min_error)
         return parameters
 
     def generate_random_sample(self, mp_name, prev_mp_name="", prev_parameters=None):
@@ -190,7 +193,7 @@ class MotionPrimitiveGenerator(object):
         """
         data = graph_node, constraints, prev_frames
         distance, s = graph_node.search_best_sample(obj_spatial_error_sum, data, self.n_cluster_search_candidates)
-        print "found best sample with distance:", distance
+        write_log("Found best sample with distance:", distance)
         constraints.min_error = distance
         return np.array(s)
 
@@ -270,11 +273,11 @@ class MotionPrimitiveGenerator(object):
                     best_sample = samples[idx]
             else:
                 if self.verbose:
-                    print "sample failed validity check"
+                    write_log("Sample", idx, "failed validity check")
                 tmp_bad_samples += 1
             idx += 1
         if reached_max_bad_samples:
-            print "Warning: Failed to pick good sample from GMM"
+            write_log("Warning: Failed to pick a valid sample from GMM")
             return best_sample, min_error
         constraints.min_error = min_error
         return best_sample, min_error

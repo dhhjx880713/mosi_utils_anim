@@ -157,15 +157,15 @@ class MotionPrimitiveConstraints(object):
             return mp_constraints
 
     def convert_to_ik_constraints(self, frame_offset=0, time_function=None):
-        ik_constraints = {}
+        ik_constraints = dict()
         for c in self.constraints:
             if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION and "generated" not in c.semantic_annotation.keys():
                 if time_function is not None:
-                    keyframe = int(time_function[c.canonical_keyframe])
+                    keyframe = frame_offset+int(time_function[c.canonical_keyframe])
                 else:
-                    keyframe = c.canonical_keyframe
+                    keyframe = frame_offset+c.canonical_keyframe
                 if keyframe not in ik_constraints.keys():
-                    ik_constraints[frame_offset+keyframe] = []
-                ik_constraint = {"canonical_frame": frame_offset+keyframe, "position": c.position, "joint_name": c.joint_name}
-                ik_constraints[frame_offset+keyframe].append(ik_constraint)
+                    ik_constraints[keyframe] = []
+                ik_constraint = {"canonical_frame": keyframe, "position": c.position, "joint_name": c.joint_name}
+                ik_constraints[keyframe].append(ik_constraint)
         return ik_constraints

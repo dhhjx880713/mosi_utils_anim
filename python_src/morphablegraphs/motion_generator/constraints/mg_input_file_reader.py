@@ -78,8 +78,8 @@ class MGInputFileReader(object):
         """
         Returns
         -------
-        reordered_constraints: dict of lists
-        dict of constraints lists applicable to a specific motion primitive of the node_group
+            reordered_constraints: dict of lists
+            dict of constraints lists applicable to a specific motion primitive of the node_group
         """
         keyframe_constraints = self._extract_all_keyframe_constraints(self.elementary_action_list[action_index]["constraints"], node_group)
         return self._reorder_keyframe_constraints_for_motion_primitives(node_group, keyframe_constraints)

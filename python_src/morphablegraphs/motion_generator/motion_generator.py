@@ -8,7 +8,7 @@ from algorithm_configuration import AlgorithmConfigurationBuilder
 from graph_walk_generator import GraphWalkGenerator
 from graph_walk_optimizer import GraphWalkOptimizer
 from inverse_kinematics import InverseKinematics
-from ..utilities import load_json_file
+from ..utilities import load_json_file, write_log, clear_log
 
 
 class MotionGenerator(object):
@@ -69,11 +69,12 @@ class MotionGenerator(object):
             * motion_vector : AnnotatedMotionVector
                Contains a list of quaternion frames and their annotation based on actions.
             """
-
+            clear_log()
             if type(mg_input) != dict:
                 mg_input = load_json_file(mg_input)
             start = time.clock()
             input_file_reader = MGInputFileReader(mg_input, activate_joint_map, activate_coordinate_transform)
+
             graph_walk = self.graph_walk_generator.generate_graph_walk_from_constraints(input_file_reader)
 
             if self._algorithm_config["use_global_time_optimization"]:
@@ -82,13 +83,13 @@ class MotionGenerator(object):
             motion_vector = graph_walk.convert_to_annotated_motion()
 
             if self._algorithm_config["activate_inverse_kinematics"]:
-                print "modify using inverse kinematics"
+                write_log("modify using inverse kinematics")
                 self.inverse_kinematics.modify_motion_vector(motion_vector)
 
             motion_vector.frames = self.motion_state_graph.full_skeleton.complete_motion_vector_from_reference(self.motion_state_graph.skeleton, motion_vector.frames)
 
             if self.motion_state_graph.hand_pose_generator is not None:
-                print "generate hand poses"
+                write_log("generate hand poses")
                 self.motion_state_graph.hand_pose_generator.generate_hand_poses(motion_vector)
 
             time_in_seconds = time.clock() - start
@@ -106,12 +107,10 @@ class MotionGenerator(object):
                     self.export_statistics(graph_walk, self._service_config["output_dir"] + os.sep + output_filename + "_statistics" + time_stamp + ".json")
                     #write_to_logfile(output_dir + os.sep + LOG_FILE, output_filename + "_" + time_stamp, self._algorithm_config)
                 else:
-                    print "Error: no motion data to export"
+                    write_log("Error: no motion data to export")
 
-
-            print "finished synthesis in " + str(minutes) + " minutes " + str(seconds) + " seconds"
-            graph_walk.print_statistics()
-
+            write_log("finished synthesis in " + str(minutes) + " minutes " + str(seconds) + " seconds")
+            write_log(graph_walk.get_statistics_string())
             return motion_vector
 
     def export_statistics(self, graph_walk,  filename):

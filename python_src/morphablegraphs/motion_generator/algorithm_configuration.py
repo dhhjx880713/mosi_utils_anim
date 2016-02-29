@@ -43,7 +43,6 @@ class AlgorithmConfigurationBuilder(object):
         self.set_default_optimization_settings()
         self.set_default_smoothing_settings()
         self.set_default_inverse_kinematics_settings()
-        self.build()
 
     def set_default_constrained_gmm_settings(self):
         self.constrained_gmm_settings = dict()

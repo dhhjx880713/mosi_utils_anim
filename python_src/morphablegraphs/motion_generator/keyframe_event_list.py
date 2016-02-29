@@ -56,8 +56,9 @@ class KeyframeEventList(object):
             else:
                 end_frame += step.end_frame - step.start_frame
             prev_step = step
-        print "add", prev_step.node_key[0]
-        self.update_frame_annotation(prev_step.node_key[0], start_frame, end_frame-1)
+        if prev_step is not None:
+            print "add", prev_step.node_key[0]
+            self.update_frame_annotation(prev_step.node_key[0], start_frame, end_frame-1)
 
     #def _warp_keyframe_index(self, time_function, key_frame_index):
     #    """ Inverse lookup of warped keyframe
@@ -69,13 +70,13 @@ class KeyframeEventList(object):
     #    warped_keyframe = np.where(time_function == closest_keyframe)[0][0]
     #    return warped_keyframe
 
-    def _extract_keyframe_index(self, keyframe_event, time_function, n_frames):
+    def _extract_keyframe_index(self, keyframe_event, time_function, frame_offset):
         canonical_keyframe = int(keyframe_event["canonical_keyframe"])
         if time_function is not None:
             #warped_keyframe = self._warp_keyframe_index(time_function, canonical_keyframe)
-            event_keyframe_index = n_frames + int(time_function[canonical_keyframe])
+            event_keyframe_index = frame_offset + int(time_function[canonical_keyframe])
         else:
-            event_keyframe_index = n_frames + canonical_keyframe
+            event_keyframe_index = frame_offset + canonical_keyframe
         return event_keyframe_index
 
     def _extract_event_list(self, keyframe_event, event_keyframe_index):
@@ -97,20 +98,20 @@ class KeyframeEventList(object):
         :return:
         """
         self.keyframe_events_dict = dict()
-        n_frames = 0
+        frame_offset = 0
         for step in graph_walk.steps:
             time_function = None
             if graph_walk.use_time_parameters:
                 time_function = graph_walk.motion_state_graph.nodes[step.node_key].back_project_time_function(step.parameters)
             for keyframe_event in step.motion_primitive_constraints.keyframe_event_list.values():
-                event_keyframe_index = self._extract_keyframe_index(keyframe_event, time_function, n_frames)
+                event_keyframe_index = self._extract_keyframe_index(keyframe_event, time_function, frame_offset)
 
                 self.keyframe_events_dict[event_keyframe_index] = self._extract_event_list(keyframe_event, event_keyframe_index)
 
             if time_function is not None:
-                n_frames += int(time_function[-1])
+                frame_offset += int(time_function[-1])
             else:
-                n_frames += step.end_frame - step.start_frame
+                frame_offset += step.end_frame - step.start_frame
 
     def _add_event_list_to_frame_annotation(self, graph_walk):
         """
