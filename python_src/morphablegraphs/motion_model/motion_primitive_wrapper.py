@@ -85,7 +85,7 @@ class MotionPrimitiveModelWrapper(object):
     back_project = back_project_mgrd if has_mgrd else back_project_legacy
 
     def back_project_time_function_legacy(self, s_vec):
-        return self.motion_primitive.back_project_time_function(s_vec[self.get_n_spatial_components():])
+        return self.motion_primitive._back_transform_gamma_to_canonical_time_function(s_vec[self.get_n_spatial_components():])
 
     def back_project_time_function_mgrd(self, s_vec):
         time_spline = self.motion_primitive.create_time_spline(s_vec, labels=[])
