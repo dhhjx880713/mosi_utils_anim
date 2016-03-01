@@ -1005,6 +1005,8 @@ def transform_quaternion_frame(quat_frame,
     return transformed_frame
 
 
+
+
 def transform_quaternion_frames(quat_frames, angles, offset, rotation_order=None):
     """ Applies a transformation on the root joint of a list quaternion frames.
     Parameters
@@ -1572,6 +1574,46 @@ def get_dir_from_2d_points(points):
     dir = points[-1] - points[2]
     dir = dir/np.linalg.norm(dir)
     return dir
+
+def align_quaternion_frames_only_last_frame(quat_frames, prev_frames=None, transformation=None):
+    """Concatenate and align quaternion frames based on previous frames or
+        given transformation
+
+    Parameters
+    ----------
+    * new_frames: list
+         A list of quaternion frames
+    * prev_frames: list
+        A list of quaternion frames
+   *  transformation: dict
+       Contains translation and orientation in Euler angles
+    Returns:
+    --------
+    * transformed_frames: np.ndarray
+        Quaternion frames resulting from the back projection of s,
+        transformed to fit to prev_frames.
+
+    """
+    # find alignment transformation or use given transformation
+    if prev_frames is not None:
+        angle, offset = fast_quat_frames_transformation(
+            prev_frames, quat_frames)
+        # aligning_transformation = {
+        #     "orientation": [
+        #         0,
+        #         angle,
+        #         0],
+        #     "position": offset}
+        transformed_frames = transform_quaternion_frames([quat_frames[-1]],
+                                                         [0, angle, 0],
+                                                         offset)
+        return transformed_frames
+    elif prev_frames is None and transformation is not None:
+        # align frames
+        transformed_frames = transform_quaternion_frames([quat_frames[-1]], transformation["orientation"], transformation["position"])
+        return transformed_frames
+    else:
+        return quat_frames[-1]
 
 
 def align_quaternion_frames(quat_frames, prev_frames=None, transformation=None):
