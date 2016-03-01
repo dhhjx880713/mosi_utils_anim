@@ -33,7 +33,7 @@ class LeastSquares(OptimizerBase):
                 #                       data=self._error_func_params)
 
             except ValueError as e:
-                print "Warning:", e.message
+                print "Warning: error in LeastSquares.run", e.message
                 return initial_guess
 
             if self.verbose:
