@@ -133,7 +133,7 @@ class KeyframeEventList(object):
                         event["jointName"] = map(graph_walk.mg_input.inverse_map_joint, event_desc["parameters"]["joint"])
                 else:
                     event["jointName"] = event_desc["parameters"]["joint"]
-                event["jointName"] = self._handle_both_hands_event(event)
+                event["jointName"] = self._handle_both_hands_event(event, graph_walk.mg_input.activate_joint_mapping)
                 event_type = event_desc["event"]
                 target = event_desc["parameters"]["target"]
                 event[event_type] = target
@@ -205,9 +205,9 @@ class KeyframeEventList(object):
                 self.keyframe_events_dict[closest_keyframe] = [ {"event":"transfer", "parameters": {"joint" : [attach_joint], "target": target_object}}]
                 print "added transfer event", closest_keyframe
 
-    def _handle_both_hands_event(self, event):
+    def _handle_both_hands_event(self, event, activate_joint_mapping=False):
         if isinstance(event["jointName"], list):
-            if self.mg_input.activate_joint_mapping:
+            if activate_joint_mapping:
                 if "RightHand" in event["jointName"] and "LeftHand" in event["jointName"]:
                     return "BothHands"
                 else:
