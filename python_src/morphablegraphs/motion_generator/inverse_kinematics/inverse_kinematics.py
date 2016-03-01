@@ -43,6 +43,12 @@ class InverseKinematics(object):
             self.channels[node.node_name] = node_channels
         #print "channels", self.channels
 
+    def _run_optimization(self, objective, initial_guess, data, cons=None):
+         return minimize(objective, initial_guess, args=(data,),
+                        method=self._ik_settings["optimization_method"],#"SLSQP",#best result using L-BFGS-B
+                        constraints=cons, tol=self._ik_settings["tolerance"],
+                        options={'maxiter': self._ik_settings["max_iterations"], 'disp': self.verbose})#,'eps':1.0
+
     def set_pose_from_frame(self, reference_frame):
         #TODO initialize pose once and just update the frame
         self.pose = SkeletonPoseModel(self.skeleton, reference_frame, self.channels, self.use_euler)
@@ -52,44 +58,43 @@ class InverseKinematics(object):
         if joint_name in self.pose.free_joints_map.keys():
             free_joints = self.pose.free_joints_map[joint_name]
             if self.solving_method == IK_METHOD_CYCLIC_COORDINATE_DESCENT:
-                self.run_cyclic_coordinate_descent(joint_name, target, free_joints)
+                self._modify_using_cyclic_coordinate_descent(joint_name, target, free_joints)
             else:
-                self.run_optimization(joint_name, target, free_joints)
+                self._modify_using_optimization(joint_name, target, free_joints)
 
-    def run_optimization(self, target_joint, target_position, free_joints):
+    def _modify_pose_general(self, constraint):
+        free_joints = constraint.free_joints(self)
         initial_guess = self._extract_free_parameters(free_joints)
-        data = self, free_joints, target_joint, target_position
-        write_log("start optimization for joint", target_joint, len(initial_guess),len(free_joints))
+        data = constraint.data(self, free_joints)
+        write_log("start optimization for joint", len(initial_guess), len(free_joints))
         start = time.clock()
         cons = None#self.pose.generate_constraints(free_joints)
-        result = minimize(obj_inverse_kinematics,
-                initial_guess,
-                args=(data,),
-                method=self._ik_settings["optimization_method"],#"SLSQP",#best result using L-BFGS-B
-                constraints=cons,
-                tol=self._ik_settings["tolerance"],
-                options={'maxiter': self._ik_settings["max_iterations"], 'disp': self.verbose})#,'eps':1.0
+        result = self._run_optimization(constraint.evaluate, initial_guess, data, cons)
+        error = constraint.evaluate(result["x"], data)
+        write_log("finished optimization in",time.clock()-start,"seconds with error", error)#,result["x"].tolist(), initial_guess.tolist()
+        self.pose.set_channel_values(result["x"], free_joints)
 
+    def _modify_using_optimization(self, target_joint, target_position, free_joints):
+        initial_guess = self._extract_free_parameters(free_joints)
+        data = self, free_joints, target_joint, target_position
+        write_log("start optimization for joint", target_joint, len(initial_guess), len(free_joints))
+        start = time.clock()
+        cons = None#self.pose.generate_constraints(free_joints)
+        result = self._run_optimization(obj_inverse_kinematics, initial_guess, data, cons)
         position = self.pose.evaluate_position(target_joint)
-        write_log("finished optimization in",time.clock()-start,"seconds with error",np.linalg.norm(position-target_position)) #,result["x"].tolist(), initial_guess.tolist()
+        write_log("finished optimization in",time.clock()-start, "seconds with error", np.linalg.norm(position-target_position)) #,result["x"].tolist(), initial_guess.tolist()
         self.pose.set_channel_values(result["x"], free_joints)
 
     def optimize_joint(self, target_joint, target_position, free_joint):
         #optimize x y z
         initial_guess = self.pose.extract_parameters(free_joint)#self._extract_free_parameters([free_joint])
         data = self, [free_joint], target_joint, target_position
-        result = minimize(obj_inverse_kinematics,
-                initial_guess,
-                args=(data,),
-                method=self._ik_settings["optimization_method"],#"SLSQP",#best result using L-BFGS-B
-                constraints=None,
-                tol=self._ik_settings["tolerance"],
-                options={'maxiter': self._ik_settings["max_iterations"], 'disp': self.verbose})#,'eps':1.0
+        result = self._run_optimization(obj_inverse_kinematics, initial_guess, data)
         #apply constraints here
         self.pose.apply_bounds(free_joint)
         return result["x"]
 
-    def run_cyclic_coordinate_descent(self, target_joint, target_position, free_joints):
+    def _modify_using_cyclic_coordinate_descent(self, target_joint, target_position, free_joints):
         reversed_chain = copy(free_joints)
         reversed_chain.reverse()
         delta = np.inf
@@ -108,11 +113,9 @@ class InverseKinematics(object):
                 terminate = True
             delta = new_delta
             iteration += 1
-        write_log("finished optimization after", iteration, "iterations with error",delta, "in",time.clock()-start,"seconds")
-        return
+        write_log("finished optimization after", iteration, "iterations with error", delta, "in", time.clock()-start, "seconds")
 
     def evaluate_delta(self, parameters, target_joint, target_position, free_joints):
-
         self.pose.set_channel_values(parameters, free_joints) #update frame
         position = self.pose.evaluate_position(target_joint)
         d = position - target_position
@@ -132,20 +135,26 @@ class InverseKinematics(object):
         for keyframe, constraints in constraints.items():
             write_log(keyframe, constraints)
             self.set_pose_from_frame(motion_vector.frames[keyframe])
-            for c in constraints:
+            for c in constraints["multiple"]:
+                self._modify_frame_using_keyframe_constraint(motion_vector, c, keyframe)
+            for c in constraints["single"]:
                 self._modify_frame_using_keyframe_constraint(motion_vector, c, keyframe)
 
     def _modify_frame_using_keyframe_constraint(self, motion_vector, constraint, keyframe):
-        joint_name = constraint["joint_name"]
-        self._modify_pose(joint_name, constraint["position"])
+        #joint_name = constraint["joint_name"]
+        #self._modify_pose(joint_name, constraint["position"])
+        self._modify_pose_general(constraint)
         motion_vector.frames[keyframe] = self.pose.get_vector()
         #interpolate
+        print "free joints", constraint.free_joints(self)
+        #self.window = 0
         if self.window > 0:
-            write_log("smooth and interpolate", self.window)
-            joint_parameter_indices = self._extract_free_parameter_indices(self.pose.free_joints_map[joint_name])
-            for joint_name in self.pose.free_joints_map[joint_name]:
-                print joint_name
-                smooth_quaternion_frames_using_slerp(motion_vector.frames, joint_parameter_indices[joint_name], keyframe, self.window)
+            for target_joint_name in constraint.get_joint_names():
+                write_log("smooth and interpolate", self.window)
+                joint_parameter_indices = self._extract_free_parameter_indices(self.pose.free_joints_map[target_joint_name])
+                for joint_name in self.pose.free_joints_map[target_joint_name]:
+                    #print joint_name
+                    smooth_quaternion_frames_using_slerp(motion_vector.frames, joint_parameter_indices[joint_name], keyframe, self.window)
 
     def _modify_motion_vector_using_trajectory_constraint_list(self, motion_vector, constraints):
         write_log("number of ik trajectory constraints", len(constraints))
@@ -162,7 +171,7 @@ class InverseKinematics(object):
             t = (idx*d)/full_length
             target = trajectory.query_point_by_parameter(t)
             keyframe = constraint["start_frame"]+idx
-            write_log("change frame",idx, t, target, constraint["joint_name"])
+            write_log("change frame", idx, t, target, constraint["joint_name"])
             self.set_pose_from_frame(motion_vector.frames[keyframe])
             self._modify_pose(constraint["joint_name"], target)
             #self._modify_pose(constraint["joint_name"], target)

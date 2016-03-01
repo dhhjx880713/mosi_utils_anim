@@ -7,8 +7,9 @@ Created on Thu Jul 16 14:42:13 2015
 import numpy as np
 from ...animation_data.motion_editing import align_quaternion_frames, transform_point
 from .spatial_constraints.keyframe_constraints.global_transform_constraint import GlobalTransformConstraint
-from .spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
+from .spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION
 from .spatial_constraints import MGRDKeyframeConstraint
+from ik_constraints import JointIKConstraint, TwoJointIKConstraint
 try:
     from mgrd import PoseConstraint as MGRDPoseConstraint
     from mgrd import SemanticConstraint as MGRDSemanticConstraint
@@ -62,19 +63,7 @@ class MotionPrimitiveConstraints(object):
         \tThe sum of the errors for all constraints
     
         """
-
-        motion_spline = motion_primitive.back_project(parameters, use_time_parameters)
-        quat_frames = motion_spline.get_motion_vector()
-        if not self.is_local:
-            #find aligned frames once for all constraints
-            quat_frames = align_quaternion_frames(quat_frames, prev_frames, self.start_pose)
-
-        #evaluate constraints with the generated motion
-        error_sum = 0
-        for constraint in self.constraints:
-            error_sum += constraint.weight_factor * constraint.evaluate_motion_sample(quat_frames)
-        self.evaluations += 1
-        return error_sum
+        return np.sum(self.get_residual_vector(motion_primitive, parameters, prev_frames, use_time_parameters))
 
     def get_residual_vector(self, motion_primitive, parameters, prev_frames, use_time_parameters=False):
         """
@@ -168,6 +157,35 @@ class MotionPrimitiveConstraints(object):
                     keyframe = frame_offset+c.canonical_keyframe
                 if keyframe not in ik_constraints.keys():
                     ik_constraints[keyframe] = []
-                ik_constraint = {"canonical_frame": keyframe, "position": c.position, "joint_name": c.joint_name}
+                ik_constraint = {"keyframe": keyframe, "position": c.position, "joint_name": c.joint_name}
                 ik_constraints[keyframe].append(ik_constraint)
         return ik_constraints
+
+
+    def convert_to_ik_constraints2(self, frame_offset=0, time_function=None):
+        ik_constraints = dict()
+        for c in self.constraints:
+            if (c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION or c.constraint_type == SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION) \
+                and "generated" not in c.semantic_annotation.keys():
+                if time_function is not None:
+                    keyframe = frame_offset+int(time_function[c.canonical_keyframe])
+                else:
+                    keyframe = frame_offset+c.canonical_keyframe
+                if keyframe not in ik_constraints.keys():
+                    ik_constraints[keyframe] = dict()
+                    ik_constraints[keyframe]["single"] = []
+                    ik_constraints[keyframe]["multiple"] = []
+                if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION:
+                    ik_constraint = JointIKConstraint(c.joint_name, c.position, None, keyframe)#{"keyframe": keyframe, "position": c.position, "joint_name": c.joint_name}
+                    ik_constraints[keyframe]["single"] .append(ik_constraint)
+                elif c.constraint_type == SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION:
+                    ik_constraint = JointIKConstraint(c.joint_names[0], c.positions[0], None, keyframe)#{"keyframe": keyframe, "position": c.position, "joint_name": c.joint_name}
+                    ik_constraints[keyframe]["single"] .append(ik_constraint)
+                    ik_constraint = JointIKConstraint(c.joint_names[1], c.positions[1], None, keyframe)#{"keyframe": keyframe, "position": c.position, "joint_name": c.joint_name}
+                    ik_constraints[keyframe]["single"] .append(ik_constraint)
+                    #ik_constraint = TwoJointIKConstraint(c.joint_names, c.positions, c.target_center, c.target_delta, c.target_direction, keyframe)
+                    #ik_constraints[keyframe]["multiple"].append(ik_constraint)
+
+        return ik_constraints
+
+
