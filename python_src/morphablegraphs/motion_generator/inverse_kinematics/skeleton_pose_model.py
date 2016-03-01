@@ -51,10 +51,14 @@ class SkeletonPoseModel(object):
         #print "modelled joints",self.modelled_joints
         #print "maximum channel", channel_idx
         #TODO read data from file
-        self.free_joints_map = {"LeftHand":["Spine","LeftArm",  "LeftForeArm"],#"LeftShoulder",
+        self.free_joints_map = {"LeftHand":["Spine","LeftArm", "LeftForeArm"],#"LeftShoulder",
                            "RightHand":["Spine","RightArm","RightForeArm"],# "RightShoulder",
-                           "LeftToolEndSite":["Spine", "LeftArm","LeftForeArm"],
+                           "LeftToolEndSite":["Spine","LeftArm","LeftForeArm"],#
                            "RightToolEndSite":["Spine","RightArm", "RightForeArm"]}#"RightShoulder",
+        self.reduced_free_joints_map = {"LeftHand":["Spine","LeftArm", "LeftForeArm"],#"LeftShoulder",
+                           "RightHand":["Spine","RightArm","RightForeArm"],# "RightShoulder",
+                           "LeftToolEndSite":["LeftArm","LeftForeArm"],#"Spine",
+                           "RightToolEndSite":["RightArm", "RightForeArm"]}#"RightShoulder","Spine",
         self.bounds = {"LeftArm":[],#{"dim": 1, "min": 0, "max": 90}
                        "RightArm":[]}#{"dim": 1, "min": 0, "max": 90},{"dim": 0, "min": 0, "max": 90}
 
