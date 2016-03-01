@@ -261,14 +261,18 @@ def obj_global_residual_vector_and_naturalness(s, data):
         #        c.joint_arc_lengths = np.zeros(len(c.joint_trajectories))
         #        c.set_min_arc_length_from_previous_frames(prev_frames)
         alpha = s[offset:offset+step.n_spatial_components]
-        sample_frames = motion_primitive_graph.nodes[step.node_key].back_project(alpha, use_time_parameters=False).get_motion_vector()
         #step_data = motion_primitive_graph.nodes[step.node_key], step.motion_primitive_constraints,\
         #               prev_frames, error_scale_factor, quality_scale_factor
         concat_alpha = np.hstack((alpha, step.parameters[step.n_spatial_components:]))
         #residual_vector += obj_spatial_error_residual_vector_and_naturalness(concat_alpha, step_data)
         residual_vector += step.motion_primitive_constraints.get_residual_vector(motion_primitive_graph.nodes[step.node_key], concat_alpha, prev_frames, use_time_parameters=False)
-        prev_frames = align_quaternion_frames(sample_frames, prev_frames, step.motion_primitive_constraints.start_pose)
+        prev_frames = align_quaternion_frames_only_last_frame(motion_primitive_graph.nodes[step.node_key].back_project(alpha, use_time_parameters=False).get_motion_vector(), prev_frames, step.motion_primitive_constraints.start_pose)
         offset += step.n_spatial_components
     #print "global error", sum(residual_vector), residual_vector
+    m = len(s)
+    count = len(residual_vector)
+    while count < m:
+        residual_vector.append(0.0)
+        count+=1
     return residual_vector
 
