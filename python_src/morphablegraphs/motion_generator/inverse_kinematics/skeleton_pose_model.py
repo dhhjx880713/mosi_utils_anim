@@ -1,8 +1,30 @@
 import numpy as np
 from ...animation_data.motion_editing import convert_quaternion_frames_to_euler_frames as convert_quat_to_euler
 from ...animation_data.motion_editing import euler_to_quaternion, quaternion_to_euler
+from ...external.transformations import quaternion_matrix, quaternion_from_matrix, quaternion_multiply, quaternion_inverse
 LEN_QUATERNION = 4
 LEN_TRANSLATION = 3
+
+
+def get_3d_rotation_between_vectors(a ,b):
+    v = np.cross(a, b)
+    s = np.linalg.norm(v)
+    if s ==0:
+        return np.eye(3)
+    c = np.dot(a,b)
+    v_x = np.array([[0, -v[2], v[1]],
+                    [v[2], 0, -v[0]],
+                    [-v[1], v[0], 0]])
+    v_x_2 = np.dot(v_x,v_x)
+    r = np.eye(3) + v_x + (v_x_2* (1-c/s**2))
+    return r
+
+def quaternion_from_vector_to_vector(a, b):
+    "src: http://stackoverflow.com/questions/1171849/finding-quaternion-representing-the-rotation-from-one-vector-to-another"
+    v = np.cross(a, b)
+    w = np.sqrt((np.linalg.norm(a) ** 2) * (np.linalg.norm(b) ** 2)) + np.dot(a, b)
+    q = np.array([w, v[0], v[1], v[2]])
+    return q/ np.linalg.norm(q)
 
 
 def convert_euler_to_quat(euler_frame, joints):
@@ -17,6 +39,9 @@ def convert_euler_to_quat(euler_frame, joints):
         offset += step
     return np.array(quat_frame)
 
+
+def normalize_quaternion(q):
+    return quaternion_inverse(q) / np.dot(q, q)
 
 class SkeletonPoseModel(object):
     """
@@ -108,6 +133,11 @@ class SkeletonPoseModel(object):
         """
         return self.skeleton.nodes[target_joint].get_global_position(self.pose_parameters)#get_vector()
 
+    def evaluate_orientation(self, target_joint):
+        """ run fk
+        """
+        return self.skeleton.nodes[target_joint].get_global_orientation_quaternion(self.pose_parameters)
+
     def apply_bounds(self, free_joint):
         if free_joint in self.bounds.keys():
             euler_angles = self.get_euler_angles(free_joint)
@@ -159,3 +189,56 @@ class SkeletonPoseModel(object):
 
     def clear_cache(self):
         self.skeleton.clear_cached_global_matrices()
+
+    def lookat(self, point):
+        #TODO make it work and then also with euler angles
+        print("look at", point)
+        head_joint = "Head"
+        head_position = self.evaluate_position(head_joint)
+        head_q = self.evaluate_orientation(head_joint)
+        head_q /= np.linalg.norm(head_q)
+        local_head_q = self.extract_parameters(head_joint)
+        head_rotation_matrix = quaternion_matrix(head_q)
+        print head_position, head_q
+        target_dir = point - head_position
+        target_dir /= np.linalg.norm(target_dir)
+        head_direction = self.get_joint_direction(head_joint)
+        print head_direction
+        #delta_q = quaternion_from_matrix(r)
+        delta_q = quaternion_from_vector_to_vector(head_direction, target_dir)
+        #head_q /= np.linalg.norm(head_q)
+        new_local_q = quaternion_multiply(delta_q, local_head_q)
+        new_local_q /= np.linalg.norm(new_local_q)
+        delta_matrix = quaternion_matrix(delta_q)
+
+        #delta*parent*old_local = parent*new_local
+        #inv_parent*delta*parent*old_local = new_local
+        parent_m = self.skeleton.nodes["Neck"].get_global_matrix(self.pose_parameters, use_cache=False)
+        new_local_rotation_matrix = np.dot(parent_m , self.skeleton.nodes[head_joint].get_local_matrix(self.pose_parameters))
+        m = np.dot(delta_matrix, new_local_rotation_matrix)
+        new_local = np.dot(np.linalg.inv(parent_m),m)
+        m = np.dot(parent_m, new_local)
+        new_local_q = quaternion_from_matrix(new_local)
+        #new_local_q = quaternion_from_matrix(new_rotation_matrix)
+        self.set_channel_values(new_local_q, [head_joint])
+        #test = [head_direction[0], head_direction[1],head_direction[2], 1]
+        #new_head_direction = np.dot(delta_matrix,test)
+        #new_rotation_matrix = quaternion_matrix(quaternion_from_matrix(new_rotation_matrix))
+        #new_rotation_matrix = self.skeleton.nodes[head_joint].get_global_matrix(self.pose_parameters, use_cache=False)
+        m[:,3] = [0,0,0,1]
+
+
+        new_global_rotation_matrix = np.dot(delta_matrix,  head_rotation_matrix)
+        new_head_direction = np.dot(m, [0,0,1,1])
+        #it does not work after the update
+
+        print head_direction, new_head_direction, target_dir, self.get_joint_direction(head_joint)#, target_dir, np.linalg.norm(self.get_joint_direction(head_joint))
+
+    def get_joint_direction(self, joint_name):
+        q = self.evaluate_orientation(joint_name)
+        q /= np.linalg.norm(q)
+        rotation_matrix = quaternion_matrix(q)
+        ref_vector = [0, 0, 1, 1]
+        vec = np.dot(rotation_matrix, ref_vector)[:3]
+        return vec/np.linalg.norm(vec)
+
