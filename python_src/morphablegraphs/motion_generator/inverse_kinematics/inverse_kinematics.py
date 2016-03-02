@@ -31,6 +31,8 @@ class InverseKinematics(object):
         self.verbose = False
         self.use_euler = self._ik_settings["use_euler_representation"]
         self.solving_method = self._ik_settings["solving_method"]
+        self.success_threshold = 5.0
+        self.max_retries = 5
         if self.use_euler:
             self.skeleton.set_rotation_type(ROTATION_TYPE_EULER)#change to euler
         self.channels = OrderedDict()
@@ -58,9 +60,10 @@ class InverseKinematics(object):
         if joint_name in self.pose.free_joints_map.keys():
             free_joints = self.pose.free_joints_map[joint_name]
             if self.solving_method == IK_METHOD_CYCLIC_COORDINATE_DESCENT:
-                self._modify_using_cyclic_coordinate_descent(joint_name, target, free_joints)
+                error = self._modify_using_cyclic_coordinate_descent(joint_name, target, free_joints)
             else:
-                self._modify_using_optimization(joint_name, target, free_joints)
+                error = self._modify_using_optimization(joint_name, target, free_joints)
+        return error
 
     def _modify_pose_general(self, constraint):
         free_joints = constraint.free_joints(self)
@@ -69,10 +72,15 @@ class InverseKinematics(object):
         write_log("start optimization for joint", len(initial_guess), len(free_joints))
         start = time.clock()
         cons = None#self.pose.generate_constraints(free_joints)
-        result = self._run_optimization(constraint.evaluate, initial_guess, data, cons)
-        error = constraint.evaluate(result["x"], data)
+        error = np.inf
+        iter_counter = 0
+        while error > self.success_threshold and iter_counter < self.max_retries:
+            result = self._run_optimization(constraint.evaluate, initial_guess, data, cons)
+            error = constraint.evaluate(result["x"], data)
+            iter_counter += 1
         write_log("finished optimization in",time.clock()-start,"seconds with error", error)#,result["x"].tolist(), initial_guess.tolist()
         self.pose.set_channel_values(result["x"], free_joints)
+        return error
 
     def _modify_using_optimization(self, target_joint, target_position, free_joints):
         initial_guess = self._extract_free_parameters(free_joints)
@@ -82,8 +90,10 @@ class InverseKinematics(object):
         cons = None#self.pose.generate_constraints(free_joints)
         result = self._run_optimization(obj_inverse_kinematics, initial_guess, data, cons)
         position = self.pose.evaluate_position(target_joint)
-        write_log("finished optimization in",time.clock()-start, "seconds with error", np.linalg.norm(position-target_position)) #,result["x"].tolist(), initial_guess.tolist()
+        error = np.linalg.norm(position-target_position)
+        write_log("finished optimization in",time.clock()-start, "seconds with error", error) #,result["x"].tolist(), initial_guess.tolist()
         self.pose.set_channel_values(result["x"], free_joints)
+        return error
 
     def optimize_joint(self, target_joint, target_position, free_joint):
         #optimize x y z
@@ -113,7 +123,8 @@ class InverseKinematics(object):
                 terminate = True
             delta = new_delta
             iteration += 1
-        write_log("finished optimization after", iteration, "iterations with error", delta, "in", time.clock()-start, "seconds")
+        write_log("Finished optimization after", iteration, "iterations with error", delta, "in", time.clock()-start, "seconds")
+        return delta
 
     def evaluate_delta(self, parameters, target_joint, target_position, free_joints):
         self.pose.set_channel_values(parameters, free_joints) #update frame
@@ -135,10 +146,12 @@ class InverseKinematics(object):
         for keyframe, constraints in constraints.items():
             write_log(keyframe, constraints)
             self.set_pose_from_frame(motion_vector.frames[keyframe])
-            for c in constraints["multiple"]:
-                self._modify_frame_using_keyframe_constraint(motion_vector, c, keyframe)
-            for c in constraints["single"]:
-                self._modify_frame_using_keyframe_constraint(motion_vector, c, keyframe)
+            if "multiple" in constraints.keys():
+                for c in constraints["multiple"]:
+                    self._modify_frame_using_keyframe_constraint(motion_vector, c, keyframe)
+            if "single" in constraints.keys():
+                for c in constraints["single"]:
+                    self._modify_frame_using_keyframe_constraint(motion_vector, c, keyframe)
 
     def _modify_frame_using_keyframe_constraint(self, motion_vector, constraint, keyframe):
         #joint_name = constraint["joint_name"]
@@ -156,6 +169,16 @@ class InverseKinematics(object):
                     #print joint_name
                     smooth_quaternion_frames_using_slerp(motion_vector.frames, joint_parameter_indices[joint_name], keyframe, self.window)
 
+        start = keyframe - self.window/2
+        end = keyframe + self.window/2
+        self._look_at_in_range(motion_vector, constraint.position, start, end)
+
+    def _look_at_in_range(self, motion_vector, position, start, end):
+        for idx in xrange(start, end):
+            self.set_pose_from_frame(motion_vector.frames[idx])
+            self.pose.lookat(position)
+            motion_vector.frames[idx] = self.pose.get_vector()
+
     def _modify_motion_vector_using_trajectory_constraint_list(self, motion_vector, constraints):
         write_log("number of ik trajectory constraints", len(constraints))
         for c in constraints:
@@ -171,9 +194,14 @@ class InverseKinematics(object):
             t = (idx*d)/full_length
             target = trajectory.query_point_by_parameter(t)
             keyframe = constraint["start_frame"]+idx
-            write_log("change frame", idx, t, target, constraint["joint_name"])
+            #write_log("change frame", idx, t, target, constraint["joint_name"])
             self.set_pose_from_frame(motion_vector.frames[keyframe])
-            self._modify_pose(constraint["joint_name"], target)
+            error = np.inf
+            iter_counter = 0
+            while error > self.success_threshold and iter_counter < self.max_retries:
+                error = self._modify_pose(constraint["joint_name"], target)
+                iter_counter += 1
+
             #self._modify_pose(constraint["joint_name"], target)
             motion_vector.frames[keyframe] = self.pose.get_vector()
 
@@ -194,3 +222,4 @@ class InverseKinematics(object):
             indices[joint_name] = list(range(*self.pose.extract_parameters_indices(joint_name)))
             #print ("indices", indices)
         return indices
+
