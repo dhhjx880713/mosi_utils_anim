@@ -195,11 +195,11 @@ class SkeletonPoseModel(object):
         print("look at", point)
         head_joint = "Head"
         head_position = self.evaluate_position(head_joint)
-        head_q = self.evaluate_orientation(head_joint)
-        head_q /= np.linalg.norm(head_q)
+        #head_q = self.evaluate_orientation(head_joint)
+        #head_q /= np.linalg.norm(head_q)
         local_head_q = self.extract_parameters(head_joint)
-        head_rotation_matrix = quaternion_matrix(head_q)
-        print head_position, head_q
+        #head_rotation_matrix = quaternion_matrix(head_q)
+        #print head_position, head_q
         target_dir = point - head_position
         target_dir /= np.linalg.norm(target_dir)
         head_direction = self.get_joint_direction(head_joint)
@@ -207,15 +207,15 @@ class SkeletonPoseModel(object):
         #delta_q = quaternion_from_matrix(r)
         delta_q = quaternion_from_vector_to_vector(head_direction, target_dir)
         #head_q /= np.linalg.norm(head_q)
-        new_local_q = quaternion_multiply(delta_q, local_head_q)
-        new_local_q /= np.linalg.norm(new_local_q)
+        #new_local_q = quaternion_multiply(delta_q, local_head_q)
+        #new_local_q /= np.linalg.norm(new_local_q)
         delta_matrix = quaternion_matrix(delta_q)
 
         #delta*parent*old_local = parent*new_local
         #inv_parent*delta*parent*old_local = new_local
         parent_m = self.skeleton.nodes["Neck"].get_global_matrix(self.pose_parameters, use_cache=False)
-        new_local_rotation_matrix = np.dot(parent_m , self.skeleton.nodes[head_joint].get_local_matrix(self.pose_parameters))
-        m = np.dot(delta_matrix, new_local_rotation_matrix)
+        old_local = np.dot(parent_m, self.skeleton.nodes[head_joint].get_local_matrix(self.pose_parameters))
+        m = np.dot(delta_matrix, old_local)
         new_local = np.dot(np.linalg.inv(parent_m),m)
         m = np.dot(parent_m, new_local)
         new_local_q = quaternion_from_matrix(new_local)
@@ -228,7 +228,7 @@ class SkeletonPoseModel(object):
         m[:,3] = [0,0,0,1]
 
 
-        new_global_rotation_matrix = np.dot(delta_matrix,  head_rotation_matrix)
+        #new_global_rotation_matrix = np.dot(delta_matrix,  head_rotation_matrix)
         new_head_direction = np.dot(m, [0,0,1,1])
         #it does not work after the update
 
