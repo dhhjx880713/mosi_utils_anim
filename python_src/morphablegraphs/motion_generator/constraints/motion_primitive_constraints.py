@@ -63,18 +63,20 @@ class MotionPrimitiveConstraints(object):
         \tThe sum of the errors for all constraints
     
         """
+
         motion_spline = motion_primitive.back_project(parameters, use_time_parameters)
         quat_frames = motion_spline.get_motion_vector()
         if not self.is_local:
             #find aligned frames once for all constraints
             quat_frames = align_quaternion_frames(quat_frames, prev_frames, self.start_pose)
+
         #evaluate constraints with the generated motion
         error_sum = 0
         for constraint in self.constraints:
             error_sum += constraint.weight_factor * constraint.evaluate_motion_sample(quat_frames)
         self.evaluations += 1
         return error_sum
-        #return np.sum(self.get_residual_vector(motion_primitive, parameters, prev_frames, use_time_parameters))
+
 
     def get_residual_vector(self, motion_primitive, parameters, prev_frames, use_time_parameters=False):
         """
