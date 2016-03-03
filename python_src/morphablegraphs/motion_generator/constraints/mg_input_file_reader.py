@@ -348,8 +348,8 @@ class MGInputFileReader(object):
         return False
 
     def _transform_point_from_cad_to_opengl_cs(self, point):
-        """ Transforms a 3d point represented as a list from a left handed cad to a
-            right handed opengl coordinate system
+        """ Transforms a 3d point represented as a list from a CAD to a
+            opengl coordinate system by a -90 degree rotation around the x axis
         """
         if self.activate_coordinate_transform:
             transform_matrix = np.array([[1, 0, 0], [0, 0, 1], [0, -1, 0]])
