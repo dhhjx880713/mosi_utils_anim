@@ -106,9 +106,9 @@ class MGConfiguratiohHandler(tornado.web.RequestHandler):
             return
         if "use_constraints" in algorithm_config.keys():
             self.application.set_algorithm_config(algorithm_config)
+            print "Set algorithm config to", algorithm_config
         else:
-            print algorithm_config
-            error_string = "Error: Did not find expected keys in the input data."
+            error_string = "Error: Did not find expected keys in the input data.", algorithm_config
             self.write(error_string)
 
 
