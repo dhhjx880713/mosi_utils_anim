@@ -21,9 +21,9 @@ class JointIKConstraint(IKConstraint):
         d = pose.evaluate_position(target_joint) - target_position
         return np.dot(d, d)
 
-    def free_joints(self, ik):
-        if self.joint_name in ik.pose.free_joints_map.keys():
-            return ik.pose.reduced_free_joints_map[self.joint_name]
+    def free_joints(self, free_joints_map):
+        if self.joint_name in free_joints_map.keys():
+            return free_joints_map[self.joint_name]
         else:
             raise KeyError
 
@@ -71,11 +71,11 @@ class TwoJointIKConstraint(IKConstraint):
         #error = np.linalg.norm(left-target_positions[0]) + np.linalg.norm(right-target_positions[1])
         return sum(residual_vector)#error#residual_vector[0]#sum(residual_vector)
 
-    def free_joints(self, ik):
+    def free_joints(self, free_joints_map):
         free_joints = set()
         for joint_name in self.joint_names:
-            if joint_name in ik.pose.free_joints_map.keys():
-                free_joints.update(ik.pose.free_joints_map[joint_name])
+            if joint_name in free_joints_map.keys():
+                free_joints.update(free_joints_map[joint_name])
             else:
                 raise KeyError
         return list(free_joints)

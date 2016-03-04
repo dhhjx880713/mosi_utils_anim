@@ -192,7 +192,7 @@ class SkeletonPoseModel(object):
 
     def lookat(self, point):
         #TODO make it work and then also with euler angles
-        print("look at", point)
+        #print("look at", point)
         head_joint = "Head"
         head_position = self.evaluate_position(head_joint)
         #head_q = self.evaluate_orientation(head_joint)
@@ -203,7 +203,7 @@ class SkeletonPoseModel(object):
         target_dir = point - head_position
         target_dir /= np.linalg.norm(target_dir)
         head_direction = self.get_joint_direction(head_joint)
-        print head_direction
+        #print head_direction
         #delta_q = quaternion_from_matrix(r)
         delta_q = quaternion_from_vector_to_vector(head_direction, target_dir)
         #head_q /= np.linalg.norm(head_q)
@@ -229,10 +229,8 @@ class SkeletonPoseModel(object):
 
 
         #new_global_rotation_matrix = np.dot(delta_matrix,  head_rotation_matrix)
-        new_head_direction = np.dot(m, [0,0,1,1])
-        #it does not work after the update
-
-        print head_direction, new_head_direction, target_dir, self.get_joint_direction(head_joint)#, target_dir, np.linalg.norm(self.get_joint_direction(head_joint))
+        #new_head_direction = np.dot(m, [0,0,1,1]) # verification
+        #print head_direction, new_head_direction, target_dir, self.get_joint_direction(head_joint)#, target_dir, np.linalg.norm(self.get_joint_direction(head_joint))
 
     def get_joint_direction(self, joint_name):
         q = self.evaluate_orientation(joint_name)
