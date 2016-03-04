@@ -4,7 +4,7 @@ import time
 from scipy.optimize import minimize
 from collections import OrderedDict
 from ...animation_data import ROTATION_TYPE_EULER,ROTATION_TYPE_QUATERNION
-from blending import smooth_quaternion_frames_using_slerp, smooth_quaternion_frames_using_slerp_overwrite_frames
+from blending import smooth_quaternion_frames_using_slerp, smooth_quaternion_frames_using_slerp_overwrite_frames, apply_slerp
 from skeleton_pose_model import SkeletonPoseModel
 from ...utilities import write_log
 
@@ -28,6 +28,7 @@ class InverseKinematics(object):
         self.pose = None
         self._ik_settings = algorithm_settings["inverse_kinematics_settings"]
         self.window = self._ik_settings["interpolation_window"]
+        self.transition_window = self._ik_settings["transition_window"]
         self.verbose = False
         self.use_euler = self._ik_settings["use_euler_representation"]
         self.solving_method = self._ik_settings["solving_method"]
@@ -189,12 +190,15 @@ class InverseKinematics(object):
             self.pose.lookat(position)
             motion_vector.frames[idx] = self.pose.get_vector()
         #interpolate
-        window = 120
-        joint_name = "Head"
-        joint_parameter_indices = self.pose.extract_parameters_indices(joint_name)
-        print joint_parameter_indices
-        smooth_quaternion_frames_using_slerp(motion_vector.frames, joint_parameter_indices, start, window)
-        smooth_quaternion_frames_using_slerp(motion_vector.frames, joint_parameter_indices, end, window)
+        joint_parameter_indices = list(range(*self.pose.extract_parameters_indices(self.pose.head_joint)))
+        #print joint_parameter_indices
+        transition_start = max(start-self.transition_window, 0)
+        transition_end = min(end+self.transition_window, motion_vector.frames.shape[0])-1
+        #print transition_start, start, end, transition_end
+        apply_slerp(motion_vector.frames, transition_start, start, joint_parameter_indices)
+        apply_slerp(motion_vector.frames, end-1, transition_end, joint_parameter_indices)
+        #smooth_quaternion_frames_using_slerp_overwrite_frames(motion_vector.frames, joint_parameter_indices, start, window)
+        #smooth_quaternion_frames_using_slerp_overwrite_frames(motion_vector.frames, joint_parameter_indices, end, window)
 
     def _modify_motion_vector_using_trajectory_constraint_list(self, motion_vector, constraints):
         write_log("number of ik trajectory constraints", len(constraints))

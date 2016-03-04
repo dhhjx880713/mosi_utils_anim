@@ -19,10 +19,11 @@ def smooth_quaternion_frames_using_slerp(quat_frames, joint_param_indices, event
 
 def smooth_quaternion_frames_using_slerp_overwrite_frames(quat_frames, joint_param_indices, event_frame, window):
     h_window = window/2
-    start_frame = event_frame-h_window
-    end_frame = event_frame+h_window
-    apply_slerp(quat_frames, start_frame, event_frame, h_window, joint_param_indices)
-    apply_slerp(quat_frames, event_frame, end_frame, h_window, joint_param_indices)
+    start_frame = max(event_frame-h_window, 0)
+    end_frame = min(event_frame+h_window, quat_frames.shape[0]-1)
+    print start_frame, end_frame
+    apply_slerp(quat_frames, start_frame, event_frame, joint_param_indices)
+    apply_slerp(quat_frames, event_frame, end_frame, joint_param_indices)
 
 
 def blend_frames(self, quat_frames, start, end, new_frames, joint_parameter_indices):
@@ -45,9 +46,10 @@ def create_frames_using_slerp(quat_frames, start_frame, end_frame, steps, joint_
     return frames
 
 
-def apply_slerp(quat_frames, start_frame, end_frame, steps, joint_parameter_indices):
+def apply_slerp(quat_frames, start_frame, end_frame, joint_parameter_indices):
     start_q = quat_frames[start_frame, joint_parameter_indices]
     end_q = quat_frames[end_frame, joint_parameter_indices]
+    steps = end_frame-start_frame
     for i in xrange(steps):
         t = float(i)/steps
         #nlerp_q = self.nlerp(start_q, end_q, t)

@@ -87,6 +87,8 @@ class SkeletonPoseModel(object):
                            "LeftToolEndSite":["LeftArm","LeftForeArm"],#"Spine",
                            "RightToolEndSite":["RightArm", "RightForeArm"],#"RightShoulder","Spine",
                             "Head":[]}
+        self.head_joint = "Head"
+        self.neck_joint = "Neck"
         self.bounds = {"LeftArm":[],#{"dim": 1, "min": 0, "max": 90}
                        "RightArm":[]}#{"dim": 1, "min": 0, "max": 90},{"dim": 0, "min": 0, "max": 90}
 
@@ -196,16 +198,15 @@ class SkeletonPoseModel(object):
     def lookat(self, point):
         #TODO make it work and then also with euler angles
         #print("look at", point)
-        head_joint = "Head"
-        head_position = self.evaluate_position(head_joint)
+        head_position = self.evaluate_position(self.head_joint)
         #head_q = self.evaluate_orientation(head_joint)
         #head_q /= np.linalg.norm(head_q)
-        local_head_q = self.extract_parameters(head_joint)
+        local_head_q = self.extract_parameters(self.head_joint)
         #head_rotation_matrix = quaternion_matrix(head_q)
         #print head_position, head_q
         target_dir = point - head_position
         target_dir /= np.linalg.norm(target_dir)
-        head_direction = self.get_joint_direction(head_joint)
+        head_direction = self.get_joint_direction(self.head_joint)
         #print head_direction
         #delta_q = quaternion_from_matrix(r)
         delta_q = quaternion_from_vector_to_vector(head_direction, target_dir)
@@ -216,14 +217,14 @@ class SkeletonPoseModel(object):
 
         #delta*parent*old_local = parent*new_local
         #inv_parent*delta*parent*old_local = new_local
-        parent_m = self.skeleton.nodes["Neck"].get_global_matrix(self.pose_parameters, use_cache=False)
-        old_local = np.dot(parent_m, self.skeleton.nodes[head_joint].get_local_matrix(self.pose_parameters))
+        parent_m = self.skeleton.nodes[self.neck_joint].get_global_matrix(self.pose_parameters, use_cache=False)
+        old_local = np.dot(parent_m, self.skeleton.nodes[self.head_joint].get_local_matrix(self.pose_parameters))
         m = np.dot(delta_matrix, old_local)
         new_local = np.dot(np.linalg.inv(parent_m),m)
         m = np.dot(parent_m, new_local)
         new_local_q = quaternion_from_matrix(new_local)
         #new_local_q = quaternion_from_matrix(new_rotation_matrix)
-        self.set_channel_values(new_local_q, [head_joint])
+        self.set_channel_values(new_local_q, [self.head_joint])
         #test = [head_direction[0], head_direction[1],head_direction[2], 1]
         #new_head_direction = np.dot(delta_matrix,test)
         #new_rotation_matrix = quaternion_matrix(quaternion_from_matrix(new_rotation_matrix))
