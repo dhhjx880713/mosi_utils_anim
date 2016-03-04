@@ -1613,7 +1613,7 @@ def align_quaternion_frames_only_last_frame(quat_frames, prev_frames=None, trans
         transformed_frames = transform_quaternion_frames([quat_frames[-1]], transformation["orientation"], transformation["position"])
         return transformed_frames
     else:
-        return quat_frames[-1]
+        return [quat_frames[-1]]
 
 
 def align_quaternion_frames(quat_frames, prev_frames=None, transformation=None):
