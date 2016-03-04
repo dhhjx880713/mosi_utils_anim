@@ -145,16 +145,18 @@ class InverseKinematics(object):
 
     def _modify_motion_vector_using_keyframe_constraint_list(self, motion_vector, constraints):
         write_log("number of ik keyframe constraints", len(constraints))
+        has_multiple_targets = False
         for keyframe, constraints in constraints.items():
             write_log(keyframe, constraints)
             self.set_pose_from_frame(motion_vector.frames[keyframe])
             if "multiple" in constraints.keys():
                 for c in constraints["multiple"]:
                     self._modify_frame_using_keyframe_constraint(motion_vector, c, keyframe)
+                    has_multiple_targets = True
             if "single" in constraints.keys():
                 for c in constraints["single"]:
                     self._modify_frame_using_keyframe_constraint(motion_vector, c, keyframe)
-                    if self.activate_look_at:
+                    if self.activate_look_at and not has_multiple_targets:
                         print "look at constraint"
                         if self.window > 0:
                             start = keyframe - self.window/2
