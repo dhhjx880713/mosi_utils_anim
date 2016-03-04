@@ -3,8 +3,8 @@ from ...external.transformations import quaternion_slerp
 
 def smooth_quaternion_frames_using_slerp(quat_frames, joint_param_indices, event_frame, window):
     h_window = window/2
-    start_frame = event_frame-h_window
-    end_frame = event_frame+h_window
+    start_frame = max(event_frame-h_window, 0)
+    end_frame = min(event_frame+h_window, quat_frames.shape[0]-1)
     new_frames = create_frames_using_slerp(quat_frames, start_frame, event_frame, h_window, joint_param_indices)
     steps = event_frame-start_frame
     for i in range(steps):
