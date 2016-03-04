@@ -109,6 +109,9 @@ class AlgorithmConfigurationBuilder(object):
         self.inverse_kinematics_settings["interpolation_window"] = 120
         self.inverse_kinematics_settings["use_euler_representation"] = False
         self.inverse_kinematics_settings["solving_method"] = "unconstrained"
+        self.inverse_kinematics_settings["activate_look_at"] = True
+        self.inverse_kinematics_settings["max_retries"] = 1
+        self.inverse_kinematics_settings["success_threshold"] = 5.0
 
     def from_json(self, filename):
         temp_algorithm_config = load_json_file(filename)

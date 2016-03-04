@@ -31,8 +31,9 @@ class InverseKinematics(object):
         self.verbose = False
         self.use_euler = self._ik_settings["use_euler_representation"]
         self.solving_method = self._ik_settings["solving_method"]
-        self.success_threshold = 5.0
-        self.max_retries = 5
+        self.success_threshold = self._ik_settings["success_threshold"]
+        self.max_retries = self._ik_settings["max_retries"]
+        self.activate_look_at = self._ik_settings["activate_look_at"]
         if self.use_euler:
             self.skeleton.set_rotation_type(ROTATION_TYPE_EULER)#change to euler
         self.channels = OrderedDict()
@@ -152,6 +153,15 @@ class InverseKinematics(object):
             if "single" in constraints.keys():
                 for c in constraints["single"]:
                     self._modify_frame_using_keyframe_constraint(motion_vector, c, keyframe)
+                    if self.activate_look_at:
+                        print "look at constraint"
+                        if self.window > 0:
+                            start = keyframe - self.window/2
+                            end = keyframe + self.window/2
+                        else:
+                            start = keyframe
+                            end = keyframe+1
+                        self._look_at_in_range(motion_vector, c.position, start, end)
 
     def _modify_frame_using_keyframe_constraint(self, motion_vector, constraint, keyframe):
         #joint_name = constraint["joint_name"]
@@ -162,22 +172,29 @@ class InverseKinematics(object):
         print "free joints", constraint.free_joints(self.pose.free_joints_map)
         #self.window = 0
         if self.window > 0:
-            for target_joint_name in constraint.get_joint_names():
-                write_log("smooth and interpolate", self.window)
-                joint_parameter_indices = self._extract_free_parameter_indices(self.pose.free_joints_map[target_joint_name])
-                for joint_name in self.pose.free_joints_map[target_joint_name]:
-                    #print joint_name
-                    smooth_quaternion_frames_using_slerp(motion_vector.frames, joint_parameter_indices[joint_name], keyframe, self.window)
+            self.interpolate_around_keyframe(motion_vector, constraint.get_joint_names(), keyframe, self.window)
 
-        start = keyframe - self.window/2
-        end = keyframe + self.window/2
-        self._look_at_in_range(motion_vector, constraint.position, start, end)
+
+    def interpolate_around_keyframe(self, motion_vector, joint_names, keyframe, window):
+        write_log("smooth and interpolate")
+        for target_joint_name in joint_names:
+            joint_parameter_indices = self._extract_free_parameter_indices(self.pose.free_joints_map[target_joint_name])
+            for joint_name in self.pose.free_joints_map[target_joint_name]:
+                #print joint_name
+                smooth_quaternion_frames_using_slerp(motion_vector.frames, joint_parameter_indices[joint_name], keyframe, window)
 
     def _look_at_in_range(self, motion_vector, position, start, end):
         for idx in xrange(start, end):
             self.set_pose_from_frame(motion_vector.frames[idx])
             self.pose.lookat(position)
             motion_vector.frames[idx] = self.pose.get_vector()
+        #interpolate
+        window = 120
+        joint_name = "Head"
+        joint_parameter_indices = self.pose.extract_parameters_indices(joint_name)
+        print joint_parameter_indices
+        smooth_quaternion_frames_using_slerp(motion_vector.frames, joint_parameter_indices, start, window)
+        smooth_quaternion_frames_using_slerp(motion_vector.frames, joint_parameter_indices, end, window)
 
     def _modify_motion_vector_using_trajectory_constraint_list(self, motion_vector, constraints):
         write_log("number of ik trajectory constraints", len(constraints))

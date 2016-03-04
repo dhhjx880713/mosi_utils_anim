@@ -79,11 +79,14 @@ class SkeletonPoseModel(object):
         self.free_joints_map = {"LeftHand":["Spine","LeftArm", "LeftForeArm"],#"LeftShoulder",
                            "RightHand":["Spine","RightArm","RightForeArm"],# "RightShoulder",
                            "LeftToolEndSite":["Spine","LeftArm","LeftForeArm"],#
-                           "RightToolEndSite":["Spine","RightArm", "RightForeArm"]}#"RightShoulder",
+                           "RightToolEndSite":["Spine","RightArm", "RightForeArm"],#"RightShoulder",
+                            "Head":[]
+                                }
         self.reduced_free_joints_map = {"LeftHand":["Spine","LeftArm", "LeftForeArm"],#"LeftShoulder",
                            "RightHand":["Spine","RightArm","RightForeArm"],# "RightShoulder",
                            "LeftToolEndSite":["LeftArm","LeftForeArm"],#"Spine",
-                           "RightToolEndSite":["RightArm", "RightForeArm"]}#"RightShoulder","Spine",
+                           "RightToolEndSite":["RightArm", "RightForeArm"],#"RightShoulder","Spine",
+                            "Head":[]}
         self.bounds = {"LeftArm":[],#{"dim": 1, "min": 0, "max": 90}
                        "RightArm":[]}#{"dim": 1, "min": 0, "max": 90},{"dim": 0, "min": 0, "max": 90}
 
