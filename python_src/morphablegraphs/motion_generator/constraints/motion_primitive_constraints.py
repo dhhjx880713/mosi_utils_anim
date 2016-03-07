@@ -130,9 +130,7 @@ class MotionPrimitiveConstraints(object):
 
     def transform_constraints_to_local_cos(self):
         print "transform to local cos"
-        if self.is_local:
-            return self
-        else:
+        if not self.is_local and self.aligning_transform is not None:
             inv_aligning_transform = np.linalg.inv(self.aligning_transform)
             mp_constraints = MotionPrimitiveConstraints()
             mp_constraints.start_pose = {"orientation": [0,0,0], "position": [0,0,0]}
@@ -159,6 +157,8 @@ class MotionPrimitiveConstraints(object):
                                                     "semanticAnnotation": c.semantic_annotation}
                         mp_constraints.constraints.append(GlobalTransformConstraint(self.skeleton, keyframe_constraint_desc, 1.0))
             return mp_constraints
+        else:
+            return self
 
     def convert_to_ik_constraints(self, frame_offset=0, time_function=None):
         ik_constraints = dict()

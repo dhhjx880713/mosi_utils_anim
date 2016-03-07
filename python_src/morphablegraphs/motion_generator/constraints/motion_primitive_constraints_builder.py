@@ -68,7 +68,10 @@ class MotionPrimitiveConstraintsBuilder(object):
         self.status["last_pos"] = last_pos
         self.status["prev_frames"] = prev_frames
         self.status["is_last_step"] = is_last_step
-        self._set_aligning_transform(node_key, prev_frames)
+        if self.use_local_coordinates:
+            self._set_aligning_transform(node_key, prev_frames)
+        else:
+            self.status["aligning_transform"] = None
 
     def _set_aligning_transform(self, node_key, prev_frames):
         if prev_frames is None:
