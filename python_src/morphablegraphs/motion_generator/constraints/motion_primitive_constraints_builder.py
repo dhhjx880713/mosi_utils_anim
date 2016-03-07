@@ -126,17 +126,17 @@ class MotionPrimitiveConstraintsBuilder(object):
             mp_constraints.constraints.append(trajectory_constraint)
         if self.ca_constraint_mode == CA_CONSTRAINTS_MODE_SET and self.action_constraints.ca_trajectory_set_constraint is not None:
             ca_trajectory_set_constraint = copy(self.action_constraints.ca_trajectory_set_constraint)
-            #ca_trajectory_set_constraint.set_min_arc_length_from_previous_frames(self.status["prev_frames"])
-            #ca_trajectory_set_constraint.set_number_of_canonical_frames(self.status["n_canonical_frames"])
-            #mp_constraints.constraints.append(ca_trajectory_set_constraint)
-            print "use ca constraint set"
+            ca_trajectory_set_constraint.set_min_arc_length_from_previous_frames(self.status["prev_frames"])
+            ca_trajectory_set_constraint.set_number_of_canonical_frames(self.status["n_canonical_frames"])
+            mp_constraints.constraints.append(ca_trajectory_set_constraint)
+            #print "use ca constraint set"
             #TODO generate discrete ca constraint where frames are fixed as inside or outside of the range
-            for i in xrange(len(ca_trajectory_set_constraint.joint_trajectories)):
-               #discrete_trajectory_constraint = ca_trajectory_set_constraint.joint_trajectories[i].create_discrete_trajectory(self.status["aligned_sample_frames"])
-               #discrete_trajectory_constraint.set_min_arc_length_from_previous_frames(self.status["prev_frames"])
-               #mp_constraints.constraints.append(discrete_trajectory_constraint)
-               ca_trajectory_set_constraint.joint_trajectories[i].set_min_arc_length_from_previous_frames(self.status["prev_frames"])
-               mp_constraints.constraints.append(ca_trajectory_set_constraint.joint_trajectories[i])
+        #    for i in xrange(len(ca_trajectory_set_constraint.joint_trajectories)):
+        #       discrete_trajectory_constraint = ca_trajectory_set_constraint.joint_trajectories[i].create_discrete_trajectory(self.status["aligned_sample_frames"])
+        #       discrete_trajectory_constraint.set_min_arc_length_from_previous_frames(self.status["prev_frames"])
+        #       mp_constraints.constraints.append(discrete_trajectory_constraint)
+        #       ca_trajectory_set_constraint.joint_trajectories[i].set_min_arc_length_from_previous_frames(self.status["prev_frames"])
+        #       mp_constraints.ca_constraints.append(ca_trajectory_set_constraint.joint_trajectories[i])
 
     def _add_pose_constraint(self, mp_constraints):
         if mp_constraints.settings["transition_pose_constraint_factor"] > 0.0 and self.status["prev_frames"] is not None:

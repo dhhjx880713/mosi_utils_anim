@@ -115,7 +115,6 @@ class MotionStateGroup(ElementaryActionMetaInfo):
             else:
                 # threshold was overstepped. remove previous step before 
                 # trying to reach the goal using a last step
-                #TODO replace with more efficient solution or optimization
                 next_node_type = NODE_TYPE_END
                 
             print "generate", next_node_type, "transition from trajectory"

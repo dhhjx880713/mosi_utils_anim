@@ -312,7 +312,7 @@ class MGInputFileReader(object):
         last_frame = None
         time = None
         if "position" in constraint.keys():
-             position = constraint["position"]
+            position = constraint["position"]
         if "orientation" in constraint.keys():
             orientation = constraint["orientation"]
         if "time" in constraint.keys():

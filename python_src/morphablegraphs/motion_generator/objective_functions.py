@@ -298,10 +298,10 @@ def obj_global_residual_vector_and_naturalness(s, data):
     residual_vector = []
     motion_primitive_graph, graph_walk_steps, error_scale_factor, quality_scale_factor, prev_frames = data
     for step in graph_walk_steps:
-        for c in step.motion_primitive_constraints.constraints:
-            if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_TRAJECTORY_SET:
-                c.joint_arc_lengths = np.zeros(len(c.joint_trajectories))
-                c.set_min_arc_length_from_previous_frames(prev_frames)
+        #for c in step.motion_primitive_constraints.constraints:
+        #    if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_TRAJECTORY_SET:
+        #        c.joint_arc_lengths = np.zeros(len(c.joint_trajectories))
+        #        c.set_min_arc_length_from_previous_frames(prev_frames)
         alpha = s[offset:offset+step.n_spatial_components]
         sample_frames = motion_primitive_graph.nodes[step.node_key].back_project(alpha, use_time_parameters=False).get_motion_vector()
         step_data = motion_primitive_graph.nodes[step.node_key], step.motion_primitive_constraints,\

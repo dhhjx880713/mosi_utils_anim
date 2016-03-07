@@ -3,7 +3,7 @@ __author__ = 'erhe01'
 from copy import deepcopy
 from optimization.optimizer_builder import OptimizerBuilder
 from constraints.time_constraints_builder import TimeConstraintsBuilder
-from constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE, SPATIAL_CONSTRAINT_TYPE_TRAJECTORY
+from constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE, SPATIAL_CONSTRAINT_TYPE_TRAJECTORY, SPATIAL_CONSTRAINT_TYPE_TRAJECTORY_SET
 from constraints.motion_primitive_constraints import MotionPrimitiveConstraints
 
 GRAPH_WALK_OPTIMIZATION_TWO_HANDS = "none"
@@ -54,7 +54,9 @@ class GraphWalkOptimizer(object):
         for step in graph_walk.steps[start_step:]: #TODO add pose constraint for pick and place
             reduced_constraints = []
             for constraint in step.motion_primitive_constraints.constraints:
-                if constraint.constraint_type != SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE and constraint.constraint_type != SPATIAL_CONSTRAINT_TYPE_TRAJECTORY:
+                if constraint.constraint_type != SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE \
+                        and constraint.constraint_type != SPATIAL_CONSTRAINT_TYPE_TRAJECTORY\
+                        and constraint.constraint_type != SPATIAL_CONSTRAINT_TYPE_TRAJECTORY_SET:
                      reduced_constraints.append(constraint)
             step.motion_primitive_constraints.constraints = reduced_constraints
             #initial_guess += step.parameters[:step.n_spatial_components].tolist()

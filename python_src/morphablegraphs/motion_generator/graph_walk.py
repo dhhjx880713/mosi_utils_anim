@@ -86,8 +86,14 @@ class GraphWalk(object):
             #else:
             #    frame_offset += step.end_frame - step.start_frame#self.motion_state_graph.nodes[step.node_key].get_n_canonical_frames()
             #write_log("Frame offset", frame_offset, int(time_function[-1]))
-
         ik_constraints["trajectories"] = list()
+        #ik_constraints["trajectories"] += self.create_ik_trajectory_constraints()
+
+        annotated_motion_vector.ik_constraints = ik_constraints
+        return annotated_motion_vector
+
+    def _create_ik_trajectory_constraints(self):
+        trajectory_constraints = list()
         n_actions = len(self.elementary_action_list)
         for action_idx in xrange(n_actions):
             frame_annotation = self.keyframe_event_list.frame_annotation['elementaryActionSequence'][action_idx]
@@ -97,12 +103,14 @@ class GraphWalk(object):
                 traj_constraint["trajectory"] = ca_constraint
                 traj_constraint["start_frame"] = frame_annotation["startFrame"]
                 traj_constraint["end_frame"] = frame_annotation["endFrame"]
-                traj_constraint["joint_name"] = ca_constraint.joint_name
+                if self.mg_input.activate_joint_mapping and ca_constraint.joint_name in self.mg_input.inverse_joint_name_map.keys():
+                    joint_name = self.mg_input.inverse_joint_name_map[ca_constraint.joint_name]
+                else:
+                    joint_name = ca_constraint.joint_name
+                traj_constraint["joint_name"] = joint_name
                 traj_constraint["delta"] = 1.0
-                ik_constraints["trajectories"].append(traj_constraint)
-
-        annotated_motion_vector.ik_constraints = ik_constraints
-        return annotated_motion_vector
+                trajectory_constraints.append(traj_constraint)
+        return trajectory_constraints
 
     def _convert_graph_walk_to_quaternion_frames(self, start_step=0, use_time_parameters=False):
         """

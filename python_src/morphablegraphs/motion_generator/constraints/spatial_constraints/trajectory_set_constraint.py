@@ -21,7 +21,7 @@ class TrajectorySetConstraint(SpatialConstraintBase):
         :param aligned_quat_frames: list of quaternion frames.
         :return: average error
         """
-        error = self.get_residual_vector(aligned_quat_frames)[0]#np.average()
+        error = np.average(self.get_residual_vector(aligned_quat_frames))
         return error
 
     def set_number_of_canonical_frames(self, n_canonical_frames):
@@ -59,7 +59,7 @@ class TrajectorySetConstraint(SpatialConstraintBase):
         for i in xrange(self.n_canonical_frames):
             joint_positions = self._extract_joint_positions_from_frame(aligned_quat_frames[i])
             is_active = [traj.is_active(arc_length) for traj, arc_length in zip(self.joint_trajectories, joint_arc_lengths)]
-            #print is_active,joint_arc_lengths
+            #print is_active
             if np.any(is_active):
                 target_joint_positions = [joint_trajectory.query_point_by_absolute_arc_length(arc_length)
                                           for joint_trajectory, arc_length
@@ -67,16 +67,14 @@ class TrajectorySetConstraint(SpatialConstraintBase):
                 actual_center = np.average(joint_positions)
                 target_center = np.average(target_joint_positions)
                 residual_vector[i] = np.linalg.norm(actual_center-target_center)
-            else:
-                residual_vector[i] = 1000
+
             if last_joint_positions is not None:
                joint_arc_lengths = [arc_length + np.linalg.norm(np.asarray(joint_position) - np.asarray(last_joint_position))
                                     for joint_position, last_joint_position, arc_length
                                     in zip(joint_positions, last_joint_positions, joint_arc_lengths)]
             last_joint_positions = joint_positions
-        #print "evaluated constraint set", sum(residual_vector)/len(aligned_quat_frames)
-        residual_vector.fill(np.average(residual_vector))
-        return residual_vector#/sum(residual_vector)
+        print "evaluated constraint set", sum(residual_vector)/len(aligned_quat_frames)
+        return residual_vector
 
     def get_length_of_residual_vector(self):
         return self.n_canonical_frames
