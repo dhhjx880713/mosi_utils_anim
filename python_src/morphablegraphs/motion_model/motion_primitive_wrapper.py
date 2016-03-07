@@ -37,10 +37,6 @@ class MotionPrimitiveModelWrapper(object):
                 mm = MotionPrimitiveModelWrapper.load_mixture_model(data, self.use_mgrd_mixture_model)
 
                 tspm = LegacyTemporalSplineModel(data)
-                #animated_joints = []
-                #for node in mgrd_skeleton.skeleton_nodes:
-                #    if node.get_type != "end" and  node.get_type != "fixed-joint":
-                #        animated_joints.append(node.name)
                 animated_joints = ["Hips", "Spine", "Spine_1", "Neck", "Head", "LeftShoulder", "LeftArm", "LeftForeArm", "LeftHand", "RightShoulder", "RightArm", "RightForeArm", "RightHand", "LeftUpLeg", "LeftLeg", "LeftFoot", "RightUpLeg", "RightLeg", "RightFoot"]
                 sspm = MGRDQuaternionSplineModel.load_from_json({
                                                             'eigen': np.asarray(data['eigen_vectors_spatial']).T,

@@ -83,7 +83,11 @@ local_optimization_mode -  Used to activate/deactivate local optimization for a 
                            "none": only use random sampling or the cluster search
                            "keyframes": only optimize the keyframe constraints and ignore trajectory constraints
                            "all": optimize trajectory and keyframe constraints
-use_global_spatial_optimization - Optimize spatial constraints over graph walk
+global_spatial_optimization_mode - Optimize spatial constraints over graph walk
+                                   Possible values are as follows
+                                   "none": deactivated
+                                   "two_hands": only activated for two hand pick and place constraints
+                                   "all": activated for all keyframe constraints
 use_global_time_optimization - Optimize time constraints over graph walk, if they are found
 constrained_sampling mode - Used to select the method of the initial guess generation from the statistical model. Possible values are as follows
                             "random_discrete": Draws random samples and converts them into discrete frame representations.
