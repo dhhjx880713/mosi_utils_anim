@@ -110,10 +110,11 @@ class KeyframeEventList(object):
 
                 self.keyframe_events_dict[event_keyframe_index] = self._extract_event_list(keyframe_event, event_keyframe_index)
 
-            if time_function is not None:
-                frame_offset += int(time_function[-1])
-            else:
-                frame_offset += step.end_frame - step.start_frame
+            #if time_function is not None:
+            #    frame_offset += int(time_function[-1])
+            #else:
+            #    frame_offset += step.end_frame - step.start_frame
+            frame_offset += step.end_frame - step.start_frame
 
     def _add_event_list_to_frame_annotation(self, graph_walk):
         """
