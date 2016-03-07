@@ -51,7 +51,8 @@ class GraphWalk(object):
         self._algorithm_config = algorithm_config
         self.motion_vector = MotionVector(algorithm_config)
         self.motion_vector.start_pose = start_pose
-        self.use_time_parameters = True# TODO set as algorithm config parameter
+        self.use_time_parameters = algorithm_config["activate_time_variation"]
+        write_log("Use time parameters", self.use_time_parameters)
         self.keyframe_event_list = KeyframeEventList()
 
     def add_entry_to_action_list(self, action_name, start_step, end_step, action_constraints):

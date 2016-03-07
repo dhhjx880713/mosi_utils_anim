@@ -38,6 +38,7 @@ class AlgorithmConfigurationBuilder(object):
         self.average_elementary_action_error_threshold = 500
         self.collision_avoidance_constraints_mode = "none"
         self.optimize_collision_avoidance_constraints_extra = False
+        self.activate_time_variation = True
         self.set_default_constrained_gmm_settings()
         self.set_default_trajectory_following_settings()
         self.set_default_optimization_settings()
@@ -144,5 +145,6 @@ class AlgorithmConfigurationBuilder(object):
                 "collision_avoidance_constraints_mode": self.collision_avoidance_constraints_mode,
                 "optimize_collision_avoidance_constraints_extra": self.optimize_collision_avoidance_constraints_extra,
                 "debug_max_step": self.debug_max_step,
-                "use_local_coordinates": self.use_local_coordinates
+                "use_local_coordinates": self.use_local_coordinates,
+                "activate_time_variation": self.activate_time_variation
                 }
