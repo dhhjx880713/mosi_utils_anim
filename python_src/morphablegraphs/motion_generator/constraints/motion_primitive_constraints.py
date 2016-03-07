@@ -189,15 +189,26 @@ class MotionPrimitiveConstraints(object):
                     ik_constraints[keyframe]["single"] = []
                     ik_constraints[keyframe]["multiple"] = []
                 if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION:
-                    ik_constraint = JointIKConstraint(c.joint_name, c.position, None, keyframe)#{"keyframe": keyframe, "position": c.position, "joint_name": c.joint_name}
-                    ik_constraints[keyframe]["single"] .append(ik_constraint)
+                    if c.joint_name in self.skeleton.free_joints_map.keys():
+                        free_joints = self.skeleton.free_joints_map[c.joint_name]
+                        ik_constraint = JointIKConstraint(c.joint_name, c.position, None, keyframe, free_joints)
+                        ik_constraints[keyframe]["single"] .append(ik_constraint)
                 elif c.constraint_type == SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION:
-                    ik_constraint = JointIKConstraint(c.joint_names[0], c.positions[0], None, keyframe)#{"keyframe": keyframe, "position": c.position, "joint_name": c.joint_name}
-                    ik_constraints[keyframe]["single"] .append(ik_constraint)
-                    ik_constraint = JointIKConstraint(c.joint_names[1], c.positions[1], None, keyframe)#{"keyframe": keyframe, "position": c.position, "joint_name": c.joint_name}
-                    ik_constraints[keyframe]["single"] .append(ik_constraint)
-                    #ik_constraint = TwoJointIKConstraint(c.joint_names, c.positions, c.target_center, c.target_delta, c.target_direction, keyframe)
-                    #ik_constraints[keyframe]["multiple"].append(ik_constraint)
+                    if c.joint_names[0] in self.skeleton.free_joints_map.keys() and \
+                        c.joint_names[1] in self.skeleton.free_joints_map.keys():
+                        free_joints = self.skeleton.reduced_free_joints_map[c.joint_names[0]]
+                        ik_constraint = JointIKConstraint(c.joint_names[0], c.positions[0], None, keyframe, free_joints)
+                        ik_constraints[keyframe]["single"] .append(ik_constraint)
+                        free_joints = self.skeleton.reduced_free_joints_map[c.joint_names[1]]
+                        ik_constraint = JointIKConstraint(c.joint_names[1], c.positions[1], None, keyframe, free_joints)
+                        ik_constraints[keyframe]["single"] .append(ik_constraint)
+                        #free_joints = set()
+                        #for joint_name in self.joint_names:
+                        #    if joint_name in free_joints_map.keys():
+                        #        free_joints.update(free_joints_map[joint_name])
+
+                        #ik_constraint = TwoJointIKConstraint(c.joint_names, c.positions, c.target_center, c.target_delta, c.target_direction, keyframe)
+                        #ik_constraints[keyframe]["multiple"].append(ik_constraint)
 
         return ik_constraints
 

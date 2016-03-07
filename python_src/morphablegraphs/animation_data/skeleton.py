@@ -42,6 +42,23 @@ class Skeleton(object):
         #for joint in self.nodes.keys():
         #    print joint, self.nodes[joint].index
 
+        #TODO read data from file
+        self.free_joints_map = {"LeftHand":["Spine","LeftArm", "LeftForeArm"],#"LeftShoulder",
+                           "RightHand":["Spine","RightArm","RightForeArm"],# "RightShoulder",
+                           "LeftToolEndSite":["Spine","LeftArm","LeftForeArm"],#
+                           "RightToolEndSite":["Spine","RightArm", "RightForeArm"],#"RightShoulder",
+                            "Head":[]
+                                }
+        self.reduced_free_joints_map = {"LeftHand":["Spine","LeftArm", "LeftForeArm"],#"LeftShoulder",
+                           "RightHand":["Spine","RightArm","RightForeArm"],# "RightShoulder",
+                           "LeftToolEndSite":["LeftArm","LeftForeArm"],#"Spine",
+                           "RightToolEndSite":["RightArm", "RightForeArm"],#"RightShoulder","Spine",
+                            "Head":[]}
+        self.head_joint = "Head"
+        self.neck_joint = "Neck"
+        self.bounds = {"LeftArm":[],#{"dim": 1, "min": 0, "max": 90}
+                       "RightArm":[]}#{"dim": 1, "min": 0, "max": 90},{"dim": 0, "min": 0, "max": 90}
+
     def extract_channels(self):
         for node_idx, node_name in enumerate(self.node_names):
             if "channels" in self.node_names[node_name].keys():
@@ -66,6 +83,11 @@ class Skeleton(object):
         reduced_skeleton.parent_dict = self._get_parent_dict()
         reduced_skeleton._chain_names = self._generate_chain_names()
         reduced_skeleton.construct_hierarchy_iterative()
+        reduced_skeleton.free_joints_map = self.free_joints_map
+        reduced_skeleton.reduced_free_joints_map = self.reduced_free_joints_map
+        reduced_skeleton.head_joint = self.head_joint
+        reduced_skeleton.neck_joint = self.neck_joint
+        reduced_skeleton.bounds = self.bounds
         return reduced_skeleton
 
     def _extract_reference_frame(self, bvh_reader):

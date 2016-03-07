@@ -8,11 +8,12 @@ class IKConstraint(object):
 
 
 class JointIKConstraint(IKConstraint):
-    def __init__(self, joint_name, position, orientation, keyframe):
+    def __init__(self, joint_name, position, orientation, keyframe, free_joints):
         self.joint_name = joint_name
         self.position = position
         self.orientation = orientation
         self.keyframe = keyframe
+        self.free_joints = free_joints
 
     @staticmethod
     def evaluate(parameters, data):
@@ -21,15 +22,9 @@ class JointIKConstraint(IKConstraint):
         d = pose.evaluate_position(target_joint) - target_position
         return np.dot(d, d)
 
-    def free_joints(self, free_joints_map):
-        if self.joint_name in free_joints_map.keys():
-            return free_joints_map[self.joint_name]
-        else:
-            raise KeyError
-
     def data(self, ik, free_joints=None):
         if free_joints is None:
-            free_joints = self.free_joints(ik)
+            free_joints = self.free_joints
         return ik.pose, free_joints, self.joint_name, self.position
 
     def get_joint_names(self):
@@ -37,13 +32,14 @@ class JointIKConstraint(IKConstraint):
 
 
 class TwoJointIKConstraint(IKConstraint):
-    def __init__(self, joint_names, target_positions, target_center, target_delta, target_direction, keyframe):
+    def __init__(self, joint_names, target_positions, target_center, target_delta, target_direction, keyframe, free_joints):
         self.joint_names = joint_names
         self.target_positions = target_positions
         self.target_center = target_center
         self.target_delta = target_delta
         self.target_direction = target_direction
         self.keyframe = keyframe
+        self.free_joints
 
     @staticmethod
     def evaluate(parameters, data):
@@ -71,18 +67,9 @@ class TwoJointIKConstraint(IKConstraint):
         #error = np.linalg.norm(left-target_positions[0]) + np.linalg.norm(right-target_positions[1])
         return sum(residual_vector)#error#residual_vector[0]#sum(residual_vector)
 
-    def free_joints(self, free_joints_map):
-        free_joints = set()
-        for joint_name in self.joint_names:
-            if joint_name in free_joints_map.keys():
-                free_joints.update(free_joints_map[joint_name])
-            else:
-                raise KeyError
-        return list(free_joints)
-
     def data(self, ik, free_joints=None):
         if free_joints is None:
-            free_joints = self.free_joints(ik)
+            free_joints = self.free_joints
         return ik.pose, free_joints, self.joint_names, self.target_positions, self.target_center, self.target_delta, self.target_direction
 
     def get_joint_names(self):

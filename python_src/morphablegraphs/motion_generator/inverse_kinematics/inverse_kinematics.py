@@ -68,7 +68,7 @@ class InverseKinematics(object):
         return error
 
     def _modify_pose_general(self, constraint):
-        free_joints = constraint.free_joints(self.pose.free_joints_map)
+        free_joints = constraint.free_joints
         initial_guess = self._extract_free_parameters(free_joints)
         data = constraint.data(self, free_joints)
         write_log("start optimization for joint", len(initial_guess), len(free_joints))
@@ -172,7 +172,7 @@ class InverseKinematics(object):
         self._modify_pose_general(constraint)
         motion_vector.frames[keyframe] = self.pose.get_vector()
         #interpolate
-        print "free joints", constraint.free_joints(self.pose.free_joints_map)
+        print "free joints", constraint.free_joints
         #self.window = 0
         if self.window > 0:
             self.interpolate_around_keyframe(motion_vector, constraint.get_joint_names(), keyframe, self.window)
