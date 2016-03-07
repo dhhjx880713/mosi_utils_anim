@@ -1770,3 +1770,15 @@ def pose_up_vector_quat(quat_frame):
     up_vec = np.array([rotated_point[0], rotated_point[2]])
     up_vec /= np.linalg.norm(up_vec)
     return up_vec
+
+def quaternion_rotate_vector(q, vector):
+    """ src: http://math.stackexchange.com/questions/40164/how-do-you-rotate-a-vector-by-a-unit-quaternion
+    Args:
+        q:
+        vector:
+
+    Returns:
+
+    """
+    tmp_result = quaternion_multiply(q , vector)
+    return quaternion_multiply(tmp_result , quaternion_conjugate(q))[1:]

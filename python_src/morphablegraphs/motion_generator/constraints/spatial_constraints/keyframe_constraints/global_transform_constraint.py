@@ -7,8 +7,8 @@ Created on Mon Aug 03 19:02:55 2015
 
 from math import sqrt
 import numpy as np
-from .....animation_data.motion_editing import quaternion_to_euler, get_cartesian_coordinates_from_quaternion
-from .....external.transformations import rotation_matrix
+from .....animation_data.motion_editing import quaternion_to_euler, quaternion_rotate_vector, euler_to_quaternion, get_cartesian_coordinates_from_quaternion
+from .....external.transformations import rotation_matrix, angle_between_vectors
 from keyframe_constraint_base import KeyframeConstraintBase
 from .. import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
 import time
@@ -24,6 +24,7 @@ class GlobalTransformConstraint(KeyframeConstraintBase):
     """
 
     ROTATION_AXIS = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+    ORIGIN = [0,0,0,1]
 
     def __init__(self, skeleton, constraint_desc, precision, weight_factor=1.0):
         super(GlobalTransformConstraint, self).__init__(constraint_desc, precision, weight_factor)
@@ -34,8 +35,8 @@ class GlobalTransformConstraint(KeyframeConstraintBase):
             self.position = constraint_desc["position"]
         else:
             self.position = None
-        if "orientation" in constraint_desc.keys():
-            self.orientation = constraint_desc["orientation"]
+        if "orientation" in constraint_desc.keys() and None not in constraint_desc["orientation"]:
+            self.orientation = euler_to_quaternion(constraint_desc["orientation"])
         else:
             self.orientation = None
         self.n_canonical_frames = constraint_desc["n_canonical_frames"]
@@ -50,13 +51,6 @@ class GlobalTransformConstraint(KeyframeConstraintBase):
         #print "RANGE", self.start_keyframe, self.stop_keyframe
 
     def evaluate_motion_sample(self, aligned_quat_frames):
-        #min_error = CONSTRAINT_CONFLICT_ERROR
-        # ignore a special case which should not happen in a single constraint
-        #for frame in aligned_quat_frames[self.start_keyframe:self.stop_keyframe]:
-        #    error = self._evaluate_frame(frame)
-        #    if min_error > error:
-        #        min_error = error
-        #return min_error
         error = 0
         if self.position is not None:
             error += self._evaluate_joint_position(aligned_quat_frames[self.canonical_keyframe])
@@ -78,7 +72,7 @@ class GlobalTransformConstraint(KeyframeConstraintBase):
     def _evaluate_joint_orientation(self, frame):
         joint_index = self.skeleton.node_name_frame_map[self.joint_name]
         joint_orientation = frame[joint_index:joint_index+4]
-        return self._orientation_distance(joint_orientation)
+        return self._quaternion_distance(joint_orientation)
 
     def _evaluate_joint_position(self, frame):
         #joint_position = self.skeleton.get_cartesian_coordinates_from_quaternion(self.joint_name, frame)
@@ -90,6 +84,19 @@ class GlobalTransformConstraint(KeyframeConstraintBase):
         #print "new", time.clock()-start
         #print self.joint_name, joint_position, self.position# joint_position3,
         return GlobalTransformConstraint._point_distance(self.position, joint_position)
+
+    def _quaternion_distance(self, joint_orientation):
+        """
+        Args:
+            joint_orientation(Vec4f): quaternion (qw, qx, qy, qz)
+
+        Returns:
+            angle (float)
+        """
+        print self.orientation
+        v1 = quaternion_rotate_vector(joint_orientation, self.ORIGIN)
+        v2 = quaternion_rotate_vector(self.orientation, self.ORIGIN)
+        return angle_between_vectors(v1, v2)
 
     def _orientation_distance(self, joint_orientation):
         joint_euler_angles = quaternion_to_euler(joint_orientation)
