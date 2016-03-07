@@ -76,21 +76,11 @@ class SkeletonPoseModel(object):
         #print "modelled joints",self.modelled_joints
         #print "maximum channel", channel_idx
         #TODO read data from file
-        self.free_joints_map = {"LeftHand":["Spine","LeftArm", "LeftForeArm"],#"LeftShoulder",
-                           "RightHand":["Spine","RightArm","RightForeArm"],# "RightShoulder",
-                           "LeftToolEndSite":["Spine","LeftArm","LeftForeArm"],#
-                           "RightToolEndSite":["Spine","RightArm", "RightForeArm"],#"RightShoulder",
-                            "Head":[]
-                                }
-        self.reduced_free_joints_map = {"LeftHand":["Spine","LeftArm", "LeftForeArm"],#"LeftShoulder",
-                           "RightHand":["Spine","RightArm","RightForeArm"],# "RightShoulder",
-                           "LeftToolEndSite":["LeftArm","LeftForeArm"],#"Spine",
-                           "RightToolEndSite":["RightArm", "RightForeArm"],#"RightShoulder","Spine",
-                            "Head":[]}
-        self.head_joint = "Head"
-        self.neck_joint = "Neck"
-        self.bounds = {"LeftArm":[],#{"dim": 1, "min": 0, "max": 90}
-                       "RightArm":[]}#{"dim": 1, "min": 0, "max": 90},{"dim": 0, "min": 0, "max": 90}
+        self.free_joints_map = skeleton.free_joints_map
+        self.reduced_free_joints_map = skeleton.reduced_free_joints_map
+        self.head_joint = skeleton.head_joint
+        self.neck_joint = skeleton.neck_joint
+        self.bounds = skeleton.bounds
 
     def set_channel_values(self, parameters, free_joints):
         p_idx = 0

@@ -273,6 +273,6 @@ def obj_global_residual_vector_and_naturalness(s, data):
     count = len(residual_vector)
     while count < m:
         residual_vector.append(0.0)
-        count+=1
+        count += 1
     return residual_vector
 
