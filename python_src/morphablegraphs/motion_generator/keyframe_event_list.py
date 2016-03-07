@@ -36,11 +36,12 @@ class KeyframeEventList(object):
             start_frame = 0
         else:
             step = graph_walk.steps[start_step-1]
-            if graph_walk.use_time_parameters:
-                time_function = graph_walk.motion_state_graph.nodes[step.node_key].back_project_time_function(step.parameters)
-                start_frame = int(time_function[-1])
-            else:
-                start_frame = step.end_frame
+            #if graph_walk.use_time_parameters:
+            #    time_function = graph_walk.motion_state_graph.nodes[step.node_key].back_project_time_function(step.parameters)
+            #    start_frame = int(time_function[-1])
+            #else:
+            #    start_frame = step.end_frame
+            start_frame = step.end_frame
         end_frame = start_frame
         prev_step = None
         for step in graph_walk.steps[start_step:]:
@@ -51,10 +52,11 @@ class KeyframeEventList(object):
                 print "add", prev_step.node_key[0]
                 self.update_frame_annotation(prev_step.node_key[0], start_frame, end_frame-1)
                 start_frame = end_frame
-            if graph_walk.use_time_parameters:
-                end_frame += int(time_function[-1])
-            else:
-                end_frame += step.end_frame - step.start_frame
+            #if graph_walk.use_time_parameters:
+            #    end_frame += int(time_function[-1])
+            #else:
+            #    end_frame += step.end_frame - step.start_frame
+            end_frame += step.end_frame - step.start_frame
             prev_step = step
         if prev_step is not None:
             print "add", prev_step.node_key[0]

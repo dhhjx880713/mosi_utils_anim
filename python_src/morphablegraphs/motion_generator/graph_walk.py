@@ -51,7 +51,7 @@ class GraphWalk(object):
         self._algorithm_config = algorithm_config
         self.motion_vector = MotionVector(algorithm_config)
         self.motion_vector.start_pose = start_pose
-        self.use_time_parameters = False# TODO set as algorithm config parameter
+        self.use_time_parameters = True# TODO set as algorithm config parameter
         self.keyframe_event_list = KeyframeEventList()
 
     def add_entry_to_action_list(self, action_name, start_step, end_step, action_constraints):
@@ -79,10 +79,11 @@ class GraphWalk(object):
                 time_function = self.motion_state_graph.nodes[step.node_key].back_project_time_function(step.parameters)
             step_constraints = step.motion_primitive_constraints.convert_to_ik_constraints2(frame_offset, time_function)
             ik_constraints["keyframes"].update(step_constraints)
-            if time_function is not None:
-                frame_offset += int(time_function[-1])
-            else:
-                frame_offset += step.end_frame - step.start_frame#self.motion_state_graph.nodes[step.node_key].get_n_canonical_frames()
+            frame_offset += step.end_frame - step.start_frame
+            #if time_function is not None:
+            #    frame_offset += step.end_frame - step.start_frame#int(time_function[-1])
+            #else:
+            #    frame_offset += step.end_frame - step.start_frame#self.motion_state_graph.nodes[step.node_key].get_n_canonical_frames()
             #write_log("Frame offset", frame_offset, int(time_function[-1]))
 
         ik_constraints["trajectories"] = list()
