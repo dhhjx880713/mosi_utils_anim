@@ -6,6 +6,10 @@ from constraints.time_constraints_builder import TimeConstraintsBuilder
 from constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE, SPATIAL_CONSTRAINT_TYPE_TRAJECTORY
 from constraints.motion_primitive_constraints import MotionPrimitiveConstraints
 
+GRAPH_WALK_OPTIMIZATION_TWO_HANDS = "none"
+GRAPH_WALK_OPTIMIZATION_ALL = "all"
+GRAPH_WALK_OPTIMIZATION_TWO_HANDS = "two_hands"
+
 
 class GraphWalkOptimizer(object):
     def __init__(self, motion_primitive_graph, algorithm_config):
@@ -17,16 +21,21 @@ class GraphWalkOptimizer(object):
 
     def set_algorithm_config(self, algorithm_config):
         self._algorithm_config = algorithm_config
-        self.use_global_spatial_optimization = algorithm_config["use_global_spatial_optimization"]
+        self.global_spatial_optimization_mode = algorithm_config["global_spatial_optimization_mode"]
         self.optimize_collision_avoidance_constraints_extra = algorithm_config["optimize_collision_avoidance_constraints_extra"]
         self._global_spatial_optimization_steps = algorithm_config["global_spatial_optimization_settings"]["max_steps"]
 
+    def _is_optimization_required(self, action_constraints):
+        return self.global_spatial_optimization_mode == GRAPH_WALK_OPTIMIZATION_ALL and action_constraints.contains_user_constraints or \
+            self.global_spatial_optimization_mode == GRAPH_WALK_OPTIMIZATION_TWO_HANDS and action_constraints.contains_two_hands_constraints
+
     def optimize(self, graph_walk, action_generator, action_constraints):
          #print "has user constraints", action_constraints.contains_user_constraints
-        if self.use_global_spatial_optimization and action_constraints.contains_user_constraints:
+        if self._is_optimization_required(action_constraints):
             start_step = max(action_generator.action_state.start_step - self._global_spatial_optimization_steps, 0)
             print "start spatial graph walk optimization at", start_step, "looking back", self._global_spatial_optimization_steps, "steps"
             graph_walk = self.optimize_spatial_parameters_over_graph_walk(graph_walk, start_step)
+
         if self.optimize_collision_avoidance_constraints_extra and action_constraints.collision_avoidance_constraints is not None and len(action_constraints.collision_avoidance_constraints) > 0 :
             print "optimize collision avoidance parameters"
             graph_walk = self.optimize_for_collision_avoidance_constraints(graph_walk, action_constraints, action_generator.action_state.start_step)

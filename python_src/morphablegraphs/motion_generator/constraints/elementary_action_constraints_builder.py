@@ -111,16 +111,18 @@ class ElementaryActionConstraintsBuilder(object):
             #combine them back together and perform the merging for specific keyframe labels
             merged_keyframe_constraints = list()
             for keyframe_label in keyframe_label_lists.keys():
-                merged_keyframe_constraints += self._merge_two_hand_constraint_for_label(keyframe_label_lists[keyframe_label])
+                two_hand_constraint_list, found_two_constraint = self._merge_two_hand_constraint_for_label(keyframe_label_lists[keyframe_label])
+                merged_keyframe_constraints += two_hand_constraint_list
+                if found_two_constraint:
+                    action_constraints.contains_two_hands_constraints = True
             action_constraints.keyframe_constraints[motion_primitive_name] = merged_keyframe_constraints
 
     def _merge_two_hand_constraint_for_label(self, constraint_list):
         merged_constraint_list = list()
         left_hand_indices = [index for (index, desc) in enumerate(constraint_list) if desc['joint'] == LEFT_HAND_JOINT]
         right_hand_indices = [index for (index, desc) in enumerate(constraint_list) if desc['joint'] == RIGHT_HAND_JOINT]
-        print left_hand_indices
-        print right_hand_indices
         if len(left_hand_indices) > 0 and len(right_hand_indices) > 0:
+
             left_hand_index = left_hand_indices[0]
             right_hand_index = right_hand_indices[0]
 
@@ -137,15 +139,15 @@ class ElementaryActionConstraintsBuilder(object):
                            "time": time,
                            "merged": True,
                            "semanticAnnotation": semantic_annotation}
-            print "merged keyframe constraint", merged_constraint_desc
+            #print "merged keyframe constraint", merged_constraint_desc
             merged_constraint_list.append(merged_constraint_desc)
             merged_constraint_list += [desc for (index, desc) in enumerate(constraint_list)
                                             if index == left_hand_index and \
                                                index == right_hand_index]
-            return merged_constraint_list
+            return merged_constraint_list, True
         else:
-            print "did not find two hand keyframe constraint"
-            return constraint_list
+            #print "did not find two hand keyframe constraint"
+            return constraint_list, False
 
     def _add_trajectory_constraints(self, action_constraints):
         """ Extracts the root_trajectory if it is found and trajectories for other joints.

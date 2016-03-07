@@ -80,7 +80,7 @@ class MGInputHandler(tornado.web.RequestHandler):
             self.write(error_string)
 
 
-class MGConfiguratiohHandler(tornado.web.RequestHandler):
+class MGConfigurationHandler(tornado.web.RequestHandler):
     """Handles HTTP POST Requests to a registered server url.
         Sets the configuration of the morphable graphs algorithm
         if an input file is detected in the request body.
@@ -187,7 +187,7 @@ class MorphableGraphsRESTfulInterface(object):
         #  Construct morphable graph from files
         self.application = MGRestApplication(service_config, algorithm_config,
                                              [(r"/run_morphablegraphs", MGInputHandler),
-                                              (r"/config_morphablegraphs", MGConfiguratiohHandler)
+                                              (r"/config_morphablegraphs", MGConfigurationHandler)
                                               ])
 
         self.port = service_config["port"]

@@ -21,7 +21,8 @@ class ElementaryActionConstraints(object):
         self.keyframe_constraints = None
         self.precision = {"pos": 1.0, "rot": 1.0, "smooth": 1.0}
         self._initialized = False
-        self.contains_user_constraints = False
+        self.contains_user_constraints = False  # any user defined keyframe constraints
+        self.contains_two_hands_constraints = False  # two hand pick or place
         self.keyframe_event_list = dict()
 
     def get_node_group(self):

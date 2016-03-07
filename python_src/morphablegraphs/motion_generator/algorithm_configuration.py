@@ -20,8 +20,8 @@ class AlgorithmConfigurationBuilder(object):
         self.use_constrained_gmm = False
         self.activate_parameter_check = False
         self.use_global_time_optimization = False
-        self.use_global_spatial_optimization = False
-        self.n_random_samples = 100
+        self.global_spatial_optimization_mode = "none"
+        self.n_random_samples = 300
         self.constrained_gmm_settings = dict()
         self.local_optimization_settings = dict()
         self.global_spatial_optimization_settings = dict()
@@ -126,7 +126,7 @@ class AlgorithmConfigurationBuilder(object):
                 "use_constrained_gmm": self.use_constrained_gmm,
                 "use_transition_model": self.use_transition_model,
                 "use_global_time_optimization": self.use_global_time_optimization,
-                "use_global_spatial_optimization": self.use_global_spatial_optimization,
+                "global_spatial_optimization_mode": self.global_spatial_optimization_mode,
                 "n_random_samples": self.n_random_samples,
                 "activate_parameter_check": self.activate_parameter_check,
                 "smoothing_settings": self.smoothing_settings,
