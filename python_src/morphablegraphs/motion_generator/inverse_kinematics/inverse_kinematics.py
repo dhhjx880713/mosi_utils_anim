@@ -151,7 +151,7 @@ class InverseKinematics(object):
             self.set_pose_from_frame(motion_vector.frames[keyframe])
             if "multiple" in constraints.keys():
                 for c in constraints["multiple"]:
-                    self._modify_frame_using_keyframe_constraint(motion_vector, c, keyframe)
+                    #self._modify_frame_using_keyframe_constraint(motion_vector, c, keyframe)
                     has_multiple_targets = True
             if "single" in constraints.keys():
                 for c in constraints["single"]:
@@ -173,17 +173,15 @@ class InverseKinematics(object):
         motion_vector.frames[keyframe] = self.pose.get_vector()
         #interpolate
         print "free joints", constraint.free_joints
-        #self.window = 0
         if self.window > 0:
             self.interpolate_around_keyframe(motion_vector, constraint.get_joint_names(), keyframe, self.window)
 
-
     def interpolate_around_keyframe(self, motion_vector, joint_names, keyframe, window):
-        write_log("smooth and interpolate")
+        write_log("smooth and interpolate", joint_names)
         for target_joint_name in joint_names:
             joint_parameter_indices = self._extract_free_parameter_indices(self.pose.free_joints_map[target_joint_name])
             for joint_name in self.pose.free_joints_map[target_joint_name]:
-                #print joint_name
+                print joint_name
                 smooth_quaternion_frames_using_slerp(motion_vector.frames, joint_parameter_indices[joint_name], keyframe, window)
 
     def _look_at_in_range(self, motion_vector, position, start, end):

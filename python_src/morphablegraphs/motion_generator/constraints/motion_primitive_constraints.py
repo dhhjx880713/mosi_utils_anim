@@ -202,6 +202,7 @@ class MotionPrimitiveConstraints(object):
                         free_joints = self.skeleton.reduced_free_joints_map[c.joint_names[1]]
                         ik_constraint = JointIKConstraint(c.joint_names[1], c.positions[1], None, keyframe, free_joints)
                         ik_constraints[keyframe]["single"] .append(ik_constraint)
+                        ik_constraints[keyframe]["multiple"].append(None)#TODO replace with TwoJointIKConstraint
                         #free_joints = set()
                         #for joint_name in self.joint_names:
                         #    if joint_name in free_joints_map.keys():
