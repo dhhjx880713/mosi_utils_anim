@@ -52,7 +52,8 @@ def run_pipeline(service_config):
     print "Finished construction from file in", time.clock() - start, "seconds"
 
     mg_input = replace_hand_joints_in_input_file(input_file)
-    motion_vector = motion_generator.generate_motion(mg_input)
+    motion_vector = motion_generator.generate_motion(mg_input, activate_joint_map=service_config["activate_joint_map"],
+                                                     activate_coordinate_transform=service_config["activate_coordinate_transform"])
     motion_vector.export(service_config["output_dir"], service_config["output_filename"])
 
 
