@@ -12,6 +12,7 @@ from statistics import ConstrainedGMMBuilder
 from ..utilities.exceptions import ConstraintError, SynthesisError
 from optimization import OptimizerBuilder
 from objective_functions import obj_spatial_error_sum, obj_spatial_error_sum_and_naturalness
+from mgrd import motion_primitive_get_random_samples
 from mgrd_filter import MGRDFilter
 from ..utilities import write_log
 SAMPLING_MODE_RANDOM = "random_discrete"

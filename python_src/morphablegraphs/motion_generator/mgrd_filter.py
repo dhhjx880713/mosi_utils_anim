@@ -5,6 +5,7 @@ try:
     from mgrd import Constraint, SemanticConstraint
     from mgrd import CartesianConstraint as MGRDCartesianConstraint
     from mgrd.utils import ForwardKinematics as MGRDForwardKinematics
+    has_mgrd = True
 except ImportError:
     pass
     has_mgrd = False
