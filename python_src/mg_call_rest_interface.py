@@ -19,7 +19,7 @@ from morphablegraphs import load_json_file
 SERVICE_CONFIG_FILE = "config" + os.sep + "service.config"
 
 
-def get_newest_file_from_input_directory(service_config):
+def get_newest_file_from_input_dir(service_config):
     input_file = glob.glob(service_config["input_dir"] + os.sep + "*.json")[-1]
     return input_file
 
@@ -28,18 +28,19 @@ def run_pipeline(service_config):
     """Creates an instance of the morphable graph and runs the synthesis
        algorithm with the input_file and standard parameters.
     """
-    input_file_path = get_newest_file_from_input_directory(service_config)
-    print "loading constraints from file", input_file_path
+    input_file_path = get_newest_file_from_input_dir(service_config)
+    print "Loading constraints from file", input_file_path
     mg_input = load_json_file(input_file_path)
     data = json.dumps(mg_input)
     mg_server_url = 'http://localhost:8888/run_morphablegraphs'
-    request = urllib2.Request(mg_server_url, data)
-    
-    print "send constraints and wait for motion generator..."
-    handler = urllib2.urlopen(request)
-    result = handler.read()
-    print result
-
+    try:
+        request = urllib2.Request(mg_server_url, data)
+        print "send constraints and wait for motion generator..."
+        handler = urllib2.urlopen(request)
+        result = handler.read()
+        print result
+    except:
+        print "Could not connect to the server", mg_server_url
 
 def main():
     """Loads the latest file added to the input directory specified in
