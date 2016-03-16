@@ -13,11 +13,11 @@ from . import *
 REFERENCE_2D_OFFSET = np.array([0, -1])# components correspond to x, z - we assume the motions are initially oriented into that direction
 
 class ElementaryActionConstraintsBuilder(object):
-    """Generates ElementaryActionConstraints instances based in an MGInputFileReader.
+    """Generates ElementaryActionConstraints instances based in an MGInputFormatReader.
     
     Parameters
     ----------
-    * mg_input : MGInputFileReader
+    * mg_input : MGInputFormatReader
         Class to access constraints defined in an input file.
     * motion_state_graph : MotionStateGraph
         Contains a list of motion nodes that can generate short motion clips.

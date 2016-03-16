@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 import json
 from ..motion_model import MotionStateGraphLoader
-from constraints import MGInputFileReader
+from constraints import MGInputFormatReader
 from algorithm_configuration import AlgorithmConfigurationBuilder
 from graph_walk_generator import GraphWalkGenerator
 from graph_walk_optimizer import GraphWalkOptimizer
@@ -71,9 +71,9 @@ class MotionGenerator(object):
             if type(mg_input) != dict:
                 mg_input = load_json_file(mg_input)
             start = time.clock()
-            input_file_reader = MGInputFileReader(mg_input, activate_joint_map, activate_coordinate_transform)
+            mg_input_reader = MGInputFormatReader(mg_input, activate_joint_map, activate_coordinate_transform)
 
-            graph_walk = self.graph_walk_generator.generate(input_file_reader)
+            graph_walk = self.graph_walk_generator.generate(mg_input_reader)
 
             if self._algorithm_config["use_global_time_optimization"]:
                 graph_walk = self.graph_walk_optimizer.optimize_time_parameters_over_graph_walk(graph_walk)
