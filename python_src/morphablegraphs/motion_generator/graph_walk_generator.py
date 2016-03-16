@@ -45,8 +45,9 @@ class GraphWalkGenerator(object):
         self.action_constraints_builder.set_algorithm_config(self._algorithm_config)
         self.action_generator.set_algorithm_config(self._algorithm_config)
 
-    def generate_graph_walk_from_constraints(self, mg_input):
-        """ Converts a constrained graph walk to quaternion frames
+    def generate(self, mg_input):
+        """ Converts constrains into a graph walk through the motion state graph
+
          Parameters
         ----------
         * mg_input : MGInputFileReader

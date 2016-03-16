@@ -73,7 +73,7 @@ class MotionGenerator(object):
             start = time.clock()
             input_file_reader = MGInputFileReader(mg_input, activate_joint_map, activate_coordinate_transform)
 
-            graph_walk = self.graph_walk_generator.generate_graph_walk_from_constraints(input_file_reader)
+            graph_walk = self.graph_walk_generator.generate(input_file_reader)
 
             if self._algorithm_config["use_global_time_optimization"]:
                 graph_walk = self.graph_walk_optimizer.optimize_time_parameters_over_graph_walk(graph_walk)
