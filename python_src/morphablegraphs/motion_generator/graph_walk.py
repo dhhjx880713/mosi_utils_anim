@@ -41,16 +41,16 @@ class GraphWalk(object):
         a mapping of frame segments
         to elementary actions and a list of events for certain frames.
     """
-    def __init__(self, motion_state_graph, start_pose, algorithm_config):
+    def __init__(self, motion_state_graph, mg_input, algorithm_config):
         self.elementary_action_list = []
         self.steps = []
         self.motion_state_graph = motion_state_graph
         self.full_skeleton = motion_state_graph.full_skeleton
         self.step_count = 0
-        self.mg_input = None
+        self.mg_input = mg_input
         self._algorithm_config = algorithm_config
         self.motion_vector = MotionVector(algorithm_config)
-        self.motion_vector.start_pose = start_pose
+        self.motion_vector.start_pose = mg_input.get_start_pose()
         self.use_time_parameters = algorithm_config["activate_time_variation"]
         write_log("Use time parameters", self.use_time_parameters)
         self.keyframe_event_list = KeyframeEventList()

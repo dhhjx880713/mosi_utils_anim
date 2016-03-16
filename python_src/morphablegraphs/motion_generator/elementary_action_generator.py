@@ -134,7 +134,6 @@ class ElementaryActionGenerator(object):
 
     def _select_next_motion_primitive_node(self, graph_walk):
         """extract from graph based on previous last step + heuristic """
-
         if self.action_state.current_node is None:
             if self.action_constraints.root_trajectory is not None:
                 next_node = self.get_best_start_node(graph_walk, self.action_constraints.action_name)
@@ -236,7 +235,6 @@ class ElementaryActionGenerator(object):
         new_motion_spline, new_parameters = self.motion_primitive_generator.generate_constrained_motion_spline(mp_constraints, graph_walk)
 
         new_arc_length = self._create_graph_walk_entry(new_node, new_motion_spline, new_parameters, mp_constraints, graph_walk)
-
         self.action_state.transition(new_node, new_node_type, new_arc_length, graph_walk.get_num_of_frames())
 
         return mp_constraints.min_error

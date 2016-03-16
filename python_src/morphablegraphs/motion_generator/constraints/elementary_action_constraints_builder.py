@@ -10,6 +10,8 @@ from spatial_constraints import TrajectoryConstraint
 from spatial_constraints import TrajectorySetConstraint
 from . import *
 
+REFERENCE_2D_OFFSET = np.array([0, -1])# components correspond to x, z - we assume the motions are initially oriented into that direction
+
 class ElementaryActionConstraintsBuilder(object):
     """Generates ElementaryActionConstraints instances based in an MGInputFileReader.
     
@@ -20,46 +22,42 @@ class ElementaryActionConstraintsBuilder(object):
     * motion_state_graph : MotionStateGraph
         Contains a list of motion nodes that can generate short motion clips.
     """
-    def __init__(self, mg_input_reader, motion_state_graph, algorithm_config):
-        self.mg_input = mg_input_reader
+    def __init__(self, motion_state_graph, algorithm_config):
+        self.mg_input = None
         self.motion_state_graph = motion_state_graph
-        self.current_action_index = 0
-        self.start_pose = self.mg_input.get_start_pose()
-        self.n_actions = self.mg_input.get_number_of_actions()
+        self.set_algorithm_config(algorithm_config)
+
+    def set_algorithm_config(self, algorithm_config):
         self.closest_point_search_accuracy = algorithm_config["trajectory_following_settings"]["closest_point_search_accuracy"]
         self.closest_point_search_max_iterations = algorithm_config["trajectory_following_settings"]["closest_point_search_max_iterations"]
         self.default_spline_type = algorithm_config["trajectory_following_settings"]["spline_type"]
         self.control_point_distance_threshold = algorithm_config["trajectory_following_settings"]["control_point_filter_threshold"]
         self.collision_avoidance_constraints_mode = algorithm_config["collision_avoidance_constraints_mode"]
 
-    def reset_counter(self):
-        self.current_action_index = 0
-
-    def get_next_elementary_action_constraints(self):
+    def build_list_from_input_file(self, mg_input):
         """
         Returns:
         --------
-        * action_constraints : ElementarActionConstraints
-          Constraints for the next elementary action extracted from an input file.
+        * action_constraints : list<ElementarActionConstraints>
+          List of constraints for the elementary actions extracted from an input file.
         """
-        if self.current_action_index < self.n_actions:
-            action_constraints = self._build()
-            self.current_action_index += 1
-            return action_constraints
-        else:
-            return None
+        self.mg_input = mg_input
+        self.start_pose = mg_input.get_start_pose()
+        action_constaints_list = []
+        for idx in xrange(self.mg_input.get_number_of_actions()):
+            action_constaints_list.append(self._build_action_constraint(idx))
+        return action_constaints_list
 
-    def _build(self):
-        if self.current_action_index < self.n_actions:
-            action_constraints = ElementaryActionConstraints()
-            action_constraints.motion_state_graph = self.motion_state_graph
-            action_constraints.action_name = self.mg_input.get_elementary_action_name(self.current_action_index)
-            self._add_keyframe_constraints(action_constraints)
-            self._add_keyframe_annotations(action_constraints)
-            self._add_trajectory_constraints(action_constraints)
-            self._set_start_pose(action_constraints)
-            action_constraints._initialized = True
-            return action_constraints
+    def _build_action_constraint(self, action_index):
+        action_constraints = ElementaryActionConstraints()
+        action_constraints.motion_state_graph = self.motion_state_graph
+        action_constraints.action_name = self.mg_input.get_elementary_action_name(action_index)
+        self._add_keyframe_constraints(action_constraints, action_index)
+        self._add_keyframe_annotations(action_constraints, action_index)
+        self._add_trajectory_constraints(action_constraints, action_index)
+        self._set_start_pose(action_constraints)
+        action_constraints._initialized = True
+        return action_constraints
 
     def _set_start_pose(self, action_constraints):
         """ Sets the pose at the beginning of the elementary action sequence
@@ -69,32 +67,34 @@ class ElementaryActionConstraintsBuilder(object):
         """
         if self.start_pose["orientation"] is None:
             if action_constraints.root_trajectory is not None:
-                ref_offset_2d = np.array([0, -1])# components correspond to x, z - we assume the motions are initially oriented into that direction
-                start, tangent, angle = action_constraints.root_trajectory.get_angle_at_arc_length_2d(0.0, ref_offset_2d)
+                start, tangent, angle = action_constraints.root_trajectory.get_angle_at_arc_length_2d(0.0, REFERENCE_2D_OFFSET)
                 self.start_pose["orientation"] = [0, angle, 0]
             else:
                 self.start_pose["orientation"] = [0, 0, 0]
             print "set start orientation", self.start_pose["orientation"]
         action_constraints.start_pose = self.start_pose
 
-    def _add_keyframe_annotations(self, action_constraints):
-        if self.current_action_index > 0:
-            action_constraints.prev_action_name = self.mg_input.get_elementary_action_name(self.current_action_index - 1)
-        action_constraints.keyframe_annotations = self.mg_input.get_keyframe_annotations(self.current_action_index)
+    def _add_keyframe_annotations(self, action_constraints, index):
+        if index > 0:
+            action_constraints.prev_action_name = self.mg_input.get_elementary_action_name(index - 1)
+        action_constraints.keyframe_annotations = self.mg_input.get_keyframe_annotations(index)
 
-    def _add_keyframe_constraints(self, action_constraints):
+    def _add_keyframe_constraints(self, action_constraints, index):
         node_group = self.motion_state_graph.node_groups[action_constraints.action_name]
-        action_constraints.keyframe_constraints = self.mg_input.get_ordered_keyframe_constraints(self.current_action_index, node_group)
+        action_constraints.keyframe_constraints = self.mg_input.get_ordered_keyframe_constraints(index, node_group)
         action_constraints.contains_user_constraints = False
         if len(action_constraints.keyframe_constraints) > 0:
-            for keyframe_label_constraints in action_constraints.keyframe_constraints.values():
-                if len(keyframe_label_constraints) > 0:
-                    if len(keyframe_label_constraints[0]) > 0:
-                        action_constraints.contains_user_constraints = True
-                        break
+            action_constraints.contains_user_constraints = self._has_user_defined_constraints(action_constraints)
 
             self._merge_two_hand_constraints(action_constraints)
         print action_constraints.action_name, action_constraints.keyframe_constraints, action_constraints.contains_user_constraints, "#######################"
+
+    def _has_user_defined_constraints(self, action_constraints):
+        for keyframe_label_constraints in action_constraints.keyframe_constraints.values():
+                if len(keyframe_label_constraints) > 0:
+                    if len(keyframe_label_constraints[0]) > 0:
+                        return True
+        return False
 
     def _merge_two_hand_constraints(self, action_constraints):
         """ Create a special constraint if two hand joints are constrained on the same keyframe
@@ -149,17 +149,17 @@ class ElementaryActionConstraintsBuilder(object):
             #print "did not find two hand keyframe constraint"
             return constraint_list, False
 
-    def _add_trajectory_constraints(self, action_constraints):
+    def _add_trajectory_constraints(self, action_constraints, action_index):
         """ Extracts the root_trajectory if it is found and trajectories for other joints.
             If semanticAnnotation is found they are treated as collision avoidance constraint.
         """
         root_joint_name = self.motion_state_graph.skeleton.root
-        action_constraints.root_trajectory = self._create_trajectory_from_constraint_desc(root_joint_name)
+        action_constraints.root_trajectory = self._create_trajectory_constraint(action_index, root_joint_name)
         action_constraints.trajectory_constraints = []
         action_constraints.collision_avoidance_constraints = []
         for joint_name in self.motion_state_graph.skeleton.node_name_frame_map.keys():
             if joint_name != root_joint_name:
-                trajectory_constraint = self._create_trajectory_from_constraint_desc(joint_name)
+                trajectory_constraint = self._create_trajectory_constraint(action_index, joint_name)
                 if trajectory_constraint is not None:
                     # decide if it is a collision avoidance constraint based on whether or not it has a range
                     if trajectory_constraint.range_start is None:
@@ -178,7 +178,7 @@ class ElementaryActionConstraintsBuilder(object):
                                                                                     joint_names,
                                                                                     self.motion_state_graph.skeleton, 1.0, 1.0)
 
-    def _create_trajectory_from_constraint_desc(self, joint_name, scale_factor=1.0):
+    def _create_trajectory_constraint(self, action_index, joint_name, scale_factor=1.0):
         """ Create a spline based on a trajectory constraint definition read from the input file.
             Components containing None are set to 0, but marked as ignored in the unconstrained_indices list.
             Note all elements in constraints_list must have the same dimensions constrained and unconstrained.
@@ -190,7 +190,7 @@ class ElementaryActionConstraintsBuilder(object):
         """
         trajectory_constraint = None
         precision = 1.0
-        control_points, unconstrained_indices, active_region = self.mg_input.get_trajectory_from_constraint_list(self.current_action_index, joint_name, scale_factor, self.control_point_distance_threshold)
+        control_points, unconstrained_indices, active_region = self.mg_input.get_trajectory_from_constraint_list(action_index, joint_name, scale_factor, self.control_point_distance_threshold)
         if control_points is not None and unconstrained_indices is not None:
 
             trajectory_constraint = TrajectoryConstraint(joint_name,
