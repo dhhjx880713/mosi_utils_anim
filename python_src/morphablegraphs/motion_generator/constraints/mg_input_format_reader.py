@@ -2,6 +2,7 @@ __author__ = 'erhe01'
 
 import numpy as np
 import json
+from ...utilities.log import write_log
 
 
 class MGInputFormatReader(object):
@@ -98,7 +99,7 @@ class MGInputFormatReader(object):
         last_distance = None
         for i in xrange(n_control_points):
             if trajectory_constraint_desc[i]["position"] == [None, None, None]:
-                print("skip undefined control point")
+                write_log("Warning: skip undefined control point")
                 continue
 
             #where the a component of the position is set None it is set it to 0 to allow a 3D spline definition
@@ -120,7 +121,7 @@ class MGInputFormatReader(object):
                 last_added_point_idx = len(control_points)-1
                 if np.linalg.norm(control_points[last_added_point_idx] - point) < distance_threshold:
                     control_points[last_added_point_idx] = (control_points[last_added_point_idx] - point) * 1.00 + control_points[last_added_point_idx]
-                    print("shift second to last control point")
+                    write_log("Warning: shift second to last control point because it is too close to the last control point")
                 control_points.append(point)
 
             #set active region if it is a collision avoidance trajectory
@@ -141,10 +142,10 @@ class MGInputFormatReader(object):
                 active_region["start_point"] = control_points[0]
             if active_region["end_point"] is None:
                 active_region["end_point"] = control_points[-1]
-        print "loaded", len(control_points), "points"
+        #print "loaded", len(control_points), "points"
         return control_points, active_region
 
-    def get_trajectory_from_constraint_list(self, action_index, joint_name, scale_factor=1.0, distance_threshold=-1):
+    def extract_trajectory_desc(self, action_index, joint_name, scale_factor=1.0, distance_threshold=-1):
         """ Extract the trajectory information from the constraint list
         Returns:
         -------
