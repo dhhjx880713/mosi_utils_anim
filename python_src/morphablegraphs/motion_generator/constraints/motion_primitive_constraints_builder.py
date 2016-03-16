@@ -45,6 +45,7 @@ class MotionPrimitiveConstraintsBuilder(object):
         self.local_optimization_mode = algorithm_config["local_optimization_mode"]
         self.ca_constraint_mode = algorithm_config["collision_avoidance_constraints_mode"]
         self.use_local_coordinates = algorithm_config["use_local_coordinates"]
+        self.use_mgrd = algorithm_config["constrained_sampling_mode"] == "random_spline"
 
     def set_status(self, node_key, last_arc_length, graph_walk, is_last_step=False):
         n_prev_frames = graph_walk.get_num_of_frames()
@@ -68,7 +69,7 @@ class MotionPrimitiveConstraintsBuilder(object):
         self.status["last_pos"] = last_pos
         self.status["prev_frames"] = prev_frames
         self.status["is_last_step"] = is_last_step
-        if self.use_local_coordinates:
+        if self.use_mgrd or self.use_local_coordinates:
             self._set_aligning_transform(node_key, prev_frames)
         else:
             self.status["aligning_transform"] = None
