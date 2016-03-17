@@ -21,7 +21,7 @@ def test_pose_constraint():
     bvh_reader = BVHReader(file_path)
     skeleton = Skeleton(bvh_reader)
     quat_frames = np.asarray(convert_euler_frames_to_quaternion_frames(bvh_reader, bvh_reader.frames))
-    constraint_desc = MotionPrimitiveConstraintsBuilder.create_frame_constraint(skeleton, quat_frames[0])
+    constraint_desc = MotionPrimitiveConstraintsBuilder.create_pose_constraint(skeleton, quat_frames[0])
     pose_constraint = PoseConstraint(skeleton, constraint_desc, precision, weight_factor=1.0)
     error = pose_constraint.evaluate_motion_sample(quat_frames)
     assert error == 0.0

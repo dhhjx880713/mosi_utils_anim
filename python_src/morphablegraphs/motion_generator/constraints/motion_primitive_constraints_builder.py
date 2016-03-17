@@ -19,6 +19,11 @@ class MotionPrimitiveConstraintsBuilder(object):
     """ Extracts a list of constraints for a motion primitive from ElementaryActionConstraints 
         based on the variables set by the method set_status. Generates constraints for path following.
     """
+
+    mp_constraint_types = ["position", "orientation", "time"]
+    LAST_FRAME = "lastFrame"  # TODO set standard for keyframe values
+    NEGATIVE_ONE = "-1"
+
     def __init__(self):
         self.action_constraints = None
         self.algorithm_config = None
@@ -141,18 +146,16 @@ class MotionPrimitiveConstraintsBuilder(object):
 
     def _add_pose_constraint(self, mp_constraints):
         if mp_constraints.settings["transition_pose_constraint_factor"] > 0.0 and self.status["prev_frames"] is not None:
-            pose_constraint_desc = self._create_frame_constraint_from_preceding_motion()
-            #pose_constraint_desc = self._create_frame_constraint_angular_from_preceding_motion()
+            pose_constraint_desc = self._create_pose_constraint_from_preceding_motion()
+            #pose_constraint_desc = self._create_pose_constraint_angular_from_preceding_motion()
             pose_constraint_desc = self._map_label_to_canonical_keyframe(pose_constraint_desc)
             pose_constraint = PoseConstraint(self.skeleton, pose_constraint_desc, self.precision["smooth"],
                                               mp_constraints.settings["transition_pose_constraint_factor"])
-            #pose_constraint = PoseConstraintQuatFrame(self.skeleton, pose_constraint_desc, self.precision["smooth"],
-            #                                          mp_constraints.settings["transition_pose_constraint_factor"])
             mp_constraints.constraints.append(pose_constraint)
             mp_constraints.pose_constraint_set = True
 
     def _add_pose_constraint_quat_frame(self, mp_constraints):
-        pose_constraint_desc = self._create_frame_constraint_angular_from_preceding_motion()
+        pose_constraint_desc = self._create_pose_constraint_angular_from_preceding_motion()
         pose_constraint_quat_frame = PoseConstraintQuatFrame(self.skeleton, pose_constraint_desc,
                                                              self.precision["smooth"],
                                                              mp_constraints.settings["transition_pose_constraint_factor"])
@@ -160,7 +163,7 @@ class MotionPrimitiveConstraintsBuilder(object):
         mp_constraints.pose_constraint_set = True
 
     def _add_path_following_constraints(self, mp_constraints):
-        print "search for new goal"
+        #print "search for new goal"
         # if it is the last step we need to reach the point exactly otherwise
         # make a guess for a reachable point on the path that we have not visited yet
         if not self.status["is_last_step"]:
@@ -201,19 +204,24 @@ class MotionPrimitiveConstraintsBuilder(object):
         if self.status["motion_primitive_name"] in self.action_constraints.keyframe_constraints.keys():
             keyframe_constraint_desc_list = self.action_constraints.keyframe_constraints[self.status["motion_primitive_name"]]
             for i in xrange(len(keyframe_constraint_desc_list)):
-                keyframe_constraint = None
-                if "merged" in keyframe_constraint_desc_list[i].keys():
-                    keyframe_constraint_desc = self._map_label_to_canonical_keyframe(keyframe_constraint_desc_list[i])
-                    keyframe_constraint = TwoHandConstraintSet(self.skeleton, keyframe_constraint_desc,
-                                                               self.precision["pos"], mp_constraints.settings["position_constraint_factor"])
-                elif np.any([c_type in keyframe_constraint_desc_list[i].keys() for c_type in ["position", "orientation", "time"]]):
-                    keyframe_constraint_desc = self._map_label_to_canonical_keyframe(keyframe_constraint_desc_list[i])
-                    if keyframe_constraint_desc is not None:
-                        keyframe_constraint = GlobalTransformConstraint(self.skeleton, keyframe_constraint_desc,
-                                                                        self.precision["pos"], mp_constraints.settings["position_constraint_factor"])
+                keyframe_constraint = self.create_keyframe_constraint(keyframe_constraint_desc_list[i])
                 if keyframe_constraint is not None:
                     self._add_events_to_event_list(mp_constraints, keyframe_constraint)
                     mp_constraints.constraints.append(keyframe_constraint)
+
+    def create_keyframe_constraint(self, constraint_definition):
+        constraint_factor = self.trajectory_following_settings["position_constraint_factor"]
+        keyframe_constraint = None
+        if "merged" in constraint_definition.keys():
+            keyframe_constraint_desc = self._map_label_to_canonical_keyframe(constraint_definition)
+            keyframe_constraint = TwoHandConstraintSet(self.skeleton, keyframe_constraint_desc,
+                                                       self.precision["pos"],constraint_factor)
+        elif np.any([c_type in constraint_definition.keys() for c_type in self.mp_constraint_types]):
+            keyframe_constraint_desc = self._map_label_to_canonical_keyframe(constraint_definition)
+            if keyframe_constraint_desc is not None:
+                keyframe_constraint = GlobalTransformConstraint(self.skeleton, keyframe_constraint_desc,
+                                                                self.precision["pos"], constraint_factor)
+        return keyframe_constraint
 
     def _decide_on_optimization(self, mp_constraints):
         if self.local_optimization_mode == OPTIMIZATION_MODE_ALL:
@@ -249,7 +257,7 @@ class MotionPrimitiveConstraintsBuilder(object):
             annotations = self.motion_state_graph.node_groups[self.action_constraints.action_name].motion_primitive_annotations
             if self.status["motion_primitive_name"] in annotations.keys() and keyframe_label in annotations[self.status["motion_primitive_name"]].keys():
                 keyframe = annotations[self.status["motion_primitive_name"]][keyframe_label]
-                if keyframe == "-1" or keyframe == "lastFrame":# TODO set standard for keyframe values
+                if keyframe == self.NEGATIVE_ONE or keyframe == self.LAST_FRAME:
                     keyframe = self.status["n_canonical_frames"]-1
                 keyframe_constraint_desc["canonical_keyframe"] = int(keyframe)
             else:
@@ -257,22 +265,22 @@ class MotionPrimitiveConstraintsBuilder(object):
                 return None
         return keyframe_constraint_desc
 
-    def _create_frame_constraint_from_preceding_motion(self):
+    def _create_pose_constraint_from_preceding_motion(self):
         """ Create frame a constraint from the preceding motion.
         """
-        return MotionPrimitiveConstraintsBuilder.create_frame_constraint(self.skeleton, self.status["prev_frames"][-1])
+        return MotionPrimitiveConstraintsBuilder.create_pose_constraint(self.skeleton, self.status["prev_frames"][-1])
 
-    def _create_frame_constraint_angular_from_preceding_motion(self):
-        return MotionPrimitiveConstraintsBuilder.create_frame_constraint_angular(self.status["prev_frames"][-1])
+    def _create_pose_constraint_angular_from_preceding_motion(self):
+        return MotionPrimitiveConstraintsBuilder.create_pose_constraint_angular(self.status["prev_frames"][-1])
 
     @classmethod
-    def create_frame_constraint(cls, skeleton, frame):
+    def create_pose_constraint(cls, skeleton, frame):
         frame_constraint = {"keyframeLabel": "start", "frame_constraint": skeleton.convert_quaternion_frame_to_cartesian_frame(frame),
                             "semanticAnnotation": {"keyframeLabel": "start"}}
         return frame_constraint
 
     @classmethod
-    def create_frame_constraint_angular(cls, frame):
+    def create_pose_constraint_angular(cls, frame):
         frame_constraint = {"frame_constraint": frame, "keyframeLabel": "start", "semanticAnnotation": {"keyframeLabel": "start"}}
         return frame_constraint
 
