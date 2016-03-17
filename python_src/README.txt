@@ -20,7 +20,7 @@ Python Dependencies:
  - tornado 4.0.2 - use "pip install tornado"
  - singledispatch 3.4.0.3 - download and install the whl file from https://pypi.python.org/pypi/singledispatch
 
-R-Dependencies
+R-Dependencies (only for training of new motion primitives)
  - R3.1.2 (download from http://cran.r-project.org/bin/windows/base/, set R_USER variable to your windows user name and R_HOME to the R installation path)
  - fda  (use package manager of R)
 
@@ -36,12 +36,13 @@ Optionally:
  - Animation Server.7z contains the animation server. Extract the contents to any location.
 
 2. Modify the configuration files.
-For the morphable graphs algorithm modify "config/service.json" 
+For the morphable graphs algorithm modify "config/service.config"
 In the field "model_data" specify the location of the motion model file without file ending 
 In the field "transition_data" point to an empty directory. (Transition models 
 are not necessary to run the algorithm and are currently experimental.)
 In the field "input_dir" specify an input directory.
-In the field "output_dir" specifiy an output directory.
+In the field "output_dir" specify an output directory.
+In the field "algorithm_settings" specify the algorithm.config file to use by the prefix, e.g. "standard" for "standard_algorithm.config".
 
 Optionally: Please see the readme file of the BestFitPipeline for details on its configuration file. 
 Make sure input directory and output directory match.
@@ -53,7 +54,7 @@ In order to run it as part of the BestFitPipeline, please see the readme file of
 
 There are two interfaces to run the algorithm without the BestFitPipeline:
 mg_command_line_interface.py - A simple command line interface without arguments.
-It automatically loads the latest input file in the input directory specified in config\service.json.
+It automatically loads the latest input file in the input directory specified in config\service.config.
 
 mg_rest_interface.py - Starts a web server that provides the following REST interface localhost:port/run_morphablegraphs.
 It can be called using a HTTP POST message with a string containing the input file as message body.
@@ -67,7 +68,7 @@ Current limitations:
  - Only one trajectory constraint can be specified for each elementary action.
 
 4. Motion Primitive Construction
-Set the path to data folder for modelling in config\service.json, "data_folder"
+Set the path to data folder for modelling in config\service.config, "data_folder"
 Call the motion primitive modelling pipeline mg_construction_pipeline.py from command line with parameters elementary_action motion_primitive
 E.g.: python mg_construction_pipeline walk rightStance
 
@@ -111,8 +112,12 @@ spline_type - Defines how trajectory constraints are evaluated. Possible values 
                 2 for fitted BSpline which goes through every control point
 control_point_filter_threshold - used as parameter for a filter that ignores control points that are too close to each other, a value <= 0 deactivates the control point filter.
 
-4. local/global/time optimization settings
+4. local/global/time_optimization_settings
 method -  supported methods are "leastsq", "BFGS" and "Nelder-Mead"
 max_steps - Only for global and time optimization. Sets the number of steps in the graph walk that are optimized when looking back from the current step.
 
-
+5. inverse_kinematics_settings
+solving_method -  Supported values are "unconstrained" for unconstrained optimization using the selected optimization method or "ccd" (cyclic coordinate descent) for optimization with bounds on joints.
+optimization_method - Optimization algorithm used by the solving method. Currently only "L-BFGS-B" is supported.
+interpolation_window - Frame range in which frames are interpolated around a keyframe constraint.
+transition_window - Frame range in which frames a interpolated before and after a lookat constraint.
