@@ -43,6 +43,7 @@ class MGInputFormatReader(object):
         self._extract_elementary_actions()
 
     def _fill_joint_name_map(self):
+        #TODO: read from file
         self.joint_name_map["RightHand"] = "RightToolEndSite"
         self.joint_name_map["LeftHand"] = "LeftToolEndSite"
         self.inverse_joint_name_map["RightToolEndSite"] = "RightHand"
@@ -234,19 +235,19 @@ class MGInputFormatReader(object):
         reordered_constraints = dict()
         # iterate over keyframe labels
         for keyframe_label in keyframe_constraints.keys():
-            motion_primitive_name = node_group.label_to_motion_primitive_map[keyframe_label]
-            time_information = node_group.motion_primitive_annotations[motion_primitive_name][keyframe_label]
-            reordered_constraints[motion_primitive_name] = list()
+            mp_name = node_group.label_to_motion_primitive_map[keyframe_label]
+            time_information = node_group.motion_primitive_annotations[mp_name][keyframe_label]
+            reordered_constraints[mp_name] = list()
             # iterate over joints constrained at that keyframe
             for joint_name in keyframe_constraints[keyframe_label].keys():
                 # iterate over constraints for that joint
-                for constraint_type in self.constraint_types:
-                    if constraint_type in keyframe_constraints[keyframe_label][joint_name].keys():
-                        for constraint_definition in keyframe_constraints[keyframe_label][joint_name][constraint_type]:
+                for c_type in self.constraint_types:
+                    if c_type in keyframe_constraints[keyframe_label][joint_name].keys():
+                        for constraint_definition in keyframe_constraints[keyframe_label][joint_name][c_type]:
                             # create constraint definition usable by the algorithm
                             # and add it to the list of constraints for that state
-                            constraint_desc = self._create_keyframe_constraint(keyframe_label, joint_name, constraint_definition, time_information)
-                            reordered_constraints[motion_primitive_name].append(constraint_desc)
+                            constraint_desc = self._extend_keyframe_constraint_definition(keyframe_label, joint_name, constraint_definition, time_information)
+                            reordered_constraints[mp_name].append(constraint_desc)
         return reordered_constraints
 
     def _extract_constraints_for_keyframe_label(self, input_constraint_list, label):
@@ -298,7 +299,7 @@ class MGInputFormatReader(object):
                     return c["trajectoryConstraints"]
         return None
 
-    def _create_keyframe_constraint(self, keyframe_label, joint_name, constraint, time_information):
+    def _extend_keyframe_constraint_definition(self, keyframe_label, joint_name, constraint, time_information):
         """ Creates a dict containing all properties stated explicitly or implicitly in the input constraint
         Parameters
         ----------
@@ -318,8 +319,6 @@ class MGInputFormatReader(object):
         """
         position = [None, None, None]
         orientation = [None, None, None]
-        first_frame = None
-        last_frame = None
         time = None
         if "position" in constraint.keys():
             position = constraint["position"]
@@ -329,16 +328,11 @@ class MGInputFormatReader(object):
             time = constraint["time"]
         #check if last or fist frame from annotation
         position = self._transform_point_from_cad_to_opengl_cs(position)
-        if time_information == "lastFrame":
-            last_frame = True
-        elif time_information == "firstFrame":
-            first_frame = True
         if "semanticAnnotation" in constraint.keys():
             semantic_annotation = constraint["semanticAnnotation"]
         else:
-            semantic_annotation = {}
-        semantic_annotation["firstFrame"] = first_frame
-        semantic_annotation["lastFrame"] = last_frame
+            semantic_annotation = dict()
+        self._add_legacy_constrained_gmm_info(time_information, semantic_annotation)
         semantic_annotation["keyframeLabel"] = keyframe_label
         constraint_desc = {"joint": joint_name,
                            "position": position,
@@ -346,6 +340,16 @@ class MGInputFormatReader(object):
                            "time": time,
                            "semanticAnnotation": semantic_annotation}
         return constraint_desc
+
+    def _add_legacy_constrained_gmm_info(self, time_information, semantic_annotation):
+        first_frame = None
+        last_frame = None
+        if time_information == "lastFrame":
+            last_frame = True
+        elif time_information == "firstFrame":
+            first_frame = True
+        semantic_annotation["firstFrame"] = first_frame
+        semantic_annotation["lastFrame"] = last_frame
 
     def _constraint_definition_has_label(self, constraint_definition, label):
         """ Checks if the label is in the semantic annotation dict of a constraint
@@ -358,31 +362,29 @@ class MGInputFormatReader(object):
         return False
 
     def _transform_point_from_cad_to_opengl_cs(self, point):
-        """ Transforms a 3d point represented as a list from a CAD to a
+        """ Transforms a 3D point represented as a list from a CAD to a
             opengl coordinate system by a -90 degree rotation around the x axis
         """
-        if self.activate_coordinate_transform:
-            transform_matrix = np.array([[1, 0, 0], [0, 0, 1], [0, -1, 0]])
-            return np.dot(transform_matrix, point).tolist()
-        else:
+        if not self.activate_coordinate_transform:
             return point
+        transform_matrix = np.array([[1, 0, 0], [0, 0, 1], [0, -1, 0]])
+        return np.dot(transform_matrix, point).tolist()
 
     def _transform_unconstrained_indices_from_cad_to_opengl_cs(self, indices):
         """ Transforms a list indicating unconstrained dimensions from cad to opengl
             coordinate system.
         """
-        if self.activate_coordinate_transform:
-            new_indices = []
-            for i in indices:
-                if i == 0:
-                    new_indices.append(0)
-                elif i == 1:
-                    new_indices.append(2)
-                elif i == 2:
-                    new_indices.append(1)
-            return new_indices
-        else:
+        if not self.activate_coordinate_transform:
             return indices
+        new_indices = []
+        for i in indices:
+            if i == 0:
+                new_indices.append(0)
+            elif i == 1:
+                new_indices.append(2)
+            elif i == 2:
+                new_indices.append(1)
+        return new_indices
 
     def inverse_map_joint(self, joint_name):
         if joint_name in self.inverse_joint_name_map.keys() and self.activate_joint_mapping:
