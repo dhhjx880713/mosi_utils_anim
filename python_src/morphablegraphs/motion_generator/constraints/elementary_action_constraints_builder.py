@@ -12,6 +12,9 @@ from . import *
 from ...utilities.log import write_log
 
 REFERENCE_2D_OFFSET = np.array([0, -1])# components correspond to x, z - we assume the motions are initially oriented into that direction
+LEFT_HAND_JOINT = "LeftToolEndSite"
+RIGHT_HAND_JOINT = "RightToolEndSite"
+ROOT_JOINT = "Hips"
 
 
 class ElementaryActionConstraintsBuilder(object):
@@ -66,8 +69,11 @@ class ElementaryActionConstraintsBuilder(object):
     def _init_start_pose(self, mg_input):
         self.start_pose = mg_input.get_start_pose()
         if self.start_pose["orientation"] is None:
-            root_trajectory = self._create_trajectory_constraint(0, "Hips")
-            self.start_pose["orientation"] = self.get_start_orientation_from_trajectory(root_trajectory)
+            root_trajectory = self._create_trajectory_constraint(0, ROOT_JOINT)
+            if root_trajectory is None:
+                self.start_pose["orientation"] = [0, 0, 0]
+            else:
+                self.start_pose["orientation"] = self.get_start_orientation_from_trajectory(root_trajectory)
             write_log("Set start orientation from trajectory to", self.start_pose["orientation"])
 
     def _set_start_pose(self, action_constraints):
@@ -82,11 +88,8 @@ class ElementaryActionConstraintsBuilder(object):
         return self.start_pose
 
     def get_start_orientation_from_trajectory(self, root_trajectory):
-        if root_trajectory is not None:
-            start, tangent, angle = root_trajectory.get_angle_at_arc_length_2d(0.0, REFERENCE_2D_OFFSET)
-            return [0, angle, 0]
-        else:
-            return [0, 0, 0]
+        start, tangent, angle = root_trajectory.get_angle_at_arc_length_2d(0.0, REFERENCE_2D_OFFSET)
+        return [0, angle, 0]
 
     def _add_keyframe_annotations(self, action_constraints, index):
         if index > 0:
@@ -96,11 +99,10 @@ class ElementaryActionConstraintsBuilder(object):
     def _add_keyframe_constraints(self, action_constraints, index):
         node_group = self.motion_state_graph.node_groups[action_constraints.action_name]
         action_constraints.keyframe_constraints = self.mg_input.get_ordered_keyframe_constraints(index, node_group)
-        action_constraints.contains_user_constraints = False
         if len(action_constraints.keyframe_constraints) > 0:
             action_constraints.contains_user_constraints = self._has_user_defined_constraints(action_constraints)
             self._merge_two_hand_constraints(action_constraints)
-        #print action_constraints.action_name, action_constraints.keyframe_constraints, action_constraints.contains_user_constraints, "#######################"
+        #print action_constraints.action_name, action_constraints.keyframe_constraints, action_constraints.contains_user_constraints
 
     def _has_user_defined_constraints(self, action_constraints):
         for keyframe_label_constraints in action_constraints.keyframe_constraints.values():
@@ -112,55 +114,62 @@ class ElementaryActionConstraintsBuilder(object):
     def _merge_two_hand_constraints(self, action_constraints):
         """ Create a special constraint if two hand joints are constrained on the same keyframe
         """
-        for motion_primitive_name in action_constraints.keyframe_constraints.keys():
+        for mp_name in action_constraints.keyframe_constraints.keys():
             #separate constraints based on keyframe label
-            keyframe_label_lists = dict()
-            for desc in action_constraints.keyframe_constraints[motion_primitive_name]:
-                print desc
-                keyframe_label = desc["semanticAnnotation"]["keyframeLabel"]
-                if keyframe_label not in keyframe_label_lists.keys():
-                    keyframe_label_lists[keyframe_label] = list()
-                keyframe_label_lists[keyframe_label].append(desc)
-            #combine them back together and perform the merging for specific keyframe labels
-            merged_keyframe_constraints = list()
-            for keyframe_label in keyframe_label_lists.keys():
-                two_hand_constraint_list, found_two_constraint = self._merge_two_hand_constraint_for_label(keyframe_label_lists[keyframe_label])
-                merged_keyframe_constraints += two_hand_constraint_list
-                if found_two_constraint:
-                    action_constraints.contains_two_hands_constraints = True
-            action_constraints.keyframe_constraints[motion_primitive_name] = merged_keyframe_constraints
+            keyframe_label_lists = self._map_constraints_by_label(action_constraints.keyframe_constraints[mp_name])
+            action_constraints.keyframe_constraints[mp_name], merged_constraints = self._merge_two_hand_constraints_in_keyframe_label_list(keyframe_label_lists)
+            if merged_constraints:
+                action_constraints.contains_two_hands_constraints = True
+
+    def _map_constraints_by_label(self, keyframe_constraints):
+        keyframe_label_lists = dict()
+        for desc in keyframe_constraints:
+            keyframe_label = desc["semanticAnnotation"]["keyframeLabel"]
+            if keyframe_label not in keyframe_label_lists.keys():
+                keyframe_label_lists[keyframe_label] = list()
+            keyframe_label_lists[keyframe_label].append(desc)
+        return keyframe_label_lists
+
+    def _merge_two_hand_constraints_in_keyframe_label_list(self, keyframe_label_lists):
+        """perform the merging for specific keyframe labels
+        """
+        merged_constraints = False
+        merged_keyframe_constraints = list()
+        for keyframe_label in keyframe_label_lists.keys():
+            new_constraint_list, is_merged = self._merge_two_hand_constraint_for_label(keyframe_label_lists[keyframe_label])
+            merged_keyframe_constraints += new_constraint_list
+            if is_merged:
+                merged_constraints = True
+        return merged_keyframe_constraints, merged_constraints
 
     def _merge_two_hand_constraint_for_label(self, constraint_list):
-        merged_constraint_list = list()
         left_hand_indices = [index for (index, desc) in enumerate(constraint_list) if desc['joint'] == LEFT_HAND_JOINT]
         right_hand_indices = [index for (index, desc) in enumerate(constraint_list) if desc['joint'] == RIGHT_HAND_JOINT]
-        if len(left_hand_indices) > 0 and len(right_hand_indices) > 0:
-
-            left_hand_index = left_hand_indices[0]
-            right_hand_index = right_hand_indices[0]
-
-            joint_names = [LEFT_HAND_JOINT, RIGHT_HAND_JOINT]
-            positions = [constraint_list[left_hand_index]["position"],
-                         constraint_list[right_hand_index]["position"]]
-            orientations = [constraint_list[left_hand_index]["orientation"],
-                            constraint_list[right_hand_index]["orientation"]]
-            time = constraint_list[left_hand_index]["time"]
-            semantic_annotation = constraint_list[left_hand_index]["semanticAnnotation"]
-            merged_constraint_desc = {"joint": joint_names,
-                                       "positions": positions,
-                                       "orientations": orientations,
-                                       "time": time,
-                                       "merged": True,
-                                       "semanticAnnotation": semantic_annotation}
-            #print "merged keyframe constraint", merged_constraint_desc
-            merged_constraint_list.append(merged_constraint_desc)
-            merged_constraint_list += [desc for (index, desc) in enumerate(constraint_list)
-                                            if index == left_hand_index and \
-                                               index == right_hand_index]
-            return merged_constraint_list, True
-        else:
+        if len(left_hand_indices) == 0 or len(right_hand_indices) == 0:
             #print "did not find two hand keyframe constraint"
             return constraint_list, False
+
+        merged_constraint_list = list()
+        left_hand_index = left_hand_indices[0]
+        right_hand_index = right_hand_indices[0]
+        joint_names = [LEFT_HAND_JOINT, RIGHT_HAND_JOINT]
+        positions = [constraint_list[left_hand_index]["position"],
+                     constraint_list[right_hand_index]["position"]]
+        orientations = [constraint_list[left_hand_index]["orientation"],
+                        constraint_list[right_hand_index]["orientation"]]
+        time = constraint_list[left_hand_index]["time"]
+        semantic_annotation = constraint_list[left_hand_index]["semanticAnnotation"]
+        merged_constraint_desc = {"joint": joint_names,
+                                   "positions": positions,
+                                   "orientations": orientations,
+                                   "time": time,
+                                   "merged": True,
+                                   "semanticAnnotation": semantic_annotation}
+        #print "merged keyframe constraint", merged_constraint_desc
+        merged_constraint_list.append(merged_constraint_desc)
+        merged_constraint_list += [desc for (index, desc) in enumerate(constraint_list)
+                                        if index != left_hand_index and index != right_hand_index]
+        return merged_constraint_list, True
 
     def _add_trajectory_constraints(self, action_constraints, action_index):
         """ Extracts the root_trajectory if it is found and trajectories for other joints.
@@ -204,7 +213,7 @@ class ElementaryActionConstraintsBuilder(object):
         control_points, unconstrained_indices, active_region = self.mg_input.extract_trajectory_desc(action_index, joint_name, scale_factor, self.control_point_distance_threshold)
         if control_points is not None and unconstrained_indices is not None:
             traj_c = TrajectoryConstraint(joint_name, control_points,
-                                          self.default_spline_type, 0,
+                                          self.default_spline_type, 0.0,
                                           unconstrained_indices,
                                           self.motion_state_graph.skeleton,
                                           self.constraint_precision, self.default_constraint_weight,
