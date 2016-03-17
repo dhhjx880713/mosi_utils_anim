@@ -59,14 +59,17 @@ class ElementaryActionConstraintsBuilder(object):
         action_constraints = ElementaryActionConstraints()
         action_constraints.motion_state_graph = self.motion_state_graph
         action_constraints.action_name = self.mg_input.get_elementary_action_name(action_index)
+        action_constraints.start_pose = self.get_start_pose()
         self._add_keyframe_constraints(action_constraints, action_index)
         self._add_keyframe_annotations(action_constraints, action_index)
         self._add_trajectory_constraints(action_constraints, action_index)
-        self._set_start_pose(action_constraints)
         action_constraints._initialized = True
         return action_constraints
 
     def _init_start_pose(self, mg_input):
+        """ Sets the pose at the beginning of the elementary action sequence
+            Estimates the optimal start orientation from the constraints if none is given.
+        """
         self.start_pose = mg_input.get_start_pose()
         if self.start_pose["orientation"] is None:
             root_trajectory = self._create_trajectory_constraint(0, ROOT_JOINT)
@@ -75,14 +78,6 @@ class ElementaryActionConstraintsBuilder(object):
             else:
                 self.start_pose["orientation"] = self.get_start_orientation_from_trajectory(root_trajectory)
             write_log("Set start orientation from trajectory to", self.start_pose["orientation"])
-
-    def _set_start_pose(self, action_constraints):
-        """ Sets the pose at the beginning of the elementary action sequence
-        Determines the optimal start orientation from the constraints if none is given.
-        :param action_constraints:
-        :return:
-        """
-        action_constraints.start_pose = self.get_start_pose()
 
     def get_start_pose(self):
         return self.start_pose
