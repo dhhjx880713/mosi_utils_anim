@@ -19,8 +19,8 @@ class MGInputFormatReader(object):
 
     def __init__(self, mg_input_file, activate_joint_mapping=False, activate_coordinate_transform=True):
         self.mg_input_file = mg_input_file
-        self.elementary_action_list = []
-        self.keyframe_annotations = []
+        self.elementary_action_list = list()
+        self.keyframe_annotations = list()
         self.joint_name_map = dict()
         self.inverse_joint_name_map = dict()
         self._fill_joint_name_map()
@@ -86,10 +86,10 @@ class MGInputFormatReader(object):
             dict of constraints lists applicable to a specific motion primitive of the node_group
         """
         keyframe_constraints = self._extract_all_keyframe_constraints(self.elementary_action_list[action_index]["constraints"], node_group)
-        return self._reorder_keyframe_constraints_for_motion_primitives(node_group, keyframe_constraints)
+        return self._reorder_keyframe_constraints_by_motion_primitive_name(node_group, keyframe_constraints)
 
     def _extract_control_points_from_trajectory_constraint_definition(self, trajectory_constraint_desc, scale_factor=1.0, distance_threshold=0.0):
-        control_points = []
+        control_points = list()
         previous_point = None
         n_control_points = len(trajectory_constraint_desc)
         if "semanticAnnotation" in trajectory_constraint_desc[0].keys():
@@ -160,7 +160,7 @@ class MGInputFormatReader(object):
         trajectory_constraint_desc = self._extract_trajectory_constraint_desc(self.elementary_action_list[action_index]["constraints"], joint_name)
         if trajectory_constraint_desc is not None:
             #extract unconstrained dimensions
-            unconstrained_indices = []
+            unconstrained_indices = list()
             idx = 0
             for v in trajectory_constraint_desc[0]["position"]:
                 if v is None:
@@ -212,20 +212,20 @@ class MGInputFormatReader(object):
         return keyframe_annotations
 
     def get_keyframe_annotations(self, action_index):
-            """
-            Returns
-            ------
-            * keyframe_annotations : a list of dicts
-              Contains for every elementary action a dict that associates of events/actions with certain keyframes
-            """
-            annotations = dict()
-            if "keyframeAnnotations" in self.elementary_action_list[action_index].keys():
-                for annotation in self.elementary_action_list[action_index]["keyframeAnnotations"]:
-                    keyframe_label = annotation["keyframe"]
-                    annotations[keyframe_label] = annotation
-            return annotations
+        """
+        Returns
+        ------
+        * keyframe_annotations : a list of dicts
+          Contains for every elementary action a dict that associates of events/actions with certain keyframes
+        """
+        annotations = dict()
+        if "keyframeAnnotations" in self.elementary_action_list[action_index].keys():
+            for annotation in self.elementary_action_list[action_index]["keyframeAnnotations"]:
+                keyframe_label = annotation["keyframe"]
+                annotations[keyframe_label] = annotation
+        return annotations
 
-    def _reorder_keyframe_constraints_for_motion_primitives(self, node_group, keyframe_constraints):
+    def _reorder_keyframe_constraints_by_motion_primitive_name(self, node_group, keyframe_constraints):
         """ Order constraints extracted by _extract_all_keyframe_constraints for each state
         Returns
         -------
@@ -236,18 +236,20 @@ class MGInputFormatReader(object):
         for keyframe_label in keyframe_constraints.keys():
             motion_primitive_name = node_group.label_to_motion_primitive_map[keyframe_label]
             time_information = node_group.motion_primitive_annotations[motion_primitive_name][keyframe_label]
-            reordered_constraints[motion_primitive_name] = []
+            reordered_constraints[motion_primitive_name] = list()
             # iterate over joints constrained at that keyframe
             for joint_name in keyframe_constraints[keyframe_label].keys():
                 # iterate over constraints for that joint
-                for keyframe_constraint in keyframe_constraints[keyframe_label][joint_name]:
-                    # create constraint definition usable by the algorithm
-                    # and add it to the list of constraints for that state
-                    constraint_desc = self._create_keyframe_constraint(keyframe_label, joint_name, keyframe_constraint, time_information)
-                    reordered_constraints[motion_primitive_name].append(constraint_desc)
+                for constraint_type in self.constraint_types:
+                    if constraint_type in keyframe_constraints[keyframe_label][joint_name].keys():
+                        for constraint_definition in keyframe_constraints[keyframe_label][joint_name][constraint_type]:
+                            # create constraint definition usable by the algorithm
+                            # and add it to the list of constraints for that state
+                            constraint_desc = self._create_keyframe_constraint(keyframe_label, joint_name, constraint_definition, time_information)
+                            reordered_constraints[motion_primitive_name].append(constraint_desc)
         return reordered_constraints
 
-    def _extract_keyframe_constraints_for_label(self, input_constraint_list, label):
+    def _extract_constraints_for_keyframe_label(self, input_constraint_list, label):
         """ Returns the constraints associated with the given label. Ordered
             based on joint names.
         Returns
@@ -271,6 +273,7 @@ class MGInputFormatReader(object):
             if self._constraint_definition_has_label(constraint_definition, label):
                 keyframe_constraint_definitions.append(constraint_definition)
         return keyframe_constraint_definitions
+
     def _extract_all_keyframe_constraints(self, constraint_list, node_group):
         """Orders the keyframe constraint for the labels found in the metainformation of
            the elementary actions based on labels as keys
@@ -280,12 +283,10 @@ class MGInputFormatReader(object):
           Lists of constraints for each motion primitive in the subgraph.
           access as keyframe_constraints["label"]["joint"][index]
         """
-        keyframe_constraints = {}
+        keyframe_constraints = dict()
         annotations = node_group.label_to_motion_primitive_map.keys()
         for label in annotations:
-            # print "extract constraints for annotation",label
-            keyframe_constraints[label] = self._extract_keyframe_constraints_for_label(constraint_list, label)
-            #key_frame_constraints = extract_keyframe_constraints(constraints,annotion)
+            keyframe_constraints[label] = self._extract_constraints_for_keyframe_label(constraint_list, label)
         return keyframe_constraints
 
     def _extract_trajectory_constraint_desc(self, input_constraint_list, joint_name):
