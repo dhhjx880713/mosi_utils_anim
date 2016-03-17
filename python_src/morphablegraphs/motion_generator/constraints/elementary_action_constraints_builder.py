@@ -46,7 +46,7 @@ class ElementaryActionConstraintsBuilder(object):
           List of constraints for the elementary actions extracted from an input file.
         """
         self.mg_input = mg_input
-        self.start_pose = mg_input.get_start_pose()
+        self._init_start_pose(mg_input)
         action_constaints_list = []
         for idx in xrange(self.mg_input.get_number_of_actions()):
             action_constaints_list.append(self._build_action_constraint(idx))
@@ -63,20 +63,30 @@ class ElementaryActionConstraintsBuilder(object):
         action_constraints._initialized = True
         return action_constraints
 
+    def _init_start_pose(self, mg_input):
+        self.start_pose = mg_input.get_start_pose()
+        if self.start_pose["orientation"] is None:
+            root_trajectory = self._create_trajectory_constraint(0, "Hips")
+            self.start_pose["orientation"] = self.get_start_orientation_from_trajectory(root_trajectory)
+            write_log("Set start orientation from trajectory to", self.start_pose["orientation"])
+
     def _set_start_pose(self, action_constraints):
         """ Sets the pose at the beginning of the elementary action sequence
         Determines the optimal start orientation from the constraints if none is given.
         :param action_constraints:
         :return:
         """
-        if self.start_pose["orientation"] is None:
-            if action_constraints.root_trajectory is not None:
-                start, tangent, angle = action_constraints.root_trajectory.get_angle_at_arc_length_2d(0.0, REFERENCE_2D_OFFSET)
-                self.start_pose["orientation"] = [0, angle, 0]
-            else:
-                self.start_pose["orientation"] = [0, 0, 0]
-            write_log("Set start orientation from trajectory to", self.start_pose["orientation"])
-        action_constraints.start_pose = self.start_pose
+        action_constraints.start_pose = self.get_start_pose()
+
+    def get_start_pose(self):
+        return self.start_pose
+
+    def get_start_orientation_from_trajectory(self, root_trajectory):
+        if root_trajectory is not None:
+            start, tangent, angle = root_trajectory.get_angle_at_arc_length_2d(0.0, REFERENCE_2D_OFFSET)
+            return [0, angle, 0]
+        else:
+            return [0, 0, 0]
 
     def _add_keyframe_annotations(self, action_constraints, index):
         if index > 0:

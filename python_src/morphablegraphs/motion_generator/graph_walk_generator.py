@@ -56,8 +56,9 @@ class GraphWalkGenerator(object):
         * graph_walk: GraphWalk
             Contains the quaternion frames and annotations of the frames based on actions.
         """
-        graph_walk = GraphWalk(self.motion_primitive_graph, mg_input_reader, self._algorithm_config)
-        for action_constraints in self.action_constraints_builder.build_list_from_input_file(mg_input_reader):
+        action_constraint_list = self.action_constraints_builder.build_list_from_input_file(mg_input_reader)
+        graph_walk = GraphWalk(self.motion_primitive_graph, mg_input_reader, self._algorithm_config, self.action_constraints_builder.get_start_pose())
+        for action_constraints in action_constraint_list:
             if self._algorithm_config["debug_max_step"] > -1 and graph_walk.step_count > self._algorithm_config["debug_max_step"]:
                 write_log("Aborting motion synthesis: Reached maximum debug step number")
                 break
