@@ -115,28 +115,30 @@ class ElementaryActionConstraintsBuilder(object):
         """ Create a special constraint if two hand joints are constrained on the same keyframe
         """
         for mp_name in action_constraints.keyframe_constraints.keys():
-            #separate constraints based on keyframe label
-            keyframe_label_lists = self._map_constraints_by_label(action_constraints.keyframe_constraints[mp_name])
-            action_constraints.keyframe_constraints[mp_name], merged_constraints = self._merge_two_hand_constraints_in_keyframe_label_list(keyframe_label_lists)
+            keyframe_constraints_map = self._map_constraints_by_label(action_constraints.keyframe_constraints[mp_name])
+            action_constraints.keyframe_constraints[mp_name], merged_constraints = \
+                self._merge_two_hand_constraints_in_keyframe_label_map(keyframe_constraints_map)
             if merged_constraints:
                 action_constraints.contains_two_hands_constraints = True
 
     def _map_constraints_by_label(self, keyframe_constraints):
-        keyframe_label_lists = dict()
+        """ separate constraints based on keyframe label
+        """
+        keyframe_constraints_map = dict()
         for desc in keyframe_constraints:
             keyframe_label = desc["semanticAnnotation"]["keyframeLabel"]
-            if keyframe_label not in keyframe_label_lists.keys():
-                keyframe_label_lists[keyframe_label] = list()
-            keyframe_label_lists[keyframe_label].append(desc)
-        return keyframe_label_lists
+            if keyframe_label not in keyframe_constraints_map.keys():
+                keyframe_constraints_map[keyframe_label] = list()
+            keyframe_constraints_map[keyframe_label].append(desc)
+        return keyframe_constraints_map
 
-    def _merge_two_hand_constraints_in_keyframe_label_list(self, keyframe_label_lists):
+    def _merge_two_hand_constraints_in_keyframe_label_map(self, keyframe_constraints_map):
         """perform the merging for specific keyframe labels
         """
         merged_constraints = False
         merged_keyframe_constraints = list()
-        for keyframe_label in keyframe_label_lists.keys():
-            new_constraint_list, is_merged = self._merge_two_hand_constraint_for_label(keyframe_label_lists[keyframe_label])
+        for keyframe_label in keyframe_constraints_map.keys():
+            new_constraint_list, is_merged = self._merge_two_hand_constraint_for_label(keyframe_constraints_map[keyframe_label])
             merged_keyframe_constraints += new_constraint_list
             if is_merged:
                 merged_constraints = True
