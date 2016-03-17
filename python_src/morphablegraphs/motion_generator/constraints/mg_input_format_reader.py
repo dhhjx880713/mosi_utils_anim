@@ -14,6 +14,9 @@ class MGInputFormatReader(object):
     * mg_input_file : file path or json data read from a file
         Contains elementary action list with constraints, start pose and keyframe annotations.
     """
+
+    constraint_types = ["keyframeConstraints", "directionConstraints"]
+
     def __init__(self, mg_input_file, activate_joint_mapping=False, activate_coordinate_transform=True):
         self.mg_input_file = mg_input_file
         self.elementary_action_list = []
@@ -252,17 +255,22 @@ class MGInputFormatReader(object):
         * key_constraints : dict of lists
         \t contains the list of the constrained joints
         """
-        key_constraints = {}
-        for constraint in input_constraint_list:
-            joint_name = constraint["joint"]
-            if "keyframeConstraints" in constraint.keys():
-                key_constraints[joint_name] = []
-                for constraint_definition in constraint["keyframeConstraints"]:
-                    print "read constraint", constraint_definition, joint_name
-                    if self._constraint_definition_has_label(constraint_definition, label):
-                        key_constraints[joint_name].append(constraint_definition)
+        key_constraints = dict()
+        for joint_constraints in input_constraint_list:
+            joint_name = joint_constraints["joint"]
+            key_constraints[joint_name] = dict()
+            for constraint_type in self.constraint_types:
+                if constraint_type in joint_constraints.keys():
+                    key_constraints[joint_name][constraint_type] = self.filter_constraint_definitions_by_label(joint_constraints[constraint_type], label)
         return key_constraints
 
+    def filter_constraint_definitions_by_label(self, constraint_definitions, label):
+        keyframe_constraint_definitions = list()
+        for constraint_definition in constraint_definitions:
+            #print "read constraint", constraint_definition, joint_name
+            if self._constraint_definition_has_label(constraint_definition, label):
+                keyframe_constraint_definitions.append(constraint_definition)
+        return keyframe_constraint_definitions
     def _extract_all_keyframe_constraints(self, constraint_list, node_group):
         """Orders the keyframe constraint for the labels found in the metainformation of
            the elementary actions based on labels as keys
