@@ -149,6 +149,12 @@ class ElementaryActionConstraintsBuilder(object):
         merged_constraint_list = list()
         left_hand_index = left_hand_indices[0]
         right_hand_index = right_hand_indices[0]
+        merged_constraint_list.append(self._create_two_hand_constraint_definition(constraint_list, left_hand_index, right_hand_index))
+        merged_constraint_list += [desc for (index, desc) in enumerate(constraint_list)
+                                        if index != left_hand_index and index != right_hand_index]
+        return merged_constraint_list, True
+
+    def _create_two_hand_constraint_definition(self, constraint_list, left_hand_index, right_hand_index):
         joint_names = [LEFT_HAND_JOINT, RIGHT_HAND_JOINT]
         positions = [constraint_list[left_hand_index]["position"],
                      constraint_list[right_hand_index]["position"]]
@@ -163,10 +169,7 @@ class ElementaryActionConstraintsBuilder(object):
                                    "merged": True,
                                    "semanticAnnotation": semantic_annotation}
         #print "merged keyframe constraint", merged_constraint_desc
-        merged_constraint_list.append(merged_constraint_desc)
-        merged_constraint_list += [desc for (index, desc) in enumerate(constraint_list)
-                                        if index != left_hand_index and index != right_hand_index]
-        return merged_constraint_list, True
+        return merged_constraint_desc
 
     def _add_trajectory_constraints(self, action_constraints, action_index):
         """ Extracts the root_trajectory if it is found and trajectories for other joints.
