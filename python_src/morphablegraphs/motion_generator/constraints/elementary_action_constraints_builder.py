@@ -189,15 +189,20 @@ class ElementaryActionConstraintsBuilder(object):
                     else:
                         action_constraints.collision_avoidance_constraints.append(trajectory_constraint)
         if self.collision_avoidance_constraints_mode == CA_CONSTRAINTS_MODE_SET and len(action_constraints.collision_avoidance_constraints) > 0:
-            if action_constraints.root_trajectory is not None:
-                   joint_trajectories = [action_constraints.root_trajectory] + action_constraints.collision_avoidance_constraints
-                   joint_names = [action_constraints.root_trajectory.joint_name] + [traj.joint_name for traj in joint_trajectories]
-            else:
-                   joint_trajectories = action_constraints.collision_avoidance_constraints
-                   joint_names = [traj.joint_name for traj in joint_trajectories]
+            self._add_trajectory_constraint_set(action_constraints, action_index)
 
-            action_constraints.ca_trajectory_set_constraint = TrajectorySetConstraint(joint_trajectories, joint_names,
-                                                                                       self.motion_state_graph.skeleton, self.constraint_precision, self.default_constraint_weight)
+    def _add_ca_trajectory_constraint_set(self, action_constraints):
+        if action_constraints.root_trajectory is not None:
+               joint_trajectories = [action_constraints.root_trajectory] + action_constraints.collision_avoidance_constraints
+               joint_names = [action_constraints.root_trajectory.joint_name] + [traj.joint_name for traj in joint_trajectories]
+        else:
+               joint_trajectories = action_constraints.collision_avoidance_constraints
+               joint_names = [traj.joint_name for traj in joint_trajectories]
+
+        action_constraints.ca_trajectory_set_constraint = TrajectorySetConstraint(joint_trajectories, joint_names,
+                                                                                  self.motion_state_graph.skeleton,
+                                                                                  self.constraint_precision,
+                                                                                  self.default_constraint_weight)
 
     def _create_trajectory_constraint(self, action_index, joint_name, scale_factor=1.0):
         """ Create a spline based on a trajectory constraint definition read from the input file.
