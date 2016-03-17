@@ -80,7 +80,7 @@ class GraphWalk(object):
             time_function = None
             if self.use_time_parameters:
                 time_function = self.motion_state_graph.nodes[step.node_key].back_project_time_function(step.parameters)
-            step_constraints = step.motion_primitive_constraints.convert_to_ik_constraints2(frame_offset, time_function)
+            step_constraints = step.motion_primitive_constraints.convert_to_ik_constraints(frame_offset, time_function)
             ik_constraints["keyframes"].update(step_constraints)
             frame_offset += step.end_frame - step.start_frame
             #if time_function is not None:
