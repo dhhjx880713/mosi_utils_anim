@@ -92,7 +92,7 @@ class MGConfigurationHandler(tornado.web.RequestHandler):
         self.application = application
 
     def get(self):
-        error_string = "GET request not implemented. Use POST instead."
+        error_string = "GET request is not implemented. Use POST instead."
         print error_string
         self.write(error_string)
 
@@ -113,10 +113,9 @@ class MGConfigurationHandler(tornado.web.RequestHandler):
 
 
 class MGRestApplication(tornado.web.Application):
-    '''Extends the Application class with a MorphableGraph instance and options.
+    """ Extends the Application class with a MorphableGraph instance and options.
         This allows access to the data in the MGInputHandler class
-    '''
-
+    """
     def __init__(self, service_config, algorithm_config, handlers=None, default_host="", transforms=None, **settings):
         tornado.web.Application.__init__(self, handlers, default_host, transforms)
 
