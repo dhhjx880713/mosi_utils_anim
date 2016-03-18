@@ -246,7 +246,7 @@ class MGInputFormatReader(object):
                         for constraint_definition in keyframe_constraints[keyframe_label][joint_name][c_type]:
                             # create constraint definition usable by the algorithm
                             # and add it to the list of constraints for that state
-                            constraint_desc = self._extend_keyframe_constraint_definition(keyframe_label, joint_name, constraint_definition, time_information)
+                            constraint_desc = self._extend_keyframe_constraint_definition(keyframe_label, joint_name, constraint_definition, time_information, c_type)
                             reordered_constraints[mp_name].append(constraint_desc)
         return reordered_constraints
 
@@ -299,7 +299,7 @@ class MGInputFormatReader(object):
                     return c["trajectoryConstraints"]
         return None
 
-    def _extend_keyframe_constraint_definition(self, keyframe_label, joint_name, constraint, time_information):
+    def _extend_keyframe_constraint_definition(self, keyframe_label, joint_name, constraint, time_info, c_type):
         """ Creates a dict containing all properties stated explicitly or implicitly in the input constraint
         Parameters
         ----------
@@ -309,7 +309,7 @@ class MGInputFormatReader(object):
           Name of the joint
         * constraint : dict
           Read from json input file
-        * time_information : string
+        * time_info : string
           Time information corresponding to an annotation read from morphable graph meta information
 
          Returns
@@ -332,13 +332,18 @@ class MGInputFormatReader(object):
             semantic_annotation = constraint["semanticAnnotation"]
         else:
             semantic_annotation = dict()
-        self._add_legacy_constrained_gmm_info(time_information, semantic_annotation)
+        #self._add_legacy_constrained_gmm_info(time_info, semantic_annotation)
         semantic_annotation["keyframeLabel"] = keyframe_label
         constraint_desc = {"joint": joint_name,
                            "position": position,
                            "orientation": orientation,
                            "time": time,
                            "semanticAnnotation": semantic_annotation}
+
+        if c_type == "directionConstraints":
+            #position is interpreted as look at target
+            #TODO improve integration of look at constraints
+            constraint_desc["look_at"] = True
         return constraint_desc
 
     def _add_legacy_constrained_gmm_info(self, time_information, semantic_annotation):
