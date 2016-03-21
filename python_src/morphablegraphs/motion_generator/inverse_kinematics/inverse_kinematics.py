@@ -214,7 +214,7 @@ class InverseKinematics(object):
         d = traj_constraint["delta"]
         trajectory = traj_constraint["trajectory"]
         start_idx, end_idx = self._find_corresponding_frame_range(motion_vector, traj_constraint)
-        n_frames = end_idx-start_idx
+        n_frames = end_idx-start_idx + 1
         full_length = n_frames*d
         for idx in xrange(n_frames):
             t = (idx*d)/full_length
@@ -229,6 +229,7 @@ class InverseKinematics(object):
                 iter_counter += 1
             #self._modify_pose(constraint["joint_name"], target)
             motion_vector.frames[keyframe] = self.pose.get_vector()
+        self._create_transition_for_frame_range(motion_vector.frames, start_idx, end_idx, self.pose.free_joints_map[traj_constraint["joint_name"]])
 
     def _find_corresponding_frame_range(self, motion_vector, traj_constraint):
         start_idx = traj_constraint["start_frame"]
