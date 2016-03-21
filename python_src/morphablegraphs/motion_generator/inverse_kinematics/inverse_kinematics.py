@@ -204,26 +204,52 @@ class InverseKinematics(object):
         for c in constraints:
             self._modify_motion_vector_using_trajectory_constraint(motion_vector, c)
 
-    def _modify_motion_vector_using_trajectory_constraint(self, motion_vector, constraint):
-        write_log("ca constraint for joint", constraint["joint_name"])
-        d = constraint["delta"]
-        trajectory = constraint["trajectory"]
-        n_frames = constraint["end_frame"]-constraint["start_frame"]
+    def _modify_motion_vector_using_trajectory_constraint(self, motion_vector, traj_constraint):
+        write_log("ca constraint for joint", traj_constraint["joint_name"])
+        d = traj_constraint["delta"]
+        trajectory = traj_constraint["trajectory"]
+        start_idx, end_idx = self._find_corresponding_frame_range(motion_vector, traj_constraint)
+        n_frames = end_idx-start_idx
         full_length = n_frames*d
         for idx in xrange(n_frames):
             t = (idx*d)/full_length
             target = trajectory.query_point_by_parameter(t)
-            keyframe = constraint["start_frame"]+idx
+            keyframe = start_idx+idx
             #write_log("change frame", idx, t, target, constraint["joint_name"])
             self.set_pose_from_frame(motion_vector.frames[keyframe])
             error = np.inf
             iter_counter = 0
             while error > self.success_threshold and iter_counter < self.max_retries:
-                error = self._modify_pose(constraint["joint_name"], target)
+                error = self._modify_pose(traj_constraint["joint_name"], target)
                 iter_counter += 1
-
             #self._modify_pose(constraint["joint_name"], target)
             motion_vector.frames[keyframe] = self.pose.get_vector()
+
+    def _find_corresponding_frame_range(self, motion_vector, traj_constraint):
+        start_idx = traj_constraint["start_frame"]
+        end_idx = traj_constraint["end_frame"]
+        start_target = traj_constraint["trajectory"].query_point_by_parameter(0.0)
+        end_target = traj_constraint["trajectory"].query_point_by_parameter(1.0)
+        print ("looking for corresponding frame range in frame range", start_idx, end_idx, start_target, end_target)
+        start_idx = self._find_corresponding_frame(motion_vector, start_idx, end_idx, traj_constraint["joint_name"], start_target)
+        end_idx = self._find_corresponding_frame(motion_vector, start_idx, end_idx, traj_constraint["joint_name"], end_target)
+        print ("found corresponding frame range", start_idx, end_idx)
+        return start_idx, end_idx
+
+    def _find_corresponding_frame(self, motion_vector, start_idx, end_idx, target_joint, target_position):
+        closest_start_frame = copy(start_idx)
+        min_error = np.inf
+        n_frames = end_idx-start_idx
+        for idx in xrange(n_frames):
+            keyframe = start_idx+idx
+            self.set_pose_from_frame(motion_vector.frames[keyframe])
+            position = self.pose.evaluate_position(target_joint)
+            error = np.linalg.norm(position-target_position)
+            print(error, idx)
+            if error <= min_error:
+                min_error = error
+                closest_start_frame = keyframe
+        return closest_start_frame
 
     def _extract_free_parameters(self, free_joints):
         """get parameters of joints from reference frame
