@@ -181,23 +181,26 @@ class ElementaryActionConstraintsBuilder(object):
         action_constraints.collision_avoidance_constraints = []
         for joint_name in self.motion_state_graph.skeleton.node_name_frame_map.keys():
             if joint_name != root_joint_name:
-                trajectory_constraint = self._create_trajectory_constraint(action_index, joint_name)
-                if trajectory_constraint is not None:
-                    # decide if it is a collision avoidance constraint based on whether or not it has a range
-                    if trajectory_constraint.range_start is None:
-                        action_constraints.trajectory_constraints.append(trajectory_constraint)
-                    else:
-                        action_constraints.collision_avoidance_constraints.append(trajectory_constraint)
+               self._add_trajectory_constraint(action_constraints, action_index, joint_name)
         if self.collision_avoidance_constraints_mode == CA_CONSTRAINTS_MODE_SET and len(action_constraints.collision_avoidance_constraints) > 0:
             self._add_trajectory_constraint_set(action_constraints, action_index)
 
+    def _add_trajectory_constraint(self, action_constraints, action_index, joint_name):
+        trajectory_constraint = self._create_trajectory_constraint(action_index, joint_name)
+        if trajectory_constraint is not None:
+            # decide if it is a collision avoidance constraint based on whether or not it has a range
+            if trajectory_constraint.range_start is None:
+                action_constraints.trajectory_constraints.append(trajectory_constraint)
+            else:
+                action_constraints.collision_avoidance_constraints.append(trajectory_constraint)
+
     def _add_ca_trajectory_constraint_set(self, action_constraints):
         if action_constraints.root_trajectory is not None:
-               joint_trajectories = [action_constraints.root_trajectory] + action_constraints.collision_avoidance_constraints
-               joint_names = [action_constraints.root_trajectory.joint_name] + [traj.joint_name for traj in joint_trajectories]
+           joint_trajectories = [action_constraints.root_trajectory] + action_constraints.collision_avoidance_constraints
+           joint_names = [action_constraints.root_trajectory.joint_name] + [traj.joint_name for traj in joint_trajectories]
         else:
-               joint_trajectories = action_constraints.collision_avoidance_constraints
-               joint_names = [traj.joint_name for traj in joint_trajectories]
+           joint_trajectories = action_constraints.collision_avoidance_constraints
+           joint_names = [traj.joint_name for traj in joint_trajectories]
 
         action_constraints.ca_trajectory_set_constraint = TrajectorySetConstraint(joint_trajectories, joint_names,
                                                                                   self.motion_state_graph.skeleton,
@@ -211,11 +214,13 @@ class ElementaryActionConstraintsBuilder(object):
 
         Returns
         -------
-        * trajectory: ParameterizedSpline
+        * trajectory: TrajectoryConstraint
         \t The trajectory defined by the control points from the trajectory_constraint or None if there is no constraint
         """
         traj_c = None
-        control_points, unconstrained_indices, active_region = self.mg_input.extract_trajectory_desc(action_index, joint_name, self.control_point_distance_threshold)
+        control_points, unconstrained_indices, active_region = self.mg_input.extract_trajectory_desc(action_index,
+                                                                                                     joint_name,
+                                                                                                     self.control_point_distance_threshold)
         if control_points is not None and unconstrained_indices is not None:
             traj_c = TrajectoryConstraint(joint_name, control_points,
                                           self.default_spline_type, 0.0,
