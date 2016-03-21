@@ -26,6 +26,7 @@ class MGInputFormatReader(object):
         self._fill_joint_name_map()
         self.activate_joint_mapping = activate_joint_mapping
         self.activate_coordinate_transform = activate_coordinate_transform
+        self.scale_factor = 1.0
         if type(mg_input_file) != dict:
             mg_input_file = open(mg_input_file)
             input_string = mg_input_file.read()
@@ -89,65 +90,85 @@ class MGInputFormatReader(object):
         keyframe_constraints = self._extract_all_keyframe_constraints(self.elementary_action_list[action_index]["constraints"], node_group)
         return self._reorder_keyframe_constraints_by_motion_primitive_name(node_group, keyframe_constraints)
 
-    def _extract_control_points_from_trajectory_constraint_definition(self, trajectory_constraint_desc, scale_factor=1.0, distance_threshold=0.0):
+    def _extract_trajectory_control_points(self, traj_constraint, distance_threshold=0.0):
         control_points = list()
         previous_point = None
-        n_control_points = len(trajectory_constraint_desc)
-        if "semanticAnnotation" in trajectory_constraint_desc[0].keys():
-            active_region = dict()
-            active_region["start_point"] = None
-            active_region["end_point"] = None
-        else:
-            active_region = None
+        n_control_points = len(traj_constraint)
+        active_region = self._init_active_region(traj_constraint)
 
         last_distance = None
-        for i in xrange(n_control_points):
-            if trajectory_constraint_desc[i]["position"] == [None, None, None]:
-                write_log("Warning: skip undefined control point")
+        for idx in xrange(n_control_points):
+            tmp_distance_threshold = distance_threshold
+            if active_region is not None:
+                tmp_distance_threshold = -1
+            result = self._extract_control_point(traj_constraint, n_control_points, idx, previous_point, last_distance, tmp_distance_threshold)
+            if result is None:
                 continue
-
-            #where the a component of the position is set None it is set it to 0 to allow a 3D spline definition
-            point = [p*scale_factor if p is not None else 0 for p in trajectory_constraint_desc[i]["position"]]
-            point = np.asarray(self._transform_point_from_cad_to_opengl_cs(point))
-
-            if previous_point is not None:
-                distance = np.linalg.norm(point-previous_point)
             else:
-                distance = None
-            #add the point if there is no distance threshold, it is the first point, it is the last point or larger than or equal to the distance threshold
-            if active_region is not None or (distance_threshold <= 0.0 or
-                                             previous_point is None or
-                                             np.linalg.norm(point-previous_point) >= distance_threshold):
-                if last_distance is None or distance >= last_distance/10.0:
-                    control_points.append(point)
-                    last_distance = distance
-            elif i == n_control_points-1:
-                last_added_point_idx = len(control_points)-1
-                if np.linalg.norm(control_points[last_added_point_idx] - point) < distance_threshold:
-                    control_points[last_added_point_idx] = (control_points[last_added_point_idx] - point) * 1.00 + control_points[last_added_point_idx]
-                    write_log("Warning: shift second to last control point because it is too close to the last control point")
+                point, last_distance = result
+
+                n_points = len(control_points)
+                if idx == n_control_points-1:
+                    last_added_point_idx = n_points-1
+                    delta = control_points[last_added_point_idx] - point
+                    if np.linalg.norm(delta) < distance_threshold:
+                        control_points[last_added_point_idx] += delta
+                        write_log("Warning: shift second to last control point because it is too close to the last control point")
+
                 control_points.append(point)
 
-            #set active region if it is a collision avoidance trajectory
-            if active_region is not None and "semanticAnnotation" in trajectory_constraint_desc[i].keys():
-                active = trajectory_constraint_desc[i]["semanticAnnotation"]["collisionAvoidance"]
-                if active and active_region["start_point"] is None:
-                    #print "set start", point
-                    active_region["start_point"] = point
-                elif not active and active_region["start_point"] is not None and active_region["end_point"] is None:
-                    #print "set end", point
-                    active_region["end_point"] = point
-
-            previous_point = point
+                if active_region is not None and "semanticAnnotation" in traj_constraint[idx].keys():
+                    self._update_active_region(active_region, point, traj_constraint[idx]["semanticAnnotation"]["collisionAvoidance"])
+                previous_point = point
 
         #handle invalid region specification
         if active_region is not None:
-            if active_region["start_point"] is None:
-                active_region["start_point"] = control_points[0]
-            if active_region["end_point"] is None:
-                active_region["end_point"] = control_points[-1]
+            self._end_active_region(active_region)
         #print "loaded", len(control_points), "points"
         return control_points, active_region
+
+    def _init_active_region(self,traj_constraint):
+        if "semanticAnnotation" in traj_constraint[0].keys():
+            active_region = dict()
+            active_region["start_point"] = None
+            active_region["end_point"] = None
+            return active_region
+        else:
+            return None
+
+    def _end_active_region(self, active_region, control_points):
+        if active_region["start_point"] is None:
+            active_region["start_point"] = control_points[0]
+        if active_region["end_point"] is None:
+            active_region["end_point"] = control_points[-1]
+
+    def _update_active_region(self, active_region, point, new_active):
+         #set active region if it is a collision avoidance trajectory
+        if new_active and active_region["start_point"] is None:
+            #print "set start", point
+            active_region["start_point"] = point
+        elif not new_active and active_region["start_point"] is not None and active_region["end_point"] is None:
+            #print "set end", point
+            active_region["end_point"] = point
+
+
+    def _extract_control_point(self, traj_constraint, n_control_points, index, previous_point, last_distance, distance_threshold):
+        if traj_constraint[index]["position"] == [None, None, None]:
+            write_log("Warning: skip undefined control point")
+            return None
+        #set component of the position to 0 where it is is set to None to allow a 3D spline definition
+        point = [p*self.scale_factor if p is not None else 0 for p in traj_constraint[index]["position"]]
+        point = np.asarray(self._transform_point_from_cad_to_opengl_cs(point))
+
+        if previous_point is None or index == n_control_points-1:
+            return point, last_distance
+        else:
+            distance = np.linalg.norm(point-previous_point)
+            #add the point if there is no distance threshold, it is the first point, it is the last point or larger than or equal to the distance threshold
+            if (distance_threshold <= 0.0 or np.linalg.norm(point-previous_point) >= distance_threshold) and (last_distance is None or distance >= last_distance/10.0):
+                return point, distance
+            else:
+                return None
 
     def extract_trajectory_desc(self, action_index, joint_name, scale_factor=1.0, distance_threshold=-1):
         """ Extract the trajectory information from the constraint list
@@ -168,7 +189,7 @@ class MGInputFormatReader(object):
                     unconstrained_indices.append(idx)
                 idx += 1
             unconstrained_indices = self._transform_unconstrained_indices_from_cad_to_opengl_cs(unconstrained_indices)
-            control_points, active_region = self._extract_control_points_from_trajectory_constraint_definition(trajectory_constraint_desc, distance_threshold=distance_threshold)
+            control_points, active_region = self._extract_trajectory_control_points(trajectory_constraint_desc, distance_threshold)
             #print control_points
             #active_region = self._check_for_collision_avoidance_annotation(trajectory_constraint_desc, control_points)
 
