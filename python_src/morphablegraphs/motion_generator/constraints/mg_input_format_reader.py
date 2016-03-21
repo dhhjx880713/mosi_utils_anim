@@ -91,6 +91,14 @@ class MGInputFormatReader(object):
         return self._reorder_keyframe_constraints_by_motion_primitive_name(node_group, keyframe_constraints)
 
     def _extract_trajectory_control_points(self, traj_constraint, distance_threshold=0.0):
+
+    def _is_active_trajectory_region(self, traj_constraint, index):
+        if "semanticAnnotation" in traj_constraint[index].keys():
+            return traj_constraint[index]["semanticAnnotation"]["collisionAvoidance"]
+        else:
+            return True
+
+    def _extract_trajectory_control_points(self, traj_constraint, distance_threshold=0.0, filter_active_region=True):
         control_points = list()
         previous_point = None
         n_control_points = len(traj_constraint)
@@ -98,6 +106,9 @@ class MGInputFormatReader(object):
 
         last_distance = None
         for idx in xrange(n_control_points):
+            is_active = self._is_active_trajectory_region(traj_constraint, idx)
+            if filter_active_region and not is_active:
+                continue
             tmp_distance_threshold = distance_threshold
             if active_region is not None:
                 tmp_distance_threshold = -1
@@ -106,7 +117,6 @@ class MGInputFormatReader(object):
                 continue
             else:
                 point, last_distance = result
-
                 n_points = len(control_points)
                 if idx == n_control_points-1:
                     last_added_point_idx = n_points-1
@@ -114,11 +124,10 @@ class MGInputFormatReader(object):
                     if np.linalg.norm(delta) < distance_threshold:
                         control_points[last_added_point_idx] += delta
                         write_log("Warning: shift second to last control point because it is too close to the last control point")
-
                 control_points.append(point)
 
-                if active_region is not None and "semanticAnnotation" in traj_constraint[idx].keys():
-                    self._update_active_region(active_region, point, traj_constraint[idx]["semanticAnnotation"]["collisionAvoidance"])
+                if active_region is not None:
+                    self._update_active_region(active_region, point, is_active)
                 previous_point = point
 
         #handle invalid region specification
