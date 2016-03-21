@@ -170,7 +170,7 @@ class MGInputFormatReader(object):
             else:
                 return None
 
-    def extract_trajectory_desc(self, action_index, joint_name, scale_factor=1.0, distance_threshold=-1):
+    def extract_trajectory_desc(self, action_index, joint_name, distance_threshold=-1):
         """ Extract the trajectory information from the constraint list
         Returns:
         -------
