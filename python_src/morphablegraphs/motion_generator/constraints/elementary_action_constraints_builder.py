@@ -204,7 +204,7 @@ class ElementaryActionConstraintsBuilder(object):
                                                                                   self.constraint_precision,
                                                                                   self.default_constraint_weight)
 
-    def _create_trajectory_constraint(self, action_index, joint_name, scale_factor=1.0):
+    def _create_trajectory_constraint(self, action_index, joint_name):
         """ Create a spline based on a trajectory constraint definition read from the input file.
             Components containing None are set to 0, but marked as ignored in the unconstrained_indices list.
             Note all elements in constraints_list must have the same dimensions constrained and unconstrained.
@@ -215,7 +215,7 @@ class ElementaryActionConstraintsBuilder(object):
         \t The trajectory defined by the control points from the trajectory_constraint or None if there is no constraint
         """
         traj_c = None
-        control_points, unconstrained_indices, active_region = self.mg_input.extract_trajectory_desc(action_index, joint_name, scale_factor, self.control_point_distance_threshold)
+        control_points, unconstrained_indices, active_region = self.mg_input.extract_trajectory_desc(action_index, joint_name, self.control_point_distance_threshold)
         if control_points is not None and unconstrained_indices is not None:
             traj_c = TrajectoryConstraint(joint_name, control_points,
                                           self.default_spline_type, 0.0,
