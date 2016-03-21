@@ -123,7 +123,7 @@ class MGInputFormatReader(object):
 
         #handle invalid region specification
         if active_region is not None:
-            self._end_active_region(active_region)
+            self._end_active_region(active_region, control_points)
         #print "loaded", len(control_points), "points"
         return control_points, active_region
 
