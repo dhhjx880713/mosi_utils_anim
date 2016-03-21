@@ -181,7 +181,7 @@ class ElementaryActionConstraintsBuilder(object):
         action_constraints.collision_avoidance_constraints = []
         for joint_name in self.motion_state_graph.skeleton.node_name_frame_map.keys():
             if joint_name != root_joint_name:
-               self._add_trajectory_constraint(action_constraints, action_index, joint_name)
+                self._add_trajectory_constraint(action_constraints, action_index, joint_name)
         if self.collision_avoidance_constraints_mode == CA_CONSTRAINTS_MODE_SET and len(action_constraints.collision_avoidance_constraints) > 0:
             self._add_trajectory_constraint_set(action_constraints, action_index)
 
@@ -217,20 +217,26 @@ class ElementaryActionConstraintsBuilder(object):
         * trajectory: TrajectoryConstraint
         \t The trajectory defined by the control points from the trajectory_constraint or None if there is no constraint
         """
-        traj_c = None
         control_points, unconstrained_indices, active_region = self.mg_input.extract_trajectory_desc(action_index,
                                                                                                      joint_name,
                                                                                                      self.control_point_distance_threshold)
-        if control_points is not None and unconstrained_indices is not None:
-            traj_c = TrajectoryConstraint(joint_name, control_points,
+        if control_points is None or unconstrained_indices is None:
+            return None
+        else:
+            traj_constraint = TrajectoryConstraint(joint_name, control_points,
                                           self.default_spline_type, 0.0,
                                           unconstrained_indices,
                                           self.motion_state_graph.skeleton,
                                           self.constraint_precision, self.default_constraint_weight,
                                           self.closest_point_search_accuracy,
                                           self.closest_point_search_max_iterations)
-            if active_region is not None and active_region["start_point"] is not None and active_region["end_point"] is not None:
-                range_start, closest_point = traj_c.get_absolute_arc_length_of_point(active_region["start_point"])
-                range_end, closest_point = traj_c.get_absolute_arc_length_of_point(active_region["end_point"])
-                traj_c.set_active_range(range_start, range_end)
-        return traj_c
+            if active_region is not None:
+                traj_constraint.is_collision_avoidance_constraint = True
+                self._set_active_range_from_region(traj_constraint, active_region)
+            return traj_constraint
+
+    def _set_active_range_from_region(self, traj_constraint, active_region):
+        if active_region["start_point"] is not None and active_region["end_point"] is not None:
+            range_start, closest_point = traj_constraint.get_absolute_arc_length_of_point(active_region["start_point"])
+            range_end, closest_point = traj_constraint.get_absolute_arc_length_of_point(active_region["end_point"])
+            traj_constraint.set_active_range(range_start, range_end)
