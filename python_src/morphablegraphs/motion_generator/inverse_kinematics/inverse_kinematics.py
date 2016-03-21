@@ -176,11 +176,10 @@ class InverseKinematics(object):
             self.interpolate_around_keyframe(motion_vector, constraint.get_joint_names(), keyframe, self.window)
 
     def interpolate_around_keyframe(self, motion_vector, joint_names, keyframe, window):
-        write_log("smooth and interpolate", joint_names)
+        write_log("Smooth and interpolate", joint_names)
         for target_joint_name in joint_names:
             joint_parameter_indices = self._extract_free_parameter_indices(self.pose.free_joints_map[target_joint_name])
             for joint_name in self.pose.free_joints_map[target_joint_name]:
-                print joint_name
                 smooth_quaternion_frames_using_slerp(motion_vector.frames, joint_parameter_indices[joint_name], keyframe, window)
 
     def _look_at_in_range(self, motion_vector, position, start, end):
@@ -197,7 +196,7 @@ class InverseKinematics(object):
             #print joint_parameter_indices
             transition_start = max(start-self.transition_window, 0)
             transition_end = min(end+self.transition_window, frames.shape[0])-1
-            #print transition_start, start, end, transition_end, joint_parameter_indices, frames[transition_end-10,joint_parameter_indices]
+            print transition_start, start, end, transition_end, joint_parameter_indices, frames[transition_end-10,joint_parameter_indices]
             apply_slerp(frames, transition_start, start, joint_parameter_indices)
             apply_slerp(frames, end, transition_end, joint_parameter_indices)
             #print "after slerp",frames[transition_end-10,joint_parameter_indices]
@@ -205,12 +204,12 @@ class InverseKinematics(object):
         #smooth_quaternion_frames_using_slerp_overwrite_frames(motion_vector.frames, joint_parameter_indices, end, window)
 
     def _modify_motion_vector_using_trajectory_constraint_list(self, motion_vector, constraints):
-        write_log("number of ik trajectory constraints", len(constraints))
+        write_log("Number of ik trajectory constraints", len(constraints))
         for c in constraints:
-            self._modify_motion_vector_using_trajectory_constraint(motion_vector, c)
+            self._modify_motion_vector_using_trajectory_constraint2(motion_vector, c)
 
     def _modify_motion_vector_using_trajectory_constraint(self, motion_vector, traj_constraint):
-        write_log("ca constraint for joint", traj_constraint["joint_name"])
+        write_log("CA constraint for joint", traj_constraint["joint_name"])
         d = traj_constraint["delta"]
         trajectory = traj_constraint["trajectory"]
         start_idx, end_idx = self._find_corresponding_frame_range(motion_vector, traj_constraint)
@@ -231,15 +230,51 @@ class InverseKinematics(object):
             motion_vector.frames[keyframe] = self.pose.get_vector()
         self._create_transition_for_frame_range(motion_vector.frames, start_idx, end_idx, self.pose.free_joints_map[traj_constraint["joint_name"]])
 
+
+    def _modify_motion_vector_using_trajectory_constraint2(self, motion_vector, traj_constraint):
+        write_log("CA constraint for joint", traj_constraint["joint_name"])
+        trajectory = traj_constraint["trajectory"]
+        start_target = trajectory.query_point_by_parameter(0.0)
+        start_idx = self._find_corresponding_frame(motion_vector,
+                                                   traj_constraint["start_frame"],
+                                                   traj_constraint["end_frame"],
+                                                   traj_constraint["joint_name"],
+                                                   start_target)
+        n_frames = traj_constraint["end_frame"]-start_idx + 1
+        arc_length = 0.0
+        self.set_pose_from_frame(motion_vector.frames[start_idx])
+        prev_position = self.pose.evaluate_position(traj_constraint["joint_name"])
+        for idx in xrange(n_frames):
+            keyframe = start_idx+idx
+            self.set_pose_from_frame(motion_vector.frames[keyframe])
+            current_position = self.pose.evaluate_position(traj_constraint["joint_name"])
+            arc_length += np.linalg.norm(prev_position-current_position)
+            prev_position = current_position
+            if arc_length >= trajectory.full_arc_length:
+                break
+            target = trajectory.query_point_by_absolute_arc_length(arc_length)
+
+            #write_log("change frame", idx, t, target, constraint["joint_name"])
+            print (idx, keyframe, arc_length, n_frames)
+            error = np.inf
+            iter_counter = 0
+            while error > self.success_threshold and iter_counter < self.max_retries:
+                error = self._modify_pose(traj_constraint["joint_name"], target)
+                iter_counter += 1
+            #self._modify_pose(constraint["joint_name"], target)
+            motion_vector.frames[keyframe] = self.pose.get_vector()
+
+        self._create_transition_for_frame_range(motion_vector.frames, start_idx, keyframe-1, self.pose.free_joints_map[traj_constraint["joint_name"]])
+
     def _find_corresponding_frame_range(self, motion_vector, traj_constraint):
         start_idx = traj_constraint["start_frame"]
         end_idx = traj_constraint["end_frame"]
         start_target = traj_constraint["trajectory"].query_point_by_parameter(0.0)
         end_target = traj_constraint["trajectory"].query_point_by_parameter(1.0)
-        print ("looking for corresponding frame range in frame range", start_idx, end_idx, start_target, end_target)
+        write_log("looking for corresponding frame range in frame range", start_idx, end_idx, start_target, end_target)
         start_idx = self._find_corresponding_frame(motion_vector, start_idx, end_idx, traj_constraint["joint_name"], start_target)
         end_idx = self._find_corresponding_frame(motion_vector, start_idx, end_idx, traj_constraint["joint_name"], end_target)
-        print ("found corresponding frame range", start_idx, end_idx)
+        write_log("found corresponding frame range", start_idx, end_idx)
         return start_idx, end_idx
 
     def _find_corresponding_frame(self, motion_vector, start_idx, end_idx, target_joint, target_position):
@@ -251,7 +286,7 @@ class InverseKinematics(object):
             self.set_pose_from_frame(motion_vector.frames[keyframe])
             position = self.pose.evaluate_position(target_joint)
             error = np.linalg.norm(position-target_position)
-            print(error, idx)
+            #print(error, idx)
             if error <= min_error:
                 min_error = error
                 closest_start_frame = keyframe
