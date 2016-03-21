@@ -189,13 +189,18 @@ class InverseKinematics(object):
             self.pose.lookat(position)
             motion_vector.frames[idx] = self.pose.get_vector()
         #interpolate
-        joint_parameter_indices = list(range(*self.pose.extract_parameters_indices(self.pose.head_joint)))
-        #print joint_parameter_indices
-        transition_start = max(start-self.transition_window, 0)
-        transition_end = min(end+self.transition_window, motion_vector.frames.shape[0])-1
-        #print transition_start, start, end, transition_end
-        apply_slerp(motion_vector.frames, transition_start, start, joint_parameter_indices)
-        apply_slerp(motion_vector.frames, end-1, transition_end, joint_parameter_indices)
+        self._create_transition_for_frame_range(motion_vector.frames, start, end-1, [self.pose.head_joint])
+
+    def _create_transition_for_frame_range(self, frames, start, end, target_joints):
+        for target_joint in target_joints:
+            joint_parameter_indices = list(range(*self.pose.extract_parameters_indices(target_joint)))
+            #print joint_parameter_indices
+            transition_start = max(start-self.transition_window, 0)
+            transition_end = min(end+self.transition_window, frames.shape[0])-1
+            #print transition_start, start, end, transition_end, joint_parameter_indices, frames[transition_end-10,joint_parameter_indices]
+            apply_slerp(frames, transition_start, start, joint_parameter_indices)
+            apply_slerp(frames, end, transition_end, joint_parameter_indices)
+            #print "after slerp",frames[transition_end-10,joint_parameter_indices]
         #smooth_quaternion_frames_using_slerp_overwrite_frames(motion_vector.frames, joint_parameter_indices, start, window)
         #smooth_quaternion_frames_using_slerp_overwrite_frames(motion_vector.frames, joint_parameter_indices, end, window)
 
