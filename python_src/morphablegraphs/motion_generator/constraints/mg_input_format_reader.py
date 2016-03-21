@@ -198,7 +198,7 @@ class MGInputFormatReader(object):
 
     def _check_for_collision_avoidance_annotation(self, trajectory_constraint_desc, control_points):
         """ find start and end control point of an active region if there exists one.
-        Note this functions expects that there are not more than one active region.
+        Note this functions expects that there is not more than one active region.
 
         :param trajectory_constraint_desc:
         :param control_points:
@@ -264,10 +264,10 @@ class MGInputFormatReader(object):
                 # iterate over constraints for that joint
                 for c_type in self.constraint_types:
                     if c_type in keyframe_constraints[keyframe_label][joint_name].keys():
-                        for constraint_definition in keyframe_constraints[keyframe_label][joint_name][c_type]:
+                        for constraint in keyframe_constraints[keyframe_label][joint_name][c_type]:
                             # create constraint definition usable by the algorithm
                             # and add it to the list of constraints for that state
-                            constraint_desc = self._extend_keyframe_constraint_definition(keyframe_label, joint_name, constraint_definition, time_information, c_type)
+                            constraint_desc = self._extend_keyframe_constraint_definition(keyframe_label, joint_name, constraint, time_information, c_type)
                             reordered_constraints[mp_name].append(constraint_desc)
         return reordered_constraints
 
