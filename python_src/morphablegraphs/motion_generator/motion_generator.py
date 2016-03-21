@@ -30,7 +30,7 @@ class MotionGenerator(object):
         self.motion_state_graph = graph_loader.build()
         self.graph_walk_generator = GraphWalkGenerator(self.motion_state_graph, algorithm_config)
         self.graph_walk_optimizer = GraphWalkOptimizer(self.motion_state_graph, algorithm_config)
-        self.inverse_kinematics = InverseKinematics(self.motion_state_graph.skeleton, self._algorithm_config)
+        self.inverse_kinematics = None
 
     def set_algorithm_config(self, algorithm_config):
         """
@@ -82,6 +82,7 @@ class MotionGenerator(object):
 
             if self._algorithm_config["activate_inverse_kinematics"]:
                 write_log("Modify using inverse kinematics")
+                self.inverse_kinematics = InverseKinematics(self.motion_state_graph.skeleton, self._algorithm_config, motion_vector.frames[0])
                 self.inverse_kinematics.modify_motion_vector(motion_vector)
 
             motion_vector.frames = self.motion_state_graph.full_skeleton.complete_motion_vector_from_reference(self.motion_state_graph.skeleton, motion_vector.frames)

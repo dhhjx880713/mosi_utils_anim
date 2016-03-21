@@ -43,6 +43,7 @@ def convert_euler_to_quat(euler_frame, joints):
 def normalize_quaternion(q):
     return quaternion_inverse(q) / np.dot(q, q)
 
+
 class SkeletonPoseModel(object):
     """
     TODO wrap parameters to allow use with constrained euler, e.g. to rotate an arm using a single parameter
@@ -81,6 +82,9 @@ class SkeletonPoseModel(object):
         self.head_joint = skeleton.head_joint
         self.neck_joint = skeleton.neck_joint
         self.bounds = skeleton.bounds
+
+    def set_pose_parameters(self, pose_parameters):
+        self.pose_parameters = pose_parameters
 
     def set_channel_values(self, parameters, free_joints):
         p_idx = 0

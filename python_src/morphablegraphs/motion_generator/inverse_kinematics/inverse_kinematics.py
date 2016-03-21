@@ -23,9 +23,8 @@ def obj_inverse_kinematics(s, data):
 
 
 class InverseKinematics(object):
-    def __init__(self, skeleton, algorithm_settings):
+    def __init__(self, skeleton, algorithm_settings, reference_frame):
         self.skeleton = skeleton
-        self.pose = None
         self._ik_settings = algorithm_settings["inverse_kinematics_settings"]
         self.window = self._ik_settings["interpolation_window"]
         self.transition_window = self._ik_settings["transition_window"]
@@ -46,6 +45,7 @@ class InverseKinematics(object):
                     node_channels += ["Wrotation"] #TODO fix order
             self.channels[node.node_name] = node_channels
         #print "channels", self.channels
+        self.pose = SkeletonPoseModel(self.skeleton, reference_frame, self.channels, self.use_euler)
 
     def _run_optimization(self, objective, initial_guess, data, cons=None):
          return minimize(objective, initial_guess, args=(data,),
@@ -54,8 +54,7 @@ class InverseKinematics(object):
                         options={'maxiter': self._ik_settings["max_iterations"], 'disp': self.verbose})#,'eps':1.0
 
     def set_pose_from_frame(self, reference_frame):
-        #TODO initialize pose once and just update the frame
-        self.pose = SkeletonPoseModel(self.skeleton, reference_frame, self.channels, self.use_euler)
+        self.pose.set_pose_parameters(reference_frame)
         self.pose.clear_cache()
 
     def _modify_pose(self, joint_name, target):
