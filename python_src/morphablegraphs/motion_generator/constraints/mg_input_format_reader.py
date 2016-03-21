@@ -273,30 +273,13 @@ class MGInputFormatReader(object):
                             reordered_constraints[mp_name].append(constraint_desc)
         return reordered_constraints
 
-    def _extract_constraints_for_keyframe_label(self, input_constraint_list, label):
-        """ Returns the constraints associated with the given label. Ordered
-            based on joint names.
-        Returns
-        ------
-        * key_constraints : dict of lists
-        \t contains the list of the constrained joints
-        """
-        key_constraints = dict()
-        for joint_constraints in input_constraint_list:
-            joint_name = joint_constraints["joint"]
-            key_constraints[joint_name] = dict()
-            for constraint_type in self.constraint_types:
-                if constraint_type in joint_constraints.keys():
-                    key_constraints[joint_name][constraint_type] = self.filter_constraint_definitions_by_label(joint_constraints[constraint_type], label)
-        return key_constraints
-
-    def filter_constraint_definitions_by_label(self, constraint_definitions, label):
-        keyframe_constraint_definitions = list()
-        for constraint_definition in constraint_definitions:
-            #print "read constraint", constraint_definition, joint_name
-            if self._constraint_definition_has_label(constraint_definition, label):
-                keyframe_constraint_definitions.append(constraint_definition)
-        return keyframe_constraint_definitions
+    def filter_constraints_by_label(self, constraints, label):
+        keyframe_constraints = []
+        for constraint in constraints:
+            #print "read constraint", constraint, label
+            if self._constraint_definition_has_label(constraint, label):
+                keyframe_constraints.append(constraint)
+        return keyframe_constraints
 
     def _extract_all_keyframe_constraints(self, constraint_list, node_group):
         """Orders the keyframe constraint for the labels found in the metainformation of
@@ -313,7 +296,29 @@ class MGInputFormatReader(object):
             keyframe_constraints[label] = self._extract_constraints_for_keyframe_label(constraint_list, label)
         return keyframe_constraints
 
-    def _extract_trajectory_constraint_desc(self, input_constraint_list, joint_name):
+    def _extract_constraints_for_keyframe_label(self, input_constraint_list, label):
+        """ Returns the constraints associated with the given label. Ordered
+            based on joint names.
+        Returns
+        ------
+        * key_constraints : dict of lists
+        \t contains the list of the constrained joints
+        """
+
+        keyframe_constraints = dict()
+        for joint_constraints in input_constraint_list:
+            joint_name = joint_constraints["joint"]
+            if joint_name not in keyframe_constraints:
+                keyframe_constraints[joint_name] = dict()
+            for constraint_type in self.constraint_types:
+                if constraint_type not in keyframe_constraints[joint_name]:
+                    keyframe_constraints[joint_name][constraint_type] = list()
+                if constraint_type in joint_constraints.keys():
+                    filtered_list = self.filter_constraints_by_label(joint_constraints[constraint_type], label)
+                    keyframe_constraints[joint_name][constraint_type] = filtered_list
+        return keyframe_constraints
+
+    def _extract_trajectory_constraint_data(self, input_constraint_list, joint_name):
         """Returns a single trajectory constraint definition for joint joint out of a elementary action constraint list
         """
         for c in input_constraint_list:
