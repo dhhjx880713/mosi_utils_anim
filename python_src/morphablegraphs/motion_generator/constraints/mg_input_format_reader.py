@@ -179,22 +179,24 @@ class MGInputFormatReader(object):
         * unconstrained_indices : list
         \t List of indices of unconstrained dimensions
         """
-        trajectory_constraint_desc = self._extract_trajectory_constraint_desc(self.elementary_action_list[action_index]["constraints"], joint_name)
-        if trajectory_constraint_desc is not None:
-            #extract unconstrained dimensions
-            unconstrained_indices = list()
-            idx = 0
-            for v in trajectory_constraint_desc[0]["position"]:
-                if v is None:
-                    unconstrained_indices.append(idx)
-                idx += 1
-            unconstrained_indices = self._transform_unconstrained_indices_from_cad_to_opengl_cs(unconstrained_indices)
-            control_points, active_region = self._extract_trajectory_control_points(trajectory_constraint_desc, distance_threshold)
-            #print control_points
-            #active_region = self._check_for_collision_avoidance_annotation(trajectory_constraint_desc, control_points)
-
+        trajectory_constraint_data = self._extract_trajectory_constraint_data(self.elementary_action_list[action_index]["constraints"], joint_name)
+        if trajectory_constraint_data is None:
+            return None, None, None
+        else:
+            unconstrained_indices = self._find_unconstrained_indices(trajectory_constraint_data)
+            control_points, active_region = self._extract_trajectory_control_points(trajectory_constraint_data, distance_threshold)
             return control_points, unconstrained_indices, active_region
-        return None, None, False
+
+
+    def _find_unconstrained_indices(self, trajectory_constraint_data):
+        """extract unconstrained dimensions"""
+        unconstrained_indices = list()
+        idx = 0
+        for v in trajectory_constraint_data[0]["position"]:
+            if v is None:
+                unconstrained_indices.append(idx)
+            idx += 1
+        return self._transform_unconstrained_indices_from_cad_to_opengl_cs(unconstrained_indices)
 
     def _check_for_collision_avoidance_annotation(self, trajectory_constraint_desc, control_points):
         """ find start and end control point of an active region if there exists one.
