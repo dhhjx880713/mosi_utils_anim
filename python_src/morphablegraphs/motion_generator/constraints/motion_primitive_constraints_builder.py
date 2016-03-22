@@ -9,7 +9,7 @@ from copy import copy
 import numpy as np
 from ...utilities.exceptions import PathSearchError
 from .motion_primitive_constraints import MotionPrimitiveConstraints
-from .spatial_constraints import PoseConstraint, DirectionConstraint, GlobalTransformConstraint, PoseConstraintQuatFrame, TwoHandConstraintSet
+from .spatial_constraints import PoseConstraint, Direction2DConstraint, GlobalTransformConstraint, PoseConstraintQuatFrame, TwoHandConstraintSet
 from ...animation_data.motion_vector import concatenate_frames
 from ...animation_data.motion_editing import get_2d_pose_transform, inverse_pose_transform, fast_quat_frames_transformation, create_transformation_matrix
 from . import CA_CONSTRAINTS_MODE_SET, OPTIMIZATION_MODE_ALL, OPTIMIZATION_MODE_KEYFRAMES
@@ -194,8 +194,8 @@ class MotionPrimitiveConstraintsBuilder(object):
             dir_constraint_desc = {"joint": joint_name, "dir_vector": dir_vector,
                                    "semanticAnnotation": dir_semantic_annotation}
             dir_constraint_desc = self._map_label_to_canonical_keyframe(dir_constraint_desc)
-            direction_constraint = DirectionConstraint(self.skeleton, dir_constraint_desc, self.precision["rot"],
-                                                       mp_constraints.settings["dir_constraint_factor"])
+            direction_constraint = Direction2DConstraint(self.skeleton, dir_constraint_desc, self.precision["rot"],
+                                                         mp_constraints.settings["dir_constraint_factor"])
             mp_constraints.constraints.append(direction_constraint)
 
     def _add_keyframe_constraints(self, mp_constraints):

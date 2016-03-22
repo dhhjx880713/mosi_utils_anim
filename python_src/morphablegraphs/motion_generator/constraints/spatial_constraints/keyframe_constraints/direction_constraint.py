@@ -11,15 +11,15 @@ from .....animation_data.motion_editing import pose_orientation_quat, \
                                                get_trajectory_dir_from_2d_points, \
                                                extract_root_positions
 from keyframe_constraint_base import KeyframeConstraintBase
-from .. import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_DIR
+from .. import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_DIR_2D
 
 
-class DirectionConstraint(KeyframeConstraintBase):
+class Direction2DConstraint(KeyframeConstraintBase):
 
     def __init__(self, skeleton, constraint_desc, precision, weight_factor=1.0):
-        super(DirectionConstraint, self).__init__(constraint_desc, precision, weight_factor)
+        super(Direction2DConstraint, self).__init__(constraint_desc, precision, weight_factor)
 
-        self.constraint_type = SPATIAL_CONSTRAINT_TYPE_KEYFRAME_DIR
+        self.constraint_type = SPATIAL_CONSTRAINT_TYPE_KEYFRAME_DIR_2D
         self.direction_constraint = constraint_desc["dir_vector"]
         self.target_dir = np.array(
             [self.direction_constraint[0], self.direction_constraint[2]])
