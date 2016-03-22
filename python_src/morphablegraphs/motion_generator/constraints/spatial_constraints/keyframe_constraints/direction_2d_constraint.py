@@ -6,10 +6,7 @@ Created on Mon Aug 03 19:01:21 2015
 """
 
 import numpy as np
-
-from .....animation_data.motion_editing import pose_orientation_quat, \
-                                               get_trajectory_dir_from_2d_points, \
-                                               extract_root_positions
+from .....animation_data.motion_editing import pose_orientation_quat
 from keyframe_constraint_base import KeyframeConstraintBase
 from .. import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_DIR_2D
 
@@ -18,7 +15,6 @@ class Direction2DConstraint(KeyframeConstraintBase):
 
     def __init__(self, skeleton, constraint_desc, precision, weight_factor=1.0):
         super(Direction2DConstraint, self).__init__(constraint_desc, precision, weight_factor)
-
         self.constraint_type = SPATIAL_CONSTRAINT_TYPE_KEYFRAME_DIR_2D
         self.direction_constraint = constraint_desc["dir_vector"]
         self.target_dir = np.array(
@@ -27,6 +23,7 @@ class Direction2DConstraint(KeyframeConstraintBase):
 
     def evaluate_motion_sample(self, aligned_quat_frames):
         motion_dir = pose_orientation_quat(aligned_quat_frames[self.canonical_keyframe])
+        #TODO implement alternative constraint using trajectory direction instead of pose direction
         # root_points = extract_root_positions(aligned_quat_frames)
         # print root_points
         # motion_dir = get_trajectory_dir_from_2d_points(root_points)
