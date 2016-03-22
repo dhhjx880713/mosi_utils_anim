@@ -257,16 +257,25 @@ class MotionPrimitiveConstraintsBuilder(object):
         elif keyframe_label == "start":
             keyframe_constraint_desc["canonical_keyframe"] = 0
         else:
-            annotations = self.motion_state_graph.node_groups[self.action_constraints.action_name].motion_primitive_annotations
-            if self.status["motion_primitive_name"] in annotations.keys() and keyframe_label in annotations[self.status["motion_primitive_name"]].keys():
-                keyframe = annotations[self.status["motion_primitive_name"]][keyframe_label]
-                if keyframe == self.NEGATIVE_ONE or keyframe == self.LAST_FRAME:
-                    keyframe = self.status["n_canonical_frames"]-1
-                keyframe_constraint_desc["canonical_keyframe"] = int(keyframe)
+            keyframe = self._get_keyframe_from_annotation(keyframe_label)
+            if keyframe is not None:
+                keyframe_constraint_desc["canonical_keyframe"] = keyframe
             else:
-                print "Error could not map keyframe label", keyframe_label, annotations.keys()
                 return None
         return keyframe_constraint_desc
+
+    def _get_keyframe_from_annotation(self, keyframe_label):
+        annotations = self.motion_state_graph.node_groups[self.action_constraints.action_name].motion_primitive_annotations
+        if self.status["motion_primitive_name"] in annotations.keys() and \
+           keyframe_label in annotations[self.status["motion_primitive_name"]].keys():
+
+            keyframe = annotations[self.status["motion_primitive_name"]][keyframe_label]
+            if keyframe == self.NEGATIVE_ONE or keyframe == self.LAST_FRAME:
+                keyframe = self.status["n_canonical_frames"]-1
+            return int(keyframe)
+        else:
+            print "Error: Could not map keyframe label", keyframe_label, annotations.keys()
+            return None
 
     def _create_pose_constraint_from_preceding_motion(self):
         """ Create frame a constraint from the preceding motion.
