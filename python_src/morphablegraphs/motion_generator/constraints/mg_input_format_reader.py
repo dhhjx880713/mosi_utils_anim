@@ -268,7 +268,7 @@ class MGInputFormatReader(object):
         # iterate over keyframe labels
         for keyframe_label in keyframe_constraints.keys():
             mp_name = node_group.label_to_motion_primitive_map[keyframe_label]
-            time_information = node_group.motion_primitive_annotations[mp_name][keyframe_label]
+            time_info = node_group.motion_primitive_annotations[mp_name][keyframe_label]
             reordered_constraints[mp_name] = list()
             # iterate over joints constrained at that keyframe
             for joint_name in keyframe_constraints[keyframe_label].keys():
@@ -278,7 +278,7 @@ class MGInputFormatReader(object):
                         for constraint in keyframe_constraints[keyframe_label][joint_name][c_type]:
                             # create constraint definition usable by the algorithm
                             # and add it to the list of constraints for that state
-                            constraint_desc = self._extend_keyframe_constraint_definition(keyframe_label, joint_name, constraint, time_information, c_type)
+                            constraint_desc = self._extend_keyframe_constraint_definition(keyframe_label, joint_name, constraint, time_info, c_type)
                             reordered_constraints[mp_name].append(constraint_desc)
         return reordered_constraints
 
