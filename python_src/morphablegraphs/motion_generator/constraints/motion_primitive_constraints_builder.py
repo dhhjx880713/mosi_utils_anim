@@ -9,7 +9,7 @@ from copy import copy
 import numpy as np
 from ...utilities.exceptions import PathSearchError
 from .motion_primitive_constraints import MotionPrimitiveConstraints
-from .spatial_constraints import PoseConstraint, Direction2DConstraint, GlobalTransformConstraint, PoseConstraintQuatFrame, TwoHandConstraintSet
+from .spatial_constraints import PoseConstraint, Direction2DConstraint, GlobalTransformConstraint, PoseConstraintQuatFrame, TwoHandConstraintSet, LookAtConstraint
 from ...animation_data.motion_vector import concatenate_frames
 from ...animation_data.motion_editing import get_2d_pose_transform, inverse_pose_transform, fast_quat_frames_transformation, create_transformation_matrix
 from . import CA_CONSTRAINTS_MODE_SET, OPTIMIZATION_MODE_ALL, OPTIMIZATION_MODE_KEYFRAMES
@@ -212,15 +212,18 @@ class MotionPrimitiveConstraintsBuilder(object):
     def create_keyframe_constraint(self, constraint_definition):
         constraint_factor = self.trajectory_following_settings["position_constraint_factor"]
         keyframe_constraint = None
+        constraint_definition = self._map_label_to_canonical_keyframe(constraint_definition)
         if "merged" in constraint_definition.keys():
-            keyframe_constraint_desc = self._map_label_to_canonical_keyframe(constraint_definition)
-            keyframe_constraint = TwoHandConstraintSet(self.skeleton, keyframe_constraint_desc,
-                                                       self.precision["pos"],constraint_factor)
-        elif np.any([c_type in constraint_definition.keys() for c_type in self.mp_constraint_types]):
-            keyframe_constraint_desc = self._map_label_to_canonical_keyframe(constraint_definition)
-            if keyframe_constraint_desc is not None:
-                keyframe_constraint = GlobalTransformConstraint(self.skeleton, keyframe_constraint_desc,
-                                                                self.precision["pos"], constraint_factor)
+            keyframe_constraint = TwoHandConstraintSet(self.skeleton, constraint_definition,
+                                                       self.precision["pos"], constraint_factor)
+        #elif np.any([c_type in constraint_definition.keys() for c_type in self.mp_constraint_types]):
+
+        elif "look_at" in constraint_definition.keys():
+            keyframe_constraint = LookAtConstraint(self.skeleton, constraint_definition,
+                                                   self.precision["pos"], constraint_factor)
+        elif constraint_definition is not None:
+            keyframe_constraint = GlobalTransformConstraint(self.skeleton, constraint_definition,
+                                                            self.precision["pos"], constraint_factor)
         return keyframe_constraint
 
     def _decide_on_optimization(self, mp_constraints):

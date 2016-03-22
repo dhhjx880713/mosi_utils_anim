@@ -19,7 +19,7 @@ from ..external.transformations import quaternion_matrix, euler_from_matrix, \
     quaternion_multiply, \
     quaternion_about_axis, \
     rotation_matrix, \
-    quaternion_conjugate
+    quaternion_conjugate,  quaternion_inverse, rotation_from_matrix
 DEFAULT_ROTATION_ORDER = ['Xrotation','Yrotation','Zrotation']
 DEFAULT_SMOOTHING_WINDOW_SIZE = 20
 LEN_QUAT = 4
@@ -1782,3 +1782,11 @@ def quaternion_rotate_vector(q, vector):
     """
     tmp_result = quaternion_multiply(q , vector)
     return quaternion_multiply(tmp_result , quaternion_conjugate(q))[1:]
+
+
+def quaternion_from_vector_to_vector(a, b):
+    "src: http://stackoverflow.com/questions/1171849/finding-quaternion-representing-the-rotation-from-one-vector-to-another"
+    v = np.cross(a, b)
+    w = np.sqrt((np.linalg.norm(a) ** 2) * (np.linalg.norm(b) ** 2)) + np.dot(a, b)
+    q = np.array([w, v[0], v[1], v[2]])
+    return q/ np.linalg.norm(q)
