@@ -8,7 +8,6 @@ from motion_primitive_generator import MotionPrimitiveGenerator
 from constraints.motion_primitive_constraints_builder import MotionPrimitiveConstraintsBuilder
 from graph_walk import GraphWalkEntry
 from constraints.motion_primitive_constraints import MotionPrimitiveConstraints
-from constraints.spatial_constraints.keyframe_constraints.direction_constraint import DirectionConstraint
 from constraints.spatial_constraints.keyframe_constraints.global_transform_constraint import GlobalTransformConstraint
 from ..utilities import write_log
 
