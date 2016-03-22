@@ -13,9 +13,7 @@ from keyframe_constraint_base import KeyframeConstraintBase
 from .. import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
 import time
 
-RELATIVE_HUERISTIC_RANGE = 0.00 #5 # used for setting the search range relative to the number of frames of motion primitive
-CONSTRAINT_CONFLICT_ERROR = 100000  # returned when conflicting constraints were set
-
+RELATIVE_HEURISTIC_RANGE = 0.00 #5 # used for setting the search range relative to the number of frames of motion primitive
 
 class GlobalTransformConstraint(KeyframeConstraintBase):
     """
@@ -39,15 +37,15 @@ class GlobalTransformConstraint(KeyframeConstraintBase):
             self.orientation = euler_to_quaternion(constraint_desc["orientation"])
         else:
             self.orientation = None
-        self.n_canonical_frames = constraint_desc["n_canonical_frames"]
-        if "n_canonical_frames" in constraint_desc.keys():
-            self.frame_range = RELATIVE_HUERISTIC_RANGE*self.n_canonical_frames
-        else:
-            self.frame_range = 0
-        self.start_keyframe = int(max(self.canonical_keyframe - self.frame_range, 0))
-        self.stop_keyframe = int(min(self.canonical_keyframe + self.frame_range, self.n_canonical_frames))
-        if self.start_keyframe == self.stop_keyframe:
-            self.start_keyframe -= 1
+        #self.n_canonical_frames = constraint_desc["n_canonical_frames"]
+        #if "n_canonical_frames" in constraint_desc.keys():
+        #    self.frame_range = RELATIVE_HEURISTIC_RANGE*self.n_canonical_frames
+        #else:
+        #    self.frame_range = 0
+        #self.start_keyframe = int(max(self.canonical_keyframe - self.frame_range, 0))
+        #self.stop_keyframe = int(min(self.canonical_keyframe + self.frame_range, self.n_canonical_frames))
+        #if self.start_keyframe == self.stop_keyframe:
+        #    self.start_keyframe -= 1
         #print "RANGE", self.start_keyframe, self.stop_keyframe
 
     def evaluate_motion_sample(self, aligned_quat_frames):
@@ -93,7 +91,6 @@ class GlobalTransformConstraint(KeyframeConstraintBase):
         Returns:
             angle (float)
         """
-        print self.orientation
         v1 = quaternion_rotate_vector(joint_orientation, self.ORIGIN)
         v2 = quaternion_rotate_vector(self.orientation, self.ORIGIN)
         return angle_between_vectors(v1, v2)
