@@ -17,6 +17,7 @@ class LookAtConstraint(KeyframeConstraintBase):
 
     def __init__(self, skeleton, constraint_desc, precision, weight_factor=1.0):
         super(LookAtConstraint, self).__init__(constraint_desc, precision, weight_factor)
+        self.skeleton = skeleton
         self.constraint_type = SPATIAL_CONSTRAINT_TYPE_KEYFRAME_LOOK_AT
         self.target_position = constraint_desc["position"]
 
@@ -30,7 +31,8 @@ class LookAtConstraint(KeyframeConstraintBase):
     def evaluate_motion_sample(self, aligned_quat_frames):
         pose_parameters = aligned_quat_frames[self.canonical_keyframe]
         head_position = self.skeleton.nodes[self.skeleton.head_joint].get_global_position(pose_parameters, use_cache=False)
-        target_direction = head_position - self.target_position
+        target_direction = self.target_position - head_position
+        target_direction /= np.linalg.norm(target_direction)
 
         head_orientation = self.skeleton.nodes[self.skeleton.head_joint].get_global_orientation_quaternion(pose_parameters, use_cache=True)
         head_direction = self._get_direction_vector_from_orientation(head_orientation)
