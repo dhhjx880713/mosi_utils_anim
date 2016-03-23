@@ -316,23 +316,24 @@ class MGInputFormatReader(object):
 
         keyframe_constraints = dict()
         for joint_constraints in input_constraint_list:
-            joint_name = joint_constraints["joint"]
-            if joint_name not in keyframe_constraints:
-                keyframe_constraints[joint_name] = dict()
-            for constraint_type in self.constraint_types:
-                if constraint_type not in keyframe_constraints[joint_name]:
-                    keyframe_constraints[joint_name][constraint_type] = list()
-                if constraint_type in joint_constraints.keys():
-                    filtered_list = self.filter_constraints_by_label(joint_constraints[constraint_type], label)
-                    keyframe_constraints[joint_name][constraint_type] = filtered_list
+            if "joint" in joint_constraints.keys():
+                joint_name = joint_constraints["joint"]
+                if joint_name not in keyframe_constraints:
+                    keyframe_constraints[joint_name] = dict()
+                for constraint_type in self.constraint_types:
+                    if constraint_type not in keyframe_constraints[joint_name]:
+                        keyframe_constraints[joint_name][constraint_type] = list()
+                    if constraint_type in joint_constraints.keys():
+                        filtered_list = self.filter_constraints_by_label(joint_constraints[constraint_type], label)
+                        keyframe_constraints[joint_name][constraint_type] = filtered_list
         return keyframe_constraints
 
     def _extract_trajectory_constraint_data(self, input_constraint_list, joint_name):
         """Returns a single trajectory constraint definition for joint joint out of a elementary action constraint list
         """
         for c in input_constraint_list:
-            if joint_name == c["joint"]:
-                if "trajectoryConstraints" in c.keys():
+            if "joint" in c.keys() and "trajectoryConstraints" in c.keys():
+                if joint_name == c["joint"]:
                     return c["trajectoryConstraints"]
         return None
 
