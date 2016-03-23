@@ -118,15 +118,14 @@ class MotionPrimitiveConstraints(object):
             if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION:
                 pose_constraint = MGRDPoseConstraint(c.joint_name, c.weight_factor, c.position, orientation=None)#[None, None, None, None]
                 label = "LeftFootContact"# c.semantic_annotation["keyframeLabel"]# TODO add "end" annotation label to all motion primitives
-                active = True
-                annotations = {label: active}
+                annotations = {label: True}
                 semantic_constraint = MGRDSemanticConstraint(annotations, time=None)
                 keyframe_constraint = MGRDKeyframeConstraint(pose_constraint, semantic_constraint)
                 mgrd_constraints.append(keyframe_constraint)
         return mgrd_constraints
 
     def transform_constraints_to_local_cos(self):
-        if self.is_local or self.aligning_transform is not None:
+        if self.is_local or self.aligning_transform is None:
             return self
         write_log("transform to local cos")
         inv_aligning_transform = np.linalg.inv(self.aligning_transform)
@@ -135,9 +134,8 @@ class MotionPrimitiveConstraints(object):
         mp_constraints.is_local = True
         for c in self.constraints:
             if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION:
-                position = [c.position[0], c.position[1], c.position[3], 1]
-                if position is not None:
-                    orig_position = position
+                if c.position is not None:
+                    position = [c.position[0], c.position[1], c.position[2], 1]
                     indices = [i for i in range(3) if position[i] is None]
                     for i in indices:
                         position[i] = 0
