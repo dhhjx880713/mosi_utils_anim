@@ -13,7 +13,6 @@ from annotated_motion_vector import AnnotatedMotionVector
 from constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION
 from keyframe_event_list import KeyframeEventList
 from ..utilities import write_log
-LOG_FILE = "log.txt"
 
 
 class GraphWalkEntry(object):
