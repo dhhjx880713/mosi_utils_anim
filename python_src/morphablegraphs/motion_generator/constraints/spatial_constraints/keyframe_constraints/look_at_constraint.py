@@ -14,6 +14,7 @@ from .. import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_LOOK_AT
 
 
 class LookAtConstraint(KeyframeConstraintBase):
+    REFERENCE_VECTOR = [0, 0, 1, 1]
 
     def __init__(self, skeleton, constraint_desc, precision, weight_factor=1.0):
         super(LookAtConstraint, self).__init__(constraint_desc, precision, weight_factor)
@@ -24,8 +25,7 @@ class LookAtConstraint(KeyframeConstraintBase):
     def _get_direction_vector_from_orientation(self, q):
         q /= np.linalg.norm(q)
         rotation_matrix = quaternion_matrix(q)
-        ref_vector = [0, 0, 1, 1]
-        vec = np.dot(rotation_matrix, ref_vector)[:3]
+        vec = np.dot(rotation_matrix, self.REFERENCE_VECTOR)[:3]
         return vec/np.linalg.norm(vec)
 
     def evaluate_motion_sample(self, aligned_quat_frames):
