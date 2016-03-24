@@ -26,13 +26,16 @@ try:
         def get_n_components(self):
             return self.n_components
 
+        def clone(self,labels=None):
+            return self
+
         def create_spline(self, gamma, labels=None):
             sample_time_function = self._back_transform_gamma_to_canonical_time_function(gamma)
             knots, time_coeffs, degree = si.splrep(self.canonical_time_range, sample_time_function, w=None, k=SPLINE_DEGREE)
             time_coeffs = time_coeffs[:-4]
             time_coeffs = time_coeffs.reshape(len(time_coeffs), 1)
             #knots = knots.reshape(len(knots))
-            return MGRDTimeSpline(time_coeffs, knots, N_TIME_DIM, degree, self.semantic_labels, self)
+            return MGRDTimeSpline(time_coeffs, knots, N_TIME_DIM, degree, self)
 
         def _mean_temporal(self):
             """Evaluates the mean time b-spline for the canonical time range.
