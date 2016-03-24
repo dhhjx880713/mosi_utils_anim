@@ -37,7 +37,7 @@ class GlobalTransformConstraint(KeyframeConstraintBase):
             self.orientation = euler_to_quaternion(constraint_desc["orientation"])
         else:
             self.orientation = None
-        #self.n_canonical_frames = constraint_desc["n_canonical_frames"]
+        self.n_canonical_frames = constraint_desc["n_canonical_frames"]
         #if "n_canonical_frames" in constraint_desc.keys():
         #    self.frame_range = RELATIVE_HEURISTIC_RANGE*self.n_canonical_frames
         #else:
