@@ -1,12 +1,14 @@
 import numpy
 import time
 from .constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
+from ..external.transformations import quaternion_matrix, quaternion_from_matrix
 try:
     from mgrd import Constraint, SemanticConstraint
     from mgrd import CartesianConstraint as MGRDCartesianConstraint
-    from mgrd.utils import ForwardKinematics as MGRDForwardKinematics
+    from mgrd import ForwardKinematics as MGRDForwardKinematics
     has_mgrd = True
 except ImportError:
+    print("Import failed")
     pass
     has_mgrd = False
 
@@ -16,6 +18,12 @@ class MGRDFilter(object):
     """
     def __init__(self, pose_constraint_weights=(1,1)):
         self.pose_constraint_weights = pose_constraint_weights
+
+    @staticmethod
+    def transform_coeffs(qs, transform):
+        for c in qs.coeffs:
+            c[:3] = numpy.dot(transform, c[:3].tolist()+[1])[:3]
+            c[3:7] = quaternion_from_matrix(numpy.dot(transform, quaternion_matrix(c[3:7])))
 
     @staticmethod
     def extract_cartesian_constraints(mp_constraints):
@@ -49,10 +57,12 @@ class MGRDFilter(object):
                 if not mp_constraints.is_local and mp_constraints.aligning_transform is not None:
                     start = time.clock()
                     for qs in quat_splines:
-                        qs.transform_coeffs(mp_constraints.aligning_transform)
+                        MGRDFilter.transform_coeffs(qs, mp_constraints.aligning_transform)
                     print "transformed splines in", time.clock()-start, "seconds"
                 return MGRDCartesianConstraint.score_splines(quat_splines, cartesian_constraints)
-        return [0]
+        else:
+            print ("Error: MGRD was not correctly initialized")
+            return [0]
 
     @staticmethod
     def score_samples_using_cartesian_constraints(motion_primitive, samples, constraints, transform=None):
