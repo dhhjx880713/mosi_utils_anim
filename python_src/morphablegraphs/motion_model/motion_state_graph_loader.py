@@ -8,6 +8,7 @@ Created on Thu Jul 16 15:57:51 2015
 import os
 from ..animation_data.bvh import BVHReader
 from ..animation_data.skeleton import Skeleton
+from ..animation_data.motion_editing import euler_to_quaternion
 from ..utilities.io_helper_functions import load_json_file
 from gp_mixture import GPMixture
 from motion_state_group_loader import MotionStateGroupLoader
@@ -18,6 +19,7 @@ from ..motion_generator.hand_pose_generator import HandPoseGenerator
 from . import ELEMENTARY_ACTION_DIRECTORY_NAME, TRANSITION_MODEL_DIRECTORY_NAME, NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END, TRANSITION_DEFINITION_FILE_NAME, TRANSITION_MODEL_FILE_ENDING
 try:
     from mgrd import Skeleton as MGRDSkeleton
+    from mgrd import SkeletonNode as MGRDSkeletonNode
     has_mgrd = True
 except ImportError:
     has_mgrd = False
@@ -25,7 +27,48 @@ except ImportError:
 
 SKELETON_FILE = "skeleton.bvh"  # TODO replace with standard skeleton in data directory
 
-        
+
+class MGRDSkeletonBVHLoader(object):
+    """ Load a Skeleton from a BVH file.
+
+    Attributes:
+        file (string): path to the bvh file
+    """
+
+    def __init__(self, file):
+        self.file = file
+        self.bvh = None
+
+    def load(self):
+        self.bvh = BVHReader(self.file)
+        root = self.create_root()
+        self.populate(root)
+        return MGRDSkeleton(root)
+
+    def create_root(self):
+        return self.create_node(self.bvh.root, None)
+
+    def create_node(self, name, parent):
+        node_data = self.bvh.node_names[name]
+        offset = node_data["offset"]
+        if "channels" in node_data:
+            angle_channels = ["Xrotation", "Yrotation", "Zrotation"]
+            angles_for_all_frames = self.bvh.get_angles(*[(name, ch) for ch in angle_channels])
+            orientation = euler_to_quaternion(angles_for_all_frames[0])
+        else:
+            orientation = euler_to_quaternion([0, 0, 0])
+        return MGRDSkeletonNode(name, parent, offset, orientation)
+
+    def populate(self, node):
+        node_data = self.bvh.node_names[node.name]
+        if "children" not in node_data:
+            return
+        for child in node_data["children"]:
+            child_node = self.create_node(child, node)
+            node.add_child(child_node)
+            self.populate(child_node)
+
+
 class MotionStateGraphLoader(object):
     """   Constructs a MotionPrimitiveGraph instance from a zip file or directory as data source
     """  
@@ -71,7 +114,7 @@ class MotionStateGraphLoader(object):
         motion_state_graph.full_skeleton = Skeleton(BVHReader("").init_from_string(graph_data["skeletonString"]))
         motion_state_graph.skeleton = motion_state_graph.full_skeleton.create_reduced_copy()
         if has_mgrd:
-            motion_state_graph.mgrd_skeleton = MGRDSkeleton.load_from_file("skeleton.bvh")#TODO convert from graph skeleton or load from string
+            motion_state_graph.mgrd_skeleton = MGRDSkeletonBVHLoader("skeleton.bvh").load()#TODO convert from graph skeleton or load from string
         else:
             motion_state_graph.mgrd_skeleton = None
         #skeleton_path = self.motion_state_graph_path + os.sep + SKELETON_FILE
@@ -99,7 +142,7 @@ class MotionStateGraphLoader(object):
         motion_state_graph.full_skeleton = Skeleton(BVHReader(skeleton_path))
         motion_state_graph.skeleton = motion_state_graph.full_skeleton.create_reduced_copy()
         if has_mgrd:
-            motion_state_graph.mgrd_skeleton = MGRDSkeleton.load_from_file(skeleton_path)#TODO convert from graph skeleton
+            motion_state_graph.mgrd_skeleton = MGRDSkeletonBVHLoader("skeleton.bvh").load()#TODO convert from graph skeleton
         else:
             motion_state_graph.mgrd_skeleton = None
         #load graphs representing elementary actions including transitions between actions
