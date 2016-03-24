@@ -1,6 +1,5 @@
 import numpy as np
 from motion_primitive import MotionPrimitive as MGMotionPrimitive
-from motion_spline import MotionSpline
 try:
     from .extended_mgrd_mixture_model import ExtendedMGRDMixtureModel
     from mgrd import MotionPrimitiveModel as MGRDMotionPrimitiveModel
@@ -38,8 +37,8 @@ class MotionPrimitiveModelWrapper(object):
 
                 tspm = LegacyTemporalSplineModel(data)
                 animated_joints = ["Hips", "Spine", "Spine_1", "Neck", "Head", "LeftShoulder", "LeftArm", "LeftForeArm", "LeftHand", "RightShoulder", "RightArm", "RightForeArm", "RightHand", "LeftUpLeg", "LeftLeg", "LeftFoot", "RightUpLeg", "RightLeg", "RightFoot"]
-                sspm = MGRDQuaternionSplineModel.load_from_json({
-                                                            'eigen': np.asarray(data['eigen_vectors_spatial']).T,
+                sspm = MGRDQuaternionSplineModel.load_from_json(mgrd_skeleton,{
+                                                            'eigen': np.asarray(data['eigen_vectors_spatial']),
                                                             'mean': np.asarray(data['mean_spatial_vector']),
                                                             'n_coeffs': data['n_basis_spatial'],
                                                             'n_dims': data['n_dim_spatial'],
@@ -48,10 +47,33 @@ class MotionPrimitiveModelWrapper(object):
                                                             'translation_maxima': np.asarray(data['translation_maxima']),
                                                             'animated_joints': animated_joints
                                                         })
+                self._pre_scale_root_translation(sspm, data['translation_maxima'])
                 self.motion_primitive = MGRDMotionPrimitiveModel(mgrd_skeleton, sspm, tspm, mm)
         else:
             self.motion_primitive = MGMotionPrimitive(None)
             self.motion_primitive._initialize_from_json(data)
+
+    def _pre_scale_root_translation(self, sspm, translation_maxima):
+        """ undo the scaling of the root translation parameters of the principal
+        components that was done during offline training
+
+        """
+        root_columns = []
+        for coeff_idx in range(sspm.n_coeffs):
+            coeff_start = coeff_idx * sspm.n_dims
+            root_columns += np.arange(coeff_start,coeff_start+3).tolist()
+
+        indices_range = range(len(root_columns))
+        x_indices = [root_columns[i] for i in indices_range if i % 3 == 0]
+        y_indices = [root_columns[i] for i in indices_range if i % 3 == 1]
+        z_indices = [root_columns[i] for i in indices_range if i % 3 == 2]
+        sspm.fpca.eigen[:, x_indices] *= translation_maxima[0]
+        sspm.fpca.eigen[:, y_indices] *= translation_maxima[1]
+        sspm.fpca.eigen[:, z_indices] *= translation_maxima[2]
+        sspm.fpca.mean[x_indices] *= translation_maxima[0]
+        sspm.fpca.mean[y_indices] *= translation_maxima[1]
+        sspm.fpca.mean[z_indices] *= translation_maxima[2]
+        print "PERFORM PRESCALE!!!!!!!!!!!"
 
     def sample_legacy(self, use_time=True):
         return self.motion_primitive.sample(use_time)
@@ -116,17 +138,13 @@ class MotionPrimitiveModelWrapper(object):
         return self.motion_primitive.mixture
     get_gaussian_mixture_model = get_gaussian_mixture_model_mgrd if has_mgrd else get_gaussian_mixture_model_legacy
 
-
-
     @staticmethod
     def load_model_from_json(skeleton, mm_data, use_mgrd_mixture_model=True):
-
-
         # the eigen vectors for spatial spline is stored column major
         mm_data['eigen_vectors_spatial'] = np.ascontiguousarray(np.asarray(mm_data['eigen_vectors_spatial']).transpose())
         mm_data['eigen_vectors_temporal_semantic'] = np.ascontiguousarray(np.asarray(mm_data['eigen_vectors_temporal_semantic']).transpose())
         # TODO: serialize as objects to avoid mapping names
-        sspm = MGRDQuaternionSplineModel.load_from_json({
+        sspm = MGRDQuaternionSplineModel.load_from_json(skeleton,{
             'eigen': mm_data['eigen_vectors_spatial'],
             'mean': mm_data['mean_spatial_vector'],
             'n_coeffs': mm_data['n_basis_spatial'],
@@ -136,6 +154,7 @@ class MotionPrimitiveModelWrapper(object):
             'translation_maxima': mm_data['translation_maxima'],
             'animated_joints': mm_data['animated_joints']
         })
+        sspm.pre_scale_root_translation()
         tspm = MGRDTemporalSplineModel.load_from_json({
             'eigen': mm_data['eigen_vectors_temporal_semantic'],
             'mean': mm_data['mean_temporal_semantic_vector'],
