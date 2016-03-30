@@ -195,7 +195,7 @@ class SkeletonPoseModel(object):
         head_position = self.evaluate_position(self.head_joint)
         #head_q = self.evaluate_orientation(head_joint)
         #head_q /= np.linalg.norm(head_q)
-        local_head_q = self.extract_parameters(self.head_joint)
+        #local_head_q = self.extract_parameters(self.head_joint)
         #head_rotation_matrix = quaternion_matrix(head_q)
         #print head_position, head_q
         target_dir = point - head_position
@@ -215,7 +215,7 @@ class SkeletonPoseModel(object):
         old_local = np.dot(parent_m, self.skeleton.nodes[self.head_joint].get_local_matrix(self.pose_parameters))
         m = np.dot(delta_matrix, old_local)
         new_local = np.dot(np.linalg.inv(parent_m),m)
-        m = np.dot(parent_m, new_local)
+        #m = np.dot(parent_m, new_local)
         new_local_q = quaternion_from_matrix(new_local)
         #new_local_q = quaternion_from_matrix(new_rotation_matrix)
         self.set_channel_values(new_local_q, [self.head_joint])
@@ -223,7 +223,7 @@ class SkeletonPoseModel(object):
         #new_head_direction = np.dot(delta_matrix,test)
         #new_rotation_matrix = quaternion_matrix(quaternion_from_matrix(new_rotation_matrix))
         #new_rotation_matrix = self.skeleton.nodes[head_joint].get_global_matrix(self.pose_parameters, use_cache=False)
-        m[:,3] = [0,0,0,1]
+        #m[:,3] = [0,0,0,1]
 
 
         #new_global_rotation_matrix = np.dot(delta_matrix,  head_rotation_matrix)
