@@ -18,7 +18,6 @@ IK_METHOD_CYCLIC_COORDINATE_DESCENT = "ccd"
 def obj_inverse_kinematics(s, data):
     ik, free_joints, target_joint, target_position = data
     d = ik.evaluate_delta(s, target_joint, target_position, free_joints)
-    #print d
     return d
 
 
