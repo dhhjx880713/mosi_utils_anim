@@ -33,7 +33,7 @@ class TrajectoryConstraint(ParameterizedSpline, SpatialConstraintBase):
         return discrete_trajectory_constraint
 
     def set_active_range(self, new_range_start, new_range_end):
-        print("set range", new_range_start, new_range_end)
+        #print("set range", new_range_start, new_range_end)
         self.range_start = new_range_start
         self.range_end = new_range_end
 
