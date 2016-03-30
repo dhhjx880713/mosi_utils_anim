@@ -177,7 +177,7 @@ class ElementaryActionGenerator(object):
             return self.motion_primitive_constraints_builder.build()
 
         except PathSearchError as e:
-            write_log( "Moved beyond end point using parameters", str(e.search_parameters))
+            write_log("Error: Moved beyond last point of spline using parameters", str(e.search_parameters))
             return None
 
     def append_action_to_graph_walk(self, graph_walk):
