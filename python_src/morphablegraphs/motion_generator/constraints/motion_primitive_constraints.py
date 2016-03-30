@@ -64,11 +64,11 @@ class MotionPrimitiveConstraints(object):
     
         """
         motion_spline = motion_primitive.back_project(parameters, use_time_parameters)
-        quat_frames = motion_spline.get_motion_vector()
         if not self.is_local:
-            #find aligned frames once for all constraints
-            quat_frames = align_quaternion_frames(quat_frames, prev_frames, self.start_pose)
+            #find aligned frames once for all constraints#TODO use splines
+            motion_spline.coeffs = align_quaternion_frames(motion_spline.coeffs, prev_frames, self.start_pose)
 
+        quat_frames = motion_spline.get_motion_vector()
         #evaluate constraints with the generated motion
         error_sum = 0
         for constraint in self.constraints:
@@ -87,11 +87,11 @@ class MotionPrimitiveConstraints(object):
 
         """
         motion_spline = motion_primitive.back_project(parameters, use_time_parameters)
-        quat_frames = motion_spline.get_motion_vector()
         if not self.is_local:
             #find aligned frames once for all constraints
-            quat_frames = align_quaternion_frames(quat_frames, prev_frames, self.start_pose)
+            motion_spline.coeffs = align_quaternion_frames(motion_spline.coeffs, prev_frames, self.start_pose)
 
+        quat_frames = motion_spline.get_motion_vector()
         #evaluate constraints with the generated motion
         residual_vector = []
         for constraint in self.constraints:
