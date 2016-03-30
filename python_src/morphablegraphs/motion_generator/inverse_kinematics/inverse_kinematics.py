@@ -15,6 +15,7 @@ LEN_TRANSLATION = 3
 IK_METHOD_UNCONSTRAINED_OPTIMIZATION = "unconstrained"
 IK_METHOD_CYCLIC_COORDINATE_DESCENT = "ccd"
 
+
 def obj_inverse_kinematics(s, data):
     ik, free_joints, target_joint, target_position = data
     d = ik.evaluate_delta(s, target_joint, target_position, free_joints)
@@ -155,7 +156,7 @@ class InverseKinematics(object):
                 for c in constraints["single"]:
                     self._modify_frame_using_keyframe_constraint(motion_vector, c, keyframe)
                     if self.activate_look_at and not has_multiple_targets:
-                        print "look at constraint"
+                        write_log("look at constraint")
                         if self.window > 0:
                             start = keyframe - self.window/2
                             end = keyframe + self.window/2
@@ -170,7 +171,7 @@ class InverseKinematics(object):
         self._modify_pose_general(constraint)
         motion_vector.frames[keyframe] = self.pose.get_vector()
         #interpolate
-        print "free joints", constraint.free_joints
+        #print "free joints", constraint.free_joints
         if self.window > 0:
             self.interpolate_around_keyframe(motion_vector, constraint.get_joint_names(), keyframe, self.window)
 
@@ -195,7 +196,7 @@ class InverseKinematics(object):
             #print joint_parameter_indices
             transition_start = max(start-self.transition_window, 0)
             transition_end = min(end+self.transition_window, frames.shape[0])-1
-            print transition_start, start, end, transition_end, joint_parameter_indices, frames[transition_end-10,joint_parameter_indices]
+            #print transition_start, start, end, transition_end, joint_parameter_indices, frames[transition_end-10,joint_parameter_indices]
             apply_slerp(frames, transition_start, start, joint_parameter_indices)
             apply_slerp(frames, end, transition_end, joint_parameter_indices)
             #print "after slerp",frames[transition_end-10,joint_parameter_indices]
@@ -229,7 +230,6 @@ class InverseKinematics(object):
             motion_vector.frames[keyframe] = self.pose.get_vector()
         self._create_transition_for_frame_range(motion_vector.frames, start_idx, end_idx, self.pose.free_joints_map[traj_constraint["joint_name"]])
 
-
     def _modify_motion_vector_using_trajectory_constraint2(self, motion_vector, traj_constraint):
         write_log("CA constraint for joint", traj_constraint["joint_name"])
         trajectory = traj_constraint["trajectory"]
@@ -254,7 +254,7 @@ class InverseKinematics(object):
             target = trajectory.query_point_by_absolute_arc_length(arc_length)
 
             #write_log("change frame", idx, t, target, constraint["joint_name"])
-            print (idx, keyframe, arc_length, n_frames)
+            #print (idx, keyframe, arc_length, n_frames)
             error = np.inf
             iter_counter = 0
             while error > self.success_threshold and iter_counter < self.max_retries:
@@ -270,10 +270,10 @@ class InverseKinematics(object):
         end_idx = traj_constraint["end_frame"]
         start_target = traj_constraint["trajectory"].query_point_by_parameter(0.0)
         end_target = traj_constraint["trajectory"].query_point_by_parameter(1.0)
-        write_log("looking for corresponding frame range in frame range", start_idx, end_idx, start_target, end_target)
+        #write_log("looking for corresponding frame range in frame range", start_idx, end_idx, start_target, end_target)
         start_idx = self._find_corresponding_frame(motion_vector, start_idx, end_idx, traj_constraint["joint_name"], start_target)
         end_idx = self._find_corresponding_frame(motion_vector, start_idx, end_idx, traj_constraint["joint_name"], end_target)
-        write_log("found corresponding frame range", start_idx, end_idx)
+        #write_log("found corresponding frame range", start_idx, end_idx)
         return start_idx, end_idx
 
     def _find_corresponding_frame(self, motion_vector, start_idx, end_idx, target_joint, target_position):
