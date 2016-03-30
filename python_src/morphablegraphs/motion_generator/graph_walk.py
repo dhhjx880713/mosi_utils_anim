@@ -151,7 +151,7 @@ class GraphWalk(object):
         offset = 0
         for step in self.steps[start_step:]:
             new_gamma = parameter_vector[offset:offset+step.n_time_components]
-            print new_gamma
+            #print new_gamma
             step.parameters[step.n_spatial_components:] = new_gamma
             offset += step.n_time_components
 
