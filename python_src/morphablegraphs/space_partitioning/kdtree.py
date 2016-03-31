@@ -11,6 +11,7 @@ instead of a distance measure.
 from operator import itemgetter
 import heapq
 import numpy as np
+from . import LEAF_NODE, INNER_NODE
 
 
 class Node(object):
@@ -21,7 +22,7 @@ class Node(object):
     def __init__(self, data, dim, depth=0):
         self.index = depth
         if len(data) > 1:
-            self.type = "inner"
+            self.type = INNER_NODE
             # Select axis based on depth so that axis cycles through all valid values
             axis = depth % dim
 
@@ -44,7 +45,7 @@ class Node(object):
             else:
                 self.right = None
         else:
-            self.type = "leaf"
+            self.type = LEAF_NODE
             self.point = data[0]
             self.left = None
             self.right = None
@@ -174,13 +175,12 @@ class KDTree(object):
         """prints tree using a depth first traversal 
         """
         node_stack = []
-        node = self.root
         node_stack.append(self.root)
         element_count = 1
         while len(node_stack) > 0:
             node = node_stack.pop(-1)
             print element_count, node.index, node.point
-            if node.type == "inner":
+            if node.type == INNER_NODE:
                 if node.left is not None:
                     node_stack.append(node.left)
                 if node.right is not None:
@@ -199,7 +199,7 @@ class KDTree(object):
         while len(node_stack) > 0:
             node = node_stack.pop(-1)
             heapq.heappush(result_queue, (obj(node.point, data), node.point))
-            if node.type == "inner":
+            if node.type == INNER_NODE:
                 if node.left is not None:
                     node_stack.append(node.left)
                 if node.right is not None:
