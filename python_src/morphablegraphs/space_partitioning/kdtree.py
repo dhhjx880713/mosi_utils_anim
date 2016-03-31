@@ -61,12 +61,10 @@ class KDTree(object):
         self.data = None
         self.root = None
         self.global_bb = None
-        return
               
     def construct(self, data, dim):
         self.data = data
         self.root = Node(data, dim)
-        return
 
     def _decide_direction_distance(self, target, left, right, distance):
         """ Chooses between left and right node allowing either to be None.
