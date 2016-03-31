@@ -37,14 +37,13 @@ class MotionSpline(object):
     value is the new number of frames n'
 
     """
-    def __init__(self, low_dimensional_parameters, canonical_motion_coefs, time_function, knots, semantic_annotation=None):
+    def __init__(self, low_dimensional_parameters, canonical_motion_coeffs, time_function, knots, semantic_annotation=None):
         self.low_dimensional_parameters = low_dimensional_parameters
         self.time_function = time_function
         self.buffered_frames = None
-        canonical_motion_coefs = canonical_motion_coefs.T
-        self.n_pose_parameters = len(canonical_motion_coefs)
+        self.coeffs = canonical_motion_coeffs
+        self.knots = knots
         #create a b-spline for each pose parameter from the cooeffients
-        self.canonical_motion_splines = [(knots, canonical_motion_coefs[i], B_SPLINE_DEGREE) for i in xrange(self.n_pose_parameters)]
         self.semantic_annotation = semantic_annotation
 
     def get_motion_vector(self):
@@ -56,9 +55,10 @@ class MotionSpline(object):
         \tThe new frames as 2d numpy.ndarray with shape (number of frames, \
         number of channels)
         """
-        temp_frames = [si.splev(self.time_function, spline_def) for spline_def in self.canonical_motion_splines]
-        self.buffered_frames = np.asarray(temp_frames).T
-        return self.buffered_frames
+        canonical_motion_coeffs = self.ceoffs.T
+        n_pose_parameters = len(canonical_motion_coeffs)
+        canonical_motion_splines = [(self.knots, canonical_motion_coeffs[i], B_SPLINE_DEGREE) for i in xrange(n_pose_parameters)]
+        return np.asarray([si.splev(self.time_function, spline_def) for spline_def in canonical_motion_splines]).T
 
     def get_buffered_motion_vector(self):
         """ Returns a buffered version  of the motion vector from the last call to get_motion_vector
@@ -69,7 +69,6 @@ class MotionSpline(object):
         \tThe new frames as 2d numpy.ndarray with shape (number of frames, \
         number of channels)
         """
-        if self.buffered_frames is not None:
-            return self.buffered_frames
-        else:
-            return self.get_motion_vector()
+        if self.buffered_frames is None:
+            self.buffered_frames = self.get_motion_vector()
+        return self.buffered_frames
