@@ -10,7 +10,7 @@ import numpy as np
 
 class HandPose(object):
     def __init__(self):
-        self.pose_vector = []
+        self.pose_vectors = dict()
         self.hand_skeletons = None
 
 
@@ -28,20 +28,28 @@ class HandPoseGenerator(object):
         self.status_change_map = hand_pose_info["status_change_map"]
         self.right_hand_skeleton = hand_pose_info["right_hand_skeleton"]
         self.left_hand_skeleton = hand_pose_info["left_hand_skeleton"]
-        for key in hand_pose_info["skeletonStrings"]:
-            bvh_reader = BVHReader("").init_from_string(hand_pose_info["skeletonStrings"][key])
-            skeleton = Skeleton(bvh_reader)
-            self._add_hand_pose(key, skeleton)
+        for pose in hand_pose_info["poses"].keys():
+            hand_pose = HandPose()
+            hand_pose.hand_skeletons = dict()
+            hand_pose.hand_skeletons["RightHand"] = self.right_hand_skeleton
+            hand_pose.hand_skeletons["LeftHand"] = self.left_hand_skeleton
+            hand_pose.pose_vectors["LeftHand"] = np.asarray(hand_pose_info["poses"][pose]["LeftHand"])
+            hand_pose.pose_vectors["RightHand"] = np.asarray(hand_pose_info["poses"][pose]["RightHand"])
+            self.pose_map[pose] = hand_pose
+        #for key in hand_pose_info["skeletonStrings"]:
+        #    bvh_reader = BVHReader("").init_from_string(hand_pose_info["skeletonStrings"][key])
+        #    skeleton = Skeleton(bvh_reader)
+        #    self._add_hand_pose(key, skeleton)
         self.initialized = True
 
-    def init_generator_from_directory(self, motion_primitive_directory):
+    def init_generator_from_directory(self, motion_primitive_dir):
         """
         creates a dicitionary for all possible hand poses
         TODO define in a file
         :param directory_path:
         :return:
         """
-        hand_pose_directory = motion_primitive_directory+os.sep+"hand_poses"
+        hand_pose_directory = motion_primitive_dir+os.sep+"hand_poses"
         hand_pose_info_file = hand_pose_directory + os.sep + "hand_pose_info.json"
         if os.path.isfile(hand_pose_info_file):
             with open(hand_pose_info_file, "r") as in_file:
@@ -49,16 +57,21 @@ class HandPoseGenerator(object):
                 self.status_change_map = hand_pose_info["status_change_map"]
                 self.right_hand_skeleton = hand_pose_info["right_hand_skeleton"]
                 self.left_hand_skeleton = hand_pose_info["left_hand_skeleton"]
-
-            for root, dirs, files in os.walk(hand_pose_directory):
-                for file_name in files:
-                    if file_name[-4:] == ".bvh":
-                        print file_name[:-4]
-                        bvh_reader = BVHReader(root+os.sep+file_name)
-                        skeleton = Skeleton(bvh_reader)
-                        self._add_hand_pose(file_name[:-4], skeleton)
-                        #motion_vector = MotionVector()
-                        #motion_vector.from_bvh_reader(bvh_reader)
+            for pose in hand_pose_info["poses"].keys():
+                hand_pose = HandPose()
+                hand_pose.hand_skeletons = dict()
+                hand_pose.hand_skeletons["RightHand"] = self.right_hand_skeleton
+                hand_pose.hand_skeletons["LeftHand"] = self.left_hand_skeleton
+                hand_pose.pose_vectors["LeftHand"] = np.asarray(hand_pose_info["poses"][pose]["LeftHand"])
+                hand_pose.pose_vectors["RightHand"] = np.asarray(hand_pose_info["poses"][pose]["RightHand"])
+                self.pose_map[pose] = hand_pose
+            #for root, dirs, files in os.walk(hand_pose_directory):
+            #    for file_name in files:
+            #        if file_name[-4:] == ".bvh":
+            #            print file_name[:-4]
+            #            bvh_reader = BVHReader(root+os.sep+file_name)
+            #            skeleton = Skeleton(bvh_reader)
+            #            self._add_hand_pose(file_name[:-4], skeleton)
 
             self.initialized = True
         else:
@@ -126,10 +139,11 @@ class HandPoseGenerator(object):
         :param pose_vector:
         :return:
         """
-        for i in self.pose_map[status].hand_skeletons[hand]["indices"]:
-            param_index = i*4 + 3 #translation is ignored
+        for src_idx, target_idx in enumerate(self.pose_map[status].hand_skeletons[hand]["indices"]):
+            param_index = target_idx*4 + 3 #translation is ignored
+            src_vector_idx = src_idx*4
             #print self.pose_map[status].pose_vector[frame_index:frame_index+4]
-            pose_vector[param_index:param_index+4] = self.pose_map[status].pose_vector[param_index:param_index+4]
+            pose_vector[param_index:param_index+4] = self.pose_map[status].pose_vectors[hand][src_vector_idx:src_vector_idx+4]
 
     def smooth_state_transitions(self, quat_frames, events, indices, window=30):
         #event_frame2 = events[0]
