@@ -126,32 +126,8 @@ class Skeleton(object):
                     node.parent = self.nodes[parent_node_name]
                     self.nodes[parent_node_name].children.append(node)
 
+
             self.nodes[node_name] = node
-
-    def construct_hierarchy(self):
-        self.root_node = SkeletonRootNode(self.root, self.node_channels[self.root], None)
-        self.root_node.index = 0
-        self.root_node.quaternion_frame_index = 3
-        self.nodes = collections.OrderedDict()
-        self.nodes[self.root] = self.root_node
-        self.add_skeleton_node(self.root_node)
-        # print "joints", self.nodes.keys()
-
-    def add_skeleton_node(self, parent_node):
-        """ Currently assumes there are no EndSites
-        :param parent_node:
-        :return:
-        """
-        for child_name in self.node_names[parent_node.node_name]["children"]:
-            child_node = SkeletonJointNode(child_name, self.node_channels[child_name], parent_node)
-            child_node.index = len(self.nodes.keys())
-            child_node.offset = self.node_names[child_name]["offset"]
-            if child_name in self.node_name_frame_map:
-                child_node.quaternion_frame_index = self.node_name_frame_map[child_name] * 4 + 3
-            if "children" in self.node_names[child_name].keys() and len(self.node_names[child_name]["children"]):
-                self.add_skeleton_node(child_node)
-            self.nodes[child_name] = child_node
-            parent_node.children.append(child_node)
 
     def is_motion_vector_complete(self, frames, is_quaternion):
         if is_quaternion:
