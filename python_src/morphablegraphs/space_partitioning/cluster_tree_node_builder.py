@@ -13,6 +13,7 @@ from .  import KDTREE_WRAPPER_NODE, LEAF_NODE, INNER_NODE, ROOT_NODE
 from cluster_tree_node import ClusterTreeNode
 from kdtree_wrapper_node import KDTreeWrapper
 
+
 class ClusterTreeNodeBuilder(object):
     """ Creates a ClusterTreeNode based on samples. It subdivides samples using KMeans and
         creates a child node for each subdivision. Child nodes can be ClusterTreeNodes
@@ -36,14 +37,13 @@ class ClusterTreeNodeBuilder(object):
         self.kmeans = None#cluster.KMeans(n_clusters=self.n_subdivisions)
         self.store_indices = store_indices
 
-
     def _calculate_mean(self, data, indices):
-        if  indices is None:
+        if indices is None:
             n_samples = len(data)
-            mean = np.mean(data[:,:self.dim], axis=0)
+            mean = np.mean(data[:, :self.dim], axis=0)
         else:
             n_samples = len(indices)
-            mean = np.mean(data[indices,:self.dim], axis=0)
+            mean = np.mean(data[indices, :self.dim], axis=0)
         return mean, n_samples
         
     def _get_node_type_from_depth(self, depth):
@@ -61,12 +61,11 @@ class ClusterTreeNodeBuilder(object):
         """Use the kmeans algorithm of scipy to labels to samples according 
         to clusters.
         """
-
         self.kmeans = cluster.KMeans(n_clusters=self.n_subdivisions)
         if indices is None:
             labels = self.kmeans.fit_predict(data[:, :self.dim])
         else:
-            labels = self.kmeans.fit_predict(data[indices,:self.dim])
+            labels = self.kmeans.fit_predict(data[indices, :self.dim])
             
         cluster_indices = [[] for i in xrange(self.n_subdivisions)]
         if indices is None:
