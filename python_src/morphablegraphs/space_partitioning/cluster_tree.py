@@ -37,8 +37,6 @@ class ClusterTree(object):
         self.root = None
         self.data = None
         self.store_indices = store_indices
-  
-        return
       
     def save_to_file(self, file_name):
         fp = open(file_name+".json", "wb")
@@ -47,7 +45,6 @@ class ClusterTree(object):
         json.dump(node_desc_list, fp, indent=4)
         fp.close()
         self.data.tofile(file_name+".data")
-        return
         
     def load_from_file(self, file_name):
         fp = open(file_name+".json", "r")
@@ -56,18 +53,15 @@ class ClusterTree(object):
         data_shape = node_desc["data_shape"]
         self.data = np.fromfile(file_name+".data").reshape(data_shape)
         self.dim = data_shape[1]
-        root_id = node_desc["root"]
         node_builder = ClusterTreeNodeBuilder(self.n_subdivisions, self.max_level, self.dim, self.store_indices)
-        self.root = node_builder.construct_from_node_desc_list(root_id, node_desc, self.data)
+        self.root = node_builder.construct_from_node_desc_list(node_desc["root"], node_desc, self.data)
 
-    def save_to_file_pickle(self, file_name):
-        pickle_file_name = file_name
+    def save_to_file_pickle(self, pickle_file_name):
         pickle_file = open(pickle_file_name, 'wb')
         pickle.dump(self, pickle_file, pickle.HIGHEST_PROTOCOL)
-        pickle_file.close()        
+        pickle_file.close()
        
-    def load_from_file_pickle(self,file_name):
-        pickle_file_name = file_name
+    def load_from_file_pickle(self, pickle_file_name):
         pickle_file = open(pickle_file_name, 'rb')
         data = pickle.load(pickle_file)
         self.data = data.data
@@ -96,7 +90,6 @@ class ClusterTree(object):
             index, value = node.find_best_cluster(obj, data, use_mean=True)
             node = node.clusters[index]
             level += 1
-        print level, node.leaf
         return node.find_best_example(obj, data)
           
     def find_best_example_excluding_search_candidates(self, obj, data, n_candidates=1):
@@ -107,12 +100,12 @@ class ClusterTree(object):
             optimum.
         """
         print "search with", n_candidates, "candidates in tree with ", self.n_subdivisions, " subdivisions and ", self.max_level, "levels"
-        results = []
-        candidates = []
+        results = list()
+        candidates = list()
         candidates.append((np.inf, self.root))
         level = 0
         while len(candidates) > 0:
-            new_candidates = []
+            new_candidates = list()
             for value, node in candidates:
                 if not node.leaf:
                     good_candidates = node.find_best_cluster_candidates(obj, data, n_candidates)
@@ -140,8 +133,8 @@ class ClusterTree(object):
             Uses boundary based on maximum cost of last iteration to ignore bad candidates.
             Note requires more candidates to prevent
         """
-        results = []
-        candidates = []
+        results = list()
+        candidates = list()
         candidates.append((np.inf, self.root))
         level = 0
         while len(candidates) > 0:
@@ -176,8 +169,8 @@ class ClusterTree(object):
             Multiple candidates are kept at each level in order to find the global
             optimum.
         """
-        results = []
-        candidates = []
+        results = list()
+        candidates = list()
         candidates.append((np.inf, self.root))
         level = 0
         while len(candidates) > 0:
