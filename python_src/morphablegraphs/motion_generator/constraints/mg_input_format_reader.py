@@ -90,7 +90,6 @@ class MGInputFormatReader(object):
         keyframe_constraints = self._extract_all_keyframe_constraints(self.elementary_action_list[action_index]["constraints"], node_group)
         return self._reorder_keyframe_constraints_by_motion_primitive_name(node_group, keyframe_constraints)
 
-    def _extract_trajectory_control_points(self, traj_constraint, distance_threshold=0.0):
 
     def _is_active_trajectory_region(self, traj_constraint, index):
         if "semanticAnnotation" in traj_constraint[index].keys():
