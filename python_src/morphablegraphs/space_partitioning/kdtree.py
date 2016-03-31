@@ -86,7 +86,7 @@ class KDTree(object):
             distance for the best option.
         """
         best_option = None
-        least_distance = 100000
+        least_distance = np.inf
         if left is not None and right is not None:
             r_d = distance(target, right.point)
             l_d = distance(target, left.point)
@@ -128,7 +128,7 @@ class KDTree(object):
             result of obj for the best option.
         """
         best_option = None
-        least_cost = 100000
+        least_cost = np.inf
         if left is not None and right is not None:
             r_d = obj(right.point, data)
             l_d = obj(left.point, data)
