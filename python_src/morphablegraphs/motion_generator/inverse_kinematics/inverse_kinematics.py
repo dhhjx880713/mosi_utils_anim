@@ -163,6 +163,8 @@ class InverseKinematics(object):
                         else:
                             start = keyframe
                             end = keyframe+1
+                        start = max(0, start)
+                        end = min(motion_vector.frames.shape[0], end)
                         self._look_at_in_range(motion_vector, c.position, start, end)
 
     def _modify_frame_using_keyframe_constraint(self, motion_vector, constraint, keyframe):
