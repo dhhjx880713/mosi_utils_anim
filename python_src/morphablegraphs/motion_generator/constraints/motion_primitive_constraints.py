@@ -158,7 +158,7 @@ class MotionPrimitiveConstraints(object):
             if (c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION or c.constraint_type == SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION) \
                 and "generated" not in c.semantic_annotation.keys():
                 if time_function is not None:
-                    keyframe = frame_offset+int(time_function[c.canonical_keyframe])
+                    keyframe = frame_offset+int(time_function[c.canonical_keyframe]) + 1  # add +1 to map the frame correctly TODO: test and verify for all cases
                 else:
                     keyframe = frame_offset+c.canonical_keyframe
                 if keyframe not in ik_constraints.keys():

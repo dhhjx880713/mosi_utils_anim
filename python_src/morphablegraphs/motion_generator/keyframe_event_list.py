@@ -67,7 +67,7 @@ class KeyframeEventList(object):
         canonical_keyframe = int(keyframe_event["canonical_keyframe"])
         if time_function is not None:
             #warped_keyframe = self._warp_keyframe_index(time_function, canonical_keyframe)
-            event_keyframe_index = frame_offset + int(time_function[canonical_keyframe])
+            event_keyframe_index = frame_offset + int(time_function[canonical_keyframe]) + 1  # add +1 to map the frame correctly TODO: test and verify for all cases
         else:
             event_keyframe_index = frame_offset + canonical_keyframe
         return event_keyframe_index
