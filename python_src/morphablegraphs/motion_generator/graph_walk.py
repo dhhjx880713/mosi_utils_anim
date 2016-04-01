@@ -81,7 +81,7 @@ class GraphWalk(object):
                 time_function = self.motion_state_graph.nodes[step.node_key].back_project_time_function(step.parameters)
             step_constraints = step.motion_primitive_constraints.convert_to_ik_constraints(frame_offset, time_function)
             ik_constraints["keyframes"].update(step_constraints)
-            frame_offset += step.end_frame - step.start_frame
+            frame_offset += step.end_frame - step.start_frame + 1
         ik_constraints["trajectories"] = list()
         if self._algorithm_config["collision_avoidance_constraints_mode"] == "ik":
             ik_constraints["trajectories"] += self._create_ik_trajectory_constraints()

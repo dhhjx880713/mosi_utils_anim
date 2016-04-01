@@ -47,7 +47,7 @@ class KeyframeEventList(object):
                 print "add", prev_step.node_key[0]
                 self.update_frame_annotation(prev_step.node_key[0], start_frame, end_frame-1)
                 start_frame = end_frame
-            end_frame += step.end_frame - step.start_frame
+            end_frame += step.end_frame - step.start_frame + 1
             prev_step = step
         if prev_step is not None:
             print "add", prev_step.node_key[0]
@@ -97,12 +97,9 @@ class KeyframeEventList(object):
             if graph_walk.use_time_parameters:
                 time_function = graph_walk.motion_state_graph.nodes[step.node_key].back_project_time_function(step.parameters)
             for keyframe_event in step.motion_primitive_constraints.keyframe_event_list.values():
-
                 event_keyframe_index = self._extract_keyframe_index(keyframe_event, time_function, frame_offset)
-
                 self.keyframe_events_dict[event_keyframe_index] = self._extract_event_list(keyframe_event, event_keyframe_index)
-
-            frame_offset += step.end_frame - step.start_frame
+            frame_offset += step.end_frame - step.start_frame + 1
 
     def _add_event_list_to_frame_annotation(self, graph_walk):
         """
