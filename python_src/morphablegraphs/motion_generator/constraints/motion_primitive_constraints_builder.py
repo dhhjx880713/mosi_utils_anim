@@ -350,5 +350,5 @@ class MotionPrimitiveConstraintsBuilder(object):
     def _raise_closest_point_search_exception(self, max_arc_length):
         parameters = {"last": self.status["last_arc_length"], "max": max_arc_length,
                        "full": self.action_constraints.root_trajectory.full_arc_length}
-        print "did not find closest point",  str(parameters)
+        print "Error: Did not find closest point", str(parameters)
         raise PathSearchError(parameters)
