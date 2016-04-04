@@ -10,6 +10,7 @@ try:
 except ImportError:
     pass
     has_mgrd = False
+
 from ..utilities import load_json_file
 from sklearn.mixture.gmm import GMM
 
@@ -19,6 +20,7 @@ class MotionPrimitiveModelWrapper(object):
 
     """
     SPLINE_DEGREE = 3
+
     def __init__(self):
         self.motion_primitive = None
         self.use_mgrd_mixture_model = False
@@ -31,8 +33,10 @@ class MotionPrimitiveModelWrapper(object):
     def _initialize_from_json(self, mgrd_skeleton, data):
         if has_mgrd:
             if "semantic_annotation" in data.keys():
+                print "Init motion primitive model with semantic annotation"
                 self.motion_primitive = MotionPrimitiveModelWrapper.load_model_from_json(mgrd_skeleton, data, self.use_mgrd_mixture_model)
             else:
+                print "Init motion primitive model without semantic annotation"
                 mm = MotionPrimitiveModelWrapper.load_mixture_model(data, self.use_mgrd_mixture_model)
 
                 tspm = LegacyTemporalSplineModel(data)
@@ -50,6 +54,7 @@ class MotionPrimitiveModelWrapper(object):
                 self._pre_scale_root_translation(sspm, data['translation_maxima'])
                 self.motion_primitive = MGRDMotionPrimitiveModel(mgrd_skeleton, sspm, tspm, mm)
         else:
+            print "Init legacy motion primitive model"
             self.motion_primitive = MGMotionPrimitive(None)
             self.motion_primitive._initialize_from_json(data)
 
@@ -73,7 +78,7 @@ class MotionPrimitiveModelWrapper(object):
         sspm.fpca.mean[x_indices] *= translation_maxima[0]
         sspm.fpca.mean[y_indices] *= translation_maxima[1]
         sspm.fpca.mean[z_indices] *= translation_maxima[2]
-        print "PERFORM PRESCALE!!!!!!!!!!!"
+        print "Prescale root translation"
 
     def sample_legacy(self, use_time=True):
         return self.motion_primitive.sample(use_time)
@@ -190,3 +195,4 @@ class MotionPrimitiveModelWrapper(object):
             mm.covars_ = np.array(data['gmm_covars'])
             mm.n_dims = len(mm.covars_[0])
         return mm
+
