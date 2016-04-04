@@ -84,14 +84,14 @@ class MotionPrimitiveConstraintsBuilder(object):
 
     def _set_aligning_transform(self, node_key, prev_frames):
         if prev_frames is None:
-            print "create aligning transform from start pose",self.action_constraints.start_pose
+            #print "create aligning transform from start pose",self.action_constraints.start_pose
             #transform = inverse_pose_transform(self.action_constraints.start_pose["position"],self.action_constraints.start_pose["orientation"])
             #self.status["aligning_transform"] = {"translation": transform[0],"orientation":[0,0,0]}
             transform = copy(self.action_constraints.start_pose)
         else:
             aligning_angle, aligning_offset = fast_quat_frames_transformation(prev_frames, self.motion_state_graph.nodes[node_key].sample(False).get_motion_vector()) #TODO return from concatenate_frames
             transform = {"position": aligning_offset,"orientation":[0,aligning_angle,0]}
-            print "aligning_transform", aligning_angle, aligning_offset
+            #print "aligning_transform", aligning_angle, aligning_offset
             #aligning_transform = get_2d_pose_transform(prev_frames, -1)
             #transform = inverse_pose_transform(aligning_offset,[0,aligning_angle,0])
             #self.status["aligning_transform"] = {"translation": transform[0],"orientation":transform[1]}
@@ -103,8 +103,8 @@ class MotionPrimitiveConstraintsBuilder(object):
         mp_constraints.motion_primitive_name = self.status["motion_primitive_name"]
         mp_constraints.aligning_transform = self.status["aligning_transform"]
         mp_constraints.settings = self.trajectory_following_settings
-        mp_constraints.constraints = []
-        mp_constraints.goal_arc_length = 0
+        mp_constraints.constraints = list()
+        mp_constraints.goal_arc_length = 0.0
         mp_constraints.step_start = self.status["last_pos"]
         if self.use_local_coordinates:
             mp_constraints.start_pose = None
@@ -205,9 +205,8 @@ class MotionPrimitiveConstraintsBuilder(object):
         """ Extract keyframe constraints of the motion primitive name.
         """
         if self.status["motion_primitive_name"] in self.action_constraints.keyframe_constraints.keys():
-            keyframe_constraint_desc_list = self.action_constraints.keyframe_constraints[self.status["motion_primitive_name"]]
-            for i in xrange(len(keyframe_constraint_desc_list)):
-                keyframe_constraint = self.create_keyframe_constraint(keyframe_constraint_desc_list[i])
+            for constraint_definition in self.action_constraints.keyframe_constraints[self.status["motion_primitive_name"]]:
+                keyframe_constraint = self.create_keyframe_constraint(constraint_definition)
                 if keyframe_constraint is not None:
                     self._add_events_to_event_list(mp_constraints, keyframe_constraint)
                     mp_constraints.constraints.append(keyframe_constraint)
