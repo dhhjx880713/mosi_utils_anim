@@ -64,7 +64,7 @@ class GraphWalkGenerator(object):
                 break
             success = self._add_elementary_action_to_graph_walk(action_constraints, graph_walk)
             if not success:
-                write_log("Aborting motion synthesis: Error from constraints has become too high. due to unreachable constraints.")
+                write_log("Aborting motion synthesis due to exception or high error due to unreachable constraints.")
                 return graph_walk
         return graph_walk
 
