@@ -12,11 +12,12 @@ from .motion_primitive_constraints import MotionPrimitiveConstraints
 from .spatial_constraints import PoseConstraint, Direction2DConstraint, GlobalTransformConstraint, PoseConstraintQuatFrame, TwoHandConstraintSet, LookAtConstraint
 from ...animation_data.motion_vector import concatenate_frames
 from ...animation_data.motion_editing import get_2d_pose_transform, inverse_pose_transform, fast_quat_frames_transformation, create_transformation_matrix
-from . import CA_CONSTRAINTS_MODE_SET, OPTIMIZATION_MODE_ALL, OPTIMIZATION_MODE_KEYFRAMES
+from . import CA_CONSTRAINTS_MODE_SET, OPTIMIZATION_MODE_ALL, OPTIMIZATION_MODE_KEYFRAMES, OPTIMIZATION_MODE_TWO_HANDS
 
 KEYFRAME_LABEL_END = "end"
 KEYFRAME_LABEL_START = "start"
 KEYFRAME_LABEL_MIDDLE = "middle"
+
 
 class MotionPrimitiveConstraintsBuilder(object):
     """ Extracts a list of constraints for a motion primitive from ElementaryActionConstraints 
@@ -234,6 +235,8 @@ class MotionPrimitiveConstraintsBuilder(object):
         elif self.local_optimization_mode == OPTIMIZATION_MODE_KEYFRAMES:
             mp_constraints.use_local_optimization = len(self.action_constraints.keyframe_constraints.keys()) > 0 \
                                                     or self.status["is_last_step"]
+        elif self.local_optimization_mode == OPTIMIZATION_MODE_TWO_HANDS:
+            mp_constraints.use_local_optimization = self.action_constraints.contains_two_hands_constraints and not self.status["is_last_step"]
         else:
             mp_constraints.use_local_optimization = False
 
@@ -254,7 +257,7 @@ class MotionPrimitiveConstraintsBuilder(object):
         keyframe_constraint_desc = copy(keyframe_constraint_desc)
         keyframe_constraint_desc["n_canonical_frames"] = self.status["n_canonical_frames"]
         keyframe_label = keyframe_constraint_desc["semanticAnnotation"]["keyframeLabel"]
-        print "try to map frame annotation ", keyframe_label
+        #print "try to map frame annotation ", keyframe_label
         if keyframe_label == KEYFRAME_LABEL_END:#"end"
             keyframe_constraint_desc["canonical_keyframe"] = self.status["n_canonical_frames"]-1
         elif keyframe_label == KEYFRAME_LABEL_START:#"start"
