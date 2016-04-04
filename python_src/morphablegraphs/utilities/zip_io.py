@@ -96,13 +96,16 @@ class ZipReader(object):
     def _read_hand_pose_data(self):
         hand_pose_info = json.loads(self.zip_file.read("hand_poses/hand_pose_info.json"))
         hand_pose_info["skeletonStrings"] = dict()
-        for file_path in self.zip_file.namelist():
-            splitted_name = file_path.split("/")
-            if len(splitted_name) > 1:
-                filename = splitted_name[1][:-4]
-                if splitted_name[0] == "hand_poses" and splitted_name[1][-4:] == ".bvh":
-                    hand_pose_info["skeletonStrings"][filename] = self.zip_file.read(file_path)
-
+        try:
+            for file_path in self.zip_file.namelist():
+                splitted_name = file_path.split("/")
+                if len(splitted_name) > 1:
+                    filename = splitted_name[1][:-4]
+                    if splitted_name[0] == "hand_poses" and splitted_name[1][-4:] == ".bvh":
+                        hand_pose_info["skeletonStrings"][filename] = self.zip_file.read(file_path)
+        except:
+            print "Error: Did not find example skeletons for hand pose in zip file"
+            pass
         return hand_pose_info
 
     def _construct_graph_data(self, structure_desc):
