@@ -14,6 +14,9 @@ from ...animation_data.motion_vector import concatenate_frames
 from ...animation_data.motion_editing import get_2d_pose_transform, inverse_pose_transform, fast_quat_frames_transformation, create_transformation_matrix
 from . import CA_CONSTRAINTS_MODE_SET, OPTIMIZATION_MODE_ALL, OPTIMIZATION_MODE_KEYFRAMES
 
+KEYFRAME_LABEL_END = "end"
+KEYFRAME_LABEL_START = "start"
+KEYFRAME_LABEL_MIDDLE = "middle"
 
 class MotionPrimitiveConstraintsBuilder(object):
     """ Extracts a list of constraints for a motion primitive from ElementaryActionConstraints 
@@ -248,14 +251,17 @@ class MotionPrimitiveConstraintsBuilder(object):
         :param keyframe_constraint:
         :return: Enhanced keyframe description or None if label was not found
         """
-        assert "keyframeLabel" in keyframe_constraint_desc["semanticAnnotation"].keys()
+        #assert "keyframeLabel" in keyframe_constraint_desc["semanticAnnotation"].keys()
         keyframe_constraint_desc = copy(keyframe_constraint_desc)
         keyframe_constraint_desc["n_canonical_frames"] = self.status["n_canonical_frames"]
         keyframe_label = keyframe_constraint_desc["semanticAnnotation"]["keyframeLabel"]
-        if keyframe_label == "end":
+        print "try to map frame annotation ", keyframe_label
+        if keyframe_label == KEYFRAME_LABEL_END:#"end"
             keyframe_constraint_desc["canonical_keyframe"] = self.status["n_canonical_frames"]-1
-        elif keyframe_label == "start":
+        elif keyframe_label == KEYFRAME_LABEL_START:#"start"
             keyframe_constraint_desc["canonical_keyframe"] = 0
+        elif keyframe_label == KEYFRAME_LABEL_MIDDLE:#"middle"
+            keyframe_constraint_desc["canonical_keyframe"] = self.status["n_canonical_frames"]/2
         else:
             keyframe = self._get_keyframe_from_annotation(keyframe_label)
             if keyframe is not None:
@@ -272,6 +278,8 @@ class MotionPrimitiveConstraintsBuilder(object):
             keyframe = annotations[self.status["motion_primitive_name"]][keyframe_label]
             if keyframe == self.NEGATIVE_ONE or keyframe == self.LAST_FRAME:
                 keyframe = self.status["n_canonical_frames"]-1
+            elif keyframe == KEYFRAME_LABEL_MIDDLE:
+                keyframe = self.status["n_canonical_frames"]/2
             return int(keyframe)
         else:
             print "Error: Could not map keyframe label", keyframe_label, annotations.keys()
