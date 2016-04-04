@@ -210,21 +210,21 @@ class MotionPrimitiveConstraintsBuilder(object):
                     mp_constraints.constraints.append(keyframe_constraint)
 
     def create_keyframe_constraint(self, constraint_definition):
-        constraint_factor = self.trajectory_following_settings["position_constraint_factor"]
-        keyframe_constraint = None
-        constraint_definition = self._map_label_to_canonical_keyframe(constraint_definition)
-        if "merged" in constraint_definition.keys():
-            keyframe_constraint = TwoHandConstraintSet(self.skeleton, constraint_definition,
-                                                       self.precision["pos"], constraint_factor)
-        #elif np.any([c_type in constraint_definition.keys() for c_type in self.mp_constraint_types]):
-
-        elif "look_at" in constraint_definition.keys():
-            keyframe_constraint = LookAtConstraint(self.skeleton, constraint_definition,
-                                                   self.precision["pos"], constraint_factor)
-        elif constraint_definition is not None:
-            keyframe_constraint = GlobalTransformConstraint(self.skeleton, constraint_definition,
-                                                            self.precision["pos"], constraint_factor)
-        return keyframe_constraint
+        if "keyframeLabel" in constraint_definition["semanticAnnotation"].keys():
+            constraint_definition = self._map_label_to_canonical_keyframe(constraint_definition)
+            constraint_factor = self.trajectory_following_settings["position_constraint_factor"]
+            if "merged" in constraint_definition.keys():
+                return TwoHandConstraintSet(self.skeleton, constraint_definition,
+                                            self.precision["pos"], constraint_factor)
+            #elif np.any([c_type in constraint_definition.keys() for c_type in self.mp_constraint_types]):
+            elif "look_at" in constraint_definition.keys():
+                return LookAtConstraint(self.skeleton, constraint_definition,
+                                        self.precision["pos"], constraint_factor)
+            else:
+                return GlobalTransformConstraint(self.skeleton, constraint_definition,
+                                                self.precision["pos"], constraint_factor)
+        else:
+            return None
 
     def _decide_on_optimization(self, mp_constraints):
         if self.local_optimization_mode == OPTIMIZATION_MODE_ALL:
