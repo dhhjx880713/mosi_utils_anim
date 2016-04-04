@@ -48,45 +48,45 @@ class MotionGenerator(object):
         self.graph_walk_optimizer.set_algorithm_config(self._algorithm_config)
 
     def generate_motion(self, mg_input, activate_joint_map=False, activate_coordinate_transform=False):
-            """
-            Converts a json input file with a list of elementary actions and constraints
-            into a graph_walk saved to a BVH file.
+        """
+        Converts a json input file with a list of elementary actions and constraints
+        into a graph_walk saved to a BVH file.
 
-            Parameters
-            ----------
-            * mg_input : string or dict
-                Dict or Path to json file that contains a list of elementary actions with constraints.
-            * activate_joint_map: bool
-                Maps left hand to left hand endsite and right hand to right hand endsite
-            * activate_coordinate_transform: bool
-                Converts input coordinates from CAD coordinate system to OpenGL coordinate system
+        Parameters
+        ----------
+        * mg_input : string or dict
+            Dict or Path to json file that contains a list of elementary actions with constraints.
+        * activate_joint_map: bool
+            Maps left hand to left hand endsite and right hand to right hand endsite
+        * activate_coordinate_transform: bool
+            Converts input coordinates from CAD coordinate system to OpenGL coordinate system
 
-            Returns
-            -------
-            * motion_vector : AnnotatedMotionVector
-               Contains a list of quaternion frames and their annotation based on actions.
-            """
-            clear_log()
-            write_log("Start motion synthesis with algorithm config", self._algorithm_config)
-            if type(mg_input) != dict:
-                mg_input = load_json_file(mg_input)
-            start = time.clock()
-            mg_input_reader = MGInputFormatReader(mg_input, activate_joint_map, activate_coordinate_transform)
+        Returns
+        -------
+        * motion_vector : AnnotatedMotionVector
+           Contains a list of quaternion frames and their annotation based on actions.
+        """
+        clear_log()
+        write_log("Start motion synthesis with algorithm config", self._algorithm_config)
+        if type(mg_input) != dict:
+            mg_input = load_json_file(mg_input)
+        start = time.clock()
+        mg_input_reader = MGInputFormatReader(mg_input, activate_joint_map, activate_coordinate_transform)
 
-            graph_walk = self.graph_walk_generator.generate(mg_input_reader)
+        graph_walk = self.graph_walk_generator.generate(mg_input_reader)
 
-            if self._algorithm_config["use_global_time_optimization"]:
-                graph_walk = self.graph_walk_optimizer.optimize_time_parameters_over_graph_walk(graph_walk)
+        if self._algorithm_config["use_global_time_optimization"]:
+            graph_walk = self.graph_walk_optimizer.optimize_time_parameters_over_graph_walk(graph_walk)
 
-            motion_vector = graph_walk.convert_to_annotated_motion()
+        motion_vector = graph_walk.convert_to_annotated_motion()
 
-            if self._algorithm_config["activate_inverse_kinematics"]:
-                write_log("Modify using inverse kinematics")
-                self.inverse_kinematics = InverseKinematics(self.motion_state_graph.skeleton, self._algorithm_config, motion_vector.frames[0])
-                self.inverse_kinematics.modify_motion_vector(motion_vector)
+        if self._algorithm_config["activate_inverse_kinematics"]:
+            write_log("Modify using inverse kinematics")
+            self.inverse_kinematics = InverseKinematics(self.motion_state_graph.skeleton, self._algorithm_config, motion_vector.frames[0])
+            self.inverse_kinematics.modify_motion_vector(motion_vector)
 
-            motion_vector.frames = self.motion_state_graph.full_skeleton.complete_motion_vector_from_reference(self.motion_state_graph.skeleton, motion_vector.frames)
-
+        motion_vector.frames = self.motion_state_graph.full_skeleton.complete_motion_vector_from_reference(self.motion_state_graph.skeleton, motion_vector.frames)
+        if motion_vector.frames is not None:
             if self.motion_state_graph.hand_pose_generator is not None:
                 write_log("Generate hand poses")
                 self.motion_state_graph.hand_pose_generator.generate_hand_poses(motion_vector)
@@ -99,7 +99,7 @@ class MotionGenerator(object):
             if self._service_config["write_log"]:
                 time_stamp = unicode(datetime.now().strftime("%d%m%y_%H%M%S"))
                 save_log(self._service_config["output_dir"] + os.sep + "mg_"+time_stamp + ".log")
-            return motion_vector
+        return motion_vector
 
     def export_statistics(self, mg_input, graph_walk,  motion_vector, filename):
         if motion_vector.has_frames():
