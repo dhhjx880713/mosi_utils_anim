@@ -138,8 +138,26 @@ class ElementaryActionGenerator(object):
             return self._evaluate_multiple_path_following_options(graph_walk, options)
         else:
             return action_name, start_nodes[0]
+
+    def _get_best_transition_node(self, graph_walk):
+        #prev_node = graph_walk.steps[-1].node_key
+        next_node_type = self.node_group.get_transition_type(graph_walk, self.action_constraints,
+                                                              self.action_state.travelled_arc_length,
+                                                              self.arc_length_of_end)
+        edges = self.motion_primitive_graph.nodes[self.action_state.current_node].outgoing_edges
+        options = [edge_key for edge_key in edges.keys() if edges[edge_key].transition_type == next_node_type]
+        n_transitions = len(options)
+        if n_transitions == 1:
+            next_node = options[0]
+        elif n_transitions > 1:
+            next_node = self._evaluate_multiple_path_following_options(graph_walk, options)
         else:
-            return (action_name, next_nodes[0])
+            write_log("Error: Could not find a transition from state", self.action_state.current_node, len(self.motion_primitive_graph.nodes[self.action_state.current_node].outgoing_edges))
+            next_node = self.motion_primitive_graph.node_groups[self.action_constraints.action_name].get_random_start_state()
+            next_node_type = self.motion_primitive_graph.nodes[next_node].node_type
+        if next_node is None:
+           write_log("Error: Could not find a transition of type", next_node_type, "from state", self.action_state.current_node)
+        return next_node, next_node_type
 
     def _select_next_motion_primitive_node(self, graph_walk):
         """extract from graph based on previous last step + heuristic """
@@ -152,15 +170,8 @@ class ElementaryActionGenerator(object):
             next_node_type = self.motion_primitive_graph.nodes[next_node].node_type
             if next_node is None:
                 write_log("Error: Could not find a transition of type action_transition from ", self.action_state.prev_action_name, self.action_state.prev_mp_name, " to state", self.action_state.current_node)
-        elif len(self.motion_primitive_graph.nodes[self.action_state.current_node].outgoing_edges) > 0:
-            next_node, next_node_type = self.node_group.get_random_transition(graph_walk, self.action_constraints, self.action_state.travelled_arc_length, self.arc_length_of_end)
-            if next_node is None:
-                write_log("Error: Could not find a transition of type", next_node_type, "from state", self.action_state.current_node)
         else:
-            write_log("Error: Could not find a transition from state", self.action_state.current_node)
-            next_node = self.motion_primitive_graph.node_groups[self.action_constraints.action_name].get_random_start_state()
-            next_node_type = self.motion_primitive_graph.nodes[next_node].node_type
-
+            next_node, next_node_type = self._get_best_transition_node(graph_walk)
         return next_node, next_node_type
 
     def _update_travelled_arc_length(self, new_quat_frames, prev_graph_walk, prev_travelled_arc_length):
