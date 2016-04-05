@@ -150,7 +150,11 @@ class ElementaryActionGenerator(object):
         if n_transitions == 1:
             next_node = options[0]
         elif n_transitions > 1:
-            next_node = self._evaluate_multiple_path_following_options(graph_walk, options)
+            if self.action_constraints.root_trajectory is not None:
+                next_node = self._evaluate_multiple_path_following_options(graph_walk, options)
+            else:  # use random transition if there is no path to follow
+                random_index = np.random.randrange(0, len(edges), 1)
+                next_node = options[random_index]
         else:
             write_log("Error: Could not find a transition from state", self.action_state.current_node, len(self.motion_primitive_graph.nodes[self.action_state.current_node].outgoing_edges))
             next_node = self.motion_primitive_graph.node_groups[self.action_constraints.action_name].get_random_start_state()
