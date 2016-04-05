@@ -90,12 +90,9 @@ class MotionStateGroup(ElementaryActionMetaInfo):
             next_parameters = self.nodes[to_node_key].sample_low_dimensional_vector()
         return next_parameters
 
-
-    def get_random_transition(self, graph_walk, action_constraint, travelled_arc_length, arc_length_of_end):
-        """ Get next state of the elementary action based on previous iteration.
-        """
-        prev_node = graph_walk.steps[-1].node_key
-        if action_constraint.root_trajectory is not None:
+    def get_transition_type(self, graph_walk, action_constraint, travelled_arc_length, arc_length_of_end):
+         prev_node = graph_walk.steps[-1].node_key
+         if action_constraint.root_trajectory is not None:
             #test end condition for trajectory constraints
             if not action_constraint.check_end_condition(graph_walk.get_quat_frames(),\
                                     travelled_arc_length, arc_length_of_end):
@@ -103,18 +100,26 @@ class MotionStateGroup(ElementaryActionMetaInfo):
                 #make standard transition to go on with trajectory following
                 next_node_type = NODE_TYPE_STANDARD
             else:
-                # threshold was overstepped. remove previous step before 
+                # threshold was overstepped. remove previous step before
                 # trying to reach the goal using a last step
                 next_node_type = NODE_TYPE_END
-                
+
             print "generate", next_node_type, "transition from trajectory"
-        else:
-            n_standard_transitions = len([e for e in self.nodes[prev_node].outgoing_edges.keys() if self.nodes[prev_node].outgoing_edges[e].transition_type == NODE_TYPE_STANDARD])
+         else:
+            n_standard_transitions = len([e for e in self.nodes[prev_node].outgoing_edges.keys()
+                                          if self.nodes[prev_node].outgoing_edges[e].transition_type == NODE_TYPE_STANDARD])
             if n_standard_transitions > 0:
                 next_node_type = NODE_TYPE_STANDARD
             else:
                 next_node_type = NODE_TYPE_END
             print "generate", next_node_type, "transition without trajectory", n_standard_transitions
+         return next_node_type
+
+    def get_random_transition(self, graph_walk, action_constraint, travelled_arc_length, arc_length_of_end):
+        """ Get next state of the elementary action based on previous iteration.
+        """
+        prev_node = graph_walk.steps[-1].node_key
+        next_node_type = self.get_transition_type(graph_walk, action_constraint, travelled_arc_length, arc_length_of_end)
         to_node_key = self.nodes[prev_node].generate_random_transition(next_node_type)
         if to_node_key is not None:
             return to_node_key, next_node_type
