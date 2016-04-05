@@ -55,7 +55,7 @@ class MotionSpline(object):
         \tThe new frames as 2d numpy.ndarray with shape (number of frames, \
         number of channels)
         """
-        canonical_motion_coeffs = self.ceoffs.T
+        canonical_motion_coeffs = self.coeffs.T
         n_pose_parameters = len(canonical_motion_coeffs)
         canonical_motion_splines = [(self.knots, canonical_motion_coeffs[i], B_SPLINE_DEGREE) for i in xrange(n_pose_parameters)]
         return np.asarray([si.splev(self.time_function, spline_def) for spline_def in canonical_motion_splines]).T
