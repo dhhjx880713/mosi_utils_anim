@@ -90,16 +90,6 @@ class MotionStateGroup(ElementaryActionMetaInfo):
             next_parameters = self.nodes[to_node_key].sample_low_dimensional_vector()
         return next_parameters
 
-    def get_best_transition(self, graph_walk, action_constraint, travelled_arc_length, arc_length_of_end):
-        """
-        Select transition based on heuristic
-        :param graph_walk:
-        :param action_constraint:
-        :param travelled_arc_length:
-        :param arc_length_of_end:
-        :return: NodeKey, NodeType
-        """
-        return None, None
 
     def get_random_transition(self, graph_walk, action_constraint, travelled_arc_length, arc_length_of_end):
         """ Get next state of the elementary action based on previous iteration.
