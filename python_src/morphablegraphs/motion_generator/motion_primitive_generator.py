@@ -135,7 +135,6 @@ class MotionPrimitiveGenerator(object):
                                                          prev_frames_copy, prev_parameters)
         #write_log("start optimization", self._is_optimization_required(mp_constraints),mp_constraints.use_local_optimization,mp_constraints.min_error,self.optimization_start_error_threshold)
         if self._is_optimization_required(mp_constraints):
-
             sample = self._optimize_parameters_numerically(sample, graph_node, mp_constraints, prev_frames_copy)
         return sample
 
@@ -146,10 +145,14 @@ class MotionPrimitiveGenerator(object):
     def _get_best_fit_sample_using_mgrd(self, graph_node, mp_constraints):
         samples = motion_primitive_get_random_samples(graph_node.motion_primitive, self.n_random_samples)
         scores = MGRDFilter.score_samples(graph_node.motion_primitive, samples, mp_constraints)
-        best_idx = np.argmin(scores)
-        mp_constraints.min_error = scores[best_idx]
-        write_log("Found best sample with score", scores[best_idx])
-        return samples[best_idx]
+        if scores is not None:
+            best_idx = np.argmin(scores)
+            mp_constraints.min_error = scores[best_idx]
+            write_log("Found best sample with score", scores[best_idx])
+            return samples[best_idx]
+        else:
+            write_log("Error: MGRD returned None. Use random sample instead.")
+            return self.generate_random_sample(graph_node.name)
 
     def _optimize_parameters_numerically(self, inital_guess, graph_node, mp_constraints, prev_frames):
          #print "condition", not self.use_transition_model, mp_constraints.use_local_optimization, not close_to_optimum, self.optimization_start_error_threshold

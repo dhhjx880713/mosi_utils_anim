@@ -295,7 +295,7 @@ def obj_global_residual_vector_and_naturalness(s, data):
     """
     #s = np.asarray(s)
     offset = 0
-    residual_vector = []
+    residual_vector = list()
     motion_primitive_graph, graph_walk_steps, error_scale_factor, quality_scale_factor, prev_frames = data
     for step in graph_walk_steps:
         alpha = s[offset:offset+step.n_spatial_components]

@@ -39,7 +39,7 @@ class MotionState(MotionPrimitiveModelWrapper):
         self.velocity_data = None
         self.average_step_length = 0 
         self.action_name = None
-        self.primitive_name = None
+        self.name = None
         self.cluster_tree = None
 
     def init_from_file(self, action_name, primitive_name, motion_primitive_filename, node_type=NODE_TYPE_STANDARD):
@@ -48,7 +48,7 @@ class MotionState(MotionPrimitiveModelWrapper):
         self.n_standard_transitions = 0
         self.average_step_length = 0
         self.action_name = action_name
-        self.primitive_name = primitive_name
+        self.name = primitive_name
         skeleton = self.motion_state_group.motion_state_graph.mgrd_skeleton
         self._load_from_file(skeleton, motion_primitive_filename)
         self.cluster_tree = None
@@ -57,7 +57,7 @@ class MotionState(MotionPrimitiveModelWrapper):
 
     def init_from_dict(self, action_name, desc):
         self.action_name = action_name
-        self.primitive_name = desc["name"]
+        self.name = desc["name"]
 
         skeleton = self.motion_state_group.motion_state_graph.mgrd_skeleton
         self._initialize_from_json(skeleton, desc["mm"])

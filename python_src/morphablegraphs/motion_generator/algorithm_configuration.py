@@ -73,6 +73,8 @@ class AlgorithmConfigurationBuilder(object):
         self.global_spatial_optimization_settings["error_scale_factor"] = 0.01
         self.global_spatial_optimization_settings["tolerance"] = 0.01
         self.global_spatial_optimization_settings["spatial_epsilon"] = 0.0
+        self.global_spatial_optimization_settings["position_weight"] = 1000.0
+        self.global_spatial_optimization_settings["orientation_weight"] = 500.0
         self.global_time_optimization_settings = dict()
         self.global_time_optimization_settings["max_steps"] = 20
         self.global_time_optimization_settings["method"] = "BFGS"

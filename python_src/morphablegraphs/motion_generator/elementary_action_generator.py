@@ -93,43 +93,75 @@ class ElementaryActionGenerator(object):
         else:
             self.arc_length_of_end = 0.0
 
+    def generate_node_evaluation_constraints(self, graph_walk):
+        goal_arc_length = self.action_state.travelled_arc_length + self.start_node_selection_look_ahead_distance
+        goal_position = self.action_constraints.root_trajectory.query_point_by_absolute_arc_length(goal_arc_length)
+        constraint_desc = {"joint": "Hips", "canonical_keyframe": -1, "position": goal_position.tolist(), "n_canonical_frames": 0,
+                           "semanticAnnotation":  {"keyframeLabel": "end", "generated": True}}
+        pos_constraint = GlobalTransformConstraint(self.motion_primitive_graph.skeleton, constraint_desc, 1.0, 1.0)
+        mp_constraints = MotionPrimitiveConstraints()
+        mp_constraints.skeleton = self.action_constraints.get_skeleton()
+        mp_constraints.aligning_transform = create_transformation_matrix(graph_walk.motion_vector.start_pose["position"],
+                                                                         graph_walk.motion_vector.start_pose["orientation"])
+        mp_constraints.start_pose = graph_walk.motion_vector.start_pose
+        mp_constraints.constraints.append(pos_constraint)
+        return mp_constraints
+
+    def _evaluate_multiple_path_following_options(self, graph_walk, options):
+        mp_constraints = self.generate_node_evaluation_constraints(graph_walk)
+
+        prev_frames = None
+        if self.use_local_coordinates:
+            mp_constraints = mp_constraints.transform_constraints_to_local_cos()
+        elif graph_walk.get_num_of_frames() > 0:
+            prev_frames = graph_walk.get_quat_frames()
+
+        errors = np.empty(len(options))
+        index = 0
+        for node_name in options:
+            motion_primitive_node = self.motion_primitive_graph.nodes[ node_name]
+            self.motion_primitive_generator._get_best_fit_sample_using_cluster_tree(motion_primitive_node,
+                                                                                    mp_constraints, prev_frames)
+            write_log("Evaluated option", node_name, mp_constraints.min_error)
+            errors[index] = mp_constraints.min_error
+            index += 1
+        min_idx = np.argmin(errors)
+        next_node = options[min_idx]
+        write_log("Next node is", next_node, "with an error of", errors[min_idx])
+        return next_node
+
     def get_best_start_node(self, graph_walk, action_name):
-        #return ("walk","beginLeftStance")
-        next_nodes = self.motion_primitive_graph.get_start_nodes(graph_walk, action_name)
-        n_nodes = len(next_nodes)
+        start_nodes = self.motion_primitive_graph.get_start_nodes(graph_walk, action_name)
+        n_nodes = len(start_nodes)
         if n_nodes > 1:
-            goal_arc_length = self.action_state.travelled_arc_length + self.start_node_selection_look_ahead_distance
-            goal_position = self.action_constraints.root_trajectory.query_point_by_absolute_arc_length(goal_arc_length)
-            constraint_desc = {"joint": "Hips", "canonical_keyframe": -1, "position": goal_position.tolist(), "n_canonical_frames": 0,
-                               "semanticAnnotation":  {"keyframeLabel": "end", "generated": True}}
-            pos_constraint = GlobalTransformConstraint(self.motion_primitive_graph.skeleton, constraint_desc, 1.0, 1.0)
-            mp_constraints = MotionPrimitiveConstraints()
-            mp_constraints.skeleton = self.action_constraints.get_skeleton()
-            mp_constraints.aligning_transform = create_transformation_matrix(graph_walk.motion_vector.start_pose["position"], graph_walk.motion_vector.start_pose["orientation"])
-            mp_constraints.start_pose = graph_walk.motion_vector.start_pose
-            mp_constraints.constraints.append(pos_constraint)
-
-            prev_frames = None
-            if self.use_local_coordinates:
-                mp_constraints = mp_constraints.transform_constraints_to_local_cos()
-            elif graph_walk.get_num_of_frames() > 0:
-                prev_frames = graph_walk.get_quat_frames()
-
-            errors = np.empty(n_nodes)
-            index = 0
-            for node_name in next_nodes:
-                motion_primitive_node = self.motion_primitive_graph.nodes[(action_name, node_name)]
-                self.motion_primitive_generator._get_best_fit_sample_using_cluster_tree(motion_primitive_node,
-                                                                                        mp_constraints, prev_frames)
-                write_log("Evaluated start option",node_name, mp_constraints.min_error)
-                errors[index] = mp_constraints.min_error
-                index += 1
-            min_idx = np.argmin(errors)
-            next_node = next_nodes[min_idx]
-            write_log("Next node is", next_node, "with an error of", errors[min_idx], "towards",goal_position)
-            return (action_name, next_node)
+            options = [(action_name, next_node) for next_node in start_nodes]
+            return self._evaluate_multiple_path_following_options(graph_walk, options)
         else:
-            return (action_name, next_nodes[0])
+            return action_name, start_nodes[0]
+
+    def _get_best_transition_node(self, graph_walk):
+        #prev_node = graph_walk.steps[-1].node_key
+        next_node_type = self.node_group.get_transition_type(graph_walk, self.action_constraints,
+                                                              self.action_state.travelled_arc_length,
+                                                              self.arc_length_of_end)
+        edges = self.motion_primitive_graph.nodes[self.action_state.current_node].outgoing_edges
+        options = [edge_key for edge_key in edges.keys() if edges[edge_key].transition_type == next_node_type]
+        n_transitions = len(options)
+        if n_transitions == 1:
+            next_node = options[0]
+        elif n_transitions > 1:
+            if self.action_constraints.root_trajectory is not None:
+                next_node = self._evaluate_multiple_path_following_options(graph_walk, options)
+            else:  # use random transition if there is no path to follow
+                random_index = np.random.randrange(0, n_transitions, 1)
+                next_node = options[random_index]
+        else:
+            write_log("Error: Could not find a transition from state", self.action_state.current_node, len(self.motion_primitive_graph.nodes[self.action_state.current_node].outgoing_edges))
+            next_node = self.motion_primitive_graph.node_groups[self.action_constraints.action_name].get_random_start_state()
+            next_node_type = self.motion_primitive_graph.nodes[next_node].node_type
+        if next_node is None:
+           write_log("Error: Could not find a transition of type", next_node_type, "from state", self.action_state.current_node)
+        return next_node, next_node_type
 
     def _select_next_motion_primitive_node(self, graph_walk):
         """extract from graph based on previous last step + heuristic """
@@ -142,15 +174,8 @@ class ElementaryActionGenerator(object):
             next_node_type = self.motion_primitive_graph.nodes[next_node].node_type
             if next_node is None:
                 write_log("Error: Could not find a transition of type action_transition from ", self.action_state.prev_action_name, self.action_state.prev_mp_name, " to state", self.action_state.current_node)
-        elif len(self.motion_primitive_graph.nodes[self.action_state.current_node].outgoing_edges) > 0:
-            next_node, next_node_type = self.node_group.get_random_transition(graph_walk, self.action_constraints, self.action_state.travelled_arc_length, self.arc_length_of_end)
-            if next_node is None:
-                write_log("Error: Could not find a transition of type", next_node_type, "from state", self.action_state.current_node)
         else:
-            write_log("Error: Could not find a transition from state", self.action_state.current_node)
-            next_node = self.motion_primitive_graph.node_groups[self.action_constraints.action_name].get_random_start_state()
-            next_node_type = self.motion_primitive_graph.nodes[next_node].node_type
-
+            next_node, next_node_type = self._get_best_transition_node(graph_walk)
         return next_node, next_node_type
 
     def _update_travelled_arc_length(self, new_quat_frames, prev_graph_walk, prev_travelled_arc_length):
