@@ -179,9 +179,13 @@ class MotionPrimitiveConstraintsBuilder(object):
         self._add_path_following_goal_constraint(self.skeleton.root, mp_constraints, mp_constraints.step_goal)
         self._add_path_following_direction_constraint(self.skeleton.root, mp_constraints, dir_vector)
 
-    def _add_path_following_goal_constraint(self, joint_name, mp_constraints, goal):
+    def _get_approximate_step_length(self):
+        node_key = (self.action_constraints.action_name, self.status["motion_primitive_name"])
+        return self.motion_state_graph.nodes[node_key].average_step_length * self.trajectory_following_settings["heuristic_step_length_factor"]
+
+    def _add_path_following_goal_constraint(self, joint_name, mp_constraints, goal, keyframeLabel="end"):
         if mp_constraints.settings["position_constraint_factor"] > 0.0:
-            keyframe_semantic_annotation = {"keyframeLabel": "end", "generated": True}
+            keyframe_semantic_annotation = {"keyframeLabel": keyframeLabel, "generated": True}
             keyframe_constraint_desc = {"joint": joint_name,
                                         "position": goal,
                                         "semanticAnnotation": keyframe_semantic_annotation}
@@ -316,8 +320,7 @@ class MotionPrimitiveConstraintsBuilder(object):
           The absolute arc length of the new goal on the trajectory.
           The goal should then be extracted using get_point_and_orientation_from_arc_length
         """
-        node_key = (self.action_constraints.action_name, self.status["motion_primitive_name"])
-        step_length = self.motion_state_graph.nodes[node_key].average_step_length * self.trajectory_following_settings["heuristic_step_length_factor"]
+        step_length = self._get_approximate_step_length()
         # find closest point in the range of the last_arc_length and max_arc_length
         closest_point = self.find_closest_point_to_current_position_on_trajectory(step_length)
         # approximate arc length of the point closest to the current position
