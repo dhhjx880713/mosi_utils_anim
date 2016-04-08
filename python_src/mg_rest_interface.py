@@ -67,11 +67,12 @@ class MGInputHandler(tornado.web.RequestHandler):
             else:
                 print "answer request", not self.application.use_file_output_mode
                 skeleton = self.application.motion_generator.motion_state_graph.full_skeleton
-                bvh_writer = get_bvh_writer(skeleton, motion_vector.get_quat_frames())
+                bvh_writer = get_bvh_writer(skeleton, motion_vector.frames)
+                bvh_string = bvh_writer.generate_bvh_string()
                 result_object = {
-                    "bvh": bvh_writer.generate_bvh_string(),
-                    "annotation": motion_vector.frame_annotation,
-                    "event_list": motion_vector.keyframe_events_dict}
+                    "bvh": bvh_string,
+                    "annotation": motion_vector.keyframe_event_list.frame_annotation,
+                    "event_list": motion_vector.keyframe_event_list.keyframe_events_dict}
                 self.write(json.dumps(result_object))  # send result back
         else:
             error_string = "Error: Failed to generate motion data."
