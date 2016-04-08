@@ -66,9 +66,8 @@ class MGInputHandler(tornado.web.RequestHandler):
                 self.write("succcess")
             else:
                 print "answer request", not self.application.use_file_output_mode
-                bvh_writer = get_bvh_writer(
-                    self.application.graph_walk_generator.motion_primitive_graph.full_skeleton,
-                    motion_vector.get_quat_frames())
+                skeleton = self.application.motion_generator.motion_state_graph.full_skeleton
+                bvh_writer = get_bvh_writer(skeleton, motion_vector.get_quat_frames())
                 result_object = {
                     "bvh": bvh_writer.generate_bvh_string(),
                     "annotation": motion_vector.frame_annotation,
