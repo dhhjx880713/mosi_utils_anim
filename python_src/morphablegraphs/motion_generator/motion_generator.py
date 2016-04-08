@@ -102,6 +102,7 @@ class MotionGenerator(object):
             if self._service_config["write_log"]:
                 time_stamp = unicode(datetime.now().strftime("%d%m%y_%H%M%S"))
                 save_log(self._service_config["output_dir"] + os.sep + "mg_"+time_stamp + ".log")
+                graph_walk.export_generated_constraints(self._service_config["output_dir"] + os.sep + "generated_constraints_"+time_stamp + ".json")
 
     def export_statistics(self, mg_input, graph_walk,  motion_vector, filename):
         if motion_vector.has_frames():
