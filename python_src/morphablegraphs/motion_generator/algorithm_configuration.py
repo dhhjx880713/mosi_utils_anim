@@ -96,6 +96,7 @@ class AlgorithmConfigurationBuilder(object):
         self.trajectory_following_settings["closest_point_search_accuracy"] = 0.001
         self.trajectory_following_settings["closest_point_search_max_iterations"] = 5000
         self.trajectory_following_settings["look_ahead_distance"] = 500
+        self.trajectory_following_settings["end_step_length_factor"] = 1.0
 
     def set_default_smoothing_settings(self):
         self.smoothing_settings = dict()

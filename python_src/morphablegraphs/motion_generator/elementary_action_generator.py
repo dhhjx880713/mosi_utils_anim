@@ -72,6 +72,7 @@ class ElementaryActionGenerator(object):
         self.step_look_ahead_distance = algorithm_config["trajectory_following_settings"]["look_ahead_distance"]
         self.average_elementary_action_error_threshold = algorithm_config["average_elementary_action_error_threshold"]
         self.use_local_coordinates = self._algorithm_config["use_local_coordinates"]
+        self.end_step_length_factor = algorithm_config["trajectory_following_settings"]["end_step_length_factor"]
 
     def set_algorithm_config(self, algorithm_config):
         self._algorithm_config = algorithm_config
@@ -79,6 +80,7 @@ class ElementaryActionGenerator(object):
         self.step_look_ahead_distance = algorithm_config["trajectory_following_settings"]["look_ahead_distance"]
         self.average_elementary_action_error_threshold = algorithm_config["average_elementary_action_error_threshold"]
         self.use_local_coordinates = self._algorithm_config["use_local_coordinates"]
+        self.end_step_length_factor = algorithm_config["trajectory_following_settings"]["end_step_length_factor"]
         self.motion_primitive_constraints_builder.set_algorithm_config(self._algorithm_config)
 
     def set_action_constraints(self, action_constraints):
@@ -89,7 +91,7 @@ class ElementaryActionGenerator(object):
         self.node_group = self.action_constraints.get_node_group()
         end_state = self.node_group.get_random_end_state()
         if end_state is not None:
-            self.arc_length_of_end = self.motion_primitive_graph.nodes[end_state].average_step_length
+            self.arc_length_of_end = self.motion_primitive_graph.nodes[end_state].average_step_length * self.end_step_length_factor
         else:
             self.arc_length_of_end = 0.0
 
