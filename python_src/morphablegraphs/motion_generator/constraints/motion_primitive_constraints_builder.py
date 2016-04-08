@@ -66,7 +66,7 @@ class MotionPrimitiveConstraintsBuilder(object):
         aligned_sample_frames = concatenate_frames(prev_frames, mp_sample_frames, graph_walk.motion_vector.start_pose, graph_walk.motion_vector.rotation_type)
         self.status["motion_primitive_name"] = node_key[1]
         self.status["n_canonical_frames"] = n_canonical_frames
-        self.status["last_arc_length"] = last_arc_length
+        self.status["last_arc_length"] = last_arc_length # defined in actionstate.transition() based on the closest point on the path
         self.status["aligned_sample_frames"] = aligned_sample_frames[n_prev_frames:]
 
         if prev_frames is None:
