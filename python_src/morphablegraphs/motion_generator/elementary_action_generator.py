@@ -233,11 +233,10 @@ class ElementaryActionGenerator(object):
         write_log("Start synthesis of elementary action", self.action_constraints.action_name)
         errors = [0]
         while not self.action_state.is_end_state():
-            try:
-                error = self._transition_to_next_action_state(graph_walk)
+            error = self._transition_to_next_action_state(graph_walk)
+            if error is not None:  # the generation of the state was not successful
                 errors.append(error)
-            except ValueError, e:
-                print e.message
+            else:
                 return False
 
         graph_walk.step_count += self.action_state.temp_step
@@ -250,12 +249,14 @@ class ElementaryActionGenerator(object):
 
         new_node, new_node_type = self._select_next_motion_primitive_node(graph_walk)
         if new_node is None:
-            raise ValueError("Failed to find a transition")
+            write_log("Error: Failed to find a transition")
+            return None
         write_log("Transition to state", new_node)
 
         mp_constraints = self._gen_motion_primitive_constraints(new_node, new_node_type, graph_walk)
         if mp_constraints is None:
-            raise ValueError("Failed to generate constraints")
+            write_log("Error: Failed to generate constraints")
+            return None
         new_motion_spline, new_parameters = self.motion_primitive_generator.generate_constrained_motion_spline(mp_constraints, graph_walk)
 
         new_arc_length = self._create_graph_walk_entry(new_node, new_motion_spline, new_parameters, mp_constraints, graph_walk)
