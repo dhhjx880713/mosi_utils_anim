@@ -187,7 +187,7 @@ class ElementaryActionGenerator(object):
         max_arc_length = min_arc_length+80 # TODO add constant or configuration parameter
         closest_point, distance = self.action_constraints.root_trajectory.find_closest_point(new_quat_frames[-1][:3],  min_arc_length, max_arc_length)
         new_travelled_arc_length, eval_point = self.action_constraints.root_trajectory.get_absolute_arc_length_of_point(
-            closest_point, min_arc_length=prev_travelled_arc_length)
+            closest_point, min_arc_length=min_arc_length)
         if new_travelled_arc_length == -1:
             new_travelled_arc_length = self.action_constraints.root_trajectory.full_arc_length
         return new_travelled_arc_length
