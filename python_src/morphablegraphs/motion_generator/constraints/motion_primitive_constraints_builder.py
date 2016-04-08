@@ -322,9 +322,11 @@ class MotionPrimitiveConstraintsBuilder(object):
         """
         step_length = self._get_approximate_step_length()
         # find closest point in the range of the last_arc_length and max_arc_length
-        closest_point = self.find_closest_point_to_current_position_on_trajectory(step_length)
+        #closest_point = self.find_closest_point_to_current_position_on_trajectory(step_length)
         # approximate arc length of the point closest to the current position
-        start_arc_length, eval_point = self.action_constraints.root_trajectory.get_absolute_arc_length_of_point(closest_point)
+        #start_arc_length, eval_point = self.action_constraints.root_trajectory.get_absolute_arc_length_of_point(closest_point)
+
+        start_arc_length = self.status["last_arc_length"] #last arc length is already found as closest point on path to current position
         # update arc length based on the step length of the next motion primitive
         if start_arc_length == -1:
             return self.action_constraints.root_trajectory.full_arc_length
