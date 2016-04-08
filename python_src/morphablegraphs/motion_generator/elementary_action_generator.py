@@ -69,14 +69,14 @@ class ElementaryActionGenerator(object):
         self.motion_primitive_constraints_builder = MotionPrimitiveConstraintsBuilder()
         self.motion_primitive_constraints_builder.set_algorithm_config(self._algorithm_config)
         self.action_state = ElementaryActionGeneratorState(self._algorithm_config)
-        self.start_node_selection_look_ahead_distance = algorithm_config["trajectory_following_settings"]["look_ahead_distance"]
+        self.step_look_ahead_distance = algorithm_config["trajectory_following_settings"]["look_ahead_distance"]
         self.average_elementary_action_error_threshold = algorithm_config["average_elementary_action_error_threshold"]
         self.use_local_coordinates = self._algorithm_config["use_local_coordinates"]
 
     def set_algorithm_config(self, algorithm_config):
         self._algorithm_config = algorithm_config
         self.action_state.debug_max_step = algorithm_config["debug_max_step"]
-        self.start_node_selection_look_ahead_distance = algorithm_config["trajectory_following_settings"]["look_ahead_distance"]
+        self.step_look_ahead_distance = algorithm_config["trajectory_following_settings"]["look_ahead_distance"]
         self.average_elementary_action_error_threshold = algorithm_config["average_elementary_action_error_threshold"]
         self.use_local_coordinates = self._algorithm_config["use_local_coordinates"]
         self.motion_primitive_constraints_builder.set_algorithm_config(self._algorithm_config)
@@ -94,7 +94,7 @@ class ElementaryActionGenerator(object):
             self.arc_length_of_end = 0.0
 
     def generate_node_evaluation_constraints(self, graph_walk):
-        goal_arc_length = self.action_state.travelled_arc_length + self.start_node_selection_look_ahead_distance
+        goal_arc_length = self.action_state.travelled_arc_length + self.step_look_ahead_distance
         goal_position = self.action_constraints.root_trajectory.query_point_by_absolute_arc_length(goal_arc_length)
         constraint_desc = {"joint": "Hips", "canonical_keyframe": -1, "position": goal_position.tolist(), "n_canonical_frames": 0,
                            "semanticAnnotation":  {"keyframeLabel": "end", "generated": True}}
