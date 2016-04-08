@@ -70,7 +70,7 @@ class MotionGenerator(object):
         write_log("Start motion synthesis with algorithm config", self._algorithm_config)
         if type(mg_input) != dict:
             mg_input = load_json_file(mg_input)
-        start = time.clock()
+        start_time = time.clock()
         mg_input_reader = MGInputFormatReader(mg_input, activate_joint_map, activate_coordinate_transform)
 
         graph_walk = self.graph_walk_generator.generate(mg_input_reader)
@@ -90,8 +90,11 @@ class MotionGenerator(object):
             if self.motion_state_graph.hand_pose_generator is not None:
                 write_log("Generate hand poses")
                 self.motion_state_graph.hand_pose_generator.generate_hand_poses(motion_vector)
+                self._output_info(graph_walk, start_time)
+        return motion_vector
 
-            time_in_seconds = time.clock() - start
+    def _output_info(self, graph_walk, start_time):
+            time_in_seconds = time.clock() - start_time
             minutes = int(time_in_seconds/60)
             seconds = time_in_seconds % 60
             write_log("Finished synthesis in " + str(minutes) + " minutes " + str(seconds) + " seconds")
@@ -99,7 +102,6 @@ class MotionGenerator(object):
             if self._service_config["write_log"]:
                 time_stamp = unicode(datetime.now().strftime("%d%m%y_%H%M%S"))
                 save_log(self._service_config["output_dir"] + os.sep + "mg_"+time_stamp + ".log")
-        return motion_vector
 
     def export_statistics(self, mg_input, graph_walk,  motion_vector, filename):
         if motion_vector.has_frames():
