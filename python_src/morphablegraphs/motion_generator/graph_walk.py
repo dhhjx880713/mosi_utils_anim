@@ -231,3 +231,25 @@ class GraphWalk(object):
         average_keyframe_error = self.get_average_keyframe_constraint_error()
         average_keyframe_error_string = "average keyframe constraint error " + str(average_keyframe_error)
         return average_keyframe_error_string + "\n" + evaluations_string + "\n" + error_string
+
+    def export_generated_constraints(self, file_path="goals.path"):
+        json_data = []
+        for idx, step in enumerate(self.steps):
+            for c in step.motion_primitive_constraints.constraints:
+                if c.constraint_type == "keyframe_position":
+                    p = c.position
+                    if p is not None:
+                        json_data.append({"position": [p[0], -p[2], None], "semanticAnnotation":{"step": idx}})
+
+        constraints = {"tasks": [{"elementaryActions":[{
+                                                      "action": "walk",
+                                                      "constraints": [{"joint": "Hips",
+                                                                       "keyframeConstraints": json_data  } ]
+                                                      }]
+                                 }]
+                       }
+
+        constraints["startPose"] = {"position":[0,0,0], "orientation": [0,0,0]}
+        constraints["session"] = "session"
+        with open(file_path, "wb") as out:
+            json.dump(constraints, out)
