@@ -61,8 +61,9 @@ class MGInputHandler(tornado.web.RequestHandler):
         if motion_vector.has_frames():
             if self.application.use_file_output_mode:
                 motion_vector.export(self.application.service_config["output_dir"],
-                                     self.application.service_config["output_filename"], add_time_stamp=False)
-                self.write("succcess")
+                                     self.application.service_config["output_filename"],
+                                     add_time_stamp=self.application.service_config["add_time_stamp"])
+                self.write("success")
             else:
                 print "answer request", not self.application.use_file_output_mode
                 result_object = {
