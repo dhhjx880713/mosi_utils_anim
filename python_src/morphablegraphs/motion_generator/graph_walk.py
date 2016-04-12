@@ -52,7 +52,9 @@ class GraphWalk(object):
         if start_pose is None:
             start_pose = mg_input.get_start_pose()
         self.motion_vector.start_pose = start_pose
+        self.motion_vector.apply_spatial_smoothing = False
         self.use_time_parameters = algorithm_config["activate_time_variation"]
+        self.apply_smoothing = algorithm_config["smoothing_settings"]["spatial_smoothing"]
         write_log("Use time parameters", self.use_time_parameters)
         self.keyframe_event_list = KeyframeEventList()
 
@@ -65,6 +67,7 @@ class GraphWalk(object):
             self.keyframe_event_list.update_events(self, start_step)
 
     def convert_to_annotated_motion(self):
+        self.motion_vector.apply_spatial_smoothing = self.apply_smoothing
         self.update_temp_motion_vector(use_time_parameters=self.use_time_parameters)
         annotated_motion_vector = AnnotatedMotionVector()
         annotated_motion_vector.frames = self.motion_vector.frames
