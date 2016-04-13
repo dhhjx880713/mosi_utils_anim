@@ -18,9 +18,8 @@ class Direction2DConstraint(KeyframeConstraintBase):
         super(Direction2DConstraint, self).__init__(constraint_desc, precision, weight_factor)
         self.constraint_type = SPATIAL_CONSTRAINT_TYPE_KEYFRAME_DIR_2D
         self.direction_constraint = constraint_desc["dir_vector"]
-        self.target_dir = np.array(
-            [self.direction_constraint[0], self.direction_constraint[2]])
-        self.target_dir = self.target_dir / np.linalg.norm(self.target_dir)
+        self.target_dir = np.array([self.direction_constraint[0], self.direction_constraint[2]])
+        self.target_dir /= np.linalg.norm(self.target_dir)
         self.target_dir_len = np.linalg.norm(self.target_dir)
 
     def evaluate_motion_spline(self, aligned_spline):

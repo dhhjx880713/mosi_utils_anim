@@ -23,7 +23,7 @@ class TwoHandConstraintSet(KeyframeConstraintBase):
         self.target_direction = np.array(self.positions[1]) - np.array(self.positions[0])
         self.target_delta = np.linalg.norm(self.target_direction)
         self.target_center = self.positions[0] + 0.5 * self.target_direction
-        self.target_direction = self.target_direction/self.target_delta
+        self.target_direction /= self.target_delta
 
         self.n_canonical_frames = constraint_desc["n_canonical_frames"]
 
