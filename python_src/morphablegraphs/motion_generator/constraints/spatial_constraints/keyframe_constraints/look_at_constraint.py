@@ -28,13 +28,18 @@ class LookAtConstraint(KeyframeConstraintBase):
         vec = np.dot(rotation_matrix, self.REFERENCE_VECTOR)[:3]
         return vec/np.linalg.norm(vec)
 
+    def evaluate_motion_spline(self, aligned_spline):
+        return self.evaluate_frame(aligned_spline.evaluate(self.canonical_keyframe))
+
     def evaluate_motion_sample(self, aligned_quat_frames):
-        pose_parameters = aligned_quat_frames[self.canonical_keyframe]
-        head_position = self.skeleton.nodes[self.skeleton.head_joint].get_global_position(pose_parameters, use_cache=False)
+        return self.evaluate_frame(aligned_quat_frames[self.canonical_keyframe])
+
+    def evaluate_frame(self, frame):
+        head_position = self.skeleton.nodes[self.skeleton.head_joint].get_global_position(frame, use_cache=False)
         target_direction = self.target_position - head_position
         target_direction /= np.linalg.norm(target_direction)
 
-        head_orientation = self.skeleton.nodes[self.skeleton.head_joint].get_global_orientation_quaternion(pose_parameters, use_cache=True)
+        head_orientation = self.skeleton.nodes[self.skeleton.head_joint].get_global_orientation_quaternion(frame, use_cache=True)
         head_direction = self._get_direction_vector_from_orientation(head_orientation)
 
         delta_q = quaternion_from_vector_to_vector(head_direction, target_direction)
@@ -43,6 +48,9 @@ class LookAtConstraint(KeyframeConstraintBase):
 
     def get_residual_vector(self, aligned_quat_frames):
         return [self.evaluate_motion_sample(aligned_quat_frames)]
+
+    def get_residual_vector_spline(self, aligned_spline):
+        return [self.evaluate_motion_spline(aligned_spline)]
 
     def get_length_of_residual_vector(self):
         return 1

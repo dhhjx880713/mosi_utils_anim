@@ -23,6 +23,9 @@ class PoseConstraint(KeyframeConstraintBase):
         self.constraint_type = SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE
         return
 
+    def evaluate_motion_spline(self, aligned_spline):
+        return self.evaluate_frame(aligned_spline.evaluate(self.canonical_keyframe))
+
     def evaluate_motion_sample(self, aligned_quat_frames):
         """ Evaluates the difference between the first frame of the motion
         and the frame constraint.
@@ -41,9 +44,11 @@ class PoseConstraint(KeyframeConstraintBase):
         * error: float
             Difference to the desired constraint value.
         """
+        return self.evaluate_frame(aligned_quat_frames[self.canonical_keyframe])
 
+    def evaluate_frame(self, frame):
         # get point cloud of first frame
-        point_cloud = self.skeleton.convert_quaternion_frame_to_cartesian_frame(aligned_quat_frames[self.canonical_keyframe])
+        point_cloud = self.skeleton.convert_quaternion_frame_to_cartesian_frame(frame)
         #print len(self.pose_constraint), len(point_cloud)
         theta, offset_x, offset_z = align_point_clouds_2D(self.pose_constraint,
                                                           point_cloud,
@@ -56,9 +61,15 @@ class PoseConstraint(KeyframeConstraintBase):
 
         return error
 
+    def get_residual_vector_spline(self, aligned_spline):
+        return self.get_residual_vector_frame(aligned_spline.evaluate(self.canonical_keyframe))
+
     def get_residual_vector(self, aligned_quat_frames):
+        return self.get_residual_vector_frame(aligned_quat_frames[self.canonical_keyframe])
+
+    def get_residual_vector_frame(self, frame):
         # get point cloud of first frame
-        point_cloud = self.skeleton.convert_quaternion_frame_to_cartesian_frame(aligned_quat_frames[self.canonical_keyframe])
+        point_cloud = self.skeleton.convert_quaternion_frame_to_cartesian_frame(frame)
 
         theta, offset_x, offset_z = align_point_clouds_2D(self.pose_constraint,
                                                           point_cloud,

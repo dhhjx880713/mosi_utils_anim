@@ -48,6 +48,15 @@ class GlobalTransformConstraint(KeyframeConstraintBase):
         #    self.start_keyframe -= 1
         #print "RANGE", self.start_keyframe, self.stop_keyframe
 
+    def evaluate_motion_spline(self, aligned_spline):
+        error = 0
+        frame = aligned_spline.evaluate(self.canonical_keyframe)
+        if self.position is not None:
+            error += self._evaluate_joint_position(frame)
+        if self.orientation is not None:
+            error += self._evaluate_joint_orientation(frame)
+        return error
+
     def evaluate_motion_sample(self, aligned_quat_frames):
         error = 0
         if self.position is not None:
@@ -55,6 +64,9 @@ class GlobalTransformConstraint(KeyframeConstraintBase):
         if self.orientation is not None:
             error += self._evaluate_joint_orientation(aligned_quat_frames[self.canonical_keyframe])
         return error
+
+    def get_residual_vector_spline(self, aligned_spline):
+        return [self.evaluate_motion_spline(aligned_spline)]
 
     def get_residual_vector(self, aligned_frames):
         return [self.evaluate_motion_sample(aligned_frames)]

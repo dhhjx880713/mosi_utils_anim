@@ -27,18 +27,25 @@ class TwoHandConstraintSet(KeyframeConstraintBase):
 
         self.n_canonical_frames = constraint_desc["n_canonical_frames"]
 
-    def _get_global_hand_positions(self, aligned_quat_frames):
-        left_hand_position = self.skeleton.nodes[self.joint_names[0]].get_global_position(aligned_quat_frames[self.canonical_keyframe])
-        right_hand_position = self.skeleton.nodes[self.joint_names[1]].get_global_position(aligned_quat_frames[self.canonical_keyframe])
+    def _get_global_hand_positions(self, frame):
+        left_hand_position = self.skeleton.nodes[self.joint_names[0]].get_global_position(frame)
+        right_hand_position = self.skeleton.nodes[self.joint_names[1]].get_global_position(frame)
         return left_hand_position, right_hand_position
 
+    def evaluate_motion_spline(self, aligned_spline):
+        return sum(self.get_residual_vector_frame(aligned_spline.evaluate(self.canonical_keyframe)))
+
     def evaluate_motion_sample(self, aligned_quat_frames):
-        error = sum(self.get_residual_vector(aligned_quat_frames))
-        #print error
-        return error
+        return sum(self.get_residual_vector_frame(aligned_quat_frames[self.canonical_keyframe]))
 
     def get_residual_vector(self, aligned_quat_frames):
-        left_hand_position, right_hand_position = self._get_global_hand_positions(aligned_quat_frames)
+        return self.get_residual_vector_frame(aligned_quat_frames[self.canonical_keyframe])
+
+    def get_residual_vector_spline(self, aligned_spline):
+        return self.get_residual_vector_frame(aligned_spline.evaluate(self.canonical_keyframe))
+
+    def get_residual_vector_frame(self, frame):
+        left_hand_position, right_hand_position = self._get_global_hand_positions(frame)
 
         delta_vector = right_hand_position - left_hand_position
         #print "delta vector", delta_vector
