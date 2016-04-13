@@ -68,11 +68,11 @@ class MotionPrimitiveConstraints(object):
             #find aligned frames once for all constraints#TODO use splines
             motion_spline.coeffs = align_quaternion_frames(motion_spline.coeffs, prev_frames, self.start_pose)
 
-        quat_frames = motion_spline.get_motion_vector()
+        #quat_frames = motion_spline.get_motion_vector()#TODO only get the frames that are needed
         #evaluate constraints with the generated motion
         error_sum = 0
         for constraint in self.constraints:
-            error_sum += constraint.weight_factor * constraint.evaluate_motion_sample(quat_frames)
+            error_sum += constraint.weight_factor * constraint.evaluate_motion_spline(motion_spline)
         self.evaluations += 1
         return error_sum
 
@@ -91,11 +91,11 @@ class MotionPrimitiveConstraints(object):
             #find aligned frames once for all constraints
             motion_spline.coeffs = align_quaternion_frames(motion_spline.coeffs, prev_frames, self.start_pose)
 
-        quat_frames = motion_spline.get_motion_vector()
+        #quat_frames = motion_spline.get_motion_vector()
         #evaluate constraints with the generated motion
         residual_vector = []
         for constraint in self.constraints:
-            vector = constraint.get_residual_vector(quat_frames)
+            vector = constraint.get_residual_vector_spline(motion_spline)
             for value in vector:
                 residual_vector.append(value*constraint.weight_factor)
         self.evaluations += 1
