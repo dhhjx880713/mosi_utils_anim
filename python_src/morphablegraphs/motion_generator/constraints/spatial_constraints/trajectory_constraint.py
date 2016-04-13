@@ -11,8 +11,8 @@ TRAJECTORY_DIM = 3  # spline in cartesian space
 
 class TrajectoryConstraint(ParameterizedSpline, SpatialConstraintBase):
     def __init__(self, joint_name, control_points, spline_type, min_arc_length, unconstrained_indices, skeleton, precision, weight_factor=1.0,
-                 closest_point_search_accuracy=0.001, closest_point_search_max_iterations=5000):
-        ParameterizedSpline.__init__(self, control_points, spline_type,
+                 closest_point_search_accuracy=0.001, closest_point_search_max_iterations=5000, granularity=1000):
+        ParameterizedSpline.__init__(self, control_points, spline_type, granularity=granularity,
                                      closest_point_search_accuracy=closest_point_search_accuracy,
                                      closest_point_search_max_iterations=closest_point_search_max_iterations)
         SpatialConstraintBase.__init__(self, precision, weight_factor)

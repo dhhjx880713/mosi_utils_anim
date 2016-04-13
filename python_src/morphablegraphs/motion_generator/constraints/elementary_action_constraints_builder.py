@@ -33,6 +33,7 @@ class ElementaryActionConstraintsBuilder(object):
         self.default_constraint_weight = 1.0
         self.constraint_precision = 1.0
         self.set_algorithm_config(algorithm_config)
+        self.spline_parameter_granularity = 5000
 
     def set_algorithm_config(self, algorithm_config):
         self.closest_point_search_accuracy = algorithm_config["trajectory_following_settings"]["closest_point_search_accuracy"]
@@ -229,7 +230,8 @@ class ElementaryActionConstraintsBuilder(object):
                                           self.motion_state_graph.skeleton,
                                           self.constraint_precision, self.default_constraint_weight,
                                           self.closest_point_search_accuracy,
-                                          self.closest_point_search_max_iterations)
+                                          self.closest_point_search_max_iterations,
+                                          self.spline_parameter_granularity)
             if active_region is not None:
                 traj_constraint.is_collision_avoidance_constraint = True
                 self._set_active_range_from_region(traj_constraint, active_region)
