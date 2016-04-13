@@ -126,7 +126,7 @@ class ElementaryActionGenerator(object):
             for c in mp_constraints.constraints:
                 c.canonical_keyframe = canonical_keyframe
             self.motion_primitive_generator._get_best_fit_sample_using_cluster_tree(motion_primitive_node,
-                                                                                    mp_constraints, prev_frames)
+                                                                                    mp_constraints, prev_frames, 1)
             write_log("Evaluated option", node_name, mp_constraints.min_error)
             errors[index] = mp_constraints.min_error
             index += 1

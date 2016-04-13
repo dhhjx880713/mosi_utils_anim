@@ -194,11 +194,12 @@ class MotionPrimitiveGenerator(object):
         gmm = self._motion_state_graph.nodes[(self.prev_action_name,prev_mp_name)].predict_gmm(to_key, prev_parameters)
         return gmm
 
-    def _get_best_fit_sample_using_cluster_tree(self, graph_node, constraints, prev_frames):
+    def _get_best_fit_sample_using_cluster_tree(self, graph_node, constraints, prev_frames, n_candidates=-1):
         """ Directed search in precomputed hierarchical space partitioning data structure
         """
+        n_candidates = self.n_cluster_search_candidates if n_candidates < 1 else n_candidates
         data = graph_node, constraints, prev_frames
-        distance, s = graph_node.search_best_sample(obj_spatial_error_sum, data, self.n_cluster_search_candidates)
+        distance, s = graph_node.search_best_sample(obj_spatial_error_sum, data, n_candidates)
         write_log("Found best sample with distance:", distance)
         constraints.min_error = distance
         return np.array(s)
