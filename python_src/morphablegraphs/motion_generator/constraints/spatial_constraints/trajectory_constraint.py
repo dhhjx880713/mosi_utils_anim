@@ -63,6 +63,12 @@ class TrajectoryConstraint(ParameterizedSpline, SpatialConstraintBase):
         error = np.average(self.get_residual_vector(aligned_quat_frames))
         return error
 
+    def evaluate_motion_spline(self, aligned_spline):
+        return self.evaluate_motion_sample(aligned_spline.get_motion_vector())
+
+    def get_residual_vector_spline(self, aligned_spline):
+        return self.get_residual_vector(aligned_spline.get_motion_vector())
+
     def get_residual_vector(self, aligned_quat_frames):
         """ Calculate distances between discrete frames and samples with corresponding arc length from the trajectory
              unconstrained indices are ignored

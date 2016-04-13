@@ -30,11 +30,24 @@ class PoseConstraintQuatFrame(KeyframeConstraintBase):
                                                        weights)
         return error
 
+    def evaluate_motion_spline(self, aligned_spline):
+        weights = self.skeleton.get_joint_weights()
+        error = calculate_weighted_frame_distance_quat(self.pose_constraint,
+                                                       aligned_spline.evaluate(0),
+                                                       weights)
+        return error
+
+    def get_residual_vector_spline(self, aligned_spline):
+        return self.get_residual_vector_frame(aligned_spline.evaluate(0))
+
     def get_residual_vector(self, aligned_quat_frames):
+        return self.get_residual_vector_frame(aligned_quat_frames[0])
+
+    def get_residual_vector_frame(self, frame):
         weights = self.skeleton.get_joint_weights()
         residual_vector = []
         quat_frame_a = self.pose_constraint
-        quat_frame_b = aligned_quat_frames[0]
+        quat_frame_b = frame
         for i in xrange(len(weights) - 1):
             quat1 = quat_frame_a[(i+1)*LEN_QUAT+LEN_ROOT_POS: (i+2)*LEN_QUAT+LEN_ROOT_POS]
             quat2 = quat_frame_b[(i+1)*LEN_QUAT+LEN_ROOT_POS: (i+2)*LEN_QUAT+LEN_ROOT_POS]

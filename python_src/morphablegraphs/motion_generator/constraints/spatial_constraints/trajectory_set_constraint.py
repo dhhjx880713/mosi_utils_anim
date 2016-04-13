@@ -24,6 +24,12 @@ class TrajectorySetConstraint(SpatialConstraintBase):
         error = np.average(self.get_residual_vector(aligned_quat_frames))
         return error
 
+    def evaluate_motion_spline(self, aligned_spline):
+        return self.evaluate_motion_sample(aligned_spline.get_motion_vector())
+
+    def get_residual_vector_spline(self, aligned_spline):
+        return self.get_residual_vector(aligned_spline.get_motion_vector())
+
     def set_number_of_canonical_frames(self, n_canonical_frames):
         self.n_canonical_frames = n_canonical_frames
 
