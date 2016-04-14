@@ -32,10 +32,11 @@ def run_pipeline(service_config):
     print "Loading constraints from file", input_file_path
     mg_input = load_json_file(input_file_path)
     data = json.dumps(mg_input)
-    mg_server_url = 'http://localhost:8888/run_morphablegraphs'
     try:
+        port = service_config["port"]
+        mg_server_url = 'http://localhost:'+str(port)+'/run_morphablegraphs'
         request = urllib2.Request(mg_server_url, data)
-        print "send constraints and wait for motion generator..."
+        print "send constraints to "+mg_server_url+" and wait for the motion generator result..."
         handler = urllib2.urlopen(request)
         result = handler.read()
         print result
