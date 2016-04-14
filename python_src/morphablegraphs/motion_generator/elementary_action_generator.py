@@ -1,6 +1,7 @@
 __author__ = 'erhe01'
 
 import numpy as np
+from copy import copy
 from ..utilities.exceptions import PathSearchError
 from ..motion_model import NODE_TYPE_END, NODE_TYPE_SINGLE
 from ..animation_data.motion_editing import create_transformation_matrix
@@ -73,6 +74,7 @@ class ElementaryActionGenerator(object):
         self.average_elementary_action_error_threshold = algorithm_config["average_elementary_action_error_threshold"]
         self.use_local_coordinates = self._algorithm_config["use_local_coordinates"]
         self.end_step_length_factor = algorithm_config["trajectory_following_settings"]["end_step_length_factor"]
+        self.max_distance_to_path = algorithm_config["trajectory_following_settings"]["max_distance_to_path"]
 
     def set_algorithm_config(self, algorithm_config):
         self._algorithm_config = algorithm_config
@@ -81,6 +83,7 @@ class ElementaryActionGenerator(object):
         self.average_elementary_action_error_threshold = algorithm_config["average_elementary_action_error_threshold"]
         self.use_local_coordinates = self._algorithm_config["use_local_coordinates"]
         self.end_step_length_factor = algorithm_config["trajectory_following_settings"]["end_step_length_factor"]
+        self.max_distance_to_path = algorithm_config["trajectory_following_settings"]["max_distance_to_path"]
         self.motion_primitive_constraints_builder.set_algorithm_config(self._algorithm_config)
 
     def set_action_constraints(self, action_constraints):
@@ -244,6 +247,11 @@ class ElementaryActionGenerator(object):
             else:
                 return False
 
+            if self.action_constraints.root_trajectory is not None:
+                if not self._is_close_to_path(graph_walk):  #measure distance to goal
+                    write_log("Too far away from path")
+                    return False
+
         graph_walk.step_count += self.action_state.temp_step
         graph_walk.update_frame_annotation(self.action_constraints.action_name, self.action_state.action_start_frame, graph_walk.get_num_of_frames())
         avg_error = np.average(errors)
@@ -286,4 +294,10 @@ class ElementaryActionGenerator(object):
         graph_walk.steps.append(new_step)
         return new_travelled_arc_length
 
+    def _is_close_to_path(self, graph_walk):
+        step_goal = copy(graph_walk.steps[-1].motion_primitive_constraints.step_goal)
+        step_goal[1] = 0.0
+        root = copy(graph_walk.motion_vector.frames[-1][:3])
+        root[1] = 0.0
+        return np.linalg.norm(step_goal - root) < self.max_distance_to_path
 
