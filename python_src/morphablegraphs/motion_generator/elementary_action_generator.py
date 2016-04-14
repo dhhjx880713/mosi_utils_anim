@@ -249,7 +249,7 @@ class ElementaryActionGenerator(object):
 
             if self.action_constraints.root_trajectory is not None:
                 if not self._is_close_to_path(graph_walk):  #measure distance to goal
-                    write_log("Too far away from path")
+                    write_log("Warning: Distance to path has become larger than", self.max_distance_to_path)
                     return False
 
         graph_walk.step_count += self.action_state.temp_step
