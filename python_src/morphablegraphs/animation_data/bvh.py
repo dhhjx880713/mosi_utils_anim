@@ -293,7 +293,7 @@ class BVHWriter(object):
         """
 
         skip_joints = not self.skeleton.is_motion_vector_complete(frame_data, is_quaternion)
-        print "skip joints", skip_joints
+        #print "skip joints", skip_joints
         # convert to euler frames if necessary
         if not is_quaternion:
             if not skip_joints:
