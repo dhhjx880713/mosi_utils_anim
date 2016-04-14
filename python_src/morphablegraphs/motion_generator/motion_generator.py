@@ -90,7 +90,7 @@ class MotionGenerator(object):
             if self.motion_state_graph.hand_pose_generator is not None:
                 write_log("Generate hand poses")
                 self.motion_state_graph.hand_pose_generator.generate_hand_poses(motion_vector)
-                self._output_info(graph_walk, start_time)
+            self._output_info(graph_walk, start_time)
         return motion_vector
 
     def _output_info(self, graph_walk, start_time):
