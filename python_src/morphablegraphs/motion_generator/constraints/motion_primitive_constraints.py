@@ -5,9 +5,14 @@ Created on Thu Jul 16 14:42:13 2015
 @author: erhe01
 """
 import numpy as np
+from copy import copy
 from ...animation_data.motion_editing import align_quaternion_frames, transform_point
 from .spatial_constraints.keyframe_constraints.global_transform_constraint import GlobalTransformConstraint
-from .spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION
+from .spatial_constraints.keyframe_constraints.two_hand_constraint import TwoHandConstraintSet
+from .spatial_constraints.keyframe_constraints.pose_constraint import PoseConstraint
+from .spatial_constraints.keyframe_constraints.direction_2d_constraint import Direction2DConstraint
+from .spatial_constraints.keyframe_constraints.look_at_constraint import LookAtConstraint
+from .spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE,SPATIAL_CONSTRAINT_TYPE_KEYFRAME_DIR_2D, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_LOOK_AT
 from .spatial_constraints import MGRDKeyframeConstraint
 from ik_constraints import JointIKConstraint, TwoJointIKConstraint
 from ...utilities.log import write_log
@@ -150,6 +155,49 @@ class MotionPrimitiveConstraints(object):
                                                 "canonical_keyframe":  c.canonical_keyframe,
                                                 "semanticAnnotation": c.semantic_annotation}
                     mp_constraints.constraints.append(GlobalTransformConstraint(self.skeleton, keyframe_constraint_desc, 1.0))
+            elif c.constraint_type == SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION:
+                positions = []
+                for p in c.positions:
+                    position = np.dot(inv_aligning_transform, [p[0], p[1], p[2], 1])[:3]
+                    positions.append(position)
+                keyframe_constraint_desc = {"joint": c.joint_names,
+                                                "positions": positions,
+                                                "orientations": c.orientations,
+                                                "n_canonical_frames": c.n_canonical_frames,
+                                                "canonical_keyframe":  c.canonical_keyframe,
+                                                "semanticAnnotation": c.semantic_annotation}
+                mp_constraints.constraints.append(TwoHandConstraintSet(self.skeleton, keyframe_constraint_desc, c.precision, c.weight_factor))
+
+            elif c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE:
+                pose_constraint = []
+                for p in c.pose_constraint:
+                    position = np.dot(inv_aligning_transform, [p[0], p[1], p[2], 1])[:3]
+                    pose_constraint.append(position)
+                pose_constraint_desc = {"keyframeLabel": "start","canonical_keyframe": c.canonical_keyframe, "frame_constraint": pose_constraint,
+                            "semanticAnnotation": c.semantic_annotation}
+                pose_constraint = PoseConstraint(self.skeleton, pose_constraint_desc, c.precision, c.weight_factor)
+                mp_constraints.constraints.append(pose_constraint)
+
+            elif c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_DIR_2D:
+                dir = copy(c.direction_constraint)
+                local_dir = np.dot(inv_aligning_transform, [dir[0], dir[1], dir[2], 0])[:3]
+                dir_constraint_desc = {"canonical_keyframe":c.canonical_keyframe,
+                                       "dir_vector": local_dir,
+                                        "semanticAnnotation": c.semantic_annotation}
+                dir_constraint = Direction2DConstraint(self.skeleton, dir_constraint_desc, c.precision, c.weight_factor)
+                mp_constraints.constraints.append(dir_constraint)
+
+            elif c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_LOOK_AT:
+                local_target_pos = copy(c.target_position)
+                local_target_pos = np.dot(inv_aligning_transform, [local_target_pos[0], local_target_pos[1], local_target_pos[2], 1])[:3]
+                lookat_constraint_desc = {
+                                          "canonical_keyframe":c.canonical_keyframe,
+                                       "dir_vector": local_target_pos,
+                                        "semanticAnnotation": c.semantic_annotation}
+                lookat_constraint = LookAtConstraint(self.skeleton, lookat_constraint_desc, c.precision, c.weight_factor)
+                mp_constraints.constraints.append(lookat_constraint)
+
+
         return mp_constraints
 
     def convert_to_ik_constraints(self, frame_offset=0, time_function=None):
