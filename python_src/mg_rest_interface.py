@@ -59,6 +59,7 @@ class MGInputHandler(tornado.web.RequestHandler):
         """Sends the result back as an answer to a post request.
         """
         if motion_vector.has_frames():
+            start = time.time()
             if self.application.use_file_output_mode:
                 motion_vector.export(self.application.service_config["output_dir"],
                                      self.application.service_config["output_filename"],
@@ -71,7 +72,7 @@ class MGInputHandler(tornado.web.RequestHandler):
                     "annotation": motion_vector.keyframe_event_list.frame_annotation,
                     "event_list": motion_vector.keyframe_event_list.keyframe_events_dict}
                 self.write(json.dumps(result_object))  # send result back
-            print "Finished converting motion to BVH string"
+            print "Finished converting motion to BVH string in", time.time()-start, "seconds"
         else:
             error_string = "Error: Failed to generate motion data."
             print error_string
