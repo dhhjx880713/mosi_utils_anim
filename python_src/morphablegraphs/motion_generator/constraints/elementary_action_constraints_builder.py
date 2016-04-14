@@ -33,7 +33,6 @@ class ElementaryActionConstraintsBuilder(object):
         self.default_constraint_weight = 1.0
         self.constraint_precision = 1.0
         self.set_algorithm_config(algorithm_config)
-        self.spline_parameter_granularity = 5000
 
     def set_algorithm_config(self, algorithm_config):
         self.closest_point_search_accuracy = algorithm_config["trajectory_following_settings"]["closest_point_search_accuracy"]
@@ -41,6 +40,7 @@ class ElementaryActionConstraintsBuilder(object):
         self.default_spline_type = algorithm_config["trajectory_following_settings"]["spline_type"]
         self.control_point_distance_threshold = algorithm_config["trajectory_following_settings"]["control_point_filter_threshold"]
         self.collision_avoidance_constraints_mode = algorithm_config["collision_avoidance_constraints_mode"]
+        self.spline_arc_length_parameter_granularity = algorithm_config["trajectory_following_settings"]["arc_length_granularity"]
 
     def build_list_from_input_file(self, mg_input):
         """
