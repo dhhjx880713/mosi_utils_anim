@@ -39,7 +39,7 @@ class TwoJointIKConstraint(IKConstraint):
         self.target_delta = target_delta
         self.target_direction = target_direction
         self.keyframe = keyframe
-        self.free_joints
+        self.free_joints = free_joints
 
     @staticmethod
     def evaluate(parameters, data):
