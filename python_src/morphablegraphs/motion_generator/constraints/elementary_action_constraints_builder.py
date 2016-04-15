@@ -51,10 +51,10 @@ class ElementaryActionConstraintsBuilder(object):
         """
         self.mg_input = mg_input
         self._init_start_pose(mg_input)
-        action_constaints_list = []
+        action_constraints_list = []
         for idx in xrange(self.mg_input.get_number_of_actions()):
-            action_constaints_list.append(self._build_action_constraint(idx))
-        return action_constaints_list
+            action_constraints_list.append(self._build_action_constraint(idx))
+        return action_constraints_list
 
     def _build_action_constraint(self, action_index):
         action_constraints = ElementaryActionConstraints()
