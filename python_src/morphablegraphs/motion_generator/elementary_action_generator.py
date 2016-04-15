@@ -98,18 +98,29 @@ class ElementaryActionGenerator(object):
         else:
             self.arc_length_of_end = 0.0
 
-    def generate_node_evaluation_constraints(self, graph_walk):
+    def generate_node_evaluation_constraints(self, graph_walk, add_orientation=False):
         goal_arc_length = self.action_state.travelled_arc_length + self.step_look_ahead_distance
-        goal_position = self.action_constraints.root_trajectory.query_point_by_absolute_arc_length(goal_arc_length)
-        constraint_desc = {"joint": "Hips", "canonical_keyframe": -1, "position": goal_position.tolist(), "n_canonical_frames": 0,
-                           "semanticAnnotation":  {"keyframeLabel": "end", "generated": True}}
-        pos_constraint = GlobalTransformConstraint(self.motion_primitive_graph.skeleton, constraint_desc, 1.0, 1.0)
         mp_constraints = MotionPrimitiveConstraints()
         mp_constraints.skeleton = self.action_constraints.get_skeleton()
         mp_constraints.aligning_transform = create_transformation_matrix(graph_walk.motion_vector.start_pose["position"],
                                                                          graph_walk.motion_vector.start_pose["orientation"])
         mp_constraints.start_pose = graph_walk.motion_vector.start_pose
-        mp_constraints.constraints.append(pos_constraint)
+        constraint_desc = {"joint": "Hips", "canonical_keyframe": -1,  "n_canonical_frames": 0,
+                               "semanticAnnotation":  {"keyframeLabel": "end", "generated": True}}
+        if add_orientation:
+            goal_position, tangent_line = self.action_constraints.root_trajectory.get_tangent_at_arc_length(goal_arc_length)
+            constraint_desc["position"] = goal_position.tolist()
+            pos_constraint = GlobalTransformConstraint(self.motion_primitive_graph.skeleton, constraint_desc, 1.0, 1.0)
+            mp_constraints.constraints.append(pos_constraint)
+            dir_constraint_desc = {"joint": "Hips", "canonical_keyframe": -1, "dir_vector":tangent_line,
+                                   "semanticAnnotation":  {"keyframeLabel": "end", "generated": True}}
+            dir_constraint = Direction2DConstraint(self.motion_primitive_graph.skeleton, dir_constraint_desc, 1.0, 10.0)#TODO add weight to configuration
+            mp_constraints.constraints.append(dir_constraint)
+        else:
+            constraint_desc["position"] = self.action_constraints.root_trajectory.query_point_by_absolute_arc_length(goal_arc_length).tolist()
+
+            pos_constraint = GlobalTransformConstraint(self.motion_primitive_graph.skeleton, constraint_desc, 1.0, 1.0)
+            mp_constraints.constraints.append(pos_constraint)
         return mp_constraints
 
     def _evaluate_multiple_path_following_options(self, graph_walk, options):
