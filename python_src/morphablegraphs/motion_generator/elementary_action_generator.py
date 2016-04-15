@@ -114,7 +114,7 @@ class ElementaryActionGenerator(object):
             mp_constraints.constraints.append(pos_constraint)
             dir_constraint_desc = {"joint": "Hips", "canonical_keyframe": -1, "dir_vector":tangent_line,
                                    "semanticAnnotation":  {"keyframeLabel": "end", "generated": True}}
-            dir_constraint = Direction2DConstraint(self.motion_primitive_graph.skeleton, dir_constraint_desc, 1.0, 10.0)#TODO add weight to configuration
+            dir_constraint = Direction2DConstraint(self.motion_primitive_graph.skeleton, dir_constraint_desc, 1.0, 1.0)#TODO add weight to configuration
             mp_constraints.constraints.append(dir_constraint)
         else:
             constraint_desc["position"] = self.action_constraints.root_trajectory.query_point_by_absolute_arc_length(goal_arc_length).tolist()
