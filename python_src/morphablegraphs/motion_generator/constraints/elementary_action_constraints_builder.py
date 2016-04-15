@@ -231,7 +231,7 @@ class ElementaryActionConstraintsBuilder(object):
                                           self.constraint_precision, self.default_constraint_weight,
                                           self.closest_point_search_accuracy,
                                           self.closest_point_search_max_iterations,
-                                          self.spline_parameter_granularity)
+                                          self.spline_arc_length_parameter_granularity)
             if active_region is not None:
                 traj_constraint.is_collision_avoidance_constraint = True
                 self._set_active_range_from_region(traj_constraint, active_region)
