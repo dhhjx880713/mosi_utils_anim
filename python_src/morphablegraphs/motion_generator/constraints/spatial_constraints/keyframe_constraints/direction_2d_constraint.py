@@ -25,8 +25,10 @@ class Direction2DConstraint(KeyframeConstraintBase):
     def evaluate_motion_spline(self, aligned_spline):
         frame = aligned_spline.evaluate(self.canonical_keyframe)
         motion_dir = pose_orientation_quat(frame)
-        error = acos(np.dot(self.target_dir, motion_dir)/ (self.target_dir_len * np.linalg.norm(motion_dir)))
-        return error
+        magnitude = self.target_dir_len * np.linalg.norm(motion_dir)
+        angle = acos(np.dot(self.target_dir, motion_dir)/magnitude)
+        return abs(angle)
+
     def evaluate_motion_sample(self, aligned_quat_frames):
         motion_dir = pose_orientation_quat(aligned_quat_frames[self.canonical_keyframe])
         #TODO implement alternative constraint using trajectory direction instead of pose direction
@@ -35,13 +37,15 @@ class Direction2DConstraint(KeyframeConstraintBase):
         # motion_dir = get_trajectory_dir_from_2d_points(root_points)
         #error = abs(self.target_dir[0] - motion_dir[0]) + \
         #    abs(self.target_dir[1] - motion_dir[1])
-        error = acos(np.dot(self.target_dir, motion_dir)/ (self.target_dir_len * np.linalg.norm(motion_dir)))
+        magnitude = self.target_dir_len * np.linalg.norm(motion_dir)
+        angle = acos(np.dot(self.target_dir, motion_dir)/ magnitude)# degrees()
         # print "################################################"
         # print "target direction: ", self.target_dir
         # print "motion dir: ", motion_dir
         # to check the last frame pass rotation and trajectory constraint or not
         # put higher weights for orientation constraint
-        return error
+        #error = 0
+        return abs(angle)
 
     def get_residual_vector_spline(self, aligned_spline):
         return [self.evaluate_motion_spline(aligned_spline)]
