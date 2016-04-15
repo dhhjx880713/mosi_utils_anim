@@ -45,6 +45,7 @@ class MotionSpline(object):
         self.knots = knots
         #create a b-spline for each pose parameter from the cooeffients
         self.semantic_annotation = semantic_annotation
+        self.n_pose_parameters = len(canonical_motion_coeffs[0])
 
     def get_motion_vector(self):
         """ Return a 2d - vector representing the motion in the new timeline
@@ -56,9 +57,13 @@ class MotionSpline(object):
         number of channels)
         """
         canonical_motion_coeffs = self.coeffs.T
-        n_pose_parameters = len(canonical_motion_coeffs)
-        canonical_motion_splines = [(self.knots, canonical_motion_coeffs[i], B_SPLINE_DEGREE) for i in xrange(n_pose_parameters)]
+        canonical_motion_splines = [(self.knots, canonical_motion_coeffs[i], B_SPLINE_DEGREE) for i in xrange(self.n_pose_parameters)]
         return np.asarray([si.splev(self.time_function, spline_def) for spline_def in canonical_motion_splines]).T
+
+    def evaluate(self, canonical_t):
+        canonical_motion_coeffs = self.coeffs.T
+        canonical_motion_splines = [(self.knots, canonical_motion_coeffs[i], B_SPLINE_DEGREE) for i in xrange(self.n_pose_parameters)]
+        return np.asarray([si.splev(canonical_t, spline_def) for spline_def in canonical_motion_splines]).T
 
     def get_buffered_motion_vector(self):
         """ Returns a buffered version  of the motion vector from the last call to get_motion_vector
