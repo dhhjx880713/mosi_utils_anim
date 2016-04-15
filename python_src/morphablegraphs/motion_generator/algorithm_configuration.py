@@ -90,7 +90,7 @@ class AlgorithmConfigurationBuilder(object):
         self.trajectory_following_settings["control_point_filter_threshold"] = 50
         self.trajectory_following_settings["step_length_approx_method"] = "arc_length"
         self.trajectory_following_settings["heuristic_step_length_factor"] = 0.8
-        self.trajectory_following_settings["dir_constraint_factor"] = 10.0
+        self.trajectory_following_settings["dir_constraint_factor"] = 1.0
         self.trajectory_following_settings["position_constraint_factor"] = 1.0
         self.trajectory_following_settings["transition_pose_constraint_factor"] = 1.0
         self.trajectory_following_settings["closest_point_search_accuracy"] = 0.001
