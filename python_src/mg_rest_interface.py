@@ -59,6 +59,7 @@ class MGInputHandler(tornado.web.RequestHandler):
         """Sends the result back as an answer to a post request.
         """
         if motion_vector.has_frames():
+            print "Converting the motion into the BVH format..."
             start = time.time()
             if self.application.use_file_output_mode:
                 motion_vector.export(self.application.service_config["output_dir"],
