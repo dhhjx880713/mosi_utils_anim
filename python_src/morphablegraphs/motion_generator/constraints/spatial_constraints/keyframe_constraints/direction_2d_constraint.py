@@ -26,7 +26,9 @@ class Direction2DConstraint(KeyframeConstraintBase):
         frame = aligned_spline.evaluate(self.canonical_keyframe)
         motion_dir = pose_orientation_quat(frame)
         magnitude = self.target_dir_len * np.linalg.norm(motion_dir)
-        angle = acos(np.dot(self.target_dir, motion_dir)/magnitude)
+        cos_angle = np.dot(self.target_dir, motion_dir)/magnitude
+        cos_angle = min(1,max(cos_angle,-1))
+        angle = acos(cos_angle)
         error = abs(degrees(angle))
         #print(error)
         return error
@@ -40,7 +42,9 @@ class Direction2DConstraint(KeyframeConstraintBase):
         #error = abs(self.target_dir[0] - motion_dir[0]) + \
         #    abs(self.target_dir[1] - motion_dir[1])
         magnitude = self.target_dir_len * np.linalg.norm(motion_dir)
-        angle = acos(np.dot(self.target_dir, motion_dir)/ magnitude)#
+        cos_angle = np.dot(self.target_dir, motion_dir)/ magnitude
+        cos_angle = min(1,max(cos_angle,-1))
+        angle = acos(cos_angle)#
         # print "################################################"
         # print "target direction: ", self.target_dir
         # print "motion dir: ", motion_dir
