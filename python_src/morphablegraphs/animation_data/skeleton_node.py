@@ -146,7 +146,7 @@ class SkeletonEndSiteNode(SkeletonNodeBase):
         return local_matrix
 
     def get_frame_parameters(self, frame, rotation_type):
-            return None
+        return None
 
     def get_number_of_frame_parameters(self, rotation_type):
         return 0
