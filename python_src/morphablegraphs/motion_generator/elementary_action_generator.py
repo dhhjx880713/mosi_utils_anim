@@ -123,8 +123,8 @@ class ElementaryActionGenerator(object):
             mp_constraints.constraints.append(pos_constraint)
         return mp_constraints
 
-    def _evaluate_multiple_path_following_options(self, graph_walk, options):
-        mp_constraints = self.generate_node_evaluation_constraints(graph_walk)
+    def _evaluate_multiple_path_following_options(self, graph_walk, options, add_orientation=False):
+        mp_constraints = self.generate_node_evaluation_constraints(graph_walk, add_orientation)
 
         prev_frames = None
         if self.use_local_coordinates:
@@ -154,7 +154,7 @@ class ElementaryActionGenerator(object):
         n_nodes = len(start_nodes)
         if n_nodes > 1:
             options = [(action_name, next_node) for next_node in start_nodes]
-            return self._evaluate_multiple_path_following_options(graph_walk, options)
+            return self._evaluate_multiple_path_following_options(graph_walk, options, add_orientation=False)
         else:
             return action_name, start_nodes[0]
 
@@ -170,7 +170,7 @@ class ElementaryActionGenerator(object):
             next_node = options[0]
         elif n_transitions > 1:
             if self.action_constraints.root_trajectory is not None:
-                next_node = self._evaluate_multiple_path_following_options(graph_walk, options)
+                next_node = self._evaluate_multiple_path_following_options(graph_walk, options, add_orientation=False)
             else:  # use random transition if there is no path to follow
                 random_index = np.random.randrange(0, n_transitions, 1)
                 next_node = options[random_index]
