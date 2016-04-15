@@ -146,8 +146,8 @@ class MotionPrimitiveModelWrapper(object):
     @staticmethod
     def load_model_from_json(skeleton, mm_data, use_mgrd_mixture_model=True):
         # the eigen vectors for spatial spline is stored column major
-        mm_data['eigen_vectors_spatial'] = np.ascontiguousarray(np.asarray(mm_data['eigen_vectors_spatial']).transpose())
-        mm_data['eigen_vectors_temporal_semantic'] = np.ascontiguousarray(np.asarray(mm_data['eigen_vectors_temporal_semantic']).transpose())
+        #mm_data['eigen_vectors_spatial'] = np.ascontiguousarray(np.asarray(mm_data['eigen_vectors_spatial']).transpose())
+        #mm_data['eigen_vectors_temporal_semantic'] = np.ascontiguousarray(np.asarray(mm_data['eigen_vectors_temporal_semantic']).transpose())
         # TODO: serialize as objects to avoid mapping names
         sspm = MGRDQuaternionSplineModel.load_from_json(skeleton,{
             'eigen': mm_data['eigen_vectors_spatial'],
@@ -159,7 +159,7 @@ class MotionPrimitiveModelWrapper(object):
             'translation_maxima': mm_data['translation_maxima'],
             'animated_joints': mm_data['animated_joints']
         })
-        sspm.pre_scale_root_translation()
+        #sspm.pre_scale_root_translation()
         tspm = MGRDTemporalSplineModel.load_from_json({
             'eigen': mm_data['eigen_vectors_temporal_semantic'],
             'mean': mm_data['mean_temporal_semantic_vector'],
