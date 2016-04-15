@@ -37,8 +37,14 @@ class JointRotationConstraint(KeyframeConstraintBase):
         constrained rotation matrix
 
         """
+        return self.evaluate_frame(aligned_quat_frames[self.frame_idx])
+
+    def evaluate_motion_spline(self, aligned_spline):
+        return self.evaluate_frame(aligned_spline.evaluate(self.frame_idx))
+
+    def evaluate_frame(self, frame):
         joint_idx = self.skeleton.node_name_frame_map.keys().index(self.joint_name)
-        quat_value = aligned_quat_frames[self.frame_idx][LEN_ROOT_POSITION + joint_idx*LEN_QUAT :
+        quat_value = frame[LEN_ROOT_POSITION + joint_idx*LEN_QUAT :
                      LEN_ROOT_POSITION + (joint_idx + 1) * LEN_QUAT]
         quat_value = np.asarray(quat_value)
         quat_value /= np.linalg.norm(quat_value)
@@ -47,3 +53,12 @@ class JointRotationConstraint(KeyframeConstraintBase):
         tmp = np.ravel(diff_mat)
         error = np.linalg.norm(tmp)
         return error
+
+    def get_residual_vector(self, aligned_quat_frames):
+        return [self.evaluate_frame(aligned_quat_frames[self.frame_idx])]
+
+    def get_residual_vector_spline(self, aligned_spline):
+        return [self.evaluate_frame(aligned_spline.evaluate(self.frame_idx))]
+
+    def get_length_of_residual_vector(self):
+        return 1
