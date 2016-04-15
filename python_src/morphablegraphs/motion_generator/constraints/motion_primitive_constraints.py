@@ -121,7 +121,7 @@ class MotionPrimitiveConstraints(object):
         for c in self.constraints:
             if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION:
                 pose_constraint = MGRDPoseConstraint(c.joint_name, c.weight_factor, c.position, orientation=None)#[None, None, None, None]
-                label = "LeftFootContact"# c.semantic_annotation["keyframeLabel"]# TODO add "end" annotation label to all motion primitives
+                label = c.semantic_annotation["keyframeLabel"]# TODO add "end" annotation label to all motion primitives # "LeftFootContact"
                 annotations = {label: True}
                 semantic_constraint = MGRDSemanticConstraint(annotations, time=None)
                 keyframe_constraint = MGRDKeyframeConstraint(pose_constraint, semantic_constraint)
