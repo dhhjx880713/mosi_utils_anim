@@ -4,6 +4,23 @@ try:
     from mgrd import MixtureModel as MGRDMixtureModel
 
     class ExtendedMGRDMixtureModel(MGRDMixtureModel):
+        def __init__(self,covars, means, weights):
+            self.covars = covars
+            eigen = ExtendedMGRDMixtureModel.prepare_eigen_vectors(covars, means.shape[1])
+            super(ExtendedMGRDMixtureModel, self).__init__(eigen, means, weights)
+
+        @staticmethod
+        def prepare_eigen_vectors(covars, n_dims):
+            covars = np.asarray(covars)
+            eigen = np.empty(covars.shape)
+            assert(eigen.shape[1:3] == (n_dims, n_dims))
+            for i, covar in enumerate(covars):
+                s, U = scipy.linalg.eigh(covar)
+                s.clip(0, out = s)
+                np.sqrt(s, out = s)
+                eigen[i] = U * s
+            return eigen
+
 
         @staticmethod
         def load_from_json(json_data):
