@@ -118,14 +118,35 @@ class MotionPrimitiveConstraints(object):
 
     def convert_to_mgrd_constraints(self):
         mgrd_constraints = []
+        orientation = [1,0,0,0]
+        position = None
+        joint_name = None
+        semantic_label = None
+        weight_factor = 1.0
+        print "convert constraints"
         for c in self.constraints:
+            if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_DIR_2D:
+                # reference orientation from BVH: 179.477078182 3.34148613293 -87.6482840381 x y z euler angles
+                original_orientation = euler_to_quaternion([179.477078182, 3.34148613293, -87.6482840381])
+                ref_vector = [0,0,-1]
+                # convert angle between c.direction_constraint and reference vector into a quaternion and add reference orientation
+                delta_orientation = quaternion_from_vector_to_vector(c.direction_constraint, ref_vector)
+                orientation = quaternion_multiply(original_orientation, delta_orientation)
+
             if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION:
-                pose_constraint = MGRDPoseConstraint(c.joint_name, c.weight_factor, c.position, orientation=None)#[None, None, None, None]
-                label = c.semantic_annotation["keyframeLabel"]# TODO add "end" annotation label to all motion primitives # "LeftFootContact"
-                annotations = {label: True}
-                semantic_constraint = MGRDSemanticConstraint(annotations, time=None)
-                keyframe_constraint = MGRDSemanticPoseConstraint(pose_constraint, semantic_constraint)
-                mgrd_constraints.append(keyframe_constraint)
+                position = c.position[0], 80, c.position[2]
+                joint_name = c.joint_name
+                if "semantic_label" in c.semantic_annotation:
+                    semantic_label = c.semantic_annotation["semantic_label"]#TODO add "end" annotation label to all motion primitives #"LeftFootContact"#
+        if position is not None and semantic_label is not None:
+            print "pose", position, orientation, joint_name
+            pose_constraint = MGRDPoseConstraint(joint_name, weight_factor, position, orientation)
+            annotations = {semantic_label: True}
+            semantic_constraint = MGRDSemanticConstraint(annotations, time=None)
+            semantic_pose_constraint = MGRDSemanticPoseConstraint(pose_constraint, semantic_constraint)
+            mgrd_constraints.append(semantic_pose_constraint)
+        else:
+            print "did not find constraint", semantic_label
         return mgrd_constraints
 
     def transform_constraints_to_local_cos(self):
