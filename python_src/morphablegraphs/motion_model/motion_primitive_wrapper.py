@@ -119,7 +119,7 @@ class MotionPrimitiveModelWrapper(object):
         return self.motion_primitive.n_canonical_frames
 
     def get_n_canonical_frames_mgrd(self):
-        return self.motion_primitive.time.n_canonical_frames
+        return max(self.motion_primitive.time.knots)#.n_canonical_frames
     get_n_canonical_frames = get_n_canonical_frames_mgrd if has_mgrd else get_n_canonical_frames_legacy
 
     def get_n_spatial_components_legacy(self):
