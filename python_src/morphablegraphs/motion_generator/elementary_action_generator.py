@@ -10,6 +10,7 @@ from constraints.motion_primitive_constraints_builder import MotionPrimitiveCons
 from graph_walk import GraphWalkEntry
 from constraints.motion_primitive_constraints import MotionPrimitiveConstraints
 from constraints.spatial_constraints.keyframe_constraints.global_transform_constraint import GlobalTransformConstraint
+from constraints.spatial_constraints.keyframe_constraints.direction_2d_constraint import Direction2DConstraint
 from ..utilities import write_log
 
 
