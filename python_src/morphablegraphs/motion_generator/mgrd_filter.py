@@ -38,12 +38,13 @@ class MGRDFilter(object):
         return mgrd_constraints
 
     @staticmethod
+    def score_samples_using_semantic_pose_distance_measure(motion_primitive, samples, semantic_pose_constraints, weights=(1,1)):
     def score_samples_using_semantic_pose_distance_measure(motion_primitive, samples, semantic_pose_constraints):
         quat_splines = motion_primitive.create_multiple_spatial_splines(samples, joints=None)
         # Evaluate semantic and time constraints
         labels = list(set(SemanticConstraint.get_constrained_labels(semantic_pose_constraints)) & set(motion_primitive.time.semantic_labels))
         time_splines = [motion_primitive.create_time_spline(svec, labels) for svec in samples]
-        scores = score_splines_with_semantic_pose_constraints(quat_splines, time_splines, semantic_pose_constraints)
+        scores = score_splines_with_semantic_pose_constraints(quat_splines, time_splines, semantic_pose_constraints, weights)
         return scores
 
     @staticmethod
