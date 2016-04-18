@@ -6,6 +6,7 @@ try:
     from mgrd import Constraint, SemanticConstraint
     from mgrd import CartesianConstraint as MGRDCartesianConstraint
     from mgrd import ForwardKinematics as MGRDForwardKinematics
+    from mgrd import score_splines_with_semantic_pose_constraints
     has_mgrd = True
 except ImportError:
     print("Import failed")
@@ -35,6 +36,15 @@ class MGRDFilter(object):
                 cartesian_constraint = MGRDCartesianConstraint(position, c.joint_name, c.weight_factor)
                 mgrd_constraints.append(cartesian_constraint)
         return mgrd_constraints
+
+    @staticmethod
+    def score_samples_using_semantic_pose_distance_measure(motion_primitive, samples, semantic_pose_constraints):
+        quat_splines = motion_primitive.create_multiple_spatial_splines(samples, joints=None)
+        # Evaluate semantic and time constraints
+        labels = list(set(SemanticConstraint.get_constrained_labels(semantic_pose_constraints)) & set(motion_primitive.time.semantic_labels))
+        time_splines = [motion_primitive.create_time_spline(svec, labels) for svec in samples]
+        scores = score_splines_with_semantic_pose_constraints(quat_splines, time_splines, semantic_pose_constraints)
+        return scores
 
     @staticmethod
     def score_samples(motion_primitive, samples, mp_constraints):
