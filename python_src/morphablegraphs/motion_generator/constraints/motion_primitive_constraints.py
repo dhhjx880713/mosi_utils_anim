@@ -13,12 +13,12 @@ from .spatial_constraints.keyframe_constraints.pose_constraint import PoseConstr
 from .spatial_constraints.keyframe_constraints.direction_2d_constraint import Direction2DConstraint
 from .spatial_constraints.keyframe_constraints.look_at_constraint import LookAtConstraint
 from .spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE,SPATIAL_CONSTRAINT_TYPE_KEYFRAME_DIR_2D, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_LOOK_AT
-from .spatial_constraints import MGRDKeyframeConstraint
 from ik_constraints import JointIKConstraint, TwoJointIKConstraint
 from ...utilities.log import write_log
 try:
     from mgrd import PoseConstraint as MGRDPoseConstraint
     from mgrd import SemanticConstraint as MGRDSemanticConstraint
+    from mgrd import SemanticPoseConstraint as MGRDSemanticPoseConstraint
 except ImportError:
     pass
 
@@ -124,7 +124,7 @@ class MotionPrimitiveConstraints(object):
                 label = c.semantic_annotation["keyframeLabel"]# TODO add "end" annotation label to all motion primitives # "LeftFootContact"
                 annotations = {label: True}
                 semantic_constraint = MGRDSemanticConstraint(annotations, time=None)
-                keyframe_constraint = MGRDKeyframeConstraint(pose_constraint, semantic_constraint)
+                keyframe_constraint = MGRDSemanticPoseConstraint(pose_constraint, semantic_constraint)
                 mgrd_constraints.append(keyframe_constraint)
         return mgrd_constraints
 
