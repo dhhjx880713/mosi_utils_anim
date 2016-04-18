@@ -16,6 +16,7 @@ class ElementaryActionMetaInfo(object):
         self.n_end_states = 0
         self.motion_primitive_annotations = dict()
         self.meta_information = None
+        self.semantic_annotation_map = dict()
 
     def set_meta_information(self, meta_information=None):
         """
@@ -30,6 +31,8 @@ class ElementaryActionMetaInfo(object):
             self.end_states = self.meta_information["end_states"]
             self.n_end_states = len(self.end_states)
             self.motion_primitive_annotations = self.meta_information["annotations"]
+            if "semantic_annotation_map" in self.meta_information.keys():
+                self.semantic_annotation_map = self.meta_information["semantic_annotation_map"]
             self._create_annotation_label_to_motion_primitive_map()
 
     def _create_annotation_label_to_motion_primitive_map(self):
