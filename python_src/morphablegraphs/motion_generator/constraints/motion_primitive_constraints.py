@@ -131,7 +131,7 @@ class MotionPrimitiveConstraints(object):
     def transform_constraints_to_local_cos(self):
         if self.is_local or self.aligning_transform is None:
             return self
-        write_log("transform to local cos")
+        write_log("transform to local coordinate system")
         inv_aligning_transform = np.linalg.inv(self.aligning_transform)
         mp_constraints = MotionPrimitiveConstraints()
         mp_constraints.start_pose = {"orientation": [0,0,0], "position": [0,0,0]}
