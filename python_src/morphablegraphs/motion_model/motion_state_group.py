@@ -34,7 +34,7 @@ class MotionStateGroup(ElementaryActionMetaInfo):
                 self.nodes[(self.elementary_action_name, k)].node_type = NODE_TYPE_START
             print "end states", self.end_states
             for k in self.end_states:
-                self.nodes[(self.elementary_action_name, k)].node_type = NODE_TYPE_END
+                 self.nodes[(self.elementary_action_name, k)].node_type = NODE_TYPE_END
 
     def _update_motion_state_stats(self, recalculate=False):
         """  Update stats of motion states for faster lookup.
