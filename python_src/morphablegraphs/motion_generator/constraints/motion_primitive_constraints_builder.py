@@ -104,6 +104,7 @@ class MotionPrimitiveConstraintsBuilder(object):
         mp_constraints = MotionPrimitiveConstraints()
         mp_constraints.motion_primitive_name = self.status["motion_primitive_name"]
         mp_constraints.aligning_transform = self.status["aligning_transform"]
+        mp_constraints.is_last_step = self.status["is_last_step"]
         mp_constraints.settings = self.trajectory_following_settings
         mp_constraints.constraints = list()
         mp_constraints.goal_arc_length = 0.0
