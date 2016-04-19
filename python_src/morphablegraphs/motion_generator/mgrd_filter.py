@@ -48,7 +48,7 @@ class MGRDFilter(object):
         return scores
 
     @staticmethod
-    def score_samples(motion_primitive, samples, mp_constraints):
+    def score_samples_cartesian(motion_primitive, samples, mp_constraints):
         """ Scores splines using only cartesian constraints.
 
         Args:
