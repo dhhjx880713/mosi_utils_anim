@@ -145,7 +145,7 @@ class MotionPrimitiveGenerator(object):
     def _get_best_fit_sample_using_mgrd(self, graph_node, mp_constraints):
         samples = motion_primitive_get_random_samples(graph_node.motion_primitive, self.n_random_samples)
         #scores = MGRDFilter.score_samples(graph_node.motion_primitive, samples, mp_constraints)
-        scores = MGRDFilter.score_samples_using_semantic_pose_distance_measure(graph_node.motion_primitive, samples, mp_constraints.convert_to_mgrd_constraints(), weights=(1,1))
+        scores = MGRDFilter.score_samples(graph_node.motion_primitive, samples, *mp_constraints.convert_to_mgrd_constraints(), weights=(1,1))
         if scores is not None:
             best_idx = np.argmin(scores)
             mp_constraints.min_error = scores[best_idx]
