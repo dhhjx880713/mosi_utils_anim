@@ -38,13 +38,29 @@ class MGRDFilter(object):
         return mgrd_constraints
 
     @staticmethod
-    def score_samples_using_semantic_pose_distance_measure(motion_primitive, samples, semantic_pose_constraints, weights=(1,1)):
-    def score_samples_using_semantic_pose_distance_measure(motion_primitive, samples, semantic_pose_constraints):
+    def score_samples_using_semantic_pose_distance_measure(motion_primitive, samples, semantic_pose_constraints,cartesian_constraints, weights=(1,1)):
         quat_splines = motion_primitive.create_multiple_spatial_splines(samples, joints=None)
+        print "orientation of motion sample",quat_splines[-1].coeffs[0][3:7]
         # Evaluate semantic and time constraints
         labels = list(set(SemanticConstraint.get_constrained_labels(semantic_pose_constraints)) & set(motion_primitive.time.semantic_labels))
         time_splines = [motion_primitive.create_time_spline(svec, labels) for svec in samples]
-        scores = score_splines_with_semantic_pose_constraints(quat_splines, time_splines, semantic_pose_constraints, weights)
+        scores = numpy.zeros(len(samples))
+        scores += score_splines_with_semantic_pose_constraints(quat_splines, time_splines, semantic_pose_constraints, weights)
+        scores += MGRDCartesianConstraint.score_splines(quat_splines, cartesian_constraints)
+        return scores   \
+
+    @staticmethod
+    def score_samples(motion_primitive, samples, semantic_pose_constraints, cartesian_constraints, weights=(1,1)):
+        quat_splines = motion_primitive.create_multiple_spatial_splines(samples, joints=None)
+        print "orientation of motion sample",quat_splines[-1].coeffs[0][3:7]
+        # Evaluate semantic and time constraints
+        labels = None#list(set(SemanticConstraint.get_constrained_labels(semantic_pose_constraints)) & set(motion_primitive.time.semantic_labels))
+        time_splines = [motion_primitive.create_time_spline(svec, labels) for svec in samples]
+        scores = numpy.zeros(len(samples))
+        if len(semantic_pose_constraints) > 0:
+            scores += score_splines_with_semantic_pose_constraints(quat_splines, time_splines, semantic_pose_constraints, weights)
+        if len(cartesian_constraints) > 0:
+            scores += MGRDCartesianConstraint.score_splines(quat_splines, cartesian_constraints)
         return scores
 
     @staticmethod
