@@ -96,6 +96,13 @@ class MotionPrimitiveModelWrapper(object):
         return self.motion_primitive.get_random_samples(1)[0]
     sample_low_dimensional_vector = sample_vector_mgrd if has_mgrd else sample_vector_legacy
 
+    def sample_vectors_legacy(self, n_samples=1):
+        return self.motion_primitive.sample_low_dimensional_vector(n_samples)
+
+    def sample_vectors_mgrd(self, n_samples=1):
+        return self.motion_primitive.get_random_samples(n_samples)
+    sample_low_dimensional_vectors = sample_vectors_mgrd if has_mgrd else sample_vectors_legacy
+
     def back_project_legacy(self, s_vec, use_time_parameters=True):
         return self.motion_primitive.back_project(s_vec, use_time_parameters)
 
