@@ -11,7 +11,9 @@ from graph_walk import GraphWalkEntry
 from constraints.motion_primitive_constraints import MotionPrimitiveConstraints
 from constraints.spatial_constraints.keyframe_constraints.global_transform_constraint import GlobalTransformConstraint
 from constraints.spatial_constraints.keyframe_constraints.direction_2d_constraint import Direction2DConstraint
+from constraints import CA_CONSTRAINTS_MODE_DIRECT_CONNECTION
 from ..utilities import write_log
+from ..animation_data.motion_editing import align_quaternion_frames
 
 
 class ElementaryActionGeneratorState(object):
@@ -76,6 +78,7 @@ class ElementaryActionGenerator(object):
         self.use_local_coordinates = self._algorithm_config["use_local_coordinates"]
         self.end_step_length_factor = algorithm_config["trajectory_following_settings"]["end_step_length_factor"]
         self.max_distance_to_path = algorithm_config["trajectory_following_settings"]["max_distance_to_path"]
+        self.activate_direction_ca_connection = algorithm_config["collision_avoidance_constraints_mode"] == CA_CONSTRAINTS_MODE_DIRECT_CONNECTION
 
     def set_algorithm_config(self, algorithm_config):
         self._algorithm_config = algorithm_config
@@ -85,6 +88,7 @@ class ElementaryActionGenerator(object):
         self.use_local_coordinates = self._algorithm_config["use_local_coordinates"]
         self.end_step_length_factor = algorithm_config["trajectory_following_settings"]["end_step_length_factor"]
         self.max_distance_to_path = algorithm_config["trajectory_following_settings"]["max_distance_to_path"]
+        self.activate_direction_ca_connection = algorithm_config["collision_avoidance_constraints_mode"] == CA_CONSTRAINTS_MODE_DIRECT_CONNECTION
         self.motion_primitive_constraints_builder.set_algorithm_config(self._algorithm_config)
 
     def set_action_constraints(self, action_constraints):
@@ -283,6 +287,11 @@ class ElementaryActionGenerator(object):
             write_log("Error: Failed to generate constraints")
             return None
         new_motion_spline, new_parameters = self.motion_primitive_generator.generate_constrained_motion_spline(mp_constraints, graph_walk)
+        if self.activate_direction_ca_connection:
+            ca_constraints = self._get_collision_avoidance_constraints(new_motion_spline, graph_walk.get_motion_vector())
+            if len(ca_constraints) > 0:
+                mp_constraints.constraints += ca_constraints
+                new_motion_spline, new_parameters = self.motion_primitive_generator.generate_constrained_sample(mp_constraints, graph_walk)
 
         new_arc_length = self._create_graph_walk_entry(new_node, new_motion_spline, new_parameters, mp_constraints, graph_walk)
         self.action_state.transition(new_node, new_node_type, new_arc_length, graph_walk.get_num_of_frames())
@@ -313,3 +322,9 @@ class ElementaryActionGenerator(object):
         root[1] = 0.0
         return np.linalg.norm(step_goal - root) < self.max_distance_to_path
 
+    def _get_collision_avoidance_constraints(self, new_motion_spline, prev_frames):
+        ca_constraints = []
+        new_motion_spline.coeffs = align_quaternion_frames(new_motion_spline.coeffs, prev_frames, self.start_pose)
+        frames = new_motion_spline.get_motion_vector()
+        #TODO add collision avoidance direct connection
+        return ca_constraints
