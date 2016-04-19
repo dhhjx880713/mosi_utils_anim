@@ -6,7 +6,7 @@ Created on Thu Jul 16 14:42:13 2015
 """
 import numpy as np
 from copy import copy
-from ...animation_data.motion_editing import align_quaternion_frames, transform_point
+from ...animation_data.motion_editing import align_quaternion_frames, transform_point, quaternion_from_vector_to_vector, euler_to_quaternion, quaternion_multiply
 from .spatial_constraints.keyframe_constraints.global_transform_constraint import GlobalTransformConstraint
 from .spatial_constraints.keyframe_constraints.two_hand_constraint import TwoHandConstraintSet
 from .spatial_constraints.keyframe_constraints.pose_constraint import PoseConstraint
@@ -16,6 +16,7 @@ from .spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPAT
 from ik_constraints import JointIKConstraint, TwoJointIKConstraint
 from ...utilities.log import write_log
 try:
+    from mgrd import CartesianConstraint as MGRDCartesianConstraint
     from mgrd import PoseConstraint as MGRDPoseConstraint
     from mgrd import SemanticConstraint as MGRDSemanticConstraint
     from mgrd import SemanticPoseConstraint as MGRDSemanticPoseConstraint
@@ -49,6 +50,7 @@ class MotionPrimitiveConstraints(object):
         self.keyframe_event_list = dict()
         self.aligning_transform = None  # used to bring constraints in the local coordinate system of a motion primitive
         self.is_local = False
+        self.is_last_step = False
 
     def print_status(self):
         write_log("starting from:", self.step_start)
@@ -117,13 +119,18 @@ class MotionPrimitiveConstraints(object):
         return n_constraints
 
     def convert_to_mgrd_constraints(self):
-        mgrd_constraints = []
-        orientation = [1,0,0,0]
-        position = None
-        joint_name = None
-        semantic_label = None
-        weight_factor = 1.0
-        print "convert constraints"
+        """ map constraints to mgrd constraints and merges 2d direction constraints with position constraints
+        Returns
+        -------
+        * semantic_pose_constraints: list
+            A list of mgrd semantic pose constraints with semantic annotation
+        * cartesian_constraints: list
+            A list of mgrd cartesian constraints without semantic annotation
+        """
+        semantic_pose_constraints = []
+        cartesian_constraints = []
+        temp_constraint_list = dict()
+        temp_constraint_list["unlabeled"] = []
         for c in self.constraints:
             if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_DIR_2D:
                 # reference orientation from BVH: 179.477078182 3.34148613293 -87.6482840381 x y z euler angles
@@ -132,22 +139,50 @@ class MotionPrimitiveConstraints(object):
                 # convert angle between c.direction_constraint and reference vector into a quaternion and add reference orientation
                 delta_orientation = quaternion_from_vector_to_vector(c.direction_constraint, ref_vector)
                 orientation = quaternion_multiply(original_orientation, delta_orientation)
+                desc = {"type": "dir", "value":orientation, "joint": "Hips"}
+                if "semantic_label" in c.semantic_annotation and self.is_last_step:
+                    semantic_label = c.semantic_annotation["semantic_label"]
+                    if semantic_label not in temp_constraint_list.keys():
+                        temp_constraint_list[semantic_label] = []
+                    temp_constraint_list[semantic_label].append(desc)
+                else:
+                    temp_constraint_list["unlabeled"].append(desc)
 
             if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION:
-                position = c.position[0], 80, c.position[2]
-                joint_name = c.joint_name
-                if "semantic_label" in c.semantic_annotation:
-                    semantic_label = c.semantic_annotation["semantic_label"]#TODO add "end" annotation label to all motion primitives #"LeftFootContact"#
-        if position is not None and semantic_label is not None:
-            print "pose", position, orientation, joint_name
-            pose_constraint = MGRDPoseConstraint(joint_name, weight_factor, position, orientation)
-            annotations = {semantic_label: True}
-            semantic_constraint = MGRDSemanticConstraint(annotations, time=None)
-            semantic_pose_constraint = MGRDSemanticPoseConstraint(pose_constraint, semantic_constraint)
-            mgrd_constraints.append(semantic_pose_constraint)
-        else:
-            print "did not find constraint", semantic_label
-        return mgrd_constraints
+                desc = {"type":"pos","value":[c.position[0], 80, c.position[2]], "joint": c.joint_name, "weight_factor":c.weight_factor}
+                if "semantic_label" in c.semantic_annotation and self.is_last_step:
+                    semantic_label = c.semantic_annotation["semantic_label"]
+                    if semantic_label not in temp_constraint_list.keys():
+                        temp_constraint_list[semantic_label] = []
+                    temp_constraint_list[semantic_label].append(desc)
+                else:
+                    temp_constraint_list["unlabeled"].append(desc)
+
+        for key in temp_constraint_list.keys():
+            if key == "unlabeled":
+                for temp_c in temp_constraint_list[key]:
+                    if temp_c["type"] == "pos":
+                        cartesian_constraint = MGRDCartesianConstraint(temp_c["value"], temp_c["joint"], temp_c["weight_factor"])
+                        cartesian_constraints.append(cartesian_constraint)
+            else:
+                print "merge constraints",key
+                orientation = [1,0,0,0]
+                position = None
+                joint_name = None
+                weight_factor = 1.0
+                for temp_c in temp_constraint_list[key]:
+                    if temp_c["type"] == "pos":
+                        position = temp_c["value"]
+                        joint_name = temp_c["joint"]
+                    elif temp_c["type"] == "dir":
+                        orientation = temp_c["value"]
+                if position is not None:
+                    #print "pose", position, orientation, joint_name, self.motion_primitive_name
+                    pose_constraint = MGRDPoseConstraint(joint_name, weight_factor, position, orientation)
+                    semantic_constraint = MGRDSemanticConstraint({key: True}, time=None)
+                    semantic_pose_constraint = MGRDSemanticPoseConstraint(pose_constraint, semantic_constraint)
+                    semantic_pose_constraints.append(semantic_pose_constraint)
+        return semantic_pose_constraints, cartesian_constraints
 
     def transform_constraints_to_local_cos(self):
         if self.is_local or self.aligning_transform is None:
