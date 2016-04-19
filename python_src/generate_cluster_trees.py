@@ -7,9 +7,10 @@ os.chdir(dirname)
 CONIFG_FILE_PATH = "config" + os.sep + "space_partitioning.json"
 
 def main():
-
+    skeleton_path = "skeleton.bvh"
     cluster_tree_builder = ClusterTreeBuilder()
     cluster_tree_builder.set_config(CONIFG_FILE_PATH)
+    cluster_tree_builder.load_skeleton(skeleton_path)
     start = time.clock()
     success = cluster_tree_builder.build()
 
