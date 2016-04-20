@@ -97,7 +97,7 @@ class MGInputFormatReader(object):
         else:
             return True
 
-    def _extract_trajectory_control_points(self, traj_constraint, distance_threshold=0.0, filter_active_region=True):
+    def _extract_trajectory_control_points(self, traj_constraint, distance_threshold=0.0):
         control_point_list = list()
         active_regions = list()
         previous_point = None
@@ -107,7 +107,7 @@ class MGInputFormatReader(object):
         count = -1
         for idx in xrange(n_control_points):
             is_active = self._is_active_trajectory_region(traj_constraint, idx)
-            if filter_active_region and not is_active:
+            if not is_active:
                 continue
             if not was_active and is_active:
                 active_region = self._init_active_region(traj_constraint)
@@ -139,9 +139,10 @@ class MGInputFormatReader(object):
                 was_active = is_active
 
         #handle invalid region specification
-        if active_regions[count] is not None:
-            self._end_active_region(active_regions[count], control_point_list[count])
-        #print "loaded", len(control_points), "points"
+        for idx in range(len(control_point_list)):
+            if active_regions[idx] is not None:
+                self._end_active_region(active_regions[idx], control_point_list[idx])
+        print "loaded", len(control_point_list), "active regions"
         return control_point_list, active_regions
 
     def _init_active_region(self,traj_constraint):
