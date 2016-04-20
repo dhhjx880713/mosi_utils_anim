@@ -208,6 +208,7 @@ class MGInputFormatReader(object):
             return [], None, []
         else:
             unconstrained_indices = self._find_unconstrained_indices(trajectory_constraint_data)
+            print "load trajectory for",action_index, joint_name
             control_point_list, active_regions = self._extract_trajectory_control_points(trajectory_constraint_data, distance_threshold)
             return control_point_list, unconstrained_indices, active_regions
 
