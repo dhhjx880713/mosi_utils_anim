@@ -108,6 +108,7 @@ class MGInputFormatReader(object):
         for idx in xrange(n_control_points):
             is_active = self._is_active_trajectory_region(traj_constraint, idx)
             if not is_active:
+                was_active = is_active
                 continue
             if not was_active and is_active:
                 active_region = self._init_active_region(traj_constraint)
