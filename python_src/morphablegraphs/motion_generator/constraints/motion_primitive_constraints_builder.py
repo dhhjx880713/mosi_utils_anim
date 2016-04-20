@@ -212,26 +212,23 @@ class MotionPrimitiveConstraintsBuilder(object):
         """ Extract keyframe constraints of the motion primitive name.
         """
         if self.status["motion_primitive_name"] in self.action_constraints.keyframe_constraints.keys():
-            for constraint_definition in self.action_constraints.keyframe_constraints[self.status["motion_primitive_name"]]:
-                keyframe_constraint = self.create_keyframe_constraint(constraint_definition)
+            for c_desc in self.action_constraints.keyframe_constraints[self.status["motion_primitive_name"]]:
+                keyframe_constraint = self.create_keyframe_constraint(c_desc)
                 if keyframe_constraint is not None:
                     self._add_events_to_event_list(mp_constraints, keyframe_constraint)
                     mp_constraints.constraints.append(keyframe_constraint)
 
-    def create_keyframe_constraint(self, constraint_definition):
-        if "keyframeLabel" in constraint_definition["semanticAnnotation"].keys():
-            constraint_definition = self._map_label_to_canonical_keyframe(constraint_definition)
+    def create_keyframe_constraint(self, c_desc):
+        if "keyframeLabel" in c_desc["semanticAnnotation"].keys():
+            c_desc = self._map_label_to_canonical_keyframe(c_desc)
             constraint_factor = self.trajectory_following_settings["position_constraint_factor"]
-            if "merged" in constraint_definition.keys():
-                return TwoHandConstraintSet(self.skeleton, constraint_definition,
-                                            self.precision["pos"], constraint_factor)
-            #elif np.any([c_type in constraint_definition.keys() for c_type in self.mp_constraint_types]):
-            elif "look_at" in constraint_definition.keys():
-                return LookAtConstraint(self.skeleton, constraint_definition,
-                                        self.precision["pos"], constraint_factor)
+            if "merged" in c_desc.keys():
+                return TwoHandConstraintSet(self.skeleton, c_desc, self.precision["pos"], constraint_factor)
+            #elif np.any([c_type in c_desc.keys() for c_type in self.mp_constraint_types]):
+            elif "look_at" in c_desc.keys():
+                return LookAtConstraint(self.skeleton, c_desc, self.precision["pos"], constraint_factor)
             else:
-                return GlobalTransformConstraint(self.skeleton, constraint_definition,
-                                                self.precision["pos"], constraint_factor)
+                return GlobalTransformConstraint(self.skeleton, c_desc, self.precision["pos"], constraint_factor)
         else:
             return None
 
