@@ -73,11 +73,12 @@ class ElementaryActionConstraintsBuilder(object):
         """
         self.start_pose = mg_input.get_start_pose()
         if self.start_pose["orientation"] is None:
-            root_trajectory = self._create_trajectory_constraint(0, ROOT_JOINT)
-            if root_trajectory is None:
-                self.start_pose["orientation"] = [0, 0, 0]
-            else:
-                self.start_pose["orientation"] = self.get_start_orientation_from_trajectory(root_trajectory)
+            root_trajectories = self._create_trajectory_constraints(0, ROOT_JOINT)
+            if len(root_trajectories) > 0:
+                if root_trajectories[0] is None:
+                    self.start_pose["orientation"] = [0, 0, 0]
+                else:
+                    self.start_pose["orientation"] = self.get_start_orientation_from_trajectory(root_trajectories[0])
             write_log("Set start orientation from trajectory to", self.start_pose["orientation"])
 
     def get_start_pose(self):
@@ -177,7 +178,9 @@ class ElementaryActionConstraintsBuilder(object):
             If semanticAnnotation is found they are treated as collision avoidance constraint.
         """
         root_joint_name = self.motion_state_graph.skeleton.root
-        action_constraints.root_trajectory = self._create_trajectory_constraint(action_index, root_joint_name)
+        root_trajectories = self._create_trajectory_constraints(action_index, root_joint_name)
+        if len(root_trajectories) > 0:
+            action_constraints.root_trajectory = root_trajectories[0]
         action_constraints.trajectory_constraints = []
         action_constraints.collision_avoidance_constraints = []
         for joint_name in self.motion_state_graph.skeleton.node_name_frame_map.keys():
@@ -187,13 +190,14 @@ class ElementaryActionConstraintsBuilder(object):
             self._add_trajectory_constraint_set(action_constraints, action_index)
 
     def _add_trajectory_constraint(self, action_constraints, action_index, joint_name):
-        trajectory_constraint = self._create_trajectory_constraint(action_index, joint_name)
-        if trajectory_constraint is not None:
-            # decide if it is a collision avoidance constraint based on whether or not it has a range
-            if trajectory_constraint.range_start is None:
-                action_constraints.trajectory_constraints.append(trajectory_constraint)
-            else:
-                action_constraints.collision_avoidance_constraints.append(trajectory_constraint)
+        trajectory_constraints = self._create_trajectory_constraints(action_index, joint_name)
+        for trajectory_constraint in trajectory_constraints:
+            if trajectory_constraint is not None:
+                # decide if it is a collision avoidance constraint based on whether or not it has a range
+                if trajectory_constraint.range_start is None:
+                    action_constraints.trajectory_constraints.append(trajectory_constraint)
+                else:
+                    action_constraints.collision_avoidance_constraints.append(trajectory_constraint)
 
     def _add_ca_trajectory_constraint_set(self, action_constraints):
         if action_constraints.root_trajectory is not None:
@@ -208,7 +212,7 @@ class ElementaryActionConstraintsBuilder(object):
                                                                                   self.constraint_precision,
                                                                                   self.default_constraint_weight)
 
-    def _create_trajectory_constraint(self, action_index, joint_name):
+    def _create_trajectory_constraints(self, action_index, joint_name):
         """ Create a spline based on a trajectory constraint definition read from the input file.
             Components containing None are set to 0, but marked as ignored in the unconstrained_indices list.
             Note all elements in constraints_list must have the same dimensions constrained and unconstrained.
@@ -218,24 +222,27 @@ class ElementaryActionConstraintsBuilder(object):
         * trajectory: TrajectoryConstraint
         \t The trajectory defined by the control points from the trajectory_constraint or None if there is no constraint
         """
-        control_points, unconstrained_indices, active_region = self.mg_input.extract_trajectory_desc(action_index,
+        control_points_list, unconstrained_indices, active_regions = self.mg_input.extract_trajectory_desc(action_index,
                                                                                                      joint_name,
                                                                                                      self.control_point_distance_threshold)
-        if control_points is None or unconstrained_indices is None:
-            return None
-        else:
-            traj_constraint = TrajectoryConstraint(joint_name, control_points,
-                                          self.default_spline_type, 0.0,
-                                          unconstrained_indices,
-                                          self.motion_state_graph.skeleton,
-                                          self.constraint_precision, self.default_constraint_weight,
-                                          self.closest_point_search_accuracy,
-                                          self.closest_point_search_max_iterations,
-                                          self.spline_arc_length_parameter_granularity)
-            if active_region is not None:
-                traj_constraint.is_collision_avoidance_constraint = True
-                self._set_active_range_from_region(traj_constraint, active_region)
-            return traj_constraint
+        traj_constraints = []
+        for idx, control_points in enumerate(control_points_list):
+            if control_points is None or unconstrained_indices is None:
+                return None
+            else:
+                traj_constraint = TrajectoryConstraint(joint_name, control_points,
+                                              self.default_spline_type, 0.0,
+                                              unconstrained_indices,
+                                              self.motion_state_graph.skeleton,
+                                              self.constraint_precision, self.default_constraint_weight,
+                                              self.closest_point_search_accuracy,
+                                              self.closest_point_search_max_iterations,
+                                              self.spline_arc_length_parameter_granularity)
+                if active_regions[idx] is not None:
+                    traj_constraint.is_collision_avoidance_constraint = True
+                    self._set_active_range_from_region(traj_constraint, active_regions[idx])
+                traj_constraints.append(traj_constraint)
+        return traj_constraints
 
     def _set_active_range_from_region(self, traj_constraint, active_region):
         if active_region["start_point"] is not None and active_region["end_point"] is not None:

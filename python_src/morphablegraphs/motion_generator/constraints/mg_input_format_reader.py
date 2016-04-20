@@ -98,42 +98,49 @@ class MGInputFormatReader(object):
             return True
 
     def _extract_trajectory_control_points(self, traj_constraint, distance_threshold=0.0, filter_active_region=True):
-        control_points = list()
+        control_point_list = list()
+        active_regions = list()
         previous_point = None
         n_control_points = len(traj_constraint)
-        active_region = self._init_active_region(traj_constraint)
-
+        was_active = False
         last_distance = None
+        count = -1
         for idx in xrange(n_control_points):
             is_active = self._is_active_trajectory_region(traj_constraint, idx)
             if filter_active_region and not is_active:
                 continue
-            tmp_distance_threshold = distance_threshold
-            if active_region is not None:
-                tmp_distance_threshold = -1
+            if not was_active and is_active:
+                active_region = dict()
+                active_region["start_point"] = None
+                active_region["end_point"] = None
+                control_point_list.append(list())
+                active_regions.append(active_region)
+                count += 1
+            #tmp_distance_threshold = distance_threshold
+            #if active_region is not None:
+            tmp_distance_threshold = -1
             result = self._extract_control_point(traj_constraint, n_control_points, idx, previous_point, last_distance, tmp_distance_threshold)
-            if result is None:
+            if result is None or count < 0:
                 continue
             else:
                 point, last_distance = result
-                n_points = len(control_points)
+                n_points = len(control_point_list[count])
                 if idx == n_control_points-1:
                     last_added_point_idx = n_points-1
-                    delta = control_points[last_added_point_idx] - point
+                    delta = control_point_list[count][last_added_point_idx] - point
                     if np.linalg.norm(delta) < distance_threshold:
-                        control_points[last_added_point_idx] += delta
+                        control_point_list[count][last_added_point_idx] += delta
                         write_log("Warning: shift second to last control point because it is too close to the last control point")
-                control_points.append(point)
+                control_point_list[count].append(point)
 
-                if active_region is not None:
-                    self._update_active_region(active_region, point, is_active)
+                self._update_active_region(active_regions[count], point, is_active)
                 previous_point = point
+                was_active = is_active
 
         #handle invalid region specification
-        if active_region is not None:
-            self._end_active_region(active_region, control_points)
+        self._end_active_region(active_regions[count], control_point_list[count])
         #print "loaded", len(control_points), "points"
-        return control_points, active_region
+        return control_point_list, active_regions
 
     def _init_active_region(self,traj_constraint):
         if "semanticAnnotation" in traj_constraint[0].keys():
@@ -173,7 +180,7 @@ class MGInputFormatReader(object):
         else:
             distance = np.linalg.norm(point-previous_point)
             #add the point if there is no distance threshold, it is the first point, it is the last point or larger than or equal to the distance threshold
-            if (distance_threshold <= 0.0 or np.linalg.norm(point-previous_point) >= distance_threshold) and (last_distance is None or distance >= last_distance/10.0):
+            if (distance_threshold <= 0.0 or np.linalg.norm(point-previous_point) >= distance_threshold) and (last_distance is None or distance >= last_distance/10.0):#'TODO' add toggle of filter to config
                 return point, distance
             else:
                 return None
@@ -189,11 +196,11 @@ class MGInputFormatReader(object):
         """
         trajectory_constraint_data = self._extract_trajectory_constraint_data(self.elementary_action_list[action_index]["constraints"], joint_name)
         if trajectory_constraint_data is None:
-            return None, None, None
+            return [], None, []
         else:
             unconstrained_indices = self._find_unconstrained_indices(trajectory_constraint_data)
-            control_points, active_region = self._extract_trajectory_control_points(trajectory_constraint_data, distance_threshold)
-            return control_points, unconstrained_indices, active_region
+            control_point_list, active_regions = self._extract_trajectory_control_points(trajectory_constraint_data, distance_threshold)
+            return control_point_list, unconstrained_indices, active_regions
 
 
     def _find_unconstrained_indices(self, trajectory_constraint_data):
