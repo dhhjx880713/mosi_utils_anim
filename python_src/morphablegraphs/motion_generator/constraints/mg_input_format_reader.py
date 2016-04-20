@@ -110,17 +110,17 @@ class MGInputFormatReader(object):
             if filter_active_region and not is_active:
                 continue
             if not was_active and is_active:
-                active_region = dict()
-                active_region["start_point"] = None
-                active_region["end_point"] = None
+                active_region = self._init_active_region(traj_constraint)
                 control_point_list.append(list())
                 active_regions.append(active_region)
                 count += 1
-            #tmp_distance_threshold = distance_threshold
-            #if active_region is not None:
-            tmp_distance_threshold = -1
+            if count < 0:
+                continue
+            tmp_distance_threshold = distance_threshold
+            if active_regions[count] is not None:
+                tmp_distance_threshold = -1
             result = self._extract_control_point(traj_constraint, n_control_points, idx, previous_point, last_distance, tmp_distance_threshold)
-            if result is None or count < 0:
+            if result is None:
                 continue
             else:
                 point, last_distance = result
@@ -133,12 +133,14 @@ class MGInputFormatReader(object):
                         write_log("Warning: shift second to last control point because it is too close to the last control point")
                 control_point_list[count].append(point)
 
-                self._update_active_region(active_regions[count], point, is_active)
+                if active_regions[count] is not None:
+                    self._update_active_region(active_regions[count], point, is_active)
                 previous_point = point
                 was_active = is_active
 
         #handle invalid region specification
-        self._end_active_region(active_regions[count], control_point_list[count])
+        if active_regions[count] is not None:
+            self._end_active_region(active_regions[count], control_point_list[count])
         #print "loaded", len(control_points), "points"
         return control_point_list, active_regions
 
