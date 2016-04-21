@@ -31,27 +31,32 @@ class KeyframeEventList(object):
         self._add_unconstrained_events_from_annotation(graph_walk)
 
     def _create_frame_annotation(self, graph_walk, start_step=0):
-        self.frame_annotation['elementaryActionSequence'] = self.frame_annotation['elementaryActionSequence'][:start_step]
-        if start_step == 0:
-            start_frame = 0
-        else:
-            step = graph_walk.steps[start_step-1]
-            start_frame = step.end_frame
-        end_frame = start_frame
-        prev_step = None
-        for step in graph_walk.steps[start_step:]:
-            action_name = step.node_key[0]
-            #time_function = graph_walk.motion_state_graph.nodes[step.node_key].back_project_time_function(step.parameters)
-            if prev_step is not None and action_name != prev_step.node_key[0]:
-                #add entry for previous elementary action
-                print "add", prev_step.node_key[0]
-                self.update_frame_annotation(prev_step.node_key[0], start_frame, end_frame-1)
-                start_frame = end_frame
-            end_frame += step.end_frame - step.start_frame + 1
-            prev_step = step
-        if prev_step is not None:
-            print "add", prev_step.node_key[0]
-            self.update_frame_annotation(prev_step.node_key[0], start_frame, end_frame-1)
+        self.frame_annotation['elementaryActionSequence'] = []#self.frame_annotation['elementaryActionSequence'][:start_step]
+        for action in graph_walk.elementary_action_list:
+            #if action.end_step >= start_step:
+            start_frame = graph_walk.steps[action.start_step].start_frame
+            end_frame = graph_walk.steps[action.end_step].end_frame
+            self.update_frame_annotation(action.action_name, start_frame, end_frame)
+        #if start_step == 0:
+        #    start_frame = 0
+        #else:
+        #    step = graph_walk.steps[start_step-1]
+        #    start_frame = step.end_frame
+        #end_frame = start_frame
+        #prev_step = None
+        #for step in graph_walk.steps[start_step:]:
+        #    action_name = step.node_key[0]
+        #    #time_function = graph_walk.motion_state_graph.nodes[step.node_key].back_project_time_function(step.parameters)
+        #    if prev_step is not None and action_name != prev_step.node_key[0]:
+        #        #add entry for previous elementary action
+        #        print "add", prev_step.node_key[0]
+        #        self.update_frame_annotation(prev_step.node_key[0], start_frame, end_frame-1)
+        #        start_frame = end_frame
+        #    end_frame += step.end_frame - step.start_frame + 1
+        #    prev_step = step
+        #if prev_step is not None:
+        #    print "add", prev_step.node_key[0]
+        #    self.update_frame_annotation(prev_step.node_key[0], start_frame, end_frame-1)
 
     #def _warp_keyframe_index(self, time_function, key_frame_index):
     #    """ Inverse lookup of warped keyframe
