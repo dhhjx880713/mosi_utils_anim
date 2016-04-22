@@ -122,8 +122,9 @@ class MotionPrimitiveGenerator(object):
         graph_node = self._motion_state_graph.nodes[(self.action_name, mp_name)]
         if self.use_local_coordinates:
             prev_frames_copy = None
-            mp_constraints = mp_constraints.transform_constraints_to_local_cos()
+            mp_constraints = in_mp_constraints.transform_constraints_to_local_cos()
         else:
+            mp_constraints = in_mp_constraints
             prev_frames_copy = prev_frames
 
         if self.constrained_sampling_mode == SAMPLING_MODE_RANDOM_SPLINE:
@@ -136,6 +137,7 @@ class MotionPrimitiveGenerator(object):
         #write_log("start optimization", self._is_optimization_required(mp_constraints),mp_constraints.use_local_optimization,mp_constraints.min_error,self.optimization_start_error_threshold)
         if self._is_optimization_required(mp_constraints):
             sample = self._optimize_parameters_numerically(sample, graph_node, mp_constraints, prev_frames_copy)
+        in_mp_constraints.min_error = mp_constraints.min_error
         return sample
 
     def _is_optimization_required(self, mp_constraints):
