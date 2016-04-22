@@ -165,13 +165,12 @@ class MotionPrimitiveConstraints(object):
                 else:
                     temp_constraint_list[UNLABELED_KEY].append(desc)
             if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE and self.step_goal is None: #use the transition constraint only for pick and place
-                semantic_label = c.semantic_annotation["keyframeLabel"]#UNLABELED_KEY
+                semantic_label = UNLABELED_KEY#c.semantic_annotation["keyframeLabel"]#
                 if semantic_label not in temp_constraint_list.keys():
                     temp_constraint_list[semantic_label] = []
                 joints = self.skeleton.node_name_frame_map.keys()
                 points = c.pose_constraint
                 for j, p in zip(joints,points):
-                    print j,p
                     desc = {"type":"pos","value":p, "joint": j, "weight_factor":c.weight_factor}
                     temp_constraint_list[semantic_label].append(desc)
 
