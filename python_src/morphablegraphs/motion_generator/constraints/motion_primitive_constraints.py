@@ -216,6 +216,7 @@ class MotionPrimitiveConstraints(object):
         inv_aligning_transform = np.linalg.inv(self.aligning_transform)
         mp_constraints = MotionPrimitiveConstraints()
         mp_constraints.start_pose = {"orientation": [0,0,0], "position": [0,0,0]}
+        mp_constraints.skeleton = self.skeleton
         mp_constraints.is_local = True
         for c in self.constraints:
             if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION:
