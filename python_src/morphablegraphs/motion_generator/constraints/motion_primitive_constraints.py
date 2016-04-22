@@ -140,8 +140,9 @@ class MotionPrimitiveConstraints(object):
                 delta_orientation = quaternion_from_vector_to_vector(c.direction_constraint, ref_vector)
                 orientation = quaternion_multiply(original_orientation, delta_orientation)
                 desc = {"type": "dir", "value":orientation, "joint": "Hips"}
-                if "semantic_label" in c.semantic_annotation and self.is_last_step:
-                    semantic_label = c.semantic_annotation["semantic_label"]
+                #TODO use keyframe label here instead of semantic label
+                if "keyframeLabel" in c.semantic_annotation:# and self.is_last_step
+                    semantic_label = c.semantic_annotation["keyframeLabel"]
                     if semantic_label not in temp_constraint_list.keys():
                         temp_constraint_list[semantic_label] = []
                     temp_constraint_list[semantic_label].append(desc)
@@ -149,9 +150,14 @@ class MotionPrimitiveConstraints(object):
                     temp_constraint_list["unlabeled"].append(desc)
 
             if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION:
-                desc = {"type":"pos","value":[c.position[0], 80, c.position[2]], "joint": c.joint_name, "weight_factor":c.weight_factor}
-                if "semantic_label" in c.semantic_annotation and self.is_last_step:
-                    semantic_label = c.semantic_annotation["semantic_label"]
+                if c.position[1] is None:
+                    y_coordinate = 80
+                else:
+                    y_coordinate = c.position[1]
+                desc = {"type":"pos","value":[c.position[0], y_coordinate, c.position[2]], "joint": c.joint_name, "weight_factor":c.weight_factor}
+                #TODO use keyframe label here instead of semantic label
+                if "keyframeLabel" in c.semantic_annotation:# and self.is_last_step
+                    semantic_label = c.semantic_annotation["keyframeLabel"]
                     if semantic_label not in temp_constraint_list.keys():
                         temp_constraint_list[semantic_label] = []
                     temp_constraint_list[semantic_label].append(desc)
