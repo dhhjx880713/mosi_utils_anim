@@ -130,7 +130,8 @@ class MotionPrimitiveConstraints(object):
         semantic_pose_constraints = []
         cartesian_constraints = []
         temp_constraint_list = dict()
-        temp_constraint_list["unlabeled"] = []
+        UNLABELED_KEY="unlabeled"
+        temp_constraint_list[UNLABELED_KEY] = []
         for c in self.constraints:
             if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_DIR_2D:
                 # reference orientation from BVH: 179.477078182 3.34148613293 -87.6482840381 x y z euler angles
@@ -147,7 +148,7 @@ class MotionPrimitiveConstraints(object):
                         temp_constraint_list[semantic_label] = []
                     temp_constraint_list[semantic_label].append(desc)
                 else:
-                    temp_constraint_list["unlabeled"].append(desc)
+                    temp_constraint_list[UNLABELED_KEY].append(desc)
 
             if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION:
                 if c.position[1] is None:
@@ -162,7 +163,18 @@ class MotionPrimitiveConstraints(object):
                         temp_constraint_list[semantic_label] = []
                     temp_constraint_list[semantic_label].append(desc)
                 else:
-                    temp_constraint_list["unlabeled"].append(desc)
+                    temp_constraint_list[UNLABELED_KEY].append(desc)
+            if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE and self.step_goal is None: #use the transition constraint only for pick and place
+                semantic_label = c.semantic_annotation["keyframeLabel"]#UNLABELED_KEY
+                if semantic_label not in temp_constraint_list.keys():
+                    temp_constraint_list[semantic_label] = []
+                joints = self.skeleton.node_name_frame_map.keys()
+                points = c.pose_constraint
+                for j, p in zip(joints,points):
+                    print j,p
+                    desc = {"type":"pos","value":p, "joint": j, "weight_factor":c.weight_factor}
+                    temp_constraint_list[semantic_label].append(desc)
+
 
         for key in temp_constraint_list.keys():
             if key == "unlabeled":
