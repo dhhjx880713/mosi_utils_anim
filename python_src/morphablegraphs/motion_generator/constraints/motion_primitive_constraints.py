@@ -177,11 +177,21 @@ class MotionPrimitiveConstraints(object):
 
 
         for key in temp_constraint_list.keys():
-            if key == "unlabeled":
+            if key == UNLABELED_KEY:
                 for temp_c in temp_constraint_list[key]:
                     if temp_c["type"] == "pos":
+                        print "create cartesian constraint for joint", temp_c["joint"], temp_c["value"]
                         cartesian_constraint = MGRDCartesianConstraint(temp_c["value"], temp_c["joint"], temp_c["weight_factor"])
                         cartesian_constraints.append(cartesian_constraint)
+            elif key =="start":
+                for temp_c in temp_constraint_list[key]:
+                    if temp_c["type"] == "pos":
+                        pose_constraint = MGRDPoseConstraint(temp_c["joint"], temp_c["weight_factor"], temp_c["value"], [1,0,0,0])
+                        semantic_constraint = MGRDSemanticConstraint({key: True}, time=None)
+                        semantic_pose_constraint = MGRDSemanticPoseConstraint(pose_constraint, semantic_constraint)
+                        semantic_pose_constraint.weights = (1.0,0.0)
+                        semantic_pose_constraints.append(semantic_pose_constraint)
+
             else:
                 print "merge constraints",key
                 orientation = [1,0,0,0]
