@@ -19,45 +19,45 @@ class Skeleton(object):
     """ Data structure that stores the skeleton hierarchy information
         extracted from a BVH file with additional meta information.
     """
-    def __init__(self, bvh_reader, rotation_type=ROTATION_TYPE_QUATERNION):
+    def __init__(self, bvh_reader, animated_joints=None, rotation_type=ROTATION_TYPE_QUATERNION):
         self.frame_time = deepcopy(bvh_reader.frame_time)
         self.root = deepcopy(bvh_reader.root)
         self.node_names = deepcopy(bvh_reader.node_names)
         self.reference_frame = self._extract_reference_frame(bvh_reader)
+        self.reference_frame_length = len(self.reference_frame)
         self.node_channels = collections.OrderedDict()
         self.extract_channels()
-        self.nodes = None
-        self._create_filtered_node_name_frame_map()
+        self.nodes = collections.OrderedDict()
         self.tool_nodes = []
         self._add_tool_nodes()
+        self._create_filtered_node_name_frame_map()
         self.max_level = self._get_max_level()
         self._set_joint_weights()
         self.parent_dict = self._get_parent_dict()
         self._chain_names = self._generate_chain_names()
-        self.rotation_type = rotation_type
-        self.construct_hierarchy_iterative()
+
         #print "node name map keys", len(self.node_names), len(self.node_name_frame_map), self.node_name_frame_map.keys()
         print "shape of reference frame", (self.reference_frame.shape)
-        #print "number of parameters", self.get_number_of_frame_parameters(ROTATION_TYPE_QUATERNION)
-        #for joint in self.nodes.keys():
-        #    print joint, self.nodes[joint].index
 
         #TODO read data from file
-        self.free_joints_map = {"LeftHand":["Spine","LeftArm", "LeftForeArm"],#"LeftShoulder",
-                           "RightHand":["Spine","RightArm","RightForeArm"],# "RightShoulder",
-                           "LeftToolEndSite":["Spine","LeftArm","LeftForeArm"],#
-                           "RightToolEndSite":["Spine","RightArm", "RightForeArm"],#"RightShoulder",
+        self.animated_joints = animated_joints
+
+        self.free_joints_map = {"LeftHand":["Spine","LeftArm", "LeftForeArm"],
+                           "RightHand":["Spine","RightArm","RightForeArm"],
+                           "LeftToolEndSite":["Spine","LeftArm","LeftForeArm"],
+                           "RightToolEndSite":["Spine","RightArm", "RightForeArm"],
                             "Head":[]
                                 }
-        self.reduced_free_joints_map = {"LeftHand":["Spine","LeftArm", "LeftForeArm"],#"LeftShoulder",
-                           "RightHand":["Spine","RightArm","RightForeArm"],# "RightShoulder",
-                           "LeftToolEndSite":["LeftArm","LeftForeArm"],#"Spine",
-                           "RightToolEndSite":["RightArm", "RightForeArm"],#"RightShoulder","Spine",
-                            "Head":[]}
+        self.reduced_free_joints_map = {"LeftHand":["Spine","LeftArm", "LeftForeArm"],
+                                       "RightHand":["Spine","RightArm","RightForeArm"],
+                                       "LeftToolEndSite":["LeftArm","LeftForeArm"],
+                                       "RightToolEndSite":["RightArm", "RightForeArm"],
+                                        "Head":[]}
         self.head_joint = "Head"
         self.neck_joint = "Neck"
         self.bounds = {"LeftArm":[],#{"dim": 1, "min": 0, "max": 90}
                        "RightArm":[]}#{"dim": 1, "min": 0, "max": 90},{"dim": 0, "min": 0, "max": 90}
+        self.construct_hierarchy_iterative()
 
     def extract_channels(self):
         for node_idx, node_name in enumerate(self.node_names):
@@ -66,37 +66,13 @@ class Skeleton(object):
                 self.node_channels[node_name] = channels
                 #print("set channels",node_name ,channels)
 
-    def create_reduced_copy(self):
-        reduced_skeleton = deepcopy(self)
-        reduced_skeleton.node_names = collections.OrderedDict()
-        reduced_skeleton.node_channels = collections.OrderedDict()
-        for node_name in self.node_names.keys():
-            if not node_name.startswith("Bip") and "children" in self.node_names[node_name].keys():
-                reduced_skeleton.node_names[node_name] = deepcopy(self.node_names[node_name])
-                reduced_skeleton.node_channels[node_name] = self.node_channels[node_name]
-        reduced_skeleton.reference_frame = None
-        reduced_skeleton._create_filtered_node_name_frame_map()
-        reduced_skeleton.tool_bones = []
-        reduced_skeleton._add_tool_nodes()
-        reduced_skeleton.max_level = self._get_max_level()
-        reduced_skeleton._set_joint_weights()
-        reduced_skeleton.parent_dict = self._get_parent_dict()
-        reduced_skeleton._chain_names = self._generate_chain_names()
-        reduced_skeleton.construct_hierarchy_iterative()
-        reduced_skeleton.free_joints_map = self.free_joints_map
-        reduced_skeleton.reduced_free_joints_map = self.reduced_free_joints_map
-        reduced_skeleton.head_joint = self.head_joint
-        reduced_skeleton.neck_joint = self.neck_joint
-        reduced_skeleton.bounds = self.bounds
-        return reduced_skeleton
-
     def _extract_reference_frame(self, bvh_reader):
         quaternion_frame = np.array((QuaternionFrame(bvh_reader, bvh_reader.frames[0], False, False).values())).flatten()
         return np.array(bvh_reader.frames[0][:3].tolist() + quaternion_frame.tolist())
 
     def construct_hierarchy_iterative(self):
         joint_index = 0
-
+        animated_joint_index = 0
         self.nodes = collections.OrderedDict()
         for node_name in self.node_names.keys():
             if "children" in self.node_names[node_name].keys():
@@ -105,18 +81,30 @@ class Skeleton(object):
                 is_endsite = True
 
             if node_name == self.root:
-                node = SkeletonRootNode(node_name, self.node_channels[node_name], None, self.rotation_type)
-                node.index = joint_index
+                node = SkeletonRootNode(node_name, self.node_channels[node_name], None)
+                if self.animated_joints is None or node_name in self.animated_joints:
+                    node.fixed = False
+                    node.quaternion_frame_index = animated_joint_index
+                    animated_joint_index += 1
+                else:
+                    node.index = joint_index
+                    node.fixed = True
                 joint_index += 1
             elif not is_endsite:
-                node = SkeletonJointNode(node_name, self.node_channels[node_name], None, self.rotation_type)
+                node = SkeletonJointNode(node_name, self.node_channels[node_name], None)
+                start = joint_index * 4 + 3
+                node.rotation = self.reference_frame[start: start+4]
+                if self.animated_joints is None or node_name in self.animated_joints:
+                    node.fixed = False
+                    node.quaternion_frame_index = animated_joint_index
+                    animated_joint_index += 1
+                else:
+                    node.fixed = True
                 node.index = joint_index
+
                 joint_index += 1
             else:
-                node = SkeletonEndSiteNode(node_name, [], None, self.rotation_type)
-
-            if node_name in self.node_name_frame_map and self.node_name_frame_map[node_name] >= 0:
-                node.quaternion_frame_index = node.index * 4 + 3
+                node = SkeletonEndSiteNode(node_name, [], None)
 
             node.offset = self.node_names[node_name]["offset"]
 
@@ -125,8 +113,6 @@ class Skeleton(object):
                 if parent_node_name in self.nodes.keys():
                     node.parent = self.nodes[parent_node_name]
                     self.nodes[parent_node_name].children.append(node)
-
-
             self.nodes[node_name] = node
 
     def is_motion_vector_complete(self, frames, is_quaternion):
@@ -139,58 +125,44 @@ class Skeleton(object):
     def get_number_of_frame_parameters(self, rotation_type):
         n_parameters = 0
         for node_name in self.nodes.keys():
-            if node_name not in self.tool_nodes:
-                local_parameters = self.nodes[node_name].get_number_of_frame_parameters(rotation_type)
-                n_parameters += local_parameters
-
+            local_parameters = self.nodes[node_name].get_number_of_frame_parameters(rotation_type)
+            n_parameters += local_parameters
         return n_parameters
 
-    def complete_motion_vector_from_reference(self, reduced_skeleton, reduced_quat_frames):
-        if self.reference_frame is not None:
-            new_quat_frames = []
-            for reduced_frame in reduced_quat_frames:
-                new_quat_frames.append(self.complete_frame_vector_from_reference(reduced_skeleton, reduced_frame))
-            return new_quat_frames
-        else:
-            return reduced_quat_frames
+    def complete_motion_vector_from_reference(self, reduced_quat_frames):
+        new_quat_frames = np.zeros((len(reduced_quat_frames), self.reference_frame_length))
+        for idx, reduced_frame in enumerate(reduced_quat_frames):
+            new_quat_frames[idx] = self.generate_complete_frame_vector_from_reference(reduced_frame)
+        return new_quat_frames
 
-    def complete_frame_vector_from_reference(self, reduced_skeleton, reduced_frame):
+    def generate_complete_frame_vector_from_reference(self, reduced_frame):
         """
         Takes parameters from the reduced frame for each joint of the complete skeleton found in the reduced skeleton
         otherwise it takes parameters from the reference frame
-        :param reduced_skeleton:
         :param reduced_frame:
         :return:
         """
-        new_frame = []
+        new_frame = np.zeros(self.reference_frame_length)
         for joint_name in self.nodes.keys():
-            if joint_name not in self.tool_nodes:
-                if joint_name in reduced_skeleton.node_name_frame_map.keys() and reduced_skeleton.node_name_frame_map[joint_name] > -1:
-                    if joint_name == self.root:
-                        joint_parameters = reduced_frame[:3].tolist()
-                    else:
-                        joint_parameters = []
-                    joint_parameters += reduced_frame[reduced_skeleton.nodes[joint_name].quaternion_frame_index:reduced_skeleton.nodes[joint_name].quaternion_frame_index + 4].tolist()
-                    #joint_parameters = self.nodes[joint_name].get_frame_parameters(frame, ROTATION_TYPE_QUATERNION)
+            if len(self.nodes[joint_name].children) > 0:
+                if joint_name == self.root:
+                    new_frame[:7] = reduced_frame[:7]
                 else:
-                    joint_parameters = self.nodes[joint_name].get_frame_parameters(self.reference_frame, ROTATION_TYPE_QUATERNION)
-                    #print "from reference", joint_name,joint_parameters
-                if joint_parameters is not None:
-                    #print joint_name, joint_parameters
-                    new_frame += joint_parameters
-        #print "frame length", len(new_frame)
+                    dest_start = self.nodes[joint_name].index * 4 + 3
+                    if self.nodes[joint_name].fixed:
+                        new_frame[dest_start: dest_start+4] = self.nodes[joint_name].rotation
+                    else:
+                        src_start = self.nodes[joint_name].quaternion_frame_index * 4 + 3
+                        new_frame[dest_start: dest_start+4] = reduced_frame[src_start: src_start + 4]
         return new_frame
 
     def _get_max_level(self):
-        return max([node["level"] for node in
-                      self.node_names.values()
-                      if "level" in node.keys()])
+        return max([node["level"] for node in self.node_names.values() if "level" in node.keys()])
 
     def _get_parent_dict(self):
         """Returns a dict of node names to their parent node's name"""
 
         parent_dict = {}
-
         for node_name in self.node_names:
             if "children" in self.node_names[node_name].keys():
                 for child_node in self.node_names[node_name]["children"]:
@@ -258,15 +230,15 @@ class Skeleton(object):
         #Finger2_offset = [9.559288, 0.145353, -0.186417]
         #Finger21_offset = [3.801407, 0.0, 0.0]
 
-    def _add_new_end_site(self, new_node_name, parent_node, offset):
-        if parent_node in self.node_name_frame_map.keys():
-            level = self.node_names[parent_node]["level"] + 1
+    def _add_new_end_site(self, new_node_name, parent_node_name, offset):
+        if parent_node_name in self.node_names.keys():
+            level = self.node_names[parent_node_name]["level"] + 1
             node_desc = dict()
             node_desc["level"] = level
             node_desc["offset"] = offset
-            self.node_names[parent_node]["children"].append(new_node_name)
+            self.node_names[parent_node_name]["children"].append(new_node_name)
             self.node_names[new_node_name] = node_desc
-            self.node_name_frame_map[new_node_name] = -1 #the node needs an entry but the index is only important if it has children
+            #self.node_name_frame_map[new_node_name] = -1 #the node needs an entry but the index is only important if it has children
 
     def _generate_chain_names(self):
         chain_names = dict()

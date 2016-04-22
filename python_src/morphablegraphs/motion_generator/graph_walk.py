@@ -44,7 +44,6 @@ class GraphWalk(object):
         self.elementary_action_list = []
         self.steps = []
         self.motion_state_graph = motion_state_graph
-        self.full_skeleton = motion_state_graph.full_skeleton
         self.step_count = 0
         self.mg_input = mg_input
         self._algorithm_config = algorithm_config
@@ -73,7 +72,7 @@ class GraphWalk(object):
         annotated_motion_vector.frames = self.motion_vector.frames
         annotated_motion_vector.n_frames = self.motion_vector.n_frames
         annotated_motion_vector.keyframe_event_list = self.keyframe_event_list
-        annotated_motion_vector.skeleton = self.full_skeleton
+        annotated_motion_vector.skeleton = self.motion_state_graph.skeleton
         annotated_motion_vector.mg_input = self.mg_input
         frame_offset = 0
         ik_constraints = dict()

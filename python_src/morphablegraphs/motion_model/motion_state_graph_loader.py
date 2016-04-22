@@ -79,6 +79,8 @@ class MotionStateGraphLoader(object):
         self.motion_state_graph_path = None
         self.elementary_action_directory = None
         self.motion_primitive_node_group_builder = MotionStateGroupLoader()
+        self.animated_joints = ["Hips", "Spine", "Spine_1", "Neck", "Head", "LeftShoulder", "LeftArm", "LeftForeArm", "LeftHand", "RightShoulder", "RightArm", "RightForeArm", "RightHand", "LeftUpLeg", "LeftLeg", "LeftFoot", "RightUpLeg", "RightLeg", "RightFoot"]
+
 
     def set_data_source(self, motion_state_graph_path, load_transition_models=False, update_stats=False):
         """ Set the source which is used to load the data structure into memory.
@@ -111,8 +113,8 @@ class MotionStateGraphLoader(object):
         zip_path = self.motion_state_graph_path+".zip"
         zip_reader = ZipReader(zip_path, pickle_objects=True)
         graph_data = zip_reader.get_graph_data()
-        motion_state_graph.full_skeleton = Skeleton(BVHReader("").init_from_string(graph_data["skeletonString"]))
-        motion_state_graph.skeleton = motion_state_graph.full_skeleton.create_reduced_copy()
+        motion_state_graph.skeleton = Skeleton(BVHReader("").init_from_string(graph_data["skeletonString"]), self.animated_joints)
+        #motion_state_graph.skeleton = motion_state_graph.full_skeleton.create_reduced_copy()
         if has_mgrd:
             motion_state_graph.mgrd_skeleton = MGRDSkeletonBVHLoader("skeleton.bvh").load()#TODO convert from graph skeleton or load from string
         else:
@@ -132,15 +134,15 @@ class MotionStateGraphLoader(object):
         self._update_motion_state_stats(motion_state_graph, recalculate=False)
 
         if "handPoseInfo" in graph_data.keys():
-            motion_state_graph.hand_pose_generator = HandPoseGenerator(motion_state_graph.full_skeleton)
+            motion_state_graph.hand_pose_generator = HandPoseGenerator(motion_state_graph.skeleton)
             motion_state_graph.hand_pose_generator.init_from_desc(graph_data["handPoseInfo"])
 
     def _init_from_directory(self, motion_state_graph, recalculate_motion_stats=True):
         """ Initializes the class
         """
         skeleton_path = self.motion_state_graph_path + os.sep + SKELETON_FILE
-        motion_state_graph.full_skeleton = Skeleton(BVHReader(skeleton_path))
-        motion_state_graph.skeleton = motion_state_graph.full_skeleton.create_reduced_copy()
+        motion_state_graph.skeleton = Skeleton(BVHReader(skeleton_path), self.animated_joints)
+        #motion_state_graph.skeleton = motion_state_graph.full_skeleton.create_reduced_copy()
         if has_mgrd:
             motion_state_graph.mgrd_skeleton = MGRDSkeletonBVHLoader("skeleton.bvh").load()#TODO convert from graph skeleton
         else:

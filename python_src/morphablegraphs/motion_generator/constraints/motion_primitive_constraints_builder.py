@@ -45,7 +45,7 @@ class MotionPrimitiveConstraintsBuilder(object):
         self.action_constraints = action_constraints
         self.motion_state_graph = action_constraints.motion_state_graph
         self.node_group = self.action_constraints.get_node_group()
-        self.skeleton = self.action_constraints.get_skeleton()
+        self.skeleton = action_constraints.motion_state_graph.skeleton
 
     def set_algorithm_config(self, algorithm_config):
         self.algorithm_config = algorithm_config
@@ -113,7 +113,7 @@ class MotionPrimitiveConstraintsBuilder(object):
             mp_constraints.start_pose = None
         else:
             mp_constraints.start_pose = self.action_constraints.start_pose
-        mp_constraints.skeleton = self.action_constraints.get_skeleton()
+        mp_constraints.skeleton = self.skeleton
         mp_constraints.precision = self.action_constraints.precision
         mp_constraints.verbose = self.algorithm_config["verbose"]
         if self.action_constraints.root_trajectory is not None:

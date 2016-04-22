@@ -38,13 +38,14 @@ class InverseKinematics(object):
             self.skeleton.set_rotation_type(ROTATION_TYPE_EULER)#change to euler
         self.channels = OrderedDict()
         for node in self.skeleton.nodes.values():
-            node_channels = copy(node.channels)
-            #change to euler
-            if not self.use_euler:
-                if np.all([ch in node_channels for ch in ["Xrotation", "Yrotation", "Zrotation"]]):
-                    node_channels += ["Wrotation"] #TODO fix order
-            self.channels[node.node_name] = node_channels
-        #print "channels", self.channels
+            if node.node_name in skeleton.animated_joints:
+                node_channels = copy(node.channels)
+                #change to euler
+                if not self.use_euler:
+                    if np.all([ch in node_channels for ch in ["Xrotation", "Yrotation", "Zrotation"]]):
+                        node_channels += ["Wrotation"] #TODO fix order
+                self.channels[node.node_name] = node_channels
+            #print "channels", self.channels
         self.pose = SkeletonPoseModel(self.skeleton, reference_frame, self.channels, self.use_euler)
 
     def _run_optimization(self, objective, initial_guess, data, cons=None):

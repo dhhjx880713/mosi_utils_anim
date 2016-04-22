@@ -17,7 +17,7 @@ class MotionStateGraph(object):
         """ Initializes the class
         """
         self.skeleton = None
-        self.full_skeleton = None
+        #self.full_skeleton = None
         self.mgrd_skeleton = None
         self.node_groups = collections.OrderedDict()
         self.nodes = collections.OrderedDict()

@@ -85,7 +85,7 @@ class MotionGenerator(object):
             self.inverse_kinematics = InverseKinematics(self.motion_state_graph.skeleton, self._algorithm_config, motion_vector.frames[0])
             self.inverse_kinematics.modify_motion_vector(motion_vector)
 
-        motion_vector.frames = self.motion_state_graph.full_skeleton.complete_motion_vector_from_reference(self.motion_state_graph.skeleton, motion_vector.frames)
+        motion_vector.frames = self.motion_state_graph.skeleton.complete_motion_vector_from_reference(motion_vector.frames)
         if motion_vector.frames is not None:
             if self.motion_state_graph.hand_pose_generator is not None:
                 write_log("Generate hand poses")
