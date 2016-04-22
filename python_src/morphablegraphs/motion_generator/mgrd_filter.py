@@ -58,7 +58,8 @@ class MGRDFilter(object):
         time_splines = [motion_primitive.create_time_spline(svec, labels) for svec in samples]
         scores = numpy.zeros(len(samples))
         if len(semantic_pose_constraints) > 0:
-            scores += score_splines_with_semantic_pose_constraints(quat_splines, time_splines, semantic_pose_constraints, weights)
+            print "set weights to ", semantic_pose_constraints[0].weights
+            scores += score_splines_with_semantic_pose_constraints(quat_splines, time_splines, semantic_pose_constraints, semantic_pose_constraints[0].weights)
         if len(cartesian_constraints) > 0:
             scores += MGRDCartesianConstraint.score_splines(quat_splines, cartesian_constraints)
         return scores

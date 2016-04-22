@@ -176,17 +176,24 @@ class MotionPrimitiveConstraints(object):
                 position = None
                 joint_name = None
                 weight_factor = 1.0
+                has_orientation = False
                 for temp_c in temp_constraint_list[key]:
                     if temp_c["type"] == "pos":
                         position = temp_c["value"]
                         joint_name = temp_c["joint"]
                     elif temp_c["type"] == "dir":
                         orientation = temp_c["value"]
+                        has_orientation = True
                 if position is not None:
                     #print "pose", position, orientation, joint_name, self.motion_primitive_name
                     pose_constraint = MGRDPoseConstraint(joint_name, weight_factor, position, orientation)
                     semantic_constraint = MGRDSemanticConstraint({key: True}, time=None)
                     semantic_pose_constraint = MGRDSemanticPoseConstraint(pose_constraint, semantic_constraint)
+                    if has_orientation:
+                        weights = (1.0,1.0)
+                    else:
+                        weights = (1.0,0.0)
+                    semantic_pose_constraint.weights = weights
                     semantic_pose_constraints.append(semantic_pose_constraint)
         return semantic_pose_constraints, cartesian_constraints
 
