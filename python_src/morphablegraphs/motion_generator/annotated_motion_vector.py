@@ -2,6 +2,7 @@ import os
 from datetime import datetime
 from ..animation_data import MotionVector, ROTATION_TYPE_QUATERNION, Skeleton, BVHReader
 from ..utilities import write_to_json_file, write_to_logfile
+from ..utilities.io_helper_functions import get_bvh_writer
 
 
 class AnnotatedMotionVector(MotionVector):
@@ -29,3 +30,7 @@ class AnnotatedMotionVector(MotionVector):
         bvh = BVHReader(file_name)
         self.skeleton = Skeleton(bvh)
         self.from_bvh_reader(bvh, filter_joints=filter_joints)
+
+    def generate_bvh_string(self):
+        bvh_writer = get_bvh_writer(self.skeleton, self.frames)
+        return bvh_writer.generate_bvh_string()
