@@ -118,7 +118,7 @@ class MotionPrimitiveConstraints(object):
             n_constraints += constraint.get_length_of_residual_vector()
         return n_constraints
 
-    def convert_to_mgrd_constraints(self):
+    def convert_to_mgrd_constraints(self, use_semantic_annotation=False):
         """ map constraints to mgrd constraints and merges 2d direction constraints with position constraints
         Returns
         -------
@@ -141,8 +141,7 @@ class MotionPrimitiveConstraints(object):
                 delta_orientation = quaternion_from_vector_to_vector(c.direction_constraint, ref_vector)
                 orientation = quaternion_multiply(original_orientation, delta_orientation)
                 desc = {"type": "dir", "value":orientation, "joint": "Hips"}
-                #TODO use keyframe label here instead of semantic label
-                if "keyframeLabel" in c.semantic_annotation:# and self.is_last_step
+                if "keyframeLabel" in c.semantic_annotation and use_semantic_annotation:# and self.is_last_step
                     semantic_label = c.semantic_annotation["keyframeLabel"]
                     if semantic_label not in temp_constraint_list.keys():
                         temp_constraint_list[semantic_label] = []
@@ -150,21 +149,20 @@ class MotionPrimitiveConstraints(object):
                 else:
                     temp_constraint_list[UNLABELED_KEY].append(desc)
 
-            if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION:
+            elif c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION:
                 if c.position[1] is None:
                     y_coordinate = 80
                 else:
                     y_coordinate = c.position[1]
                 desc = {"type":"pos","value":[c.position[0], y_coordinate, c.position[2]], "joint": c.joint_name, "weight_factor":c.weight_factor}
-                #TODO use keyframe label here instead of semantic label
-                if "keyframeLabel" in c.semantic_annotation:# and self.is_last_step
-                    semantic_label = c.semantic_annotation["keyframeLabel"]
+                if "keyframeLabel" in c.semantic_annotation and use_semantic_annotation:# and self.is_last_step
+                    semantic_label = c.semantic_annotation["keyframeLabel"]#UNLABELED_KEY
                     if semantic_label not in temp_constraint_list.keys():
                         temp_constraint_list[semantic_label] = []
                     temp_constraint_list[semantic_label].append(desc)
                 else:
                     temp_constraint_list[UNLABELED_KEY].append(desc)
-            if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE and self.step_goal is None: #use the transition constraint only for pick and place
+            elif c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE and self.step_goal is None: #use the transition constraint only for pick and place
                 semantic_label = UNLABELED_KEY#c.semantic_annotation["keyframeLabel"]#
                 if semantic_label not in temp_constraint_list.keys():
                     temp_constraint_list[semantic_label] = []
