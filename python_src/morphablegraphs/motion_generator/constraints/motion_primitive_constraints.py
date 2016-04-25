@@ -171,7 +171,17 @@ class MotionPrimitiveConstraints(object):
                 for j, p in zip(joints,points):
                     desc = {"type":"pos","value":p, "joint": j, "weight_factor":c.weight_factor}
                     temp_constraint_list[semantic_label].append(desc)
-
+            elif c.constraint_type == SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION:
+                c_desc_list = []
+                for joint_name, position in zip(c.joint_names, c.positions):
+                    desc = {"type":"pos","value":[position[0], position[1], position[2]], "joint": joint_name, "weight_factor":c.weight_factor}
+                    c_desc_list.append(desc)
+                if "keyframeLabel" in c.semantic_annotation and use_semantic_annotation:
+                    if semantic_label not in temp_constraint_list.keys():
+                        temp_constraint_list[semantic_label] = []
+                    temp_constraint_list[semantic_label] += c_desc_list
+                else:
+                    temp_constraint_list[UNLABELED_KEY] += c_desc_list
 
         for key in temp_constraint_list.keys():
             if key == UNLABELED_KEY:
