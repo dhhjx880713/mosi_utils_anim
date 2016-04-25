@@ -188,8 +188,8 @@ class KeyframeEventList(object):
                 least_distance = np.inf
                 closest_keyframe = graph_walk.steps[action_entry.start_step].start_frame
                 for frame_index in xrange(keyframe_range_start, keyframe_range_end):
-                    position_a = graph_walk.full_skeleton.nodes[joint_name_a].get_global_position(graph_walk.motion_vector.frames[frame_index])
-                    position_b = graph_walk.full_skeleton.nodes[joint_name_b].get_global_position(graph_walk.motion_vector.frames[frame_index])
+                    position_a = graph_walk.motion_state_graph.skeleton.nodes[joint_name_a].get_global_position(graph_walk.motion_vector.frames[frame_index])
+                    position_b = graph_walk.motion_state_graph.skeleton.nodes[joint_name_b].get_global_position(graph_walk.motion_vector.frames[frame_index])
                     distance = np.linalg.norm(position_a - position_b)
                     if distance < least_distance:
                         least_distance = distance
