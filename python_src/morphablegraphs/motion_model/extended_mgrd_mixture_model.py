@@ -2,7 +2,12 @@ import numpy as np
 import scipy
 try:
     from mgrd import MixtureModel as MGRDMixtureModel
+    has_mgrd = True
+except ImportError:
+    has_mgrd = False
+    pass
 
+if has_mgrd:
     class ExtendedMGRDMixtureModel(MGRDMixtureModel):
         def __init__(self,covars, means, weights):
             self.covars = covars
@@ -80,5 +85,3 @@ try:
             logprob = self.logsumexp(log_gaussian_probabilities, axis=1)
             return logprob
 
-except ImportError:
-    pass
