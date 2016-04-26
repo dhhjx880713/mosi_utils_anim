@@ -15,6 +15,8 @@ class KeyframeEventList(object):
         self._create_event_dict(graph_walk)
         self._create_frame_annotation(graph_walk, start_step)
         self._add_event_list_to_frame_annotation(graph_walk)
+        self.keyframe_events_dict = {"events":self.keyframe_events_dict,
+                             "elementaryActionSequence": self.frame_annotation["elementaryActionSequence"]}
 
     def update_frame_annotation(self, action_name, start_frame, end_frame):
         """Adds a dictionary to self.frame_annotation marking start and end
@@ -157,9 +159,7 @@ class KeyframeEventList(object):
     def export_to_file(self, prefix):
         write_to_json_file(prefix + "_annotations"+".json", self.frame_annotation)
         #print "keyframe event dict", self.keyframe_events_dict, filename
-        action_annotation = {"events":self.keyframe_events_dict,
-                             "elementaryActionSequence": self.frame_annotation["elementaryActionSequence"]}
-        write_to_json_file(prefix + "_actions"+".json", action_annotation)
+        write_to_json_file(prefix + "_actions"+".json", self.keyframe_events_dict)
 
     def _add_unconstrained_events_from_annotation(self, graph_walk):
         """The method assumes the start and end frames of each step were already warped by calling convert_to_motion
