@@ -195,7 +195,7 @@ class KeyframeEventList(object):
                         least_distance = distance
                         closest_keyframe = frame_index
                 target_object = keyframe_annotations[UNCONSTRAINED_EVENTS_TRANSFER_POINT]["annotations"][0]["parameters"]["target"]
-                self.keyframe_events_dict[closest_keyframe] = [ {"event":"transfer", "parameters": {"joint" : [attach_joint], "target": target_object}}]
+                self.keyframe_events_dict[closest_keyframe] = [ {"event":"transfer", "parameters": {"joint" : attach_joint, "target": target_object}}]
                 print "added transfer event", closest_keyframe
 
     def _handle_both_hands_event(self, event, activate_joint_mapping=False):
