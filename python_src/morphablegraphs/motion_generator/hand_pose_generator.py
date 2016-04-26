@@ -118,10 +118,12 @@ class HandPoseGenerator(object):
                                 print "change left hand status to", left_status
                                 left_hand_events.append(frame_idx)
                         else:
+                            print "transfer"
                             right_hand_events.append(frame_idx)
                             left_hand_events.append(frame_idx)
+                            tmp = right_status
                             right_status = left_status
-                            left_status = right_status
+                            left_status = tmp
 
                 self.set_pose_in_frame("RightHand", right_status, motion_vector.frames[frame_idx])
                 self.set_pose_in_frame("LeftHand", left_status, motion_vector.frames[frame_idx])
