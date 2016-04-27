@@ -92,7 +92,7 @@ class GraphWalk(object):
 
     def _create_ik_trajectory_constraints(self):
         trajectory_constraints = list()
-        n_actions = len(self.elementary_action_list)
+        n_actions = len(self.keyframe_event_list.frame_annotation['elementaryActionSequence'])
         for action_idx in xrange(n_actions):
             frame_annotation = self.keyframe_event_list.frame_annotation['elementaryActionSequence'][action_idx]
             high_level_step = self.elementary_action_list[action_idx]
