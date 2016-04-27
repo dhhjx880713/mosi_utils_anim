@@ -93,8 +93,7 @@ class ElementaryActionGenerator(object):
 
     def set_action_constraints(self, action_constraints):
         self.action_constraints = action_constraints
-        self.motion_primitive_constraints_builder.set_action_constraints(
-            self.action_constraints)
+        self.motion_primitive_constraints_builder.set_action_constraints(self.action_constraints)
         self.motion_primitive_generator = MotionPrimitiveGenerator(self.action_constraints, self._algorithm_config)
         self.node_group = self.action_constraints.get_node_group()
         end_state = self.node_group.get_random_end_state()
