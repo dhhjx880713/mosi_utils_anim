@@ -307,7 +307,8 @@ class MotionPrimitiveConstraintsBuilder(object):
 
     @classmethod
     def create_pose_constraint(cls, skeleton, frame):
-        frame_constraint = {"keyframeLabel": "start", "frame_constraint": skeleton.convert_quaternion_frame_to_cartesian_frame(frame),
+        frame_constraint = {"keyframeLabel": "start",
+                            "frame_constraint": skeleton.convert_quaternion_frame_to_cartesian_frame(frame),
                             "semanticAnnotation": {"keyframeLabel": "start"}}
         return frame_constraint
 
