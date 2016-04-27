@@ -138,6 +138,7 @@ class MotionPrimitiveGenerator(object):
         if self._is_optimization_required(mp_constraints):
             sample = self._optimize_parameters_numerically(sample, graph_node, mp_constraints, prev_frames_copy)
         in_mp_constraints.min_error = mp_constraints.min_error
+        in_mp_constraints.evaluations = mp_constraints.evaluations
         return sample
 
     def _is_optimization_required(self, mp_constraints):
