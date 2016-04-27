@@ -263,9 +263,11 @@ class MotionPrimitiveConstraintsBuilder(object):
 
         # map keyframe label to semantic annotation
         semantic_annotation_map = self.motion_state_graph.node_groups[self.action_constraints.action_name].semantic_annotation_map
-        print "map",keyframe_label, semantic_annotation_map.keys(), keyframe_label in semantic_annotation_map.keys()
-        if keyframe_label in semantic_annotation_map.keys():
-           keyframe_constraint_desc["semanticAnnotation"]["semantic_label"] = semantic_annotation_map[keyframe_label]#TODO add "end" annotation label to all motion primitives #"LeftFootContact"#
+        #print "map",keyframe_label, semantic_annotation_map, keyframe_label in semantic_annotation_map[self.status["motion_primitive_name"]].keys()
+        mp_name = self.status["motion_primitive_name"]
+        if mp_name in semantic_annotation_map.keys():
+            if keyframe_label in semantic_annotation_map[mp_name].keys():
+                keyframe_constraint_desc["semanticAnnotation"]["semantic_label"] = semantic_annotation_map[mp_name][keyframe_label]#TODO add "end" annotation label to all motion primitives #"LeftFootContact"#
 
         #print "try to map frame annotation ", keyframe_label
         if keyframe_label == KEYFRAME_LABEL_END:#"end"
