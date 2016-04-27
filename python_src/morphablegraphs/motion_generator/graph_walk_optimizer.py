@@ -75,7 +75,7 @@ class GraphWalkOptimizer(object):
             optimal_parameters = self.global_error_minimizer.run(initial_guess)
             graph_walk.update_spatial_parameters(optimal_parameters, start_step)
             #keyframe_error = graph_walk.get_average_keyframe_constraint_error()
-            graph_walk.update_temp_motion_vector(start_step, create_frame_annotation=False, use_time_parameters=False)
+            graph_walk.update_temp_motion_vector(start_step, use_time_parameters=False)
             #print keyframe_error
         else:
             print "no user defined constraints"

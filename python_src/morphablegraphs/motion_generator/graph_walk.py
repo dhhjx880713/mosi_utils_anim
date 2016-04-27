@@ -60,14 +60,13 @@ class GraphWalk(object):
     def add_entry_to_action_list(self, action_name, start_step, end_step, action_constraints):
         self.elementary_action_list.append(HighLevelGraphWalkEntry(action_name, start_step, end_step, action_constraints))
 
-    def update_temp_motion_vector(self, start_step=0, create_frame_annotation=True, use_time_parameters=False):
+    def update_temp_motion_vector(self, start_step=0, use_time_parameters=False):
         self._convert_graph_walk_to_quaternion_frames(start_step, use_time_parameters=use_time_parameters)
-        if create_frame_annotation:
-            self.keyframe_event_list.update_events(self, start_step)
 
     def convert_to_annotated_motion(self):
         self.motion_vector.apply_spatial_smoothing = self.apply_smoothing
         self.update_temp_motion_vector(use_time_parameters=self.use_time_parameters)
+        self.keyframe_event_list.update_events(self, 0)
         annotated_motion_vector = AnnotatedMotionVector()
         annotated_motion_vector.frames = self.motion_vector.frames
         annotated_motion_vector.n_frames = self.motion_vector.n_frames
