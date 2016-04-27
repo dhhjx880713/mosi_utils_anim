@@ -98,8 +98,8 @@ class MotionPrimitiveGenerator(object):
         else:  # no constraints were given
             write_log("No constraints specified pick random sample instead")
             parameters = self.generate_random_sample(mp_name, prev_mp_name, prev_parameters)
-        time_in_seconds = time.clock() - start
-        write_log("Found best fit motion primitive sample in " + str(time_in_seconds) + " seconds")
+        mp_constraints.time = time.clock() - start
+        write_log("Found best fit motion primitive sample in " + str(mp_constraints.time) + " seconds")
 
         motion_spline = self._motion_state_graph.nodes[(self.action_name, mp_name)].back_project(parameters, use_time_parameters=False)
         return motion_spline, parameters

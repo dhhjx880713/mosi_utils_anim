@@ -232,7 +232,12 @@ class GraphWalk(object):
                        " motion primitives: " + str(average_error)
         average_keyframe_error = self.get_average_keyframe_constraint_error()
         average_keyframe_error_string = "average keyframe constraint error " + str(average_keyframe_error)
-        return average_keyframe_error_string + "\n" + evaluations_string + "\n" + error_string
+        average_time_per_step = 0.0
+        for step in self.steps:
+            average_time_per_step += step.motion_primitive_constraints.time
+        average_time_per_step /= len(self.steps)
+        average_time_string = "average time per step " + str(average_time_per_step)
+        return average_keyframe_error_string + "\n" + evaluations_string + "\n" + average_time_string + "\n" + error_string
 
     def export_generated_constraints(self, file_path="goals.path"):
         json_control_point_data = []

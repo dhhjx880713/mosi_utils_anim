@@ -51,6 +51,7 @@ class MotionPrimitiveConstraints(object):
         self.aligning_transform = None  # used to bring constraints in the local coordinate system of a motion primitive
         self.is_local = False
         self.is_last_step = False
+        self.time = 0.0
 
     def print_status(self):
         write_log("starting from:", self.step_start)
