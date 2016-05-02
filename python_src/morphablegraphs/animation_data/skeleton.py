@@ -13,7 +13,13 @@ from quaternion_frame import QuaternionFrame
 from itertools import izip
 from skeleton_node import SkeletonRootNode, SkeletonJointNode, SkeletonEndSiteNode
 from . import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER
-
+try:
+    from mgrd import Skeleton as MGRDSkeleton
+    from mgrd import SkeletonNode as MGRDSkeletonNode
+    has_mgrd = True
+except ImportError:
+    has_mgrd = False
+    pass
 
 class Skeleton(object):
     """ Data structure that stores the skeleton hierarchy information
@@ -311,3 +317,25 @@ class Skeleton(object):
     def clear_cached_global_matrices(self):
         for joint in self.nodes.values():
             joint.clear_cached_global_matrix()
+
+    def convert_to_mgrd_skeleton(self):
+        if not has_mgrd:
+            return None
+
+        def create_mgrd_node(mg_node, parent):
+            #print mg_node.node_name
+            mgrd_node = MGRDSkeletonNode(mg_node.node_name, parent, mg_node.offset, mg_node.rotation)
+            mgrd_node.fixed = mg_node.fixed
+            return mgrd_node
+
+        def populate(skeleton, mgrd_node):
+            node = skeleton.nodes[mgrd_node.name]
+            for child in node.children:
+                print child
+                child_node = create_mgrd_node(child, mgrd_node)
+                mgrd_node.add_child(child_node)
+                populate(skeleton, child_node)
+        root_node = create_mgrd_node(self.nodes[self.root], None)
+        populate(self, root_node)
+        return MGRDSkeleton(root_node)
+
