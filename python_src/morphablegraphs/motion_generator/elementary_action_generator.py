@@ -292,7 +292,7 @@ class ElementaryActionGenerator(object):
             ca_constraints = self._get_collision_avoidance_constraints(new_node, new_motion_spline, graph_walk.get_quat_frames())
             if len(ca_constraints) > 0:
                 mp_constraints.constraints += ca_constraints
-                new_motion_spline, new_parameters = self.motion_primitive_generator.generate_constrained_sample(mp_constraints, graph_walk)
+                new_motion_spline, new_parameters = self.motion_primitive_generator.generate_constrained_motion_spline(mp_constraints, graph_walk)
 
         new_arc_length = self._create_graph_walk_entry(new_node, new_motion_spline, new_parameters, mp_constraints, graph_walk)
         self.action_state.transition(new_node, new_node_type, new_arc_length, graph_walk.get_num_of_frames())
