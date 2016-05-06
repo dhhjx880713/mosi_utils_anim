@@ -329,7 +329,7 @@ class ElementaryActionGenerator(object):
         """
         ca_constraints = []
         aligned_motion_spline, global_transformation = self._get_aligned_motion_spline(new_motion_spline, prev_frames)
-        frames = ca_constraints.get_motion_vector()
+        frames = aligned_motion_spline.get_motion_vector()
         bvh_writer = get_bvh_writer(self.action_constraints.skeleton, frames)
         global_bvh_string = bvh_writer.generate_bvh_string()
         ca_input = {"elementary_action_name": self.action_state.current_node[0],
