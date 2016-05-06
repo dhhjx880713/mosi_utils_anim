@@ -141,7 +141,7 @@ class ElementaryActionGenerator(object):
         errors = np.empty(len(options))
         index = 0
         for node_name in options:
-            motion_primitive_node = self.motion_primitive_graph.nodes[node_name]
+            motion_primitive_node = self.motion_state_graph.nodes[node_name]
             canonical_keyframe = motion_primitive_node.get_n_canonical_frames() - 1
             for c in mp_constraints.constraints:
                 c.canonical_keyframe = canonical_keyframe
