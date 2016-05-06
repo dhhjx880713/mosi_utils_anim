@@ -164,7 +164,7 @@ class MotionPrimitiveConstraints(object):
                     temp_constraint_list[semantic_label].append(desc)
                 else:
                     temp_constraint_list[UNLABELED_KEY].append(desc)
-            elif c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE and self.step_goal is None: #use the transition constraint only for pick and place
+            elif c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE: #use the transition constraint only for pick and place  and self.step_goal is None
                 semantic_label = UNLABELED_KEY#c.semantic_annotation["keyframeLabel"]#
                 if semantic_label not in temp_constraint_list.keys():
                     temp_constraint_list[semantic_label] = []
