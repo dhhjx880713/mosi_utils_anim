@@ -40,6 +40,7 @@ class MotionPrimitiveConstraintsBuilder(object):
         self.local_optimization_mode = "None"
         self.ca_constraint_mode = "None"
         self.use_local_coordinates = False
+        self.use_transition_constraint = False
     
     def set_action_constraints(self, action_constraints):
         self.action_constraints = action_constraints
@@ -55,6 +56,7 @@ class MotionPrimitiveConstraintsBuilder(object):
         self.ca_constraint_mode = algorithm_config["collision_avoidance_constraints_mode"]
         self.use_local_coordinates = algorithm_config["use_local_coordinates"]
         self.use_mgrd = algorithm_config["constrained_sampling_mode"] == "random_spline"
+        self.use_transition_constraint = self.trajectory_following_settings["use_transition_constraint"]
 
     def set_status(self, node_key, last_arc_length, graph_walk, is_last_step=False):
         n_prev_frames = graph_walk.get_num_of_frames()
@@ -118,7 +120,8 @@ class MotionPrimitiveConstraintsBuilder(object):
         mp_constraints.verbose = self.algorithm_config["verbose"]
         if self.action_constraints.root_trajectory is not None:
             self._add_path_following_constraints(mp_constraints)
-            self._add_pose_constraint(mp_constraints)
+            if self.use_transition_constraint:
+                self._add_pose_constraint(mp_constraints)
         if len(self.action_constraints.keyframe_constraints.keys()) > 0:
             self._add_keyframe_constraints(mp_constraints)
             # generate frame constraints for the last step based on the previous state

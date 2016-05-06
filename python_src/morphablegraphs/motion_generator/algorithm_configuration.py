@@ -99,6 +99,7 @@ class AlgorithmConfigurationBuilder(object):
         self.trajectory_following_settings["end_step_length_factor"] = 1.0
         self.trajectory_following_settings["max_distance_to_path"] = 500
         self.trajectory_following_settings["arc_length_granularity"] = 1000
+        self.trajectory_following_settings["use_transition_constraint"] = True
 
     def set_default_smoothing_settings(self):
         self.smoothing_settings = dict()
