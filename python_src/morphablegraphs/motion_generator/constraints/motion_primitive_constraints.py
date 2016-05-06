@@ -258,8 +258,10 @@ class MotionPrimitiveConstraints(object):
                     mp_constraints.constraints.append(GlobalTransformConstraint(self.skeleton, keyframe_constraint_desc, 1.0))
 
             elif c.constraint_type == SPATIAL_CONSTRAINT_TYPE_CA_CONSTRAINT:
+                position = [c.position[0], c.position[1], c.position[2], 1]
+                position = np.dot(inv_aligning_transform, position)[:3].tolist()
                 keyframe_constraint_desc = {"joint": c.joint_name,
-                                            "position": c.position,
+                                            "position": position,
                                             "n_canonical_frames": c.n_canonical_frames,
                                             "canonical_keyframe":  c.canonical_keyframe,
                                             "semanticAnnotation": c.semantic_annotation,
