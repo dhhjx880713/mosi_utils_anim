@@ -289,7 +289,7 @@ class ElementaryActionGenerator(object):
             return None
         new_motion_spline, new_parameters = self.motion_primitive_generator.generate_constrained_motion_spline(mp_constraints, graph_walk)
         if self.activate_direction_ca_connection:
-            ca_constraints = self._get_collision_avoidance_constraints(new_motion_spline, graph_walk.get_motion_vector())
+            ca_constraints = self._get_collision_avoidance_constraints(new_node, new_motion_spline, graph_walk.get_motion_vector())
             if len(ca_constraints) > 0:
                 mp_constraints.constraints += ca_constraints
                 new_motion_spline, new_parameters = self.motion_primitive_generator.generate_constrained_sample(mp_constraints, graph_walk)
@@ -323,11 +323,10 @@ class ElementaryActionGenerator(object):
         root[1] = 0.0
         return np.linalg.norm(step_goal - root) < self.max_distance_to_path
 
-    def _get_collision_avoidance_constraints(self, new_motion_spline, prev_frames):
+    def _get_collision_avoidance_constraints(self, new_node, new_motion_spline, prev_frames):
         """ Generate constraints using the rest interface of the collision avoidance module directly.
             #TODO move to wrapper
         """
-        ca_constraints = []
         aligned_motion_spline, global_transformation = self._get_aligned_motion_spline(new_motion_spline, prev_frames)
         frames = aligned_motion_spline.get_motion_vector()
         bvh_writer = get_bvh_writer(self.action_constraints.skeleton, frames)
@@ -339,16 +338,7 @@ class ElementaryActionGenerator(object):
         ca_output = self._call_ca_rest_interface(ca_input)
 
         #convert output into constraint list
-        for joint_name in ca_output.keys():
-            for ca_constraint in ca_output[joint_name]:
-                if "position" in ca_constraint.keys() and len(ca_constraint["position"])==3:
-                    p = np.asarray(ca_constraint["position"])
-                    #p = np.linalg.inv(global_transformation)*p
-                    constraint_desc = {"joint": "Hips", "canonical_keyframe": -1,  "n_canonical_frames": 0,"position":p.tolist(),
-                                   "semanticAnnotation":  {"generated": True}, "ca_constraint": True}
-                    cartesian_constraint = GlobalTransformCAConstraint(self.action_constraints.skeleton, constraint_desc, 1.0, 1.0)
-                    ca_constraints.append(cartesian_constraint)
-        return ca_constraints
+        return self._create_ca_constraints(new_node, ca_output)
 
     def _get_aligned_motion_spline(self, new_motion_spline, prev_frames):
         aligned_motion_spline = copy(new_motion_spline)
@@ -375,3 +365,17 @@ class ElementaryActionGenerator(object):
         ca_result ="{}"#TODO call CA interface
         ca_output_string = json.loads(ca_result)
         return ca_output_string
+
+    def _create_ca_constraints(self, new_node, ca_output):
+        ca_constraints = []
+        n_canonical_frames = self.motion_state_graph.nodes[new_node].get_n_canonical_frames()
+        for joint_name in ca_output.keys():
+            for ca_constraint in ca_output[joint_name]:
+                if "position" in ca_constraint.keys() and len(ca_constraint["position"]) == 3:
+                    p = np.asarray(ca_constraint["position"])
+                    #p = np.linalg.inv(global_transformation)*p
+                    constraint_desc = {"joint": "Hips", "canonical_keyframe": -1,  "n_canonical_frames": n_canonical_frames,"position":p.tolist(),
+                                   "semanticAnnotation":  {"generated": True}, "ca_constraint": True}
+                    cartesian_constraint = GlobalTransformCAConstraint(self.action_constraints.skeleton, constraint_desc, 1.0, 1.0)
+                    ca_constraints.append(cartesian_constraint)
+        return ca_constraints
