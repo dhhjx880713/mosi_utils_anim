@@ -328,22 +328,8 @@ class ElementaryActionGenerator(object):
             #TODO move to wrapper
         """
         ca_constraints = []
-        if prev_frames is not None:
-            angle, offset = fast_quat_frames_transformation(prev_frames, new_motion_spline.coeffs)
-            new_motion_spline.coeffs = transform_quaternion_frames(new_motion_spline.coeffs,
-                                                                   [0, angle, 0],
-                                                                   offset)
-            global_transformation = euler_angles_to_rotation_matrix([0, angle, 0])
-            global_transformation[:3, 3] = offset
-        elif self.action_constraints.start_pose is not None:
-            new_motion_spline.coeffs = transform_quaternion_frames(new_motion_spline.coeffs,  self.action_constraints.start_pose["orientation"],
-                                                                   self.action_constraints.start_pose["position"])
-            global_transformation = euler_angles_to_rotation_matrix(self.action_constraints.start_pose["orientation"])
-            global_transformation[:3, 3] = self.action_constraints.start_pose["position"]
-        else:
-            global_transformation = np.eye(4,4)
-
-        frames = new_motion_spline.get_motion_vector()
+        aligned_motion_spline, global_transformation = self._get_aligned_motion_spline(new_motion_spline, prev_frames)
+        frames = ca_constraints.get_motion_vector()
         bvh_writer = get_bvh_writer(self.action_constraints.skeleton, frames)
         global_bvh_string = bvh_writer.generate_bvh_string()
         ca_input = {"elementary_action_name": self.action_state.current_node[0],
@@ -359,10 +345,28 @@ class ElementaryActionGenerator(object):
                     p = np.asarray(ca_constraint["position"])
                     #p = np.linalg.inv(global_transformation)*p
                     constraint_desc = {"joint": "Hips", "canonical_keyframe": -1,  "n_canonical_frames": 0,"position":p.tolist(),
-                                   "semanticAnnotation":  {"generated": True}, "ca_constraint":True}
+                                   "semanticAnnotation":  {"generated": True}, "ca_constraint": True}
                     cartesian_constraint = GlobalTransformCAConstraint(self.action_constraints.skeleton, constraint_desc, 1.0, 1.0)
                     ca_constraints.append(cartesian_constraint)
         return ca_constraints
+
+    def _get_aligned_motion_spline(self, new_motion_spline, prev_frames):
+        aligned_motion_spline = copy(new_motion_spline)
+        if prev_frames is not None:
+            angle, offset = fast_quat_frames_transformation(prev_frames, new_motion_spline.coeffs)
+            aligned_motion_spline.coeffs = transform_quaternion_frames(new_motion_spline.coeffs,
+                                                                   [0, angle, 0],
+                                                                   offset)
+            global_transformation = euler_angles_to_rotation_matrix([0, angle, 0])
+            global_transformation[:3, 3] = offset
+        elif self.action_constraints.start_pose is not None:
+            aligned_motion_spline.coeffs = transform_quaternion_frames(new_motion_spline.coeffs,  self.action_constraints.start_pose["orientation"],
+                                                                   self.action_constraints.start_pose["position"])
+            global_transformation = euler_angles_to_rotation_matrix(self.action_constraints.start_pose["orientation"])
+            global_transformation[:3, 3] = self.action_constraints.start_pose["position"]
+        else:
+            global_transformation = np.eye(4,4)
+        return aligned_motion_spline, global_transformation
 
     def _call_ca_rest_interface(self, ca_input):
         """ call ca rest interface using a json payload
