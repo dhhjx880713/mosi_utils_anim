@@ -183,6 +183,9 @@ class MotionPrimitiveConstraints(object):
                     temp_constraint_list[semantic_label] += c_desc_list
                 else:
                     temp_constraint_list[UNLABELED_KEY] += c_desc_list
+            elif c.constraint_type == SPATIAL_CONSTRAINT_TYPE_CA_CONSTRAINT:
+                desc = {"type":"pos","value":[c.position[0], c.position[1], c.position[2]], "joint": c.joint_name, "weight_factor":c.weight_factor}
+                temp_constraint_list[UNLABELED_KEY].append(desc)
 
         for key in temp_constraint_list.keys():
             if key == UNLABELED_KEY:
