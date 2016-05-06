@@ -13,7 +13,6 @@ from keyframe_constraint_base import KeyframeConstraintBase
 from .. import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
 import time
 
-RELATIVE_HEURISTIC_RANGE = 0.00 #5 # used for setting the search range relative to the number of frames of motion primitive
 
 class GlobalTransformConstraint(KeyframeConstraintBase):
     """
@@ -38,15 +37,6 @@ class GlobalTransformConstraint(KeyframeConstraintBase):
         else:
             self.orientation = None
         self.n_canonical_frames = constraint_desc["n_canonical_frames"]
-        #if "n_canonical_frames" in constraint_desc.keys():
-        #    self.frame_range = RELATIVE_HEURISTIC_RANGE*self.n_canonical_frames
-        #else:
-        #    self.frame_range = 0
-        #self.start_keyframe = int(max(self.canonical_keyframe - self.frame_range, 0))
-        #self.stop_keyframe = int(min(self.canonical_keyframe + self.frame_range, self.n_canonical_frames))
-        #if self.start_keyframe == self.stop_keyframe:
-        #    self.start_keyframe -= 1
-        #print "RANGE", self.start_keyframe, self.stop_keyframe
 
     def evaluate_motion_spline(self, aligned_spline):
         error = 0
