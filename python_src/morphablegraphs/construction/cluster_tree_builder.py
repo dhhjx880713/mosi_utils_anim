@@ -24,7 +24,7 @@ except ImportError:
 
 MOTION_PRIMITIVE_FILE_ENDING = "mm.json"
 MOTION_PRIMITIVE_FILE_ENDING2 = "mm_with_semantic.json"
-CLUSTER_TREE_FILE_ENDING = "cluster_tree.pck"
+CLUSTER_TREE_FILE_ENDING = "_cluster_tree.pck"
 
 
 
@@ -137,11 +137,15 @@ class ClusterTreeBuilder(object):
         np.random.shuffle(data)
         return data
 
-    def _create_space_partitioning(self, motion_primitive, cluster_file_name):
+    def _create_space_partitioning(self, motion_primitive_file_name, cluster_file_name):
         if os.path.isfile(cluster_file_name + CLUSTER_TREE_FILE_ENDING):
             print "Space partitioning data structure", cluster_file_name, "already exists"
-        else:
-            print "construct space partitioning data structure for"#, motion_primitive.name
+        elif os.path.isfile(motion_primitive_file_name):
+            print "construct space partitioning data structure", cluster_file_name
+
+            motion_primitive = MotionPrimitiveModelWrapper()
+            motion_primitive._load_from_file(self.mgrd_skeleton, motion_primitive_file_name)
+            print "Create",self.n_samples,"good samples"
             data = self._get_samples_using_threshold(motion_primitive)
             if data is None:
                 data = self._get_best_samples(motion_primitive)
@@ -156,6 +160,8 @@ class ClusterTreeBuilder(object):
             cluster_tree.save_to_file_pickle(cluster_file_name + CLUSTER_TREE_FILE_ENDING)
             n_leafs = cluster_tree.root.get_number_of_leafs()
             print "number of leafs", n_leafs
+        else:
+            print "Could not read motion primitive", motion_primitive_file_name
        
     def _process_elementary_action(self, elementary_action):
         elementary_action_dir = self.morphable_model_directory + os.sep + elementary_action
@@ -164,11 +170,10 @@ class ClusterTreeBuilder(object):
                 if file_name.endswith(MOTION_PRIMITIVE_FILE_ENDING) or file_name.endswith(MOTION_PRIMITIVE_FILE_ENDING2):
                     try:
                         print elementary_action_dir + os.sep + file_name
-                        motion_primitive = MotionPrimitiveModelWrapper()
-                        motion_primitive._load_from_file(self.mgrd_skeleton, elementary_action_dir + os.sep + file_name)
-                        index = file_name.find("mm")
+                        motion_primitive_filename = elementary_action_dir + os.sep + file_name
+                        index = file_name.find("_mm")
                         cluster_file_name = file_name[:index]
-                        self._create_space_partitioning(motion_primitive, elementary_action_dir + os.sep + cluster_file_name)
+                        self._create_space_partitioning(motion_primitive_filename, elementary_action_dir + os.sep + cluster_file_name)
                     except:
                         print "Exception during loading of file",file_name
                         continue
