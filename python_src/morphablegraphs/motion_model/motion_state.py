@@ -50,7 +50,7 @@ class MotionState(MotionPrimitiveModelWrapper):
         self.action_name = action_name
         self.name = primitive_name
         skeleton = self.motion_state_group.motion_state_graph.mgrd_skeleton
-        self._load_from_file(skeleton, motion_primitive_filename)
+        self._load_from_file(skeleton, motion_primitive_filename, self.motion_state_group.motion_state_graph.animated_joints)
         self.cluster_tree = None
         cluster_file_name = motion_primitive_filename[:-7]
         self._construct_space_partition(cluster_file_name)
@@ -60,7 +60,8 @@ class MotionState(MotionPrimitiveModelWrapper):
         self.name = desc["name"]
 
         skeleton = self.motion_state_group.motion_state_graph.mgrd_skeleton
-        self._initialize_from_json(skeleton, desc["mm"])
+        print "Init motion state",self.name
+        self._initialize_from_json(skeleton, desc["mm"], self.motion_state_group.motion_state_graph.animated_joints)
         self.cluster_tree = desc["space_partition"]
         if "stats" in desc.keys():
             self.parameter_bb = desc["stats"]["pose_bb"]

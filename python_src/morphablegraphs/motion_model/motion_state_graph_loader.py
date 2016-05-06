@@ -66,6 +66,7 @@ class MotionStateGraphLoader(object):
         zip_path = self.motion_state_graph_path+".zip"
         zip_reader = ZipReader(zip_path, pickle_objects=True)
         graph_data = zip_reader.get_graph_data()
+        motion_state_graph.animated_joints = self.animated_joints
         motion_state_graph.skeleton = Skeleton(BVHReader("").init_from_string(graph_data["skeletonString"]), self.animated_joints)
         #motion_state_graph.skeleton = motion_state_graph.full_skeleton.create_reduced_copy()
         motion_state_graph.mgrd_skeleton = motion_state_graph.skeleton.convert_to_mgrd_skeleton()
@@ -91,6 +92,7 @@ class MotionStateGraphLoader(object):
     def _init_from_directory(self, motion_state_graph, recalculate_motion_stats=True):
         """ Initializes the class
         """
+        motion_state_graph.animated_joints = self.animated_joints
         skeleton_path = self.motion_state_graph_path + os.sep + SKELETON_FILE
         motion_state_graph.skeleton = Skeleton(BVHReader(skeleton_path), self.animated_joints)
         #motion_state_graph.skeleton = motion_state_graph.full_skeleton.create_reduced_copy()
