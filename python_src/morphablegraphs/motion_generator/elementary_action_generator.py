@@ -1,7 +1,7 @@
 __author__ = 'erhe01'
 
 import numpy as np
-from copy import copy
+from copy import copy, deepcopy
 import json
 from ..utilities.exceptions import PathSearchError
 from ..motion_model import NODE_TYPE_END, NODE_TYPE_SINGLE
@@ -340,16 +340,16 @@ class ElementaryActionGenerator(object):
         return self._create_ca_constraints(new_node, ca_output)
 
     def _get_aligned_motion_spline(self, new_motion_spline, prev_frames):
-        aligned_motion_spline = copy(new_motion_spline)
+        aligned_motion_spline = deepcopy(new_motion_spline)
         if prev_frames is not None:
             angle, offset = fast_quat_frames_transformation(prev_frames, new_motion_spline.coeffs)
-            aligned_motion_spline.coeffs = transform_quaternion_frames(new_motion_spline.coeffs,
+            aligned_motion_spline.coeffs = transform_quaternion_frames(aligned_motion_spline.coeffs,
                                                                    [0, angle, 0],
                                                                    offset)
             global_transformation = euler_angles_to_rotation_matrix([0, angle, 0])
             global_transformation[:3, 3] = offset
         elif self.action_constraints.start_pose is not None:
-            aligned_motion_spline.coeffs = transform_quaternion_frames(new_motion_spline.coeffs,  self.action_constraints.start_pose["orientation"],
+            aligned_motion_spline.coeffs = transform_quaternion_frames(aligned_motion_spline.coeffs,  self.action_constraints.start_pose["orientation"],
                                                                    self.action_constraints.start_pose["position"])
             global_transformation = euler_angles_to_rotation_matrix(self.action_constraints.start_pose["orientation"])
             global_transformation[:3, 3] = self.action_constraints.start_pose["position"]
