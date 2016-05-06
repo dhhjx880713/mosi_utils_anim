@@ -132,7 +132,7 @@ class MotionPrimitiveConstraints(object):
         semantic_pose_constraints = []
         cartesian_constraints = []
         temp_constraint_list = dict()
-        UNLABELED_KEY="unlabeled"
+        UNLABELED_KEY = "unlabeled"
         temp_constraint_list[UNLABELED_KEY] = []
         for c in self.constraints:
             if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_DIR_2D:
@@ -250,8 +250,6 @@ class MotionPrimitiveConstraints(object):
                     position = np.dot(inv_aligning_transform, position)[:3].tolist()
                     for i in indices:
                         position[i] = None
-                    #position = transform_point(position,  self.aligning_transform["orientation"], self.aligning_transform["translation"])
-                    #print "transformed constraint",orig_position, position
                     keyframe_constraint_desc = {"joint": c.joint_name,
                                                 "position": position,
                                                 "n_canonical_frames": c.n_canonical_frames,
