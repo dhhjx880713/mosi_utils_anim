@@ -68,7 +68,7 @@ class ElementaryActionGeneratorState(object):
 
 class ElementaryActionGenerator(object):
     def __init__(self, motion_primitive_graph, algorithm_config):
-        self.motion_primitive_graph = motion_primitive_graph
+        self.motion_state_graph = motion_primitive_graph
         self._algorithm_config = algorithm_config
         self.motion_primitive_constraints_builder = MotionPrimitiveConstraintsBuilder()
         self.motion_primitive_constraints_builder.set_algorithm_config(self._algorithm_config)
@@ -98,7 +98,7 @@ class ElementaryActionGenerator(object):
         self.node_group = self.action_constraints.get_node_group()
         end_state = self.node_group.get_random_end_state()
         if end_state is not None:
-            self.arc_length_of_end = self.motion_primitive_graph.nodes[end_state].average_step_length * self.end_step_length_factor
+            self.arc_length_of_end = self.motion_state_graph.nodes[end_state].average_step_length * self.end_step_length_factor
         else:
             self.arc_length_of_end = 0.0
 
@@ -114,16 +114,16 @@ class ElementaryActionGenerator(object):
         if add_orientation:
             goal_position, tangent_line = self.action_constraints.root_trajectory.get_tangent_at_arc_length(goal_arc_length)
             constraint_desc["position"] = goal_position.tolist()
-            pos_constraint = GlobalTransformConstraint(self.motion_primitive_graph.skeleton, constraint_desc, 1.0, 1.0)
+            pos_constraint = GlobalTransformConstraint(self.motion_state_graph.skeleton, constraint_desc, 1.0, 1.0)
             mp_constraints.constraints.append(pos_constraint)
             dir_constraint_desc = {"joint": "Hips", "canonical_keyframe": -1, "dir_vector":tangent_line,
                                    "semanticAnnotation":  {"keyframeLabel": "end", "generated": True}}
-            dir_constraint = Direction2DConstraint(self.motion_primitive_graph.skeleton, dir_constraint_desc, 1.0, 1.0)#TODO add weight to configuration
+            dir_constraint = Direction2DConstraint(self.motion_state_graph.skeleton, dir_constraint_desc, 1.0, 1.0)#TODO add weight to configuration
             mp_constraints.constraints.append(dir_constraint)
         else:
             constraint_desc["position"] = self.action_constraints.root_trajectory.query_point_by_absolute_arc_length(goal_arc_length).tolist()
 
-            pos_constraint = GlobalTransformConstraint(self.motion_primitive_graph.skeleton, constraint_desc, 1.0, 1.0)
+            pos_constraint = GlobalTransformConstraint(self.motion_state_graph.skeleton, constraint_desc, 1.0, 1.0)
             mp_constraints.constraints.append(pos_constraint)
         return mp_constraints
 
@@ -154,7 +154,7 @@ class ElementaryActionGenerator(object):
         return next_node
 
     def get_best_start_node(self, graph_walk, action_name):
-        start_nodes = self.motion_primitive_graph.get_start_nodes(graph_walk, action_name)
+        start_nodes = self.motion_state_graph.get_start_nodes(graph_walk, action_name)
         n_nodes = len(start_nodes)
         if n_nodes > 1:
             options = [(action_name, next_node) for next_node in start_nodes]
@@ -167,7 +167,7 @@ class ElementaryActionGenerator(object):
         next_node_type = self.node_group.get_transition_type(graph_walk, self.action_constraints,
                                                               self.action_state.travelled_arc_length,
                                                               self.arc_length_of_end)
-        edges = self.motion_primitive_graph.nodes[self.action_state.current_node].outgoing_edges
+        edges = self.motion_state_graph.nodes[self.action_state.current_node].outgoing_edges
         options = [edge_key for edge_key in edges.keys() if edges[edge_key].transition_type == next_node_type]
         n_transitions = len(options)
         if n_transitions == 1:
@@ -179,9 +179,9 @@ class ElementaryActionGenerator(object):
                 random_index = np.random.randrange(0, n_transitions, 1)
                 next_node = options[random_index]
         else:
-            write_log("Error: Could not find a transition from state", self.action_state.current_node, len(self.motion_primitive_graph.nodes[self.action_state.current_node].outgoing_edges))
-            next_node = self.motion_primitive_graph.node_groups[self.action_constraints.action_name].get_random_start_state()
-            next_node_type = self.motion_primitive_graph.nodes[next_node].node_type
+            write_log("Error: Could not find a transition from state", self.action_state.current_node, len(self.motion_state_graph.nodes[self.action_state.current_node].outgoing_edges))
+            next_node = self.motion_state_graph.node_groups[self.action_constraints.action_name].get_random_start_state()
+            next_node_type = self.motion_state_graph.nodes[next_node].node_type
         if next_node is None:
            write_log("Error: Could not find a transition of type", next_node_type, "from state", self.action_state.current_node)
         return next_node, next_node_type
@@ -192,9 +192,9 @@ class ElementaryActionGenerator(object):
             if self.action_constraints.root_trajectory is not None:
                 next_node = self.get_best_start_node(graph_walk, self.action_constraints.action_name)
             else:
-                next_node = self.motion_primitive_graph.get_random_action_transition(graph_walk, self.action_constraints.action_name)
+                next_node = self.motion_state_graph.get_random_action_transition(graph_walk, self.action_constraints.action_name)
 
-            next_node_type = self.motion_primitive_graph.nodes[next_node].node_type
+            next_node_type = self.motion_state_graph.nodes[next_node].node_type
             if next_node is None:
                 write_log("Error: Could not find a transition of type action_transition from ", self.action_state.prev_action_name, self.action_state.prev_mp_name, " to state", self.action_state.current_node)
         else:
@@ -308,7 +308,7 @@ class ElementaryActionGenerator(object):
             new_travelled_arc_length = 0
         #new_travelled_arc_length = mp_constraints.goal_arc_length
 
-        new_step = GraphWalkEntry(self.motion_primitive_graph, new_node, new_parameters,
+        new_step = GraphWalkEntry(self.motion_state_graph, new_node, new_parameters,
                                   new_travelled_arc_length, self.action_state.step_start_frame,
                                   graph_walk.get_num_of_frames() - 1, mp_constraints)
         graph_walk.steps.append(new_step)
