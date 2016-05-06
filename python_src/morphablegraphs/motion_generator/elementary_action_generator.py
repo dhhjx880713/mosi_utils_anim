@@ -2,6 +2,7 @@ __author__ = 'erhe01'
 
 import numpy as np
 from copy import copy
+import json
 from ..utilities.exceptions import PathSearchError
 from ..motion_model import NODE_TYPE_END, NODE_TYPE_SINGLE
 from ..animation_data.motion_editing import create_transformation_matrix
@@ -11,9 +12,10 @@ from graph_walk import GraphWalkEntry
 from constraints.motion_primitive_constraints import MotionPrimitiveConstraints
 from constraints.spatial_constraints.keyframe_constraints.global_transform_constraint import GlobalTransformConstraint
 from constraints.spatial_constraints.keyframe_constraints.direction_2d_constraint import Direction2DConstraint
+from constraints.spatial_constraints.keyframe_constraints.global_transform_ca_constraint import GlobalTransformCAConstraint
 from constraints import CA_CONSTRAINTS_MODE_DIRECT_CONNECTION
-from ..utilities import write_log
-from ..animation_data.motion_editing import align_quaternion_frames
+from ..utilities import write_log, get_bvh_writer
+from ..animation_data.motion_editing import align_quaternion_frames, fast_quat_frames_transformation, transform_quaternion_frames, euler_angles_to_rotation_matrix
 
 
 class ElementaryActionGeneratorState(object):
@@ -322,8 +324,50 @@ class ElementaryActionGenerator(object):
         return np.linalg.norm(step_goal - root) < self.max_distance_to_path
 
     def _get_collision_avoidance_constraints(self, new_motion_spline, prev_frames):
+        """ Generate constraints using the rest interface of the collision avoidance module directly.
+            #TODO move to wrapper
+        """
         ca_constraints = []
-        new_motion_spline.coeffs = align_quaternion_frames(new_motion_spline.coeffs, prev_frames, self.start_pose)
+        if prev_frames is not None:
+            angle, offset = fast_quat_frames_transformation(prev_frames, new_motion_spline.coeffs)
+            new_motion_spline.coeffs = transform_quaternion_frames(new_motion_spline.coeffs,
+                                                                   [0, angle, 0],
+                                                                   offset)
+            global_transformation = euler_angles_to_rotation_matrix([0, angle, 0])
+            global_transformation[:3, 3] = offset
+        elif self.action_constraints.start_pose is not None:
+            new_motion_spline.coeffs = transform_quaternion_frames(new_motion_spline.coeffs,  self.action_constraints.start_pose["orientation"],
+                                                                   self.action_constraints.start_pose["position"])
+            global_transformation = euler_angles_to_rotation_matrix(self.action_constraints.start_pose["orientation"])
+            global_transformation[:3, 3] = self.action_constraints.start_pose["position"]
+        else:
+            global_transformation = np.eye(4,4)
+
         frames = new_motion_spline.get_motion_vector()
-        #TODO add collision avoidance direct connection
+        bvh_writer = get_bvh_writer(self.action_constraints.skeleton, frames)
+        global_bvh_string = bvh_writer.generate_bvh_string()
+        ca_input = {"elementary_action_name": self.action_state.current_node[0],
+                    "motion_primitive_name": self.action_state.current_node[1],
+                    "global_transform": global_transformation,
+                    "global_bvh_frames": global_bvh_string}
+        ca_output = self._call_ca_rest_interface(ca_input)
+
+        #convert output into constraint list
+        for joint_name in ca_output.keys():
+            for ca_constraint in ca_output[joint_name]:
+                if "position" in ca_constraint.keys() and len(ca_constraint["position"])==3:
+                    p = np.asarray(ca_constraint["position"])
+                    #p = np.linalg.inv(global_transformation)*p
+                    constraint_desc = {"joint": "Hips", "canonical_keyframe": -1,  "n_canonical_frames": 0,"position":p.tolist(),
+                                   "semanticAnnotation":  {"generated": True}, "ca_constraint":True}
+                    cartesian_constraint = GlobalTransformCAConstraint(self.action_constraints.skeleton, constraint_desc, 1.0, 1.0)
+                    ca_constraints.append(cartesian_constraint)
         return ca_constraints
+
+    def _call_ca_rest_interface(self, ca_input):
+        """ call ca rest interface using a json payload
+
+        """
+        ca_result ="{}"#TODO call CA interface
+        ca_output_string = json.loads(ca_result)
+        return ca_output_string
