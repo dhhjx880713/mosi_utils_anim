@@ -12,7 +12,8 @@ from .spatial_constraints.keyframe_constraints.two_hand_constraint import TwoHan
 from .spatial_constraints.keyframe_constraints.pose_constraint import PoseConstraint
 from .spatial_constraints.keyframe_constraints.direction_2d_constraint import Direction2DConstraint
 from .spatial_constraints.keyframe_constraints.look_at_constraint import LookAtConstraint
-from .spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE,SPATIAL_CONSTRAINT_TYPE_KEYFRAME_DIR_2D, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_LOOK_AT
+from .spatial_constraints.keyframe_constraints.global_transform_ca_constraint import GlobalTransformCAConstraint
+from .spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE,SPATIAL_CONSTRAINT_TYPE_KEYFRAME_DIR_2D, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_LOOK_AT, SPATIAL_CONSTRAINT_TYPE_CA_CONSTRAINT
 from ik_constraints import JointIKConstraint, TwoJointIKConstraint
 from ...utilities.log import write_log
 try:
@@ -257,6 +258,16 @@ class MotionPrimitiveConstraints(object):
                                                 "canonical_keyframe":  c.canonical_keyframe,
                                                 "semanticAnnotation": c.semantic_annotation}
                     mp_constraints.constraints.append(GlobalTransformConstraint(self.skeleton, keyframe_constraint_desc, 1.0))
+
+            elif c.constraint_type == SPATIAL_CONSTRAINT_TYPE_CA_CONSTRAINT:
+                keyframe_constraint_desc = {"joint": c.joint_name,
+                                            "position": c.position,
+                                            "n_canonical_frames": c.n_canonical_frames,
+                                            "canonical_keyframe":  c.canonical_keyframe,
+                                            "semanticAnnotation": c.semantic_annotation,
+                                            "ca_constraint": True}
+                mp_constraints.constraints.append(GlobalTransformCAConstraint(self.skeleton, keyframe_constraint_desc, 1.0))
+
             elif c.constraint_type == SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION:
                 positions = []
                 for p in c.positions:
