@@ -6,6 +6,7 @@ SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE = "keyframe_pose"
 SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION = "keyframe_two_hands"
 SPATIAL_CONSTRAINT_TYPE_TRAJECTORY_SET = "trajectory_set"
 SPATIAL_CONSTRAINT_TYPE_KEYFRAME_LOOK_AT = "keyframe_look_at"
+SPATIAL_CONSTRAINT_TYPE_CA_CONSTRAINT = "ca_constraint"
 from .mgrd_constraint import MGRDKeyframeConstraint
 from .trajectory_constraint import TrajectoryConstraint
 from .trajectory_set_constraint import TrajectorySetConstraint
