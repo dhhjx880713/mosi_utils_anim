@@ -289,7 +289,7 @@ class ElementaryActionGenerator(object):
             return None
         new_motion_spline, new_parameters = self.motion_primitive_generator.generate_constrained_motion_spline(mp_constraints, graph_walk)
         if self.activate_direction_ca_connection:
-            ca_constraints = self._get_collision_avoidance_constraints(new_node, new_motion_spline, graph_walk.get_motion_vector())
+            ca_constraints = self._get_collision_avoidance_constraints(new_node, new_motion_spline, graph_walk.get_quat_frames())
             if len(ca_constraints) > 0:
                 mp_constraints.constraints += ca_constraints
                 new_motion_spline, new_parameters = self.motion_primitive_generator.generate_constrained_sample(mp_constraints, graph_walk)
