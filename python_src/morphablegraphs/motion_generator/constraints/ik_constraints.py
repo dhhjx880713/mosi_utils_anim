@@ -8,12 +8,13 @@ class IKConstraint(object):
 
 
 class JointIKConstraint(IKConstraint):
-    def __init__(self, joint_name, position, orientation, keyframe, free_joints):
+    def __init__(self, joint_name, position, orientation, keyframe, free_joints, step_idx=-1):
         self.joint_name = joint_name
         self.position = position
         self.orientation = orientation
         self.keyframe = keyframe
         self.free_joints = free_joints
+        self.step_idx = step_idx
 
     @staticmethod
     def evaluate(parameters, data):

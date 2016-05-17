@@ -4,9 +4,10 @@ from .. import SPATIAL_CONSTRAINT_TYPE_CA_CONSTRAINT
 
 
 class GlobalTransformCAConstraint(GlobalTransformConstraint):
-    def __init__(self, skeleton, constraint_desc, precision, weight_factor=1.0):
+    def __init__(self, skeleton, constraint_desc, precision, weight_factor=1.0, step_idx=-1):
         super(GlobalTransformCAConstraint, self).__init__(skeleton, constraint_desc, precision, weight_factor)
         self.constraint_type = SPATIAL_CONSTRAINT_TYPE_CA_CONSTRAINT
+        self.step_idx = step_idx
 
     def evaluate_motion_spline(self, aligned_spline):
         errors = np.zeros(self.n_canonical_frames)
