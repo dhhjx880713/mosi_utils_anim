@@ -142,6 +142,8 @@ class InverseKinematics(object):
             self._modify_motion_vector_using_keyframe_constraint_list(motion_vector, motion_vector.ik_constraints["keyframes"])
         if "trajectories" in motion_vector.ik_constraints.keys():
             self._modify_motion_vector_using_trajectory_constraint_list(motion_vector, motion_vector.ik_constraints["trajectories"])
+        if "collision_avoidance" in motion_vector.ik_constraints.keys():
+            self._modify_motion_vector_using_ca_constraints(motion_vector, motion_vector.ik_constraints["collision_avoidance"])
 
     def _modify_motion_vector_using_keyframe_constraint_list(self, motion_vector, constraints):
         write_log("number of ik keyframe constraints", len(constraints))
@@ -294,6 +296,13 @@ class InverseKinematics(object):
                 min_error = error
                 closest_start_frame = keyframe
         return closest_start_frame
+
+    def _modify_motion_vector_using_ca_constraints(self, motion_vector, ca_constraints):
+        start_frame = 0
+        end_frame = len(motion_vector.frames)
+        for c in ca_constraints:
+            keyframe = self._find_corresponding_frame(motion_vector, start_frame, end_frame, c.joint_name, c.position)
+            self._modify_frame_using_keyframe_constraint(motion_vector, c, keyframe)
 
     def _extract_free_parameters(self, free_joints):
         """get parameters of joints from reference frame
