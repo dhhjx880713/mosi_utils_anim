@@ -74,8 +74,8 @@ class GraphWalk(object):
         annotated_motion_vector.skeleton = self.motion_state_graph.skeleton
         annotated_motion_vector.mg_input = self.mg_input
         annotated_motion_vector.ik_constraints = self._create_ik_constraints()
+        annotated_motion_vector.graph_walk = self
         return annotated_motion_vector
-
 
     def _convert_graph_walk_to_quaternion_frames(self, start_step=0, use_time_parameters=False):
         """

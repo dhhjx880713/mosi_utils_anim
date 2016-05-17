@@ -11,6 +11,7 @@ class AnnotatedMotionVector(MotionVector):
         self.keyframe_event_list = None
         self.mg_input = None
         self.skeleton = None
+        self.graph_walk = None
         self.ik_constraints = {}
 
     def export(self, output_dir, output_filename, add_time_stamp=False, export_details=False):
