@@ -354,3 +354,10 @@ class MotionPrimitiveConstraints(object):
                     #ik_constraints[keyframe]["multiple"].append(ik_constraint)
 
         return ik_constraints
+
+    def get_ca_constraints(self):
+        for c in self.constraints:
+            if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_CA_CONSTRAINT and \
+                c.joint_name in self.skeleton.free_joints_map.keys():
+                free_joints = self.skeleton.free_joints_map[c.joint_name]
+                yield JointIKConstraint(c.joint_name, c.position, None, -1, free_joints)
