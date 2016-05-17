@@ -244,7 +244,7 @@ class Skeleton(object):
             node_desc["offset"] = offset
             self.node_names[parent_node_name]["children"].append(new_node_name)
             self.node_names[new_node_name] = node_desc
-            #self.node_name_frame_map[new_node_name] = -1 #the node needs an entry but the index is only important if it has children
+            self.node_name_frame_map[new_node_name] = -1 #the node needs an entry but the index is only important if it has children
 
     def _generate_chain_names(self):
         chain_names = dict()
