@@ -76,41 +76,6 @@ class GraphWalk(object):
         annotated_motion_vector.ik_constraints = self._create_ik_constraints()
         return annotated_motion_vector
 
-    def _create_ik_constraints(self):
-        frame_offset = 0
-        ik_constraints = dict()
-        ik_constraints["keyframes"] = dict()
-        ik_constraints["trajectories"] = list()
-        for step in self.steps:
-            time_function = None
-            if self.use_time_parameters:
-                time_function = self.motion_state_graph.nodes[step.node_key].back_project_time_function(step.parameters)
-            step_keyframe_constraints = step.motion_primitive_constraints.convert_to_ik_constraints(frame_offset, time_function)
-            ik_constraints["keyframes"].update(step_keyframe_constraints)
-            frame_offset += step.end_frame - step.start_frame + 1
-        if self._algorithm_config["collision_avoidance_constraints_mode"] == "ik":
-            ik_constraints["trajectories"] += self._create_ik_trajectory_constraints()
-        return ik_constraints
-
-    def _create_ik_trajectory_constraints(self):
-        trajectory_constraints = list()
-        n_actions = len(self.keyframe_event_list.frame_annotation['elementaryActionSequence'])
-        for action_idx in xrange(n_actions):
-            frame_annotation = self.keyframe_event_list.frame_annotation['elementaryActionSequence'][action_idx]
-            high_level_step = self.elementary_action_list[action_idx]
-            for ca_constraint in high_level_step.action_constraints.collision_avoidance_constraints:
-                traj_constraint = dict()
-                traj_constraint["trajectory"] = ca_constraint
-                traj_constraint["start_frame"] = frame_annotation["startFrame"]
-                traj_constraint["end_frame"] = frame_annotation["endFrame"]
-                if self.mg_input.activate_joint_mapping and ca_constraint.joint_name in self.mg_input.inverse_joint_name_map.keys():
-                    joint_name = self.mg_input.inverse_joint_name_map[ca_constraint.joint_name]
-                else:
-                    joint_name = ca_constraint.joint_name
-                traj_constraint["joint_name"] = joint_name
-                traj_constraint["delta"] = 1.0
-                trajectory_constraints.append(traj_constraint)
-        return trajectory_constraints
 
     def _convert_graph_walk_to_quaternion_frames(self, start_step=0, use_time_parameters=False):
         """
@@ -172,6 +137,46 @@ class GraphWalk(object):
             frame of an action.
         """
         self.keyframe_event_list.update_frame_annotation(action_name, start_frame, end_frame)
+
+    def _create_ik_constraints(self):
+        ik_constraints = dict()
+        ik_constraints["keyframes"] = dict()
+        ik_constraints["trajectories"] = list()
+
+        frame_offset = 0
+        for step in self.steps:
+            time_function = None
+            if self.use_time_parameters:
+                time_function = self.motion_state_graph.nodes[step.node_key].back_project_time_function(step.parameters)
+            step_keyframe_constraints = step.motion_primitive_constraints.convert_to_ik_constraints(frame_offset, time_function)
+            ik_constraints["keyframes"].update(step_keyframe_constraints)
+            frame_offset += step.end_frame - step.start_frame + 1
+
+        if self._algorithm_config["collision_avoidance_constraints_mode"] == "ik":
+            ik_constraints["trajectories"] += self._create_ik_trajectory_constraints()
+        return ik_constraints
+
+    def _create_ik_trajectory_constraints(self):
+        trajectory_constraints = list()
+        n_actions = len(self.keyframe_event_list.frame_annotation['elementaryActionSequence'])
+        for action_idx in xrange(n_actions):
+            frame_annotation = self.keyframe_event_list.frame_annotation['elementaryActionSequence'][action_idx]
+            action = self.elementary_action_list[action_idx]
+            for ca_constraint in action.action_constraints.collision_avoidance_constraints:
+                traj_constraint = dict()
+                traj_constraint["trajectory"] = ca_constraint
+                traj_constraint["start_frame"] = frame_annotation["startFrame"]
+                traj_constraint["end_frame"] = frame_annotation["endFrame"]
+                #TODO find a better solution than this workaround that undoes the joint name mapping from hands to tool bones for ca constraints
+                if self.mg_input.activate_joint_mapping and ca_constraint.joint_name in self.mg_input.inverse_joint_name_map.keys():
+                    joint_name = self.mg_input.inverse_joint_name_map[ca_constraint.joint_name]
+                else:
+                    joint_name = ca_constraint.joint_name
+
+                traj_constraint["joint_name"] = joint_name
+                traj_constraint["delta"] = 1.0
+                trajectory_constraints.append(traj_constraint)
+        return trajectory_constraints
 
     def get_average_keyframe_constraint_error(self):
         keyframe_constraint_errors = []
