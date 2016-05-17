@@ -289,7 +289,7 @@ class ElementaryActionGenerator(object):
             return None
         new_motion_spline, new_parameters = self.motion_primitive_generator.generate_constrained_motion_spline(mp_constraints, graph_walk)
         if self.activate_direction_ca_connection:
-            ca_constraints = self._get_collision_avoidance_constraints(new_node, new_motion_spline, graph_walk.get_quat_frames())
+            ca_constraints = self._get_collision_avoidance_constraints(new_node, new_motion_spline, graph_walk)
             if len(ca_constraints) > 0:
                 mp_constraints.constraints += ca_constraints
                 new_motion_spline, new_parameters = self.motion_primitive_generator.generate_constrained_motion_spline(mp_constraints, graph_walk)
@@ -323,11 +323,11 @@ class ElementaryActionGenerator(object):
         root[1] = 0.0
         return np.linalg.norm(step_goal - root) < self.max_distance_to_path
 
-    def _get_collision_avoidance_constraints(self, new_node, new_motion_spline, prev_frames):
+    def _get_collision_avoidance_constraints(self, new_node, new_motion_spline, graph_walk):
         """ Generate constraints using the rest interface of the collision avoidance module directly.
             #TODO move to wrapper
         """
-        aligned_motion_spline, global_transformation = self._get_aligned_motion_spline(new_motion_spline, prev_frames)
+        aligned_motion_spline, global_transformation = self._get_aligned_motion_spline(new_motion_spline, graph_walk.get_quat_frames())
         frames = aligned_motion_spline.get_motion_vector()
         global_bvh_string = get_bvh_writer(self.motion_state_graph.skeleton, frames).generate_bvh_string()
         ca_input = {"elementary_action_name": new_node[0],
@@ -337,7 +337,7 @@ class ElementaryActionGenerator(object):
         ca_output = self._call_ca_rest_interface(ca_input)
 
         #convert output into constraint list
-        return self._create_ca_constraints(new_node, ca_output)
+        return self._create_ca_constraints(new_node, ca_output, graph_walk)
 
     def _get_aligned_motion_spline(self, new_motion_spline, prev_frames):
         aligned_motion_spline = deepcopy(new_motion_spline)
@@ -365,16 +365,18 @@ class ElementaryActionGenerator(object):
         ca_output_string = json.loads(ca_result)
         return ca_output_string
 
-    def _create_ca_constraints(self, new_node, ca_output):
+    def _create_ca_constraints(self, new_node, ca_output, graph_walk):
         ca_constraints = []
         n_canonical_frames = int(self.motion_state_graph.nodes[new_node].get_n_canonical_frames())
         for joint_name in ca_output.keys():
             for ca_constraint in ca_output[joint_name]:
                 if "position" in ca_constraint.keys() and len(ca_constraint["position"]) == 3:
-                    p = np.asarray(ca_constraint["position"])
-                    #p = np.linalg.inv(global_transformation)*p
-                    constraint_desc = {"joint": "Hips", "canonical_keyframe": -1,  "n_canonical_frames": n_canonical_frames,"position":p.tolist(),
-                                   "semanticAnnotation":  {"generated": True, "keyframeLabel":None}, "ca_constraint": True}
-                    cartesian_constraint = GlobalTransformCAConstraint(self.motion_state_graph.skeleton, constraint_desc, 1.0, 1.0)
-                    ca_constraints.append(cartesian_constraint)
+                    ca_constraint = GlobalTransformCAConstraint(self.motion_state_graph.skeleton,
+                                                                {"joint": joint_name, "canonical_keyframe": -1,
+                                                                 "n_canonical_frames": n_canonical_frames,
+                                                                 "position": ca_constraint["position"],
+                                                                 "semanticAnnotation":  {"generated": True, "keyframeLabel": None},
+                                                                 "ca_constraint": True},
+                                                                1.0, 1.0, len(graph_walk.steps))
+                    ca_constraints.append(ca_constraint)
         return ca_constraints
