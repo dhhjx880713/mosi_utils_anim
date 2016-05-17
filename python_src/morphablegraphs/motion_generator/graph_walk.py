@@ -73,22 +73,24 @@ class GraphWalk(object):
         annotated_motion_vector.keyframe_event_list = self.keyframe_event_list
         annotated_motion_vector.skeleton = self.motion_state_graph.skeleton
         annotated_motion_vector.mg_input = self.mg_input
+        annotated_motion_vector.ik_constraints = self._create_ik_constraints()
+        return annotated_motion_vector
+
+    def _create_ik_constraints(self):
         frame_offset = 0
         ik_constraints = dict()
         ik_constraints["keyframes"] = dict()
+        ik_constraints["trajectories"] = list()
         for step in self.steps:
             time_function = None
             if self.use_time_parameters:
                 time_function = self.motion_state_graph.nodes[step.node_key].back_project_time_function(step.parameters)
-            step_constraints = step.motion_primitive_constraints.convert_to_ik_constraints(frame_offset, time_function)
-            ik_constraints["keyframes"].update(step_constraints)
+            step_keyframe_constraints = step.motion_primitive_constraints.convert_to_ik_constraints(frame_offset, time_function)
+            ik_constraints["keyframes"].update(step_keyframe_constraints)
             frame_offset += step.end_frame - step.start_frame + 1
-        ik_constraints["trajectories"] = list()
         if self._algorithm_config["collision_avoidance_constraints_mode"] == "ik":
             ik_constraints["trajectories"] += self._create_ik_trajectory_constraints()
-
-        annotated_motion_vector.ik_constraints = ik_constraints
-        return annotated_motion_vector
+        return ik_constraints
 
     def _create_ik_trajectory_constraints(self):
         trajectory_constraints = list()
