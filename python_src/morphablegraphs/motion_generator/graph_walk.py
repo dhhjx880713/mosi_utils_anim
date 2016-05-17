@@ -142,6 +142,7 @@ class GraphWalk(object):
         ik_constraints = dict()
         ik_constraints["keyframes"] = dict()
         ik_constraints["trajectories"] = list()
+        ik_constraints["collision_avoidance"] = list()
 
         frame_offset = 0
         for step in self.steps:
@@ -149,6 +150,7 @@ class GraphWalk(object):
             if self.use_time_parameters:
                 time_function = self.motion_state_graph.nodes[step.node_key].back_project_time_function(step.parameters)
             step_keyframe_constraints = step.motion_primitive_constraints.convert_to_ik_constraints(frame_offset, time_function)
+            ik_constraints["collision_avoidance"] += step.motion_primitive_constraints.get_ca_constraints()
             ik_constraints["keyframes"].update(step_keyframe_constraints)
             frame_offset += step.end_frame - step.start_frame + 1
 
