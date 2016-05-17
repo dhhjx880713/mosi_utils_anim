@@ -34,9 +34,9 @@ class Skeleton(object):
         self.node_channels = collections.OrderedDict()
         self.extract_channels()
         self.nodes = collections.OrderedDict()
+        self._create_filtered_node_name_frame_map()
         self.tool_nodes = []
         self._add_tool_nodes()
-        self._create_filtered_node_name_frame_map()
         self.max_level = self._get_max_level()
         self._set_joint_weights()
         self.parent_dict = self._get_parent_dict()
