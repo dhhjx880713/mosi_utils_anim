@@ -298,10 +298,13 @@ class InverseKinematics(object):
         return closest_start_frame
 
     def _modify_motion_vector_using_ca_constraints(self, motion_vector, ca_constraints):
-        start_frame = 0
-        end_frame = len(motion_vector.frames)
+        print "modify motion vector using ca constraints", len(ca_constraints)
         for c in ca_constraints:
+            start_frame = motion_vector.graph_walk.steps[c.step_idx].start_frame
+            end_frame = motion_vector.graph_walk.steps[c.step_idx].end_frame
             keyframe = self._find_corresponding_frame(motion_vector, start_frame, end_frame, c.joint_name, c.position)
+            print "found keyframe",keyframe,start_frame,end_frame,c.joint_name
+            self.set_pose_from_frame(motion_vector.frames[keyframe])
             self._modify_frame_using_keyframe_constraint(motion_vector, c, keyframe)
 
     def _extract_free_parameters(self, free_joints):
