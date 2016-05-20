@@ -15,8 +15,8 @@ class KeyframeEventList(object):
         self._create_event_dict(graph_walk)
         self._create_frame_annotation(graph_walk, start_step)
         self._add_event_list_to_frame_annotation(graph_walk)
-        self.keyframe_events_dict = {"events":self.keyframe_events_dict,
-                             "elementaryActionSequence": self.frame_annotation["elementaryActionSequence"]}
+        self.keyframe_events_dict = {"events": self.keyframe_events_dict,
+                                     "elementaryActionSequence": self.frame_annotation["elementaryActionSequence"]}
 
     def update_frame_annotation(self, action_name, start_frame, end_frame):
         """Adds a dictionary to self.frame_annotation marking start and end
@@ -33,9 +33,8 @@ class KeyframeEventList(object):
         self._add_unconstrained_events_from_annotation(graph_walk)
 
     def _create_frame_annotation(self, graph_walk, start_step=0):
-        self.frame_annotation['elementaryActionSequence'] = []#self.frame_annotation['elementaryActionSequence'][:start_step]
+        self.frame_annotation['elementaryActionSequence'] = []
         for action in graph_walk.elementary_action_list:
-            #if action.end_step >= start_step:
             start_frame = graph_walk.steps[action.start_step].start_frame
             end_frame = graph_walk.steps[action.end_step].end_frame
             self.update_frame_annotation(action.action_name, start_frame, end_frame)
@@ -43,14 +42,12 @@ class KeyframeEventList(object):
     def _extract_keyframe_index(self, keyframe_event, time_function, frame_offset):
         canonical_keyframe = int(keyframe_event["canonical_keyframe"])
         if time_function is not None:
-            #warped_keyframe = self._warp_keyframe_index(time_function, canonical_keyframe)
             event_keyframe_index = frame_offset + int(time_function[canonical_keyframe]) + 1  # add +1 to map the frame correctly TODO: test and verify for all cases
         else:
             event_keyframe_index = frame_offset + canonical_keyframe
         return event_keyframe_index
 
     def _extract_event_list(self, keyframe_event, event_keyframe_index):
-        #extract events from event list
         n_events = len(keyframe_event["event_list"])
         if n_events == 1:
             events = keyframe_event["event_list"]
@@ -83,10 +80,8 @@ class KeyframeEventList(object):
         self.keyframe_events_dict[keyframe] m
         :return:
         """
-        #print "keyframe event dict", self.keyframe_events_dict
         keyframe_event_list = []
         for keyframe in self.keyframe_events_dict.keys():
-            #rint "keyframe event dict", self.keyframe_events_dict[keyframe]
             for event_desc in self.keyframe_events_dict[keyframe]:
                 print "event description", event_desc
                 event = dict()
@@ -128,7 +123,6 @@ class KeyframeEventList(object):
 
     def export_to_file(self, prefix):
         write_to_json_file(prefix + "_annotations"+".json", self.frame_annotation)
-        #print "keyframe event dict", self.keyframe_events_dict, filename
         write_to_json_file(prefix + "_actions"+".json", self.keyframe_events_dict)
 
     def _add_unconstrained_events_from_annotation(self, graph_walk):
