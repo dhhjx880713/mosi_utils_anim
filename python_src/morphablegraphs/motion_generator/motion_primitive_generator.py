@@ -104,13 +104,13 @@ class MotionPrimitiveGenerator(object):
         motion_spline = self._motion_state_graph.nodes[(self.action_name, mp_name)].back_project(parameters, use_time_parameters=False)
         return motion_spline, parameters
 
-    def generate_constrained_sample(self, mp_name, mp_constraints, prev_mp_name="", prev_frames=None, prev_parameters=None):
+    def generate_constrained_sample(self, mp_name, in_mp_constraints, prev_mp_name="", prev_frames=None, prev_parameters=None):
         """Uses the constraints to find the optimal parameters for a motion primitive.
         Parameters
         ----------
         * mp_name : string
             name of the motion primitive and node in the subgraph of the elementary action
-        * mp_constraints: MotionPrimitiveConstraints
+        * in_mp_constraints: MotionPrimitiveConstraints
             contains a list of dict with constraints for joints
         * prev_frames: np.ndarray
             quaternion frames
