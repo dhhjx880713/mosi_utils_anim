@@ -4,7 +4,7 @@ import numpy as np
 from motion_editing import fast_quat_frames_alignment, align_frames,transform_euler_frames, \
                                           transform_quaternion_frames,\
                                             convert_euler_frames_to_quaternion_frames
-from ..utilities.io_helper_functions import export_frames_to_bvh_file, get_bvh_writer
+from ..utilities.io_helper_functions import export_frames_to_bvh_file
 from . import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER
 
 
@@ -68,9 +68,6 @@ class MotionVector(object):
         export_frames_to_bvh_file(output_dir, skeleton, self.frames, prefix=output_filename, time_stamp=add_time_stamp,
                                   is_quaternion=self.rotation_type == ROTATION_TYPE_QUATERNION)
 
-    def generate_bvh_string(self):
-        bvh_writer = get_bvh_writer(self.skeleton, self.frames)
-        return bvh_writer.generate_bvh_string()
 
     def reduce_frames(self, n_frames):
         if n_frames == 0:
