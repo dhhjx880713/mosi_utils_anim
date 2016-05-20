@@ -314,10 +314,10 @@ class MotionPrimitiveConstraints(object):
         return mp_constraints
 
     def convert_to_ik_constraints(self, frame_offset=0, time_function=None):
-        supported_ca_constraint_types = [SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION, SPATIAL_CONSTRAINT_TYPE_CA_CONSTRAINT]
+        supported_constraint_types = [SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION]
         ik_constraints = dict()
         for c in self.constraints:
-            if c.constraint_type in supported_ca_constraint_types:
+            if c.constraint_type in supported_constraint_types and "generated" not in c.semantic_annotation.keys():
 
                 if time_function is not None:
                     keyframe = frame_offset + int(time_function[c.canonical_keyframe]) + 1  # add +1 to map the frame correctly TODO: test and verify for all cases
@@ -329,7 +329,7 @@ class MotionPrimitiveConstraints(object):
                     ik_constraints[keyframe]["single"] = []
                     ik_constraints[keyframe]["multiple"] = []
 
-                if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION and "generated" not in c.semantic_annotation.keys() and\
+                if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION and\
                         c.joint_name in self.skeleton.free_joints_map.keys():
                     free_joints = self.skeleton.free_joints_map[c.joint_name]
                     ik_constraint = JointIKConstraint(c.joint_name, c.position, None, keyframe, free_joints)
