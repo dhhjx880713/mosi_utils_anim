@@ -356,7 +356,6 @@ class MotionPrimitiveConstraints(object):
         return ik_constraints
 
     def get_ca_constraints(self):
-        print "GET CA constraints", len(self.constraints)
         ca_constraints = list()
         for c in self.constraints:
             if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_CA_CONSTRAINT and \
