@@ -39,36 +39,6 @@ class KeyframeEventList(object):
             start_frame = graph_walk.steps[action.start_step].start_frame
             end_frame = graph_walk.steps[action.end_step].end_frame
             self.update_frame_annotation(action.action_name, start_frame, end_frame)
-        #if start_step == 0:
-        #    start_frame = 0
-        #else:
-        #    step = graph_walk.steps[start_step-1]
-        #    start_frame = step.end_frame
-        #end_frame = start_frame
-        #prev_step = None
-        #for step in graph_walk.steps[start_step:]:
-        #    action_name = step.node_key[0]
-        #    #time_function = graph_walk.motion_state_graph.nodes[step.node_key].back_project_time_function(step.parameters)
-        #    if prev_step is not None and action_name != prev_step.node_key[0]:
-        #        #add entry for previous elementary action
-        #        print "add", prev_step.node_key[0]
-        #        self.update_frame_annotation(prev_step.node_key[0], start_frame, end_frame-1)
-        #        start_frame = end_frame
-        #    end_frame += step.end_frame - step.start_frame + 1
-        #    prev_step = step
-        #if prev_step is not None:
-        #    print "add", prev_step.node_key[0]
-        #    self.update_frame_annotation(prev_step.node_key[0], start_frame, end_frame-1)
-
-    #def _warp_keyframe_index(self, time_function, key_frame_index):
-    #    """ Inverse lookup of warped keyframe
-    #    :param time_function:
-    #    :param key_frame_index:
-    #    :return:
-    #    """
-    #    closest_keyframe = min(time_function, key=lambda x: abs(x - key_frame_index))
-    #    warped_keyframe = np.where(time_function == closest_keyframe)[0][0]
-    #    return warped_keyframe
 
     def _extract_keyframe_index(self, keyframe_event, time_function, frame_offset):
         canonical_keyframe = int(keyframe_event["canonical_keyframe"])
