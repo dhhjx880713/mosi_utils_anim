@@ -18,8 +18,8 @@ class MotionState(MotionPrimitiveModelWrapper):
 
     Parameters
     ----------
-    * motion_primitive_filename: string
-    \tThe filename with the saved data in json format.
+    * motion_state_group: MotionStateGroup
+    \tRepresents the elementary action that this state is a part of.
     
     Attributes
     ----------
