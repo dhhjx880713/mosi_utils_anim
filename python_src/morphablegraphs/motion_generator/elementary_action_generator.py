@@ -332,7 +332,7 @@ class ElementaryActionGenerator(object):
         global_bvh_string = get_bvh_writer(self.motion_state_graph.skeleton, frames).generate_bvh_string()
         ca_input = {"elementary_action_name": new_node[0],
                     "motion_primitive_name": new_node[1],
-                    "global_transform": global_transformation,
+                    "global_transform": global_transformation.tolist(),
                     "global_bvh_frames": global_bvh_string}
         ca_output = self._call_ca_rest_interface(ca_input)
 
