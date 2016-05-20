@@ -172,12 +172,8 @@ class InverseKinematics(object):
                         self._look_at_in_range(motion_vector, c.position, start, end)
 
     def _modify_frame_using_keyframe_constraint(self, motion_vector, constraint, keyframe):
-        #joint_name = constraint["joint_name"]
-        #self._modify_pose(joint_name, constraint["position"])
         self._modify_pose_general(constraint)
         motion_vector.frames[keyframe] = self.pose.get_vector()
-        #interpolate
-        #print "free joints", constraint.free_joints
         if self.window > 0:
             self.interpolate_around_keyframe(motion_vector, constraint.get_joint_names(), keyframe, self.window)
 
@@ -193,21 +189,15 @@ class InverseKinematics(object):
             self.set_pose_from_frame(motion_vector.frames[idx])
             self.pose.lookat(position)
             motion_vector.frames[idx] = self.pose.get_vector()
-        #interpolate
         self._create_transition_for_frame_range(motion_vector.frames, start, end-1, [self.pose.head_joint])
 
     def _create_transition_for_frame_range(self, frames, start, end, target_joints):
         for target_joint in target_joints:
             joint_parameter_indices = list(range(*self.pose.extract_parameters_indices(target_joint)))
-            #print joint_parameter_indices
-            transition_start = max(start-self.transition_window, 0)
-            transition_end = min(end+self.transition_window, frames.shape[0])-1
-            #print transition_start, start, end, transition_end, joint_parameter_indices, frames[transition_end-10,joint_parameter_indices]
+            transition_start = max(start - self.transition_window, 0)
+            transition_end = min(end + self.transition_window, frames.shape[0]) - 1
             apply_slerp(frames, transition_start, start, joint_parameter_indices)
             apply_slerp(frames, end, transition_end, joint_parameter_indices)
-            #print "after slerp",frames[transition_end-10,joint_parameter_indices]
-        #smooth_quaternion_frames_using_slerp_overwrite_frames(motion_vector.frames, joint_parameter_indices, start, window)
-        #smooth_quaternion_frames_using_slerp_overwrite_frames(motion_vector.frames, joint_parameter_indices, end, window)
 
     def _modify_motion_vector_using_trajectory_constraint_list(self, motion_vector, constraints):
         write_log("Number of ik trajectory constraints", len(constraints))
@@ -310,7 +300,7 @@ class InverseKinematics(object):
     def _extract_free_parameters(self, free_joints):
         """get parameters of joints from reference frame
         """
-        parameters = []
+        parameters = list()
         for joint_name in free_joints:
             parameters += self.pose.extract_parameters(joint_name).tolist()
             #print ("array", parameters)
