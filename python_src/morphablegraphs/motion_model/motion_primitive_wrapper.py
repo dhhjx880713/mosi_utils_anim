@@ -25,18 +25,18 @@ class MotionPrimitiveModelWrapper(object):
         self.motion_primitive = None
         self.use_mgrd_mixture_model = False
 
-    def _load_from_file(self, mgrd_skeleton, file_name, animated_joints=None):
+    def _load_from_file(self, mgrd_skeleton, file_name, animated_joints=None, use_mgrd_mixture_model=False):
         data = load_json_file(file_name)
         if data is not None:
-            self._initialize_from_json(mgrd_skeleton, data, animated_joints)
+            self._initialize_from_json(mgrd_skeleton, data, animated_joints, use_mgrd_mixture_model)
 
-    def _initialize_from_json(self, mgrd_skeleton, data, animated_joints=None):
+    def _initialize_from_json(self, mgrd_skeleton, data, animated_joints=None, use_mgrd_mixture_model=False):
         if has_mgrd and "tspm" in data.keys():
             print "Init motion primitive model with semantic annotation"
-            self.motion_primitive = MotionPrimitiveModelWrapper.load_model_from_json(mgrd_skeleton, data, self.use_mgrd_mixture_model)
+            self.motion_primitive = MotionPrimitiveModelWrapper.load_model_from_json(mgrd_skeleton, data, use_mgrd_mixture_model)
         elif has_mgrd and animated_joints is not None:
             print "Init motion primitive model without semantic annotation"
-            mm = MotionPrimitiveModelWrapper.load_mixture_model(data, self.use_mgrd_mixture_model)
+            mm = MotionPrimitiveModelWrapper.load_mixture_model(data, use_mgrd_mixture_model)
             tspm = LegacyTemporalSplineModel(data)
             sspm = MGRDQuaternionSplineModel.load_from_json(mgrd_skeleton,{
                                                         'eigen': np.asarray(data['eigen_vectors_spatial']),
