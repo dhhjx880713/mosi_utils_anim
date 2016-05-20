@@ -66,7 +66,7 @@ class MotionPrimitiveConstraintsBuilder(object):
         mp_sample_frames = self.motion_state_graph.nodes[node_key].sample(False).get_motion_vector()
         #origin = copy(mp_sample_frames[0][:3])
         if self.use_local_coordinates:
-            aligned_sample_frames = concatenate_frames(prev_frames, mp_sample_frames, graph_walk.motion_vector.start_pose, apply_spatial_smoothing=False)
+            aligned_sample_frames = concatenate_frames(prev_frames, mp_sample_frames, graph_walk.motion_vector.start_pose, graph_walk.motion_vector.rotation_type, apply_spatial_smoothing=False)
             self.status["aligned_sample_frames"] = aligned_sample_frames[n_prev_frames:]
         self.status["motion_primitive_name"] = node_key[1]
         self.status["n_canonical_frames"] = n_canonical_frames
