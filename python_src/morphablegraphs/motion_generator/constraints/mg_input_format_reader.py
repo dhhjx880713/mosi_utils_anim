@@ -348,9 +348,8 @@ class MGInputFormatReader(object):
         """Returns a single trajectory constraint definition for joint joint out of a elementary action constraint list
         """
         for c in input_constraint_list:
-            if "joint" in c.keys() and "trajectoryConstraints" in c.keys():
-                if joint_name == c["joint"]:
-                    return c["trajectoryConstraints"]
+            if "joint" in c.keys() and "trajectoryConstraints" in c.keys() and joint_name == c["joint"]:
+                return c["trajectoryConstraints"]
         return None
 
     def _extend_keyframe_constraint_definition(self, keyframe_label, joint_name, constraint, time_info, c_type):
