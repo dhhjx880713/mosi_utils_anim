@@ -1,31 +1,23 @@
 __author__ = 'erhe01'
 
 import numpy as np
-from motion_editing import fast_quat_frames_alignment, align_frames,transform_euler_frames, \
+from motion_editing import fast_quat_frames_alignment,  \
                                           transform_quaternion_frames,\
                                             convert_euler_frames_to_quaternion_frames
 from ..utilities.io_helper_functions import export_frames_to_bvh_file
 from . import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER
 
 
-def concatenate_frames(prev_frames, new_frames,start_pose,rotation_type, apply_spatial_smoothing=True, smoothing_window=20):
+def concatenate_frames(prev_frames, new_frames, start_pose, apply_spatial_smoothing=True, smoothing_window=20):
     if prev_frames is not None:
-        #if rotation_type == ROTATION_TYPE_QUATERNION:
         return fast_quat_frames_alignment(prev_frames,
-                                             new_frames,
-                                            apply_spatial_smoothing,
-                                            smoothing_window)
-        #elif rotation_type == ROTATION_TYPE_EULER:
-        #    return align_frames(prev_frames, new_frames)
+                                          new_frames,
+                                          apply_spatial_smoothing,
+                                          smoothing_window)
     elif start_pose is not None:
-        #if rotation_type == ROTATION_TYPE_QUATERNION:
         return transform_quaternion_frames(new_frames,
-                                                      start_pose["orientation"],
-                                                      start_pose["position"])
-        #elif rotation_type == ROTATION_TYPE_EULER:
-        #    return transform_euler_frames(new_frames,
-        #                                         start_pose["orientation"],
-        #                                         start_pose["position"])
+                                           start_pose["orientation"],
+                                           start_pose["position"])
     else:
         return new_frames
 
@@ -61,7 +53,7 @@ class MotionVector(object):
         * new_frames: list
             A list of frames with the same rotation format type as the motion vector
         """
-        self.frames = concatenate_frames(self.frames, new_frames, self.start_pose, self.rotation_type, self.apply_spatial_smoothing, self.smoothing_window)
+        self.frames = concatenate_frames(self.frames, new_frames, self.start_pose, self.apply_spatial_smoothing, self.smoothing_window)
         self.n_frames = len(self.frames)
 
     def export(self, skeleton, output_dir, output_filename, add_time_stamp=True):
