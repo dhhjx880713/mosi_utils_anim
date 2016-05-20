@@ -203,15 +203,15 @@ class MGInputFormatReader(object):
         * unconstrained_indices : list
         \t List of indices of unconstrained dimensions
         """
-        trajectory_constraint_data = self._extract_trajectory_constraint_data(self.elementary_action_list[action_index]["constraints"], joint_name)
-        if trajectory_constraint_data is None:
+        print "try to load trajectory for",action_index, joint_name
+        constraint_desc = self._extract_trajectory_constraint_data(self.elementary_action_list[action_index]["constraints"],
+                                                                    joint_name)
+        if constraint_desc is None:
             return [], None, []
-        else:
-            unconstrained_indices = self._find_unconstrained_indices(trajectory_constraint_data)
-            print "load trajectory for",action_index, joint_name
-            control_point_list, active_regions = self._extract_trajectory_control_points(trajectory_constraint_data, distance_threshold)
-            return control_point_list, unconstrained_indices, active_regions
-
+        unconstrained_indices = self._find_unconstrained_indices(constraint_desc)
+        print "load trajectory for",action_index, joint_name
+        control_point_list, active_regions = self._extract_trajectory_control_points(constraint_desc, distance_threshold)
+        return control_point_list, unconstrained_indices, active_regions
 
     def _find_unconstrained_indices(self, trajectory_constraint_data):
         """extract unconstrained dimensions"""
