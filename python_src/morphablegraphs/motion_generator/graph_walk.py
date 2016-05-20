@@ -119,7 +119,6 @@ class GraphWalk(object):
         offset = 0
         for step in self.steps[start_step:]:
             new_gamma = parameter_vector[offset:offset+step.n_time_components]
-            #print new_gamma
             step.parameters[step.n_spatial_components:] = new_gamma
             offset += step.n_time_components
 
@@ -213,7 +212,6 @@ class GraphWalk(object):
                 if constraint.is_generated():
                     generated_constraints[key].append(constraint.position)
             step_count += 1
-        #generated_constraints = np.array(generated_constraints).flatten()
         return generated_constraints
 
     def get_average_error(self):

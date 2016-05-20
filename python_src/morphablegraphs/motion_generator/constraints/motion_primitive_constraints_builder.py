@@ -64,7 +64,6 @@ class MotionPrimitiveConstraintsBuilder(object):
         n_canonical_frames = self.motion_state_graph.nodes[node_key].get_n_canonical_frames()
         #create a sample to estimate the trajectory arc lengths
         mp_sample_frames = self.motion_state_graph.nodes[node_key].sample(False).get_motion_vector()
-        #origin = copy(mp_sample_frames[0][:3])
         if self.use_local_coordinates:
             aligned_sample_frames = concatenate_frames(prev_frames, mp_sample_frames, graph_walk.motion_vector.start_pose, graph_walk.motion_vector.rotation_type, apply_spatial_smoothing=False)
             self.status["aligned_sample_frames"] = aligned_sample_frames[n_prev_frames:]
@@ -89,16 +88,10 @@ class MotionPrimitiveConstraintsBuilder(object):
     def _set_aligning_transform(self, node_key, prev_frames):
         if prev_frames is None:
             #print "create aligning transform from start pose",self.action_constraints.start_pose
-            #transform = inverse_pose_transform(self.action_constraints.start_pose["position"],self.action_constraints.start_pose["orientation"])
-            #self.status["aligning_transform"] = {"translation": transform[0],"orientation":[0,0,0]}
             transform = copy(self.action_constraints.start_pose)
         else:
             aligning_angle, aligning_offset = fast_quat_frames_transformation(prev_frames, self.motion_state_graph.nodes[node_key].sample(False).get_motion_vector()) #TODO return from concatenate_frames
             transform = {"position": aligning_offset,"orientation":[0,aligning_angle,0]}
-            #print "aligning_transform", aligning_angle, aligning_offset
-            #aligning_transform = get_2d_pose_transform(prev_frames, -1)
-            #transform = inverse_pose_transform(aligning_offset,[0,aligning_angle,0])
-            #self.status["aligning_transform"] = {"translation": transform[0],"orientation":transform[1]}
 
         self.status["aligning_transform"] = create_transformation_matrix(transform["position"], transform["orientation"])
 
@@ -144,7 +137,6 @@ class MotionPrimitiveConstraintsBuilder(object):
             ca_trajectory_set_constraint.set_min_arc_length_from_previous_frames(self.status["prev_frames"])
             ca_trajectory_set_constraint.set_number_of_canonical_frames(self.status["n_canonical_frames"])
             mp_constraints.constraints.append(ca_trajectory_set_constraint)
-            #print "use ca constraint set"
             #TODO generate discrete ca constraint where frames are fixed as inside or outside of the range
         #    for i in xrange(len(ca_trajectory_set_constraint.joint_trajectories)):
         #       discrete_trajectory_constraint = ca_trajectory_set_constraint.joint_trajectories[i].create_discrete_trajectory(self.status["aligned_sample_frames"])
@@ -172,7 +164,6 @@ class MotionPrimitiveConstraintsBuilder(object):
         mp_constraints.pose_constraint_set = True
 
     def _add_path_following_constraints(self, mp_constraints):
-        #print "search for new goal"
         # if it is the last step we need to reach the point exactly otherwise
         # make a guess for a reachable point on the path that we have not visited yet
         if not self.status["is_last_step"]:
@@ -227,7 +218,6 @@ class MotionPrimitiveConstraintsBuilder(object):
             constraint_factor = self.trajectory_following_settings["position_constraint_factor"]
             if "merged" in c_desc.keys():
                 return TwoHandConstraintSet(self.skeleton, c_desc, self.precision["pos"], constraint_factor)
-            #elif np.any([c_type in c_desc.keys() for c_type in self.mp_constraint_types]):
             elif "look_at" in c_desc.keys():
                 return LookAtConstraint(self.skeleton, c_desc, self.precision["pos"], constraint_factor)
             else:

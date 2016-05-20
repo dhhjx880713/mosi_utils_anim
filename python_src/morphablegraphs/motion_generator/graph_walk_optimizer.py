@@ -67,16 +67,13 @@ class GraphWalkOptimizer(object):
                 prev_frames = None
             else:
                 prev_frames = graph_walk.get_quat_frames()[:graph_walk.steps[start_step].start_frame]
-            #print "start global optimization", len(initial_guess), constraint_count
             self.global_error_minimizer.set_objective_function_parameters((self.motion_primitive_graph, graph_walk.steps[start_step:],
                                     self._algorithm_config["global_spatial_optimization_settings"]["error_scale_factor"],
                                     self._algorithm_config["global_spatial_optimization_settings"]["quality_scale_factor"],
                                     prev_frames))
             optimal_parameters = self.global_error_minimizer.run(initial_guess)
             graph_walk.update_spatial_parameters(optimal_parameters, start_step)
-            #keyframe_error = graph_walk.get_average_keyframe_constraint_error()
             graph_walk.update_temp_motion_vector(start_step, use_time_parameters=False)
-            #print keyframe_error
         else:
             print "no user defined constraints"
         return graph_walk
@@ -124,7 +121,6 @@ class GraphWalkOptimizer(object):
 
     def optimize_for_collision_avoidance_constraints(self, graph_walk, action_constraints, start_step=0):
         #return graph_walk
-        #original_frames = deepcopy(graph_walk.get_quat_frames())
         reduced_motion_vector = deepcopy(graph_walk.motion_vector)
         reduced_motion_vector.reduce_frames(graph_walk.steps[start_step].start_frame)
         print "start frame", graph_walk.steps[start_step].start_frame
@@ -141,7 +137,6 @@ class GraphWalkOptimizer(object):
                     trajectory.set_min_arc_length_from_previous_frames(reduced_motion_vector.frames)
                 else:
                     trajectory.min_arc_length = 0.0
-                ##if trajectory.range_start < trajectory.min_arc_length+50 and trajectory.min_arc_length < trajectory.range_end:
                 trajectory.set_number_of_canonical_frames(node.n_canonical_frames)
                 #discrete_trajectory = trajectory.create_discrete_trajectory(original_frames[step.start_frame:step.end_frame])
                 motion_primitive_constraints.constraints.append(trajectory)
@@ -155,7 +150,6 @@ class GraphWalkOptimizer(object):
             motion_primitive_sample = node.back_project(graph_walk.steps[step_index].parameters, use_time_parameters=False)
             reduced_motion_vector.append_quat_frames(motion_primitive_sample.get_motion_vector())
             step_index += 1
-        #print reduced_motion_vector.n_frames, graph_walk.get_num_of_frames()
         print step_index, len(graph_walk.steps)
         assert (len(graph_walk.motion_vector.frames)) == len(reduced_motion_vector.frames), (str(len(graph_walk.motion_vector.frames))) + "," + str(len(reduced_motion_vector.frames))
         graph_walk.motion_vector = reduced_motion_vector

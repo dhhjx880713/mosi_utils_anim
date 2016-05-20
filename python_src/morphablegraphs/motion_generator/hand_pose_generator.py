@@ -128,8 +128,6 @@ class HandPoseGenerator(object):
                 self.set_pose_in_frame("RightHand", right_status, motion_vector.frames[frame_idx])
                 self.set_pose_in_frame("LeftHand", left_status, motion_vector.frames[frame_idx])
 
-
-            #print self.right_hand_skeleton["indices"]
             quat_frames = np.array(motion_vector.frames)
             self.smooth_state_transitions(quat_frames, left_hand_events, self.left_hand_skeleton["indices"])
             self.smooth_state_transitions(quat_frames, right_hand_events, self.right_hand_skeleton["indices"])

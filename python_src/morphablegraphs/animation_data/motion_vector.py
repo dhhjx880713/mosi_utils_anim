@@ -68,7 +68,6 @@ class MotionVector(object):
         export_frames_to_bvh_file(output_dir, skeleton, self.frames, prefix=output_filename, time_stamp=add_time_stamp,
                                   is_quaternion=self.rotation_type == ROTATION_TYPE_QUATERNION)
 
-
     def reduce_frames(self, n_frames):
         if n_frames == 0:
             self.frames = None
@@ -76,7 +75,6 @@ class MotionVector(object):
         else:
             self.frames = self.frames[:n_frames]
             self.n_frames = len(self.frames)
-        #assert n_frames == self.n_frames
 
     def has_frames(self):
         return self.frames is not None
