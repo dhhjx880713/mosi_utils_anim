@@ -185,7 +185,7 @@ class Skeleton(object):
             node_name = parent_name
 
     def _set_joint_weights(self):
-        """ Gives joints weights according to their distance in the joint hiearchty
+        """ Gives joints weights according to their distance in the joint hierarchy
            to the root joint. The further away the smaller the weight.
         """
 
