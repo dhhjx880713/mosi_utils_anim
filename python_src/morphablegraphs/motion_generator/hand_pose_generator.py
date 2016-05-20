@@ -144,23 +144,13 @@ class HandPoseGenerator(object):
         for src_idx, target_idx in enumerate(self.pose_map[status].hand_skeletons[hand]["indices"]):
             param_index = target_idx*4 + 3 #translation is ignored
             src_vector_idx = src_idx*4
-            #print self.pose_map[status].pose_vector[frame_index:frame_index+4]
             pose_vector[param_index:param_index+4] = self.pose_map[status].pose_vectors[hand][src_vector_idx:src_vector_idx+4]
 
     def smooth_state_transitions(self, quat_frames, events, indices, window=30):
-        #event_frame2 = events[0]
-        #joint_index = indices[0]*4+3
-        #print "before", quat_frames[event_frame2-window:event_frame2+window, joint_index]
-
         for event_frame in events:
             for i in indices:
                 index = i*4+3
                 self.smooth_quaternion_frames_using_slerp(quat_frames, range(index, index+4), event_frame, window)
-            #print "handle event", event_frame, quat_frames[event_frame][indices[0]*4+3]
-            #smooth_quaternion_frames_partially(quat_frames, indices, event_frame, window)
-            #quat_frames = smooth_quaternion_frames(quat_frames, event_frame, window)
-            #print "after smoothing", event_frame, quat_frames[event_frame][indices[0]*4+3]
-        #print "after", quat_frames[event_frame2-window:event_frame2+window, joint_index]
 
     def smooth_quaternion_frames_using_slerp(self, quat_frames, joint_parameter_indices, event_frame, window):
         start_frame = event_frame-window/2
