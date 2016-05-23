@@ -11,16 +11,16 @@ class GlobalTransformCAConstraint(GlobalTransformConstraint):
 
     def evaluate_motion_spline(self, aligned_spline):
         errors = np.zeros(self.n_canonical_frames)
-        if self.position is not None:
-            for i in xrange(self.n_canonical_frames):
-                errors[i] = self._evaluate_joint_position(aligned_spline.evaluate(i))
-        return min(errors)
+        for i in xrange(self.n_canonical_frames):
+            errors[i] = self._evaluate_joint_position(aligned_spline.evaluate(i))
+        error = min(errors)
+        print "ca constraint", error
+        return error#min(errors)
 
     def evaluate_motion_sample(self, aligned_quat_frames):
         errors = np.zeros(len(aligned_quat_frames))
-        if self.position is not None:
-            for i, frame in enumerate(aligned_quat_frames):
-                errors[i] = self._evaluate_joint_position(frame)
+        for i, frame in enumerate(aligned_quat_frames):
+            errors[i] = self._evaluate_joint_position(frame)
         return min(errors)
 
     def get_residual_vector_spline(self, aligned_spline):
