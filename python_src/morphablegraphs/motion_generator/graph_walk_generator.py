@@ -26,11 +26,13 @@ class GraphWalkGenerator(object):
         Contains paths to the motion data.
     * algorithm_config : dict
         Contains options for the algorithm.
+    * ca_service_url: string
+        URL to the collision avoidance rest service
     """
-    def __init__(self, motion_primitive_graph, algorithm_config):
+    def __init__(self, motion_primitive_graph, algorithm_config, ca_service_url=None):
         self._algorithm_config = algorithm_config
         self.motion_primitive_graph = motion_primitive_graph
-        self.action_generator = ElementaryActionGenerator(self.motion_primitive_graph, self._algorithm_config)
+        self.action_generator = ElementaryActionGenerator(self.motion_primitive_graph, self._algorithm_config, ca_service_url)
         self.graph_walk_optimizer = GraphWalkOptimizer(self.motion_primitive_graph, algorithm_config)
         self.action_constraints_builder = ElementaryActionConstraintsBuilder(self.motion_primitive_graph, self._algorithm_config)
 
