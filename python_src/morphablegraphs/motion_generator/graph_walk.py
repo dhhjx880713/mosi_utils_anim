@@ -90,7 +90,6 @@ class GraphWalk(object):
         for step in self.steps[start_step:]:
             step.start_frame = start_frame
             quat_frames = self.motion_state_graph.nodes[step.node_key].back_project(step.parameters, use_time_parameters).get_motion_vector()
-            #write_log(step.node_key, len(quat_frames), use_time_parameters)
             self.motion_vector.append_frames(quat_frames)
             step.end_frame = self.get_num_of_frames()-1
             start_frame = step.end_frame + 1
