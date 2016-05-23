@@ -612,8 +612,7 @@ def convert_euler_frame_to_cartesian_frame(skeleton, euler_frame):
     cartesian_frame = []
     for node_name in skeleton.node_names:
         # ignore Bip joints and end sites
-        if not node_name.startswith(
-                "Bip") and "children" in skeleton.node_names[node_name].keys():
+        if not node_name.startswith("Bip") and "children" in skeleton.node_names[node_name].keys():
             cartesian_frame.append(
                 get_cartesian_coordinates_from_euler(
                     skeleton,
@@ -1637,22 +1636,17 @@ def align_quaternion_frames(quat_frames, prev_frames=None, transformation=None):
     """
     # find alignment transformation or use given transformation
     if prev_frames is not None:
-        angle, offset = fast_quat_frames_transformation(
-            prev_frames, quat_frames)
+        angle, offset = fast_quat_frames_transformation(prev_frames, quat_frames)
         # aligning_transformation = {
         #     "orientation": [
         #         0,
         #         angle,
         #         0],
         #     "position": offset}
-        transformed_frames = transform_quaternion_frames(quat_frames,
-                                                         [0, angle, 0],
-                                                         offset)
-        return transformed_frames
+        return transform_quaternion_frames(quat_frames, [0, angle, 0], offset)
     elif prev_frames is None and transformation is not None:
         # align frames
-        transformed_frames = transform_quaternion_frames(quat_frames, transformation["orientation"], transformation["position"])
-        return transformed_frames
+        return transform_quaternion_frames(quat_frames, transformation["orientation"], transformation["position"])
     else:
         return quat_frames
 
