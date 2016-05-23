@@ -261,15 +261,13 @@ class ElementaryActionGenerator(object):
         errors = [0]
         while not self.action_state.is_end_state():
             error = self._transition_to_next_action_state(graph_walk)
-            if error is not None:  # the generation of the state was not successful
-                errors.append(error)
-            else:
+            if error is None:
+                return False  # the generation of the state was not successful
+            errors.append(error)
+            if self.action_constraints.root_trajectory is not None and not self._is_close_to_path(graph_walk):
+                write_log("Warning: Distance to path has become larger than", self.max_distance_to_path)
                 return False
 
-            if self.action_constraints.root_trajectory is not None:
-                if not self._is_close_to_path(graph_walk):  #measure distance to goal
-                    write_log("Warning: Distance to path has become larger than", self.max_distance_to_path)
-                    return False
 
         graph_walk.step_count += self.action_state.temp_step
         graph_walk.update_frame_annotation(self.action_constraints.action_name, self.action_state.action_start_frame, graph_walk.get_num_of_frames())
