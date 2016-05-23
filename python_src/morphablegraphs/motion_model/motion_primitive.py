@@ -145,14 +145,14 @@ class MotionPrimitive(object):
         self.t_pca["knots"] = np.asarray(data['b_spline_knots_time'])
         self.t_pca["eigen_coefs"] = zip(* self.t_pca["eigen_vectors"])
 
-    def sample_low_dimensional_vector(self):
+    def sample_low_dimensional_vector(self, n_samples=1):
         """ Sample the motion primitive and return a low dimensional vector
         Returns
         -------
         * s:  numpy.ndarray
         """
         assert self.gaussian_mixture_model is not None, "Motion primitive not initialized."
-        return np.ravel(self.gaussian_mixture_model.sample())
+        return np.ravel(self.gaussian_mixture_model.sample(n_samples))
 
     def sample(self, use_time_parameters=True):
         """ Sample the motion primitive and return a motion spline
