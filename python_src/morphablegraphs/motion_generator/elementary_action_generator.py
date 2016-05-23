@@ -365,7 +365,7 @@ class ElementaryActionGenerator(object):
         """
         if self.ca_service_url is not None:
             write_log("Call CA interface",self.ca_service_url,"for",ca_input["elementary_action_name"],ca_input["motion_primitive_name"])
-            request = urllib2.Request("http://"+self.ca_service_url, ca_input)
+            request = urllib2.Request("http://"+self.ca_service_url, json.dumps(ca_input))
             try:
                 handler = urllib2.urlopen(request)
                 ca_output_string = handler.read()
