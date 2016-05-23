@@ -76,7 +76,6 @@ class SkeletonPoseModel(object):
                 self.modelled_joints.append(joint)
         #print "modelled joints",self.modelled_joints
         #print "maximum channel", channel_idx
-        #TODO read data from file
         self.free_joints_map = skeleton.free_joints_map
         self.reduced_free_joints_map = skeleton.reduced_free_joints_map
         self.head_joint = skeleton.head_joint

@@ -40,12 +40,10 @@ class InverseKinematics(object):
         for node in self.skeleton.nodes.values():
             if node.node_name in skeleton.animated_joints:
                 node_channels = copy(node.channels)
-                #change to euler
                 if not self.use_euler:
                     if np.all([ch in node_channels for ch in ["Xrotation", "Yrotation", "Zrotation"]]):
                         node_channels += ["Wrotation"] #TODO fix order
                 self.channels[node.node_name] = node_channels
-            #print "channels", self.channels
         self.pose = SkeletonPoseModel(self.skeleton, reference_frame, self.channels, self.use_euler)
 
     def _run_optimization(self, objective, initial_guess, data, cons=None):
@@ -175,14 +173,14 @@ class InverseKinematics(object):
         self._modify_pose_general(constraint)
         motion_vector.frames[keyframe] = self.pose.get_vector()
         if self.window > 0:
-            self.interpolate_around_keyframe(motion_vector, constraint.get_joint_names(), keyframe, self.window)
+            self.interpolate_around_keyframe(motion_vector.frames, constraint.get_joint_names(), keyframe, self.window)
 
-    def interpolate_around_keyframe(self, motion_vector, joint_names, keyframe, window):
+    def interpolate_around_keyframe(self, frames, joint_names, keyframe, window):
         write_log("Smooth and interpolate", joint_names)
         for target_joint_name in joint_names:
             joint_parameter_indices = self._extract_free_parameter_indices(self.pose.free_joints_map[target_joint_name])
             for joint_name in self.pose.free_joints_map[target_joint_name]:
-                smooth_quaternion_frames_using_slerp(motion_vector.frames, joint_parameter_indices[joint_name], keyframe, window)
+                smooth_quaternion_frames_using_slerp(frames, joint_parameter_indices[joint_name], keyframe, window)
 
     def _look_at_in_range(self, motion_vector, position, start, end):
         for idx in xrange(start, end):
