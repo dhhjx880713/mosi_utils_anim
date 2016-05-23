@@ -167,10 +167,9 @@ class ElementaryActionGenerator(object):
             return action_name, start_nodes[0]
 
     def _get_best_transition_node(self, graph_walk):
-        #prev_node = graph_walk.steps[-1].node_key
         next_node_type = self.node_group.get_transition_type(graph_walk, self.action_constraints,
-                                                              self.action_state.travelled_arc_length,
-                                                              self.arc_length_of_end)
+                                                             self.action_state.travelled_arc_length,
+                                                             self.arc_length_of_end)
         edges = self.motion_state_graph.nodes[self.action_state.current_node].outgoing_edges
         options = [edge_key for edge_key in edges.keys() if edges[edge_key].transition_type == next_node_type]
         n_transitions = len(options)
