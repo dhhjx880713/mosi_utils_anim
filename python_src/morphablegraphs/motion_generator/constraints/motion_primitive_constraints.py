@@ -58,8 +58,6 @@ class MotionPrimitiveConstraints(object):
         write_log("starting from:", self.step_start)
         write_log("the new goal for " + self.motion_primitive_name, "is", self.step_goal)
         write_log("arc length is: " + str(self.goal_arc_length))
-#        print  "starting from",last_pos,last_arc_length,"the new goal for", \
-#                current_motion_primitive,"is",goal,"at arc length",arc_length
 
     def evaluate(self, motion_primitive, parameters, prev_frames, use_time_parameters=False):
         """
@@ -73,10 +71,9 @@ class MotionPrimitiveConstraints(object):
         """
         motion_spline = motion_primitive.back_project(parameters, use_time_parameters)
         if not self.is_local:
-            #find aligned frames once for all constraints#TODO use splines
+            #find aligned frames once for all constraints#
             motion_spline.coeffs = align_quaternion_frames(motion_spline.coeffs, prev_frames, self.start_pose)
 
-        #quat_frames = motion_spline.get_motion_vector()#TODO only get the frames that are needed
         #evaluate constraints with the generated motion
         error_sum = 0
         for constraint in self.constraints:
@@ -98,8 +95,6 @@ class MotionPrimitiveConstraints(object):
         if not self.is_local:
             #find aligned frames once for all constraints
             motion_spline.coeffs = align_quaternion_frames(motion_spline.coeffs, prev_frames, self.start_pose)
-
-        #quat_frames = motion_spline.get_motion_vector()
         #evaluate constraints with the generated motion
         residual_vector = []
         for constraint in self.constraints:
@@ -143,7 +138,7 @@ class MotionPrimitiveConstraints(object):
                 delta_orientation = quaternion_from_vector_to_vector(c.direction_constraint, ref_vector)
                 orientation = quaternion_multiply(original_orientation, delta_orientation)
                 desc = {"type": "dir", "value":orientation, "joint": "Hips"}
-                if "keyframeLabel" in c.semantic_annotation and use_semantic_annotation:# and self.is_last_step
+                if "keyframeLabel" in c.semantic_annotation and use_semantic_annotation:
                     semantic_label = c.semantic_annotation["keyframeLabel"]
                     if semantic_label not in temp_constraint_list.keys():
                         temp_constraint_list[semantic_label] = []
@@ -157,14 +152,14 @@ class MotionPrimitiveConstraints(object):
                 else:
                     y_coordinate = c.position[1]
                 desc = {"type":"pos","value":[c.position[0], y_coordinate, c.position[2]], "joint": c.joint_name, "weight_factor":c.weight_factor}
-                if "keyframeLabel" in c.semantic_annotation and use_semantic_annotation:# and self.is_last_step
-                    semantic_label = c.semantic_annotation["keyframeLabel"]#UNLABELED_KEY
+                if "keyframeLabel" in c.semantic_annotation and use_semantic_annotation:
+                    semantic_label = c.semantic_annotation["keyframeLabel"]
                     if semantic_label not in temp_constraint_list.keys():
                         temp_constraint_list[semantic_label] = []
                     temp_constraint_list[semantic_label].append(desc)
                 else:
                     temp_constraint_list[UNLABELED_KEY].append(desc)
-            elif c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE: #use the transition constraint only for pick and place  and self.step_goal is None
+            elif c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE:
                 semantic_label = UNLABELED_KEY#c.semantic_annotation["keyframeLabel"]#
                 if semantic_label not in temp_constraint_list.keys():
                     temp_constraint_list[semantic_label] = []
@@ -219,7 +214,6 @@ class MotionPrimitiveConstraints(object):
                         orientation = temp_c["value"]
                         has_orientation = True
                 if position is not None:
-                    #print "pose", position, orientation, joint_name, self.motion_primitive_name
                     pose_constraint = MGRDPoseConstraint(joint_name, weight_factor, position, orientation)
                     semantic_constraint = MGRDSemanticConstraint({key: True}, time=None)
                     semantic_pose_constraint = MGRDSemanticPoseConstraint(pose_constraint, semantic_constraint)
@@ -287,7 +281,7 @@ class MotionPrimitiveConstraints(object):
                     position = np.dot(inv_aligning_transform, [p[0], p[1], p[2], 1])[:3]
                     pose_constraint.append(position)
                 pose_constraint_desc = {"keyframeLabel": "start","canonical_keyframe": c.canonical_keyframe, "frame_constraint": pose_constraint,
-                            "semanticAnnotation": c.semantic_annotation}
+                                        "semanticAnnotation": c.semantic_annotation}
                 pose_constraint = PoseConstraint(self.skeleton, pose_constraint_desc, c.precision, c.weight_factor)
                 mp_constraints.constraints.append(pose_constraint)
 
@@ -296,21 +290,18 @@ class MotionPrimitiveConstraints(object):
                 local_dir = np.dot(inv_aligning_transform, [dir[0], dir[1], dir[2], 0])[:3]
                 dir_constraint_desc = {"canonical_keyframe":c.canonical_keyframe,
                                        "dir_vector": local_dir,
-                                        "semanticAnnotation": c.semantic_annotation}
+                                       "semanticAnnotation": c.semantic_annotation}
                 dir_constraint = Direction2DConstraint(self.skeleton, dir_constraint_desc, c.precision, c.weight_factor)
                 mp_constraints.constraints.append(dir_constraint)
 
             elif c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_LOOK_AT:
                 local_target_pos = copy(c.target_position)
                 local_target_pos = np.dot(inv_aligning_transform, [local_target_pos[0], local_target_pos[1], local_target_pos[2], 1])[:3]
-                lookat_constraint_desc = {
-                                          "canonical_keyframe":c.canonical_keyframe,
-                                       "dir_vector": local_target_pos,
-                                        "semanticAnnotation": c.semantic_annotation}
+                lookat_constraint_desc = {"canonical_keyframe":c.canonical_keyframe,
+                                          "dir_vector": local_target_pos,
+                                          "semanticAnnotation": c.semantic_annotation}
                 lookat_constraint = LookAtConstraint(self.skeleton, lookat_constraint_desc, c.precision, c.weight_factor)
                 mp_constraints.constraints.append(lookat_constraint)
-
-
         return mp_constraints
 
     def convert_to_ik_constraints(self, frame_offset=0, time_function=None):
@@ -359,8 +350,7 @@ class MotionPrimitiveConstraints(object):
         ca_constraints = list()
         for c in self.constraints:
             if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_CA_CONSTRAINT and \
-                c.joint_name in self.skeleton.free_joints_map.keys():
-                print "ca constraint for joint", c.joint_name
+               c.joint_name in self.skeleton.free_joints_map.keys():
                 free_joints = self.skeleton.free_joints_map[c.joint_name]
                 ca_constraints.append(JointIKConstraint(c.joint_name, c.position, None, -1, free_joints, c.step_idx))
         return ca_constraints
