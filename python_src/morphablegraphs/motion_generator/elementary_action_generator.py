@@ -3,6 +3,7 @@ __author__ = 'erhe01'
 import numpy as np
 from copy import copy, deepcopy
 import json
+import urllib2
 from ..utilities.exceptions import PathSearchError
 from ..motion_model import NODE_TYPE_END, NODE_TYPE_SINGLE
 from ..animation_data.motion_editing import create_transformation_matrix
@@ -69,7 +70,7 @@ class ElementaryActionGeneratorState(object):
 
 
 class ElementaryActionGenerator(object):
-    def __init__(self, motion_primitive_graph, algorithm_config):
+    def __init__(self, motion_primitive_graph, algorithm_config, ca_service_url=None):
         self.motion_state_graph = motion_primitive_graph
         self._algorithm_config = algorithm_config
         self.motion_primitive_constraints_builder = MotionPrimitiveConstraintsBuilder()
@@ -81,6 +82,7 @@ class ElementaryActionGenerator(object):
         self.end_step_length_factor = algorithm_config["trajectory_following_settings"]["end_step_length_factor"]
         self.max_distance_to_path = algorithm_config["trajectory_following_settings"]["max_distance_to_path"]
         self.activate_direction_ca_connection = algorithm_config["collision_avoidance_constraints_mode"] == CA_CONSTRAINTS_MODE_DIRECT_CONNECTION
+        self.ca_service_url = ca_service_url
 
     def set_algorithm_config(self, algorithm_config):
         self._algorithm_config = algorithm_config
@@ -290,7 +292,7 @@ class ElementaryActionGenerator(object):
         new_motion_spline, new_parameters = self.motion_primitive_generator.generate_constrained_motion_spline(mp_constraints, graph_walk)
         if self.activate_direction_ca_connection:
             ca_constraints = self._get_collision_avoidance_constraints(new_node, new_motion_spline, graph_walk)
-            if len(ca_constraints) > 0:
+            if ca_constraints is not None and len(ca_constraints) > 0:
                 mp_constraints.constraints += ca_constraints
                 new_motion_spline, new_parameters = self.motion_primitive_generator.generate_constrained_motion_spline(mp_constraints, graph_walk)
 
@@ -334,18 +336,19 @@ class ElementaryActionGenerator(object):
                     "motion_primitive_name": new_node[1],
                     "global_transform": global_transformation.tolist(),
                     "global_bvh_frames": global_bvh_string}
-        ca_output = self._call_ca_rest_interface(ca_input)
 
-        #convert output into constraint list
-        return self._create_ca_constraints(new_node, ca_output, graph_walk)
+        ca_output = self._call_ca_rest_interface(ca_input)
+        if ca_output is not None:
+            return self._create_ca_constraints(new_node, ca_output, graph_walk)
+        else:
+            return None
 
     def _get_aligned_motion_spline(self, new_motion_spline, prev_frames):
         aligned_motion_spline = deepcopy(new_motion_spline)
         if prev_frames is not None:
             angle, offset = fast_quat_frames_transformation(prev_frames, new_motion_spline.coeffs)
             aligned_motion_spline.coeffs = transform_quaternion_frames(aligned_motion_spline.coeffs,
-                                                                   [0, angle, 0],
-                                                                   offset)
+                                                                       [0, angle, 0], offset)
             global_transformation = euler_angles_to_rotation_matrix([0, angle, 0])
             global_transformation[:3, 3] = offset
         elif self.action_constraints.start_pose is not None:
@@ -359,11 +362,20 @@ class ElementaryActionGenerator(object):
 
     def _call_ca_rest_interface(self, ca_input):
         """ call ca rest interface using a json payload
-
         """
-        ca_result ="{}"#TODO call CA interface
-        ca_output_string = json.loads(ca_result)
-        return ca_output_string
+        if self.ca_service_url is not None:
+            write_log("Call CA interface",self.ca_service_url,"for",ca_input["elementary_action_name"],ca_input["motion_primitive_name"])
+            request = urllib2.Request("http://"+self.ca_service_url, ca_input)
+            try:
+                handler = urllib2.urlopen(request)
+                ca_output_string = handler.read()
+                ca_result = json.loads(ca_output_string)
+                return ca_result
+            except urllib2.HTTPError, e:
+               write_log(e.code)
+            except urllib2.URLError, e:
+               write_log(e.args)
+        return None
 
     def _create_ca_constraints(self, new_node, ca_output, graph_walk):
         ca_constraints = []

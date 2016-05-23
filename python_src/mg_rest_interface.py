@@ -10,6 +10,7 @@ import os
 # change working directory to the script file directory
 file_dir_name, file_name = os.path.split(os.path.abspath(__file__))
 os.chdir(file_dir_name)
+import urllib2
 import tornado.escape
 import tornado.ioloop
 import tornado.web
@@ -121,9 +122,7 @@ class MGRestApplication(tornado.web.Application):
 
         self.algorithm_config = algorithm_config
         self.service_config = service_config
-        start = time.clock()
-        self.motion_generator = MotionGenerator(self.service_config, self.algorithm_config)
-        print "Finished construction from file in", time.clock() - start, "seconds"
+
         self.use_file_output_mode = (service_config["output_mode"] == "file_output" and "output_dir" in self.service_config.keys())
         self.activate_joint_map = True
         self.apply_coordinate_transform = True
@@ -136,6 +135,17 @@ class MGRestApplication(tornado.web.Application):
             print "Results are written as file to the directory", self.service_config["output_dir"]
         else:
             print "Results are send as answers to the request"
+
+        try:
+            ca_service_url = service_config["collision_avoidance_service_url"]
+            urllib2.urlopen('http://'+ca_service_url)
+        except:
+            print "Error: Could not open collision avoidance service url",'http://'+ca_service_url
+            ca_service_url = None
+
+        start = time.clock()
+        self.motion_generator = MotionGenerator(self.service_config, self.algorithm_config, ca_service_url)
+        print "Finished construction from file in", time.clock() - start, "seconds"
 
     def generate_motion(self, mg_input):
         return self.motion_generator.generate_motion(mg_input, activate_joint_map=self.activate_joint_map,
