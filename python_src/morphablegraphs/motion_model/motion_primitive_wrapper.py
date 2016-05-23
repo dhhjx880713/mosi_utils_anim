@@ -23,7 +23,6 @@ class MotionPrimitiveModelWrapper(object):
 
     def __init__(self):
         self.motion_primitive = None
-        self.use_mgrd_mixture_model = False
 
     def _load_from_file(self, mgrd_skeleton, file_name, animated_joints=None, use_mgrd_mixture_model=False):
         data = load_json_file(file_name)
