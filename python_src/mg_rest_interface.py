@@ -49,7 +49,6 @@ class MGInputHandler(tornado.web.RequestHandler):
         # start algorithm if predefined keys were found
         if "elementaryActions" in mg_input.keys() or "tasks" in mg_input.keys():
             motion_vector = self.application.generate_motion(mg_input)
-
             self._handle_result(motion_vector)
         else:
             print mg_input
@@ -217,7 +216,6 @@ def main():
         mg_service.start()
     else:
         print "Error: could not open service or algorithm configuration file"
-    return
 
 
 if __name__ == "__main__":
