@@ -135,15 +135,14 @@ class MGRestApplication(tornado.web.Application):
         else:
             print "Results are send as answers to the request"
 
+        ca_service_url = None
         if "collision_avoidance_service_url" in service_config.keys():
             try:
                 ca_service_url = service_config["collision_avoidance_service_url"]
                 urllib2.urlopen('http://'+ca_service_url)
             except Exception as e:
-                print "Error: Could not open collision avoidance service url", ca_service_url
+                print "Error: Could not open collision avoidance service URL", ca_service_url
                 ca_service_url = None
-        else:
-            ca_service_url = None
 
         start = time.clock()
         self.motion_generator = MotionGenerator(self.service_config, self.algorithm_config, ca_service_url)
