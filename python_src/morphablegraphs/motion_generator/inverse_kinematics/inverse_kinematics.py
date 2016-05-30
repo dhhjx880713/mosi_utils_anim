@@ -158,15 +158,8 @@ class InverseKinematics(object):
                     self._modify_frame_using_keyframe_constraint(motion_vector, c, keyframe)
                     if self.activate_look_at and not has_multiple_targets:
                         #write_log("look at constraint")
-                        if self.window > 0:
-                            start = keyframe - self.window/2
-                            end = keyframe + self.window/2
-                        else:
-                            start = keyframe
-                            end = keyframe+1
-                        start = max(0, start)
-                        end = min(motion_vector.frames.shape[0], end)
-                        #print "look at in range", start, end
+                        start = keyframe
+                        end = keyframe+1
                         self._look_at_in_range(motion_vector, c.position, start, end)
 
     def _modify_frame_using_keyframe_constraint(self, motion_vector, constraint, keyframe):
