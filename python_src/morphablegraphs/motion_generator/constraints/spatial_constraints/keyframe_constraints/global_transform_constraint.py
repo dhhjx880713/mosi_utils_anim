@@ -69,14 +69,13 @@ class GlobalTransformConstraint(KeyframeConstraintBase):
             error += self._evaluate_joint_orientation(frame)
         return error
 
-    def _evaluate_joint_orientation(self, frame):
-        joint_index = self.skeleton.node_name_frame_map[self.joint_name]
-        joint_orientation = frame[joint_index:joint_index+4]
-        return self._quaternion_distance(joint_orientation)
-
     def _evaluate_joint_position(self, frame):
         joint_position = self.skeleton.nodes[self.joint_name].get_global_position(frame)
         return GlobalTransformConstraint._point_distance(self.position, joint_position)
+
+    def _evaluate_joint_orientation(self, frame):
+        joint_orientation = self.skeleton.nodes[self.joint_name].get_global_orientation_quaternion(frame, use_cache=True)
+        return self._quaternion_distance(joint_orientation)
 
     def _quaternion_distance(self, joint_orientation):
         """
