@@ -72,7 +72,7 @@ class SkeletonPoseModel(object):
             else:
                 self.types[joint] = "rot"
             channel_idx += self.n_channels[joint]
-            if self.n_channels[joint] > 0 :
+            if self.n_channels[joint] > 0:
                 self.modelled_joints.append(joint)
         #print "modelled joints",self.modelled_joints
         #print "maximum channel", channel_idx
@@ -80,6 +80,7 @@ class SkeletonPoseModel(object):
         self.reduced_free_joints_map = skeleton.reduced_free_joints_map
         self.head_joint = skeleton.head_joint
         self.neck_joint = skeleton.neck_joint
+        self.relative_head_dir = np.array([0.0, 0.0, 1.0, 0.0])
         self.bounds = skeleton.bounds
 
     def set_pose_parameters(self, pose_parameters):
@@ -189,11 +190,10 @@ class SkeletonPoseModel(object):
         self.skeleton.clear_cached_global_matrices()
 
     def lookat(self, point):
-        #TODO make it work and then also with euler angles
         head_position = self.evaluate_position(self.head_joint)
         target_dir = point - head_position
         target_dir /= np.linalg.norm(target_dir)
-        head_direction = self.get_joint_direction(self.head_joint)
+        head_direction = self.get_joint_direction(self.head_joint, self.relative_head_dir)
         delta_q = quaternion_from_vector_to_vector(head_direction, target_dir)
         delta_matrix = quaternion_matrix(delta_q)
 
@@ -207,11 +207,10 @@ class SkeletonPoseModel(object):
         self.set_channel_values(new_local_q, [self.head_joint])
 
 
-    def get_joint_direction(self, joint_name):
+    def get_joint_direction(self, joint_name, ref_vector):
         q = self.evaluate_orientation(joint_name)
         q /= np.linalg.norm(q)
         rotation_matrix = quaternion_matrix(q)
-        ref_vector = [0, 0, 1, 1]
         vec = np.dot(rotation_matrix, ref_vector)[:3]
         return vec/np.linalg.norm(vec)
 
