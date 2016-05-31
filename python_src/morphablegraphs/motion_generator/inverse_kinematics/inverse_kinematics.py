@@ -17,9 +17,16 @@ IK_METHOD_CYCLIC_COORDINATE_DESCENT = "ccd"
 
 
 def obj_inverse_kinematics(s, data):
-    ik, free_joints, target_joint, target_position = data
-    d = ik.evaluate_delta(s, target_joint, target_position, free_joints)
-    return d
+    pose, free_joints, target_joint, target_position, target_orientation = data
+    #d = ik.evaluate_delta(s, target_joint, target_position, free_joints)
+    #return d
+    pose.set_channel_values(s, free_joints) #update frame
+    position = pose.evaluate_position(target_joint)
+    d = position - target_position
+    #print target_joint, position, target_position, parameters
+    #print parameters.tolist()
+    return np.dot(d, d)
+
 
 
 class InverseKinematics(object):
@@ -84,8 +91,9 @@ class InverseKinematics(object):
 
     def _modify_using_optimization(self, target_joint, target_position, free_joints):
         initial_guess = self._extract_free_parameters(free_joints)
-        data = self, free_joints, target_joint, target_position
-        write_log("start optimization for joint", target_joint, len(initial_guess), len(free_joints))
+        data = self, free_joints, target_joint, target_position, None
+        if self.verbose:
+            write_log("start optimization for joint", target_joint, len(initial_guess), len(free_joints))
         start = time.clock()
         cons = None#self.pose.generate_constraints(free_joints)
         result = self._run_optimization(obj_inverse_kinematics, initial_guess, data, cons)
@@ -95,11 +103,10 @@ class InverseKinematics(object):
         self.pose.set_channel_values(result["x"], free_joints)
         return error
 
-    def optimize_joint(self, target_joint, target_position, free_joint):
-        #optimize x y z
+    def optimize_joint(self, objective, target_joint, target_position, target_orientation, free_joint):
         initial_guess = self.pose.extract_parameters(free_joint)#self._extract_free_parameters([free_joint])
-        data = self, [free_joint], target_joint, target_position
-        result = self._run_optimization(obj_inverse_kinematics, initial_guess, data)
+        data = self.pose, [free_joint], target_joint, target_position, None
+        result = self._run_optimization(objective, initial_guess, data)
         #apply constraints here
         self.pose.apply_bounds(free_joint)
         return result["x"]
@@ -115,7 +122,7 @@ class InverseKinematics(object):
         start = time.clock()
         while not terminate:
             for free_joint in reversed_chain:
-                self.optimize_joint(target_joint, target_position, free_joint)
+                self.optimize_joint(obj_inverse_kinematics, target_joint, target_position, None, free_joint)
                 #self.pose.set_channel_values(joint_result, [free_joint])
             position = self.pose.evaluate_position(target_joint)
             new_delta = np.linalg.norm(position-target_position)
