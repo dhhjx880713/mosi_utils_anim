@@ -72,8 +72,8 @@ class Skeleton(object):
                 self.node_channels[node_name] = channels
                 #print("set channels",node_name ,channels)
 
-    def _extract_reference_frame(self, bvh_reader):
-        quaternion_frame = np.array((QuaternionFrame(bvh_reader, bvh_reader.frames[0], False, False).values())).flatten()
+    def _extract_reference_frame(self, bvh_reader, frame_index=0):
+        quaternion_frame = np.array((QuaternionFrame(bvh_reader, bvh_reader.frames[frame_index], False, False).values())).flatten()
         return np.array(bvh_reader.frames[0][:3].tolist() + quaternion_frame.tolist())
 
     def construct_hierarchy_iterative(self):
