@@ -176,6 +176,8 @@ class InverseKinematics(object):
                 smooth_quaternion_frames_using_slerp(frames, joint_parameter_indices[joint_name], keyframe, window)
 
     def _look_at_in_range(self, motion_vector, position, start, end):
+        start = max(0, start)
+        end = min(motion_vector.frames.shape[0], end)
         for idx in xrange(start, end):
             self.set_pose_from_frame(motion_vector.frames[idx])
             self.pose.lookat(position)
