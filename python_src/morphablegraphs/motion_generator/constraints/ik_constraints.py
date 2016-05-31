@@ -18,15 +18,24 @@ class JointIKConstraint(IKConstraint):
 
     @staticmethod
     def evaluate(parameters, data):
-        pose, free_joints, target_joint, target_position = data
+        pose, free_joints, target_joint, target_position, target_orientation = data
         pose.set_channel_values(parameters, free_joints)
-        d = pose.evaluate_position(target_joint) - target_position
-        return np.dot(d, d)
+        if target_orientation is not None:
+            parent_joint = pose.get_parent_joint(target_joint)
+            if parent_joint is not None:
+                pose.set_hand_orientation(parent_joint, target_orientation)
+            else:
+                print "Error no parent joint"
+        d = 0.0
+        if target_position is not None:
+            d = pose.evaluate_position(target_joint) - target_position
+            d = np.dot(d, d)
+
 
     def data(self, ik, free_joints=None):
         if free_joints is None:
             free_joints = self.free_joints
-        return ik.pose, free_joints, self.joint_name, self.position
+        return ik.pose, free_joints, self.joint_name, self.position, self.orientation
 
     def get_joint_names(self):
         return [self.joint_name]
