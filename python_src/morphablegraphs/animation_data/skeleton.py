@@ -20,12 +20,47 @@ try:
 except ImportError:
     has_mgrd = False
     pass
+DEFAULT_TOOl_BONES = [{
+            "new_node_name": 'LeftToolEndSite',
+            "parent_node_name": 'LeftHand',
+            "new_node_offset": [6.1522069, -0.09354633,  3.33790343]#[9.55928, -0.145352, 5.186424]
+        },{
+            "new_node_name": 'RightToolEndSite',
+            "parent_node_name": 'RightHand',
+            "new_node_offset": [6.1522069, 0.09354633,  3.33790343]#[9.559288, 0.145353, 5.186417]
+            }
+        ]
+DEFAULT_FREE_JOINTS_MAP = {"LeftHand":["Spine","LeftArm", "LeftForeArm"],
+                           "RightHand":["Spine","RightArm","RightForeArm"],
+                           "LeftToolEndSite":["Spine","LeftArm","LeftForeArm"],
+                           "RightToolEndSite":["Spine","RightArm", "RightForeArm"],
+                            "Head":[]
+                                }
+DEFAULT_REDUCED_FREE_JOINTS_MAP = {"LeftHand":["Spine","LeftArm", "LeftForeArm"],
+                                       "RightHand":["Spine","RightArm","RightForeArm"],
+                                       "LeftToolEndSite":["LeftArm","LeftForeArm"],
+                                       "RightToolEndSite":["RightArm", "RightForeArm"],
+                                        "Head":[]}
+DEFAULT_HEAD_JOINT = "Head"
+DEFAULT_NECK_JOINT = "Neck"
+DEFAULT_BOUNDS = {"LeftArm":[],#{"dim": 1, "min": 0, "max": 90}
+                       "RightArm":[]}#{"dim": 1, "min": 0, "max": 90},{"dim": 0, "min": 0, "max": 90}
 
 class Skeleton(object):
     """ Data structure that stores the skeleton hierarchy information
         extracted from a BVH file with additional meta information.
     """
     def __init__(self, bvh_reader, animated_joints=None, rotation_type=ROTATION_TYPE_QUATERNION):
+
+        #TODO read data from file
+        new_tool_bones = DEFAULT_TOOl_BONES
+        self.animated_joints = animated_joints
+        self.free_joints_map = DEFAULT_FREE_JOINTS_MAP
+        self.reduced_free_joints_map = DEFAULT_REDUCED_FREE_JOINTS_MAP
+        self.head_joint = DEFAULT_HEAD_JOINT
+        self.neck_joint = DEFAULT_NECK_JOINT
+        self.bounds = DEFAULT_BOUNDS
+
         self.frame_time = deepcopy(bvh_reader.frame_time)
         self.root = deepcopy(bvh_reader.root)
         self.node_names = deepcopy(bvh_reader.node_names)
@@ -36,33 +71,11 @@ class Skeleton(object):
         self.nodes = collections.OrderedDict()
         self._create_filtered_node_name_frame_map()
         self.tool_nodes = []
-        self._add_tool_nodes()
+        self._add_tool_nodes(new_tool_bones)
         self.max_level = self._get_max_level()
         self._set_joint_weights()
         self.parent_dict = self._get_parent_dict()
         self._chain_names = self._generate_chain_names()
-
-        #print "node name map keys", len(self.node_names), len(self.node_name_frame_map), self.node_name_frame_map.keys()
-        print "shape of reference frame", (self.reference_frame.shape)
-
-        #TODO read data from file
-        self.animated_joints = animated_joints
-
-        self.free_joints_map = {"LeftHand":["Spine","LeftArm", "LeftForeArm"],
-                           "RightHand":["Spine","RightArm","RightForeArm"],
-                           "LeftToolEndSite":["Spine","LeftArm","LeftForeArm"],
-                           "RightToolEndSite":["Spine","RightArm", "RightForeArm"],
-                            "Head":[]
-                                }
-        self.reduced_free_joints_map = {"LeftHand":["Spine","LeftArm", "LeftForeArm"],
-                                       "RightHand":["Spine","RightArm","RightForeArm"],
-                                       "LeftToolEndSite":["LeftArm","LeftForeArm"],
-                                       "RightToolEndSite":["RightArm", "RightForeArm"],
-                                        "Head":[]}
-        self.head_joint = "Head"
-        self.neck_joint = "Neck"
-        self.bounds = {"LeftArm":[],#{"dim": 1, "min": 0, "max": 90}
-                       "RightArm":[]}#{"dim": 1, "min": 0, "max": 90},{"dim": 0, "min": 0, "max": 90}
         self.construct_hierarchy_iterative()
 
     def extract_channels(self):
@@ -218,23 +231,10 @@ class Skeleton(object):
         #return self.joint_weights#.values()
         return self.joint_weight_map.values()
 
-    def _add_tool_nodes(self):
-        new_node_name = 'LeftToolEndSite'
-        parent_node_name = 'LeftHand'
-        new_node_offset = [9.55928, -0.145352, 5.186424]
-        self._add_new_end_site(new_node_name, parent_node_name, new_node_offset)
-        self.tool_nodes.append(new_node_name)
-        new_node_name = 'RightToolEndSite'
-        parent_node_name = 'RightHand'
-        new_node_offset = [9.559288, 0.145353, 5.186417]
-        self._add_new_end_site(new_node_name, parent_node_name, new_node_offset)
-        self.tool_nodes.append(new_node_name)
-        #Finger21 = 'Bip01_L_Finger21'
-        #Finger21_offset = [3.801407, 0.0, 0.0]
-        #Finger2 = 'Bip01_R_Finger2'
-        #Finger21 = 'Bip01_R_Finger21'
-        #Finger2_offset = [9.559288, 0.145353, -0.186417]
-        #Finger21_offset = [3.801407, 0.0, 0.0]
+    def _add_tool_nodes(self, new_tool_bones):
+        for b in new_tool_bones:
+            self._add_new_end_site(b["new_node_name"], b["parent_node_name"], b["new_node_offset"])
+            self.tool_nodes.append(b["new_node_name"])
 
     def _add_new_end_site(self, new_node_name, parent_node_name, offset):
         if parent_node_name in self.node_names.keys():
