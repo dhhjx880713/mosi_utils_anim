@@ -33,7 +33,11 @@ class JointIKConstraint(IKConstraint):
     def data(self, ik, free_joints=None):
         if free_joints is None:
             free_joints = self.free_joints
-        return ik.pose, free_joints, self.joint_name, self.position, self.orientation
+        if ik.optimize_orientation:
+            orientation = self.orientation
+        else:
+            orientation = None
+        return ik.pose, free_joints, self.joint_name, self.position, orientation
 
     def get_joint_names(self):
         return [self.joint_name]

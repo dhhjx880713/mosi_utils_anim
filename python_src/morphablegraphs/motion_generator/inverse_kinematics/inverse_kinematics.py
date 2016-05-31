@@ -41,6 +41,7 @@ class InverseKinematics(object):
         self.success_threshold = self._ik_settings["success_threshold"]
         self.max_retries = self._ik_settings["max_retries"]
         self.activate_look_at = self._ik_settings["activate_look_at"]
+        self.optimize_orientation = self._ik_settings["optimize_orientation"]
         if self.use_euler:
             self.skeleton.set_rotation_type(ROTATION_TYPE_EULER)#change to euler
         self.channels = OrderedDict()
