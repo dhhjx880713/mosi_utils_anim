@@ -26,11 +26,9 @@ class JointIKConstraint(IKConstraint):
                 pose.set_hand_orientation(parent_joint, target_orientation)
             else:
                 print "Error no parent joint"
-        d = 0.0
-        if target_position is not None:
-            d = pose.evaluate_position(target_joint) - target_position
-            d = np.dot(d, d)
 
+        d = pose.evaluate_position(target_joint) - target_position
+        return np.dot(d, d)
 
     def data(self, ik, free_joints=None):
         if free_joints is None:
