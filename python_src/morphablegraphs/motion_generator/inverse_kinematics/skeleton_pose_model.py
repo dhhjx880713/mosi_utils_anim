@@ -262,3 +262,8 @@ class SkeletonPoseModel(object):
         vec = np.dot(rotation_matrix, ref_vector)[:3]
         return vec/np.linalg.norm(vec)
 
+    def get_parent_joint(self, joint_name):
+        if joint_name not in self.skeleton.parent_dict.keys():
+            return None
+        return self.skeleton.parent_dict[joint_name]
+
