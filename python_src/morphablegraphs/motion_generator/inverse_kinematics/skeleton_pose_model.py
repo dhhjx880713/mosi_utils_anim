@@ -245,6 +245,15 @@ class SkeletonPoseModel(object):
             self.set_channel_values(new_local_q, [joint_name])
         print joint_direction
 
+    def set_joint_orientation(self, joint_name, target_q):
+        global_q = self.skeleton.nodes[joint_name].get_global_orientation_quaternion(self.pose_parameters, use_cache=False)
+        global_m = quaternion_matrix(global_q)
+        target_m = quaternion_matrix(target_q)
+        delta_m = np.linalg.inv(global_m)*target_m
+        local_m = self.skeleton.nodes[joint_name].get_local_matrix(self.pose_parameters)
+        new_local_m = np.dot(delta_m, local_m)
+        new_local_q = quaternion_from_matrix(new_local_m)
+        self.set_channel_values(new_local_q, [joint_name])
 
     def get_joint_direction(self, joint_name, ref_vector):
         q = self.evaluate_orientation(joint_name)
