@@ -125,7 +125,7 @@ class SkeletonJointNode(SkeletonNodeBase):
 class SkeletonEndSiteNode(SkeletonNodeBase):
     def __init__(self, node_name, channels, parent=None):
         super(SkeletonEndSiteNode, self).__init__(node_name, channels, parent)
-        self.node_type = SKELETON_NODE_TYPE_JOINT
+        self.node_type = SKELETON_NODE_TYPE_END_SITE
 
     def get_local_matrix(self, quaternion_frame):
         local_matrix = np.identity(4)
