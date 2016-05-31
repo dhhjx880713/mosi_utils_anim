@@ -161,6 +161,8 @@ class InverseKinematics(object):
                         start = keyframe
                         end = keyframe+1
                         self._look_at_in_range(motion_vector, c.position, start, end)
+                        if c.orientation is not None:
+                            self._set_hand_orientation(motion_vector, c.orientation, c.joint_name, keyframe, start, end)
 
     def _modify_frame_using_keyframe_constraint(self, motion_vector, constraint, keyframe):
         self._modify_pose_general(constraint)
@@ -308,3 +310,12 @@ class InverseKinematics(object):
             #print ("indices", indices)
         return indices
 
+    def _set_hand_orientation(self, motion_vector, orientation, joint_name, keyframe, start, end):
+        #print keyframe
+        parent_joint_name = self.pose.get_parent_joint(joint_name)#"RightHand"
+        self.set_pose_from_frame(motion_vector.frames[keyframe])
+        self.pose.set_hand_orientation(parent_joint_name, orientation)
+        start = max(0, start)
+        end = min(motion_vector.frames.shape[0], end)
+        #print start, end
+        self._create_transition_for_frame_range(motion_vector.frames, start, end-1, [parent_joint_name])
