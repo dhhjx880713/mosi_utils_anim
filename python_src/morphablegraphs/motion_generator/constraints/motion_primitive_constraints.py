@@ -323,7 +323,7 @@ class MotionPrimitiveConstraints(object):
                 if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION and\
                         c.joint_name in self.skeleton.free_joints_map.keys():
                     free_joints = self.skeleton.free_joints_map[c.joint_name]
-                    ik_constraint = JointIKConstraint(c.joint_name, c.position, None, keyframe, free_joints)
+                    ik_constraint = JointIKConstraint(c.joint_name, c.position, c.orientation, keyframe, free_joints)
                     ik_constraints[keyframe]["single"] .append(ik_constraint)
 
                 elif c.constraint_type == SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION and\
