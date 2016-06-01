@@ -746,8 +746,6 @@ def rotate_around_y_axis(point, theta):
     return transfomed_point
 
 
-
-
 def transform_point_by_quaternion(point, quaternion, offset, origin=None):
     """
     http://math.stackexchange.com/questions/40164/how-do-you-rotate-a-vector-by-a-unit-quaternion
@@ -1002,8 +1000,6 @@ def transform_quaternion_frame(quat_frame,
     rotated_q = quaternion_multiply(q, oq)
     transformed_frame[3:7] = rotated_q
     return transformed_frame
-
-
 
 
 def transform_quaternion_frames(quat_frames, angles, offset, rotation_order=None):

@@ -20,6 +20,7 @@ try:
 except ImportError:
     has_mgrd = False
     pass
+
 DEFAULT_TOOl_BONES = [{
             "new_node_name": 'LeftToolEndSite',
             "parent_node_name": 'LeftHand',
@@ -45,6 +46,7 @@ DEFAULT_HEAD_JOINT = "Head"
 DEFAULT_NECK_JOINT = "Neck"
 DEFAULT_BOUNDS = {"LeftArm":[],#{"dim": 1, "min": 0, "max": 90}
                        "RightArm":[]}#{"dim": 1, "min": 0, "max": 90},{"dim": 0, "min": 0, "max": 90}
+
 
 class Skeleton(object):
     """ Data structure that stores the skeleton hierarchy information
