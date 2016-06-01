@@ -24,6 +24,7 @@ try:
 except ImportError:
     pass
 
+
 class MotionPrimitiveConstraints(object):
     """ Represents the input to the generate_motion_primitive_from_constraints
         method of the MotionPrimitiveGenerator class.
