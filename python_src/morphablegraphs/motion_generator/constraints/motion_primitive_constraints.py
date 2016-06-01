@@ -188,7 +188,6 @@ class MotionPrimitiveConstraints(object):
             if key == UNLABELED_KEY:
                 for temp_c in temp_constraint_list[key]:
                     if temp_c["type"] == "pos":
-                        print "create cartesian constraint for joint", temp_c["joint"], temp_c["value"]
                         cartesian_constraint = MGRDCartesianConstraint(temp_c["value"], temp_c["joint"], temp_c["weight_factor"])
                         cartesian_constraints.append(cartesian_constraint)
             elif key =="start":
