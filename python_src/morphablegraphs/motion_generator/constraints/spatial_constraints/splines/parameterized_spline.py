@@ -205,8 +205,8 @@ class ParameterizedSpline(object):
         # todo get angle with reference_frame[1]
         a = reference_vector
         b = np.array([tangent_line[0], tangent_line[2]])
-        a /= sqrt(a[0]**2 + a[1]**2)
-        b /= sqrt(b[0]**2 + b[1]**2)
+        a /= np.linalg.norm(a)
+        b /= np.linalg.norm(b)
         angle = acos((a[0] * b[0] + a[1] * b[1]))
         return start, tangent_line, np.degrees(angle)
 
