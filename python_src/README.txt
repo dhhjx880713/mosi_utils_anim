@@ -35,17 +35,72 @@ Optionally:
  - BestFitPipeline.zip contains the binary files of imk and DFKI LT necessary for CNL processing. Extract the contents to any location.
  - Animation Server.7z contains the animation server. Extract the contents to any location.
 
-2. Modify the configuration files.
-For the morphable graphs algorithm modify "config/service.config"
-In the field "model_data" specify the location of the motion model file without file ending 
-In the field "transition_data" point to an empty directory. (Transition models 
-are not necessary to run the algorithm and are currently experimental.)
-In the field "input_dir" specify an input directory.
-In the field "output_dir" specify an output directory.
-In the field "algorithm_settings" specify the algorithm.config file to use by the prefix, e.g. "standard" for "standard_algorithm.config".
+2. Modify the configuration files in the config directory.
+2.1. Set input and output of the algorithm in the "service.config" file
+model_data: specify the location of the motion model file without file ending 
+transition_data: point to an empty directory. (Transition models are not necessary to run the algorithm and are currently experimental.)
+input_dir: specify an input directory.
+output_dir: specify an output directory.
+algorithm_settings: specify the algorithm.config file to use by the prefix, e.g. "standard" for "standard_algorithm.config".
+collision_avoidance_service_url: Optionally - specify the URL to the Collision Avoidance REST service.
+create_ca_vis_data: Optionally - add data for the visualization of CA constraints from the CA REST service to the BVH annotation.
 
-Optionally: Please see the readme file of the BestFitPipeline for details on its configuration file. 
-Make sure input directory and output directory match.
+2.2. Set the algorithm parameters in the algorithm configuration file seletected in service.config.
+
+2.2.1. general settings
+use_constraints - If set to false, a random motion for the given elementary actions is generated
+debug_max_step - if the value is larger than 0, the algorithm stops after this fixed number of motion primitives.
+local_optimization_mode -  Used to activate/deactivate local optimization for a single motion primitive and select the constraint set.
+                           Possible values are as follows
+                           "none": only use random sampling or the cluster search
+                           "keyframes": only optimize the keyframe constraints and ignore trajectory constraints
+                           "all": optimize trajectory and keyframe constraints
+                           "two_hands": only activated for two hand pick and place constraints
+global_spatial_optimization_mode - Optimize spatial constraints over graph walk
+                                   Possible values are as follows
+                                   "none": deactivated
+                                   "two_hands": only activated for two hand pick and place constraints
+                                   "all": activated for all keyframe constraints
+                                   "trajectory_end": optimize trajectory following motions in order to better reach the last control point of each trajectory
+use_global_time_optimization - Optimize time constraints over graph walk, if they are found
+constrained_sampling_mode - Used to select the method of the initial guess generation from the statistical model. Possible values are as follows
+                            "random_discrete": Draws random samples and converts them into discrete frame representations.
+                            "random_spline": Draws random samples and converts them into functional representations.
+                            "cluster_search": If active, a space partitioning data structure is used for a directed search instead of random sampling.
+n_cluster_search_candidates - If cluster search is active, sets the number of candidates that are kept at every level of the space partitioning structure in order to avoid local minima
+collision_avoidance_constraints_mode - Possible values are: "none" and "create_constraint_set". If "create_constraint_set" is set, then annotated collision avoidance constraints are included with the other constraints, otherwise they are ignored
+optimize_collision_avoidance_constraints_extra - If active, annotated trajectories from collision avoidance are optimized separately from the other constraints. This is independent of the collision_avoidance_constraints_mode.
+use_transition_model - If active, the algorithm will try to load a Gaussian Process regression model to predict parameters at transitions between motion primitives
+use_constrained_gmm -  If active and cluster search is deactivated a constrained GMM is created on run time for each motion primitive and used for sampling.
+                       If transition models are used they are multiplied with predicted distributions from the Gaussian Process regression models.
+collision_avoidance_constraints_mode - Use to select the way collision avoidance should be integrated:
+					"ik": Annotated trajectories in the input data are handled separately from the other constraints using Inverse Kinematics applied on the discretized frames.
+					"direct_connection": If a collision_avoidance_service_url is specified in the service.config each motion primitive is tested for collisions by this service inside of the loop. If collisions are found constraints are generated by the service and added to the regular constraints.
+
+
+2.2.2. smoothing_settings
+spatial_smoothing - Applies smoothing at transitions of motion primitives
+time_smoothing - Applies smoothing on time functions of individual motion primitives
+
+2.2.3. trajectory_following_settings
+spline_type - Defines how trajectory constraints are evaluated. Possible values are:
+                0 for Catmull-Rom
+                1 for unfitted BSpline which does not go through every control point
+                2 for fitted BSpline which goes through every control point
+control_point_filter_threshold - used as parameter for a filter that ignores control points that are too close to each other, a value <= 0 deactivates the control point filter.
+
+2.2.4. local/global/time_optimization_settings
+method -  supported methods are "leastsq", "BFGS" and "Nelder-Mead"
+max_steps - Only for global and time optimization. Sets the number of steps in the graph walk that are optimized when looking back from the current step.
+
+2.2.5. inverse_kinematics_settings
+solving_method -  Supported values are "unconstrained" for unconstrained optimization using the selected optimization method or "ccd" (cyclic coordinate descent) for optimization with bounds on joints.
+optimization_method - Optimization algorithm used by the solving method. Currently only "L-BFGS-B" is supported.
+interpolation_window - Frame range in which frames are interpolated around a keyframe constraint.
+transition_window - Frame range in which frames a interpolated before and after a lookat constraint.
+optimize_orientation - Includes orientation constraints for hands in the IK optimization
+
+2.3. Optionally see the readme file of the BestFitPipeline for details on its configuration file. Make sure input directory and output directory match.
 
 
 3. Run the algorithm
@@ -63,7 +118,6 @@ An input file is generated by the BestFitPipeline based on the CNL breakdown.
 An example can be found in ..\test_data\mg_input.json and used to run
 the algorithm without the pipeline.
 
-
 Current limitations:
  - Only one trajectory constraint can be specified for each elementary action.
 
@@ -74,52 +128,3 @@ E.g.: python mg_construction_pipeline walk rightStance
 
 
 
-Information about important algorithm configuration options:
-
-1. general settings
-use_constraints - If set to false, a random motion for the given elementary actions is generated
-debug_max_step - if > 0, it forces the algorithm to stop and output the motion after this fixed number of motion primitives
-local_optimization_mode -  Used to activate/deactivate local optimization for a single motion primitive and select the constraint set.
-                           Possible values are as follows
-                           "none": only use random sampling or the cluster search
-                           "keyframes": only optimize the keyframe constraints and ignore trajectory constraints
-                           "all": optimize trajectory and keyframe constraints
-                           "two_hands": only activated for two hand pick and place constraints
-global_spatial_optimization_mode - Optimize spatial constraints over graph walk
-                                   Possible values are as follows
-                                   "none": deactivated
-                                   "two_hands": only activated for two hand pick and place constraints
-                                   "all": activated for all keyframe constraints
-                                   "trajectory_end": optimize trajectory following motions in order to better reach the last control point of each trajectory
-use_global_time_optimization - Optimize time constraints over graph walk, if they are found
-constrained_sampling mode - Used to select the method of the initial guess generation from the statistical model. Possible values are as follows
-                            "random_discrete": Draws random samples and converts them into discrete frame representations.
-                            "random_spline": Draws random samples and converts them into functional representations.
-                            "cluster_search": If active, a space partitioning data structure is used for a directed search instead of random sampling.
-n_cluster_search_candidates - If cluster search is active, sets the number of candidates that are kept at every level of the space partitioning structure in order to avoid local minima
-collision_avoidance_constraints_mode - Possible values are: "none" and "create_constraint_set". If "create_constraint_set" is set, then annotated collision avoidance constraints are included with the other constraints, otherwise they are ignored
-optimize_collision_avoidance_constraints_extra - If active, annotated trajectories from collision avoidance are optimized separately from the other constraints. This is independent of the collision_avoidance_constraints_mode.
-use_transition_model - If active, the algorithm will try to load a Gaussian Process regression model to predict parameters at transitions between motion primitives
-use_constrained_gmm -  If active and cluster search is deactivated a constrained GMM is created on run time for each motion primitive and used for sampling.
-                       If transition models are used they are multiplied with predicted distributions from the Gaussian Process regression models.
-
-2. smoothing_settings
-spatial_smoothing - Applies smoothing at transitions of motion primitives
-time_smoothing - Applies smoothing on time functions of individual motion primitives
-
-3. trajectory_following_settings
-spline_type - Defines how trajectory constraints are evaluated. Possible values are:
-                0 for Catmull-Rom
-                1 for unfitted BSpline which does not go through every control point
-                2 for fitted BSpline which goes through every control point
-control_point_filter_threshold - used as parameter for a filter that ignores control points that are too close to each other, a value <= 0 deactivates the control point filter.
-
-4. local/global/time_optimization_settings
-method -  supported methods are "leastsq", "BFGS" and "Nelder-Mead"
-max_steps - Only for global and time optimization. Sets the number of steps in the graph walk that are optimized when looking back from the current step.
-
-5. inverse_kinematics_settings
-solving_method -  Supported values are "unconstrained" for unconstrained optimization using the selected optimization method or "ccd" (cyclic coordinate descent) for optimization with bounds on joints.
-optimization_method - Optimization algorithm used by the solving method. Currently only "L-BFGS-B" is supported.
-interpolation_window - Frame range in which frames are interpolated around a keyframe constraint.
-transition_window - Frame range in which frames a interpolated before and after a lookat constraint.
