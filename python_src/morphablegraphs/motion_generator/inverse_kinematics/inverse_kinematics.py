@@ -60,11 +60,42 @@ class InverseKinematics(object):
                         constraints=cons, tol=self._ik_settings["tolerance"],
                         options={'maxiter': self._ik_settings["max_iterations"], 'disp': self.verbose})#,'eps':1.0
 
+
+    def _run_ccd(self, objective, initial_guess, data, cons=None):
+        pose, free_joints, target_joint, target_position, target_orientation = data
+        reversed_chain = copy(free_joints)
+        reversed_chain.reverse()
+        delta = np.inf
+        epsilon = self._ik_settings["tolerance"]
+        max_iter = self._ik_settings["max_iterations"]
+        terminate = False
+        iteration = 0
+        start = time.clock()
+        while not terminate:
+            for free_joint in reversed_chain:
+                self.optimize_joint(objective, target_joint, target_position, target_orientation, free_joint)
+            #result = self._run_optimization(objective, initial_guess, data)
+            #initial_guess = result["x"]
+            #if activate_orientation:
+            #    #self.pose.set_joint_orientation(parent_joint, target_orientation)
+            #    pose.set_hand_orientation(parent_joint, target_orientation)
+            position = pose.evaluate_position(target_joint)
+            new_delta = np.linalg.norm(position-target_position)
+            if delta < epsilon or abs(delta-new_delta) < epsilon or iteration > max_iter:
+                terminate = True
+            delta = new_delta
+            iteration += 1
+        if self.verbose:
+            write_log("Finished optimization after", iteration, "iterations with error", delta, "in", time.clock()-start, "seconds")
+        parameters = self._extract_free_parameters(free_joints)
+        return parameters, delta
+
     def set_pose_from_frame(self, reference_frame):
         self.pose.set_pose_parameters(reference_frame)
         self.pose.clear_cache()
 
     def _modify_pose(self, joint_name, target):
+        error = 0.0
         if joint_name in self.pose.free_joints_map.keys():
             free_joints = self.pose.free_joints_map[joint_name]
             if self.solving_method == IK_METHOD_CYCLIC_COORDINATE_DESCENT:
@@ -77,17 +108,24 @@ class InverseKinematics(object):
         free_joints = constraint.free_joints
         initial_guess = self._extract_free_parameters(free_joints)
         data = constraint.data(self, free_joints)
-        write_log("start optimization for joint", len(initial_guess), len(free_joints))
-        start = time.clock()
+        if self.verbose:
+            self.pose.set_channel_values(initial_guess, free_joints)
+            p = self.pose.evaluate_position(constraint.joint_name)
+            write_log("start optimization for joint",constraint.joint_name, len(initial_guess), len(free_joints), p)
         cons = None#self.pose.generate_constraints(free_joints)
-        error = np.inf
-        iter_counter = 0
-        while error > self.success_threshold and iter_counter < self.max_retries:
-            result = self._run_optimization(constraint.evaluate, initial_guess, data, cons)
-            error = constraint.evaluate(result["x"], data)
-            iter_counter += 1
-        write_log("finished optimization in",time.clock()-start,"seconds with error", error)#,result["x"].tolist(), initial_guess.tolist()
-        self.pose.set_channel_values(result["x"], free_joints)
+        if self.solving_method == IK_METHOD_UNCONSTRAINED_OPTIMIZATION:
+            start = time.clock()
+            error = np.inf
+            iter_counter = 0
+            while error > self.success_threshold and iter_counter < self.max_retries:
+                result = self._run_optimization(constraint.evaluate, initial_guess, data, cons)
+                error = constraint.evaluate(result["x"], data)
+                iter_counter += 1
+            write_log("finished optimization in",time.clock()-start,"seconds with error", error)#,result["x"].tolist(), initial_guess.tolist()
+            self.pose.set_channel_values(result["x"], free_joints)
+        else:
+            parameters, error = self._run_ccd(constraint.evaluate, initial_guess, data, cons)
+            self.pose.set_channel_values(parameters, free_joints)
         return error
 
     def _modify_using_optimization(self, target_joint, target_position, free_joints):
