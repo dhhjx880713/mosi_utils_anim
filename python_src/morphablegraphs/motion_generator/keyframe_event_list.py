@@ -7,12 +7,12 @@ UNCONSTRAINED_EVENTS_TRANSFER_POINT = "transfer_point"
 
 
 class KeyframeEventList(object):
-    def __init__(self, generate_ca_vis_data=False):
+    def __init__(self, create_ca_vis_data=False):
         self.frame_annotation = dict()
         self.frame_annotation['elementaryActionSequence'] = []
         self.keyframe_events_dict = dict()
         self.ca_constraints = dict()
-        self.generate_ca_vis_data = generate_ca_vis_data
+        self.create_ca_vis_data = create_ca_vis_data
 
     def update_events(self, graph_walk, start_step):
         self._create_event_dict(graph_walk)
@@ -20,7 +20,7 @@ class KeyframeEventList(object):
         self._add_event_list_to_frame_annotation(graph_walk)
         self.keyframe_events_dict = {"events": self.keyframe_events_dict,
                                      "elementaryActionSequence": self.frame_annotation["elementaryActionSequence"]}
-        if self.generate_ca_vis_data:
+        if self.create_ca_vis_data:
             self._create_collision_data_from_ca_constraints(graph_walk)
             self.keyframe_events_dict["collisionContent"] = self.ca_constraints
 

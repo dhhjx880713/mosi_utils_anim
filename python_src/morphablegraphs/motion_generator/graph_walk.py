@@ -40,7 +40,7 @@ class GraphWalk(object):
         a mapping of frame segments
         to elementary actions and a list of events for certain frames.
     """
-    def __init__(self, motion_state_graph, mg_input, algorithm_config, start_pose=None):
+    def __init__(self, motion_state_graph, mg_input, algorithm_config, start_pose=None, create_ca_vis_data=False):
         self.elementary_action_list = []
         self.steps = []
         self.motion_state_graph = motion_state_graph
@@ -55,7 +55,7 @@ class GraphWalk(object):
         self.use_time_parameters = algorithm_config["activate_time_variation"]
         self.apply_smoothing = algorithm_config["smoothing_settings"]["spatial_smoothing"]
         write_log("Use time parameters", self.use_time_parameters)
-        self.keyframe_event_list = KeyframeEventList()
+        self.keyframe_event_list = KeyframeEventList(create_ca_vis_data)
 
     def add_entry_to_action_list(self, action_name, start_step, end_step, action_constraints):
         self.elementary_action_list.append(HighLevelGraphWalkEntry(action_name, start_step, end_step, action_constraints))
