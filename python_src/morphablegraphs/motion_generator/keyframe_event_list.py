@@ -1,15 +1,18 @@
 import numpy as np
 from copy import copy
 from ..utilities import write_to_json_file
+from constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_CA_CONSTRAINT
 
 UNCONSTRAINED_EVENTS_TRANSFER_POINT = "transfer_point"
 
 
 class KeyframeEventList(object):
-    def __init__(self, ):
+    def __init__(self, generate_ca_vis_data=False):
         self.frame_annotation = dict()
         self.frame_annotation['elementaryActionSequence'] = []
         self.keyframe_events_dict = dict()
+        self.ca_constraints = dict()
+        self.generate_ca_vis_data = generate_ca_vis_data
 
     def update_events(self, graph_walk, start_step):
         self._create_event_dict(graph_walk)
@@ -17,6 +20,9 @@ class KeyframeEventList(object):
         self._add_event_list_to_frame_annotation(graph_walk)
         self.keyframe_events_dict = {"events": self.keyframe_events_dict,
                                      "elementaryActionSequence": self.frame_annotation["elementaryActionSequence"]}
+        if self.generate_ca_vis_data:
+            self._create_collision_data_from_ca_constraints(graph_walk)
+            self.keyframe_events_dict["collisionContent"] = self.ca_constraints
 
     def update_frame_annotation(self, action_name, start_frame, end_frame):
         """Adds a dictionary to self.frame_annotation marking start and end
@@ -178,3 +184,25 @@ class KeyframeEventList(object):
                     return str(event["jointName"])
         else:
             return str(event["jointName"])
+
+    def _create_collision_data_from_ca_constraints(self, graph_walk):
+        """ Convert CA constraints into an annotation dictionary used by the collision avoidance visualization.
+        """
+        self.ca_constraints = dict()
+        for step in graph_walk.steps:
+            for c in step.motion_primitive_constraints.constraints:
+                if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_CA_CONSTRAINT:
+                    keyframe_range_start = step.start_frame
+                    keyframe_range_end = min(step.end_frame+1, graph_walk.motion_vector.n_frames)
+                    least_distance = np.inf
+                    closest_keyframe = step.start_frame
+                    for frame_index in xrange(keyframe_range_start, keyframe_range_end):
+                        position = graph_walk.motion_state_graph.skeleton.nodes[c.joint_name].get_global_position(graph_walk.motion_vector.frames[frame_index])
+                        d = position - c.position
+                        d = np.dot(d,d)
+                        if d < least_distance:
+                            closest_keyframe = frame_index
+                            least_distance = d
+                    if closest_keyframe not in self.ca_constraints.keys():
+                        self.ca_constraints[closest_keyframe] = []
+                    self.ca_constraints[closest_keyframe].append(c.joint_name)
