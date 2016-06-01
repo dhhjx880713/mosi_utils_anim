@@ -169,7 +169,7 @@ class InverseKinematics(object):
                         start = keyframe
                         end = keyframe+1
                         self._look_at_in_range(motion_vector, c.position, start, end)
-                        if c.orientation is not None:
+                        if c.orientation is not None and self.optimize_orientation:
                             self._set_hand_orientation(motion_vector, c.orientation, c.joint_name, keyframe, start, end)
 
     def _modify_frame_using_keyframe_constraint(self, motion_vector, constraint, keyframe):
