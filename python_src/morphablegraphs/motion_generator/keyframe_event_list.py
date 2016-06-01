@@ -89,17 +89,15 @@ class KeyframeEventList(object):
         keyframe_event_list = []
         for keyframe in self.keyframe_events_dict.keys():
             for event_desc in self.keyframe_events_dict[keyframe]:
-                print "event description", event_desc
                 event = dict()
                 if graph_walk.mg_input is not None and graph_walk.mg_input.activate_joint_mapping:
                     if isinstance(event_desc["parameters"]["joint"], basestring):
                         event["jointName"] = graph_walk.mg_input.inverse_map_joint(event_desc["parameters"]["joint"])
                     else:
-                        print "apply joint mapping"
                         event["jointName"] = map(graph_walk.mg_input.inverse_map_joint, event_desc["parameters"]["joint"])
                 else:
                     event["jointName"] = event_desc["parameters"]["joint"]
-                event["jointName"] = self._handle_both_hands_event(event, graph_walk.mg_input.activate_joint_mapping)
+                event["jointName"] = self._map_both_hands_event(event, graph_walk.mg_input.activate_joint_mapping)
                 event_type = event_desc["event"]
                 target = event_desc["parameters"]["target"]
                 event[event_type] = target
@@ -145,8 +143,6 @@ class KeyframeEventList(object):
         """ Look for the frame with the closest distance and add a transition event for it
         """
         if len(keyframe_annotations[UNCONSTRAINED_EVENTS_TRANSFER_POINT]["annotations"]) == 2:
-
-            #print "create transfer event"
             joint_name_a = keyframe_annotations[UNCONSTRAINED_EVENTS_TRANSFER_POINT]["annotations"][0]["parameters"]["joint"]
             joint_name_b = keyframe_annotations[UNCONSTRAINED_EVENTS_TRANSFER_POINT]["annotations"][1]["parameters"]["joint"]
             attach_joint = joint_name_a
@@ -170,7 +166,7 @@ class KeyframeEventList(object):
                 self.keyframe_events_dict[closest_keyframe] = [ {"event":"transfer", "parameters": {"joint" : attach_joint, "target": target_object}}]
                 print "added transfer event", closest_keyframe
 
-    def _handle_both_hands_event(self, event, activate_joint_mapping=False):
+    def _map_both_hands_event(self, event, activate_joint_mapping=False):
         if isinstance(event["jointName"], list):
             if activate_joint_mapping:
                 if "RightHand" in event["jointName"] and "LeftHand" in event["jointName"]:
