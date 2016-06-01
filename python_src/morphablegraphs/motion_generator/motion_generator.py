@@ -19,18 +19,16 @@ class MotionGenerator(object):
     ----------
     * algorithm_config : dict
         Contains options for the algorithm.
-    * service_config: String
-        Contains paths to the motion data.
-    * ca_service_url: string
-        URL to the collision avoidance rest service.
+    * service_config: dict
+        Contains paths to the motion data and information about the input and output format.
     """
-    def __init__(self, service_config, algorithm_config, ca_service_url=None):
+    def __init__(self, service_config, algorithm_config):
         self._service_config = service_config
         self._algorithm_config = algorithm_config
         graph_loader = MotionStateGraphLoader()
         graph_loader.set_data_source(self._service_config["model_data"], self._algorithm_config["use_transition_model"])
         self.motion_state_graph = graph_loader.build()
-        self.graph_walk_generator = GraphWalkGenerator(self.motion_state_graph, algorithm_config, ca_service_url)
+        self.graph_walk_generator = GraphWalkGenerator(self.motion_state_graph, algorithm_config, service_config)
         self.graph_walk_optimizer = GraphWalkOptimizer(self.motion_state_graph, algorithm_config)
         self.inverse_kinematics = None
 
