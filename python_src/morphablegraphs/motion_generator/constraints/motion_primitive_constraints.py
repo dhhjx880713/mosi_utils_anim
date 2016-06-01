@@ -175,6 +175,7 @@ class MotionPrimitiveConstraints(object):
                     desc = {"type":"pos","value":[position[0], position[1], position[2]], "joint": joint_name, "weight_factor":c.weight_factor}
                     c_desc_list.append(desc)
                 if "keyframeLabel" in c.semantic_annotation and use_semantic_annotation:
+                    semantic_label = c.semantic_annotation["keyframeLabel"]
                     if semantic_label not in temp_constraint_list.keys():
                         temp_constraint_list[semantic_label] = []
                     temp_constraint_list[semantic_label] += c_desc_list
