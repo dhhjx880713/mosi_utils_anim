@@ -8,7 +8,7 @@ Created on Wed Jul 29 17:28:00 2015
 import os
 from ..utilities.io_helper_functions import load_json_file
 ROOT_DIR = os.path.dirname(__file__) + os.sep + r'../..'
-SERVICE_CONFIG_FILE = ROOT_DIR + os.sep + "config" + os.sep + "service.json"
+SERVICE_CONFIG_FILE = ROOT_DIR + os.sep + "config" + os.sep + "service.config"
 
 class ConstructionAlgorithmConfigurationBuilder(object):
 
