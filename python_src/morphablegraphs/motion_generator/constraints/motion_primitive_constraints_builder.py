@@ -348,13 +348,11 @@ class MotionPrimitiveConstraintsBuilder(object):
         """ Returns a point, an orientation and a direction vector on the trajectory
         """
         point = self.action_constraints.root_trajectory.query_point_by_absolute_arc_length(arc_length).tolist()
-        reference_vector = np.array([0, 1])  # in z direction
+        reference_vector = np.array([0.0, 1.0])  # is interpreted as x, z
         start, dir_vector, angle = self.action_constraints.root_trajectory.get_angle_at_arc_length_2d(arc_length,
                                                                                                       reference_vector)
-        #orientation = [None, angle, None]
         for i in self.action_constraints.root_trajectory.unconstrained_indices:
             point[i] = None
-            #orientation[i] = None
         return point, dir_vector
 
     def _raise_closest_point_search_exception(self, max_arc_length):
