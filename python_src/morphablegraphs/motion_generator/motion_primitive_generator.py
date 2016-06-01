@@ -61,6 +61,7 @@ class MotionPrimitiveGenerator(object):
         self.numerical_minimizer = OptimizerBuilder(self._algorithm_config).build_spatial_and_naturalness_error_minimizer()
         self.mgrd_filter = MGRDFilter()
         self.use_local_coordinates = self._algorithm_config["use_local_coordinates"]
+        self.use_semantic_annotation_with_mgrd = self._algorithm_config["use_semantic_annotation_with_mgrd"]
 
     def generate_constrained_motion_spline(self, mp_constraints, prev_graph_walk):
         """Calls generate_constrained_sample and backpojects the result to a MotionSpline.
@@ -148,7 +149,7 @@ class MotionPrimitiveGenerator(object):
     def _get_best_fit_sample_using_mgrd(self, graph_node, mp_constraints):
         samples = motion_primitive_get_random_samples(graph_node.motion_primitive, self.n_random_samples)
         #scores = MGRDFilter.score_samples(graph_node.motion_primitive, samples, mp_constraints)
-        scores = MGRDFilter.score_samples(graph_node.motion_primitive, samples, *mp_constraints.convert_to_mgrd_constraints(), weights=(1,1))
+        scores = MGRDFilter.score_samples(graph_node.motion_primitive, samples, *mp_constraints.convert_to_mgrd_constraints(self.use_semantic_annotation_with_mgrd), weights=(1,1))
         if scores is not None:
             best_idx = np.argmin(scores)
             mp_constraints.min_error = scores[best_idx]
