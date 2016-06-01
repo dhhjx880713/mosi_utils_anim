@@ -14,7 +14,6 @@ from ...utilities.log import write_log
 REFERENCE_2D_OFFSET = np.array([0.0, -1.0])# components correspond to x, z - we assume the motions are initially oriented into that direction
 LEFT_HAND_JOINT = "LeftToolEndSite"
 RIGHT_HAND_JOINT = "RightToolEndSite"
-ROOT_JOINT = "Hips"
 
 
 class ElementaryActionConstraintsBuilder(object):
@@ -73,7 +72,7 @@ class ElementaryActionConstraintsBuilder(object):
         """
         self.start_pose = mg_input.get_start_pose()
         if self.start_pose["orientation"] is None:
-            root_trajectories = self._create_trajectory_constraints(0, ROOT_JOINT)
+            root_trajectories = self._create_trajectory_constraints_for_joint(0, self.motion_state_graph.skeleton.root)
             if len(root_trajectories) > 0:
                 if root_trajectories[0] is None:
                     self.start_pose["orientation"] = [0, 0, 0]
