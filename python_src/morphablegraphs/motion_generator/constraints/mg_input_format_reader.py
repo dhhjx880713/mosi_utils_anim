@@ -148,7 +148,7 @@ class MGInputFormatReader(object):
                     control_point_list[idx] = None
                 else:
                     self._end_active_region(active_regions[idx], control_point_list[idx])
-        print "loaded", len(control_point_list),"active regions with",region_points,"points"
+        #print "loaded", len(control_point_list),"active regions with",region_points,"points"
         return control_point_list, active_regions
 
     def _init_active_region(self,traj_constraint):
