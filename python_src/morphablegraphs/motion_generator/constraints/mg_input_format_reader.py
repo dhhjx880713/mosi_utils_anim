@@ -283,7 +283,8 @@ class MGInputFormatReader(object):
         for keyframe_label in keyframe_constraints.keys():
             mp_name = node_group.label_to_motion_primitive_map[keyframe_label]
             time_info = node_group.motion_primitive_annotations[mp_name][keyframe_label]
-            reordered_constraints[mp_name] = list()
+            if mp_name not in reordered_constraints.keys():
+                reordered_constraints[mp_name] = list()
             # iterate over joints constrained at that keyframe
             for joint_name in keyframe_constraints[keyframe_label].keys():
                 # iterate over constraints for that joint
