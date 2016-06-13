@@ -288,14 +288,18 @@ class MGInputFormatReader(object):
             for joint_name in keyframe_constraints[keyframe_label].keys():
                 # iterate over constraints for that joint
                 for c_type in self.constraint_types:
-                    if c_type in keyframe_constraints[keyframe_label][joint_name].keys():
-                        for constraint in keyframe_constraints[keyframe_label][joint_name][c_type]:
-                            # create constraint definition usable by the algorithm
-                            # and add it to the list of constraints for that state
-                            constraint_desc = self._extend_keyframe_constraint_definition(keyframe_label, joint_name, constraint, time_info, c_type)
-                            reordered_constraints[mp_name].append(constraint_desc)
+                    reordered_constraints[mp_name] += self._filter_by_constraint_type(keyframe_constraints,keyframe_label, joint_name, time_info, c_type)
         return reordered_constraints
 
+    def _filter_by_constraint_type(self, constraints,keyframe_label, joint_name, time_info, c_type):
+        filtered_constraints = list()
+        if c_type in constraints[keyframe_label][joint_name].keys():
+            for constraint in constraints[keyframe_label][joint_name][c_type]:
+                # create constraint definition usable by the algorithm
+                # and add it to the list of constraints for that state
+                constraint_desc = self._extend_keyframe_constraint_definition(keyframe_label, joint_name, constraint, time_info, c_type)
+                filtered_constraints.append(constraint_desc)
+        return filtered_constraints
     def filter_constraints_by_label(self, constraints, label):
         keyframe_constraints = []
         for constraint in constraints:
