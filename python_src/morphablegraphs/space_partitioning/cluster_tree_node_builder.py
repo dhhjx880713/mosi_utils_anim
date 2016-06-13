@@ -40,10 +40,10 @@ class ClusterTreeNodeBuilder(object):
     def _calculate_mean(self, data, indices):
         if indices is None:
             n_samples = len(data)
-            mean = np.mean(data[:, :self.dim], axis=0)
+            mean = np.mean(data, axis=0)
         else:
             n_samples = len(indices)
-            mean = np.mean(data[indices, :self.dim], axis=0)
+            mean = np.mean(data[indices], axis=0)
         return mean, n_samples
         
     def _get_node_type_from_depth(self, depth):
