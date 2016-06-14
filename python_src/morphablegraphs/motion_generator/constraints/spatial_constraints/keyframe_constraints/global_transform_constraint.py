@@ -11,7 +11,6 @@ from .....animation_data.motion_editing import quaternion_to_euler, quaternion_r
 from .....external.transformations import rotation_matrix, angle_between_vectors
 from keyframe_constraint_base import KeyframeConstraintBase
 from .. import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
-import time
 
 
 class GlobalTransformConstraint(KeyframeConstraintBase):
