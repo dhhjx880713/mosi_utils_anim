@@ -132,8 +132,7 @@ class MotionPrimitiveConstraints(object):
         temp_constraint_list[UNLABELED_KEY] = []
         for c in self.constraints:
             if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_DIR_2D:
-                # reference orientation from BVH: 179.477078182 3.34148613293 -87.6482840381 x y z euler angles
-                original_orientation = euler_to_quaternion([179.477078182, 3.34148613293, -87.6482840381])
+                original_orientation = self.skeleton.get_root_reference_orientation()
                 ref_vector = [0,0,-1]
                 # convert angle between c.direction_constraint and reference vector into a quaternion and add reference orientation
                 delta_orientation = quaternion_from_vector_to_vector(c.direction_constraint, ref_vector)

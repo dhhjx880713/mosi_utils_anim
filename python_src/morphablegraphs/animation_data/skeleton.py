@@ -339,3 +339,6 @@ class Skeleton(object):
         populate(self, root_node)
         return MGRDSkeleton(root_node)
 
+    def get_root_reference_orientation(self):
+        # reference orientation from BVH: 179.477078182 3.34148613293 -87.6482840381 x y z euler angles
+        return self.reference_frame[3:7]#euler_to_quaternion([179.477078182, 3.34148613293, -87.6482840381])
