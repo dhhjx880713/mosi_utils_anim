@@ -217,28 +217,28 @@ class ElementaryActionConstraintsBuilder(object):
 
         Returns
         -------
-        * trajectory: TrajectoryConstraint
-        \t The trajectory defined by the control points from the trajectory_constraint or None if there is no constraint
+        * trajectory: List(TrajectoryConstraint)
+        \t The trajectory constraints defined by the control points from the
+            trajectory_constraint or an empty list if there is no constraint
         """
-        control_points_list, unconstrained_indices, active_regions = self.mg_input.extract_trajectory_desc(action_index,
-                                                                                                     joint_name,
-                                                                                                     self.control_point_distance_threshold)
+        desc = self.mg_input.extract_trajectory_desc(action_index, joint_name, self.control_point_distance_threshold)
         traj_constraints = list()
-        for idx, control_points in enumerate(control_points_list):
+        for idx, control_points in enumerate(desc["control_points_list"]):
             if control_points is None:
                 continue
             else:
                 traj_constraint = TrajectoryConstraint(joint_name, control_points,
                                               self.default_spline_type, 0.0,
-                                              unconstrained_indices,
+                                              desc["unconstrained_indices"],
                                               self.motion_state_graph.skeleton,
                                               self.constraint_precision, self.default_constraint_weight,
                                               self.closest_point_search_accuracy,
                                               self.closest_point_search_max_iterations,
                                               self.spline_arc_length_parameter_granularity)
-                if active_regions[idx] is not None:
+                if desc["active_regions"][idx] is not None:
+                    # only collision avoidance constraints have a active regions
                     traj_constraint.is_collision_avoidance_constraint = True
-                    self._set_active_range_from_region(traj_constraint, active_regions[idx])
+                    self._set_active_range_from_region(traj_constraint, desc["active_regions"][idx])
                 traj_constraints.append(traj_constraint)
         return traj_constraints
 

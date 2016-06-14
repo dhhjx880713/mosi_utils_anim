@@ -198,18 +198,21 @@ class MGInputFormatReader(object):
         """ Extract the trajectory information from the constraint list
         Returns:
         -------
-        * control_points: list of dict
-            Constraint definition that contains a list of control points.
-        * unconstrained_indices : list
-        \t List of indices of unconstrained dimensions
+        * desc : dict
+        \tConstraint definition that contains a list of control points, unconstrained_indices, active_regions and a possible
+        annotation.
         """
+        desc = dict()
+        desc["control_points_list"] = []
+        desc["unconstrained_indices"] = None
+        desc["active_regions"] = []
+        desc["annotation"] = None
         constraint_desc = self._extract_trajectory_constraint_data(self.elementary_action_list[action_index]["constraints"],
                                                                     joint_name)
-        if constraint_desc is None:
-            return [], None, []
-        unconstrained_indices = self._find_unconstrained_indices(constraint_desc)
-        control_point_list, active_regions = self._extract_trajectory_control_points(constraint_desc, distance_threshold)
-        return control_point_list, unconstrained_indices, active_regions
+        if constraint_desc is not None:
+            desc["unconstrained_indices"] = self._find_unconstrained_indices(constraint_desc)
+            desc["control_points_list"], desc["active_regions"] = self._extract_trajectory_control_points(constraint_desc, distance_threshold)
+        return desc
 
     def _find_unconstrained_indices(self, trajectory_constraint_data):
         """extract unconstrained dimensions"""
