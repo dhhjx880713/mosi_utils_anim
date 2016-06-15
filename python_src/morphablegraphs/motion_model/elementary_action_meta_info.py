@@ -16,24 +16,26 @@ class ElementaryActionMetaInfo(object):
         self.n_end_states = 0
         self.motion_primitive_annotations = dict()
         self.meta_information = None
-        self.semantic_annotation_map = dict()
+        self.motion_primitive_annotation_regions = dict()
 
     def set_meta_information(self, meta_information=None):
         """
         Identify start and end states from meta information.
         """
-        if meta_information is not None:
-            self.meta_information = meta_information
-            for key in ["annotations", "start_states", "end_states"]:
-                assert key in self.meta_information.keys()
-            self.start_states = self.meta_information["start_states"]
-            self.n_start_states = len(self.start_states)
-            self.end_states = self.meta_information["end_states"]
-            self.n_end_states = len(self.end_states)
-            self.motion_primitive_annotations = self.meta_information["annotations"]
-            if "semantic_annotation_map" in self.meta_information.keys():
-                self.semantic_annotation_map = self.meta_information["semantic_annotation_map"]
-            self._create_annotation_label_to_motion_primitive_map()
+        if meta_information is None:
+            return
+        self.meta_information = meta_information
+        for key in ["annotations", "start_states", "end_states"]:
+            assert key in self.meta_information.keys()
+        self.start_states = self.meta_information["start_states"]
+        self.n_start_states = len(self.start_states)
+        self.end_states = self.meta_information["end_states"]
+        self.n_end_states = len(self.end_states)
+        self.motion_primitive_annotations = self.meta_information["annotations"]
+        self._create_annotation_label_to_motion_primitive_map()
+        if "annotation_regions" in self.meta_information.keys():
+            self.motion_primitive_annotation_regions = self.meta_information["annotation_regions"]
+
 
     def _create_annotation_label_to_motion_primitive_map(self):
         """Create a map from semantic label to motion primitive
