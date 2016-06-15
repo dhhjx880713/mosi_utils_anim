@@ -17,10 +17,13 @@ IK_METHOD_CYCLIC_COORDINATE_DESCENT = "ccd"
 
 
 def obj_inverse_kinematics(s, data):
-    pose, free_joints, target_joint, target_position, target_orientation = data
+    pose, free_joints, target_joint, target_position, target_direction = data
     #d = ik.evaluate_delta(s, target_joint, target_position, free_joints)
     #return d
     pose.set_channel_values(s, free_joints) #update frame
+    if target_direction is not None:
+        parent_joint = pose.get_parent_joint(target_joint)
+        pose.point_in_direction(parent_joint, target_direction)
     position = pose.evaluate_position(target_joint)
     d = position - target_position
     #print target_joint, position, target_position, parameters
@@ -94,14 +97,14 @@ class InverseKinematics(object):
         self.pose.set_pose_parameters(reference_frame)
         self.pose.clear_cache()
 
-    def _modify_pose(self, joint_name, target):
+    def _modify_pose(self, joint_name, target, direction=None):
         error = 0.0
         if joint_name in self.pose.free_joints_map.keys():
             free_joints = self.pose.free_joints_map[joint_name]
             if self.solving_method == IK_METHOD_CYCLIC_COORDINATE_DESCENT:
-                error = self._modify_using_cyclic_coordinate_descent(joint_name, target, free_joints)
+                error = self._modify_using_cyclic_coordinate_descent(joint_name, target, free_joints,direction)
             else:
-                error = self._modify_using_optimization(joint_name, target, free_joints)
+                error = self._modify_using_optimization(joint_name, target, free_joints, direction)
         return error
 
     def _modify_pose_general(self, constraint):
@@ -128,9 +131,9 @@ class InverseKinematics(object):
             self.pose.set_channel_values(parameters, free_joints)
         return error
 
-    def _modify_using_optimization(self, target_joint, target_position, free_joints):
+    def _modify_using_optimization(self, target_joint, target_position, free_joints, target_direction=None):
         initial_guess = self._extract_free_parameters(free_joints)
-        data = self.pose, free_joints, target_joint, target_position, None
+        data = self.pose, free_joints, target_joint, target_position, target_direction
         if self.verbose:
             write_log("start optimization for joint", target_joint, len(initial_guess), len(free_joints))
         start = time.clock()
@@ -150,7 +153,7 @@ class InverseKinematics(object):
         self.pose.apply_bounds(free_joint)
         return result["x"]
 
-    def _modify_using_cyclic_coordinate_descent(self, target_joint, target_position, free_joints):
+    def _modify_using_cyclic_coordinate_descent(self, target_joint, target_position, free_joints, target_direction=None):
         reversed_chain = copy(free_joints)
         reversed_chain.reverse()
         delta = np.inf
