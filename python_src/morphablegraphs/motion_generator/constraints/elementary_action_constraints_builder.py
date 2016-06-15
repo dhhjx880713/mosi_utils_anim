@@ -178,6 +178,8 @@ class ElementaryActionConstraintsBuilder(object):
         """
         action_constraints.trajectory_constraints = list()
         action_constraints.collision_avoidance_constraints = list()
+        action_constraints.annotated_trajectory_constraints = list()
+
         root_trajectories = self._create_trajectory_constraints_for_joint(action_index, self.motion_state_graph.skeleton.root)
         if len(root_trajectories) > 0:
             action_constraints.root_trajectory = root_trajectories[0]
@@ -191,11 +193,12 @@ class ElementaryActionConstraintsBuilder(object):
         trajectory_constraints = self._create_trajectory_constraints_for_joint(action_index, joint_name)
         for c in trajectory_constraints:
             if c is not None:
-                # decide if it is a collision avoidance constraint based on whether or not it has a range
-                if c.range_start is None:
-                    action_constraints.trajectory_constraints.append(c)
-                else:
+                if c.is_collision_avoidance_constraint:
                     action_constraints.collision_avoidance_constraints.append(c)
+                if c.semantic_annotation is not None:
+                    action_constraints.annotated_trajectory_constraints.append(c)
+                else:
+                    action_constraints.trajectory_constraints.append(c)
 
     def _add_ca_trajectory_constraint_set(self, action_constraints):
         if action_constraints.root_trajectory is not None:
@@ -235,6 +238,7 @@ class ElementaryActionConstraintsBuilder(object):
                                               self.closest_point_search_accuracy,
                                               self.closest_point_search_max_iterations,
                                               self.spline_arc_length_parameter_granularity)
+                traj_constraint.semantic_annotation = desc["semantic_annotation"]
                 if desc["active_regions"][idx] is not None:
                     # only collision avoidance constraints have a active regions
                     traj_constraint.is_collision_avoidance_constraint = True
