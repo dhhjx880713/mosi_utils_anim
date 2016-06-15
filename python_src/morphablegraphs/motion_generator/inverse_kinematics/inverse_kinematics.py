@@ -130,7 +130,7 @@ class InverseKinematics(object):
 
     def _modify_using_optimization(self, target_joint, target_position, free_joints):
         initial_guess = self._extract_free_parameters(free_joints)
-        data = self, free_joints, target_joint, target_position, None
+        data = self.pose, free_joints, target_joint, target_position, None
         if self.verbose:
             write_log("start optimization for joint", target_joint, len(initial_guess), len(free_joints))
         start = time.clock()
