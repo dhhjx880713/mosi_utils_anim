@@ -154,10 +154,11 @@ class GraphWalk(object):
             frame_offset += step.end_frame - step.start_frame + 1
 
         if self._algorithm_config["collision_avoidance_constraints_mode"] == "ik":
-            ik_constraints["trajectories"] += self._create_ik_trajectory_constraints()
+            ik_constraints["trajectories"] += self._create_ik_trajectory_constraints_from_ca_trajectories()
+        ik_constraints["trajectories"] += self._create_ik_trajectory_constraints_from_annotated_trajectories()
         return ik_constraints
 
-    def _create_ik_trajectory_constraints(self):
+    def _create_ik_trajectory_constraints_from_ca_trajectories(self):
         trajectory_constraints = list()
         n_actions = len(self.keyframe_event_list.frame_annotation['elementaryActionSequence'])
         for action_idx in xrange(n_actions):
@@ -177,6 +178,38 @@ class GraphWalk(object):
 
                 traj_constraint["joint_name"] = joint_name
                 traj_constraint["delta"] = 1.0
+                trajectory_constraints.append(traj_constraint)
+        return trajectory_constraints
+
+    def _create_ik_trajectory_constraints_from_annotated_trajectories(self):
+        print "extract annotated trajectories"
+        trajectory_constraints = list()
+        n_actions = len(self.keyframe_event_list.frame_annotation['elementaryActionSequence'])
+        for action_idx in xrange(n_actions):
+            frame_annotation = self.keyframe_event_list.frame_annotation['elementaryActionSequence'][action_idx]
+            action = self.elementary_action_list[action_idx]
+            for constraint in action.action_constraints.annotated_trajectory_constraints:
+                label = constraint.semantic_annotation.keys()[0]
+                print "trajectory constraint label",constraint.semantic_annotation.keys()
+                annotations = self.motion_state_graph.node_groups["screw"].motion_primitive_annotation_regions["reach"]
+                print "action annotation",annotations,frame_annotation["startFrame"],frame_annotation["endFrame"]
+                if label not in annotations.keys():
+                    continue
+                annotation_range = annotations[label]
+                traj_constraint = dict()
+                traj_constraint["trajectory"] = constraint
+                traj_constraint["fixed_range"] = True
+                traj_constraint["start_frame"] = frame_annotation["startFrame"] + annotation_range[0]
+                traj_constraint["end_frame"] =  frame_annotation["startFrame"] + annotation_range[1]
+                print "action annotation",traj_constraint["start_frame"],traj_constraint["end_frame"]
+                if self.mg_input.activate_joint_mapping and constraint.joint_name in self.mg_input.inverse_joint_name_map.keys():
+                    joint_name = self.mg_input.inverse_joint_name_map[constraint.joint_name]
+                else:
+                    joint_name = constraint.joint_name
+
+                traj_constraint["joint_name"] = joint_name
+                traj_constraint["delta"] = 1.0
+                print "create ik trajectory constraint from label", label
                 trajectory_constraints.append(traj_constraint)
         return trajectory_constraints
 
