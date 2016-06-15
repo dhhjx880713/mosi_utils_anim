@@ -304,7 +304,7 @@ class MotionPrimitiveConstraints(object):
                 mp_constraints.constraints.append(lookat_constraint)
         return mp_constraints
 
-    def convert_to_ik_constraints(self, frame_offset=0, time_function=None):
+    def convert_to_ik_constraints(self, motion_state_graph, frame_offset=0, time_function=None):
         supported_constraint_types = [SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION]
         ik_constraints = dict()
         for c in self.constraints:
@@ -323,8 +323,27 @@ class MotionPrimitiveConstraints(object):
                 if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION and\
                         c.joint_name in self.skeleton.free_joints_map.keys():
                     free_joints = self.skeleton.free_joints_map[c.joint_name]
-                    ik_constraint = JointIKConstraint(c.joint_name, c.position, c.orientation, keyframe, free_joints)
-                    ik_constraints[keyframe]["single"] .append(ik_constraint)
+                    frame_range = None
+                    if self.motion_primitive_name in motion_state_graph.node_groups[self.action_name].motion_primitive_annotation_regions.keys():
+                        frame_range_annotation = motion_state_graph.node_groups[self.action_name].motion_primitive_annotation_regions[self.motion_primitive_name]
+                        #print "Found frame range for", c.keyframe_label, frame_range_annotation
+                        if c.keyframe_label in frame_range_annotation.keys():
+                            frame_range = frame_range_annotation[c.keyframe_label]
+                            #print c.keyframe_label,frame_range_annotation,frame_range_annotation[c.keyframe_label], frame_range,frame_range[0],frame_range[1]
+                            range_start = frame_range[0]
+                            range_end = frame_range[1]
+                            if time_function is not None:
+                                # add +1 to map the frame correctly TODO: test and verify for all cases
+                                range_start = int(time_function[range_start]) + 1
+                                range_end = int(time_function[range_end]) + 1
+                            frame_range[0] = frame_offset + range_start
+                            frame_range[1] = frame_offset + range_end
+                            print "Found frame range for", c.keyframe_label, frame_range
+                    if frame_range is None:
+                        print "Did not find frame range for", c.keyframe_label#,self.action_name,self.motion_primitive_name, motion_state_graph.node_groups[self.action_name].motion_primitive_annotation_regions
+
+                    ik_constraint = JointIKConstraint(c.joint_name, c.position, c.orientation, keyframe, free_joints, frame_range=frame_range)
+                    ik_constraints[keyframe]["single"].append(ik_constraint)
 
                 elif c.constraint_type == SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION and\
                      c.joint_names[0] in self.skeleton.free_joints_map.keys() and \
