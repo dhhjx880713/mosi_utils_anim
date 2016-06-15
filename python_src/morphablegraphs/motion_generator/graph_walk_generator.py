@@ -32,12 +32,11 @@ class GraphWalkGenerator(object):
     def __init__(self, motion_primitive_graph, algorithm_config, service_config):
         self._algorithm_config = algorithm_config
         self.motion_primitive_graph = motion_primitive_graph
-        self.ca_service_url = service_config["collision_avoidance_service_url"]
         if "create_ca_vis_data" in service_config.keys():
             self.create_ca_vis_data = service_config["create_ca_vis_data"]
         else:
             self.create_ca_vis_data = False
-        self.action_generator = ElementaryActionGenerator(self.motion_primitive_graph, self._algorithm_config, self.ca_service_url)
+        self.action_generator = ElementaryActionGenerator(self.motion_primitive_graph, self._algorithm_config, service_config)
         self.graph_walk_optimizer = GraphWalkOptimizer(self.motion_primitive_graph, algorithm_config)
         self.action_constraints_builder = ElementaryActionConstraintsBuilder(self.motion_primitive_graph, self._algorithm_config)
 

@@ -70,7 +70,7 @@ class ElementaryActionGeneratorState(object):
 
 
 class ElementaryActionGenerator(object):
-    def __init__(self, motion_primitive_graph, algorithm_config, ca_service_url=None):
+    def __init__(self, motion_primitive_graph, algorithm_config, service_config):
         self.motion_state_graph = motion_primitive_graph
         self._algorithm_config = algorithm_config
         self.motion_primitive_constraints_builder = MotionPrimitiveConstraintsBuilder()
@@ -82,7 +82,8 @@ class ElementaryActionGenerator(object):
         self.end_step_length_factor = algorithm_config["trajectory_following_settings"]["end_step_length_factor"]
         self.max_distance_to_path = algorithm_config["trajectory_following_settings"]["max_distance_to_path"]
         self.activate_direction_ca_connection = algorithm_config["collision_avoidance_constraints_mode"] == CA_CONSTRAINTS_MODE_DIRECT_CONNECTION
-        self.ca_service_url = ca_service_url
+        self.activate_coordinate_transform_for_ca = service_config["activate_coordinate_transform"]
+        self.ca_service_url = service_config["collision_avoidance_service_url"]
 
     def set_algorithm_config(self, algorithm_config):
         self._algorithm_config = algorithm_config
