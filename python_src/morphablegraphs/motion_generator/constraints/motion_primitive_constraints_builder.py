@@ -67,6 +67,7 @@ class MotionPrimitiveConstraintsBuilder(object):
         if self.use_local_coordinates:
             aligned_sample_frames = concatenate_frames(prev_frames, mp_sample_frames, graph_walk.motion_vector.start_pose, graph_walk.motion_vector.rotation_type, apply_spatial_smoothing=False)
             self.status["aligned_sample_frames"] = aligned_sample_frames[n_prev_frames:]
+        self.status["action_name"] = node_key[0]
         self.status["motion_primitive_name"] = node_key[1]
         self.status["n_canonical_frames"] = n_canonical_frames
         self.status["last_arc_length"] = last_arc_length # defined in actionstate.transition() based on the closest point on the path
@@ -97,6 +98,7 @@ class MotionPrimitiveConstraintsBuilder(object):
 
     def build(self):
         mp_constraints = MotionPrimitiveConstraints()
+        mp_constraints.action_name = self.status["action_name"]
         mp_constraints.motion_primitive_name = self.status["motion_primitive_name"]
         mp_constraints.aligning_transform = self.status["aligning_transform"]
         mp_constraints.is_last_step = self.status["is_last_step"]

@@ -35,6 +35,7 @@ class MotionPrimitiveConstraints(object):
     """
     def __init__(self):
         self.pose_constraint_set = False
+        self.action_name = None
         self.motion_primitive_name = None
         self.settings = None
         self.constraints = []
