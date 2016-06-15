@@ -243,20 +243,25 @@ class InverseKinematics(object):
     def _modify_motion_vector_using_trajectory_constraint_list(self, motion_vector, constraints):
         write_log("Number of ik trajectory constraints", len(constraints))
         for c in constraints:
-            self._modify_motion_vector_using_trajectory_constraint2(motion_vector, c)
+            write_log("IK Trajectory constraint for joint", c["joint_name"])
+            if c["fixed_range"]:
+                self._modify_motion_vector_using_trajectory_constraint(motion_vector, c)
+            else:
+                self._modify_motion_vector_using_trajectory_constraint_search_start(motion_vector, c)
 
     def _modify_motion_vector_using_trajectory_constraint(self, motion_vector, traj_constraint):
-        write_log("CA constraint for joint", traj_constraint["joint_name"])
         d = traj_constraint["delta"]
         trajectory = traj_constraint["trajectory"]
-        start_idx, end_idx = self._find_corresponding_frame_range(motion_vector, traj_constraint)
+        start_idx = traj_constraint["start_frame"]
+        end_idx = traj_constraint["end_frame"]-1# self._find_corresponding_frame_range(motion_vector, traj_constraint)
+        end_idx = min(len(motion_vector.frames)-1,end_idx)
         n_frames = end_idx-start_idx + 1
         full_length = n_frames*d
         for idx in xrange(n_frames):
             t = (idx*d)/full_length
             target = trajectory.query_point_by_parameter(t)
             keyframe = start_idx+idx
-            #write_log("change frame", idx, t, target, constraint["joint_name"])
+            #write_log("change frame", idx, t, target, traj_constraint["joint_name"])
             self.set_pose_from_frame(motion_vector.frames[keyframe])
             error = np.inf
             iter_counter = 0
@@ -267,8 +272,7 @@ class InverseKinematics(object):
             motion_vector.frames[keyframe] = self.pose.get_vector()
         self._create_transition_for_frame_range(motion_vector.frames, start_idx, end_idx, self.pose.free_joints_map[traj_constraint["joint_name"]])
 
-    def _modify_motion_vector_using_trajectory_constraint2(self, motion_vector, traj_constraint):
-        write_log("CA constraint for joint", traj_constraint["joint_name"])
+    def _modify_motion_vector_using_trajectory_constraint_search_start(self, motion_vector, traj_constraint):
         trajectory = traj_constraint["trajectory"]
         start_target = trajectory.query_point_by_parameter(0.0)
         start_idx = self._find_corresponding_frame(motion_vector,
@@ -334,7 +338,7 @@ class InverseKinematics(object):
             start_frame = motion_vector.graph_walk.steps[c.step_idx].start_frame
             end_frame = motion_vector.graph_walk.steps[c.step_idx].end_frame
             keyframe = self._find_corresponding_frame(motion_vector, start_frame, end_frame, c.joint_name, c.position)
-            print "found keyframe",keyframe,start_frame,end_frame,c.joint_name
+            #print "found keyframe",keyframe,start_frame,end_frame,c.joint_name
             self.set_pose_from_frame(motion_vector.frames[keyframe])
             self._modify_frame_using_keyframe_constraint(motion_vector, c, keyframe)
 
@@ -357,11 +361,9 @@ class InverseKinematics(object):
         return indices
 
     def _set_hand_orientation(self, motion_vector, orientation, joint_name, keyframe, start, end):
-        #print keyframe
-        parent_joint_name = self.pose.get_parent_joint(joint_name)#"RightHand"
+        parent_joint_name = self.pose.get_parent_joint(joint_name)
         self.set_pose_from_frame(motion_vector.frames[keyframe])
         self.pose.set_hand_orientation(parent_joint_name, orientation)
         start = max(0, start)
         end = min(motion_vector.frames.shape[0], end)
-        #print start, end
         self._create_transition_for_frame_range(motion_vector.frames, start, end-1, [parent_joint_name])

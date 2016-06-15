@@ -166,6 +166,7 @@ class GraphWalk(object):
             for ca_constraint in action.action_constraints.collision_avoidance_constraints:
                 traj_constraint = dict()
                 traj_constraint["trajectory"] = ca_constraint
+                traj_constraint["fixed_range"] = False  # search for closer start
                 traj_constraint["start_frame"] = frame_annotation["startFrame"]
                 traj_constraint["end_frame"] = frame_annotation["endFrame"]
                 #TODO find a better solution than this workaround that undoes the joint name mapping from hands to tool bones for ca constraints
