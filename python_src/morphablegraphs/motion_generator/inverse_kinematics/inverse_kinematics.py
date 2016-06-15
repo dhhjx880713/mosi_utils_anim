@@ -182,12 +182,12 @@ class InverseKinematics(object):
 
     def modify_motion_vector(self, motion_vector):
         #modify individual keyframes based on constraints
-        if "keyframes" in motion_vector.ik_constraints.keys():
-            self._modify_motion_vector_using_keyframe_constraint_list(motion_vector, motion_vector.ik_constraints["keyframes"])
         if "trajectories" in motion_vector.ik_constraints.keys():
             self._modify_motion_vector_using_trajectory_constraint_list(motion_vector, motion_vector.ik_constraints["trajectories"])
         if "collision_avoidance" in motion_vector.ik_constraints.keys():
             self._modify_motion_vector_using_ca_constraints(motion_vector, motion_vector.ik_constraints["collision_avoidance"])
+        if "keyframes" in motion_vector.ik_constraints.keys():
+            self._modify_motion_vector_using_keyframe_constraint_list(motion_vector, motion_vector.ik_constraints["keyframes"])
 
     def _modify_motion_vector_using_keyframe_constraint_list(self, motion_vector, constraints):
         write_log("number of ik keyframe constraints", len(constraints))
