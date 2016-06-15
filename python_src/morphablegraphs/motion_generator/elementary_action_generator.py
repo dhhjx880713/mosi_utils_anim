@@ -379,14 +379,19 @@ class ElementaryActionGenerator(object):
         ca_constraints = []
         n_canonical_frames = int(self.motion_state_graph.nodes[new_node].get_n_canonical_frames())
         for joint_name in ca_output.keys():
-            for ca_constraint in ca_output[joint_name]:
-                if "position" in ca_constraint.keys() and len(ca_constraint["position"]) == 3:
+            for ca_constraint_desc in ca_output[joint_name]:
+                if "position" in ca_constraint_desc.keys() and len(ca_constraint_desc["position"]) == 3:
+                    if self.activate_coordinate_transform_for_ca:
+                        position = np.array([ca_constraint_desc["position"][0],ca_constraint_desc["position"][2],-ca_constraint_desc["position"][1]])
+                    else:
+                        position = np.array(ca_constraint_desc["position"])
                     ca_constraint = GlobalTransformCAConstraint(self.motion_state_graph.skeleton,
                                                                 {"joint": joint_name, "canonical_keyframe": -1,
                                                                  "n_canonical_frames": n_canonical_frames,
-                                                                 "position": ca_constraint["position"],
+                                                                 "position": position,
                                                                  "semanticAnnotation":  {"generated": True, "keyframeLabel": None},
                                                                  "ca_constraint": True},
                                                                 1.0, 1.0, len(graph_walk.steps))
+                    print "CREATE CA constraint", joint_name, ca_constraint.position
                     ca_constraints.append(ca_constraint)
         return ca_constraints
