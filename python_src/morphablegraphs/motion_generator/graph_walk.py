@@ -244,22 +244,33 @@ class GraphWalk(object):
         return average_keyframe_error_string + "\n" + evaluations_string + "\n" + average_time_string + "\n" + error_string
 
     def export_generated_constraints(self, file_path="goals.path"):
-        json_control_point_data = []
+        """ Converts constraints that were generated based on input constraints into a json dictionary for a debug visualization
+        """
+        root_control_point_data = []
+        hand_constraint_data = []
         for idx, step in enumerate(self.steps):
             step_constraints = {"semanticAnnotation":{"step": idx}}
             for c in step.motion_primitive_constraints.constraints:
-                if c.constraint_type == "keyframe_position":
+                if c.constraint_type == "keyframe_position" and c.joint_name == self.motion_state_graph.skeleton.root:
                     p = c.position
                     if p is not None:
                         step_constraints["position"] = [p[0], -p[2], None]
                 elif c.constraint_type == "keyframe_2d_direction":
                         step_constraints["direction"] = c.direction_constraint.tolist()
-                json_control_point_data.append(step_constraints)
+                elif c.constraint_type == "ca_constraint":
+                    #if c.constraint_type in ["RightHand", "LeftHand"]:
+                    position = [c.position[0], -c.position[2], c.position[1]]
+                    hand_constraint = {"position": position}
+                    hand_constraint_data.append(hand_constraint)
+            root_control_point_data.append(step_constraints)
+
 
         constraints = {"tasks": [{"elementaryActions":[{
                                                       "action": "walk",
                                                       "constraints": [{"joint": "Hips",
-                                                                       "keyframeConstraints": json_control_point_data  } ]
+                                                                       "keyframeConstraints": root_control_point_data  },
+                                                                      {"joint": "RightHand",
+                                                                       "keyframeConstraints": hand_constraint_data}]
                                                       }]
                                  }]
                        }
