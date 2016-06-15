@@ -168,6 +168,7 @@ class GraphWalk(object):
                 traj_constraint = dict()
                 traj_constraint["trajectory"] = ca_constraint
                 traj_constraint["fixed_range"] = False  # search for closer start
+                traj_constraint["constrain_orientation"] = False
                 traj_constraint["start_frame"] = frame_annotation["startFrame"]
                 traj_constraint["end_frame"] = frame_annotation["endFrame"]
                 #TODO find a better solution than this workaround that undoes the joint name mapping from hands to tool bones for ca constraints
@@ -198,6 +199,7 @@ class GraphWalk(object):
                 annotation_range = annotations[label]
                 traj_constraint = dict()
                 traj_constraint["trajectory"] = constraint
+                traj_constraint["constrain_orientation"] = True
                 traj_constraint["fixed_range"] = True
                 traj_constraint["start_frame"] = frame_annotation["startFrame"] + annotation_range[0]
                 traj_constraint["end_frame"] =  frame_annotation["startFrame"] + annotation_range[1]

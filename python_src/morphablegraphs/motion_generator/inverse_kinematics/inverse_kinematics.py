@@ -289,22 +289,29 @@ class InverseKinematics(object):
         end_idx = traj_constraint["end_frame"]-1# self._find_corresponding_frame_range(motion_vector, traj_constraint)
         end_idx = min(len(motion_vector.frames)-1,end_idx)
         n_frames = end_idx-start_idx + 1
+        target_direction = None
+        if traj_constraint["constrain_orientation"]:
+            target_direction = trajectory.get_direction()
+            print "direction",target_direction
+
         full_length = n_frames*d
         for idx in xrange(n_frames):
             t = (idx*d)/full_length
-            target = trajectory.query_point_by_parameter(t)
+            target_position = trajectory.query_point_by_parameter(t)
             keyframe = start_idx+idx
             #write_log("change frame", idx, t, target, traj_constraint["joint_name"])
             self.set_pose_from_frame(motion_vector.frames[keyframe])
             error = np.inf
             iter_counter = 0
             while error > self.success_threshold and iter_counter < self.max_retries:
-                error = self._modify_pose(traj_constraint["joint_name"], target)
+                error = self._modify_pose(traj_constraint["joint_name"], target_position, target_direction)
                 iter_counter += 1
             error_sum += error
             #self._modify_pose(constraint["joint_name"], target)
             motion_vector.frames[keyframe] = self.pose.get_vector()
-        self._create_transition_for_frame_range(motion_vector.frames, start_idx, end_idx, self.pose.free_joints_map[traj_constraint["joint_name"]])
+        parent_joint = self.pose.get_parent_joint(traj_constraint["joint_name"])
+        free_joints = list(set(self.pose.free_joints_map[traj_constraint["joint_name"]]+[parent_joint]))
+        self._create_transition_for_frame_range(motion_vector.frames, start_idx, end_idx, free_joints)
         return error_sum
 
     def _modify_motion_vector_using_trajectory_constraint_search_start(self, motion_vector, traj_constraint):
