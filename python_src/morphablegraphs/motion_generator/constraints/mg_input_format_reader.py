@@ -90,12 +90,11 @@ class MGInputFormatReader(object):
         keyframe_constraints = self._extract_all_keyframe_constraints(self.elementary_action_list[action_index]["constraints"], node_group)
         return self._reorder_keyframe_constraints_by_motion_primitive_name(node_group, keyframe_constraints)
 
-
     def _is_active_trajectory_region(self, traj_constraint, index):
         if "semanticAnnotation" in traj_constraint[index].keys():
-            return traj_constraint[index]["semanticAnnotation"]["collisionAvoidance"]
-        else:
-            return True
+            if "collisionAvoidance" in traj_constraint[index]["semanticAnnotation"].keys():
+                return traj_constraint[index]["semanticAnnotation"]["collisionAvoidance"]
+        return True
 
     def _extract_trajectory_control_points(self, traj_constraint, distance_threshold=0.0):
         control_point_list = list()
@@ -177,7 +176,7 @@ class MGInputFormatReader(object):
 
 
     def _extract_control_point(self, traj_constraint, n_control_points, index, previous_point, last_distance, distance_threshold):
-        if traj_constraint[index]["position"] == [None, None, None]:
+        if "position" not in traj_constraint[index].keys() or traj_constraint[index]["position"] == [None, None, None]:
             write_log("Warning: skip undefined control point")
             return None
         #set component of the position to 0 where it is is set to None to allow a 3D spline definition
@@ -218,10 +217,13 @@ class MGInputFormatReader(object):
         """extract unconstrained dimensions"""
         unconstrained_indices = list()
         idx = 0
-        for v in trajectory_constraint_data[0]["position"]:
-            if v is None:
-                unconstrained_indices.append(idx)
-            idx += 1
+        for p in trajectory_constraint_data:
+            if ["position"] in p.keys():
+                for v in p["position"]:
+                    if v is None:
+                        unconstrained_indices.append(idx)
+                    idx += 1
+                break # check only one point
         return self._transform_unconstrained_indices_from_cad_to_opengl_cs(unconstrained_indices)
 
     def _check_for_collision_avoidance_annotation(self, trajectory_constraint_desc, control_points):
