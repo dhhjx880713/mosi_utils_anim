@@ -180,28 +180,45 @@ class InverseKinematics(object):
         #print parameters.tolist()
         return np.dot(d, d)
 
-    def modify_motion_vector(self, motion_vector):
+    def modify_motion_vector(self, motion_vector, max_iterations=1000, eps=1.0):
+        i = 0
+        last_error = None
+        keep_running = True
         #modify individual keyframes based on constraints
-        if "trajectories" in motion_vector.ik_constraints.keys():
-            self._modify_motion_vector_using_trajectory_constraint_list(motion_vector, motion_vector.ik_constraints["trajectories"])
-        if "collision_avoidance" in motion_vector.ik_constraints.keys():
-            self._modify_motion_vector_using_ca_constraints(motion_vector, motion_vector.ik_constraints["collision_avoidance"])
-        if "keyframes" in motion_vector.ik_constraints.keys():
-            self._modify_motion_vector_using_keyframe_constraint_list(motion_vector, motion_vector.ik_constraints["keyframes"])
+        while keep_running:
+            error = 0.0
+            if "trajectories" in motion_vector.ik_constraints.keys():
+                error += self._modify_motion_vector_using_trajectory_constraint_list(motion_vector, motion_vector.ik_constraints["trajectories"])
+            if "collision_avoidance" in motion_vector.ik_constraints.keys():
+                error += self._modify_motion_vector_using_ca_constraints(motion_vector, motion_vector.ik_constraints["collision_avoidance"])
+            if "keyframes" in motion_vector.ik_constraints.keys():
+                error += self._modify_motion_vector_using_keyframe_constraint_list(motion_vector, motion_vector.ik_constraints["keyframes"])
+            if last_error is not None:
+                delta = abs(last_error - error)
+            else:
+                delta = np.inf
+            last_error = error
+            i += 1
+            keep_running = i < max_iterations and delta > eps
+            print delta,eps
 
     def _modify_motion_vector_using_keyframe_constraint_list(self, motion_vector, constraints):
         write_log("number of ik keyframe constraints", len(constraints))
+        error = 0.0
         has_multiple_targets = False
         for keyframe, constraints in constraints.items():
             #write_log(keyframe, constraints)
-            self.set_pose_from_frame(motion_vector.frames[keyframe])
             if "multiple" in constraints.keys():
                 for c in constraints["multiple"]:
                     #self._modify_frame_using_keyframe_constraint(motion_vector, c, keyframe)
                     has_multiple_targets = True
             if "single" in constraints.keys():
                 for c in constraints["single"]:
-                    self._modify_frame_using_keyframe_constraint(motion_vector, c, keyframe)
+                    print "ik constraint",c.joint_name, c.position, c.orientation
+                    if c.frame_range is not None:
+                        error+=self._modify_frame_using_keyframe_constraint_range(motion_vector, c, c.frame_range)
+                    else:
+                        error+=self._modify_frame_using_keyframe_constraint(motion_vector, c, keyframe)
                     if self.activate_look_at and not has_multiple_targets:
                         #write_log("look at constraint")
                         start = keyframe
@@ -209,12 +226,25 @@ class InverseKinematics(object):
                         self._look_at_in_range(motion_vector, c.position, start, end)
                         if c.orientation is not None and self.optimize_orientation:
                             self._set_hand_orientation(motion_vector, c.orientation, c.joint_name, keyframe, start, end)
-
+        return error
     def _modify_frame_using_keyframe_constraint(self, motion_vector, constraint, keyframe):
-        self._modify_pose_general(constraint)
+        self.set_pose_from_frame(motion_vector.frames[keyframe])
+        error = self._modify_pose_general(constraint)
         motion_vector.frames[keyframe] = self.pose.get_vector()
         if self.window > 0:
             self.interpolate_around_keyframe(motion_vector.frames, constraint.get_joint_names(), keyframe, self.window)
+        return error
+
+    def _modify_frame_using_keyframe_constraint_range(self, motion_vector, constraint, frame_range):
+        error = 0.0
+        print "use constraint on frame range"
+        for frame in range(frame_range[0],frame_range[1]+1):
+            self.set_pose_from_frame(motion_vector.frames[frame])
+            error += self._modify_pose_general(constraint)
+            motion_vector.frames[frame] = self.pose.get_vector()
+
+        self._create_transition_for_frame_range(motion_vector.frames,frame_range[0],frame_range[1], self.pose.free_joints_map[constraint.joint_name])
+        return error
 
     def interpolate_around_keyframe(self, frames, joint_names, keyframe, window):
         write_log("Smooth and interpolate", joint_names)
@@ -241,15 +271,18 @@ class InverseKinematics(object):
             apply_slerp(frames, end, transition_end, joint_parameter_indices)
 
     def _modify_motion_vector_using_trajectory_constraint_list(self, motion_vector, constraints):
+        error = 0.0
         write_log("Number of ik trajectory constraints", len(constraints))
         for c in constraints:
             write_log("IK Trajectory constraint for joint", c["joint_name"])
             if c["fixed_range"]:
-                self._modify_motion_vector_using_trajectory_constraint(motion_vector, c)
+                error += self._modify_motion_vector_using_trajectory_constraint(motion_vector, c)
             else:
-                self._modify_motion_vector_using_trajectory_constraint_search_start(motion_vector, c)
+                error += self._modify_motion_vector_using_trajectory_constraint_search_start(motion_vector, c)
+        return error
 
     def _modify_motion_vector_using_trajectory_constraint(self, motion_vector, traj_constraint):
+        error_sum = 0.0
         d = traj_constraint["delta"]
         trajectory = traj_constraint["trajectory"]
         start_idx = traj_constraint["start_frame"]
@@ -268,11 +301,14 @@ class InverseKinematics(object):
             while error > self.success_threshold and iter_counter < self.max_retries:
                 error = self._modify_pose(traj_constraint["joint_name"], target)
                 iter_counter += 1
+            error_sum += error
             #self._modify_pose(constraint["joint_name"], target)
             motion_vector.frames[keyframe] = self.pose.get_vector()
         self._create_transition_for_frame_range(motion_vector.frames, start_idx, end_idx, self.pose.free_joints_map[traj_constraint["joint_name"]])
+        return error_sum
 
     def _modify_motion_vector_using_trajectory_constraint_search_start(self, motion_vector, traj_constraint):
+        error_sum = 0.0
         trajectory = traj_constraint["trajectory"]
         start_target = trajectory.query_point_by_parameter(0.0)
         start_idx = self._find_corresponding_frame(motion_vector,
@@ -301,10 +337,12 @@ class InverseKinematics(object):
             while error > self.success_threshold and iter_counter < self.max_retries:
                 error = self._modify_pose(traj_constraint["joint_name"], target)
                 iter_counter += 1
+            error_sum += error
             #self._modify_pose(constraint["joint_name"], target)
             motion_vector.frames[keyframe] = self.pose.get_vector()
 
         self._create_transition_for_frame_range(motion_vector.frames, start_idx, keyframe-1, self.pose.free_joints_map[traj_constraint["joint_name"]])
+        return error_sum
 
     def _find_corresponding_frame_range(self, motion_vector, traj_constraint):
         start_idx = traj_constraint["start_frame"]
@@ -333,14 +371,15 @@ class InverseKinematics(object):
         return closest_start_frame
 
     def _modify_motion_vector_using_ca_constraints(self, motion_vector, ca_constraints):
+        error = 0.0
         print "modify motion vector using ca constraints", len(ca_constraints)
         for c in ca_constraints:
             start_frame = motion_vector.graph_walk.steps[c.step_idx].start_frame
             end_frame = motion_vector.graph_walk.steps[c.step_idx].end_frame
             keyframe = self._find_corresponding_frame(motion_vector, start_frame, end_frame, c.joint_name, c.position)
             #print "found keyframe",keyframe,start_frame,end_frame,c.joint_name
-            self.set_pose_from_frame(motion_vector.frames[keyframe])
-            self._modify_frame_using_keyframe_constraint(motion_vector, c, keyframe)
+            error += self._modify_frame_using_keyframe_constraint(motion_vector, c, keyframe)
+        return error
 
     def _extract_free_parameters(self, free_joints):
         """get parameters of joints from reference frame
