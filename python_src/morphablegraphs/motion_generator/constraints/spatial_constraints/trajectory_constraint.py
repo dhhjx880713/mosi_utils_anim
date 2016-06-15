@@ -16,7 +16,7 @@ class TrajectoryConstraint(ParameterizedSpline, SpatialConstraintBase):
                                      closest_point_search_accuracy=closest_point_search_accuracy,
                                      closest_point_search_max_iterations=closest_point_search_max_iterations)
         SpatialConstraintBase.__init__(self, precision, weight_factor)
-        self.semantic_annotation = dict()
+        self.semantic_annotation = None
         self.constraint_type = SPATIAL_CONSTRAINT_TYPE_TRAJECTORY
         self.joint_name = joint_name
         self.skeleton = skeleton
