@@ -53,6 +53,18 @@ class ElementaryActionConstraintsBuilder(object):
         action_constraints_list = []
         for idx in xrange(self.mg_input.get_number_of_actions()):
             action_constraints_list.append(self._build_action_constraint(idx))
+        n_actions = len(action_constraints_list)
+        for idx in xrange(n_actions):
+            action_name = action_constraints_list[idx].action_name
+            if idx > 0 and action_constraints_list[idx-1].action_name == action_name:
+                action_constraints_list[idx].cycled_previous = True
+            if idx+1 < n_actions and action_constraints_list[idx+1].action_name == action_name:
+                action_constraints_list[idx].cycled_next = True
+                print idx,action_name,"cycle",n_actions
+            else:
+                print idx,action_name,"no cycle",n_actions
+                if idx+1 < n_actions:
+                    print action_constraints_list[idx+1].action_name
         return action_constraints_list
 
     def _build_action_constraint(self, action_index):

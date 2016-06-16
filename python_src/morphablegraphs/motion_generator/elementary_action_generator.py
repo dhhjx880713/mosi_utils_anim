@@ -6,7 +6,7 @@ import json
 import urllib2
 import random
 from ..utilities.exceptions import PathSearchError
-from ..motion_model import NODE_TYPE_END, NODE_TYPE_SINGLE
+from ..motion_model import NODE_TYPE_END, NODE_TYPE_SINGLE, NODE_TYPE_CYCLE
 from ..animation_data.motion_editing import create_transformation_matrix
 from motion_primitive_generator import MotionPrimitiveGenerator
 from constraints.motion_primitive_constraints_builder import MotionPrimitiveConstraintsBuilder
@@ -60,7 +60,7 @@ class ElementaryActionGeneratorState(object):
             return self.travelled_arc_length >= self.max_arc_length
 
         def is_last_node(self):
-            return self.current_node_type == NODE_TYPE_END or self.current_node_type == NODE_TYPE_SINGLE
+            return self.current_node_type == NODE_TYPE_END or self.current_node_type == NODE_TYPE_SINGLE or self.current_node_type == NODE_TYPE_CYCLE
 
         def transition(self, new_node, new_node_type, new_travelled_arc_length, new_step_start_frame):
             self.current_node = new_node
@@ -192,17 +192,18 @@ class ElementaryActionGenerator(object):
         return next_node, next_node_type
 
     def _select_next_motion_primitive_node(self, graph_walk):
-        """extract from graph based on previous last step + heuristic """
-        if self.action_state.current_node is None:
-            if self.action_constraints.root_trajectory is not None:
+        """extract from graph based on previous step and heuristic """
+        if self.action_state.current_node is None:  # is start state
+            if self.action_constraints.root_trajectory is not None: # use trajectory to determine best start
                 next_node = self.get_best_start_node(graph_walk, self.action_constraints.action_name)
             else:
-                next_node = self.motion_state_graph.get_random_action_transition(graph_walk, self.action_constraints.action_name)
+                next_node = self.motion_state_graph.get_random_action_transition(graph_walk, self.action_constraints.action_name, self.action_constraints.cycled_previous)
 
             next_node_type = self.motion_state_graph.nodes[next_node].node_type
             if next_node is None:
                 write_log("Error: Could not find a transition of type action_transition from ", self.action_state.prev_action_name, self.action_state.prev_mp_name, " to state", self.action_state.current_node)
-        else:
+
+        else:  # is intermediate start state
             next_node, next_node_type = self._get_best_transition_node(graph_walk)
         return next_node, next_node_type
 
@@ -285,6 +286,9 @@ class ElementaryActionGenerator(object):
         write_log("Transition to state", new_node)
 
         mp_constraints = self._gen_motion_primitive_constraints(new_node, new_node_type, graph_walk)
+
+        if self.action_constraints.cycled_next:
+            new_node_type = NODE_TYPE_CYCLE
         if mp_constraints is None:
             write_log("Error: Failed to generate constraints")
             return None
