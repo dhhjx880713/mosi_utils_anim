@@ -329,7 +329,7 @@ class MotionPrimitiveConstraints(object):
                         frame_range_annotation = motion_state_graph.node_groups[self.action_name].motion_primitive_annotation_regions[self.motion_primitive_name]
                         #print "Found frame range for", c.keyframe_label, frame_range_annotation
                         if c.keyframe_label in frame_range_annotation.keys():
-                            frame_range = frame_range_annotation[c.keyframe_label]
+                            frame_range = copy(frame_range_annotation[c.keyframe_label])
                             #print c.keyframe_label,frame_range_annotation,frame_range_annotation[c.keyframe_label], frame_range,frame_range[0],frame_range[1]
                             range_start = frame_range[0]
                             range_end = frame_range[1]
