@@ -68,17 +68,17 @@ class ElementaryActionMetaInfo(object):
             random_index = random.randrange(0, self.n_end_states, 1)
             return self.elementary_action_name, self.end_states[random_index]
 
-    def _convert_keys_to_strings(self, mydict):
+    def _convert_tuples_to_strings(self, in_dict):
         copy_dict = {}
-        for key in mydict.keys():
+        for key in in_dict.keys():
             if isinstance(key, tuple):
                 try:
-                    copy_dict[key[1]] = mydict[key]
+                    copy_dict[key[1]] = in_dict[key]
                 except Exception as exception:
                     print exception.message
                     continue
             else:
-                copy_dict[key] = mydict[key]
+                copy_dict[key] = in_dict[key]
         return copy_dict
 
     def save_updated_meta_info(self):
@@ -86,7 +86,7 @@ class ElementaryActionMetaInfo(object):
         """
         if self.meta_information is not None and self.elementary_action_directory is not None:
             path = self.elementary_action_directory + os.sep + META_INFORMATION_FILE_NAME
-            write_to_json_file(path, self._convert_keys_to_strings(self.meta_information))
+            write_to_json_file(path, self._convert_tuples_to_strings(self.meta_information))
         return
 
     def get_canonical_keyframe_labels(self, motion_primitive_name):
