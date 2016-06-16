@@ -63,7 +63,7 @@ class MotionStateGraph(object):
                     print "\t \t to " + str(e)
                 print "\t##########"       
 
-    def get_random_action_transition(self, graph_walk, action_name):
+    def get_random_action_transition(self, graph_walk, action_name, is_cycle=False):
         """ Get random start state based on edge from previous elementary action if possible
         """
         next_node = None
@@ -71,12 +71,12 @@ class MotionStateGraph(object):
             prev_node_key = graph_walk.steps[-1].node_key
       
             if prev_node_key in self.nodes.keys():
-                next_node = self.nodes[prev_node_key].generate_random_action_transition(action_name)
+                next_node = self.nodes[prev_node_key].generate_random_action_transition(action_name,is_cycle)
             print "generate start from transition of last action", prev_node_key, next_node
         # if there is no previous elementary action or no action transition
         #  use transition to random start state
         if next_node is None or next_node not in self.node_groups[action_name].nodes:
-            print next_node, "not in", action_name
+            #print next_node, "not in", action_name
             next_node = self.node_groups[action_name].get_random_start_state()
             print "generate random start", next_node
         return next_node
