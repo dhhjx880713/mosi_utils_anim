@@ -4,6 +4,7 @@ import numpy as np
 from copy import copy, deepcopy
 import json
 import urllib2
+import random
 from ..utilities.exceptions import PathSearchError
 from ..motion_model import NODE_TYPE_END, NODE_TYPE_SINGLE
 from ..animation_data.motion_editing import create_transformation_matrix
@@ -180,7 +181,7 @@ class ElementaryActionGenerator(object):
             if self.action_constraints.root_trajectory is not None:
                 next_node = self._evaluate_multiple_path_following_options(graph_walk, options, add_orientation=False)
             else:  # use random transition if there is no path to follow
-                random_index = np.random.randrange(0, n_transitions, 1)
+                random_index = random.randrange(0, n_transitions, 1)
                 next_node = options[random_index]
         else:
             write_log("Error: Could not find a transition from state", self.action_state.current_node, len(self.motion_state_graph.nodes[self.action_state.current_node].outgoing_edges))
