@@ -11,6 +11,7 @@ class ElementaryActionMetaInfo(object):
         self.elementary_action_directory = elementary_action_directory
         self.label_to_motion_primitive_map = dict()
         self.start_states = list()
+        self.cycle_states = list()
         self.n_start_states = 0
         self.end_states = list()
         self.n_end_states = 0
@@ -28,6 +29,8 @@ class ElementaryActionMetaInfo(object):
         for key in ["annotations", "start_states", "end_states"]:
             assert key in self.meta_information.keys()
         self.start_states = self.meta_information["start_states"]
+        if "cycle_states" in self.meta_information.keys():
+            self.cycle_states = self.meta_information["cycle_states"]
         self.n_start_states = len(self.start_states)
         self.end_states = self.meta_information["end_states"]
         self.n_end_states = len(self.end_states)
