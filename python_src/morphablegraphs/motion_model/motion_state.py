@@ -118,7 +118,7 @@ class MotionState(MotionPrimitiveModelWrapper):
                 return to_node_key
         return None
         
-    def generate_random_action_transition(self, elementary_action_name):
+    def generate_random_action_transition(self, elementary_action_name, cycle=False):
         """ Returns the key of a random transition to the given elementary action.
 
         Parameters
@@ -127,12 +127,18 @@ class MotionState(MotionPrimitiveModelWrapper):
         \t Identifies an elementary action
         """
         if self.outgoing_edges:
+            start_states = self.motion_state_group.motion_state_graph.node_groups[elementary_action_name].start_states
+            if cycle:
+                cycle_states = self.motion_state_group.motion_state_graph.node_groups[elementary_action_name].cycle_states
+            else:
+                cycle_states = []
             edges = [edge_key for edge_key in self.outgoing_edges.keys()
-                     if edge_key[0] == elementary_action_name]
+                     if edge_key[0] == elementary_action_name and \
+                     (edge_key[1] in start_states or edge_key[1] in cycle_states)]
             if len(edges) > 0:
                 random_index = random.randrange(0, len(edges), 1)
                 to_node_key = edges[random_index]
-                print "to", to_node_key
+                #print "to", to_node_key
                 return to_node_key
         return None
 
