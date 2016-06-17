@@ -128,7 +128,11 @@ class MotionStateGroup(ElementaryActionMetaInfo):
         """ Get next state of the elementary action based on previous iteration.
         """
         prev_node = graph_walk.steps[-1].node_key
-        next_node_type = self.get_transition_type(graph_walk, action_constraint, travelled_arc_length, arc_length_of_end)
+        if action_constraint.root_trajectory is None:
+            next_node_type = self.get_transition_type_for_action(graph_walk, action_constraint)
+        else:
+            next_node_type = self.get_transition_type_for_action_from_trajectory(graph_walk, action_constraint, travelled_arc_length, arc_length_of_end)
+
         to_node_key = self.nodes[prev_node].generate_random_transition(next_node_type)
         if to_node_key is not None:
             return to_node_key, next_node_type
@@ -159,7 +163,7 @@ class MotionStateGroup(ElementaryActionMetaInfo):
         if self.nodes[current_node].n_standard_transitions > 0:
             while count < number_of_steps:
                 to_node_key = self.nodes[current_node].generate_random_transition(NODE_TYPE_STANDARD)
-                next_parameters = self.generate_next_parameters(self.nodes, current_node, current_parameters, to_node_key, use_transition_model)
+                next_parameters = self.generate_next_parameters(current_node, current_parameters, to_node_key, use_transition_model)
                 entry = {"node_key": to_node_key, "parameters": next_parameters}
                 graph_walk.append(entry)
                 current_parameters = next_parameters
