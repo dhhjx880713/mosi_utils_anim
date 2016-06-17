@@ -273,15 +273,19 @@ class ElementaryActionGenerator(object):
         self.action_state.initialize_from_previous_graph_walk(graph_walk, max_arc_length, self.action_constraints.cycled_next)
         write_log("Start synthesis of elementary action", self.action_constraints.action_name)
         errors = [0]
+        distances = []
         while not self.action_state.is_end_state():
             error = self._transition_to_next_action_state(graph_walk)
             if error is None:
                 return False  # the generation of the state was not successful
             errors.append(error)
-            if self.action_constraints.root_trajectory is not None and not self._is_close_to_path(graph_walk):
-                write_log("Warning: Distance to path has become larger than", self.max_distance_to_path)
-                return False
-
+            if self.action_constraints.root_trajectory is not None:
+                d = self._distance_to_path(graph_walk)
+                distances.append(d)
+                write_log("distance to path",d)
+                if d >= self.max_distance_to_path:
+                    write_log("Warning: Distance to path has become larger than", self.max_distance_to_path)
+                    return False
 
         graph_walk.step_count += self.action_state.temp_step
         graph_walk.update_frame_annotation(self.action_constraints.action_name, self.action_state.action_start_frame, graph_walk.get_num_of_frames())
@@ -337,12 +341,13 @@ class ElementaryActionGenerator(object):
         graph_walk.steps.append(new_step)
         return new_travelled_arc_length
 
-    def _is_close_to_path(self, graph_walk):
+    def _distance_to_path(self, graph_walk):
         step_goal = copy(graph_walk.steps[-1].motion_primitive_constraints.step_goal)
         step_goal[1] = 0.0
         root = copy(graph_walk.motion_vector.frames[-1][:3])
         root[1] = 0.0
-        return np.linalg.norm(step_goal - root) < self.max_distance_to_path
+        d = np.linalg.norm(step_goal - root)
+        return d
 
     def _get_collision_avoidance_constraints(self, new_node, new_motion_spline, graph_walk):
         """ Generate constraints using the rest interface of the collision avoidance module directly.
