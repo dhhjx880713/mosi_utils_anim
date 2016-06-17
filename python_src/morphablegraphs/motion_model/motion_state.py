@@ -231,7 +231,7 @@ class MotionState(MotionPrimitiveModelWrapper):
         if self.outgoing_edges[to_node_key].transition_model is not None:
             return self.outgoing_edges[to_node_key].transition_model.predict(current_parameters)
         else:
-            return self.gaussian_mixture_model
+            return self.get_gaussian_mixture_model()
             
 
 
