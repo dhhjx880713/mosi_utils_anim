@@ -194,8 +194,11 @@ class GraphWalk(object):
             label = constraint.semantic_annotation.keys()[0]
             print "trajectory constraint label",constraint.semantic_annotation.keys()
             action_name = action.action_name
-            for step in self.steps[action.start_step: action.end_step]:
+            for step in self.steps[action.start_step: action.end_step+1]:
                 motion_primitive_name = step.node_key[1]
+                print "look for action annotation of",action_name,motion_primitive_name
+                if motion_primitive_name not in self.motion_state_graph.node_groups[action_name].motion_primitive_annotation_regions:
+                    continue
                 annotations = self.motion_state_graph.node_groups[action_name].motion_primitive_annotation_regions[motion_primitive_name]
                 print "action annotation",annotations,frame_annotation["startFrame"],frame_annotation["endFrame"]
                 if label not in annotations.keys():
