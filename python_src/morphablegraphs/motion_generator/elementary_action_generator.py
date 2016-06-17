@@ -87,6 +87,11 @@ class ElementaryActionGenerator(object):
         self.activate_direction_ca_connection = algorithm_config["collision_avoidance_constraints_mode"] == CA_CONSTRAINTS_MODE_DIRECT_CONNECTION
         self.activate_coordinate_transform_for_ca = service_config["activate_coordinate_transform"]
         self.ca_service_url = service_config["collision_avoidance_service_url"]
+        self.coordinate_transform_matrix = np.array([[1,0,0,0],
+                                                    [0,0,-1,0],
+                                                    [0,1,0,0],
+                                                    [0,0,0,1]])
+
 
     def set_algorithm_config(self, algorithm_config):
         self._algorithm_config = algorithm_config
@@ -339,6 +344,8 @@ class ElementaryActionGenerator(object):
             #TODO move to wrapper
         """
         aligned_motion_spline, global_transformation = self._get_aligned_motion_spline(new_motion_spline, graph_walk.get_quat_frames())
+        if self.activate_coordinate_transform_for_ca:
+            global_transformation = np.dot(global_transformation, self.coordinate_transform_matrix)
         frames = aligned_motion_spline.get_motion_vector()
         global_bvh_string = get_bvh_writer(self.motion_state_graph.skeleton, frames).generate_bvh_string()
         ca_input = {"elementary_action_name": new_node[0],
