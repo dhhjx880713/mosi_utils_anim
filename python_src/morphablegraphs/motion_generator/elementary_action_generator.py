@@ -6,7 +6,7 @@ import json
 import urllib2
 import random
 from ..utilities.exceptions import PathSearchError
-from ..motion_model import NODE_TYPE_END, NODE_TYPE_SINGLE, NODE_TYPE_CYCLE
+from ..motion_model import NODE_TYPE_END, NODE_TYPE_SINGLE, NODE_TYPE_CYCLE_END
 from ..animation_data.motion_editing import create_transformation_matrix
 from motion_primitive_generator import MotionPrimitiveGenerator
 from constraints.motion_primitive_constraints_builder import MotionPrimitiveConstraintsBuilder
@@ -33,8 +33,9 @@ class ElementaryActionGeneratorState(object):
             self.debug_max_step = algorithm_config["debug_max_step"]
             self.step_start_frame = 0
             self.max_arc_length = np.inf
+            self.action_cycled_next = False
 
-        def initialize_from_previous_graph_walk(self, graph_walk, max_arc_length):
+        def initialize_from_previous_graph_walk(self, graph_walk, max_arc_length, action_cycled_next):
             self.start_step = graph_walk.step_count
             if self.start_step > 0:
                 self.prev_action_name = graph_walk.steps[-1]
@@ -48,6 +49,7 @@ class ElementaryActionGeneratorState(object):
             self.temp_step = 0
             self.travelled_arc_length = 0.0
             self.max_arc_length = max_arc_length
+            self.action_cycled_next = action_cycled_next
 
         def is_end_state(self):
             #print is_last_node , reached_debug_max_step , reached_max_arc_length,self.max_arc_length
@@ -60,7 +62,7 @@ class ElementaryActionGeneratorState(object):
             return self.travelled_arc_length >= self.max_arc_length
 
         def is_last_node(self):
-            return self.current_node_type == NODE_TYPE_END or self.current_node_type == NODE_TYPE_SINGLE or self.current_node_type == NODE_TYPE_CYCLE
+            return self.current_node_type == NODE_TYPE_END or self.current_node_type == NODE_TYPE_SINGLE or(self.current_node_type == NODE_TYPE_CYCLE_END and self.action_cycled_next)
 
         def transition(self, new_node, new_node_type, new_travelled_arc_length, new_step_start_frame):
             self.current_node = new_node
@@ -258,7 +260,7 @@ class ElementaryActionGenerator(object):
             max_arc_length = self.action_constraints.root_trajectory.full_arc_length
         else:
             max_arc_length = np.inf
-        self.action_state.initialize_from_previous_graph_walk(graph_walk, max_arc_length)
+        self.action_state.initialize_from_previous_graph_walk(graph_walk, max_arc_length, self.action_constraints.cycled_next)
         write_log("Start synthesis of elementary action", self.action_constraints.action_name)
         errors = [0]
         while not self.action_state.is_end_state():
@@ -287,8 +289,12 @@ class ElementaryActionGenerator(object):
 
         mp_constraints = self._gen_motion_primitive_constraints(new_node, new_node_type, graph_walk)
 
-        if self.action_constraints.cycled_next:
-            new_node_type = NODE_TYPE_CYCLE
+        #f self.action_constraints.cycled_next:
+        #    print "is cycled action"
+        #    new_node_type = NODE_TYPE_CYCLE_END
+        #else:
+        #    print "is not cycled"
+
         if mp_constraints is None:
             write_log("Error: Failed to generate constraints")
             return None

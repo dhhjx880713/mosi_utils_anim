@@ -5,7 +5,7 @@ Created on Thu Jul 16 15:57:42 2015
 @author: erhe01
 """
 
-from . import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END, NODE_TYPE_SINGLE
+from . import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END, NODE_TYPE_SINGLE,  NODE_TYPE_CYCLE_END
 from elementary_action_meta_info import ElementaryActionMetaInfo
 
 
@@ -35,6 +35,8 @@ class MotionStateGroup(ElementaryActionMetaInfo):
             print "end states", self.end_states
             for k in self.end_states:
                  self.nodes[(self.elementary_action_name, k)].node_type = NODE_TYPE_END
+            for k in self.cycle_states:
+                 self.nodes[(self.elementary_action_name, k)].node_type = NODE_TYPE_CYCLE_END
 
     def _update_motion_state_stats(self, recalculate=False):
         """  Update stats of motion states for faster lookup.
@@ -90,30 +92,37 @@ class MotionStateGroup(ElementaryActionMetaInfo):
             next_parameters = self.nodes[to_node_key].sample_low_dimensional_vector()
         return next_parameters
 
-    def get_transition_type(self, graph_walk, action_constraint, travelled_arc_length, arc_length_of_end):
-         prev_node = graph_walk.steps[-1].node_key
-         if action_constraint.root_trajectory is not None:
-            #test end condition for trajectory constraints
-            if not action_constraint.check_end_condition(graph_walk.get_quat_frames(),\
-                                    travelled_arc_length, arc_length_of_end):
+    def get_transition_type_for_action_from_trajectory(self, graph_walk, action_constraint, travelled_arc_length, arc_length_of_end):
 
-                #make standard transition to go on with trajectory following
-                next_node_type = NODE_TYPE_STANDARD
-            else:
-                # threshold was overstepped. remove previous step before
-                # trying to reach the goal using a last step
-                next_node_type = NODE_TYPE_END
+        #test end condition for trajectory constraints
+        if not action_constraint.check_end_condition(graph_walk.get_quat_frames(),\
+                                travelled_arc_length, arc_length_of_end):
 
-            print "generate", next_node_type, "transition from trajectory"
-         else:
-            n_standard_transitions = len([e for e in self.nodes[prev_node].outgoing_edges.keys()
-                                          if self.nodes[prev_node].outgoing_edges[e].transition_type == NODE_TYPE_STANDARD])
-            if n_standard_transitions > 0:
-                next_node_type = NODE_TYPE_STANDARD
-            else:
-                next_node_type = NODE_TYPE_END
-            print "generate", next_node_type, "transition without trajectory", n_standard_transitions
-         return next_node_type
+            #make standard transition to go on with trajectory following
+            next_node_type = NODE_TYPE_STANDARD
+        else:
+            # threshold was overstepped. remove previous step before
+            # trying to reach the goal using a last step
+            next_node_type = NODE_TYPE_END
+
+        print "generate", next_node_type, "transition from trajectory"
+        return next_node_type
+
+    def get_transition_type_for_action(self, graph_walk, action_constraint):
+        prev_node = graph_walk.steps[-1].node_key
+        n_standard_transitions = len(self.get_n_standard_transitions(prev_node))
+        if n_standard_transitions > 0:
+            next_node_type = NODE_TYPE_STANDARD
+        else:
+            next_node_type = NODE_TYPE_END
+        print "generate", next_node_type, "transition without trajectory", n_standard_transitions, prev_node
+        if action_constraint.cycled_next and next_node_type == NODE_TYPE_END:
+            next_node_type = NODE_TYPE_CYCLE_END
+        return next_node_type
+
+    def get_n_standard_transitions(self, prev_node):
+        return [e for e in self.nodes[prev_node].outgoing_edges.keys()
+                if self.nodes[prev_node].outgoing_edges[e].transition_type == NODE_TYPE_STANDARD]
 
     def get_random_transition(self, graph_walk, action_constraint, travelled_arc_length, arc_length_of_end):
         """ Get next state of the elementary action based on previous iteration.

@@ -16,7 +16,7 @@ from ..utilities.zip_io import ZipReader
 from motion_state_transition import MotionStateTransition
 from motion_state_graph import MotionStateGraph
 from ..motion_generator.hand_pose_generator import HandPoseGenerator
-from . import ELEMENTARY_ACTION_DIRECTORY_NAME, TRANSITION_MODEL_DIRECTORY_NAME, NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END, TRANSITION_DEFINITION_FILE_NAME, TRANSITION_MODEL_FILE_ENDING
+from . import ELEMENTARY_ACTION_DIRECTORY_NAME, TRANSITION_MODEL_DIRECTORY_NAME, NODE_TYPE_START, NODE_TYPE_STANDARD,NODE_TYPE_CYCLE_END, NODE_TYPE_END, TRANSITION_DEFINITION_FILE_NAME, TRANSITION_MODEL_FILE_ENDING
 
 SKELETON_FILE = "skeleton.bvh"  # TODO replace with standard skeleton in data directory
 
@@ -152,6 +152,8 @@ class MotionStateGraphLoader(object):
         if to_node_key[0] == from_node_key[0]:
             if motion_state_graph.nodes[to_node_key].node_type in [NODE_TYPE_START, NODE_TYPE_STANDARD]:
                 transition_type = "standard"
+            elif motion_state_graph.nodes[to_node_key].node_type == NODE_TYPE_CYCLE_END:
+                transition_type = "cycle_end"
             else:
                 transition_type = "end"
         else:
