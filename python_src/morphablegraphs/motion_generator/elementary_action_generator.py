@@ -62,7 +62,9 @@ class ElementaryActionGeneratorState(object):
             return self.travelled_arc_length >= self.max_arc_length
 
         def is_last_node(self):
-            return self.current_node_type == NODE_TYPE_END or self.current_node_type == NODE_TYPE_SINGLE or(self.current_node_type == NODE_TYPE_CYCLE_END and self.action_cycled_next)
+            return self.current_node_type == NODE_TYPE_END or \
+                   self.current_node_type == NODE_TYPE_SINGLE or\
+                   (self.current_node is not None and self.action_cycled_next)
 
         def transition(self, new_node, new_node_type, new_travelled_arc_length, new_step_start_frame):
             self.current_node = new_node
