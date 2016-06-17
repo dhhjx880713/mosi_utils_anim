@@ -233,8 +233,8 @@ class SkeletonPoseModel(object):
         self.set_channel_values(new_local_q, [joint_name])
 
         #rotate around orientation vector
-        joint_cross = self.get_joint_direction(joint_name, self.relative_hand_cross)
         if target_cross is not None:
+            joint_cross = self.get_joint_direction(joint_name, self.relative_hand_cross)
             delta_q = quaternion_from_vector_to_vector(joint_cross, target_cross)
             delta_matrix = quaternion_matrix(delta_q)
             parent_m = self.skeleton.nodes[parent_joint_name].get_global_matrix(self.pose_parameters, use_cache=False)
@@ -243,7 +243,7 @@ class SkeletonPoseModel(object):
             new_local = np.dot(np.linalg.inv(parent_m),m)
             new_local_q = quaternion_from_matrix(new_local)
             self.set_channel_values(new_local_q, [joint_name])
-        print joint_direction
+
 
     def set_joint_orientation(self, joint_name, target_q):
         global_q = self.skeleton.nodes[joint_name].get_global_orientation_quaternion(self.pose_parameters, use_cache=False)
