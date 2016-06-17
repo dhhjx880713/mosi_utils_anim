@@ -293,15 +293,16 @@ class MGInputFormatReader(object):
         reordered_constraints = dict()
         # iterate over keyframe labels
         for keyframe_label in keyframe_constraints.keys():
-            mp_name = node_group.label_to_motion_primitive_map[keyframe_label]
-            time_info = node_group.motion_primitive_annotations[mp_name][keyframe_label]
-            if mp_name not in reordered_constraints.keys():
-                reordered_constraints[mp_name] = list()
-            # iterate over joints constrained at that keyframe
-            for joint_name in keyframe_constraints[keyframe_label].keys():
-                # iterate over constraints for that joint
-                for c_type in self.constraint_types:
-                    reordered_constraints[mp_name] += self._filter_by_constraint_type(keyframe_constraints,keyframe_label, joint_name, time_info, c_type)
+            mp_names = node_group.label_to_motion_primitive_map[keyframe_label]
+            for mp_name in mp_names:
+                time_info = node_group.motion_primitive_annotations[mp_name][keyframe_label]
+                if mp_name not in reordered_constraints.keys():
+                    reordered_constraints[mp_name] = list()
+                # iterate over joints constrained at that keyframe
+                for joint_name in keyframe_constraints[keyframe_label].keys():
+                    # iterate over constraints for that joint
+                    for c_type in self.constraint_types:
+                        reordered_constraints[mp_name] += self._filter_by_constraint_type(keyframe_constraints,keyframe_label, joint_name, time_info, c_type)
         return reordered_constraints
 
     def _filter_by_constraint_type(self, constraints,keyframe_label, joint_name, time_info, c_type):

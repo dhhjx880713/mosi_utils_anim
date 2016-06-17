@@ -39,7 +39,6 @@ class ElementaryActionMetaInfo(object):
         if "annotation_regions" in self.meta_information.keys():
             self.motion_primitive_annotation_regions = self.meta_information["annotation_regions"]
 
-
     def _create_annotation_label_to_motion_primitive_map(self):
         """Create a map from semantic label to motion primitive
         """
@@ -47,7 +46,9 @@ class ElementaryActionMetaInfo(object):
             if motion_primitive != "all_primitives":
                 annotations = self.motion_primitive_annotations[motion_primitive]
                 for label in annotations.keys():
-                    self.label_to_motion_primitive_map[label] = motion_primitive
+                    if label not in self.label_to_motion_primitive_map.keys():
+                        self.label_to_motion_primitive_map[label] = []
+                    self.label_to_motion_primitive_map[label] += [motion_primitive]
 
     def get_random_start_state(self):
         """ Returns the name of a random start state. """
