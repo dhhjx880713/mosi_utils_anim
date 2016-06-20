@@ -148,7 +148,7 @@ class GraphWalk(object):
             elementary_action_ik_constraints["trajectories"] = list()
             elementary_action_ik_constraints["collision_avoidance"] = list()
             frame_offset = self.steps[start_step].start_frame
-            for step in self.steps[start_step: end_step]:
+            for step in self.steps[start_step: end_step+1]:
                 time_function = None
                 if self.use_time_parameters:
                     time_function = self.motion_state_graph.nodes[step.node_key].back_project_time_function(step.parameters)
