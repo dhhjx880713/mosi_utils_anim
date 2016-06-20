@@ -188,6 +188,7 @@ class GraphWalk(object):
     def _create_ik_trajectory_constraints_from_annotated_trajectories(self, action_idx):
         print "extract annotated trajectories"
         frame_annotation = self.keyframe_event_list.frame_annotation['elementaryActionSequence'][action_idx]
+        start_frame = frame_annotation["startFrame"]
         trajectory_constraints = list()
         action = self.elementary_action_list[action_idx]
         for constraint in action.action_constraints.annotated_trajectory_constraints:
@@ -208,9 +209,17 @@ class GraphWalk(object):
                 traj_constraint["trajectory"] = constraint
                 traj_constraint["constrain_orientation"] = True
                 traj_constraint["fixed_range"] = True
-                traj_constraint["start_frame"] = frame_annotation["startFrame"] + annotation_range[0]
-                traj_constraint["end_frame"] =  frame_annotation["startFrame"] + annotation_range[1]
-                print "action annotation",traj_constraint["start_frame"],traj_constraint["end_frame"]
+                time_function = None
+                if self.use_time_parameters:
+                    time_function = self.motion_state_graph.nodes[step.node_key].back_project_time_function(step.parameters)
+                if time_function is None:
+                    traj_constraint["start_frame"] = start_frame + annotation_range[0]
+                    traj_constraint["end_frame"] = start_frame + annotation_range[1]
+                else:
+                    #add +1 for correct mapping TODO verify for all cases
+                    traj_constraint["start_frame"] = start_frame + int(time_function[annotation_range[0]]) + 1
+                    traj_constraint["end_frame"] = start_frame + int(time_function[annotation_range[1]]) + 1
+
                 if self.mg_input.activate_joint_mapping and constraint.joint_name in self.mg_input.inverse_joint_name_map.keys():
                     joint_name = self.mg_input.inverse_joint_name_map[constraint.joint_name]
                 else:
