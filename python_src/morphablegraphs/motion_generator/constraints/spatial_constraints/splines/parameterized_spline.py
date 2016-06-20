@@ -185,6 +185,12 @@ class ParameterizedSpline(object):
                 dir_vector /= magnitude
         return start, dir_vector
 
+    def get_direction(self):
+        dir_vector = self.spline.query_point_by_parameter(1.0) - self.spline.query_point_by_parameter(0.0)
+        magnitude = np.linalg.norm(dir_vector)
+        if magnitude != 0:
+            dir_vector /= magnitude
+        return dir_vector
     def get_angle_at_arc_length_2d(self, arc_length, reference_vector):
         """
         Parameters
