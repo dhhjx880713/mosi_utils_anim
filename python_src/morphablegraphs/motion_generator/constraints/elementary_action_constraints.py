@@ -24,7 +24,6 @@ class ElementaryActionConstraints(object):
         self._initialized = False
         self.contains_user_constraints = False  # any user defined keyframe constraints
         self.contains_two_hands_constraints = False  # two hand pick or place
-        self.keyframe_event_list = dict()
         self.cycled_previous = False  # are there more of the same action before
         self.cycled_next = False  # are there more of the same action following
 
