@@ -314,6 +314,7 @@ class MGInputFormatReader(object):
                 constraint_desc = self._extend_keyframe_constraint_definition(keyframe_label, joint_name, constraint, time_info, c_type)
                 filtered_constraints.append(constraint_desc)
         return filtered_constraints
+
     def filter_constraints_by_label(self, constraints, label):
         keyframe_constraints = []
         for constraint in constraints:
