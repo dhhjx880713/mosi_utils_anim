@@ -4,6 +4,12 @@ import random
 from ..utilities.io_helper_functions import write_to_json_file
 from . import META_INFORMATION_FILE_NAME
 
+LAST_FRAME = "lastFrame"  # TODO set standard for keyframe values
+NEGATIVE_ONE = "-1"
+
+KEYFRAME_LABEL_END = "end"
+KEYFRAME_LABEL_START = "start"
+KEYFRAME_LABEL_MIDDLE = "middle"
 
 class ElementaryActionMetaInfo(object):
     def __init__(self, elementary_action_name, elementary_action_directory):
@@ -96,3 +102,26 @@ class ElementaryActionMetaInfo(object):
         else:
             keyframe_labels = {}
         return keyframe_labels
+
+    def get_keyframe_from_annotation(self, motion_primitive_name, keyframe_label, n_canonical_frames):
+        keyframe = None
+        # print "try to map frame annotation ", keyframe_label
+        if keyframe_label == KEYFRAME_LABEL_END:#"end"
+            keyframe = n_canonical_frames-1
+        elif keyframe_label == KEYFRAME_LABEL_START:#"start"
+            keyframe = 0
+        elif keyframe_label == KEYFRAME_LABEL_MIDDLE:#"middle"
+            keyframe = n_canonical_frames/2
+        else:
+            if motion_primitive_name in self.motion_primitive_annotations.keys() and \
+                   keyframe_label in self.motion_primitive_annotations[motion_primitive_name].keys():
+                    keyframe = self.motion_primitive_annotations[motion_primitive_name][keyframe_label]
+                    if keyframe in [NEGATIVE_ONE, LAST_FRAME]:
+                        keyframe = n_canonical_frames-1
+                    elif keyframe == KEYFRAME_LABEL_MIDDLE:
+                        keyframe = n_canonical_frames/2
+            else:
+                print "Error: Could not map keyframe label", keyframe_label, self.motion_primitive_annotations.keys()
+        if keyframe is not None:
+            keyframe = int(keyframe)
+        return keyframe

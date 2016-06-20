@@ -13,10 +13,7 @@ from .spatial_constraints import PoseConstraint, Direction2DConstraint, GlobalTr
 from ...animation_data.motion_vector import concatenate_frames
 from ...animation_data.motion_editing import get_2d_pose_transform, inverse_pose_transform, fast_quat_frames_transformation, create_transformation_matrix
 from . import CA_CONSTRAINTS_MODE_SET, OPTIMIZATION_MODE_ALL, OPTIMIZATION_MODE_KEYFRAMES, OPTIMIZATION_MODE_TWO_HANDS
-
-KEYFRAME_LABEL_END = "end"
-KEYFRAME_LABEL_START = "start"
-KEYFRAME_LABEL_MIDDLE = "middle"
+from ...motion_model.elementary_action_meta_info import KEYFRAME_LABEL_END, KEYFRAME_LABEL_START, KEYFRAME_LABEL_MIDDLE
 
 
 class MotionPrimitiveConstraintsBuilder(object):
@@ -25,9 +22,6 @@ class MotionPrimitiveConstraintsBuilder(object):
     """
 
     mp_constraint_types = ["position", "orientation", "time"]
-    LAST_FRAME = "lastFrame"  # TODO set standard for keyframe values
-    NEGATIVE_ONE = "-1"
-
     def __init__(self):
         self.action_constraints = None
         self.algorithm_config = None
@@ -124,6 +118,7 @@ class MotionPrimitiveConstraintsBuilder(object):
             if self.status["is_last_step"] and not mp_constraints.pose_constraint_set:
                 self._add_pose_constraint(mp_constraints)
         self._add_trajectory_constraints(mp_constraints)
+        self._add_events_to_event_list(mp_constraints)
         self._decide_on_optimization(mp_constraints)
         return mp_constraints
 
@@ -211,7 +206,6 @@ class MotionPrimitiveConstraintsBuilder(object):
             for c_desc in self.action_constraints.keyframe_constraints[self.status["motion_primitive_name"]]:
                 keyframe_constraint = self.create_keyframe_constraint(c_desc)
                 if keyframe_constraint is not None:
-                    self._add_events_to_event_list(mp_constraints, keyframe_constraint)
                     mp_constraints.constraints.append(keyframe_constraint)
 
     def create_keyframe_constraint(self, c_desc):
@@ -238,12 +232,15 @@ class MotionPrimitiveConstraintsBuilder(object):
         else:
             mp_constraints.use_local_optimization = False
 
-    def _add_events_to_event_list(self, mp_constraints, keyframe_constraint):
-        if keyframe_constraint.keyframe_label in self.action_constraints.keyframe_annotations.keys():
-            #simply overwrite it if it exists
-            event_list = self.action_constraints.keyframe_annotations[keyframe_constraint.keyframe_label]["annotations"]
-            keyframe_event = {"canonical_keyframe": keyframe_constraint.canonical_keyframe, "event_list":  event_list}
-            mp_constraints.keyframe_event_list[keyframe_constraint.keyframe_label] = keyframe_event
+    def _add_events_to_event_list(self, mp_constraints):
+        for label in self.action_constraints.keyframe_annotations.keys():
+            print "try to set annotations for label ", label
+            if mp_constraints.motion_primitive_name in self.motion_state_graph.node_groups[self.action_constraints.action_name].motion_primitive_annotations.keys():
+                if label in self.motion_state_graph.node_groups[self.action_constraints.action_name].motion_primitive_annotations[mp_constraints.motion_primitive_name]:
+                    event_list = self.action_constraints.keyframe_annotations[label]["annotations"]
+                    keyframe_event = {"canonical_keyframe": self._get_keyframe_from_annotation(label),
+                                      "event_list":  event_list}
+                    mp_constraints.keyframe_event_list[label] = keyframe_event
 
     def _map_label_to_canonical_keyframe(self, keyframe_constraint_desc):
         """ Enhances the keyframe constraint definition with a canonical keyframe set based on label
@@ -255,36 +252,17 @@ class MotionPrimitiveConstraintsBuilder(object):
         keyframe_constraint_desc = copy(keyframe_constraint_desc)
         keyframe_constraint_desc["n_canonical_frames"] = self.status["n_canonical_frames"]
         keyframe_label = keyframe_constraint_desc["semanticAnnotation"]["keyframeLabel"]
-
-        #print "try to map frame annotation ", keyframe_label
-        if keyframe_label == KEYFRAME_LABEL_END:#"end"
-            keyframe_constraint_desc["canonical_keyframe"] = self.status["n_canonical_frames"]-1
-        elif keyframe_label == KEYFRAME_LABEL_START:#"start"
-            keyframe_constraint_desc["canonical_keyframe"] = 0
-        elif keyframe_label == KEYFRAME_LABEL_MIDDLE:#"middle"
-            keyframe_constraint_desc["canonical_keyframe"] = self.status["n_canonical_frames"]/2
+        keyframe = self._get_keyframe_from_annotation(keyframe_label)
+        if keyframe is not None:
+            keyframe_constraint_desc["canonical_keyframe"] = keyframe
         else:
-            keyframe = self._get_keyframe_from_annotation(keyframe_label)
-            if keyframe is not None:
-                keyframe_constraint_desc["canonical_keyframe"] = keyframe
-            else:
-                return None
+            return None
         return keyframe_constraint_desc
 
     def _get_keyframe_from_annotation(self, keyframe_label):
-        annotations = self.motion_state_graph.node_groups[self.action_constraints.action_name].motion_primitive_annotations
-        if self.status["motion_primitive_name"] in annotations.keys() and \
-           keyframe_label in annotations[self.status["motion_primitive_name"]].keys():
-
-            keyframe = annotations[self.status["motion_primitive_name"]][keyframe_label]
-            if keyframe == self.NEGATIVE_ONE or keyframe == self.LAST_FRAME:
-                keyframe = self.status["n_canonical_frames"]-1
-            elif keyframe == KEYFRAME_LABEL_MIDDLE:
-                keyframe = self.status["n_canonical_frames"]/2
-            return int(keyframe)
-        else:
-            print "Error: Could not map keyframe label", keyframe_label, annotations.keys()
-            return None
+        return self.motion_state_graph.node_groups[self.action_constraints.action_name]. \
+            get_keyframe_from_annotation(self.status["motion_primitive_name"], keyframe_label,
+                                         self.status["n_canonical_frames"])
 
     def _create_pose_constraint_from_preceding_motion(self):
         """ Create frame a constraint from the preceding motion.
