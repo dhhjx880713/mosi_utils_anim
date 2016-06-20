@@ -21,7 +21,7 @@ except ImportError:
     has_mgrd = False
     pass
 
-DEFAULT_TOOl_BONES = [{
+DEFAULT_TOOL_BONES = [{
             "new_node_name": 'LeftToolEndSite',
             "parent_node_name": 'LeftHand',
             "new_node_offset": [6.1522069, -0.09354633,  3.33790343]#[9.55928, -0.145352, 5.186424]
@@ -29,19 +29,25 @@ DEFAULT_TOOl_BONES = [{
             "new_node_name": 'RightToolEndSite',
             "parent_node_name": 'RightHand',
             "new_node_offset": [6.1522069, 0.09354633,  3.33790343]#[9.559288, 0.145353, 5.186417]
+            },{
+            "new_node_name": 'RightScrewDriverEndSite',
+            "parent_node_name": 'RightHand',
+            "new_node_offset": [23.0, -10.5,  3.5]
             }
         ]
 DEFAULT_FREE_JOINTS_MAP = {"LeftHand":["Spine","LeftArm", "LeftForeArm"],
                            "RightHand":["Spine","RightArm","RightForeArm"],
                            "LeftToolEndSite":["Spine","LeftArm","LeftForeArm"],
                            "RightToolEndSite":["Spine","RightArm", "RightForeArm"],
-                            "Head":[]
+                            "Head":[],
+                           "RightScrewDriverEndSite":["Spine","RightArm","RightForeArm"]
                                 }
 DEFAULT_REDUCED_FREE_JOINTS_MAP = {"LeftHand":["Spine","LeftArm", "LeftForeArm"],
                                        "RightHand":["Spine","RightArm","RightForeArm"],
                                        "LeftToolEndSite":["LeftArm","LeftForeArm"],
                                        "RightToolEndSite":["RightArm", "RightForeArm"],
-                                        "Head":[]}
+                                        "Head":[],
+                                        "RightScrewDriverEndSite":["RightArm","RightForeArm"]}
 DEFAULT_HEAD_JOINT = "Head"
 DEFAULT_NECK_JOINT = "Neck"
 DEFAULT_BOUNDS = {"LeftArm":[],#{"dim": 1, "min": 0, "max": 90}
