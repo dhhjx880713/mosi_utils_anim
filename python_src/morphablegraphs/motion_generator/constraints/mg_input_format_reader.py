@@ -385,6 +385,9 @@ class MGInputFormatReader(object):
             position = constraint["position"]
         if "orientation" in constraint.keys():
             orientation = constraint["orientation"]
+            if orientation != [None, None, None]:
+                orientation = self._transform_point_from_cad_to_opengl_cs(orientation)
+                print "orientation",orientation
         if "time" in constraint.keys():
             time = constraint["time"]
         #check if last or fist frame from annotation
