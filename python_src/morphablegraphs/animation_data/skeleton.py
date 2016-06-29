@@ -7,11 +7,14 @@ Created on Tue Jul 14 14:18:37 2015
 
 import collections
 from copy import deepcopy
+import json
 import numpy as np
 from ..external.transformations import quaternion_matrix
 from quaternion_frame import QuaternionFrame
+from ..animation_data.motion_editing import euler_to_quaternion
 from itertools import izip
-from skeleton_node import SkeletonRootNode, SkeletonJointNode, SkeletonEndSiteNode
+from skeleton_node import SkeletonRootNode, SkeletonJointNode, SkeletonEndSiteNode, SKELETON_NODE_TYPE_JOINT
+from ..utilities import write_to_json_file
 from . import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER
 try:
     from mgrd import Skeleton as MGRDSkeleton
@@ -58,17 +61,29 @@ class Skeleton(object):
     """ Data structure that stores the skeleton hierarchy information
         extracted from a BVH file with additional meta information.
     """
-    def __init__(self, bvh_reader, animated_joints=None, rotation_type=ROTATION_TYPE_QUATERNION):
-
-        #TODO read data from file
-        new_tool_bones = DEFAULT_TOOl_BONES
-        self.animated_joints = animated_joints
+    def __init__(self):
+        self.animated_joints = None
         self.free_joints_map = DEFAULT_FREE_JOINTS_MAP
         self.reduced_free_joints_map = DEFAULT_REDUCED_FREE_JOINTS_MAP
         self.head_joint = DEFAULT_HEAD_JOINT
         self.neck_joint = DEFAULT_NECK_JOINT
         self.bounds = DEFAULT_BOUNDS
+        self.frame_time = None
+        self.root = None
+        self.node_names = None
+        self.reference_frame = None
+        self.reference_frame_length = None
+        self.node_channels = collections.OrderedDict()
+        self.nodes = collections.OrderedDict()
+        self.tool_nodes = []
+        self.max_level = -1
+        self.parent_dict = dict()
+        self._chain_names = []
+        #self.load_from_bvh(bvh_reader, animated_joints, rotation_type)
+        #print self.nodes.keys()
 
+    def load_from_bvh(self, bvh_reader,animated_joints=None, rotation_type=ROTATION_TYPE_QUATERNION):
+        self.animated_joints = animated_joints
         self.frame_time = deepcopy(bvh_reader.frame_time)
         self.root = deepcopy(bvh_reader.root)
         self.node_names = deepcopy(bvh_reader.node_names)
@@ -79,12 +94,101 @@ class Skeleton(object):
         self.nodes = collections.OrderedDict()
         self._create_filtered_node_name_frame_map()
         self.tool_nodes = []
-        self._add_tool_nodes(new_tool_bones)
+        self._add_tool_nodes(DEFAULT_TOOL_BONES)
         self.max_level = self._get_max_level()
         self._set_joint_weights()
         self.parent_dict = self._get_parent_dict()
         self._chain_names = self._generate_chain_names()
         self.construct_hierarchy_iterative()
+
+    def load_from_json_file(self,filename):
+        with open(filename) as infile:
+            data = json.load(infile)
+            self.load_from_json_data(data)
+
+    def load_from_json_data(self, data):
+        self.animated_joints = data["animated_joints"]
+        self.free_joints_map = data["free_joints_map"]
+        self.reduced_free_joints_map = data["reduced_free_joints_map"]
+        self.bounds = data["bounds"]
+        self.head_joint = data["head_joint"]
+        self.neck_joint = data["neck_joint"]
+        self.frame_time = data["frame_time"]
+        self.nodes = collections.OrderedDict()
+        root = self._create_node_from_desc(data["root"], None)
+        #print self.nodes.keys()
+        self.root = root.node_name
+        self.reference_frame = np.array(data["reference_frame"])
+        self.reference_frame_length = len(self.reference_frame)
+        self.node_channels = data["node_channels"]
+        self.tool_nodes = data["tool_nodes"]
+        self.node_name_frame_map = data["node_name_frame_map"]
+        self.node_names = data["node_names"]
+        self.max_level = self._get_max_level()
+        self._set_joint_weights()
+        self.parent_dict = self._get_parent_dict()
+        self._chain_names = self._generate_chain_names()
+
+    def _create_node_from_desc(self, data, parent):
+        node_name = data["name"]
+        channels = data["channels"]
+        if parent is None:
+            node = SkeletonRootNode( node_name, channels, parent)
+        elif data["node_type"] == SKELETON_NODE_TYPE_JOINT:
+            node = SkeletonJointNode(node_name, channels, parent)
+        else:
+            node = SkeletonEndSiteNode(node_name, channels, parent)
+        node.fixed = data["fixed"]
+        node.index = data["index"]
+        node.offset = np.array(data["offset"])
+        node.rotation = np.array(data["rotation"])
+        #print "l",node_name, node.rotation, node.index
+        node.quaternion_frame_index = data["quaternion_frame_index"]
+        self.nodes[node_name] = node
+        self.nodes[node_name].children = []
+        for c_desc in data["children"]:
+            self.nodes[node_name].children.append(self._create_node_from_desc(c_desc, node))
+        return node
+
+    def _get_node_desc(self, name):
+        node_desc = dict()
+        node = self.nodes[name]
+        node_desc["name"] = node.node_name
+        if node.parent is not None:
+            node_desc["parent"] = node.parent.node_name
+        else:
+            node_desc["parent"] = None
+        node_desc["quaternion_frame_index"] = node.quaternion_frame_index
+        node_desc["index"] = node.index
+
+        #print "s",name, node.rotation, node.index
+        node_desc["offset"] = node.offset
+        node_desc["channels"] = node.channels
+        node_desc["rotation"] = node.rotation.tolist()
+        node_desc["fixed"] = node.fixed
+        node_desc["node_type"] = node.node_type
+        node_desc["children"] = []
+        for c in node.children:
+            c_desc = self._get_node_desc(c.node_name)
+            node_desc["children"].append(c_desc)
+        return node_desc
+
+    def save_to_json(self, file_name):
+        data = dict()
+        data["animated_joints"] = self.animated_joints
+        data["node_names"] = self.node_names
+        data["free_joints_map"] = self.free_joints_map
+        data["reduced_free_joints_map"] = self.reduced_free_joints_map
+        data["bounds"] = self.bounds
+        data["head_joint"] = self.head_joint
+        data["neck_joint"] = self.neck_joint
+        data["frame_time"] = self.frame_time
+        data["root"] = self._get_node_desc(self.root)
+        data["reference_frame"] = self.reference_frame.tolist()
+        data["node_channels"] = self.node_channels
+        data["tool_nodes"] = self.tool_nodes
+        data["node_name_frame_map"] = self.node_name_frame_map
+        write_to_json_file(file_name, data)
 
     def extract_channels(self):
         for node_idx, node_name in enumerate(self.node_names):
@@ -175,6 +279,7 @@ class Skeleton(object):
                 if joint_name == self.root:
                     new_frame[:7] = reduced_frame[:7]
                 else:
+                    #print joint_name,self.nodes[joint_name].index
                     dest_start = self.nodes[joint_name].index * 4 + 3
                     if self.nodes[joint_name].fixed:
                         new_frame[dest_start: dest_start+4] = self.nodes[joint_name].rotation
@@ -319,7 +424,6 @@ class Skeleton(object):
         for node_name in self.node_name_frame_map.keys():
             position = self.nodes[node_name].get_global_position(quat_frame)
             cartesian_frame.append(position)
-
         return cartesian_frame
 
     def clear_cached_global_matrices(self):
