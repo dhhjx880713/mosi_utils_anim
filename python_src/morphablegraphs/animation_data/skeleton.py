@@ -348,3 +348,11 @@ class Skeleton(object):
     def get_root_reference_orientation(self):
         # reference orientation from BVH: 179.477078182 3.34148613293 -87.6482840381 x y z euler angles
         return self.reference_frame[3:7]#euler_to_quaternion([179.477078182, 3.34148613293, -87.6482840381])
+
+    def get_joint_indices(self, joint_names):
+        indices = []
+        for name in joint_names:
+            if name in self.nodes.keys():
+                node = self.nodes[name]
+                indices.append(node.index)
+        return indices

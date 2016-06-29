@@ -28,6 +28,8 @@ class HandPoseGenerator(object):
         self.status_change_map = hand_pose_info["status_change_map"]
         self.right_hand_skeleton = hand_pose_info["right_hand_skeleton"]
         self.left_hand_skeleton = hand_pose_info["left_hand_skeleton"]
+        self.right_hand_skeleton["indices"] = self.skeleton.get_joint_indices(hand_pose_info["right_hand_skeleton"]["joint_names"])
+        self.left_hand_skeleton["indices"] = self.skeleton.get_joint_indices(hand_pose_info["left_hand_skeleton"]["joint_names"])
         for pose in hand_pose_info["poses"].keys():
             hand_pose = HandPose()
             hand_pose.hand_skeletons = dict()
@@ -54,26 +56,14 @@ class HandPoseGenerator(object):
         if os.path.isfile(hand_pose_info_file):
             with open(hand_pose_info_file, "r") as in_file:
                 hand_pose_info = json.load(in_file)
-                self.status_change_map = hand_pose_info["status_change_map"]
-                self.right_hand_skeleton = hand_pose_info["right_hand_skeleton"]
-                self.left_hand_skeleton = hand_pose_info["left_hand_skeleton"]
-            for pose in hand_pose_info["poses"].keys():
-                hand_pose = HandPose()
-                hand_pose.hand_skeletons = dict()
-                hand_pose.hand_skeletons["RightHand"] = self.right_hand_skeleton
-                hand_pose.hand_skeletons["LeftHand"] = self.left_hand_skeleton
-                hand_pose.pose_vectors["LeftHand"] = np.asarray(hand_pose_info["poses"][pose]["LeftHand"])
-                hand_pose.pose_vectors["RightHand"] = np.asarray(hand_pose_info["poses"][pose]["RightHand"])
-                self.pose_map[pose] = hand_pose
-            #for root, dirs, files in os.walk(hand_pose_directory):
-            #    for file_name in files:
-            #        if file_name[-4:] == ".bvh":
-            #            print file_name[:-4]
-            #            bvh_reader = BVHReader(root+os.sep+file_name)
-            #            skeleton = Skeleton(bvh_reader)
-            #            self._add_hand_pose(file_name[:-4], skeleton)
-
-            self.initialized = True
+                self.init_from_desc(hand_pose_info)
+                #for root, dirs, files in os.walk(hand_pose_directory):
+                #    for file_name in files:
+                #        if file_name[-4:] == ".bvh":
+                #            print file_name[:-4]
+                #            bvh_reader = BVHReader(root+os.sep+file_name)
+                #            skeleton = Skeleton(bvh_reader)
+                #            self._add_hand_pose(file_name[:-4], skeleton)
         else:
             print "Error: Could not load hand poses from", hand_pose_directory
 
