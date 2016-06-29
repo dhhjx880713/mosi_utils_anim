@@ -13,7 +13,7 @@ MORPHABLE_MODEL_FILE_ENDING = "mm.json"
 MM_TYPE = "quaternion"
 ELEMENTARY_ACTION_DIRECTORY_NAME = "elementary_action_models"
 TRANSITION_MODEL_DIRECTORY_NAME = "transition_models"
-
+GRAPH_DEFINITION_FILE = "graph_definition.json"
 
 class ZipReader(object):
     def __init__(self, zip_file_path, pickle_objects=True, verbose=True):
@@ -25,7 +25,7 @@ class ZipReader(object):
         self.verbose = verbose
         self.elementary_action_directory = ELEMENTARY_ACTION_DIRECTORY_NAME
         self.transition_model_directory = TRANSITION_MODEL_DIRECTORY_NAME
-        self.format_version = "1.0"
+        self.format_version = 1.0
 
     def get_graph_data(self):
         """ Extracts the data from the files stored in the zip file and
@@ -35,26 +35,22 @@ class ZipReader(object):
         """
         print "Loading data from file ", self.zip_file_path, "..."
         self.zip_file = zipfile.ZipFile(self.zip_file_path, "r", zipfile.ZIP_DEFLATED)
-        data = json.loads(self.zip_file.read("graph_definition.json"))
-        data["skeletonString"] = self.zip_file.read("skeleton.bvh")
-        #print data.keys()
+        data = json.loads(self.zip_file.read(GRAPH_DEFINITION_FILE))
         if "formatVersion" in data.keys():
-            self.format_version = data["formatVersion"]
+            self.format_version = float(data["formatVersion"])
         else:
-            self.format_version = "1.0"
+            self.format_version = 1.0
 
-        if self.format_version == "2.0":
-            print "format version 2.0"
+        print "format version", self.format_version
+        if self.format_version >= 2.0:
             structure_desc = self._read_elementary_action_file_structure_from_zip_v2()
             data["handPoseInfo"] = self._read_hand_pose_data()
         else:
-            print "format version 1.0"
             structure_desc = self._read_elementary_action_file_structure_from_zip_v1()
+        if self.format_version <= 2.0:
+            data["skeletonString"] = self.zip_file.read("skeleton.bvh")
         self._construct_graph_data(structure_desc)
-
         data["subgraphs"] = self.graph_data
-
-
         self.zip_file.close()
         return data
 
@@ -135,7 +131,8 @@ class ZipReader(object):
         statsfile = structure_key + "/" + (motion_primitive_name[:-self.type_offset] + ".stats")
         self._add_stats(action_data_key, mp_data_key, statsfile)
         space_partition_file = self._get_space_partitioning_file_path(structure_key, motion_primitive_name)
-        self._add_space_partioning_data_structure(action_data_key, mp_data_key, space_partition_file)
+        #print space_partition_file
+        self._add_space_partitioning_data_structure(action_data_key, mp_data_key, space_partition_file)
 
     def _add_stats(self, action_data_key, mp_data_key, statsfile):
         if statsfile in self.zip_file.namelist():
@@ -143,29 +140,28 @@ class ZipReader(object):
             stats_data = json.loads(stats_string)
             self.graph_data[action_data_key]["nodes"][mp_data_key]["stats"] = stats_data
 
-    def _add_space_partioning_data_structure(self, action_data_key, mp_data_key, space_partition_file):
+    def _add_space_partitioning_data_structure(self, action_data_key, mp_data_key, space_partition_file):
         if space_partition_file in self.zip_file.namelist():
             space_partition = self.zip_file.read(space_partition_file)
             self.graph_data[action_data_key]["nodes"][mp_data_key]["space_partition"] = None
             if self.pickle_objects:
                 space_partition_data = cPickle.loads(space_partition)
-                self.graph_data[action_data_key]["nodes"][mp_data_key][
-                    "space_partition"] = space_partition_data
+                self.graph_data[action_data_key]["nodes"][mp_data_key]["space_partition"] = space_partition_data
 
     def _get_motion_primitive_file_path(self, structure_key, motion_primitive_name):
-        if self.format_version == "2.0":
+        if self.format_version >= 2.0:
             return self.elementary_action_directory + "/" + structure_key + "/" + motion_primitive_name + "_mm.json"
         else:
             return structure_key + "/" + motion_primitive_name + "_mm.json"
 
     def _get_space_partitioning_file_path(self, structure_key, motion_primitive_name):
-        if self.format_version == "2.0":
+        if self.format_version >= 2.0:
             return self.elementary_action_directory + "/" + structure_key + "/" + motion_primitive_name + "_cluster_tree.pck"
         else:
             return structure_key + "/" + motion_primitive_name + "_cluster_tree.pck"
 
     def _get_meta_info_file_path(self, structure_key):
-        if self.format_version == "2.0":
+        if self.format_version >= 2.0:
             return self.elementary_action_directory + "/" + structure_key + "/meta_information.json"
         else:
             return structure_key + "/meta_information.json"
