@@ -18,9 +18,10 @@ from motion_state_graph import MotionStateGraph
 from ..motion_generator.hand_pose_generator import HandPoseGenerator
 from . import ELEMENTARY_ACTION_DIRECTORY_NAME, TRANSITION_MODEL_DIRECTORY_NAME, NODE_TYPE_START, NODE_TYPE_STANDARD,NODE_TYPE_CYCLE_END, NODE_TYPE_END, TRANSITION_DEFINITION_FILE_NAME, TRANSITION_MODEL_FILE_ENDING
 
-SKELETON_FILE = "skeleton.bvh"  # TODO replace with standard skeleton in data directory
-
-
+SKELETON_FILE = "skeleton"  # TODO replace with standard skeleton in data directory
+SKELETON_BVH_STRING_KEY = "skeletonString"
+SKELETON_JSON_KEY = "skeleton"
+DEFAULT_ANIMATED_JOINT_LIST = ["Hips", "Spine", "Spine_1", "Neck", "Head", "LeftShoulder", "LeftArm", "LeftForeArm", "LeftHand", "RightShoulder", "RightArm", "RightForeArm", "RightHand", "LeftUpLeg", "LeftLeg", "LeftFoot", "RightUpLeg", "RightLeg", "RightFoot"]
 
 class MotionStateGraphLoader(object):
     """   Constructs a MotionPrimitiveGraph instance from a zip file or directory as data source
@@ -32,7 +33,6 @@ class MotionStateGraphLoader(object):
         self.motion_state_graph_path = None
         self.elementary_action_directory = None
         self.motion_primitive_node_group_builder = MotionStateGroupLoader()
-        self.animated_joints = ["Hips", "Spine", "Spine_1", "Neck", "Head", "LeftShoulder", "LeftArm", "LeftForeArm", "LeftHand", "RightShoulder", "RightArm", "RightForeArm", "RightHand", "LeftUpLeg", "LeftLeg", "LeftFoot", "RightUpLeg", "RightLeg", "RightFoot"]
 
 
     def set_data_source(self, motion_state_graph_path, load_transition_models=False, update_stats=False):
@@ -54,7 +54,6 @@ class MotionStateGraphLoader(object):
 
     def build(self):
         motion_state_graph = MotionStateGraph()
-
         if os.path.isfile(self.motion_state_graph_path+".zip"):
             self._init_from_zip_file(motion_state_graph)
         else:
@@ -66,8 +65,17 @@ class MotionStateGraphLoader(object):
         zip_path = self.motion_state_graph_path+".zip"
         zip_reader = ZipReader(zip_path, pickle_objects=True)
         graph_data = zip_reader.get_graph_data()
-        motion_state_graph.animated_joints = self.animated_joints
-        motion_state_graph.skeleton = Skeleton(BVHReader("").init_from_string(graph_data["skeletonString"]), self.animated_joints)
+        motion_state_graph.skeleton = Skeleton()
+        if SKELETON_BVH_STRING_KEY in graph_data.keys():
+            bvh_reader = BVHReader("").init_from_string(graph_data[SKELETON_BVH_STRING_KEY])
+            motion_state_graph.skeleton.load_from_bvh(bvh_reader, DEFAULT_ANIMATED_JOINT_LIST)
+        elif SKELETON_JSON_KEY in graph_data.keys():
+            motion_state_graph.skeleton.load_from_json_data(graph_data[SKELETON_JSON_KEY])
+        else:
+            raise Exception("There is no skeleton defined in the graph file")
+            return
+
+        motion_state_graph.animated_joints = motion_state_graph.skeleton.animated_joints
         #motion_state_graph.skeleton = motion_state_graph.full_skeleton.create_reduced_copy()
         motion_state_graph.mgrd_skeleton = motion_state_graph.skeleton.convert_to_mgrd_skeleton()
 
@@ -92,26 +100,35 @@ class MotionStateGraphLoader(object):
     def _init_from_directory(self, motion_state_graph, recalculate_motion_stats=True):
         """ Initializes the class
         """
-        motion_state_graph.animated_joints = self.animated_joints
-        skeleton_path = self.motion_state_graph_path + os.sep + SKELETON_FILE
-        motion_state_graph.skeleton = Skeleton(BVHReader(skeleton_path), self.animated_joints)
-        #motion_state_graph.skeleton = motion_state_graph.full_skeleton.create_reduced_copy()
-        motion_state_graph.mgrd_skeleton = motion_state_graph.skeleton.convert_to_mgrd_skeleton()
-
-        #load graphs representing elementary actions including transitions between actions
-        for key in next(os.walk(self.motion_state_graph_path + os.sep + ELEMENTARY_ACTION_DIRECTORY_NAME))[1]:
-            subgraph_path = self. motion_state_graph_path + os.sep + ELEMENTARY_ACTION_DIRECTORY_NAME + os.sep + key
-            print subgraph_path
-            name = key.split("_")[-1]
-            self.motion_primitive_node_group_builder.set_directory_as_data_source(name, subgraph_path)
-            node_group = self.motion_primitive_node_group_builder.build(motion_state_graph)
-            motion_state_graph.nodes.update(node_group.nodes)
-            motion_state_graph.node_groups[node_group.elementary_action_name] = node_group
-
-        graph_definition_file = self.motion_state_graph_path+os.sep+TRANSITION_DEFINITION_FILE_NAME
-        #add transitions between subgraphs and load transition models
+        graph_definition_file = self.motion_state_graph_path + os.sep + TRANSITION_DEFINITION_FILE_NAME
+        # add transitions between subgraphs and load transition models
         if os.path.isfile(graph_definition_file):
             graph_definition = load_json_file(graph_definition_file)
+            motion_state_graph.skeleton = Skeleton()
+            skeleton_path = self.motion_state_graph_path + os.sep + SKELETON_FILE
+            if SKELETON_JSON_KEY in graph_definition.keys():
+                motion_state_graph.skeleton.load_from_json_data(graph_definition[SKELETON_JSON_KEY])
+            elif os.path.isfile(skeleton_path+"bvh"):
+                motion_state_graph.skeleton.load_from_bvh(BVHReader(skeleton_path+"bvh"), DEFAULT_ANIMATED_JOINT_LIST)
+            else:
+                raise Exception("There is no skeleton defined in the graph directory")
+                return
+
+            motion_state_graph.animated_joints = motion_state_graph.skeleton.animated_joints
+            #motion_state_graph.skeleton = motion_state_graph.full_skeleton.create_reduced_copy()
+            motion_state_graph.mgrd_skeleton = motion_state_graph.skeleton.convert_to_mgrd_skeleton()
+
+            #load graphs representing elementary actions including transitions between actions
+            for key in next(os.walk(self.motion_state_graph_path + os.sep + ELEMENTARY_ACTION_DIRECTORY_NAME))[1]:
+                subgraph_path = self. motion_state_graph_path + os.sep + ELEMENTARY_ACTION_DIRECTORY_NAME + os.sep + key
+                print subgraph_path
+                name = key.split("_")[-1]
+                self.motion_primitive_node_group_builder.set_directory_as_data_source(name, subgraph_path)
+                node_group = self.motion_primitive_node_group_builder.build(motion_state_graph)
+                motion_state_graph.nodes.update(node_group.nodes)
+                motion_state_graph.node_groups[node_group.elementary_action_name] = node_group
+
+
             if "transitions" in graph_definition.keys():
                 print "add transitions between subgraphs from", graph_definition_file
                 self._set_transitions_from_dict(motion_state_graph, graph_definition["transitions"])
