@@ -21,7 +21,9 @@ class AnnotatedMotionVector(MotionVector):
         """
 
         MotionVector.export(self, self.skeleton, output_dir, output_filename, add_time_stamp)
+        self.export_annotation(output_dir, output_filename)
 
+    def export_annotation(self,output_dir, output_filename):
         if self.mg_input is not None:
             write_to_json_file(output_dir + os.sep + output_filename + ".json", self.mg_input.mg_input_file)
         if self.keyframe_event_list is not None:
