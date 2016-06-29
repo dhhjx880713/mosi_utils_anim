@@ -52,7 +52,6 @@ class ElementaryActionGeneratorState(object):
             self.action_cycled_next = action_cycled_next
 
         def is_end_state(self):
-            #print is_last_node , reached_debug_max_step , reached_max_arc_length,self.max_arc_length
             return self.is_last_node() or self.reached_debug_max_step() or self.reached_max_arc_length()
 
         def reached_debug_max_step(self):
