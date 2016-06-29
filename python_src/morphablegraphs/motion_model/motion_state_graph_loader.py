@@ -21,7 +21,7 @@ from . import ELEMENTARY_ACTION_DIRECTORY_NAME, TRANSITION_MODEL_DIRECTORY_NAME,
 SKELETON_FILE = "skeleton"  # TODO replace with standard skeleton in data directory
 SKELETON_BVH_STRING_KEY = "skeletonString"
 SKELETON_JSON_KEY = "skeleton"
-DEFAULT_ANIMATED_JOINT_LIST = ["Hips", "Spine", "Spine_1", "Neck", "Head", "LeftShoulder", "LeftArm", "LeftForeArm", "LeftHand", "RightShoulder", "RightArm", "RightForeArm", "RightHand", "LeftUpLeg", "LeftLeg", "LeftFoot", "RightUpLeg", "RightLeg", "RightFoot"]
+
 
 class MotionStateGraphLoader(object):
     """   Constructs a MotionPrimitiveGraph instance from a zip file or directory as data source
@@ -68,7 +68,7 @@ class MotionStateGraphLoader(object):
         motion_state_graph.skeleton = Skeleton()
         if SKELETON_BVH_STRING_KEY in graph_data.keys():
             bvh_reader = BVHReader("").init_from_string(graph_data[SKELETON_BVH_STRING_KEY])
-            motion_state_graph.skeleton.load_from_bvh(bvh_reader, DEFAULT_ANIMATED_JOINT_LIST)
+            motion_state_graph.skeleton.load_from_bvh(bvh_reader)
         elif SKELETON_JSON_KEY in graph_data.keys():
             motion_state_graph.skeleton.load_from_json_data(graph_data[SKELETON_JSON_KEY])
         else:
@@ -109,7 +109,7 @@ class MotionStateGraphLoader(object):
             if SKELETON_JSON_KEY in graph_definition.keys():
                 motion_state_graph.skeleton.load_from_json_data(graph_definition[SKELETON_JSON_KEY])
             elif os.path.isfile(skeleton_path+"bvh"):
-                motion_state_graph.skeleton.load_from_bvh(BVHReader(skeleton_path+"bvh"), DEFAULT_ANIMATED_JOINT_LIST)
+                motion_state_graph.skeleton.load_from_bvh(BVHReader(skeleton_path+"bvh"))
             else:
                 raise Exception("There is no skeleton defined in the graph directory")
                 return

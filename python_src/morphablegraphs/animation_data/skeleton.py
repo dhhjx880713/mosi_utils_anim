@@ -56,13 +56,14 @@ DEFAULT_NECK_JOINT = "Neck"
 DEFAULT_BOUNDS = {"LeftArm":[],#{"dim": 1, "min": 0, "max": 90}
                        "RightArm":[]}#{"dim": 1, "min": 0, "max": 90},{"dim": 0, "min": 0, "max": 90}
 
+DEFAULT_ANIMATED_JOINT_LIST = ["Hips", "Spine", "Spine_1", "Neck", "Head", "LeftShoulder", "LeftArm", "LeftForeArm", "LeftHand", "RightShoulder", "RightArm", "RightForeArm", "RightHand", "LeftUpLeg", "LeftLeg", "LeftFoot", "RightUpLeg", "RightLeg", "RightFoot"]
 
 class Skeleton(object):
     """ Data structure that stores the skeleton hierarchy information
         extracted from a BVH file with additional meta information.
     """
     def __init__(self):
-        self.animated_joints = None
+        self.animated_joints = DEFAULT_ANIMATED_JOINT_LIST
         self.free_joints_map = DEFAULT_FREE_JOINTS_MAP
         self.reduced_free_joints_map = DEFAULT_REDUCED_FREE_JOINTS_MAP
         self.head_joint = DEFAULT_HEAD_JOINT
@@ -82,8 +83,8 @@ class Skeleton(object):
         #self.load_from_bvh(bvh_reader, animated_joints, rotation_type)
         #print self.nodes.keys()
 
-    def load_from_bvh(self, bvh_reader,animated_joints=None, rotation_type=ROTATION_TYPE_QUATERNION):
-        self.animated_joints = animated_joints
+    def load_from_bvh(self, bvh_reader):
+        self.animated_joints = DEFAULT_ANIMATED_JOINT_LIST
         self.frame_time = deepcopy(bvh_reader.frame_time)
         self.root = deepcopy(bvh_reader.root)
         self.node_names = deepcopy(bvh_reader.node_names)
@@ -460,3 +461,6 @@ class Skeleton(object):
                 node = self.nodes[name]
                 indices.append(node.index)
         return indices
+
+    def get_n_joints(self):
+        return len([node for node in self.nodes.values() if len(node.channels) > 0])
