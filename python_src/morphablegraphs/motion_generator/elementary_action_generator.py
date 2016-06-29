@@ -313,7 +313,7 @@ class ElementaryActionGenerator(object):
             write_log("Error: Failed to generate constraints")
             return None
         new_motion_spline, new_parameters = self.motion_primitive_generator.generate_constrained_motion_spline(mp_constraints, graph_walk)
-        if self.activate_direction_ca_connection:
+        if self.activate_direction_ca_connection and self.ca_service_url is not None:
             ca_constraints = self._get_collision_avoidance_constraints(new_node, new_motion_spline, graph_walk)
             if ca_constraints is not None and len(ca_constraints) > 0:
                 mp_constraints.constraints += ca_constraints
