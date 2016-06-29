@@ -115,7 +115,7 @@ class MotionPrimitiveModelWrapper(object):
 
     def back_project_time_function_mgrd(self, s_vec):
         time_spline = self.motion_primitive.create_time_spline(s_vec, labels=[])
-        return np.asarray(time_spline.evaluate_domain(step_size=1.0))#[:,0]
+        return np.asarray(time_spline.evaluate_domain(step_size=1.0))[:,0]
     back_project_time_function = back_project_time_function_mgrd if has_mgrd else back_project_time_function_legacy
 
     def get_n_canonical_frames_legacy(self):
