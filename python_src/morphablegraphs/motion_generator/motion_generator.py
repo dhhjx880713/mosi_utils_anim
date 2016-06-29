@@ -75,6 +75,10 @@ class MotionGenerator(object):
 
         graph_walk = self.graph_walk_generator.generate(mg_input_reader)
 
+        time_in_seconds = time.clock() - start_time
+        minutes = int(time_in_seconds/60)
+        seconds = time_in_seconds % 60
+        write_log("Finished graph walk generation in " + str(minutes) + " minutes " + str(seconds) + " seconds")
         if self._algorithm_config["use_global_time_optimization"]:
             graph_walk = self.graph_walk_optimizer.optimize_time_parameters_over_graph_walk(graph_walk)
 
