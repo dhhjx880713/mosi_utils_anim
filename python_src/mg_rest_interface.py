@@ -16,7 +16,9 @@ import tornado.ioloop
 import tornado.web
 import json
 import time
-from morphablegraphs import MotionGenerator, AlgorithmConfigurationBuilder, load_json_file
+from datetime import datetime
+from morphablegraphs import MotionGenerator, AlgorithmConfigurationBuilder, load_json_file, write_to_json_file
+from morphablegraphs.utilities.io_helper_functions import get_bvh_writer
 
 SERVICE_CONFIG_FILE = "config" + os.sep + "service.config"
 
@@ -61,23 +63,41 @@ class MGInputHandler(tornado.web.RequestHandler):
         if motion_vector.has_frames():
             print "Converting the motion into the BVH format..."
             start = time.time()
-            if self.application.use_file_output_mode:
-                motion_vector.export(self.application.service_config["output_dir"],
-                                     self.application.service_config["output_filename"],
-                                     add_time_stamp=self.application.service_config["add_time_stamp"])
-                self.write("success")
-            else:
-                print "answer request", not self.application.use_file_output_mode
-                result_object = {
-                    "bvh": motion_vector.generate_bvh_string(),
-                    "annotation": motion_vector.keyframe_event_list.frame_annotation,
-                    "event_list": motion_vector.keyframe_event_list.keyframe_events_dict}
-                self.write(json.dumps(result_object))  # send result back
+            bvh_writer = get_bvh_writer(motion_vector.skeleton, motion_vector.frames)
+            bvh_string = bvh_writer.generate_bvh_string()
+            result_object = {
+                "bvh": bvh_string,
+                "annotation": motion_vector.keyframe_event_list.frame_annotation,
+                "event_list": motion_vector.keyframe_event_list.keyframe_events_dict}
             print "Finished converting the motion to a BVH string in", time.time()-start, "seconds"
+            self.write(json.dumps(result_object))  # send result back
+            if self.application.export_motion_to_file:
+                self._export_motion_to_file(bvh_string, motion_vector, self.application.add_timestamp_to_filename)
         else:
             error_string = "Error: Failed to generate motion data."
             print error_string
             self.write(error_string)
+
+    def _export_motion_to_file(self, bvh_string, motion_vector, addtimestamp=True):
+        timestamp = unicode(datetime.now().strftime("%d%m%y_%H%M%S"))
+        bvh_filename = self.application.service_config["output_dir"] + os.sep + self.application.service_config["output_filename"]
+        if addtimestamp:
+            bvh_filename += "_"+timestamp
+        bvh_filename += ".bvh"
+        print "export motion to file", bvh_filename
+        with open(bvh_filename, "wb") as out_file:
+            out_file.write(bvh_string)
+        if motion_vector.mg_input is not None:
+            mg_input_file_name = self.application.service_config["output_dir"] + os.sep + \
+                                 self.application.service_config["output_filename"] + ".json"
+
+            mg_input_file_name += "_" + timestamp
+            write_to_json_file(mg_input_file_name, motion_vector.mg_input.mg_input_file)
+        if motion_vector.keyframe_event_list is not None:
+            keyframe_event_filename = self.application.service_config["output_dir"] + os.sep + \
+                                      self.application.service_config["output_filename"]
+            motion_vector.keyframe_event_list.export_to_file(keyframe_event_filename)
+
 
 
 class MGConfigurationHandler(tornado.web.RequestHandler):
@@ -113,7 +133,7 @@ class MGConfigurationHandler(tornado.web.RequestHandler):
 
 
 class MGRestApplication(tornado.web.Application):
-    """ Extends the Application class with a MorphableGraph instance and options.
+    """ Extends the Application class with a MotionGenerator instance and algorithm options.
         This allows access to the data in the MGInputHandler class
     """
     def __init__(self, service_config, algorithm_config, handlers=None, default_host="", transforms=None, **settings):
@@ -121,26 +141,31 @@ class MGRestApplication(tornado.web.Application):
 
         self.algorithm_config = algorithm_config
         self.service_config = service_config
-
-        self.use_file_output_mode = (service_config["output_mode"] == "file_output" and "output_dir" in self.service_config.keys())
-        self.activate_joint_map = True
+        self.export_motion_to_file = False
+        self.activate_joint_map = False
         self.apply_coordinate_transform = True
-        try:
+        self.add_timestamp_to_filename = True
+
+        if "export_motion_to_file" in self.service_config.keys():
+            self.export_motion_to_file = service_config["export_motion_to_file"]
+        if "add_time_stamp" in self.service_config.keys():
+            self.add_timestamp_to_filename = service_config["add_time_stamp"]
+        if "activate_joint_map" in self.service_config.keys():
             self.activate_joint_map = service_config["activate_joint_map"]
+        if "activate_coordinate_transform" in self.service_config.keys():
             self.activate_coordinate_transform = service_config["activate_coordinate_transform"]
-        except KeyError, e:
-            print "Could not find parameter in service configuration", e.message
-        if self.use_file_output_mode:
+
+        if self.export_motion_to_file:
             print "Results are written as file to the directory", self.service_config["output_dir"]
         else:
-            print "Results are send as answers to the request"
+            print "Results are returned as answer to the request"
 
         if "collision_avoidance_service_url" in service_config.keys():
             try:
                 ca_service_url = service_config["collision_avoidance_service_url"]
                 urllib2.urlopen('http://'+ca_service_url)
             except Exception as e:
-                print "Error: Could not open collision avoidance service URL", ca_service_url
+                print "Warning: Could not open collision avoidance service URL", ca_service_url, "\n Collision avoidance will be disabled"
                 service_config["collision_avoidance_service_url"] = None
         else:
             service_config["collision_avoidance_service_url"] = None
