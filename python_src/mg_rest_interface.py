@@ -78,25 +78,18 @@ class MGInputHandler(tornado.web.RequestHandler):
             print error_string
             self.write(error_string)
 
-    def _export_motion_to_file(self, bvh_string, motion_vector, addtimestamp=True):
+    def _export_motion_to_file(self, bvh_string, motion_vector, add_timestamp=True):
         timestamp = unicode(datetime.now().strftime("%d%m%y_%H%M%S"))
         bvh_filename = self.application.service_config["output_dir"] + os.sep + self.application.service_config["output_filename"]
-        if addtimestamp:
+        if add_timestamp:
             bvh_filename += "_"+timestamp
-        bvh_filename += ".bvh"
         print "export motion to file", bvh_filename
-        with open(bvh_filename, "wb") as out_file:
+        with open(bvh_filename+".bvh", "wb") as out_file:
             out_file.write(bvh_string)
         if motion_vector.mg_input is not None:
-            mg_input_file_name = self.application.service_config["output_dir"] + os.sep + \
-                                 self.application.service_config["output_filename"] + ".json"
-
-            mg_input_file_name += "_" + timestamp
-            write_to_json_file(mg_input_file_name, motion_vector.mg_input.mg_input_file)
+            write_to_json_file(bvh_filename+ "_input.json", motion_vector.mg_input.mg_input_file)
         if motion_vector.keyframe_event_list is not None:
-            keyframe_event_filename = self.application.service_config["output_dir"] + os.sep + \
-                                      self.application.service_config["output_filename"]
-            motion_vector.keyframe_event_list.export_to_file(keyframe_event_filename)
+            motion_vector.keyframe_event_list.export_to_file(bvh_filename)
 
 
 
