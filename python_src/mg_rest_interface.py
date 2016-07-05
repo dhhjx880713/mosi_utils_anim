@@ -40,8 +40,7 @@ class MGInputHandler(tornado.web.RequestHandler):
         self.write(error_string)
 
     def post(self):
-        #  try to decode message body
-        try:
+        try:#  try to decode message body
             mg_input = json.loads(self.request.body)
         except:
             error_string = "Error: Could not decode request body as JSON."
@@ -72,17 +71,16 @@ class MGInputHandler(tornado.web.RequestHandler):
             print "Finished converting the motion to a BVH string in", time.time()-start, "seconds"
             self.write(json.dumps(result_object))  # send result back
             if self.application.export_motion_to_file:
-                self._export_motion_to_file(bvh_string, motion_vector, self.application.add_timestamp_to_filename)
+                self._export_motion_to_file(bvh_string, motion_vector)
         else:
             error_string = "Error: Failed to generate motion data."
             print error_string
             self.write(error_string)
 
-    def _export_motion_to_file(self, bvh_string, motion_vector, add_timestamp=True):
-        timestamp = unicode(datetime.now().strftime("%d%m%y_%H%M%S"))
+    def _export_motion_to_file(self, bvh_string, motion_vector):
         bvh_filename = self.application.service_config["output_dir"] + os.sep + self.application.service_config["output_filename"]
-        if add_timestamp:
-            bvh_filename += "_"+timestamp
+        if self.application.add_timestamp_to_filename:
+            bvh_filename += "_"+unicode(datetime.now().strftime("%d%m%y_%H%M%S"))
         print "export motion to file", bvh_filename
         with open(bvh_filename+".bvh", "wb") as out_file:
             out_file.write(bvh_string)
@@ -154,8 +152,8 @@ class MGRestApplication(tornado.web.Application):
             print "Results are returned as answer to the request"
 
         if "collision_avoidance_service_url" in service_config.keys():
+            ca_service_url = service_config["collision_avoidance_service_url"]
             try:
-                ca_service_url = service_config["collision_avoidance_service_url"]
                 urllib2.urlopen('http://'+ca_service_url)
             except Exception as e:
                 print "Warning: Could not open collision avoidance service URL", ca_service_url, "\n Collision avoidance will be disabled"
