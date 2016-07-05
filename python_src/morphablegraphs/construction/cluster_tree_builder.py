@@ -87,6 +87,7 @@ class ClusterTreeBuilder(object):
         self.random_seed = None
         self.only_spatial_parameters = True
         self.mgrd_skeleton = None
+        self.use_kd_tree = True
         return
         
     def set_config(self, config_file_path):
@@ -99,6 +100,7 @@ class ClusterTreeBuilder(object):
         self.random_seed = config["random_seed"]
         self.only_spatial_parameters = config["only_spatial_parameters"]
         self.store_indices = config["store_data_indices_in_nodes"]
+        self.use_kd_tree = config["use_kd_tree"]
 
     def load_skeleton(self, skeleton_path):
         self.mgrd_skeleton = MGRDSkeletonBVHLoader(skeleton_path).load()
@@ -126,7 +128,7 @@ class ClusterTreeBuilder(object):
         # data = np.array([motion_primitive.sample_low_dimensional_vector() for i in xrange(self.n_samples)])
         likelihoods = []
         data = motion_primitive.sample_low_dimensional_vectors(self.n_samples*2)
-        for idx, sample in  enumerate(data):
+        for idx, sample in enumerate(data):
             likelihood = motion_primitive.get_gaussian_mixture_model().score([sample,])[0]
             #print i, likelihood, new_sample
             heapq.heappush(likelihoods, (-likelihood, idx))
@@ -154,9 +156,9 @@ class ClusterTreeBuilder(object):
                 print "maximum dimension set to", n_dims, "ignoring time parameters"
             else:
                 n_dims = len(data[0])
-            cluster_tree = ClusterTree(self.n_subdivisions_per_level, self.n_levels, n_dims, self.store_indices)
+            cluster_tree = ClusterTree(self.n_subdivisions_per_level, self.n_levels, n_dims, self.store_indices, self.use_kd_tree)
             cluster_tree.construct(data)
-            #self.cluster_tree.save_to_file(cluster_file_name+"tree")
+            # self.cluster_tree.save_to_file(cluster_file_name+"tree")
             cluster_tree.save_to_file_pickle(cluster_file_name + CLUSTER_TREE_FILE_ENDING)
             n_leafs = cluster_tree.root.get_number_of_leafs()
             print "number of leafs", n_leafs
@@ -174,8 +176,9 @@ class ClusterTreeBuilder(object):
                         index = file_name.find("_mm")
                         cluster_file_name = file_name[:index]
                         self._create_space_partitioning(motion_primitive_filename, elementary_action_dir + os.sep + cluster_file_name)
-                    except:
+                    except Exception as e:
                         print "Exception during loading of file",file_name
+                        print e.message
                         continue
 
     def build(self):
