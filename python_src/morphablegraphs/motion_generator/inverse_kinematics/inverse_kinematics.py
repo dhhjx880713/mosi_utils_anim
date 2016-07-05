@@ -45,6 +45,9 @@ class InverseKinematics(object):
         self.max_retries = self._ik_settings["max_retries"]
         self.activate_look_at = self._ik_settings["activate_look_at"]
         self.optimize_orientation = self._ik_settings["optimize_orientation"]
+        self.elementary_action_max_iterations = self._ik_settings["elementary_action_max_iterations"]
+        self.elementary_action_epsilon = self._ik_settings["elementary_action_optimization_eps"]
+
         if self.use_euler:
             self.skeleton.set_rotation_type(ROTATION_TYPE_EULER)#change to euler
         self.channels = OrderedDict()
@@ -120,12 +123,14 @@ class InverseKinematics(object):
             start = time.clock()
             error = np.inf
             iter_counter = 0
+            result = None
             while error > self.success_threshold and iter_counter < self.max_retries:
                 result = self._run_optimization(constraint.evaluate, initial_guess, data, cons)
                 error = constraint.evaluate(result["x"], data)
                 iter_counter += 1
-            write_log("finished optimization in",time.clock()-start,"seconds with error", error)#,result["x"].tolist(), initial_guess.tolist()
-            self.pose.set_channel_values(result["x"], free_joints)
+            #write_log("finished optimization in",time.clock()-start,"seconds with error", error)#,result["x"].tolist(), initial_guess.tolist()
+            if result is not None:
+                self.pose.set_channel_values(result["x"], free_joints)
         else:
             parameters, error = self._run_ccd(constraint.evaluate, initial_guess, data, cons)
             self.pose.set_channel_values(parameters, free_joints)
@@ -183,7 +188,7 @@ class InverseKinematics(object):
         #print parameters.tolist()
         return np.dot(d, d)
 
-    def modify_motion_vector(self, motion_vector, max_iterations=1000, eps=0.5):
+    def modify_motion_vector(self, motion_vector):
         for idx,elementary_action_ik_constraints in enumerate(motion_vector.ik_constraints):
             print "Optimize elementary action",idx
             i = 0
@@ -205,8 +210,8 @@ class InverseKinematics(object):
                     delta = np.inf
                 last_error = error
                 i += 1
-                keep_running = i < max_iterations and delta > eps
-                print delta,eps
+                keep_running = i < self.elementary_action_max_iterations and delta > self.elementary_action_epsilon
+                print "IK iteration", i, error, delta, self.elementary_action_epsilon
 
     def _modify_motion_vector_using_keyframe_constraint_list(self, motion_vector, constraints):
         write_log("number of ik keyframe constraints", len(constraints))
