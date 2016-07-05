@@ -424,3 +424,37 @@ class InverseKinematics(object):
         start = max(0, start)
         end = min(motion_vector.frames.shape[0], end)
         self._create_transition_for_frame_range(motion_vector.frames, start, end-1, [parent_joint_name])
+
+
+    def adapt_hands_during_carry(self, motion_vector):
+        # adapt hands    action_frame_annotation["startFrame"] = start_frame
+        carrying = False
+        transitions = []
+        last_frame = motion_vector.n_frames-1
+        for frame_idx in xrange(motion_vector.n_frames):
+            if frame_idx in motion_vector.keyframe_event_list.keyframe_events_dict["events"].keys():
+                for event_desc in motion_vector.keyframe_event_list.keyframe_events_dict["events"][frame_idx]:
+                    if event_desc["event"] == "attach" and (event_desc["parameters"]["joint"] == ["RightHand", "LeftHand"]
+                                                            or event_desc["parameters"]["joint"] == ["RightToolEndSite", "LeftToolEndSite"]):
+                        carrying = True
+                        start = max(frame_idx-1, 0)
+                        transitions.append((start, last_frame))
+                    elif carrying and event_desc["event"] == "deatach" and (event_desc["parameters"]["joint"] == ["RightHand", "LeftHand"]
+                                                              or event_desc["parameters"]["joint"] == ["RightToolEndSite",
+                                                                                                       "LeftToolEndSite"]):
+                        transitions[-1][1] = min(frame_idx+1,last_frame)
+                        carrying = False
+
+        #for action_annotation in motion_vector.keyframe_event_list.frame_annotation["elementaryActionSequence"]:
+        #    if action_annotation["elementaryAction"] == "PickBoth":
+        #        #print action_annotation["startFrame"], action_annotation["endFrame"]
+        #        transitions.append((action_annotation["startFrame"], action_annotation["endFrame"]))
+
+        for t in transitions:
+            for frame in xrange(t[0], t[1]):
+                self.pose.set_pose_parameters(motion_vector.frames[frame])
+                self.pose.orient_hands_to_each_other()
+                motion_vector.frames[frame] = self.pose.get_vector()
+            for hand_joint in ["RightHand", "LeftHand"]:
+                self._create_transition_for_frame_range(motion_vector.frames, t[0], t[1] - 1, [hand_joint])
+
