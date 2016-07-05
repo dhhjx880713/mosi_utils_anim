@@ -42,9 +42,14 @@ class ClusterTreeNode(object):
         """Return the best example based on the evaluation using an objective function.
         """
         if self.leaf:
+            n_clusters = len(self.clusters)
             result_queue = []
-            for i in xrange(len(self.clusters)):
-                result = self.clusters[i].find_best_example(obj, data)
+            if n_clusters > 0:
+                for i in xrange(n_clusters):
+                    result = self.clusters[i].find_best_example(obj, data)
+                    heapq.heappush(result_queue, result)
+            else:
+                result = obj(self.mean, data), self.mean.tolist()
                 heapq.heappush(result_queue, result)
             return heapq.heappop(result_queue)
         else:

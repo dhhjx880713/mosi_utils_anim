@@ -25,17 +25,20 @@ class ClusterTreeNodeBuilder(object):
     * n_subdivisions: Integer
         Number of subdivisions.
     * max_level: Integer
-        Madataimum number of levels.
+        Maximum number of levels before.
     * dim: Integer
         Number of dimensions of the data.
+    * use_kd_tree: Bool
+        K-D Trees are created for levels deeper than max level
     """
-    def __init__(self, n_subdivisions, max_level, dim, store_indices):
+    def __init__(self, n_subdivisions, max_level, dim, store_indices,use_kd_tree=True):
  
         self.n_subdivisions = n_subdivisions
         self.max_level = max_level
         self.dim = dim
         self.kmeans = None#cluster.KMeans(n_clusters=self.n_subdivisions)
         self.store_indices = store_indices
+        self.use_kd_tree = use_kd_tree
 
     def _calculate_mean(self, data, indices):
         if indices is None:
@@ -66,7 +69,6 @@ class ClusterTreeNodeBuilder(object):
             labels = self.kmeans.fit_predict(data[:, :self.dim])
         else:
             labels = self.kmeans.fit_predict(data[indices, :self.dim])
-            
         cluster_indices = [[] for i in xrange(self.n_subdivisions)]
         if indices is None:
             for i in xrange(n_samples):
@@ -94,47 +96,58 @@ class ClusterTreeNodeBuilder(object):
             current depth used with self.max_level to decide the type of node and the type of subdivisions
         """
         clusters = []
-
         node_type = self._get_node_type_from_depth(depth)
-        #self.samples = data # has always at least 1 sample
-        mean, n_samples = self._calculate_mean(data, indices)
-        
-        if n_samples > self.n_subdivisions:#number of samples at least equal to the number of clusters required for kmeans
-            ## create subdivision
-            cluster_indices = self._detect_clusters(data, indices, n_samples)
-            if depth < self.max_level:
-                is_leaf = False
-                #node_type = INNER_NODE
-                ## create inner node for each cluster
-                for j in xrange(len(cluster_indices) ):
-#                    if len(cluster_data[j]) > 0: #ignore clusters that are empty
-                
-                    if len(cluster_indices[j])>0:
-                        child_node = self.construct_from_data(data, cluster_indices[j], depth+1)
-                        clusters.append(child_node)
-            else:
-                is_leaf = True
-                #node_type = LEAF_NODE
-                ## create kdtree for each cluster
-                cluster_indices = cluster_indices
-                for j in xrange(len(cluster_indices) ):
-#                    if len(cluster_data[j]) > 0: #ignore clusters that are empty
-                    if len(cluster_indices[j])>0:
-                        child_node = KDTreeWrapper(self.dim)
-                        child_node.construct(data, cluster_indices[j])
-                        clusters.append(child_node)
+        if indices is not None:
+            n_samples = len(indices)
         else:
-            #not enough samples to further divide it
-            #so stop before reaching level K
+            n_samples = len(data)
+        if not self.use_kd_tree and n_samples== 1:
+            mean = data[indices[0]]
             is_leaf = True
-            #node_type = LEAF_NODE
-            child_node = KDTreeWrapper(self.dim)
-            child_node.construct(data, indices)
-            clusters.append(child_node)
+        else:
+            if n_samples > self.n_subdivisions and self.n_subdivisions > 1:
+                is_leaf = False
+                mean, clusters = self._create_subdivision(data, indices, depth)
+            else:
+                is_leaf = self.use_kd_tree
+                mean, clusters = self._create_leafs(data,indices, depth)
         if self.store_indices:
             return ClusterTreeNode(uuid.uuid1(), depth, indices, mean, clusters, node_type, is_leaf)
         else:
             return ClusterTreeNode(uuid.uuid1(), depth, None, mean, clusters, node_type, is_leaf)
+
+    def _create_subdivision(self,data,indices, depth):
+        clusters = []
+        mean, n_samples = self._calculate_mean(data, indices)
+        cluster_indices = self._detect_clusters(data, indices, n_samples)
+        if depth < self.max_level or not self.use_kd_tree:
+            for j in xrange(len(cluster_indices)):
+                if len(cluster_indices[j]) > 0:
+                    child_node = self.construct_from_data(data, cluster_indices[j], depth + 1)
+                    clusters.append(child_node)
+        else:
+            for j in xrange(len(cluster_indices)):
+                if len(cluster_indices[j]) > 0:
+                    child_node = KDTreeWrapper(self.dim)
+                    child_node.construct(data, cluster_indices[j])
+                    clusters.append(child_node)
+        return mean, clusters
+
+    def _create_leafs(self,data,indices, depth):
+        mean, n_samples = self._calculate_mean(data, indices)
+        clusters = []
+        if self.use_kd_tree:
+            #print "create kd tree b"
+            child_node = KDTreeWrapper(self.dim)
+            child_node.construct(data, indices)
+            clusters.append(child_node)
+        else:
+            #print "create nodes for leafs"
+            for idx in indices:
+                child_node = self.construct_from_data(data, [idx], depth + 1)
+                clusters.append(child_node)
+        return mean, clusters
+
 
     def construct_from_node_desc_list(self,node_id, node_desc, data):
         """Recursively rebuilds the cluster tree given a dictionary containing 

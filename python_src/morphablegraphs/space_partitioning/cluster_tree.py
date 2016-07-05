@@ -9,11 +9,11 @@ import heapq
 import json
 import cPickle as pickle
 from cluster_tree_node_builder import ClusterTreeNodeBuilder
-
+from . import ROOT_NODE
 
 DEFAULT_N_SUBDIVISIONS_PER_LEVEL = 4
 DEFAULT_N_LEVELS = 4
-MIN_N_SUBDIVISIONS_PER_LEVEL = 2
+MIN_N_SUBDIVISIONS_PER_LEVEL = 1
 MIN_N_LEVELS = 1
 DEFAULT_MAX_DIMENSIONS = 10
 
@@ -30,13 +30,14 @@ class ClusterTree(object):
         Maximum levels in the tree. At least 1.
     
     """
-    def __init__(self, n_subdivisions=DEFAULT_N_SUBDIVISIONS_PER_LEVEL, max_level=DEFAULT_N_LEVELS, dim=DEFAULT_MAX_DIMENSIONS, store_indices=False):
+    def __init__(self, n_subdivisions=DEFAULT_N_SUBDIVISIONS_PER_LEVEL, max_level=DEFAULT_N_LEVELS, dim=DEFAULT_MAX_DIMENSIONS, store_indices=False, use_kd_tree=True):
         self.n_subdivisions = max(n_subdivisions, MIN_N_SUBDIVISIONS_PER_LEVEL)
         self.max_level = max(max_level, MIN_N_LEVELS)
         self.dim = dim
         self.root = None
         self.data = None
         self.store_indices = store_indices
+        self.use_kd_tree = use_kd_tree
       
     def save_to_file(self, file_name):
         fp = open(file_name+".json", "wb")
@@ -74,7 +75,7 @@ class ClusterTree(object):
     def construct(self, data):
         self.data = data
         self.dim = min(self.data.shape[1], self.dim)
-        node_builder = ClusterTreeNodeBuilder(self.n_subdivisions, self.max_level, self.dim, self.store_indices)
+        node_builder = ClusterTreeNodeBuilder(self.n_subdivisions, self.max_level, self.dim, self.store_indices, self.use_kd_tree)
         self.root = node_builder.construct_from_data(self.data)
 
     def find_best_example(self, obj, data):
