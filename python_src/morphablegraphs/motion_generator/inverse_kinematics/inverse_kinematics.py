@@ -226,7 +226,7 @@ class InverseKinematics(object):
                     has_multiple_targets = True
             if "single" in constraints.keys():
                 for c in constraints["single"]:
-                    print "ik constraint",c.joint_name, c.position, c.orientation
+                    #print "ik constraint",c.joint_name, c.position, c.orientation
                     if c.frame_range is not None:
                         error+=self._modify_frame_using_keyframe_constraint_range(motion_vector, c, c.frame_range)
                     else:
@@ -284,9 +284,9 @@ class InverseKinematics(object):
 
     def _modify_motion_vector_using_trajectory_constraint_list(self, motion_vector, constraints):
         error = 0.0
-        write_log("Number of ik trajectory constraints", len(constraints))
+        #write_log("Number of ik trajectory constraints", len(constraints))
         for c in constraints:
-            write_log("IK Trajectory constraint for joint", c["joint_name"])
+            #write_log("IK Trajectory constraint for joint", c["joint_name"])
             if c["fixed_range"]:
                 error += self._modify_motion_vector_using_trajectory_constraint(motion_vector, c)
             else:
@@ -322,7 +322,12 @@ class InverseKinematics(object):
             #self._modify_pose(constraint["joint_name"], target)
             motion_vector.frames[keyframe] = self.pose.get_vector()
         parent_joint = self.pose.get_parent_joint(traj_constraint["joint_name"])
-        free_joints = list(set(self.pose.free_joints_map[traj_constraint["joint_name"]]+[parent_joint]))
+
+        if traj_constraint["joint_name"] in self.pose.free_joints_map.keys():
+            free_joints = self.pose.free_joints_map[traj_constraint["joint_name"]]
+            free_joints = list(set(free_joints+[parent_joint]))
+        else:
+            free_joints = [parent_joint]
         self._create_transition_for_frame_range(motion_vector.frames, start_idx, end_idx, free_joints)
         return error_sum
 
