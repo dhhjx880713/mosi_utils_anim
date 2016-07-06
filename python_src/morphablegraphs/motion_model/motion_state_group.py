@@ -175,3 +175,6 @@ class MotionStateGroup(ElementaryActionMetaInfo):
         entry = {"node_key": to_node_key, "parameters": next_parameters}
         graph_walk.append(entry)
         return graph_walk
+
+    def has_cycle_states(self):
+        return len(self.cycle_states)> 0

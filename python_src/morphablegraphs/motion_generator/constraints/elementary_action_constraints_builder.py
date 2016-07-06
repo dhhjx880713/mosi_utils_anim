@@ -63,11 +63,12 @@ class ElementaryActionConstraintsBuilder(object):
         n_actions = len(action_constraints_list)
         for idx,action_constraints in enumerate(action_constraints_list):
             action_name = action_constraints.action_name
-            if idx > 0 and action_constraints_list[idx-1].action_name == action_name:
-                action_constraints.cycled_previous = True
-            if idx+1 < n_actions and action_constraints_list[idx+1].action_name == action_name:
-                action_constraints.cycled_next = True
-                print idx,action_name,"cycle",n_actions
+            if self.motion_state_graph.node_groups[action_name].has_cycle_states():
+                if idx > 0 and action_constraints_list[idx-1].action_name == action_name:
+                    action_constraints.cycled_previous = True
+                if idx+1 < n_actions and action_constraints_list[idx+1].action_name == action_name:
+                    action_constraints.cycled_next = True
+                    print idx,action_name,"cycle",n_actions
 
     def _build_action_constraint(self, action_index):
         action_constraints = ElementaryActionConstraints()
