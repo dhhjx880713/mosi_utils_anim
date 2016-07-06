@@ -427,7 +427,6 @@ class InverseKinematics(object):
 
 
     def adapt_hands_during_carry(self, motion_vector):
-        # adapt hands    action_frame_annotation["startFrame"] = start_frame
         carrying = False
         transitions = []
         last_frame = motion_vector.n_frames-1
@@ -435,20 +434,16 @@ class InverseKinematics(object):
             if frame_idx in motion_vector.keyframe_event_list.keyframe_events_dict["events"].keys():
                 for event_desc in motion_vector.keyframe_event_list.keyframe_events_dict["events"][frame_idx]:
                     if event_desc["event"] == "attach" and (event_desc["parameters"]["joint"] == ["RightHand", "LeftHand"]
-                                                            or event_desc["parameters"]["joint"] == ["RightToolEndSite", "LeftToolEndSite"]):
+                                                            or event_desc["parameters"]["joint"] == ["RightToolEndSite",
+                                                                                                     "LeftToolEndSite"]):
                         carrying = True
                         start = max(frame_idx-1, 0)
                         transitions.append((start, last_frame))
-                    elif carrying and event_desc["event"] == "deatach" and (event_desc["parameters"]["joint"] == ["RightHand", "LeftHand"]
+                    elif carrying and event_desc["event"] == "detach" and (event_desc["parameters"]["joint"] == ["RightHand", "LeftHand"]
                                                               or event_desc["parameters"]["joint"] == ["RightToolEndSite",
                                                                                                        "LeftToolEndSite"]):
                         transitions[-1][1] = min(frame_idx+1,last_frame)
                         carrying = False
-
-        #for action_annotation in motion_vector.keyframe_event_list.frame_annotation["elementaryActionSequence"]:
-        #    if action_annotation["elementaryAction"] == "PickBoth":
-        #        #print action_annotation["startFrame"], action_annotation["endFrame"]
-        #        transitions.append((action_annotation["startFrame"], action_annotation["endFrame"]))
 
         for t in transitions:
             for frame in xrange(t[0], t[1]):
