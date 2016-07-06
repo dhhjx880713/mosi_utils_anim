@@ -4,6 +4,8 @@ import numpy as np
 import json
 from ...utilities.log import write_log
 
+CONSTRAINT_TYPES = ["keyframeConstraints", "directionConstraints"]
+
 
 class MGInputFormatReader(object):
     """Implements functions used for the processing of the constraints from the input file
@@ -14,10 +16,8 @@ class MGInputFormatReader(object):
     * mg_input_file : file path or json data read from a file
         Contains elementary action list with constraints, start pose and keyframe annotations.
     """
-
-    constraint_types = ["keyframeConstraints", "directionConstraints"]
-
     def __init__(self, mg_input_file, activate_joint_mapping=False, activate_coordinate_transform=True):
+        #activate_joint_mapping = False
         self.mg_input_file = mg_input_file
         self.elementary_action_list = list()
         self.keyframe_annotations = list()
@@ -42,18 +42,6 @@ class MGInputFormatReader(object):
                 self.mg_input_file = mg_input_file
 
         self._extract_elementary_actions()
-
-    def _fill_joint_name_map(self):
-        #TODO: read from file
-        self.joint_name_map["RightHand"] = "RightToolEndSite"
-        self.joint_name_map["LeftHand"] = "LeftToolEndSite"
-        self.inverse_joint_name_map["RightToolEndSite"] = "RightHand"
-        self.inverse_joint_name_map["LeftToolEndSite"] = "LeftHand"
-
-    def _apply_joint_mapping_on_string(self, input_string):
-        for key in self.joint_name_map.keys():
-            input_string = input_string.replace(key, self.joint_name_map[key])
-        return input_string
 
     def _extract_elementary_actions(self):
         if "elementaryActions" in self.mg_input_file.keys():
@@ -301,7 +289,7 @@ class MGInputFormatReader(object):
                 # iterate over joints constrained at that keyframe
                 for joint_name in keyframe_constraints[keyframe_label].keys():
                     # iterate over constraints for that joint
-                    for c_type in self.constraint_types:
+                    for c_type in CONSTRAINT_TYPES:
                         reordered_constraints[mp_name] += self._filter_by_constraint_type(keyframe_constraints,keyframe_label, joint_name, time_info, c_type)
         return reordered_constraints
 
@@ -352,7 +340,7 @@ class MGInputFormatReader(object):
                 joint_name = joint_constraints["joint"]
                 if joint_name not in keyframe_constraints:
                     keyframe_constraints[joint_name] = dict()
-                for constraint_type in self.constraint_types:
+                for constraint_type in CONSTRAINT_TYPES:
                     if constraint_type not in keyframe_constraints[joint_name]:
                         keyframe_constraints[joint_name][constraint_type] = list()
                     if constraint_type in joint_constraints.keys():
@@ -455,9 +443,20 @@ class MGInputFormatReader(object):
                 new_indices.append(1)
         return new_indices
 
+    def _fill_joint_name_map(self):
+        # TODO: read from file
+        self.joint_name_map["RightHand"] = "RightToolEndSite"
+        self.joint_name_map["LeftHand"] = "LeftToolEndSite"
+        self.inverse_joint_name_map["RightToolEndSite"] = "RightHand"
+        self.inverse_joint_name_map["LeftToolEndSite"] = "LeftHand"
+
+    def _apply_joint_mapping_on_string(self, input_string):
+        for key in self.joint_name_map.keys():
+            input_string = input_string.replace(key, self.joint_name_map[key])
+        return input_string
+
     def inverse_map_joint(self, joint_name):
-        if joint_name in self.inverse_joint_name_map.keys() and self.activate_joint_mapping:
-            #print "map joint", joint_name
+        if self.activate_joint_mapping and joint_name in self.inverse_joint_name_map.keys():
             return self.inverse_joint_name_map[joint_name]
         else:
             return joint_name
