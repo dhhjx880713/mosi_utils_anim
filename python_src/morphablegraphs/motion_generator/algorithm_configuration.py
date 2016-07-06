@@ -124,6 +124,8 @@ class AlgorithmConfigurationBuilder(object):
         self.inverse_kinematics_settings["optimize_orientation"] = True
         self.inverse_kinematics_settings["elementary_action_max_iterations"] = 10
         self.inverse_kinematics_settings["elementary_action_optimization_eps"] = 1.0
+        self.inverse_kinematics_settings["adapt_hands_during_both_hand_carry"] = True
+
 
     def from_json(self, filename):
         temp_algorithm_config = load_json_file(filename)

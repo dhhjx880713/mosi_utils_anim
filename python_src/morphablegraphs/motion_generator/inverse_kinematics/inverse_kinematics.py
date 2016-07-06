@@ -47,6 +47,7 @@ class InverseKinematics(object):
         self.optimize_orientation = self._ik_settings["optimize_orientation"]
         self.elementary_action_max_iterations = self._ik_settings["elementary_action_max_iterations"]
         self.elementary_action_epsilon = self._ik_settings["elementary_action_optimization_eps"]
+        self.adapt_hands_during_both_hand_carry = self._ik_settings["adapt_hands_during_both_hand_carry"]
 
         if self.use_euler:
             self.skeleton.set_rotation_type(ROTATION_TYPE_EULER)#change to euler
@@ -190,29 +191,41 @@ class InverseKinematics(object):
         return np.dot(d, d)
 
     def modify_motion_vector(self, motion_vector):
-        for idx,elementary_action_ik_constraints in enumerate(motion_vector.ik_constraints):
-            print "Optimize elementary action",idx
-            i = 0
-            last_error = None
-            keep_running = True
-            trajectory_weights = 1.0
-            #modify individual keyframes based on constraints
-            while keep_running:
-                error = 0.0
-                if "trajectories" in elementary_action_ik_constraints.keys():
-                    error += self._modify_motion_vector_using_trajectory_constraint_list(motion_vector, elementary_action_ik_constraints["trajectories"])*trajectory_weights
-                if "collision_avoidance" in elementary_action_ik_constraints.keys():
-                    error += self._modify_motion_vector_using_ca_constraints(motion_vector, elementary_action_ik_constraints["collision_avoidance"])
-                if "keyframes" in elementary_action_ik_constraints.keys():
-                    error += self._modify_motion_vector_using_keyframe_constraint_list(motion_vector, elementary_action_ik_constraints["keyframes"])
-                if last_error is not None:
-                    delta = abs(last_error - error)
-                else:
-                    delta = np.inf
-                last_error = error
-                i += 1
-                keep_running = i < self.elementary_action_max_iterations and delta > self.elementary_action_epsilon
-                print "IK iteration", i, error, delta, self.elementary_action_epsilon
+        for idx, elementary_action_ik_constraints in enumerate(motion_vector.ik_constraints):
+            print "Optimize elementary action", idx
+            self._optimize_elementary_action_ik_constraints(motion_vector, elementary_action_ik_constraints)
+
+        if self.adapt_hands_during_both_hand_carry:
+            self.adapt_hands_during_carry(motion_vector)
+
+    def _optimize_elementary_action_ik_constraints(self, motion_vector, elementary_action_ik_constraints):
+        i = 0
+        last_error = None
+        keep_running = True
+        trajectory_weights = 1.0
+        # modify individual keyframes based on constraints
+        while keep_running:
+            error = 0.0
+            if "trajectories" in elementary_action_ik_constraints.keys():
+                error += self._modify_motion_vector_using_trajectory_constraint_list(motion_vector,
+                                                                                     elementary_action_ik_constraints[
+                                                                                         "trajectories"]) * trajectory_weights
+            if "collision_avoidance" in elementary_action_ik_constraints.keys():
+                error += self._modify_motion_vector_using_ca_constraints(motion_vector,
+                                                                         elementary_action_ik_constraints[
+                                                                             "collision_avoidance"])
+            if "keyframes" in elementary_action_ik_constraints.keys():
+                error += self._modify_motion_vector_using_keyframe_constraint_list(motion_vector,
+                                                                                   elementary_action_ik_constraints[
+                                                                                       "keyframes"])
+            if last_error is not None:
+                delta = abs(last_error - error)
+            else:
+                delta = np.inf
+            last_error = error
+            i += 1
+            keep_running = i < self.elementary_action_max_iterations and delta > self.elementary_action_epsilon
+            print "IK iteration", i, error, delta, self.elementary_action_epsilon
 
     def _modify_motion_vector_using_keyframe_constraint_list(self, motion_vector, constraints):
         #write_log("number of ik keyframe constraints", len(constraints))

@@ -88,7 +88,7 @@ class MotionGenerator(object):
             write_log("Modify using inverse kinematics")
             self.inverse_kinematics = InverseKinematics(self.motion_state_graph.skeleton, self._algorithm_config, motion_vector.frames[0])
             self.inverse_kinematics.modify_motion_vector(motion_vector)
-            self.inverse_kinematics.adapt_hands_during_carry(motion_vector)
+
 
         motion_vector.frames = self.motion_state_graph.skeleton.complete_motion_vector_from_reference(motion_vector.frames)
         if motion_vector.frames is not None:
