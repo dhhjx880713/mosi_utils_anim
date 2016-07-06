@@ -155,7 +155,7 @@ class MotionStateGroup(ElementaryActionMetaInfo):
         assert current_node in self.nodes.keys()
         graph_walk = []
         count = 0
-        print "start", current_node
+        #print "start", current_node
         current_parameters = self.nodes[current_node].sample_low_dimensional_vector()
         entry = {"node_key": current_node, "parameters": current_parameters}
         graph_walk.append(entry)
