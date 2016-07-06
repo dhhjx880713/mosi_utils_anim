@@ -145,7 +145,7 @@ class ElementaryActionGenerator(object):
         mp_constraints = self.generate_node_evaluation_constraints(graph_walk, add_orientation)
 
         prev_frames = None
-        if self.use_local_coordinates:
+        if self.use_local_coordinates and False:
             mp_constraints = mp_constraints.transform_constraints_to_local_cos()
         elif graph_walk.get_num_of_frames() > 0:
             prev_frames = graph_walk.get_quat_frames()
