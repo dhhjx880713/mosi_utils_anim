@@ -176,7 +176,8 @@ class MGInputFormatReader(object):
         else:
             distance = np.linalg.norm(point-previous_point)
             #add the point if there is no distance threshold, it is the first point, it is the last point or larger than or equal to the distance threshold
-            if (distance_threshold <= 0.0 or np.linalg.norm(point-previous_point) >= distance_threshold) and (last_distance is None or distance >= last_distance/10.0):#'TODO' add toggle of filter to config
+            # 'TODO' add toggle of filter to config
+            if (distance_threshold <= 0.0 or np.linalg.norm(point-previous_point) >= distance_threshold) and (last_distance is None or distance >= last_distance/10.0):
                 return point, distance
             else:
                 return None
@@ -201,7 +202,7 @@ class MGInputFormatReader(object):
                 break # there should only be one list per joint and elementary action
         if constraint_data is not None:
             for p in constraint_data:
-                if "semanticAnnotation" in p.keys() and "position" not in p.keys():
+                if "semanticAnnotation" in p.keys() and not "collisionAvoidance" in p["semanticAnnotation"].keys():
                     desc["semantic_annotation"] = p["semanticAnnotation"]
                     break
             desc["unconstrained_indices"] = self._find_unconstrained_indices(constraint_data)
