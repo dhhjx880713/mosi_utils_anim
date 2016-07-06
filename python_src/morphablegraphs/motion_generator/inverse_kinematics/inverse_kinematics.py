@@ -443,7 +443,7 @@ class InverseKinematics(object):
                                                                                                      "LeftToolEndSite"]):
                         carrying = True
                         start = max(frame_idx-1, 0)
-                        transitions.append((start, last_frame))
+                        transitions.append([start, last_frame])
                     elif carrying and event_desc["event"] == "detach" and (event_desc["parameters"]["joint"] == ["RightHand", "LeftHand"]
                                                               or event_desc["parameters"]["joint"] == ["RightToolEndSite",
                                                                                                        "LeftToolEndSite"]):
