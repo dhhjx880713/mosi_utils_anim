@@ -468,6 +468,9 @@ class InverseKinematics(object):
                 self.pose.set_pose_parameters(motion_vector.frames[frame])
                 self.pose.orient_hands_to_each_other()
                 motion_vector.frames[frame] = self.pose.get_vector()
-            for hand_joint in ["RightHand", "LeftHand"]:
-                self._create_transition_for_frame_range(motion_vector.frames, t[0], t[1] - 1, [hand_joint])
+            print "create transition for frames", t[0], t[1]
+            #joint_parameter_indices = list(range(*self.pose.extract_parameters_indices("RightHand")))
+            #before = motion_vector.frames[:,joint_parameter_indices]
+            self._create_transition_for_frame_range(motion_vector.frames, t[0]+1, t[1] - 1, ["RightHand", "LeftHand"])
+            #print np.all(before == motion_vector.frames[:,joint_parameter_indices])
 
