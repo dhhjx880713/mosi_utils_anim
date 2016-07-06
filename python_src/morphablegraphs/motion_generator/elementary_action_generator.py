@@ -220,14 +220,13 @@ class ElementaryActionGenerator(object):
 
     def _update_travelled_arc_length(self, new_quat_frames, prev_graph_walk, prev_travelled_arc_length):
         """update travelled arc length based on new closest point on trajectory """
-        if len(prev_graph_walk) > 0:
-            min_arc_length = prev_graph_walk[-1].arc_length
-        else:
-            min_arc_length = 0.0
-        max_arc_length = min_arc_length + self.step_look_ahead_distance  # was originally set to 80
-        closest_point, distance = self.action_constraints.root_trajectory.find_closest_point(new_quat_frames[-1][:3],  min_arc_length, max_arc_length)
-        new_travelled_arc_length, eval_point = self.action_constraints.root_trajectory.get_absolute_arc_length_of_point(
-            closest_point, min_arc_length=min_arc_length)
+        #if len(prev_graph_walk) > 0:
+        #    min_arc_length = prev_graph_walk[-1].arc_length
+        #else:
+        #    min_arc_length = 0.0
+        max_arc_length = prev_travelled_arc_length + self.step_look_ahead_distance  # was originally set to 80
+        closest_point, distance = self.action_constraints.root_trajectory.find_closest_point(new_quat_frames[-1][:3],  prev_travelled_arc_length, max_arc_length)
+        new_travelled_arc_length, eval_point = self.action_constraints.root_trajectory.get_absolute_arc_length_of_point(closest_point, min_arc_length=prev_travelled_arc_length)
         if new_travelled_arc_length == -1:
             new_travelled_arc_length = self.action_constraints.root_trajectory.full_arc_length
         return new_travelled_arc_length
