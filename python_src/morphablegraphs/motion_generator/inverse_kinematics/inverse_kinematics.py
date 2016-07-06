@@ -47,7 +47,7 @@ class InverseKinematics(object):
         self.optimize_orientation = self._ik_settings["optimize_orientation"]
         self.elementary_action_max_iterations = self._ik_settings["elementary_action_max_iterations"]
         self.elementary_action_epsilon = self._ik_settings["elementary_action_optimization_eps"]
-        self.adapt_hands_during_both_hand_carry = self._ik_settings["adapt_hands_during_both_hand_carry"]
+        self.adapt_hands_during_both_hand_carry = self._ik_settings["adapt_hands_during_carry_both"]
 
         if self.use_euler:
             self.skeleton.set_rotation_type(ROTATION_TYPE_EULER)#change to euler
