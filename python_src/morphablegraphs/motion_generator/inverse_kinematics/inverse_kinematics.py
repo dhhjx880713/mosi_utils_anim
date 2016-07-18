@@ -454,9 +454,11 @@ class InverseKinematics(object):
                     if event_desc["event"] == "attach" and (event_desc["parameters"]["joint"] == ["RightHand", "LeftHand"]
                                                             or event_desc["parameters"]["joint"] == ["RightToolEndSite",
                                                                                                      "LeftToolEndSite"]):
+                        if carrying:
+                            transitions[-1][1] = min(frame_idx + 1, last_frame)
                         carrying = True
                         start = max(frame_idx-1, 0)
-                        transitions.append([start, last_frame])
+                        transitions.append([start, None])
                     elif carrying and event_desc["event"] == "detach" and (event_desc["parameters"]["joint"] == ["RightHand", "LeftHand"]
                                                               or event_desc["parameters"]["joint"] == ["RightToolEndSite",
                                                                                                        "LeftToolEndSite"]):
@@ -464,13 +466,13 @@ class InverseKinematics(object):
                         carrying = False
 
         for t in transitions:
-            for frame in xrange(t[0], t[1]):
-                self.pose.set_pose_parameters(motion_vector.frames[frame])
-                self.pose.orient_hands_to_each_other()
-                motion_vector.frames[frame] = self.pose.get_vector()
-            print "create transition for frames", t[0], t[1]
-            #joint_parameter_indices = list(range(*self.pose.extract_parameters_indices("RightHand")))
-            #before = motion_vector.frames[:,joint_parameter_indices]
-            self._create_transition_for_frame_range(motion_vector.frames, t[0]+1, t[1] - 1, ["RightHand", "LeftHand"])
+            if t[1] is not None:
+                for frame in xrange(t[0], t[1]):
+                    self.pose.set_pose_parameters(motion_vector.frames[frame])
+                    self.pose.orient_hands_to_each_other()
+                    motion_vector.frames[frame] = self.pose.get_vector()
+                print "create transition for frames", t[0], t[1]
+                #joint_parameter_indices = list(range(*self.pose.extract_parameters_indices("RightHand")))
+                #before = motion_vector.frames[:,joint_parameter_indices]
+                self._create_transition_for_frame_range(motion_vector.frames, t[0]+1, t[1] - 1, ["RightHand", "LeftHand"])
             #print np.all(before == motion_vector.frames[:,joint_parameter_indices])
-
