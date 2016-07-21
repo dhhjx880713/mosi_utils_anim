@@ -11,6 +11,7 @@ import os
 file_dir_name, file_name = os.path.split(os.path.abspath(__file__))
 os.chdir(file_dir_name)
 import urllib2
+import socket
 import tornado.escape
 import tornado.ioloop
 import tornado.web
@@ -151,14 +152,7 @@ class MGRestApplication(tornado.web.Application):
         else:
             print "Results are returned as answer to the request"
 
-        if "collision_avoidance_service_url" in service_config.keys():
-            ca_service_url = service_config["collision_avoidance_service_url"]
-            try:
-                urllib2.urlopen('http://'+ca_service_url)
-            except Exception as e:
-                print "Warning: Could not open collision avoidance service URL", ca_service_url, "\n Collision avoidance will be disabled"
-                service_config["collision_avoidance_service_url"] = None
-        else:
+        if self._test_ca_interface(service_config):
             service_config["collision_avoidance_service_url"] = None
 
         start = time.clock()
@@ -171,6 +165,29 @@ class MGRestApplication(tornado.web.Application):
 
     def set_algorithm_config(self, algorithm_config):
         self.motion_generator.set_algorithm_config(algorithm_config)
+
+    def _test_ca_interface(self, service_config):
+        # ca_service_url = service_config["collision_avoidance_service_url"]
+        # try:
+        #    urllib2.urlopen('http://'+ca_service_url)
+        # except Exception as e:
+        #    print "Warning: Could not open collision avoidance service URL", ca_service_url, "\n Collision avoidance will be disabled"
+        #
+        #
+        if "collision_avoidance_service_url" in service_config.keys() and "collision_avoidance_service_port" in service_config.keys():
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            address = (service_config["collision_avoidance_service_url"], service_config["collision_avoidance_service_port"])
+            try:
+                s.connect(address)
+                s.close()
+                return True
+            except:
+                print "Could create connection"
+        print "Warning: Could not open collision avoidance service URL", service_config["collision_avoidance_service_url"], "\n Collision avoidance will be disabled"
+        service_config["collision_avoidance_service_url"] = None
+        return False
+
+
 
 
 class MorphableGraphsRESTfulInterface(object):

@@ -1,12 +1,10 @@
 __author__ = 'erhe01'
 
 import numpy as np
-from copy import copy, deepcopy
-import json
-import urllib2
+from copy import copy
 import random
 from ..utilities.exceptions import PathSearchError
-from ..motion_model import NODE_TYPE_END, NODE_TYPE_SINGLE, NODE_TYPE_CYCLE_END
+from ..motion_model import NODE_TYPE_END
 from ..animation_data.motion_editing import create_transformation_matrix
 from motion_primitive_generator import MotionPrimitiveGenerator
 from constraints.motion_primitive_constraints_builder import MotionPrimitiveConstraintsBuilder
@@ -14,63 +12,10 @@ from graph_walk import GraphWalkEntry
 from constraints.motion_primitive_constraints import MotionPrimitiveConstraints
 from constraints.spatial_constraints.keyframe_constraints.global_transform_constraint import GlobalTransformConstraint
 from constraints.spatial_constraints.keyframe_constraints.direction_2d_constraint import Direction2DConstraint
-from constraints.spatial_constraints.keyframe_constraints.global_transform_ca_constraint import GlobalTransformCAConstraint
 from constraints import CA_CONSTRAINTS_MODE_DIRECT_CONNECTION
-from ..utilities import write_log, get_bvh_writer
-from ..animation_data.motion_editing import align_quaternion_frames, fast_quat_frames_transformation, transform_quaternion_frames, euler_angles_to_rotation_matrix
-
-
-class ElementaryActionGeneratorState(object):
-        def __init__(self, algorithm_config):
-            self.start_step = -1
-            self.prev_action_name = None
-            self.prev_mp_name = None
-            self.action_start_frame = -1
-            self.current_node = None
-            self.current_node_type = ""
-            self.temp_step = 0
-            self.travelled_arc_length = 0.0
-            self.debug_max_step = algorithm_config["debug_max_step"]
-            self.step_start_frame = 0
-            self.max_arc_length = np.inf
-            self.action_cycled_next = False
-
-        def initialize_from_previous_graph_walk(self, graph_walk, max_arc_length, action_cycled_next):
-            self.start_step = graph_walk.step_count
-            if self.start_step > 0:
-                self.prev_action_name = graph_walk.steps[-1]
-                self.prev_mp_name = graph_walk.steps[-1]
-            else:
-                self.prev_action_name = None
-                self.prev_mp_name = None
-            self.action_start_frame = graph_walk.get_num_of_frames()
-            self.current_node = None
-            self.current_node_type = ""
-            self.temp_step = 0
-            self.travelled_arc_length = 0.0
-            self.max_arc_length = max_arc_length
-            self.action_cycled_next = action_cycled_next
-
-        def is_end_state(self):
-            return self.is_last_node() or self.reached_debug_max_step() or self.reached_max_arc_length()
-
-        def reached_debug_max_step(self):
-            return self.start_step + self.temp_step > self.debug_max_step and self.debug_max_step > -1
-
-        def reached_max_arc_length(self):
-            return self.travelled_arc_length >= self.max_arc_length
-
-        def is_last_node(self):
-            return self.current_node_type == NODE_TYPE_END or \
-                   self.current_node_type == NODE_TYPE_SINGLE or\
-                   (self.current_node is not None and self.action_cycled_next)
-
-        def transition(self, new_node, new_node_type, new_travelled_arc_length, new_step_start_frame):
-            self.current_node = new_node
-            self.current_node_type = new_node_type
-            self.travelled_arc_length = new_travelled_arc_length
-            self.step_start_frame = new_step_start_frame
-            self.temp_step += 1
+from ..utilities import write_log
+from ca_interface import CAInterface
+from ea_state import ElementaryActionGeneratorState
 
 
 class ElementaryActionGenerator(object):
@@ -86,13 +31,10 @@ class ElementaryActionGenerator(object):
         self.end_step_length_factor = algorithm_config["trajectory_following_settings"]["end_step_length_factor"]
         self.max_distance_to_path = algorithm_config["trajectory_following_settings"]["max_distance_to_path"]
         self.activate_direction_ca_connection = algorithm_config["collision_avoidance_constraints_mode"] == CA_CONSTRAINTS_MODE_DIRECT_CONNECTION
-        self.activate_coordinate_transform_for_ca = service_config["activate_coordinate_transform"]
-        self.ca_service_url = service_config["collision_avoidance_service_url"]
-        self.coordinate_transform_matrix = np.array([[1,0,0,0],
-                                                    [0,0,-1,0],
-                                                    [0,1,0,0],
-                                                    [0,0,0,1]])
-
+        if service_config["collision_avoidance_service_url"] is not None:
+            self.ca_interface = CAInterface(self, service_config)
+        else:
+            self.ca_interface = None
 
     def set_algorithm_config(self, algorithm_config):
         self._algorithm_config = algorithm_config
@@ -311,8 +253,8 @@ class ElementaryActionGenerator(object):
             write_log("Error: Failed to generate constraints")
             return None
         new_motion_spline, new_parameters = self.motion_primitive_generator.generate_constrained_motion_spline(mp_constraints, graph_walk)
-        if self.activate_direction_ca_connection and self.ca_service_url is not None:
-            ca_constraints = self._get_collision_avoidance_constraints(new_node, new_motion_spline, graph_walk)
+        if self.activate_direction_ca_connection and self.ca_interface is not None:
+            ca_constraints = self.ca_interface.get_constraints(new_node, new_motion_spline, graph_walk)
             if ca_constraints is not None and len(ca_constraints) > 0:
                 mp_constraints.constraints += ca_constraints
                 new_motion_spline, new_parameters = self.motion_primitive_generator.generate_constrained_motion_spline(mp_constraints, graph_walk)
@@ -347,77 +289,3 @@ class ElementaryActionGenerator(object):
         d = np.linalg.norm(step_goal - root)
         return d
 
-    def _get_collision_avoidance_constraints(self, new_node, new_motion_spline, graph_walk):
-        """ Generate constraints using the rest interface of the collision avoidance module directly.
-            #TODO move to wrapper
-        """
-        aligned_motion_spline, global_transformation = self._get_aligned_motion_spline(new_motion_spline, graph_walk.get_quat_frames())
-        if self.activate_coordinate_transform_for_ca:
-            global_transformation = np.dot(global_transformation, self.coordinate_transform_matrix)
-        frames = aligned_motion_spline.get_motion_vector()
-        global_bvh_string = get_bvh_writer(self.motion_state_graph.skeleton, frames).generate_bvh_string()
-        ca_input = {"elementary_action_name": new_node[0],
-                    "motion_primitive_name": new_node[1],
-                    "global_transform": global_transformation.tolist(),
-                    "global_bvh_frames": global_bvh_string}
-
-        ca_output = self._call_ca_rest_interface(ca_input)
-        if ca_output is not None:
-            return self._create_ca_constraints(new_node, ca_output, graph_walk)
-        else:
-            return None
-
-    def _get_aligned_motion_spline(self, new_motion_spline, prev_frames):
-        aligned_motion_spline = deepcopy(new_motion_spline)
-        if prev_frames is not None:
-            angle, offset = fast_quat_frames_transformation(prev_frames, new_motion_spline.coeffs)
-            aligned_motion_spline.coeffs = transform_quaternion_frames(aligned_motion_spline.coeffs,
-                                                                       [0, angle, 0], offset)
-            global_transformation = euler_angles_to_rotation_matrix([0, angle, 0])
-            global_transformation[:3, 3] = offset
-        elif self.action_constraints.start_pose is not None:
-            aligned_motion_spline.coeffs = transform_quaternion_frames(aligned_motion_spline.coeffs,  self.action_constraints.start_pose["orientation"],
-                                                                   self.action_constraints.start_pose["position"])
-            global_transformation = euler_angles_to_rotation_matrix(self.action_constraints.start_pose["orientation"])
-            global_transformation[:3, 3] = self.action_constraints.start_pose["position"]
-        else:
-            global_transformation = np.eye(4,4)
-        return aligned_motion_spline, global_transformation
-
-    def _call_ca_rest_interface(self, ca_input):
-        """ call ca rest interface using a json payload
-        """
-        if self.ca_service_url is not None:
-            write_log("Call CA interface",self.ca_service_url,"for",ca_input["elementary_action_name"],ca_input["motion_primitive_name"])
-            request = urllib2.Request("http://"+self.ca_service_url, json.dumps(ca_input))
-            try:
-                handler = urllib2.urlopen(request)
-                ca_output_string = handler.read()
-                ca_result = json.loads(ca_output_string)
-                return ca_result
-            except urllib2.HTTPError, e:
-               write_log(e.code)
-            except urllib2.URLError, e:
-               write_log(e.args)
-        return None
-
-    def _create_ca_constraints(self, new_node, ca_output, graph_walk):
-        ca_constraints = []
-        n_canonical_frames = int(self.motion_state_graph.nodes[new_node].get_n_canonical_frames())
-        for joint_name in ca_output.keys():
-            for ca_constraint_desc in ca_output[joint_name]:
-                if "position" in ca_constraint_desc.keys() and len(ca_constraint_desc["position"]) == 3:
-                    if self.activate_coordinate_transform_for_ca:
-                        position = np.array([ca_constraint_desc["position"][0],ca_constraint_desc["position"][2],-ca_constraint_desc["position"][1]])
-                    else:
-                        position = np.array(ca_constraint_desc["position"])
-                    ca_constraint = GlobalTransformCAConstraint(self.motion_state_graph.skeleton,
-                                                                {"joint": joint_name, "canonical_keyframe": -1,
-                                                                 "n_canonical_frames": n_canonical_frames,
-                                                                 "position": position,
-                                                                 "semanticAnnotation":  {"generated": True, "keyframeLabel": None},
-                                                                 "ca_constraint": True},
-                                                                1.0, 1.0, len(graph_walk.steps))
-                    print "CREATE CA constraint", joint_name, ca_constraint.position
-                    ca_constraints.append(ca_constraint)
-        return ca_constraints
