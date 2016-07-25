@@ -31,7 +31,9 @@ class ElementaryActionGenerator(object):
         self.end_step_length_factor = algorithm_config["trajectory_following_settings"]["end_step_length_factor"]
         self.max_distance_to_path = algorithm_config["trajectory_following_settings"]["max_distance_to_path"]
         self.activate_direction_ca_connection = algorithm_config["collision_avoidance_constraints_mode"] == CA_CONSTRAINTS_MODE_DIRECT_CONNECTION
+
         if service_config["collision_avoidance_service_url"] is not None:
+            print "created ca interface", service_config["collision_avoidance_service_url"]
             self.ca_interface = CAInterface(self, service_config)
         else:
             self.ca_interface = None
@@ -254,7 +256,8 @@ class ElementaryActionGenerator(object):
             return None
         new_motion_spline, new_parameters = self.motion_primitive_generator.generate_constrained_motion_spline(mp_constraints, graph_walk)
         if self.activate_direction_ca_connection and self.ca_interface is not None:
-            ca_constraints = self.ca_interface.get_constraints(new_node, new_motion_spline, graph_walk)
+            ca_constraints = self.ca_interface.get_constraints(self.action_constraints.groupd_id, new_node, new_motion_spline, graph_walk)
+            print "ca constraints",ca_constraints
             if ca_constraints is not None and len(ca_constraints) > 0:
                 mp_constraints.constraints += ca_constraints
                 new_motion_spline, new_parameters = self.motion_primitive_generator.generate_constrained_motion_spline(mp_constraints, graph_walk)

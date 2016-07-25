@@ -56,6 +56,16 @@ class MGInputFormatReader(object):
     def get_number_of_actions(self):
         return len(self.elementary_action_list)
 
+    def get_session_id(self):
+        if "session" not in self.mg_input_file.keys():
+            return ""
+        return self.mg_input_file["session"]
+
+    def get_group_id(self):
+        if "groupdId" not in self.mg_input_file.keys():
+            return ""
+        return self.mg_input_file["groupdId"]
+
     def get_start_pose(self):
         start_pose = dict()
         if None in self.mg_input_file["startPose"]["orientation"]:

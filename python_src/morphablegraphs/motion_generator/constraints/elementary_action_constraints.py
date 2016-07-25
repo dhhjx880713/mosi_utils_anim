@@ -26,6 +26,7 @@ class ElementaryActionConstraints(object):
         self.contains_two_hands_constraints = False  # two hand pick or place
         self.cycled_previous = False  # are there more of the same action before
         self.cycled_next = False  # are there more of the same action following
+        self.groupd_id = ""
 
     def get_node_group(self):
         return self.motion_state_graph.node_groups[self.action_name]

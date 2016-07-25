@@ -19,7 +19,7 @@ class CAInterface(object):
                                                      [0, 1, 0, 0],
                                                      [0, 0, 0, 1]])
 
-    def get_constraints(self, new_node, new_motion_spline, graph_walk):
+    def get_constraints(self, groupd_id, new_node, new_motion_spline, graph_walk):
         """ Generate constraints using the rest interface of the collision avoidance module directly.
         """
         aligned_motion_spline, global_transformation = self._get_aligned_motion_spline(new_motion_spline,
@@ -28,7 +28,8 @@ class CAInterface(object):
             global_transformation = np.dot(global_transformation, self.coordinate_transform_matrix)
         frames = aligned_motion_spline.get_motion_vector()
         global_bvh_string = get_bvh_writer(self.ea_generator.motion_state_graph.skeleton, frames).generate_bvh_string()
-        ca_input = {"elementary_action_name": new_node[0],
+        ca_input ={"groupId": groupd_id, "command":"GenerateConstraints"}
+        ca_input["parameters"] = {"elementary_action_name": new_node[0],
                     "motion_primitive_name": new_node[1],
                     "global_transform": global_transformation.tolist(),
                     "global_bvh_frames": global_bvh_string}
