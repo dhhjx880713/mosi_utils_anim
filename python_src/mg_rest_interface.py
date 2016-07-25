@@ -152,7 +152,7 @@ class MGRestApplication(tornado.web.Application):
         else:
             print "Results are returned as answer to the request"
 
-        if self._test_ca_interface(service_config):
+        if not self._test_ca_interface(service_config):
             service_config["collision_avoidance_service_url"] = None
 
         start = time.clock()
@@ -178,11 +178,12 @@ class MGRestApplication(tornado.web.Application):
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             address = (service_config["collision_avoidance_service_url"], service_config["collision_avoidance_service_port"])
             try:
+                print "Try to connect to CA interface using address ", address
                 s.connect(address)
                 s.close()
                 return True
-            except:
-                print "Could create connection"
+            except Exception as e:
+                print "Could not create connection", e.message
         print "Warning: Could not open collision avoidance service URL", service_config["collision_avoidance_service_url"], "\n Collision avoidance will be disabled"
         service_config["collision_avoidance_service_url"] = None
         return False
