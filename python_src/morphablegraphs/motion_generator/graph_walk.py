@@ -14,6 +14,8 @@ from constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POS
 from keyframe_event_list import KeyframeEventList
 from ..utilities import write_log
 
+DEFAULT_PLACE_ACTION_LIST = ["placeRight", "placeLeft","insertRight","insertLeft"] #list of actions in which the orientation constraints are ignored
+
 
 class GraphWalkEntry(object):
     def __init__(self, motion_state_graph, node_key, parameters, arc_length, start_frame, end_frame, motion_primitive_constraints=None):
@@ -54,8 +56,10 @@ class GraphWalk(object):
         self.motion_vector.apply_spatial_smoothing = False
         self.use_time_parameters = algorithm_config["activate_time_variation"]
         self.apply_smoothing = algorithm_config["smoothing_settings"]["spatial_smoothing"]
+        self.constrain_place_orientation = algorithm_config["inverse_kinematics_settings"]["constrain_place_orientation"]
         write_log("Use time parameters", self.use_time_parameters)
         self.keyframe_event_list = KeyframeEventList(create_ca_vis_data)
+        self.place_action_list = DEFAULT_PLACE_ACTION_LIST
 
     def add_entry_to_action_list(self, action_name, start_step, end_step, action_constraints):
         self.elementary_action_list.append(HighLevelGraphWalkEntry(action_name, start_step, end_step, action_constraints))
@@ -161,6 +165,10 @@ class GraphWalk(object):
         ik_constraints = []
         for idx, action in enumerate(self.elementary_action_list):
             print "action", idx, action.start_step,self.steps[action.start_step].start_frame
+            if not self.constrain_place_orientation and action.action_name in self.place_action_list:
+                constrain_orientation = False
+            else:
+                constrain_orientation = True
             start_step = action.start_step
             end_step = action.end_step
             elementary_action_ik_constraints = dict()
@@ -172,7 +180,7 @@ class GraphWalk(object):
                 time_function = None
                 if self.use_time_parameters:
                     time_function = self.motion_state_graph.nodes[step.node_key].back_project_time_function(step.parameters)
-                step_keyframe_constraints = step.motion_primitive_constraints.convert_to_ik_constraints(self.motion_state_graph, frame_offset, time_function)
+                step_keyframe_constraints = step.motion_primitive_constraints.convert_to_ik_constraints(self.motion_state_graph, frame_offset, time_function, constrain_orientation)
                 elementary_action_ik_constraints["collision_avoidance"] += step.motion_primitive_constraints.get_ca_constraints()
                 elementary_action_ik_constraints["keyframes"].update(step_keyframe_constraints)
                 frame_offset += step.end_frame - step.start_frame + 1
