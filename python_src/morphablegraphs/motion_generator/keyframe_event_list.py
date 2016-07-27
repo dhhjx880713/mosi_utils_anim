@@ -45,27 +45,6 @@ class KeyframeEventList(object):
             end_frame = graph_walk.steps[action.end_step].end_frame
             self.update_frame_annotation(action.action_name, start_frame, end_frame)
 
-    def _extract_keyframe_index(self, keyframe_event, time_function, frame_offset):
-        canonical_keyframe = int(keyframe_event["canonical_keyframe"])
-        if time_function is not None:
-            event_keyframe_index = frame_offset + int(time_function[canonical_keyframe]) + 1  # add +1 to map the frame correctly TODO: test and verify for all cases
-        else:
-            event_keyframe_index = frame_offset + canonical_keyframe
-        return event_keyframe_index
-
-    def _extract_event_list(self, keyframe_event, event_keyframe_index):
-        n_events = len(keyframe_event["event_list"])
-        if n_events == 1:
-            events = keyframe_event["event_list"]
-        else:
-            events = self._merge_multiple_keyframe_events(keyframe_event["event_list"], n_events)
-
-        ##merge events with events of previous iterations
-        if event_keyframe_index in self.keyframe_events_dict:
-            events = events + self.keyframe_events_dict[event_keyframe_index]
-        events = self._merge_multiple_keyframe_events(events, len(events))
-        return events
-
     def _create_events_from_keyframe_constraints(self, graph_walk):
         """ Traverse elementary actions and motion primitives
         :return:
@@ -77,13 +56,15 @@ class KeyframeEventList(object):
             if graph_walk.use_time_parameters:
                 time_function = graph_walk.motion_state_graph.nodes[step.node_key].back_project_time_function(step.parameters)
             for keyframe_event in step.motion_primitive_constraints.keyframe_event_list.values():
-                event_keyframe_index = self._extract_keyframe_index(keyframe_event, time_function, frame_offset)
-                self.keyframe_events_dict[event_keyframe_index] = self._extract_event_list(keyframe_event, event_keyframe_index)
+                event_keyframe_index = keyframe_event.extract_keyframe_index(time_function, frame_offset)
+                prev_events = None
+                if event_keyframe_index in self.keyframe_events_dict.keys():
+                    prev_events = self.keyframe_events_dict[event_keyframe_index]
+                self.keyframe_events_dict[event_keyframe_index] = keyframe_event.merge_event_list(prev_events)
             frame_offset += step.end_frame - step.start_frame + 1
 
     def _add_event_list_to_frame_annotation(self, graph_walk):
-        """
-        self.keyframe_events_dict[keyframe] m
+        """ Converts a list of events from the simulation event format to a format expected by CA
         :return:
         """
         keyframe_event_list = []
