@@ -2,6 +2,7 @@ import numpy as np
 from copy import copy
 from ..utilities import write_to_json_file
 from constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_CA_CONSTRAINT
+from constraints.keyframe_event import KeyframeEvent
 
 UNCONSTRAINED_EVENTS_TRANSFER_POINT = "transfer_point"
 
@@ -10,6 +11,7 @@ class KeyframeEventList(object):
     def __init__(self, create_ca_vis_data=False):
         self.frame_annotation = dict()
         self.frame_annotation['elementaryActionSequence'] = []
+        self._keyframe_events_dict = dict()
         self.keyframe_events_dict = dict()
         self.ca_constraints = dict()
         self.create_ca_vis_data = create_ca_vis_data
@@ -18,8 +20,8 @@ class KeyframeEventList(object):
         self._create_event_dict(graph_walk)
         self._create_frame_annotation(graph_walk, start_step)
         self._add_event_list_to_frame_annotation(graph_walk)
-        self.keyframe_events_dict = {"events": self.keyframe_events_dict,
-                                     "elementaryActionSequence": self.frame_annotation["elementaryActionSequence"]}
+        self.keyframe_events_dict = {"events": self.get_keyframe_events_dict(),
+                                            "elementaryActionSequence": self.frame_annotation["elementaryActionSequence"]}
         if self.create_ca_vis_data:
             self._create_collision_data_from_ca_constraints(graph_walk)
             self.keyframe_events_dict["collisionContent"] = self.ca_constraints
@@ -49,7 +51,7 @@ class KeyframeEventList(object):
         """ Traverse elementary actions and motion primitives
         :return:
         """
-        self.keyframe_events_dict = dict()
+        self._keyframe_events_dict = dict()
         frame_offset = 0
         for step in graph_walk.steps:
             time_function = None
@@ -57,19 +59,28 @@ class KeyframeEventList(object):
                 time_function = graph_walk.motion_state_graph.nodes[step.node_key].back_project_time_function(step.parameters)
             for keyframe_event in step.motion_primitive_constraints.keyframe_event_list.values():
                 event_keyframe_index = keyframe_event.extract_keyframe_index(time_function, frame_offset)
-                prev_events = None
-                if event_keyframe_index in self.keyframe_events_dict.keys():
-                    prev_events = self.keyframe_events_dict[event_keyframe_index]
-                self.keyframe_events_dict[event_keyframe_index] = keyframe_event.merge_event_list(prev_events)
+                if event_keyframe_index in self._keyframe_events_dict.keys():
+                    keyframe_event.merge_event_list(self._keyframe_events_dict[event_keyframe_index])
+                self._keyframe_events_dict[event_keyframe_index] = keyframe_event
             frame_offset += step.end_frame - step.start_frame + 1
 
+    def get_keyframe_events_dict(self):
+        result = dict()
+        for key in self._keyframe_events_dict.keys():
+            print key, self._keyframe_events_dict[key]
+            result[key] = self._keyframe_events_dict[key].event_list
+        return result
+
+    def export_to_file(self, prefix):
+        write_to_json_file(prefix + "_annotations" + ".json", self.frame_annotation)
+        write_to_json_file(prefix + "_actions" + ".json", self.keyframe_events_dict)
     def _add_event_list_to_frame_annotation(self, graph_walk):
         """ Converts a list of events from the simulation event format to a format expected by CA
         :return:
         """
         keyframe_event_list = []
-        for keyframe in self.keyframe_events_dict.keys():
-            for event_desc in self.keyframe_events_dict[keyframe]:
+        for keyframe in self._keyframe_events_dict.keys():
+            for event_desc in self._keyframe_events_dict[keyframe].event_list:
                 event = dict()
                 if graph_walk.mg_input is not None and graph_walk.mg_input.activate_joint_mapping:
                     if isinstance(event_desc["parameters"]["joint"], basestring):
@@ -85,30 +96,6 @@ class KeyframeEventList(object):
                 event["frameNumber"] = int(keyframe)
                 keyframe_event_list.append(event)
         self.frame_annotation["events"] = keyframe_event_list
-
-    def _merge_multiple_keyframe_events(self, events, num_events):
-        """Merge events if there are more than one event defined for the same keyframe.
-        """
-        event_list = [(events[i]["event"], events[i]) for i in xrange(num_events)]
-        temp_event_dict = dict()
-        for name, event in event_list:
-            if name not in temp_event_dict.keys():
-               temp_event_dict[name] = event
-            else:
-                if "joint" in temp_event_dict[name]["parameters"].keys():
-                    existing_entry = copy(temp_event_dict[name]["parameters"]["joint"])
-                    if isinstance(existing_entry, basestring) and event["parameters"]["joint"] != existing_entry:
-                        temp_event_dict[name]["parameters"]["joint"] = [existing_entry, event["parameters"]["joint"]]
-                    elif event["parameters"]["joint"] not in existing_entry:
-                        temp_event_dict[name]["parameters"]["joint"].append(event["parameters"]["joint"])
-                    print "event dict merged", temp_event_dict[name]
-                else:
-                    print "event dict merge did not happen", temp_event_dict[name]
-        return temp_event_dict.values()
-
-    def export_to_file(self, prefix):
-        write_to_json_file(prefix + "_annotations"+".json", self.frame_annotation)
-        write_to_json_file(prefix + "_actions"+".json", self.keyframe_events_dict)
 
     def _add_unconstrained_events_from_annotation(self, graph_walk):
         """The method assumes the start and end frames of each step were already warped by calling convert_to_motion
@@ -144,7 +131,8 @@ class KeyframeEventList(object):
                         least_distance = distance
                         closest_keyframe = frame_index
                 target_object = keyframe_annotations[UNCONSTRAINED_EVENTS_TRANSFER_POINT]["annotations"][0]["parameters"]["target"]
-                self.keyframe_events_dict[closest_keyframe] = [ {"event":"transfer", "parameters": {"joint" : attach_joint, "target": target_object}}]
+                event_list = [{"event":"transfer", "parameters": {"joint" : attach_joint, "target": target_object}}]
+                self._keyframe_events_dict[closest_keyframe] = KeyframeEvent(None,-1,event_list)
                 print "added transfer event", closest_keyframe
 
     def _map_both_hands_event(self, event, activate_joint_mapping=False):

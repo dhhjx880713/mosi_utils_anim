@@ -17,6 +17,14 @@ class KeyframeEvent(object):
 
     def merge_event_list(self, prev_events=None):
         """merge events with events of previous iterations"""
+        if prev_events is not None:
+            self.event_list = self.event_list + prev_events.event_list
+        n_events = len(self.event_list)
+        if n_events > 1:
+            self.event_list = self._merge_multiple_keyframe_events(self.event_list, n_events)
+
+    def merge_event_list2(self, prev_events=None):
+        """merge events with events of previous iterations"""
         events = self.event_list
         if prev_events is not None:
             events = events + prev_events
