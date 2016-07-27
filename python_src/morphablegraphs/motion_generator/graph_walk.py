@@ -77,6 +77,26 @@ class GraphWalk(object):
         annotated_motion_vector.graph_walk = self
         return annotated_motion_vector
 
+    def get_action_from_keyframe(self, keyframe):
+        found_action_index = -1
+        step_index = self.get_step_from_keyframe(keyframe)
+        print "found step", step_index
+        if step_index < 0:
+            return found_action_index
+        for action_index, action in enumerate(self.elementary_action_list):
+            if action.start_step <= step_index <= action.end_step:
+                found_action_index = action_index
+        return found_action_index
+
+    def get_step_from_keyframe(self, keyframe):
+        found_step_index = -1
+        for step_index, step in enumerate(self.steps):
+            #Note the start_frame and end_frame are warped in update_temp_motion_vector
+            print step.start_frame, keyframe, step.end_frame
+            if step.start_frame <= keyframe <= step.end_frame:
+                found_step_index = step_index
+        return found_step_index
+
     def _convert_graph_walk_to_quaternion_frames(self, start_step=0, use_time_parameters=False):
         """
         :param start_step:
