@@ -15,6 +15,7 @@ from .spatial_constraints.keyframe_constraints.look_at_constraint import LookAtC
 from .spatial_constraints.keyframe_constraints.global_transform_ca_constraint import GlobalTransformCAConstraint
 from .spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE,SPATIAL_CONSTRAINT_TYPE_KEYFRAME_DIR_2D, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_LOOK_AT, SPATIAL_CONSTRAINT_TYPE_CA_CONSTRAINT
 from ik_constraints import JointIKConstraint, TwoJointIKConstraint
+from ik_constraints_builder import IKConstraintsBuilder
 from ...utilities.log import write_log
 try:
     from mgrd import CartesianConstraint as MGRDCartesianConstraint
@@ -305,66 +306,9 @@ class MotionPrimitiveConstraints(object):
                 mp_constraints.constraints.append(lookat_constraint)
         return mp_constraints
 
-    def convert_to_ik_constraints(self, motion_state_graph, frame_offset=0, time_function=None):
-        supported_constraint_types = [SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION]
-        ik_constraints = dict()
-        for c in self.constraints:
-            if c.constraint_type in supported_constraint_types and "generated" not in c.semantic_annotation.keys():
-
-                if time_function is not None:
-                    keyframe = frame_offset + int(time_function[c.canonical_keyframe]) + 1  # add +1 to map the frame correctly TODO: test and verify for all cases
-                else:
-                    keyframe = frame_offset + c.canonical_keyframe
-
-                if keyframe not in ik_constraints.keys():
-                    ik_constraints[keyframe] = dict()
-                    ik_constraints[keyframe]["single"] = []
-                    ik_constraints[keyframe]["multiple"] = []
-
-                if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION and\
-                        c.joint_name in self.skeleton.free_joints_map.keys():
-                    free_joints = self.skeleton.free_joints_map[c.joint_name]
-                    frame_range = None
-                    if self.motion_primitive_name in motion_state_graph.node_groups[self.action_name].motion_primitive_annotation_regions.keys():
-                        frame_range_annotation = motion_state_graph.node_groups[self.action_name].motion_primitive_annotation_regions[self.motion_primitive_name]
-                        #print "Found frame range for", c.keyframe_label, frame_range_annotation
-                        if c.keyframe_label in frame_range_annotation.keys():
-                            frame_range = copy(frame_range_annotation[c.keyframe_label])
-                            #print c.keyframe_label,frame_range_annotation,frame_range_annotation[c.keyframe_label], frame_range,frame_range[0],frame_range[1]
-                            range_start = frame_range[0]
-                            range_end = frame_range[1]
-                            if time_function is not None:
-                                # add +1 to map the frame correctly TODO: test and verify for all cases
-                                range_start = int(time_function[range_start]) + 1
-                                range_end = int(time_function[range_end]) + 1
-                            frame_range[0] = frame_offset + range_start
-                            frame_range[1] = frame_offset + range_end
-                            print "Found frame range for", c.keyframe_label, frame_range
-                    if frame_range is None:
-                        print "Did not find frame range for", c.keyframe_label#,self.action_name,self.motion_primitive_name, motion_state_graph.node_groups[self.action_name].motion_primitive_annotation_regions
-
-                    ik_constraint = JointIKConstraint(c.joint_name, c.position, c.orientation, keyframe, free_joints, frame_range=frame_range)
-                    ik_constraints[keyframe]["single"].append(ik_constraint)
-
-                elif c.constraint_type == SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION and\
-                     c.joint_names[0] in self.skeleton.free_joints_map.keys() and \
-                     c.joint_names[1] in self.skeleton.free_joints_map.keys():
-                    free_joints = self.skeleton.reduced_free_joints_map[c.joint_names[0]]
-                    ik_constraint = JointIKConstraint(c.joint_names[0], c.positions[0], None, keyframe, free_joints)
-                    ik_constraints[keyframe]["single"] .append(ik_constraint)
-                    free_joints = self.skeleton.reduced_free_joints_map[c.joint_names[1]]
-                    ik_constraint = JointIKConstraint(c.joint_names[1], c.positions[1], None, keyframe, free_joints)
-                    ik_constraints[keyframe]["single"] .append(ik_constraint)
-                    ik_constraints[keyframe]["multiple"].append(None)#TODO replace with TwoJointIKConstraint
-                    #free_joints = set()
-                    #for joint_name in self.joint_names:
-                    #    if joint_name in free_joints_map.keys():
-                    #        free_joints.update(free_joints_map[joint_name])
-
-                    #ik_constraint = TwoJointIKConstraint(c.joint_names, c.positions, c.target_center, c.target_delta, c.target_direction, keyframe)
-                    #ik_constraints[keyframe]["multiple"].append(ik_constraint)
-
-        return ik_constraints
+    def convert_to_ik_constraints(self, motion_state_graph, frame_offset, time_function=None, constrain_orientation=True):
+        builder = IKConstraintsBuilder(self.action_name, self.motion_primitive_name, motion_state_graph, self.skeleton)
+        return builder.convert_to_ik_constraints(self.constraints, frame_offset, time_function, constrain_orientation)
 
     def get_ca_constraints(self):
         ca_constraints = list()
