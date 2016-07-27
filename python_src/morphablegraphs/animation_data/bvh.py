@@ -370,13 +370,13 @@ class BVHWriter(object):
         euler_frame = frame[:3]     # copy root
         joint_idx = 0
         for node_name in nodes.keys():
-            if len(nodes[node_name].channels) > 0:# ignore end sites completely
+            if len(self.skeleton.nodes[node_name].channels) > 0:# ignore end sites completely
                 if not node_name.startswith("Bip"):
                     i = joint_idx * QUAT_LEN + TRANSLATION_LEN
                     if node_name == self.skeleton.root:
-                        channels = nodes[node_name].channels[TRANSLATION_LEN:]
+                        channels = self.skeleton.nodes[node_name].channels[TRANSLATION_LEN:]
                     else:
-                        channels = nodes[node_name].channels
+                        channels = self.skeleton.nodes[node_name].channels
                     euler = BVHWriter._quaternion_to_euler(frame[i:i + QUAT_LEN], channels)
                     euler_frame = np.concatenate((euler_frame, euler), axis=0)
                     joint_idx += 1
