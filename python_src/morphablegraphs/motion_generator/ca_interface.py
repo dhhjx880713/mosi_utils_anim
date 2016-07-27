@@ -25,10 +25,10 @@ class CAInterface(object):
         aligned_motion_spline, global_transformation = self._get_aligned_motion_spline(new_motion_spline,
                                                                                        graph_walk.get_quat_frames())
         if self.activate_coordinate_transform:
-            global_transformation = np.dot(global_transformation, self.coordinate_transform_matrix)
+            global_transformation = np.dot(self.coordinate_transform_matrix, global_transformation)
         frames = aligned_motion_spline.get_motion_vector()
         global_bvh_string = get_bvh_writer(self.ea_generator.motion_state_graph.skeleton, frames).generate_bvh_string()
-        ca_input ={"groupId": groupd_id, "command":"GenerateConstraints"}
+        ca_input = {"groupId": groupd_id, "command":"GenerateConstraints"}
         ca_input["parameters"] = {"elementary_action_name": new_node[0],
                     "motion_primitive_name": new_node[1],
                     "global_transform": global_transformation.tolist(),
