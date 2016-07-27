@@ -123,7 +123,7 @@ class ClusterTree(object):
             return heapq.heappop(results)    
         else:
             print "Error: failed to find a result"
-            return np.inf, self.data[self.root.indices[0]]
+            return np.inf, self.root.mean
         
     def find_best_example_excluding_search_candidates_boundary(self, obj, data, n_candidates=5):
         """ Traverses the cluster hierarchy iteratively by evaluating the means
@@ -161,7 +161,7 @@ class ClusterTree(object):
             return heapq.heappop(results)    
         else:
             print "Error: failed to find a result"
-            return np.inf, self.data[0]
+            return np.inf, self.root.mean
 
     def find_best_example_excluding_search_candidates_knn(self, obj, data, n_candidates=1, k=50):
         """ Traverses the cluster hierarchy iteratively by evaluating the means
@@ -192,4 +192,4 @@ class ClusterTree(object):
             return heapq.heappop(results)    
         else:
             print "Error: failed to find a result"
-            return np.inf, self.data[self.root.indices[0]]
+            return np.inf, self.root.mean
