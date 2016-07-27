@@ -1,10 +1,11 @@
 from copy import copy
 
 class KeyframeEvent(object):
-    def __init__(self, label, canonical_keyframe, event_list):
+    def __init__(self, label, canonical_keyframe, event_list, constraint=None):
         self.label = label
         self.canonical_keyframe = int(canonical_keyframe)
         self.event_list = event_list
+        self.constraint = constraint
 
     def to_dict(self):
         return {"canonical_keyframe": self.canonical_keyframe, "event_list": self.event_list}

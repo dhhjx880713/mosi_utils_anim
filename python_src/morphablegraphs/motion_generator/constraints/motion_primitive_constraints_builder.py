@@ -13,6 +13,7 @@ from .spatial_constraints import PoseConstraint, Direction2DConstraint, GlobalTr
 from ...animation_data.motion_vector import concatenate_frames
 from ...animation_data.motion_editing import get_2d_pose_transform, inverse_pose_transform, fast_quat_frames_transformation, create_transformation_matrix
 from . import CA_CONSTRAINTS_MODE_SET, OPTIMIZATION_MODE_ALL, OPTIMIZATION_MODE_KEYFRAMES, OPTIMIZATION_MODE_TWO_HANDS
+from .spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
 from ...motion_model.elementary_action_meta_info import KEYFRAME_LABEL_END, KEYFRAME_LABEL_START, KEYFRAME_LABEL_MIDDLE
 from keyframe_event import KeyframeEvent
 
@@ -238,7 +239,17 @@ class MotionPrimitiveConstraintsBuilder(object):
             if mp_constraints.motion_primitive_name in self.motion_state_graph.node_groups[self.action_constraints.action_name].motion_primitive_annotations.keys():
                 if label in self.motion_state_graph.node_groups[self.action_constraints.action_name].motion_primitive_annotations[mp_constraints.motion_primitive_name]:
                     event_list = self.action_constraints.keyframe_annotations[label]["annotations"]
-                    mp_constraints.keyframe_event_list[label] = KeyframeEvent(label, self._get_keyframe_from_annotation(label),event_list)
+
+                    # add keyframe constraint based on joint and label
+                    constraint = None
+                    if len(event_list) == 1:#only if there is only one constraint on one joint otherwise correspondence is not clear
+                        joint_name = event_list[0]["parameters"]["joint"]
+                        for c in mp_constraints.constraints:
+                            if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION and c.joints == joint_name and c.keyframe_label == label :
+                                constraint = c
+                                break
+
+                    mp_constraints.keyframe_event_list[label] = KeyframeEvent(label, self._get_keyframe_from_annotation(label),event_list, constraint)
 
     def _map_label_to_canonical_keyframe(self, keyframe_constraint_desc):
         """ Enhances the keyframe constraint definition with a canonical keyframe set based on label
