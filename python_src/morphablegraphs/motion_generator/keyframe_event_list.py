@@ -3,6 +3,7 @@ from copy import copy
 from ..utilities import write_to_json_file
 from constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_CA_CONSTRAINT
 from constraints.keyframe_event import KeyframeEvent
+from ..animation_data.motion_editing import quaternion_to_euler, quaternion_matrix, euler_from_matrix
 
 UNCONSTRAINED_EVENTS_TRANSFER_POINT = "transfer_point"
 
@@ -40,7 +41,9 @@ class KeyframeEventList(object):
     def _create_event_dict(self, graph_walk):
         self._create_events_from_keyframe_constraints(graph_walk)
         self._add_unconstrained_events_from_annotation(graph_walk)
-        self._add_empty_rotate_events_for_detach(graph_walk)
+        # create rotation events to allow accurate rotation of the objects if the orientation is not constrained
+        if not graph_walk.constrain_place_orientation:
+            self._add_empty_rotate_events_for_detach(graph_walk)
 
     def _create_frame_annotation(self, graph_walk, start_step=0):
         self.frame_annotation['elementaryActionSequence'] = []
@@ -78,27 +81,34 @@ class KeyframeEventList(object):
         write_to_json_file(prefix + "_actions" + ".json", self.keyframe_events_dict)
 
     def _add_empty_rotate_events_for_detach(self, graph_walk):
+        """ create events with empty rotation that is later filled after IK"""
         print "generate empty rotate events"
         for keyframe in self._keyframe_events_dict.keys():
-            for event in self._keyframe_events_dict[keyframe].event_list:
-                if event["event"] == "detach":
-                    action_index = graph_walk.get_action_from_keyframe(keyframe)
-                    if action_index < 0:
-                        continue
-                    print graph_walk.elementary_action_list[action_index].action_name
-                    if graph_walk.elementary_action_list[action_index].action_name in graph_walk.place_action_list:
-                        rotate_event = dict()
-                        rotate_event["event"] = "rotate"
-                        rotate_event["parameters"] = dict()
-                        rotate_event["parameters"]["target"] = event["parameters"]["target"]
-                        rotate_event["parameters"]["joint"] = event["parameters"]["joint"]
-                        rotate_event["parameters"]["relativeOrientation"] = [None, None, None]
-                        #TODO bring constraint into local coordinate sytem of hand parent and then compare delta with local hand orientation
-                        prev_keyframe = keyframe-1
-                        if prev_keyframe >= 0:
-                            if prev_keyframe not in self._keyframe_events_dict.keys():
-                                self._keyframe_events_dict[prev_keyframe] = KeyframeEvent(None,-1,[])
-                            self._keyframe_events_dict[prev_keyframe].event_list.append(rotate_event)
+            if self._keyframe_events_dict[keyframe].constraint is not None:
+                orientation = self._keyframe_events_dict[keyframe].constraint.orientation
+                if orientation is None or orientation == [None, None, None, None]:
+                    continue
+                for event in self._keyframe_events_dict[keyframe].event_list:
+                    if event["event"] == "detach":
+                        action_index = graph_walk.get_action_from_keyframe(keyframe)
+                        if action_index < 0:
+                            continue
+                        if graph_walk.elementary_action_list[action_index].action_name in graph_walk.place_action_list:
+
+                            rotate_event = dict()
+                            rotate_event["event"] = "rotate"
+                            rotate_event["parameters"] = dict()
+                            rotate_event["parameters"]["target"] = event["parameters"]["target"]
+                            rotate_event["parameters"]["joint"] = event["parameters"]["joint"]
+                            rotate_event["parameters"]["globalOrientation"] = list(orientation)
+                            rotate_event["parameters"]["relativeOrientation"] = [None, None, None]
+                            rotate_event["parameters"]["placeKeyframe"] = int(keyframe)
+
+                            prev_keyframe = keyframe-1
+                            if prev_keyframe >= 0:
+                                if prev_keyframe not in self._keyframe_events_dict.keys():
+                                    self._keyframe_events_dict[prev_keyframe] = KeyframeEvent(None,-1,[])
+                                self._keyframe_events_dict[prev_keyframe].event_list.append(rotate_event)
 
     def _add_event_list_to_frame_annotation(self, graph_walk):
         """ Converts a list of events from the simulation event format to a format expected by CA
