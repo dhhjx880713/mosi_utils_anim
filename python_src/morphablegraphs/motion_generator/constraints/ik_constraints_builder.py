@@ -3,7 +3,8 @@ from copy import copy
 from .spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE,SPATIAL_CONSTRAINT_TYPE_KEYFRAME_DIR_2D, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_LOOK_AT, SPATIAL_CONSTRAINT_TYPE_CA_CONSTRAINT
 from ik_constraints import JointIKConstraint, TwoJointIKConstraint
 
-
+SUPPORTED_CONSTRAINT_TYPES = [SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION,
+                              SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION]
 class IKConstraintsBuilder(object):
     def __init__(self, action_name, motion_primitive_name, motion_state_graph, skeleton):
         self.action_name = action_name
@@ -25,11 +26,11 @@ class IKConstraintsBuilder(object):
         return ik_constraints_dict
 
     def _create_ik_constraints(self, constraint, frame_offset=0, time_function=None, constrain_orientation=True):
-        supported_constraint_types = [SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION,
-                                      SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION]
+
         ik_constraints = []
         ik_constraint_types = []
-        if constraint.constraint_type in supported_constraint_types and "generated" not in constraint.semantic_annotation.keys():
+        if constraint.constraint_type in SUPPORTED_CONSTRAINT_TYPES and \
+            "generated" not in constraint.semantic_annotation.keys():
             if time_function is not None:
                 keyframe = frame_offset + int(time_function[
                                                   constraint.canonical_keyframe]) + 1  # add +1 to map the frame correctly TODO: test and verify for all cases
