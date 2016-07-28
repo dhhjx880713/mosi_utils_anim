@@ -215,7 +215,7 @@ class BVHWriter(object):
     def generate_bvh_string(self):
         bvh_string = self._generate_hierarchy_string(self.skeleton.root, self.skeleton.node_names) + "\n"
         if self.is_quaternion:
-            euler_frames = self.convert_quaternion_to_euler_frames_skipping_fixed_joints(self.frame_data, self.skeleton.node_names, self.is_quaternion)
+            euler_frames = self.convert_quaternion_to_euler_frames_skipping_fixed_joints(self.frame_data, self.is_quaternion)
             #euler_frames = self.convert_quaternion_to_euler_frames(self.frame_data)
 
         else:
@@ -313,7 +313,7 @@ class BVHWriter(object):
 
         return frame_parameter_string
 
-    def convert_quaternion_to_euler_frames_skipping_fixed_joints(self, frame_data, node_names, is_quaternion=False):
+    def convert_quaternion_to_euler_frames_skipping_fixed_joints(self, frame_data, is_quaternion=False):
             """ Converts the joint rotations from quaternion to euler rotations
                 Note: for the toe joints of the rocketbox skeleton a hard set value is used
                 * frame_data: array of motion vectors, either as euler or quaternion
@@ -331,21 +331,21 @@ class BVHWriter(object):
                 else:
                     euler_frames = []
                     for frame in frame_data:
-                        euler_frame = self._get_euler_frame_from_partial_euler_frame(frame, node_names, skip_joints)
+                        euler_frame = self._get_euler_frame_from_partial_euler_frame(frame, skip_joints)
                         euler_frames.append(euler_frame)
             else:
                 # check whether or not "Bip" frames should be ignored
                 euler_frames = []
                 for frame in frame_data:
                     if skip_joints:
-                        euler_frame = self._get_euler_frame_from_partial_quaternion_frame(frame, node_names)
+                        euler_frame = self._get_euler_frame_from_partial_quaternion_frame(frame)
                     else:
                         euler_frame = self._get_euler_frame_from_quaternion_frame(frame)
                     # print len(euler_frame), euler_frame
                     euler_frames.append(euler_frame)
             return euler_frames
 
-    def _get_euler_frame_from_partial_euler_frame(self, frame, node_names, skip_joints):
+    def _get_euler_frame_from_partial_euler_frame(self, frame, skip_joints):
         euler_frame = frame[:3]
         joint_idx = 0
         for node_name in node_names:
@@ -366,10 +366,10 @@ class BVHWriter(object):
                         euler_frame = np.concatenate((euler_frame,([0, 0, 0])),axis=0)  # set rotation to 0
             return euler_frame
 
-    def _get_euler_frame_from_partial_quaternion_frame(self, frame, nodes):
+    def _get_euler_frame_from_partial_quaternion_frame(self, frame):
         euler_frame = frame[:3]     # copy root
         joint_idx = 0
-        for node_name in nodes.keys():
+        for node_name in self.skeleton.nodes.keys():
             if len(self.skeleton.nodes[node_name].channels) > 0:# ignore end sites completely
                 if not node_name.startswith("Bip"):
                     i = joint_idx * QUAT_LEN + TRANSLATION_LEN
@@ -387,7 +387,6 @@ class BVHWriter(object):
                     else:
                         euler_frame = np.concatenate((euler_frame,([0, 0, 0])),axis=0)  # set rotation to 0
         return euler_frame
-
 
     def _get_euler_frame_from_quaternion_frame(self, frame):
         euler_frame = frame[:3]  # copy root
