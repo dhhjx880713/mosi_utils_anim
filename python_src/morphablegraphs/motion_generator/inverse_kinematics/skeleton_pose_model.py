@@ -209,7 +209,7 @@ class SkeletonPoseModel(object):
         new_local_q = quaternion_from_matrix(new_local)
         self.set_channel_values(new_local_q, [self.head_joint])
 
-    def set_hand_orientation(self, joint_name, orientation):
+    def set_hand_orientation_using_direction_vectors(self, joint_name, orientation):
         m = quaternion_matrix(orientation)
         target_dir = np.dot(m, self.relative_hand_dir)
         target_dir /= np.linalg.norm(target_dir)
@@ -218,6 +218,17 @@ class SkeletonPoseModel(object):
         #print "set hand orientation"
         #print target_dir, cross_dir
         self.point_in_direction(joint_name, target_dir[:3], cross_dir[:3])
+
+
+    def set_hand_orientation(self, joint_name, orientation):
+        print "set hand orientation"
+        m = quaternion_matrix(orientation)
+        parent_joint_name = self.get_parent_joint(joint_name)
+        parent_m = self.skeleton.nodes[parent_joint_name].get_global_matrix(self.pose_parameters, use_cache=False)
+        local_m = np.dot(np.linalg.inv(parent_m), m)
+        q = quaternion_from_matrix(local_m)
+        self.set_channel_values(q, [joint_name])
+
 
     def point_in_direction(self, joint_name, target_dir, target_cross=None):
         parent_joint_name = self.get_parent_joint(joint_name)
