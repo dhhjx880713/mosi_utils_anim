@@ -245,7 +245,7 @@ class MotionPrimitiveConstraintsBuilder(object):
                     if len(event_list) == 1:#only if there is only one constraint on one joint otherwise correspondence is not clear
                         joint_name = event_list[0]["parameters"]["joint"]
                         for c in mp_constraints.constraints:
-                            if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION and c.joints == joint_name and c.keyframe_label == label :
+                            if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION and c.joint_name == joint_name and c.keyframe_label == label :
                                 constraint = c
                                 break
 
