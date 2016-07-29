@@ -102,13 +102,16 @@ class KeyframeEventList(object):
                             rotate_event["parameters"]["joint"] = event["parameters"]["joint"]
                             rotate_event["parameters"]["globalOrientation"] = list(orientation)
                             rotate_event["parameters"]["relativeOrientation"] = [None, None, None]
-                            rotate_event["parameters"]["placeKeyframe"] = int(keyframe)
-
-                            prev_keyframe = keyframe-1
-                            if prev_keyframe >= 0:
-                                if prev_keyframe not in self._keyframe_events_dict.keys():
-                                    self._keyframe_events_dict[prev_keyframe] = KeyframeEvent(None,-1,[])
-                                self._keyframe_events_dict[prev_keyframe].event_list.append(rotate_event)
+                            rotate_event["parameters"]["referenceKeyframe"] = int(keyframe)
+                            #rotate_event["parameters"]["pickKeyframe"] = int(keyframe)
+                            if event["event"] == "attach":
+                                rotate_keyframe = keyframe + 1
+                            else:
+                                rotate_keyframe = keyframe - 1
+                            if rotate_keyframe >= 0:
+                                if rotate_keyframe not in self._keyframe_events_dict.keys():
+                                    self._keyframe_events_dict[rotate_keyframe] = KeyframeEvent(None,-1,[])
+                                self._keyframe_events_dict[rotate_keyframe].event_list.append(rotate_event)
 
     def _add_event_list_to_frame_annotation(self, graph_walk):
         """ Converts a list of events from the simulation event format to a format expected by CA

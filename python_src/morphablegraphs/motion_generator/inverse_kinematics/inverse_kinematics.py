@@ -485,7 +485,7 @@ class InverseKinematics(object):
                 if event["event"] == "rotate":
                     joint_name = event["parameters"]["joint"]
                     orientation = event["parameters"]["globalOrientation"]
-                    place_keyframe = event["parameters"]["placeKeyframe"]
+                    place_keyframe = event["parameters"]["referenceKeyframe"]
                     frames = motion_vector.frames[place_keyframe]
                     # compare delta with global hand orientation
                     joint_orientation = motion_vector.skeleton.nodes[joint_name].get_global_matrix(frames)
