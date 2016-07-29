@@ -13,7 +13,10 @@ class CAInterface(object):
         self.activate_coordinate_transform = service_config["activate_coordinate_transform"]
         self.ca_service_url = service_config["collision_avoidance_service_url"]
         self.ca_service_port = service_config["collision_avoidance_service_port"]
-        self.tcp_client = TCPClient(self.ca_service_url, self.ca_service_port)
+        if self.ca_service_url is not None:
+            self.tcp_client = TCPClient(self.ca_service_url, self.ca_service_port)
+        else:
+            self.tcp_client = None
         self.coordinate_transform_matrix = np.array([[1, 0, 0, 0],
                                                      [0, 0, -1, 0],
                                                      [0, 1, 0, 0],
@@ -28,20 +31,24 @@ class CAInterface(object):
             global_transformation = np.dot(self.coordinate_transform_matrix, global_transformation)
         frames = aligned_motion_spline.get_motion_vector()
         global_bvh_string = get_bvh_writer(self.ea_generator.motion_state_graph.skeleton, frames).generate_bvh_string()
-        ca_input = {"groupId": groupd_id, "command":"GenerateConstraints"}
+        ca_input = {"groupId": "", "command":"GenerateConstraints"}
         ca_input["parameters"] = {"elementary_action_name": new_node[0],
                     "motion_primitive_name": new_node[1],
                     "global_transform": global_transformation.tolist(),
                     "global_bvh_frames": global_bvh_string}
-
-        # ca_output = self._call_ca_rest_interface(ca_input)
         message = json.dumps(ca_input)
-        ca_output_string = self.tcp_client.send_message(message)
-        ca_output = json.loads(ca_output_string)
-        if ca_output is not None:
-            return self._create_ca_constraints(new_node, ca_output, graph_walk)
-        else:
-            return None
+        if self.tcp_client is not None:
+            ca_output_string = self.tcp_client.send_message(message)
+            ca_output_string = ca_output_string.replace("right", "Right")
+            ca_output_string = ca_output_string.replace("left", "Left")
+            try:
+                ca_output = json.loads(ca_output_string)
+            except Exception as e:
+                ca_output = {}
+            if ca_output is not None:
+                return self._create_ca_constraints(new_node, ca_output, graph_walk)
+            else:
+                return None
 
     def _create_ca_constraints(self, new_node, ca_output, graph_walk):
         ca_constraints = []
