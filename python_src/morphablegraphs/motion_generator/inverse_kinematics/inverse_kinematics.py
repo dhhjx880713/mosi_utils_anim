@@ -478,16 +478,15 @@ class InverseKinematics(object):
                 self._create_transition_for_frame_range(motion_vector.frames, t[0]+1, t[1] - 1, ["RightHand", "LeftHand"])
             #print np.all(before == motion_vector.frames[:,joint_parameter_indices])
 
-
     def fill_rotate_events(self, motion_vector):
         for keyframe in motion_vector.keyframe_event_list.keyframe_events_dict["events"].keys():
             keyframe = int(keyframe)
             for event in motion_vector.keyframe_event_list.keyframe_events_dict["events"][keyframe]:
                 if event["event"] == "rotate":
-                    joint_name = event["parameters"]["joint"]#graph_walk.keyframe_events_dict["events"]
+                    joint_name = event["parameters"]["joint"]
                     orientation = event["parameters"]["globalOrientation"]
-                    placeKeyframe = event["parameters"]["placeKeyframe"]
-                    frames = motion_vector.frames[placeKeyframe]
+                    place_keyframe = event["parameters"]["placeKeyframe"]
+                    frames = motion_vector.frames[place_keyframe]
                     # compare delta with global hand orientation
                     joint_orientation = motion_vector.skeleton.nodes[joint_name].get_global_matrix(frames)
                     joint_orientation[:3, 3] = [0, 0, 0]
@@ -496,52 +495,8 @@ class InverseKinematics(object):
                     # assert np.all(test1 == test2), (test1, test2)
                     orientation_constraint = quaternion_matrix(orientation)
                     delta_orientation = np.dot(np.linalg.inv(joint_orientation),orientation_constraint)
-                    delta_from_fives = np.array([[0.6272064, -0.454166, -0.6327285, 0],
-                                                [0.7239952, 0.04048669, 0.6886158, 0],
-                                                [-0.2871288, -0.8899966, 0.3542076, 0],
-                                                [0, 0, 0, 1]]).T
-                    #assert np.all(delta_from_fives == delta_orientation), (delta_from_fives, delta_orientation)
-                    # bring delta into local coordinate system of the hand
-                    parent = motion_vector.skeleton.nodes[joint_name].parent
-                    if parent is not None:
-                        parent_transform = motion_vector.skeleton.nodes[parent.node_name].get_global_matrix(frames)
-                        parent_transform[:3, 3] = [0, 0, 0]
-                    else:
-                        parent_transform = np.identity(4)
-                    # q_m = quaternion_matrix(orientation)
-                    #l_q_m = np.dot(np.linalg.inv(parent_transform), delta_orientation)
                     euler = np.degrees(euler_from_matrix(delta_orientation))
-
-                    Tr = np.array([[-0.9999987, 2.490124E-07, -0.001500759, 0],
-                     [0.001500759, -0.0002036095, -0.9999987, 0],
-                     [-5.546026E-07, -0.9999998, 0.0002037883, 0],
-                     [-0.4262981, 11.44886, 0.02158833, 1]]).T
-
-
-                    #Tog = np.dot(np.dot(joint_orientation , delta_orientation), Tr)
-                    # Tc = np.dot(orientation_constraint, Tr)
-                    deltaTr1 = np.array([[-0.5512996, 0.5008736, 0.6672286, 0],
-                                [0.291949, 0.8649936, -0.4081075, 0],
-                                [-0.7815589, -0.03019293, -0.6231002, 0],
-                                [8.705784, 0.5379357, 7.428227, 1]]).T
-
-                    deltaTr1again = np.array([[-0.6267747, 0.4555008, 0.6321962, 0],
-                     [0.2879221, 0.8893058, -0.3552967, 0],
-                     [-0.7240539, -0.04066789, -0.6885433, 0],
-                     [-0.4819851, 11.44913, 0.0539574, 1]]).T
-
-
-                    #deltaTr2 =  np.dot(delta_orientation, Tr)
-                    #assert np.all(deltaTr1again == deltaTr2), (deltaTr1, deltaTr2)
-                    #assert np.all(Tog== Tc), (Tog, Tc)
-
-                    #euler = np.degrees(euler_from_matrix(l_q_m))
-                    # euler = quaternion_to_euler(orientation)
-                    #test_orientation = np.dot(joint_orientation, delta_orientation)# multiply J with Delta
+                    #test_orientation = np.dot(joint_orientation, delta_orientation)
                     #assert np.all(orientation_constraint == test_orientation), (orientation_constraint,test_orientation)
                     # Alternative: bring constraint into local coordinate system of hand parent and then compare delta with local hand orientation
-
-                    #test_orientation = np.dot(np.dot(parent_transform,l_q_m), joint_orientation)# multiply Delta with J
-                    #assert np.all(orientation_constraint == test_orientation), (orientation_constraint,test_orientation)
                     event["parameters"]["relativeOrientation"] = [euler[0], -euler[2], euler[1]]  # convert to CAD coordinate system
-                    #motion_vector.keyframe_events_dict["events"][keyframe] = rotate_event
