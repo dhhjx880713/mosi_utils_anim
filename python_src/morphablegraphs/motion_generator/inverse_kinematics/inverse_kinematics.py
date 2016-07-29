@@ -500,7 +500,7 @@ class InverseKinematics(object):
                                                 [0.7239952, 0.04048669, 0.6886158, 0],
                                                 [-0.2871288, -0.8899966, 0.3542076, 0],
                                                 [0, 0, 0, 1]]).T
-                    assert np.all(delta_from_fives == delta_orientation), (delta_from_fives, delta_orientation)
+                    #assert np.all(delta_from_fives == delta_orientation), (delta_from_fives, delta_orientation)
                     # bring delta into local coordinate system of the hand
                     parent = motion_vector.skeleton.nodes[joint_name].parent
                     if parent is not None:
