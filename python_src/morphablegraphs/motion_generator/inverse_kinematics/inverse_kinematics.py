@@ -318,6 +318,8 @@ class InverseKinematics(object):
         target_direction = None
         if traj_constraint["constrain_orientation"]:
             target_direction = trajectory.get_direction()
+            if np.linalg.norm(target_direction)==0:
+                target_direction = None
             #print "direction",target_direction
 
         full_length = n_frames*d
