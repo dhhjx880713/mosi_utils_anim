@@ -35,11 +35,11 @@ DEFAULT_TOOL_BONES = [{
             },{
             "new_node_name": 'RightScrewDriverEndSite',
             "parent_node_name": 'RightHand',
-            "new_node_offset": [23.0, -10.5,  3.5]
+            "new_node_offset": [22.1522069, -9.19354633, 3.33790343] #         [21.8522069 ,  -9.19354633,   3.33790343]#[6.1522069, -0.09354633,  3.33790343] - np.array([15.7, -9.1, 0])   #[22.0, -9.5,  3.5]#[23.0, -10.5,  3.5]
             }, {
                 "new_node_name": 'LeftScrewDriverEndSite',
                 "parent_node_name": 'LeftHand',
-                "new_node_offset": [23.0, 10.5, 3.5]
+                "new_node_offset":[22.1522069  ,  9.19354633 ,  3.33790343]# [21.8522069  ,  9.19354633 ,  3.33790343]#[6.1522069, 0.09354633,  3.33790343] - np.array([15.7, 9.1, 0]) #[22.0, 9.5, 3.5]
             }
 ]
 DEFAULT_FREE_JOINTS_MAP = {"LeftHand":["Spine","LeftArm", "LeftForeArm"],
