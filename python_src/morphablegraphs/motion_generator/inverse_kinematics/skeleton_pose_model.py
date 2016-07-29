@@ -62,12 +62,12 @@ class SkeletonPoseModel(object):
         self.types = {}
         self.modelled_joints = []
         channel_idx = 0
-        for joint, channels in self.channels.items():
+        for joint, ch in self.channels.items():
             self.channels_start[joint] = channel_idx
-            self.n_channels[joint] = len(channels)
-            if len(channels) == LEN_QUATERNION:
+            self.n_channels[joint] = len(ch)
+            if len(ch) == LEN_QUATERNION:
                 self.types[joint] = "rot"
-            elif len(channels) == LEN_TRANSLATION + LEN_QUATERNION:
+            elif len(ch) == LEN_TRANSLATION + LEN_QUATERNION:
                 self.types[joint] = "trans"
             else:
                 self.types[joint] = "rot"
