@@ -242,9 +242,9 @@ class InverseKinematics(object):
                 for c in constraints["single"]:
                     #print "ik constraint",c.joint_name, c.position, c.orientation
                     if c.frame_range is not None:
-                        error+=self._modify_frame_using_keyframe_constraint_range(motion_vector, c, c.frame_range)
+                        error += self._modify_frame_using_keyframe_constraint_range(motion_vector, c, c.frame_range)
                     else:
-                        error+=self._modify_frame_using_keyframe_constraint(motion_vector, c, keyframe)
+                        error += self._modify_frame_using_keyframe_constraint(motion_vector, c, keyframe)
                     if self.activate_look_at and not has_multiple_targets:
                         #write_log("look at constraint")
                         start = keyframe
