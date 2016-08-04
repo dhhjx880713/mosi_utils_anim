@@ -160,7 +160,7 @@ class MotionPrimitiveGenerator(object):
             return self.generate_random_sample(graph_node.name)
 
     def _optimize_parameters_numerically(self, inital_guess, graph_node, mp_constraints, prev_frames):
-         #print "condition", not self.use_transition_model, mp_constraints.use_local_optimization, not close_to_optimum, self.optimization_start_error_threshold
+        mp_constraints.constraints = [c for c in mp_constraints.constraints if c.constraint_type != SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE]
         data = graph_node, mp_constraints, prev_frames, self._optimization_settings["error_scale_factor"], self._optimization_settings["quality_scale_factor"]
         self.numerical_minimizer.set_objective_function_parameters(data)
         return self.numerical_minimizer.run(initial_guess=inital_guess)
