@@ -14,7 +14,7 @@ from constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POS
 from keyframe_event_list import KeyframeEventList
 from ..utilities import write_log
 
-DEFAULT_PLACE_ACTION_LIST = ["placeRight", "placeLeft","insertRight","insertLeft"] #list of actions in which the orientation constraints are ignored
+DEFAULT_PLACE_ACTION_LIST = ["placeRight", "placeLeft","insertRight","insertLeft","screwRight", "screwLeft"] #list of actions in which the orientation constraints are ignored
 
 
 class GraphWalkEntry(object):
