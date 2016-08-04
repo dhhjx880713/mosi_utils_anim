@@ -75,7 +75,8 @@ class ElementaryActionConstraintsBuilder(object):
         action_constraints.motion_state_graph = self.motion_state_graph
         action_constraints.action_name = self.mg_input.get_elementary_action_name(action_index)
         action_constraints.start_pose = self.get_start_pose()
-        action_constraints.groupd_id = self.mg_input.get_group_id()
+        action_constraints.group_id = self.mg_input.get_group_id()
+        print "group id", action_constraints.group_id
         self._add_keyframe_constraints(action_constraints, action_index)
         self._add_keyframe_annotations(action_constraints, action_index)
         self._add_trajectory_constraints(action_constraints, action_index)

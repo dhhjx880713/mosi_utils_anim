@@ -62,9 +62,9 @@ class MGInputFormatReader(object):
         return self.mg_input_file["session"]
 
     def get_group_id(self):
-        if "groupdId" not in self.mg_input_file.keys():
+        if "groupId" not in self.mg_input_file.keys():
             return ""
-        return self.mg_input_file["groupdId"]
+        return self.mg_input_file["groupId"]
 
     def get_start_pose(self):
         start_pose = dict()
