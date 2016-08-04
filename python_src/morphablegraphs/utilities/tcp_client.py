@@ -5,7 +5,7 @@ class TCPClient(object):
     """ TCP client that sends and receives a single message
         https://pymotw.com/2/socket/tcp.html
     """
-    BUFFER_SIZE = 5000
+    BUFFER_SIZE = 10485760
     def __init__(self,url, port, buffer_size=BUFFER_SIZE):
         self.address = (url, port)
         self.buffer_size = buffer_size
