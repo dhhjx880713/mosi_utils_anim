@@ -9,12 +9,14 @@ class TCPClient(object):
     def __init__(self,url, port, buffer_size=BUFFER_SIZE):
         self.address = (url, port)
         self.buffer_size = buffer_size
+        self.socket = None#socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     def send_message(self,data):
-        print "call",self.address
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect(self.address)
-        s.send(data)
-        data = s.recv(self.buffer_size)
-        s.close()
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        print "call",self.address, len(data)
+        self.socket.connect(self.address)
+        self.socket.send(data)
+        data = self.socket.recv(self.buffer_size)
+        self.socket.close()
         return data
