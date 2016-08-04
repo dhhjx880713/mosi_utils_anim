@@ -74,7 +74,7 @@ class KeyframeEventList(object):
     def get_keyframe_events_dict(self):
         result = dict()
         for key in self._keyframe_events_dict.keys():
-            print key, self._keyframe_events_dict[key]
+            #print key, self._keyframe_events_dict[key]
             result[key] = self._keyframe_events_dict[key].event_list
         return result
 
@@ -84,7 +84,7 @@ class KeyframeEventList(object):
 
     def _add_empty_rotate_events_for_detach(self, graph_walk):
         """ create events with empty rotation that is later filled after IK"""
-        print "generate empty rotate events"
+        #print "generate empty rotate events"
         for keyframe in self._keyframe_events_dict.keys():
             if self._keyframe_events_dict[keyframe].constraint is not None:
                 orientation = self._keyframe_events_dict[keyframe].constraint.orientation
