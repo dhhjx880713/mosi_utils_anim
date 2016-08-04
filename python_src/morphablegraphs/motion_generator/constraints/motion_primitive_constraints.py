@@ -236,6 +236,7 @@ class MotionPrimitiveConstraints(object):
         mp_constraints.start_pose = {"orientation": [0,0,0], "position": [0,0,0]}
         mp_constraints.skeleton = self.skeleton
         mp_constraints.is_local = True
+        mp_constraints.use_local_optimization = self.use_local_optimization
         for c in self.constraints:
             if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION:
                 if c.position is not None:
