@@ -368,8 +368,6 @@ class InverseKinematics(object):
                 break
             target = trajectory.query_point_by_absolute_arc_length(arc_length)
 
-            #write_log("change frame", idx, t, target, constraint["joint_name"])
-            #print (idx, keyframe, arc_length, n_frames)
             error = np.inf
             iter_counter = 0
             while error > self.success_threshold and iter_counter < self.max_retries:
@@ -402,7 +400,6 @@ class InverseKinematics(object):
             self.set_pose_from_frame(motion_vector.frames[keyframe])
             position = self.pose.evaluate_position(target_joint)
             error = np.linalg.norm(position-target_position)
-            #print(error, idx)
             if error <= min_error:
                 min_error = error
                 closest_start_frame = keyframe
@@ -424,7 +421,6 @@ class InverseKinematics(object):
         parameters = list()
         for joint_name in free_joints:
             parameters += self.pose.extract_parameters(joint_name).tolist()
-            #print ("array", parameters)
         return np.asarray(parameters)
 
     def _extract_free_parameter_indices(self, free_joints):
