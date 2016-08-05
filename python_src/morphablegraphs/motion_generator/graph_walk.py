@@ -96,7 +96,7 @@ class GraphWalk(object):
         found_step_index = -1
         for step_index, step in enumerate(self.steps):
             #Note the start_frame and end_frame are warped in update_temp_motion_vector
-            print step.start_frame, keyframe, step.end_frame
+            #print step.start_frame, keyframe, step.end_frame
             if step.start_frame <= keyframe <= step.end_frame:
                 found_step_index = step_index
         return found_step_index
