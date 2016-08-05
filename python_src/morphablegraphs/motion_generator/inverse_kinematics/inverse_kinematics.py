@@ -505,6 +505,7 @@ class InverseKinematics(object):
         # joint_parameter_indices = list(range(*self.pose.extract_parameters_indices("RightHand")))
         # before = motion_vector.frames[:,joint_parameter_indices]
         self._create_transition_for_frame_range(motion_vector.frames, frame_region[0] + 1, frame_region[1] - 1, ["RightHand", "LeftHand"])
+
     def fill_rotate_events(self, motion_vector):
         for keyframe in motion_vector.keyframe_event_list.keyframe_events_dict["events"].keys():
             keyframe = int(keyframe)
