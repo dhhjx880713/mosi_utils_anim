@@ -13,7 +13,7 @@ class OptimizerBase(object):
     """
     def __init__(self, optimization_settings):
         self.optimization_settings = optimization_settings
-        self.verbose = True#algorithm_config["verbose"]
+        self.verbose = optimization_settings["verbose"]
         self._objective_function = None
         self._error_func_params = None
 
