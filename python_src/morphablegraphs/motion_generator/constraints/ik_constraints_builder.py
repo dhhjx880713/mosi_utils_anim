@@ -32,14 +32,14 @@ class IKConstraintsBuilder(object):
         if constraint.constraint_type in SUPPORTED_CONSTRAINT_TYPES and \
             "generated" not in constraint.semantic_annotation.keys():
             if time_function is not None:
-                keyframe = frame_offset + int(time_function[
-                                                  constraint.canonical_keyframe]) + 1  # add +1 to map the frame correctly TODO: test and verify for all cases
+                # add +1 to map the frame correctly TODO: test and verify for all cases
+                keyframe = frame_offset + int(time_function[constraint.canonical_keyframe]) + 1
             else:
                 keyframe = frame_offset + constraint.canonical_keyframe
 
             if constraint.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION and constraint.joint_name in self.skeleton.free_joints_map.keys():
                 ik_constraint = self._create_keyframe_ik_constraint(constraint, keyframe, frame_offset,
-                                                                    time_function, constrain_orientation)
+                                                                    time_function, constrain_orientation, look_at=True)
                 ik_constraints.append(ik_constraint)
                 ik_constraint_types.append("single")
 
@@ -47,16 +47,16 @@ class IKConstraintsBuilder(object):
                             constraint.joint_names[0] in self.skeleton.free_joints_map.keys() and \
                             constraint.joint_names[1] in self.skeleton.free_joints_map.keys():
                 free_joints = self.skeleton.reduced_free_joints_map[constraint.joint_names[0]]
-                ik_constraint = JointIKConstraint(constraint.joint_names[0], constraint.positions[0], None, keyframe, free_joints)
+                ik_constraint = JointIKConstraint(constraint.joint_names[0], constraint.positions[0], None, keyframe, free_joints, look_at=False)
                 ik_constraints.append(ik_constraint)
                 ik_constraint_types.append("single")
 
                 free_joints = self.skeleton.reduced_free_joints_map[constraint.joint_names[1]]
-                ik_constraint = JointIKConstraint(constraint.joint_names[1], constraint.positions[1], None, keyframe, free_joints)
+                ik_constraint = JointIKConstraint(constraint.joint_names[1], constraint.positions[1], None, keyframe, free_joints, look_at=False)
                 ik_constraints.append(ik_constraint)
                 ik_constraint_types.append("single")
-                ik_constraints.append(None)# TODO replace with TwoJointIKConstraint
-                ik_constraints.append("multiple")
+                #ik_constraints.append(None)# TODO replace with TwoJointIKConstraint
+                #ik_constraints.append("multiple")
                 # free_joints = set()
                 # for joint_name in self.joint_names:
                 #    if joint_name in free_joints_map.keys():
@@ -66,7 +66,7 @@ class IKConstraintsBuilder(object):
                 # ik_constraints[keyframe]["multiple"].append(ik_constraint)
         return ik_constraints, ik_constraint_types
 
-    def _create_keyframe_ik_constraint(self, c, keyframe, frame_offset, time_function, constrain_orientation):
+    def _create_keyframe_ik_constraint(self, c, keyframe, frame_offset, time_function, constrain_orientation, look_at=True):
         free_joints = self.skeleton.free_joints_map[c.joint_name]
         frame_range = self._detect_frame_range(c, frame_offset, time_function)
         if frame_range is None:
@@ -75,7 +75,7 @@ class IKConstraintsBuilder(object):
             orientation = c.orientation
         else:
             orientation = None
-        return JointIKConstraint(c.joint_name, c.position, orientation, keyframe, free_joints, frame_range=frame_range)
+        return JointIKConstraint(c.joint_name, c.position, orientation, keyframe, free_joints, frame_range=frame_range, look_at=look_at)
 
     def _detect_frame_range(self, c, frame_offset, time_function):
         frame_range = None
