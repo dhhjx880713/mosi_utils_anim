@@ -52,13 +52,12 @@ def obj_spatial_error_sum_and_naturalness(s, data):
     """
 
     spatial_error = obj_spatial_error_sum(s, data[:-2])# ignore the kinematic factor and quality factor
-    #print "s-vector",optimize_theta
     error_scale_factor = data[-2]
     quality_scale_factor = data[-1]
-    n_log_likelihood = -data[0].get_gaussian_mixture_model().score(s)[0]
-    print "naturalness is: " + str(n_log_likelihood)
+    n_log_likelihood = -data[0].get_gaussian_mixture_model().score(s.reshape((1, len(s))))[0]
+    #print "naturalness is: " + str(n_log_likelihood)
     error = error_scale_factor * spatial_error + n_log_likelihood * quality_scale_factor
-    print "error", error
+    #print "error", error
     return error
 
 
