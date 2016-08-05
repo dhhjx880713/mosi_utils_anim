@@ -219,9 +219,8 @@ class SkeletonPoseModel(object):
         #print target_dir, cross_dir
         self.point_in_direction(joint_name, target_dir[:3], cross_dir[:3])
 
-
     def set_hand_orientation(self, joint_name, orientation):
-        print "set hand orientation"
+        #print "set hand orientation"
         m = quaternion_matrix(orientation)
         parent_joint_name = self.get_parent_joint(joint_name)
         parent_m = self.skeleton.nodes[parent_joint_name].get_global_matrix(self.pose_parameters, use_cache=False)
