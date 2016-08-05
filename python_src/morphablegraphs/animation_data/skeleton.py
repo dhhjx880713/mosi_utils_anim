@@ -50,8 +50,8 @@ DEFAULT_FREE_JOINTS_MAP = {"LeftHand":["Spine","LeftArm", "LeftForeArm"],
                            "RightScrewDriverEndSite":["Spine","RightArm","RightForeArm"],
                            "LeftScrewDriverEndSite": ["Spine","LeftArm", "LeftForeArm"]
                            }
-DEFAULT_REDUCED_FREE_JOINTS_MAP = {"LeftHand":["Spine","LeftArm", "LeftForeArm"],
-                                       "RightHand":["Spine","RightArm","RightForeArm"],
+DEFAULT_REDUCED_FREE_JOINTS_MAP = {"LeftHand":["LeftArm", "LeftForeArm"],
+                                       "RightHand":["RightArm","RightForeArm"],
                                        "LeftToolEndSite":["LeftArm","LeftForeArm"],
                                        "RightToolEndSite":["RightArm", "RightForeArm"],
                                         "Head":[],
