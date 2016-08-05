@@ -446,10 +446,9 @@ class InverseKinematics(object):
         end = min(motion_vector.frames.shape[0], end)
         self._create_transition_for_frame_range(motion_vector.frames, start, end-1, [parent_joint_name])
 
-
     def adapt_hands_during_carry(self, motion_vector):
         carrying = False
-        transitions = []
+        frame_ranges = []
         last_frame = motion_vector.n_frames-1
         for frame_idx in xrange(motion_vector.n_frames):
             if frame_idx in motion_vector.keyframe_event_list.keyframe_events_dict["events"].keys():
@@ -458,28 +457,54 @@ class InverseKinematics(object):
                                                             or event_desc["parameters"]["joint"] == ["RightToolEndSite",
                                                                                                      "LeftToolEndSite"]):
                         if carrying:
-                            transitions[-1][1] = min(frame_idx + 1, last_frame)
+                            frame_ranges[-1][1] = min(frame_idx + 1, last_frame)
                         carrying = True
                         start = max(frame_idx-1, 0)
-                        transitions.append([start, None])
+                        frame_ranges.append([start, None])
                     elif carrying and event_desc["event"] == "detach" and (event_desc["parameters"]["joint"] == ["RightHand", "LeftHand"]
                                                               or event_desc["parameters"]["joint"] == ["RightToolEndSite",
                                                                                                        "LeftToolEndSite"]):
-                        transitions[-1][1] = min(frame_idx+1,last_frame)
+                        frame_ranges[-1][1] = min(frame_idx+1,last_frame)
                         carrying = False
 
-        for t in transitions:
-            if t[1] is not None:
-                for frame in xrange(t[0], t[1]):
-                    self.pose.set_pose_parameters(motion_vector.frames[frame])
-                    self.pose.orient_hands_to_each_other()
-                    motion_vector.frames[frame] = self.pose.get_vector()
-                print "create transition for frames", t[0], t[1]
-                #joint_parameter_indices = list(range(*self.pose.extract_parameters_indices("RightHand")))
-                #before = motion_vector.frames[:,joint_parameter_indices]
-                self._create_transition_for_frame_range(motion_vector.frames, t[0]+1, t[1] - 1, ["RightHand", "LeftHand"])
+        for frame_range in frame_ranges:
+            if frame_range[1] is not None:
+                right_free_joints = self.pose.reduced_free_joints_map["RightHand"]
+                left_free_joints = self.pose.reduced_free_joints_map["LeftHand"]
+                self._adapt_hand_positions_during_carry(motion_vector, frame_range, left_free_joints, right_free_joints)
+                self._adapt_hand_orientations_during_carry(motion_vector, frame_range)
+                joint_names = list(set(["RightHand", "LeftHand"] + right_free_joints + left_free_joints))
+                self._create_transition_for_frame_range(motion_vector.frames, frame_range[0]+1, frame_range[1] - 1, joint_names)
             #print np.all(before == motion_vector.frames[:,joint_parameter_indices])
 
+    def _adapt_hand_positions_during_carry(self, motion_vector, frame_region, left_free_joints, right_free_joints):
+        action_index = motion_vector.graph_walk.get_action_from_keyframe(frame_region[0])
+        end_of_pick_frame = motion_vector.keyframe_event_list.frame_annotation['elementaryActionSequence'][action_index]["endFrame"]
+        if action_index + 1 >= len(motion_vector.keyframe_event_list.frame_annotation['elementaryActionSequence']):
+            write_log("Warning: Could not adapt hand positions because there is no carry after pick.")
+            return
+        end_of_carry_frame = motion_vector.keyframe_event_list.frame_annotation['elementaryActionSequence'][action_index + 1]["endFrame"]
+        self.pose.set_pose_parameters(motion_vector.frames[end_of_pick_frame])
+
+        left_parameters = self._extract_free_parameters(left_free_joints)
+        right_parameters = self._extract_free_parameters(right_free_joints)
+        for idx in xrange(end_of_pick_frame + 1, end_of_carry_frame):
+            self.pose.set_pose_parameters(motion_vector.frames[idx])
+            self.pose.set_channel_values(left_parameters, left_free_joints)
+            self.pose.set_channel_values(right_parameters, right_free_joints)
+            motion_vector.frames[idx] = self.pose.get_vector()
+        joint_names = list(set(right_free_joints + left_free_joints))
+        self._create_transition_for_frame_range(motion_vector.frames, frame_region[0] + 1, frame_region[1] - 1,joint_names)
+
+    def _adapt_hand_orientations_during_carry(self, motion_vector, frame_region):
+        for frame in xrange(frame_region[0], frame_region[1]):
+            self.pose.set_pose_parameters(motion_vector.frames[frame])
+            self.pose.orient_hands_to_each_other()
+            motion_vector.frames[frame] = self.pose.get_vector()
+        print "create transition for frames", frame_region[0], frame_region[1]
+        # joint_parameter_indices = list(range(*self.pose.extract_parameters_indices("RightHand")))
+        # before = motion_vector.frames[:,joint_parameter_indices]
+        self._create_transition_for_frame_range(motion_vector.frames, frame_region[0] + 1, frame_region[1] - 1, ["RightHand", "LeftHand"])
     def fill_rotate_events(self, motion_vector):
         for keyframe in motion_vector.keyframe_event_list.keyframe_events_dict["events"].keys():
             keyframe = int(keyframe)
