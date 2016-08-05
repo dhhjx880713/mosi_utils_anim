@@ -3,7 +3,7 @@ import numpy as np
 
 class IKConstraint(object):
     @staticmethod
-    def evaluate(self, params, data):
+    def evaluate(params, data):
         pass
 
 
