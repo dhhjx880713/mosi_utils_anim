@@ -5,18 +5,14 @@ from copy import copy
 import random
 from ..utilities.exceptions import PathSearchError
 from ..motion_model import NODE_TYPE_END
-from ..animation_data.motion_editing import create_transformation_matrix
 from motion_primitive_generator import MotionPrimitiveGenerator
 from constraints.motion_primitive_constraints_builder import MotionPrimitiveConstraintsBuilder
 from graph_walk import GraphWalkEntry
-from constraints.motion_primitive_constraints import MotionPrimitiveConstraints
-from constraints.spatial_constraints.keyframe_constraints.global_transform_constraint import GlobalTransformConstraint
-from constraints.spatial_constraints.keyframe_constraints.direction_2d_constraint import Direction2DConstraint
 from constraints import CA_CONSTRAINTS_MODE_DIRECT_CONNECTION
 from ..utilities import write_log
 from ca_interface import CAInterface
 from ea_state import ElementaryActionGeneratorState
-
+from trajectory_following_planner import TrajectoryFollowingPlanner
 
 class ElementaryActionGenerator(object):
     def __init__(self, motion_primitive_graph, algorithm_config, service_config):
@@ -31,6 +27,7 @@ class ElementaryActionGenerator(object):
         self.end_step_length_factor = algorithm_config["trajectory_following_settings"]["end_step_length_factor"]
         self.max_distance_to_path = algorithm_config["trajectory_following_settings"]["max_distance_to_path"]
         self.activate_direction_ca_connection = algorithm_config["collision_avoidance_constraints_mode"] == CA_CONSTRAINTS_MODE_DIRECT_CONNECTION
+        self.path_planner = TrajectoryFollowingPlanner(self.motion_state_graph, algorithm_config)
 
         if service_config["collision_avoidance_service_url"] is not None:
             print "created ca interface", service_config["collision_avoidance_service_url"]
@@ -60,63 +57,14 @@ class ElementaryActionGenerator(object):
         else:
             self.arc_length_of_end = 0.0
 
-    def generate_node_evaluation_constraints(self, graph_walk, add_orientation=False):
-        goal_arc_length = self.action_state.travelled_arc_length + self.step_look_ahead_distance
-        mp_constraints = MotionPrimitiveConstraints()
-        mp_constraints.skeleton = self.action_constraints.get_skeleton()
-        mp_constraints.aligning_transform = create_transformation_matrix(graph_walk.motion_vector.start_pose["position"],
-                                                                         graph_walk.motion_vector.start_pose["orientation"])
-        mp_constraints.start_pose = graph_walk.motion_vector.start_pose
-        constraint_desc = {"joint": "Hips", "canonical_keyframe": -1,  "n_canonical_frames": 0,
-                               "semanticAnnotation":  {"keyframeLabel": "end", "generated": True}}
-        if add_orientation:
-            goal_position, tangent_line = self.action_constraints.root_trajectory.get_tangent_at_arc_length(goal_arc_length)
-            constraint_desc["position"] = goal_position.tolist()
-            pos_constraint = GlobalTransformConstraint(self.motion_state_graph.skeleton, constraint_desc, 1.0, 1.0)
-            mp_constraints.constraints.append(pos_constraint)
-            dir_constraint_desc = {"joint": "Hips", "canonical_keyframe": -1, "dir_vector":tangent_line,
-                                   "semanticAnnotation":  {"keyframeLabel": "end", "generated": True}}
-            dir_constraint = Direction2DConstraint(self.motion_state_graph.skeleton, dir_constraint_desc, 1.0, 1.0)#TODO add weight to configuration
-            mp_constraints.constraints.append(dir_constraint)
-        else:
-            constraint_desc["position"] = self.action_constraints.root_trajectory.query_point_by_absolute_arc_length(goal_arc_length).tolist()
-
-            pos_constraint = GlobalTransformConstraint(self.motion_state_graph.skeleton, constraint_desc, 1.0, 1.0)
-            mp_constraints.constraints.append(pos_constraint)
-        return mp_constraints
-
-    def _evaluate_multiple_path_following_options(self, graph_walk, options, add_orientation=False):
-        mp_constraints = self.generate_node_evaluation_constraints(graph_walk, add_orientation)
-
-        prev_frames = None
-        if self.use_local_coordinates and False:
-            mp_constraints = mp_constraints.transform_constraints_to_local_cos()
-        elif graph_walk.get_num_of_frames() > 0:
-            prev_frames = graph_walk.get_quat_frames()
-
-        errors = np.empty(len(options))
-        index = 0
-        for node_name in options:
-            motion_primitive_node = self.motion_state_graph.nodes[node_name]
-            canonical_keyframe = motion_primitive_node.get_n_canonical_frames() - 1
-            for c in mp_constraints.constraints:
-                c.canonical_keyframe = canonical_keyframe
-            self.motion_primitive_generator._get_best_fit_sample_using_cluster_tree(motion_primitive_node,
-                                                                                    mp_constraints, prev_frames, 1)
-            write_log("Evaluated option", node_name, mp_constraints.min_error)
-            errors[index] = mp_constraints.min_error
-            index += 1
-        min_idx = np.argmin(errors)
-        next_node = options[min_idx]
-        write_log("Next node is", next_node, "with an error of", errors[min_idx])
-        return next_node
 
     def get_best_start_node(self, graph_walk, action_name):
         start_nodes = self.motion_state_graph.get_start_nodes(graph_walk, action_name)
         n_nodes = len(start_nodes)
         if n_nodes > 1:
             options = [(action_name, next_node) for next_node in start_nodes]
-            return self._evaluate_multiple_path_following_options(graph_walk, options, add_orientation=False)
+            self.path_planner.set_state(self.motion_primitive_generator, self.action_state, self.action_constraints, graph_walk)
+            return self.path_planner.select_next_step(options, add_orientation=False)
         else:
             return action_name, start_nodes[0]
 
@@ -134,7 +82,8 @@ class ElementaryActionGenerator(object):
             next_node = options[0]
         elif n_transitions > 1:
             if self.action_constraints.root_trajectory is not None:
-                next_node = self._evaluate_multiple_path_following_options(graph_walk, options, add_orientation=False)
+                self.path_planner.set_state(self.motion_primitive_generator, self.action_state, self.action_constraints, graph_walk)
+                next_node = self.path_planner.select_next_step(options, add_orientation=False)
             else:  # use random transition if there is no path to follow
                 random_index = random.randrange(0, n_transitions, 1)
                 next_node = options[random_index]
