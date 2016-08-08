@@ -488,7 +488,7 @@ class InverseKinematics(object):
             self.pose.set_channel_values(right_parameters, right_free_joints)
             motion_vector.frames[idx] = self.pose.get_vector()
         joint_names = list(set(right_free_joints + left_free_joints))
-        self._create_transition_for_frame_range(motion_vector.frames, frame_region[0] + 1, frame_region[1] - 1,joint_names)
+        self._create_transition_for_frame_range(motion_vector.frames, frame_region[0], frame_region[1], joint_names)
 
     def _adapt_hand_orientations_during_carry(self, motion_vector, frame_region):
         for frame in xrange(frame_region[0], frame_region[1]):
