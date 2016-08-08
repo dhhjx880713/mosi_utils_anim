@@ -440,27 +440,32 @@ class InverseKinematics(object):
         end = min(motion_vector.frames.shape[0], end)
         self._create_transition_for_frame_range(motion_vector.frames, start, end-1, [parent_joint_name])
 
-    def adapt_hands_during_carry(self, motion_vector):
+    def _find_carry_frame_ranges(self, motion_vector):
         carrying = False
         frame_ranges = []
-        last_frame = motion_vector.n_frames-1
+        last_frame = motion_vector.n_frames - 1
         for frame_idx in xrange(motion_vector.n_frames):
             if frame_idx in motion_vector.keyframe_event_list.keyframe_events_dict["events"].keys():
                 for event_desc in motion_vector.keyframe_event_list.keyframe_events_dict["events"][frame_idx]:
-                    if event_desc["event"] == "attach" and (event_desc["parameters"]["joint"] == ["RightHand", "LeftHand"]
-                                                            or event_desc["parameters"]["joint"] == ["RightToolEndSite",
-                                                                                                     "LeftToolEndSite"]):
+                    if event_desc["event"] == "attach" and (
+                            event_desc["parameters"]["joint"] == ["RightHand", "LeftHand"]
+                    or event_desc["parameters"]["joint"] == ["RightToolEndSite",
+                                                             "LeftToolEndSite"]):
                         if carrying:
                             frame_ranges[-1][1] = min(frame_idx + 1, last_frame)
                         carrying = True
-                        start = max(frame_idx-1, 0)
+                        start = max(frame_idx - 1, 0)
                         frame_ranges.append([start, None])
-                    elif carrying and event_desc["event"] == "detach" and (event_desc["parameters"]["joint"] == ["RightHand", "LeftHand"]
-                                                              or event_desc["parameters"]["joint"] == ["RightToolEndSite",
-                                                                                                       "LeftToolEndSite"]):
-                        frame_ranges[-1][1] = min(frame_idx+1,last_frame)
+                    elif carrying and event_desc["event"] == "detach" and (
+                            event_desc["parameters"]["joint"] == ["RightHand", "LeftHand"]
+                    or event_desc["parameters"]["joint"] == ["RightToolEndSite",
+                                                             "LeftToolEndSite"]):
+                        frame_ranges[-1][1] = min(frame_idx + 1, last_frame)
                         carrying = False
+        return frame_ranges
 
+    def adapt_hands_during_carry(self, motion_vector):
+        frame_ranges = self._find_carry_frame_ranges(motion_vector)
         for frame_range in frame_ranges:
             if frame_range[1] is not None:
                 right_free_joints = self.pose.reduced_free_joints_map["RightHand"]
