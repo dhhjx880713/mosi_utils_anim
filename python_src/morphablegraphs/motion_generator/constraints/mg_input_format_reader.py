@@ -186,11 +186,11 @@ class MGInputFormatReader(object):
         else:
             distance = np.linalg.norm(point-previous_point)
             #add the point if there is no distance threshold, it is the first point, it is the last point or larger than or equal to the distance threshold
-            # 'TODO' add toggle of filter to config
-            if (distance_threshold <= 0.0 or np.linalg.norm(point-previous_point) >= distance_threshold) and (last_distance is None or distance >= last_distance/10.0):
-                return point, distance
-            else:
+            if distance_threshold > 0.0 and distance < distance_threshold:
                 return None
+            if last_distance is not None and distance < last_distance/10.0:# TODO add toggle of filter to config
+                return None
+            return point, distance
 
     def extract_trajectory_desc(self, action_index, joint_name, distance_threshold=-1):
         """ Extract the trajectory information from the constraint list
