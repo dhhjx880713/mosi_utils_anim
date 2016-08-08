@@ -138,8 +138,8 @@ def obj_spatial_error_residual_vector_and_naturalness(s, data):
     * residual_vector: list
     """
     #s = np.asarray(s)
-    motion_primitive, motion_primitive_constraints, prev_frames, error_scale_factor, quality_scale_factor = data
-    negative_log_likelihood = -data[0].get_gaussian_mixture_model().score(s.reshape((1, len(s))))[0] * quality_scale_factor
+    motion_primitive, motion_primitive_constraints, prev_frames, error_scale_factor, quality_scale_factor, init_error_sum = data
+    negative_log_likelihood = -data[0].get_gaussian_mixture_model().score(s.reshape((1, len(s))))[0] * quality_scale_factor#
     residual_vector = motion_primitive_constraints.get_residual_vector(motion_primitive, s, prev_frames, use_time_parameters=False)
     motion_primitive_constraints.min_error = np.sum(residual_vector)
     n_error_values = len(residual_vector)
@@ -152,7 +152,7 @@ def obj_spatial_error_residual_vector_and_naturalness(s, data):
     while n_error_values < n_variables:
         residual_vector.append(0)
         n_error_values += 1
-    return residual_vector
+    return np.array(residual_vector) / init_error_sum
 
 
 def obj_time_error_sum(s, data):
@@ -294,17 +294,17 @@ def obj_global_residual_vector_and_naturalness(s, data):
     """
     #s = np.asarray(s)
     offset = 0
-    residual_vector = list()
-    motion_primitive_graph, graph_walk_steps, error_scale_factor, quality_scale_factor, prev_frames, error_sum = data
+    residual_vector = np.array([])
+    motion_primitive_graph, graph_walk_steps, error_scale_factor, quality_scale_factor, prev_frames, init_error_sum = data
     for step in graph_walk_steps:
         alpha = s[offset:offset+step.n_spatial_components]
         sample_frames = motion_primitive_graph.nodes[step.node_key].back_project(alpha, use_time_parameters=False).coeffs
         step_data = motion_primitive_graph.nodes[step.node_key], step.motion_primitive_constraints,\
-                       prev_frames, error_scale_factor, quality_scale_factor
+                       prev_frames, error_scale_factor, quality_scale_factor, 1.0
         concat_alpha = np.hstack((alpha, step.parameters[step.n_spatial_components:]))
-        residual_vector += obj_spatial_error_residual_vector_and_naturalness(concat_alpha, step_data)
+        residual_vector = np.hstack( (residual_vector,obj_spatial_error_residual_vector_and_naturalness(concat_alpha, step_data)))
         prev_frames = align_quaternion_frames(sample_frames, prev_frames, step.motion_primitive_constraints.start_pose)
         offset += step.n_spatial_components
-    #print "global error", sum(residual_vector), residual_vector
-    return np.array(residual_vector)/error_sum#10000.0
+    #print "global error", sum(residual_vector)
+    return residual_vector/init_error_sum#10000.0
 

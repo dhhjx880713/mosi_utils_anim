@@ -1,6 +1,7 @@
 __author__ = 'erhe01'
 
 from copy import deepcopy
+import numpy as np
 from optimization.optimizer_builder import OptimizerBuilder
 from constraints.time_constraints_builder import TimeConstraintsBuilder
 from constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE, SPATIAL_CONSTRAINT_TYPE_TRAJECTORY, SPATIAL_CONSTRAINT_TYPE_TRAJECTORY_SET, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_DIR_2D, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPATIAL_CONSTRAINT_TYPE_CA_CONSTRAINT
@@ -72,7 +73,7 @@ class GraphWalkOptimizer(object):
                     self._algorithm_config["global_spatial_optimization_settings"]["quality_scale_factor"],
                     prev_frames, 1.0)
             #error_sum = 10000
-            error_sum = sum(self.global_error_minimizer._objective_function(initial_guess, data))
+            error_sum = max(abs(np.sum(self.global_error_minimizer._objective_function(initial_guess, data))), 1.0)
             print "sum of errors",error_sum
             data = (self.motion_primitive_graph, graph_walk.steps[start_step:],
                     self._algorithm_config["global_spatial_optimization_settings"]["error_scale_factor"],
