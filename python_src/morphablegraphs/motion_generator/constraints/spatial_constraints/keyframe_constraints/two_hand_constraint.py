@@ -52,18 +52,21 @@ class TwoHandConstraintSet(KeyframeConstraintBase):
         residual_vector = [0.0, 0.0, 0.0]
         #get distance to center
         residual_vector[0] = np.linalg.norm(self.target_center - (left_hand_position + 0.5 * delta_vector)) #*100.0
+        residual_vector[1] = np.linalg.norm(self.positions[0] - left_hand_position)
+        residual_vector[2] = np.linalg.norm(self.positions[1] - right_hand_position)
+
         #print "position", residual_vector[0]
         #get difference to distance between hands
         delta = np.linalg.norm(delta_vector)
-        residual_vector[1] = abs(self.target_delta - delta)
+        #residual_vector[1] = abs(self.target_delta - delta)
         #print "difference", residual_vector[1]
         #get difference of global orientation
         direction = delta_vector/delta
 
-        residual_vector[2] = abs(self.target_direction[0] - direction[0]) + \
-                             abs(self.target_direction[1] - direction[1]) + \
-                             abs(self.target_direction[2] - direction[2])
-        residual_vector[2] *= 10.0
+        #residual_vector[2] = abs(self.target_direction[0] - direction[0]) + \
+        #                     abs(self.target_direction[1] - direction[1]) + \
+        #                     abs(self.target_direction[2] - direction[2])
+        #residual_vector[2] *= 10.0
         #print "direction", residual_vector[2]
         #print self.target_direction, direction
         return residual_vector
