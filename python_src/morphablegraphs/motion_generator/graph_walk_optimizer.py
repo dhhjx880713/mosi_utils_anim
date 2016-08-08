@@ -67,10 +67,19 @@ class GraphWalkOptimizer(object):
                 prev_frames = None
             else:
                 prev_frames = graph_walk.get_quat_frames()[:graph_walk.steps[start_step].start_frame]
-            self.global_error_minimizer.set_objective_function_parameters((self.motion_primitive_graph, graph_walk.steps[start_step:],
-                                    self._algorithm_config["global_spatial_optimization_settings"]["error_scale_factor"],
-                                    self._algorithm_config["global_spatial_optimization_settings"]["quality_scale_factor"],
-                                    prev_frames))
+            data = (self.motion_primitive_graph, graph_walk.steps[start_step:],
+                    self._algorithm_config["global_spatial_optimization_settings"]["error_scale_factor"],
+                    self._algorithm_config["global_spatial_optimization_settings"]["quality_scale_factor"],
+                    prev_frames, 1.0)
+            #error_sum = 10000
+            error_sum = sum(self.global_error_minimizer._objective_function(initial_guess, data))
+            print "sum of errors",error_sum
+            data = (self.motion_primitive_graph, graph_walk.steps[start_step:],
+                    self._algorithm_config["global_spatial_optimization_settings"]["error_scale_factor"],
+                    self._algorithm_config["global_spatial_optimization_settings"]["quality_scale_factor"],
+                    prev_frames, error_sum)
+
+            self.global_error_minimizer.set_objective_function_parameters(data)
             optimal_parameters = self.global_error_minimizer.run(initial_guess)
             graph_walk.update_spatial_parameters(optimal_parameters, start_step)
             graph_walk.update_temp_motion_vector(start_step, use_time_parameters=False)

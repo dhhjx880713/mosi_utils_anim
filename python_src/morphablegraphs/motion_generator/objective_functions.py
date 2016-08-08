@@ -295,7 +295,7 @@ def obj_global_residual_vector_and_naturalness(s, data):
     #s = np.asarray(s)
     offset = 0
     residual_vector = list()
-    motion_primitive_graph, graph_walk_steps, error_scale_factor, quality_scale_factor, prev_frames = data
+    motion_primitive_graph, graph_walk_steps, error_scale_factor, quality_scale_factor, prev_frames, error_sum = data
     for step in graph_walk_steps:
         alpha = s[offset:offset+step.n_spatial_components]
         sample_frames = motion_primitive_graph.nodes[step.node_key].back_project(alpha, use_time_parameters=False).coeffs
@@ -306,5 +306,5 @@ def obj_global_residual_vector_and_naturalness(s, data):
         prev_frames = align_quaternion_frames(sample_frames, prev_frames, step.motion_primitive_constraints.start_pose)
         offset += step.n_spatial_components
     #print "global error", sum(residual_vector), residual_vector
-    return residual_vector
+    return np.array(residual_vector)/error_sum#10000.0
 
