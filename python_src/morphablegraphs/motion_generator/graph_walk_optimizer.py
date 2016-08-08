@@ -72,13 +72,13 @@ class GraphWalkOptimizer(object):
                     self._algorithm_config["global_spatial_optimization_settings"]["error_scale_factor"],
                     self._algorithm_config["global_spatial_optimization_settings"]["quality_scale_factor"],
                     prev_frames, 1.0)
-            #error_sum = 10000
-            error_sum = max(abs(np.sum(self.global_error_minimizer._objective_function(initial_guess, data))), 1.0)
-            print "sum of errors",error_sum
+            # init_error_sum = 10000
+            init_error_sum = max(abs(np.sum(self.global_error_minimizer._objective_function(initial_guess, data))), 1.0)
+            print "sum of errors", init_error_sum
             data = (self.motion_primitive_graph, graph_walk.steps[start_step:],
                     self._algorithm_config["global_spatial_optimization_settings"]["error_scale_factor"],
                     self._algorithm_config["global_spatial_optimization_settings"]["quality_scale_factor"],
-                    prev_frames, error_sum)
+                    prev_frames, init_error_sum)
 
             self.global_error_minimizer.set_objective_function_parameters(data)
             optimal_parameters = self.global_error_minimizer.run(initial_guess)
