@@ -122,7 +122,7 @@ class GraphWalkOptimizer(object):
                     self._algorithm_config["global_time_optimization_settings"]["quality_scale_factor"])
             self.time_error_minimizer.set_objective_function_parameters(data)
             initial_guess = graph_walk.get_global_time_parameter_vector(start_step)
-            print "initial_guess", initial_guess, time_constraints.constraint_list
+            #print "initial_guess", initial_guess, time_constraints.constraint_list
             optimal_parameters = self.time_error_minimizer.run(initial_guess)
             graph_walk.update_time_parameters(optimal_parameters, start_step)
             graph_walk.update_temp_motion_vector(start_step, 0)
