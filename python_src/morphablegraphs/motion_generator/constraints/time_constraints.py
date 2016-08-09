@@ -29,7 +29,9 @@ class TimeConstraints(object):
         offset = 0
         for step in graph_walk.steps[self.start_step:]:
             gamma = s[offset:offset+step.n_time_components]
-            time_function = motion_primitive_graph.nodes[step.node_key]._inverse_temporal_pca(gamma)
+            s_vector = np.array(step.parameters)
+            s_vector[step.n_spatial_components:] = gamma
+            time_function = motion_primitive_graph.nodes[step.node_key].back_project_time_function(gamma)
             time_functions.append(time_function)
             offset += step.n_time_components
         return time_functions
@@ -61,7 +63,7 @@ class TimeConstraints(object):
         offset = 0
         for step in graph_walk.steps[self.start_step:]:
             parameters = step.parameters[:step.n_spatial_components].tolist() + s[offset:offset+step.n_time_components].tolist()
-            likelihood += motion_primitive_graph.nodes[step.node_key].gaussian_mixture_model.score([parameters, ])[0]
+            likelihood += motion_primitive_graph.nodes[step.node_key].get_gaussian_mixture_model().score([parameters, ])[0]
             step_count += 1
             offset += step.n_time_components
         return likelihood/step_count
