@@ -31,7 +31,7 @@ class TimeConstraints(object):
             gamma = s[offset:offset+step.n_time_components]
             s_vector = np.array(step.parameters)
             s_vector[step.n_spatial_components:] = gamma
-            time_function = motion_primitive_graph.nodes[step.node_key].back_project_time_function(gamma)
+            time_function = motion_primitive_graph.nodes[step.node_key].back_project_time_function(s_vector)
             time_functions.append(time_function)
             offset += step.n_time_components
         return time_functions
@@ -43,17 +43,17 @@ class TimeConstraints(object):
         for time_function in time_functions:  # look back n_steps
             if temp_step_index < constrained_step_index:# go to the graph walk entry we want to constrain
                 #simply add the number of frames
-                n_frames += len(time_function)
+                n_frames += time_function[-1]
                 temp_step_index += 1
             else:
-                #inverse lookup the warped frame that maps to the labeled canonical keyframe with the time constraint
-                closest_keyframe = min(time_function, key=lambda x: abs(x-constrained_keyframe_index))
-                mapped_keyframe = np.where(time_function==closest_keyframe)[0][0]
-                n_frames += mapped_keyframe
+                if constrained_keyframe_index < len(time_function):
+                    return 0
+                warped_keyframe = time_function[constrained_keyframe_index] + 1
+                n_frames += warped_keyframe
                 total_seconds = n_frames * frame_time
                 error = abs(desired_time-total_seconds)
                 #print time_function
-                print "time error", error, total_seconds, desired_time, mapped_keyframe, constrained_keyframe_index, n_frames
+                #print "time error", error, total_seconds, desired_time, mapped_keyframe, constrained_keyframe_index, n_frames
                 return error
         return 10000
 
