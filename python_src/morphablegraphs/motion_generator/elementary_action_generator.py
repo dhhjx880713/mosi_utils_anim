@@ -2,7 +2,6 @@ __author__ = 'erhe01'
 
 import numpy as np
 from copy import copy
-import random
 from ..utilities.exceptions import PathSearchError
 from ..motion_model import NODE_TYPE_END
 from motion_primitive_generator import MotionPrimitiveGenerator
@@ -12,7 +11,8 @@ from constraints import CA_CONSTRAINTS_MODE_DIRECT_CONNECTION
 from ..utilities import write_log
 from ca_interface import CAInterface
 from ea_state import ElementaryActionGeneratorState
-from trajectory_following_planner import TrajectoryFollowingPlanner
+from graph_walk_planner import GraphWalkPlanner
+
 
 class ElementaryActionGenerator(object):
     def __init__(self, motion_primitive_graph, algorithm_config, service_config):
@@ -27,7 +27,7 @@ class ElementaryActionGenerator(object):
         self.end_step_length_factor = algorithm_config["trajectory_following_settings"]["end_step_length_factor"]
         self.max_distance_to_path = algorithm_config["trajectory_following_settings"]["max_distance_to_path"]
         self.activate_direction_ca_connection = algorithm_config["collision_avoidance_constraints_mode"] == CA_CONSTRAINTS_MODE_DIRECT_CONNECTION
-        self.path_planner = TrajectoryFollowingPlanner(self.motion_state_graph, algorithm_config)
+        self.path_planner = GraphWalkPlanner(self.motion_state_graph, algorithm_config)
 
         if service_config["collision_avoidance_service_url"] is not None:
             print "created ca interface", service_config["collision_avoidance_service_url"]
@@ -57,49 +57,13 @@ class ElementaryActionGenerator(object):
         else:
             self.arc_length_of_end = 0.0
 
-
-    def get_best_start_node(self, graph_walk, action_name):
-        start_nodes = self.motion_state_graph.get_start_nodes(graph_walk, action_name)
-        n_nodes = len(start_nodes)
-        if n_nodes > 1:
-            options = [(action_name, next_node) for next_node in start_nodes]
-            self.path_planner.set_state(self.motion_primitive_generator, self.action_state, self.action_constraints, graph_walk)
-            return self.path_planner.select_next_step(options, add_orientation=False)
-        else:
-            return action_name, start_nodes[0]
-
-    def _get_best_transition_node(self, graph_walk):
-        if self.action_constraints.root_trajectory is not None:
-            next_node_type = self.node_group.get_transition_type_for_action_from_trajectory(graph_walk, self.action_constraints,
-                                                             self.action_state.travelled_arc_length,
-                                                             self.arc_length_of_end)
-        else:
-            next_node_type = self.node_group.get_transition_type_for_action(graph_walk, self.action_constraints)
-        edges = self.motion_state_graph.nodes[self.action_state.current_node].outgoing_edges
-        options = [edge_key for edge_key in edges.keys() if edges[edge_key].transition_type == next_node_type]
-        n_transitions = len(options)
-        if n_transitions == 1:
-            next_node = options[0]
-        elif n_transitions > 1:
-            if self.action_constraints.root_trajectory is not None:
-                self.path_planner.set_state(self.motion_primitive_generator, self.action_state, self.action_constraints, graph_walk)
-                next_node = self.path_planner.select_next_step(options, add_orientation=False)
-            else:  # use random transition if there is no path to follow
-                random_index = random.randrange(0, n_transitions, 1)
-                next_node = options[random_index]
-        else:
-            write_log("Error: Could not find a transition from state", self.action_state.current_node, len(self.motion_state_graph.nodes[self.action_state.current_node].outgoing_edges))
-            next_node = self.motion_state_graph.node_groups[self.action_constraints.action_name].get_random_start_state()
-            next_node_type = self.motion_state_graph.nodes[next_node].node_type
-        if next_node is None:
-           write_log("Error: Could not find a transition of type", next_node_type, "from state", self.action_state.current_node)
-        return next_node, next_node_type
-
     def _select_next_motion_primitive_node(self, graph_walk):
         """extract from graph based on previous step and heuristic """
+        self.path_planner.set_state(graph_walk, self.motion_primitive_generator, self.action_state, self.action_constraints, self.arc_length_of_end)
+
         if self.action_state.current_node is None:  # is start state
             if self.action_constraints.root_trajectory is not None: # use trajectory to determine best start
-                next_node = self.get_best_start_node(graph_walk, self.action_constraints.action_name)
+                next_node = self.path_planner.get_best_start_node()
             else:
                 next_node = self.motion_state_graph.get_random_action_transition(graph_walk, self.action_constraints.action_name, self.action_constraints.cycled_previous)
 
@@ -108,7 +72,7 @@ class ElementaryActionGenerator(object):
                 write_log("Error: Could not find a transition of type action_transition from ", self.action_state.prev_action_name, self.action_state.prev_mp_name, " to state", self.action_state.current_node)
 
         else:  # is intermediate start state
-            next_node, next_node_type = self._get_best_transition_node(graph_walk)
+            next_node, next_node_type = self.path_planner.get_best_transition_node()
         return next_node, next_node_type
 
     def _update_travelled_arc_length(self, new_quat_frames, prev_graph_walk, prev_travelled_arc_length):
