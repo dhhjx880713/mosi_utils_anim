@@ -46,7 +46,7 @@ class TimeConstraints(object):
                 n_frames += time_function[-1]
                 temp_step_index += 1
             else:
-                if constrained_keyframe_index < len(time_function):
+                if constrained_keyframe_index >= len(time_function):
                     return 0
                 warped_keyframe = time_function[constrained_keyframe_index] + 1
                 n_frames += warped_keyframe
@@ -63,7 +63,7 @@ class TimeConstraints(object):
         offset = 0
         for step in graph_walk.steps[self.start_step:]:
             parameters = step.parameters[:step.n_spatial_components].tolist() + s[offset:offset+step.n_time_components].tolist()
-            likelihood += motion_primitive_graph.nodes[step.node_key].get_gaussian_mixture_model().score([parameters, ])[0]
+            likelihood += motion_primitive_graph.nodes[step.node_key].get_gaussian_mixture_model().score(np.array(parameters).reshape(1,len(parameters)))[0]
             step_count += 1
             offset += step.n_time_components
         return likelihood/step_count
