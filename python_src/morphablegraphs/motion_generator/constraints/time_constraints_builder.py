@@ -5,13 +5,10 @@ from spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
 
 
 class TimeConstraintsBuilder(object):
-    def __init__(self, graph_walk, start_step):
+    def __init__(self, graph_walk, start_step, end_step):
         self.start_step = start_step
-        if start_step > 0:
-            self.start_keyframe = graph_walk.steps[start_step-1].end_frame
-        else:
-            self.start_keyframe = 0
-        index_range = range(self.start_step, len(graph_walk.steps))
+        self.end_step = min(end_step+1, len(graph_walk.steps))
+        index_range = range(self.start_step, self.end_step)
         self.time_constraint_list = []
         self.n_time_constraints = 0
         self._extract_time_constraints_from_graph_walk(graph_walk.steps, index_range)
@@ -37,10 +34,10 @@ class TimeConstraintsBuilder(object):
             self._extract_time_constraints_from_graph_walk_entry(constrained_step_count, graph_walk[step_index])
             constrained_step_count += 1
 
-    def build(self):
+    def build(self, motion_primitive_graph, graph_walk):
         if self.n_time_constraints > 0:
             print "Found", self.n_time_constraints, "time constraints"
-            return TimeConstraints(self.start_step, self.start_keyframe, self.time_constraint_list)
+            return TimeConstraints(motion_primitive_graph, graph_walk, self.start_step, self.end_step, self.time_constraint_list)
         else:
             print "Did not find time constraints"
             return None

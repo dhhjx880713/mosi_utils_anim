@@ -30,6 +30,7 @@ class GraphWalkOptimizer(object):
         self._global_spatial_optimization_steps = algorithm_config["global_spatial_optimization_settings"]["max_steps"]
         self._position_weight_factor = algorithm_config["global_spatial_optimization_settings"]["position_weight"]
         self._orientation_weight_factor = algorithm_config["global_spatial_optimization_settings"]["orientation_weight"]
+        self.optimized_actions_for_time_constraints = algorithm_config["global_time_optimization_settings"]["optimized_actions"]
 
     def _is_optimization_required(self, action_constraints):
         return self.spatial_mode == GRAPH_WALK_OPTIMIZATION_ALL and action_constraints.contains_user_constraints or \
@@ -113,19 +114,28 @@ class GraphWalkOptimizer(object):
                  elif constraint.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_DIR_2D:
                      constraint.weight_factor = self._orientation_weight_factor
 
-    def optimize_time_parameters_over_graph_walk(self, graph_walk, start_step=0):
-
-        time_constraints = TimeConstraintsBuilder(graph_walk, start_step).build()
-        if time_constraints is not None:
-            data = (self.motion_primitive_graph, graph_walk, time_constraints,
-                    self._algorithm_config["global_time_optimization_settings"]["error_scale_factor"],
-                    self._algorithm_config["global_time_optimization_settings"]["quality_scale_factor"])
-            self.time_error_minimizer.set_objective_function_parameters(data)
-            initial_guess = graph_walk.get_global_time_parameter_vector(start_step)
-            #print "initial_guess", initial_guess, time_constraints.constraint_list
-            optimal_parameters = self.time_error_minimizer.run(initial_guess)
-            graph_walk.update_time_parameters(optimal_parameters, start_step)
-            graph_walk.update_temp_motion_vector(start_step, 0)
+    def optimize_time_parameters_over_graph_walk(self, graph_walk):
+        for idx, ea in enumerate(graph_walk.elementary_action_list):
+            print "evaluate", ea.action_name,ea.start_step,ea.end_step
+            prev_action_idx = max(idx - (self.optimized_actions_for_time_constraints-1), 0)
+            start_step = graph_walk.elementary_action_list[prev_action_idx].start_step
+            end_step = ea.end_step
+            time_constraints = TimeConstraintsBuilder(graph_walk, start_step, end_step).build(self.motion_primitive_graph, graph_walk)
+            if time_constraints is not None:
+                data = (self.motion_primitive_graph, graph_walk, time_constraints,
+                        self._algorithm_config["global_time_optimization_settings"]["error_scale_factor"],
+                        self._algorithm_config["global_time_optimization_settings"]["quality_scale_factor"])
+                self.time_error_minimizer.set_objective_function_parameters(data)
+                #initial_guess = graph_walk.get_global_time_parameter_vector(start_step)
+                initial_guess = time_constraints.get_initial_guess(graph_walk)
+                print "initial_guess",prev_action_idx, time_constraints.start_step, end_step, initial_guess, time_constraints.constraint_list
+                optimal_parameters = self.time_error_minimizer.run(initial_guess)
+                print "result ",optimal_parameters
+                graph_walk.update_time_parameters(optimal_parameters, start_step, end_step)
+                #graph_walk.convert_graph_walk_to_quaternion_frames(start_step, use_time_parameters=True)
+                #print "updated"
+            else:
+                print "no time constraints for action",idx
 
         return graph_walk
 

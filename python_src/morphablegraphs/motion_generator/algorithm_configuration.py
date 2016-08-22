@@ -81,13 +81,12 @@ class AlgorithmConfigurationBuilder(object):
         self.global_spatial_optimization_settings["verbose"] = False
 
         self.global_time_optimization_settings = dict()
-        self.global_time_optimization_settings["max_steps"] = 20
         self.global_time_optimization_settings["method"] = "BFGS"
         self.global_time_optimization_settings["max_iterations"] = 150
         self.global_time_optimization_settings["quality_scale_factor"] = 0.001
         self.global_time_optimization_settings["error_scale_factor"] = 0.01
         self.global_time_optimization_settings["tolerance"] = 0.01
-        self.global_time_optimization_settings["spatial_epsilon"] = 0.0
+        self.global_time_optimization_settings["optimized_actions"] = 2.0
         self.global_time_optimization_settings["verbose"] = False
 
     def set_default_trajectory_following_settings(self):

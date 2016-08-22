@@ -3,11 +3,20 @@ import numpy as np
 
 
 class TimeConstraints(object):
-    def __init__(self, start_step, start_keyframe, constraint_list):
+    def __init__(self, motion_primitive_graph, graph_walk, start_step, end_step, constraint_list):
         self.start_step = start_step
-        self.start_keyframe = start_keyframe
+        self.end_step = end_step
+        self.start_keyframe = self._get_start_frame(motion_primitive_graph, graph_walk, start_step)
         self.constraint_list = constraint_list
 
+    def _get_start_frame(self, motion_primitive_graph, graph_walk, start_step):
+        if start_step <= 0:
+            return 0
+        start_keyframe = 0
+        for i in xrange(0, start_step):  # until start_step - 1
+            time_function = motion_primitive_graph.nodes[graph_walk.steps[i].node_key].back_project_time_function(graph_walk.steps[i].parameters)
+            start_keyframe += time_function[-1]
+        return start_keyframe
     def evaluate_graph_walk(self, s, motion_primitive_graph, graph_walk):
         #print "evaluate", s
         time_functions = self._get_time_functions_from_graph_walk(s, motion_primitive_graph, graph_walk)
@@ -19,15 +28,12 @@ class TimeConstraints(object):
         return error_sum
 
     def _get_time_functions_from_graph_walk(self, s, motion_primitive_graph, graph_walk):
-        """get time functions for all steps
-        :param s:
-        :param motion_primitive_graph:
-        :param motion:
-        :return:
+        """get time functions for all steps in the graph walk.
         """
         time_functions = []
         offset = 0
-        for step in graph_walk.steps[self.start_step:]:
+        for step in graph_walk.steps[self.start_step:self.end_step]:
+            #print step.node_key
             gamma = s[offset:offset+step.n_time_components]
             s_vector = np.array(step.parameters)
             s_vector[step.n_spatial_components:] = gamma
@@ -48,10 +54,10 @@ class TimeConstraints(object):
             else:
                 if constrained_keyframe_index >= len(time_function):
                     return 0
-                warped_keyframe = time_function[constrained_keyframe_index] + 1
+                warped_keyframe = int(time_function[constrained_keyframe_index]) + 1
                 n_frames += warped_keyframe
                 total_seconds = n_frames * frame_time
-                error = abs(desired_time-total_seconds)
+                error = (desired_time-total_seconds)**2
                 #print time_function
                 #print "time error", error, total_seconds, desired_time, mapped_keyframe, constrained_keyframe_index, n_frames
                 return error
@@ -61,7 +67,7 @@ class TimeConstraints(object):
         likelihood = 0
         step_count = 0
         offset = 0
-        for step in graph_walk.steps[self.start_step:]:
+        for step in graph_walk.steps[self.start_step:self.end_step]:
             parameters = step.parameters[:step.n_spatial_components].tolist() + s[offset:offset+step.n_time_components].tolist()
             likelihood += motion_primitive_graph.nodes[step.node_key].get_gaussian_mixture_model().score(np.array(parameters).reshape(1,len(parameters)))[0]
             step_count += 1
@@ -70,7 +76,8 @@ class TimeConstraints(object):
 
     def get_initial_guess(self, graph_walk):
         parameters = []
-        for step in graph_walk.steps[self.start_step:]:
+        for step in graph_walk.steps[self.start_step:self.end_step]:
+            #print step.node_key
             parameters += step.parameters[step.n_spatial_components:].tolist()
         return parameters
 
