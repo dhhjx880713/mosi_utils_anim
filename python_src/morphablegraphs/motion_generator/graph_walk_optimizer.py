@@ -83,7 +83,7 @@ class GraphWalkOptimizer(object):
             self.global_error_minimizer.set_objective_function_parameters(data)
             optimal_parameters = self.global_error_minimizer.run(initial_guess)
             graph_walk.update_spatial_parameters(optimal_parameters, start_step)
-            graph_walk.update_temp_motion_vector(start_step, use_time_parameters=False)
+            graph_walk.convert_graph_walk_to_quaternion_frames(start_step, use_time_parameters=False)
         else:
             print "no user defined constraints"
         return graph_walk

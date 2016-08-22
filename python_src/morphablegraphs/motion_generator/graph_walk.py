@@ -64,12 +64,9 @@ class GraphWalk(object):
     def add_entry_to_action_list(self, action_name, start_step, end_step, action_constraints):
         self.elementary_action_list.append(HighLevelGraphWalkEntry(action_name, start_step, end_step, action_constraints))
 
-    def update_temp_motion_vector(self, start_step=0, use_time_parameters=False):
-        self._convert_graph_walk_to_quaternion_frames(start_step, use_time_parameters=use_time_parameters)
-
     def convert_to_annotated_motion(self):
         self.motion_vector.apply_spatial_smoothing = self.apply_smoothing
-        self.update_temp_motion_vector(use_time_parameters=self.use_time_parameters)
+        self.convert_graph_walk_to_quaternion_frames(use_time_parameters=self.use_time_parameters)
         self.keyframe_event_list.update_events(self, 0)
         annotated_motion_vector = AnnotatedMotionVector()
         annotated_motion_vector.frames = self.motion_vector.frames
@@ -101,7 +98,7 @@ class GraphWalk(object):
                 found_step_index = step_index
         return found_step_index
 
-    def _convert_graph_walk_to_quaternion_frames(self, start_step=0, use_time_parameters=False):
+    def convert_graph_walk_to_quaternion_frames(self, start_step=0, use_time_parameters=False):
         """
         :param start_step:
         :return:
@@ -139,9 +136,9 @@ class GraphWalk(object):
             step.parameters[:step.n_spatial_components] = new_alpha
             offset += step.n_spatial_components
 
-    def update_time_parameters(self, parameter_vector, start_step=0):
+    def update_time_parameters(self, parameter_vector, start_step, end_step):
         offset = 0
-        for step in self.steps[start_step:]:
+        for step in self.steps[start_step:end_step]:
             new_gamma = parameter_vector[offset:offset+step.n_time_components]
             step.parameters[step.n_spatial_components:] = new_gamma
             offset += step.n_time_components
