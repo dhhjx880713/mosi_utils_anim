@@ -50,6 +50,7 @@ def run_pipeline(service_config):
     else:
         print "Did not find algorithm configuration file", algorithm_config_file
     algorithm_config = algorithm_config_builder.build()
+    service_config["collision_avoidance_service_url"] = None  # disable collision avoidance
 
     start = time.clock()
     motion_generator = MotionGenerator(service_config, algorithm_config)
