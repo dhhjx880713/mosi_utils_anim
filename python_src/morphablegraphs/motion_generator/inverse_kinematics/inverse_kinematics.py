@@ -240,7 +240,7 @@ class InverseKinematics(object):
                 for c in constraints["single"]:
                     #print "ik constraint",c.joint_name, c.position, c.orientation
                     if c.frame_range is not None:
-                        error += self._modify_frame_using_keyframe_constraint_range(motion_vector, c, c.frame_range)
+                        error += self._modify_motion_vector_using_keyframe_constraint_range(motion_vector, c, c.frame_range)
                     else:
                         error += self._modify_frame_using_keyframe_constraint(motion_vector, c, keyframe)
                     if self.activate_look_at and c.look_at:
@@ -259,7 +259,7 @@ class InverseKinematics(object):
             self.interpolate_around_keyframe(motion_vector.frames, constraint.get_joint_names(), keyframe, self.window)
         return error
 
-    def _modify_frame_using_keyframe_constraint_range(self, motion_vector, constraint, frame_range):
+    def _modify_motion_vector_using_keyframe_constraint_range(self, motion_vector, constraint, frame_range):
         error = 0.0
         #print "use constraint on frame range"
         for frame in range(frame_range[0],frame_range[1]+1):
