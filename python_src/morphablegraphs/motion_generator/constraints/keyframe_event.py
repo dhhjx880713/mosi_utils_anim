@@ -1,5 +1,6 @@
 from copy import copy
 
+
 class KeyframeEvent(object):
     def __init__(self, label, canonical_keyframe, event_list, constraint=None):
         self.label = label
