@@ -166,12 +166,9 @@ class MGInputFormatReader(object):
     def _update_active_region(self, active_region, point, new_active):
          #set active region if it is a collision avoidance trajectory
         if new_active and active_region["start_point"] is None:
-            #print "set start", point
             active_region["start_point"] = point
         elif not new_active and active_region["start_point"] is not None and active_region["end_point"] is None:
-            #print "set end", point
             active_region["end_point"] = point
-
 
     def _extract_control_point(self, traj_constraint, n_control_points, index, previous_point, last_distance, distance_threshold):
         if "position" not in traj_constraint[index].keys() or traj_constraint[index]["position"] == [None, None, None]:
