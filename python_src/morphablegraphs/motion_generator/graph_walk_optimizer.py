@@ -116,7 +116,7 @@ class GraphWalkOptimizer(object):
 
     def optimize_time_parameters_over_graph_walk(self, graph_walk):
         for idx, ea in enumerate(graph_walk.elementary_action_list):
-            print "evaluate", ea.action_name,ea.start_step,ea.end_step
+            #print "evaluate", ea.action_name,ea.start_step,ea.end_step
             prev_action_idx = max(idx - (self.optimized_actions_for_time_constraints-1), 0)
             start_step = graph_walk.elementary_action_list[prev_action_idx].start_step
             end_step = ea.end_step
@@ -128,9 +128,9 @@ class GraphWalkOptimizer(object):
                 self.time_error_minimizer.set_objective_function_parameters(data)
                 #initial_guess = graph_walk.get_global_time_parameter_vector(start_step)
                 initial_guess = time_constraints.get_initial_guess(graph_walk)
-                print "initial_guess",prev_action_idx, time_constraints.start_step, end_step, initial_guess, time_constraints.constraint_list
+                #print "initial_guess",prev_action_idx, time_constraints.start_step, end_step, initial_guess, time_constraints.constraint_list
                 optimal_parameters = self.time_error_minimizer.run(initial_guess)
-                print "result ",optimal_parameters
+                #print "result ",optimal_parameters
                 graph_walk.update_time_parameters(optimal_parameters, start_step, end_step)
                 #graph_walk.convert_graph_walk_to_quaternion_frames(start_step, use_time_parameters=True)
                 #print "updated"
