@@ -152,7 +152,7 @@ class MGRestApplication(tornado.web.Application):
         else:
             print "Results are returned as answer to the request"
 
-        if not self._test_ca_interface(service_config):
+        if not service_config["activate_collision_avoidance"] or not self._test_ca_interface(service_config):
             service_config["collision_avoidance_service_url"] = None
 
         start = time.clock()
