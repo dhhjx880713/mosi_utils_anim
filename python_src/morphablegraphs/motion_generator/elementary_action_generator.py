@@ -15,9 +15,11 @@ from graph_walk_planner import GraphWalkPlanner
 
 
 class ElementaryActionGenerator(object):
+
     def __init__(self, motion_primitive_graph, algorithm_config, service_config):
         self.motion_state_graph = motion_primitive_graph
         self._algorithm_config = algorithm_config
+        self.ca_action_names = service_config["collision_avoidance_actions"]
         self.motion_primitive_constraints_builder = MotionPrimitiveConstraintsBuilder()
         self.motion_primitive_constraints_builder.set_algorithm_config(self._algorithm_config)
         self.action_state = ElementaryActionGeneratorState(self._algorithm_config)
@@ -169,7 +171,7 @@ class ElementaryActionGenerator(object):
             return None
         new_motion_spline, new_parameters = self.motion_primitive_generator.generate_constrained_motion_spline(mp_constraints, graph_walk)
 
-        if self.activate_direction_ca_connection and self.ca_interface is not None:
+        if self.activate_direction_ca_connection and self.ca_interface is not None and self.action_constraints.action_name in self.ca_action_names:
             ca_constraints = self.ca_interface.get_constraints(self.action_constraints.group_id, new_node, new_motion_spline, graph_walk)
             print "ca constraints",ca_constraints
             if ca_constraints is not None and len(ca_constraints) > 0:
