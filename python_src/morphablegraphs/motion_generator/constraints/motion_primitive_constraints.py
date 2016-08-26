@@ -301,7 +301,7 @@ class MotionPrimitiveConstraints(object):
                 local_target_pos = copy(c.target_position)
                 local_target_pos = np.dot(inv_aligning_transform, [local_target_pos[0], local_target_pos[1], local_target_pos[2], 1])[:3]
                 lookat_constraint_desc = {"canonical_keyframe":c.canonical_keyframe,
-                                          "dir_vector": local_target_pos,
+                                          "position": local_target_pos,
                                           "semanticAnnotation": c.semantic_annotation}
                 lookat_constraint = LookAtConstraint(self.skeleton, lookat_constraint_desc, c.precision, c.weight_factor)
                 mp_constraints.constraints.append(lookat_constraint)
