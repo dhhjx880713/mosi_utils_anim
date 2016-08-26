@@ -8,7 +8,7 @@ class IKConstraint(object):
 
 
 class JointIKConstraint(IKConstraint):
-    def __init__(self, joint_name, position, orientation, keyframe, free_joints, step_idx=-1, frame_range=None, look_at=False):
+    def __init__(self, joint_name, position, orientation, keyframe, free_joints, step_idx=-1, frame_range=None, look_at=False, optimize=True):
         self.joint_name = joint_name
         self.position = position
         self.orientation = orientation
@@ -17,6 +17,7 @@ class JointIKConstraint(IKConstraint):
         self.free_joints = free_joints
         self.step_idx = step_idx
         self.look_at = look_at
+        self.optimize = optimize
 
     @staticmethod
     def evaluate(parameters, data):

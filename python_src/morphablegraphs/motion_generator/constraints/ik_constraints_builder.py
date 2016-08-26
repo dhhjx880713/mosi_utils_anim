@@ -37,9 +37,10 @@ class IKConstraintsBuilder(object):
             else:
                 keyframe = frame_offset + constraint.canonical_keyframe
 
-            if constraint.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION and constraint.joint_name in self.skeleton.free_joints_map.keys():
+            if constraint.constraint_type in [SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_LOOK_AT] and constraint.joint_name in self.skeleton.free_joints_map.keys():
+                optimize = constraint.constraint_type != SPATIAL_CONSTRAINT_TYPE_KEYFRAME_LOOK_AT
                 ik_constraint = self._create_keyframe_ik_constraint(constraint, keyframe, frame_offset,
-                                                                    time_function, constrain_orientation, look_at=True)
+                                                                    time_function, constrain_orientation, look_at=True, optimize=optimize)
                 ik_constraints.append(ik_constraint)
                 ik_constraint_types.append("single")
 
@@ -66,7 +67,7 @@ class IKConstraintsBuilder(object):
                 # ik_constraints[keyframe]["multiple"].append(ik_constraint)
         return ik_constraints, ik_constraint_types
 
-    def _create_keyframe_ik_constraint(self, c, keyframe, frame_offset, time_function, constrain_orientation, look_at=True):
+    def _create_keyframe_ik_constraint(self, c, keyframe, frame_offset, time_function, constrain_orientation, look_at=True, optimize=True):
         free_joints = self.skeleton.free_joints_map[c.joint_name]
         frame_range = self._detect_frame_range(c, frame_offset, time_function)
         if frame_range is None:
@@ -75,7 +76,7 @@ class IKConstraintsBuilder(object):
             orientation = c.orientation
         else:
             orientation = None
-        return JointIKConstraint(c.joint_name, c.position, orientation, keyframe, free_joints, frame_range=frame_range, look_at=look_at)
+        return JointIKConstraint(c.joint_name, c.position, orientation, keyframe, free_joints, frame_range=frame_range, look_at=look_at, optimize=optimize)
 
     def _detect_frame_range(self, c, frame_offset, time_function):
         frame_range = None

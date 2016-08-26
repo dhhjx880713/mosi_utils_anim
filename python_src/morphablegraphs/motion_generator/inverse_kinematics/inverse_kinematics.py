@@ -232,17 +232,13 @@ class InverseKinematics(object):
         #write_log("number of ik keyframe constraints", len(constraints))
         error = 0.0
         for keyframe, constraints in constraints.items():
-            #write_log(keyframe, constraints)
-            #if "multiple" in constraints.keys():
-            #    for c in constraints["multiple"]:
-            #        #self._modify_frame_using_keyframe_constraint(motion_vector, c, keyframe)
             if "single" in constraints.keys():
                 for c in constraints["single"]:
-                    #print "ik constraint",c.joint_name, c.position, c.orientation
-                    if c.frame_range is not None:
-                        error += self._modify_motion_vector_using_keyframe_constraint_range(motion_vector, c, c.frame_range)
-                    else:
-                        error += self._modify_frame_using_keyframe_constraint(motion_vector, c, keyframe)
+                    if c.optimize:
+                        if c.frame_range is not None:
+                            error += self._modify_motion_vector_using_keyframe_constraint_range(motion_vector, c, c.frame_range)
+                        else:
+                            error += self._modify_frame_using_keyframe_constraint(motion_vector, c, keyframe)
                     if self.activate_look_at and c.look_at:
                         #write_log("look at constraint")
                         start = keyframe
