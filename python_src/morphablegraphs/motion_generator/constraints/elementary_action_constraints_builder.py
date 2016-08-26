@@ -89,10 +89,9 @@ class ElementaryActionConstraintsBuilder(object):
         self.start_pose = mg_input.get_start_pose()
         if self.start_pose["orientation"] is None:
             root_trajectories = self._create_trajectory_constraints_for_joint(0, self.motion_state_graph.skeleton.root)
+            self.start_pose["orientation"] = [0, 0, 0]
             if len(root_trajectories) > 0:
-                if root_trajectories[0] is None:
-                    self.start_pose["orientation"] = [0, 0, 0]
-                else:
+                if root_trajectories[0] is not None:
                     self.start_pose["orientation"] = self.get_start_orientation_from_trajectory(root_trajectories[0])
             write_log("Set start orientation from trajectory to", self.start_pose["orientation"])
 
