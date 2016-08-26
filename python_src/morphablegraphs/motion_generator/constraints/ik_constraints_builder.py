@@ -4,7 +4,9 @@ from .spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPAT
 from ik_constraints import JointIKConstraint, TwoJointIKConstraint
 
 SUPPORTED_CONSTRAINT_TYPES = [SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION,
-                              SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION]
+                              SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION,SPATIAL_CONSTRAINT_TYPE_KEYFRAME_LOOK_AT]
+
+
 class IKConstraintsBuilder(object):
     def __init__(self, action_name, motion_primitive_name, motion_state_graph, skeleton):
         self.action_name = action_name
@@ -37,10 +39,13 @@ class IKConstraintsBuilder(object):
             else:
                 keyframe = frame_offset + constraint.canonical_keyframe
 
-            if constraint.constraint_type in [SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_LOOK_AT] and constraint.joint_name in self.skeleton.free_joints_map.keys():
-                optimize = constraint.constraint_type != SPATIAL_CONSTRAINT_TYPE_KEYFRAME_LOOK_AT
+            if constraint.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION and constraint.joint_name in self.skeleton.free_joints_map.keys():
                 ik_constraint = self._create_keyframe_ik_constraint(constraint, keyframe, frame_offset,
-                                                                    time_function, constrain_orientation, look_at=True, optimize=optimize)
+                                                                    time_function, constrain_orientation, look_at=True)
+                ik_constraints.append(ik_constraint)
+                ik_constraint_types.append("single")
+            elif constraint.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_LOOK_AT:
+                ik_constraint = JointIKConstraint("Head", constraint.target_position, None, keyframe, [], frame_range=None, look_at=True, optimize=False)
                 ik_constraints.append(ik_constraint)
                 ik_constraint_types.append("single")
 
