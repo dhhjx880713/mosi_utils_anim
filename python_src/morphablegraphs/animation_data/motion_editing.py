@@ -105,7 +105,24 @@ def euler_to_quaternion(euler_angles, rotation_order=DEFAULT_ROTATION_ORDER, fil
     Parameters
     ----------
     * euler_angles: list of floats
-    \tA list of ordered euler angles in degress
+    \tA list of ordered euler angles in degrees
+    * rotation_order: Iteratable
+    \t a list that specifies the rotation axis corresponding to the values in euler_angles
+    * filter_values: Bool
+    \t enforce a unique rotation representation
+
+    """
+    # convert euler angle from degree into radians
+    return euler_to_quaternion_rad(np.deg2rad(euler_angles), rotation_order, filter_value)
+
+
+def euler_to_quaternion_rad(euler_angles, rotation_order=DEFAULT_ROTATION_ORDER, filter_value=True):
+    """Convert euler angles to quaternion vector [qw, qx, qy, qz]
+
+    Parameters
+    ----------
+    * euler_angles: list of floats
+    \tA list of ordered euler angles in radian
     * rotation_order: Iteratable
     \t a list that specifies the rotation axis corresponding to the values in euler_angles
     * filter_values: Bool
@@ -115,8 +132,6 @@ def euler_to_quaternion(euler_angles, rotation_order=DEFAULT_ROTATION_ORDER, fil
     # convert euler angles into rotation matrix, then convert rotation matrix
     # into quaternion
     assert len(euler_angles) == 3, ('The length of euler angles should be 3!')
-    # convert euler angle from degree into radians
-    euler_angles = np.deg2rad(euler_angles)
     if rotation_order[0] == 'Xrotation':
         if rotation_order[1] == 'Yrotation':
             R = euler_matrix(euler_angles[0],
