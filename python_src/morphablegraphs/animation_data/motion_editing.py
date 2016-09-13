@@ -59,6 +59,7 @@ def rotation_order_to_string(rotation_order):
             r_order_string += "z"
     return r_order_string
 
+
 def extract_root_positions_from_frames(frames):
     roots = []
     for i in xrange(len(frames)):
@@ -167,8 +168,7 @@ def euler_to_quaternion_rad(euler_angles, rotation_order=DEFAULT_ROTATION_ORDER,
                              axes='rzyx')
     # convert rotation matrix R into quaternion vector (qw, qx, qy, qz)
     q = quaternion_from_matrix(R)
-    # filter the quaternion see
-    # http://physicsforgames.blogspot.de/2010/02/quaternions.html
+    # filter the quaternion http://physicsforgames.blogspot.de/2010/02/quaternions.html
     if filter_value:
         dot = np.sum(q)
         if dot < 0:
@@ -370,7 +370,6 @@ def get_cartesian_coordinates_from_quaternion(skeleton, node_name, quaternion_fr
 
     Parameters
     ----------
-
     * node_name: String
     \tName of node
      * skeleton: Skeleton
@@ -680,9 +679,7 @@ def align_point_clouds_2D(a, b, weights):
         raise ValueError("two point cloud should have the same number points: "+str(len(a))+","+str(len(b)))
     n_points = len(a)
     numerator_left = 0
-    numerator_right = 0
     denominator_left = 0
-    denominator_right = 0
     weighted_sum_a_x = 0
     weighted_sum_b_x = 0
     weighted_sum_a_z = 0
@@ -775,7 +772,7 @@ def transform_point_by_quaternion(point, quaternion, offset, origin=None):
     else:
         origin = [0,0,0]
     homogenous_point = np.append([0], point)
-    tmp_q = quaternion_multiply(quaternion , homogenous_point)
+    tmp_q = quaternion_multiply(quaternion, homogenous_point)
     temp_q = quaternion_multiply(tmp_q, quaternion_conjugate(quaternion))
     new_point = [temp_q[i+1] + offset[i] + origin[i] for i in xrange(3)]
     return new_point
@@ -818,6 +815,7 @@ def transform_point_by_quaternion_faster2(point, quaternion, offset, origin=None
     new_point = 2.0 * np.dot(u, point) * u + (s*s - np.dot(u, u)) * point + 2.0 * s * np.cross(u, point)
     new_point = [new_point[i] + offset[i] + origin[i] for i in xrange(3)]
     return new_point
+
 
 def euler_angles_to_rotation_matrix(euler_angles, rotation_order=DEFAULT_ROTATION_ORDER):
         # generate rotation matrix based on rotation order
@@ -1299,6 +1297,7 @@ def fast_euler_frames_transformation(euler_frames_a,
     offset = [offset_x, 0.0, offset_z]
     return angle, offset
 
+
 def get_rotation_angle(point1, point2):
     """
     estimate the rotation angle from point2 to point1
@@ -1353,6 +1352,7 @@ def fast_quat_frames_alignment(quaternion_frames_a,
         quaternion_frames = np.concatenate((quaternion_frames_a,
                                             transformed_frames))
     return quaternion_frames
+
 
 def fast_euler_frames_alignment(euler_frames_a,
                                 euler_frames_b,
@@ -1481,6 +1481,7 @@ def calculate_weighted_frame_distance_quat(quat_frame_a,
         diff += tmp
     return diff
 
+
 def calculate_pose_distances_from_low_dim(skeleton, mm_models, X, Y):
     """
     Converts low dimensional vectors to euler vectors and calculates the
@@ -1579,11 +1580,13 @@ def get_trajectory_dir_from_2d_points(points):
     orientation_vec = orientation_vec / np.linalg.norm(orientation_vec)
     return orientation_vec
 
+
 def get_dir_from_2d_points(points):
     points = np.asarray(points)
     dir = points[-1] - points[2]
     dir = dir/np.linalg.norm(dir)
     return dir
+
 
 def align_quaternion_frames_only_last_frame(quat_frames, prev_frames=None, transformation=None):
     """Concatenate and align quaternion frames based on previous frames or
@@ -1606,14 +1609,7 @@ def align_quaternion_frames_only_last_frame(quat_frames, prev_frames=None, trans
     """
     # find alignment transformation or use given transformation
     if prev_frames is not None:
-        angle, offset = fast_quat_frames_transformation(
-            prev_frames, quat_frames)
-        # aligning_transformation = {
-        #     "orientation": [
-        #         0,
-        #         angle,
-        #         0],
-        #     "position": offset}
+        angle, offset = fast_quat_frames_transformation(prev_frames, quat_frames)
         transformed_frames = transform_quaternion_frames([quat_frames[-1]],
                                                          [0, angle, 0],
                                                          offset)
@@ -1648,12 +1644,6 @@ def align_quaternion_frames(quat_frames, prev_frames=None, transformation=None):
     # find alignment transformation or use given transformation
     if prev_frames is not None:
         angle, offset = fast_quat_frames_transformation(prev_frames, quat_frames)
-        # aligning_transformation = {
-        #     "orientation": [
-        #         0,
-        #         angle,
-        #         0],
-        #     "position": offset}
         return transform_quaternion_frames(quat_frames, [0, angle, 0], offset)
     elif prev_frames is None and transformation is not None:
         # align frames
@@ -1776,6 +1766,7 @@ def pose_up_vector_quat(quat_frame):
     up_vec /= np.linalg.norm(up_vec)
     return up_vec
 
+
 def quaternion_rotate_vector(q, vector):
     """ src: http://math.stackexchange.com/questions/40164/how-do-you-rotate-a-vector-by-a-unit-quaternion
     Args:
@@ -1785,8 +1776,8 @@ def quaternion_rotate_vector(q, vector):
     Returns:
 
     """
-    tmp_result = quaternion_multiply(q , vector)
-    return quaternion_multiply(tmp_result , quaternion_conjugate(q))[1:]
+    tmp_result = quaternion_multiply(q, vector)
+    return quaternion_multiply(tmp_result, quaternion_conjugate(q))[1:]
 
 
 def quaternion_from_vector_to_vector(a, b):
