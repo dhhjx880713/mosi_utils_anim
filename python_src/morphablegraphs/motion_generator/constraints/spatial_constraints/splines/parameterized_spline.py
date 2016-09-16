@@ -94,7 +94,7 @@ class ParameterizedSpline(object):
                 #    sq_k = (point[d] - last_point[d])**2
                 #    delta.append(sq_k)
                 #    d += 1
-                arc_length += np.lnalg.norm(point-last_point)#sqrt(np.sum(delta))
+                arc_length += np.linalg.norm(point-last_point)#sqrt(np.sum(delta))
                 last_point = point
                 # print point
             else:
