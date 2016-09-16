@@ -147,6 +147,46 @@ class MotionPrimitiveModelWrapper(object):
         return self.motion_primitive.mixture
     get_gaussian_mixture_model = get_gaussian_mixture_model_mgrd if has_mgrd else get_gaussian_mixture_model_legacy
 
+    def get_time_eigen_vector_matrix_mgrd(self):
+        return self.motion_primitive.time.fpca.eigen
+
+    def get_time_eigen_vector_matrix_legacy(self):
+        return self.motion_primitive.t_pca["eigen_vectors"]
+
+    get_time_eigen_vector_matrix = get_time_eigen_vector_matrix_mgrd if has_mgrd else get_time_eigen_vector_matrix_legacy
+
+    def get_spatial_eigen_vector_matrix_legacy(self, joints=None, frame_idx=-1):
+        return self.motion_primitive.s_pca["eigen_vectors"].T
+
+    def get_spatial_eigen_vector_matrix_mgrd(self, joints=None, frame_idx=-1):
+        LEN_TRANSLATION = 3
+        LEN_QUATERNION = 4
+        n_frames = self.get_n_canonical_frames()
+        # spatial = self.motion_primitive.spatial.clone(None)
+        eigen = self.motion_primitive.spatial.fpca.eigen.T
+        if joints is None:
+            return eigen
+        else:
+            n_params = 3 + len(self.motion_primitive.spatial.animated_joints) * LEN_QUATERNION
+            frame_idx = (len(eigen) / n_params) - 1
+
+            modeled_joints = [j.name for j in self.motion_primitive.spatial.animated_joints]
+            joint_indices = []
+            if frame_idx > -1:
+                frame_range = [frame_idx]
+            else:
+                frame_range = xrange(n_frames)
+            for frame in frame_range:
+                frame_offset = frame * n_params
+                joint_indices += [frame_offset + i * LEN_QUATERNION + LEN_TRANSLATION for i, j in
+                                  enumerate(modeled_joints) if j in joints]
+
+            coeff_indices = []
+            for i in joint_indices:
+                coeff_indices += list(range(i, i + LEN_QUATERNION))
+            return eigen[coeff_indices]
+
+    get_spatial_eigen_vectors = get_spatial_eigen_vector_matrix_mgrd if has_mgrd else get_spatial_eigen_vector_matrix_legacy
     @staticmethod
     def load_model_from_json(skeleton, mm_data, use_mgrd_mixture_model=True):
         sspm = MGRDQuaternionSplineModel.load_from_json(skeleton, mm_data['sspm'])
