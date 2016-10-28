@@ -51,19 +51,26 @@ class GraphWalkGenerator(object):
         self.action_constraints_builder.set_algorithm_config(self._algorithm_config)
         self.action_generator.set_algorithm_config(self._algorithm_config)
 
-    def generate(self, mg_input_reader):
+    def generate(self, mg_input_reader, prev_graph_walk=None):
         """ Converts constrains into a graph walk through the motion state graph
 
          Parameters
         ----------
         * mg_input_reader : MGInputFormatReader
+        * prev_graph_walk: GraphWalk (optional)
         Returns
         -------
         * graph_walk: GraphWalk
             Contains the quaternion frames and annotations of the frames based on actions.
         """
         action_constraint_list = self.action_constraints_builder.build_list_from_input_file(mg_input_reader)
-        graph_walk = GraphWalk(self.motion_primitive_graph, mg_input_reader, self._algorithm_config, self.action_constraints_builder.get_start_pose(), self.create_ca_vis_data)
+        if prev_graph_walk is None:
+            graph_walk = GraphWalk(self.motion_primitive_graph, mg_input_reader, self._algorithm_config, self.action_constraints_builder.get_start_pose(), self.create_ca_vis_data)
+        else:
+            graph_walk = prev_graph_walk
+            graph_walk.mg_input = mg_input_reader
+            start_action_idx = graph_walk.get_number_of_actions()
+            action_constraint_list = action_constraint_list[start_action_idx:]
         for action_constraints in action_constraint_list:
             if self._algorithm_config["debug_max_step"] > -1 and graph_walk.step_count > self._algorithm_config["debug_max_step"]:
                 write_log("Aborting motion synthesis: Reached maximum debug step number")
