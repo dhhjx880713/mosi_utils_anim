@@ -90,8 +90,8 @@ class Skeleton(object):
         #self.load_from_bvh(bvh_reader, animated_joints, rotation_type)
         #print self.nodes.keys()
 
-    def load_from_bvh(self, bvh_reader):
-        self.animated_joints = DEFAULT_ANIMATED_JOINT_LIST
+    def load_from_bvh(self, bvh_reader, animated_joints=DEFAULT_ANIMATED_JOINT_LIST):
+        self.animated_joints = animated_joints
         self.frame_time = deepcopy(bvh_reader.frame_time)
         self.root = deepcopy(bvh_reader.root)
         self.node_names = deepcopy(bvh_reader.node_names)
