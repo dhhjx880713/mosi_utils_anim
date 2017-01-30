@@ -97,7 +97,7 @@ class SkeletonJointNode(SkeletonNodeBase):
             frame_index = self.quaternion_frame_index * 4 + 3
             local_matrix = quaternion_matrix(quaternion_frame[frame_index: frame_index + 4])
         else:
-            local_matrix = np.identity(4)
+            local_matrix = quaternion_matrix(self.rotation)
         local_matrix[:3, 3] = self.offset
         return local_matrix
 
