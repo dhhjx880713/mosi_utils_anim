@@ -50,6 +50,7 @@ class GraphWalkGenerator(object):
         self._algorithm_config = algorithm_config
         self.action_constraints_builder.set_algorithm_config(self._algorithm_config)
         self.action_generator.set_algorithm_config(self._algorithm_config)
+        self.graph_walk_optimizer.set_algorithm_config(self._algorithm_config)
 
     def generate(self, mg_input_reader, prev_graph_walk=None):
         """ Converts constrains into a graph walk through the motion state graph
