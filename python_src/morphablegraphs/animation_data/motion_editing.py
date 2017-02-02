@@ -199,6 +199,27 @@ def quaternion_to_euler_smooth(q, euler_ref, rotation_order=DEFAULT_ROTATION_ORD
                 euler_angles[i] += 360
     return euler_angles
 
+def quaternion_to_euler_rad(q, rotation_order=DEFAULT_ROTATION_ORDER):
+    """
+    Parameters
+    ----------
+    * q: list of floats
+    \tQuaternion vector with form: [qw, qx, qy, qz]
+
+    Return
+    ------
+    * euler_angles: list
+    \tEuler angles in radian with specified order
+    """
+    q = np.asarray(q)
+    # normalize quaternion vector
+    q /= np.linalg.norm(q)
+    # create rotation matrix from quaternion
+    Rq = quaternion_matrix(q)
+    # map rotation order
+    r_order_string = rotation_order_to_string(rotation_order)
+    return euler_from_matrix(Rq, r_order_string)
+
 
 def quaternion_to_euler(q, rotation_order=DEFAULT_ROTATION_ORDER):
     """
@@ -212,14 +233,7 @@ def quaternion_to_euler(q, rotation_order=DEFAULT_ROTATION_ORDER):
     * euler_angles: list
     \tEuler angles in degree with specified order
     """
-    q = np.asarray(q)
-    # normalize quaternion vector
-    q /= np.linalg.norm(q)
-    # create rotation matrix from quaternion
-    Rq = quaternion_matrix(q)
-    # map rotation order
-    r_order_string = rotation_order_to_string(rotation_order)
-    return np.rad2deg(euler_from_matrix(Rq, r_order_string)).tolist()
+    return np.rad2deg(quaternion_to_euler_rad(q, rotation_order)).tolist()
 
 
 def convert_euler_frames_to_quaternion_frames(bvhreader, euler_frames, filter_joints=True):
