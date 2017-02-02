@@ -45,6 +45,7 @@ class MotionVector(object):
         else:
             self.apply_spatial_smoothing = False
             self.smoothing_window = 0
+        self.frame_time = 1.0/30.0
 
     def from_bvh_reader(self, bvh_reader, filter_joints=True):
         if self.rotation_type == ROTATION_TYPE_QUATERNION:
@@ -52,6 +53,7 @@ class MotionVector(object):
         elif self.rotation_type == ROTATION_TYPE_EULER:
             self.frames = bvh_reader.frames
         self.n_frames = len(self.frames)
+        self.frame_time = bvh_reader.frame_time
 
     def append_frames(self, new_frames):
         """Align quaternion frames to previous frames
@@ -84,3 +86,4 @@ class MotionVector(object):
             self.frames = None
         else:
             self.frames = self.frames[:end_frame]
+
