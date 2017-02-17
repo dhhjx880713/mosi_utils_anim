@@ -13,6 +13,7 @@ class TimeConstraintsBuilder(object):
         self.n_time_constraints = 0
         self._extract_time_constraints_from_graph_walk(graph_walk.steps, index_range)
 
+
     def _extract_time_constraints_from_graph_walk_entry(self, constrained_step_count, graph_walk_entry):
         """Extract time constraints on any keyframe constraints used during this graph walk step
         :param step_index: int

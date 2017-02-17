@@ -2,7 +2,7 @@ __author__ = 'erhe01'
 
 import numpy as np
 import json
-from ...utilities.log import write_log
+from ..utilities.log import write_log
 
 CONSTRAINT_TYPES = ["keyframeConstraints", "directionConstraints"]
 
@@ -164,7 +164,6 @@ class MGInputFormatReader(object):
             active_region["end_point"] = control_points[-1]
 
     def _update_active_region(self, active_region, point, new_active):
-         #set active region if it is a collision avoidance trajectory
         if new_active and active_region["start_point"] is None:
             active_region["start_point"] = point
         elif not new_active and active_region["start_point"] is not None and active_region["end_point"] is None:

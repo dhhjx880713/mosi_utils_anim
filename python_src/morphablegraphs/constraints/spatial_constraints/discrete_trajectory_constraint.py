@@ -2,7 +2,7 @@ __author__ = 'erhe01'
 import numpy as np
 
 from spatial_constraint_base import SpatialConstraintBase
-from ....animation_data.motion_editing import get_cartesian_coordinates_from_quaternion
+from ...animation_data.motion_editing import get_cartesian_coordinates_from_quaternion
 
 
 class DiscreteTrajectoryConstraint(SpatialConstraintBase):

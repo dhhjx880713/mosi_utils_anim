@@ -16,7 +16,7 @@ from datetime import datetime
 from ..animation_data.motion_editing import transform_euler_frames, \
     transform_quaternion_frames
 from ..animation_data.bvh import BVHWriter
-from ..motion_generator.constraints.spatial_constraints.splines.parameterized_spline import ParameterizedSpline
+from ..constraints.spatial_constraints.splines import ParameterizedSpline
 
 def write_to_logfile(path, time_string, data):
     """ Appends json data to a text file.
@@ -83,8 +83,7 @@ def gen_file_paths(directory, mask='*mm.json'):
         yield filepath
 
 
-def get_morphable_model_directory(
-        root_directory, morphable_model_type="motion_primitives_quaternion_PCA95"):
+def get_morphable_model_directory(root_directory, morphable_model_type="motion_primitives_quaternion_PCA95"):
     """
     Return folder path to store result without trailing os.sep
     """

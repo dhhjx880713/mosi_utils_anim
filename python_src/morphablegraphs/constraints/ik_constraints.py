@@ -23,11 +23,13 @@ class JointIKConstraint(IKConstraint):
     def evaluate(parameters, data):
         pose, free_joints, target_joint, target_position, target_orientation = data
         pose.set_channel_values(parameters, free_joints)
+        #parent_joint = pose.get_parent_joint(target_joint)
+        #pose.apply_bounds_on_joint(parent_joint)
         if target_orientation is not None:
             parent_joint = pose.get_parent_joint(target_joint)
             if parent_joint is not None:
                 pose.set_hand_orientation(parent_joint, target_orientation)
-
+                #pose.apply_bounds_on_joint(parent_joint)
         d = pose.evaluate_position(target_joint) - target_position
         return np.dot(d, d)
 
@@ -42,6 +44,33 @@ class JointIKConstraint(IKConstraint):
 
     def get_joint_names(self):
         return [self.joint_name]
+
+class RelativeJointIKConstraint(IKConstraint):
+    def __init__(self, ref_joint_name, target_joint_name, rel_position, keyframe, free_joints, step_idx=-1, frame_range=None):
+        self.ref_joint_name = ref_joint_name
+        self.target_joint_name = target_joint_name
+        self.rel_position = rel_position
+        self.keyframe = keyframe
+        self.frame_range = frame_range
+        self.free_joints = free_joints
+        self.step_idx = step_idx
+
+    @staticmethod
+    def evaluate(parameters, data):
+        pose, free_joints, ref_joint, target_joint, target_delta = data
+        pose.set_channel_values(parameters, free_joints)
+        ref_matrix = pose.skeleton.nodes[ref_joint].get_global_matrix(pose.get_vector())
+        target = np.dot(ref_matrix, target_delta)[:3]
+        d = pose.evaluate_position(target_joint) - target
+        return np.dot(d, d)
+
+    def data(self, ik, free_joints=None):
+        if free_joints is None:
+            free_joints = self.free_joints
+        return ik.pose, free_joints, self.ref_joint_name, self.target_joint_name, self.rel_position
+
+    def get_joint_names(self):
+        return [self.target_joint_name]
 
 
 class TwoJointIKConstraint(IKConstraint):

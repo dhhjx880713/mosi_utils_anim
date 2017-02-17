@@ -6,7 +6,7 @@ Created on Mon Aug 03 19:01:21 2015
 """
 
 import numpy as np
-from .....animation_data.motion_editing import pose_orientation_quat
+from ....animation_data.motion_editing import pose_orientation_quat
 from keyframe_constraint_base import KeyframeConstraintBase
 from .. import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_DIR_2D
 from math import acos, degrees
@@ -27,10 +27,11 @@ class Direction2DConstraint(KeyframeConstraintBase):
         motion_dir = pose_orientation_quat(frame)
         magnitude = self.target_dir_len * np.linalg.norm(motion_dir)
         cos_angle = np.dot(self.target_dir, motion_dir)/magnitude
+        #print self.target_dir, motion_dir
         cos_angle = min(1,max(cos_angle,-1))
         angle = acos(cos_angle)
         error = abs(degrees(angle))
-        #print(error)
+        #print "angle", error
         return error
 
     def evaluate_motion_sample(self, aligned_quat_frames):

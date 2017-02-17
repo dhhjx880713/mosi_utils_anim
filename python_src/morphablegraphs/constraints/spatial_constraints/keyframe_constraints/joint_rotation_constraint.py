@@ -2,7 +2,7 @@ __author__ = 'hadu01'
 
 from keyframe_constraint_base import KeyframeConstraintBase
 import numpy as np
-from .....external.transformations import euler_matrix, \
+from ....external.transformations import euler_matrix, \
                                           quaternion_matrix
 LEN_ROOT_POSITION = 3
 LEN_QUAT = 4

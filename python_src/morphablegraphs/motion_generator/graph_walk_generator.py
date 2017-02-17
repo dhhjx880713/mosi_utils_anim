@@ -10,7 +10,7 @@ based on previous steps.
 @author: Erik Herrmann, Han Du, Fabian Rupp, Markus Mauer
 """
 
-from constraints import ElementaryActionConstraintsBuilder
+from ..constraints import ElementaryActionConstraintsBuilder
 from elementary_action_generator import ElementaryActionGenerator
 from graph_walk import GraphWalk
 from graph_walk_optimizer import GraphWalkOptimizer

@@ -17,10 +17,12 @@ class TimeConstraints(object):
             time_function = motion_primitive_graph.nodes[graph_walk.steps[i].node_key].back_project_time_function(graph_walk.steps[i].parameters)
             start_keyframe += time_function[-1]
         return start_keyframe
+
     def evaluate_graph_walk(self, s, motion_primitive_graph, graph_walk):
         #print "evaluate", s
         time_functions = self._get_time_functions_from_graph_walk(s, motion_primitive_graph, graph_walk)
         #get difference to desired time for each constraint
+        #print "got time functions"
         frame_time = motion_primitive_graph.skeleton.frame_time
         error_sum = 0
         for time_constraint in self.constraint_list:
@@ -59,7 +61,7 @@ class TimeConstraints(object):
                 total_seconds = n_frames * frame_time
                 error = (desired_time-total_seconds)**2
                 #print time_function
-                #print "time error", error, total_seconds, desired_time, mapped_keyframe, constrained_keyframe_index, n_frames
+                print "time error", constrained_keyframe_index, error, total_seconds, desired_time,n_frames,frame_time#, mapped_keyframe, constrained_keyframe_index, n_frames
                 return error
         return 10000
 
@@ -81,3 +83,8 @@ class TimeConstraints(object):
             parameters += step.parameters[step.n_spatial_components:].tolist()
         return parameters
 
+    def get_error_gradient(self, motion_primitive_graph, graph_walk,frame_time):
+        gradient = []
+        for step in graph_walk.steps[self.start_step:self.end_step]:
+            gradient += motion_primitive_graph.nodes[step.node_key].get_time_eigen_vector_matrix()[-1]*frame_time
+        return 2 * np.array(gradient)

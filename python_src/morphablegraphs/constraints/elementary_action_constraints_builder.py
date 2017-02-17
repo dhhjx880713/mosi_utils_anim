@@ -9,7 +9,7 @@ from elementary_action_constraints import ElementaryActionConstraints
 from spatial_constraints import TrajectoryConstraint
 from spatial_constraints import TrajectorySetConstraint
 from . import *
-from ...utilities.log import write_log
+from ..utilities.log import write_log
 
 REFERENCE_2D_OFFSET = np.array([0.0, -1.0])# components correspond to x, z - we assume the motions are initially oriented into that direction
 LEFT_HAND_JOINT = "LeftToolEndSite"

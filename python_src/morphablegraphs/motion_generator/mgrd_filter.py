@@ -1,6 +1,6 @@
 import numpy
 import time
-from .constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
+from ..constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
 from ..external.transformations import quaternion_matrix, quaternion_from_matrix
 try:
     from mgrd import Constraint, SemanticConstraint

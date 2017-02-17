@@ -1,17 +1,19 @@
 __author__ = 'erhe01'
 
-import numpy as np
 from copy import copy
-from ..utilities.exceptions import PathSearchError
-from ..motion_model import NODE_TYPE_END
-from motion_primitive_generator import MotionPrimitiveGenerator
-from constraints.motion_primitive_constraints_builder import MotionPrimitiveConstraintsBuilder
-from graph_walk import GraphWalkEntry
-from constraints import CA_CONSTRAINTS_MODE_DIRECT_CONNECTION
-from ..utilities import write_log
+
+import numpy as np
+from ..constraints import CA_CONSTRAINTS_MODE_DIRECT_CONNECTION
+
 from ca_interface import CAInterface
 from ea_state import ElementaryActionGeneratorState
+from graph_walk import GraphWalkEntry
 from graph_walk_planner import GraphWalkPlanner
+from motion_primitive_generator import MotionPrimitiveGenerator
+from python_src.morphablegraphs.constraints.motion_primitive_constraints_builder import MotionPrimitiveConstraintsBuilder
+from ..motion_model import NODE_TYPE_END
+from ..utilities import write_log
+from ..utilities.exceptions import PathSearchError
 
 
 class ElementaryActionGenerator(object):

@@ -7,14 +7,14 @@ Created on Mon Jul 27 18:38:15 2015
 
 from copy import copy
 import numpy as np
-from ...utilities.exceptions import PathSearchError
+from ..utilities.exceptions import PathSearchError
 from .motion_primitive_constraints import MotionPrimitiveConstraints
-from .spatial_constraints import PoseConstraint, Direction2DConstraint, GlobalTransformConstraint, PoseConstraintQuatFrame, TwoHandConstraintSet, LookAtConstraint
-from ...animation_data.motion_vector import concatenate_frames
-from ...animation_data.motion_editing import get_2d_pose_transform, inverse_pose_transform, fast_quat_frames_transformation, create_transformation_matrix
+from .spatial_constraints import PoseConstraint, Direction2DConstraint, GlobalTransformConstraint, PoseConstraintQuatFrame, TwoHandConstraintSet, LookAtConstraint, FeetConstraint
+from ..animation_data.motion_vector import concatenate_frames
+from ..animation_data.motion_editing import get_2d_pose_transform, inverse_pose_transform, fast_quat_frames_transformation, create_transformation_matrix
 from . import CA_CONSTRAINTS_MODE_SET, OPTIMIZATION_MODE_ALL, OPTIMIZATION_MODE_KEYFRAMES, OPTIMIZATION_MODE_TWO_HANDS
 from .spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
-from ...motion_model.elementary_action_meta_info import KEYFRAME_LABEL_END, KEYFRAME_LABEL_START, KEYFRAME_LABEL_MIDDLE
+from ..motion_model.elementary_action_meta_info import KEYFRAME_LABEL_END, KEYFRAME_LABEL_START, KEYFRAME_LABEL_MIDDLE
 from keyframe_event import KeyframeEvent
 
 class MotionPrimitiveConstraintsBuilder(object):
@@ -118,6 +118,10 @@ class MotionPrimitiveConstraintsBuilder(object):
             # if not already done for the trajectory following
             if self.status["is_last_step"] and not mp_constraints.pose_constraint_set:
                 self._add_pose_constraint(mp_constraints)
+
+        if mp_constraints.action_name in ["pickBoth","placeBoth"] and mp_constraints.motion_primitive_name == "reach":
+            self._add_feet_constraint(mp_constraints)
+
         self._add_trajectory_constraints(mp_constraints)
         self._add_events_to_event_list(mp_constraints)
         self._decide_on_optimization(mp_constraints)
@@ -142,6 +146,17 @@ class MotionPrimitiveConstraintsBuilder(object):
         #       mp_constraints.constraints.append(discrete_trajectory_constraint)
         #       ca_trajectory_set_constraint.joint_trajectories[i].set_min_arc_length_from_previous_frames(self.status["prev_frames"])
         #       mp_constraints.ca_constraints.append(ca_trajectory_set_constraint.joint_trajectories[i])
+
+    def _add_feet_constraint(self, mp_constraints):
+        if "LeftFoot" in self.skeleton.nodes.keys() and "RightFoot" in self.skeleton.nodes.keys():
+            left_position = self.skeleton.nodes["LeftFoot"].get_global_position(self.status["prev_frames"][-1])
+            right_position = self.skeleton.nodes["RightFoot"].get_global_position(self.status["prev_frames"][-1])
+            desc = {"left":left_position, "right": right_position}
+            desc["semanticAnnotation"] = {}
+            desc["semanticAnnotation"]["keyframeLabel"] = "end"
+            desc["canonical_keyframe"] = self._get_keyframe_from_annotation("end")
+            feet_constraint = FeetConstraint(self.skeleton, desc, 1.0, 2.0)
+            mp_constraints.constraints.append(feet_constraint)
 
     def _add_pose_constraint(self, mp_constraints):
         if mp_constraints.settings["transition_pose_constraint_factor"] > 0.0 and self.status["prev_frames"] is not None:

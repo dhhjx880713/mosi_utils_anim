@@ -6,6 +6,7 @@ SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE = "keyframe_pose"
 SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION = "keyframe_two_hands"
 SPATIAL_CONSTRAINT_TYPE_TRAJECTORY_SET = "trajectory_set"
 SPATIAL_CONSTRAINT_TYPE_KEYFRAME_LOOK_AT = "keyframe_look_at"
+SPATIAL_CONSTRAINT_TYPE_KEYFRAME_FEET = "keyframe_feet"
 SPATIAL_CONSTRAINT_TYPE_CA_CONSTRAINT = "ca_constraint"
 from .mgrd_constraint import MGRDKeyframeConstraint
 from .trajectory_constraint import TrajectoryConstraint
@@ -17,3 +18,4 @@ from .keyframe_constraints.global_transform_constraint import GlobalTransformCon
 from .keyframe_constraints.pose_constraint_quat_frame import PoseConstraintQuatFrame
 from .keyframe_constraints.two_hand_constraint import TwoHandConstraintSet
 from .keyframe_constraints.look_at_constraint import LookAtConstraint
+from .keyframe_constraints.feet_constraint import FeetConstraint

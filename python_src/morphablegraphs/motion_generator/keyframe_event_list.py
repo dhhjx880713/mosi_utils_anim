@@ -1,9 +1,7 @@
 import numpy as np
-from copy import copy
+from ..constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_CA_CONSTRAINT
+from ..constraints.keyframe_event import KeyframeEvent
 from ..utilities import write_to_json_file
-from constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_CA_CONSTRAINT
-from constraints.keyframe_event import KeyframeEvent
-from ..animation_data.motion_editing import quaternion_to_euler, quaternion_matrix, euler_from_matrix
 
 UNCONSTRAINED_EVENTS_TRANSFER_POINT = "transfer_point"
 

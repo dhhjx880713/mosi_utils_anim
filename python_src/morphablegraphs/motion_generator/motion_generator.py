@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 import json
 from ..motion_model import MotionStateGraphLoader
-from constraints import MGInputFormatReader
+from ..constraints import MGInputFormatReader
 from algorithm_configuration import AlgorithmConfigurationBuilder
 from graph_walk_generator import GraphWalkGenerator
 from graph_walk_optimizer import GraphWalkOptimizer

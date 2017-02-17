@@ -9,7 +9,7 @@ import numpy as np
 from sklearn.mixture.gmm import _log_multivariate_normal_density_full
 from scipy.optimize.optimize import approx_fprime
 from ..animation_data.motion_editing import align_quaternion_frames, align_quaternion_frames_only_last_frame
-from constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_TRAJECTORY_SET
+from ..constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_TRAJECTORY_SET
 
 
 def obj_spatial_error_sum(s, data):

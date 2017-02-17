@@ -1,9 +1,10 @@
-import numpy as np
-from copy import copy, deepcopy
 import random
-from constraints.motion_primitive_constraints import MotionPrimitiveConstraints
-from constraints.spatial_constraints.keyframe_constraints.global_transform_constraint import GlobalTransformConstraint
-from constraints.spatial_constraints.keyframe_constraints.direction_2d_constraint import Direction2DConstraint
+from copy import copy, deepcopy
+
+import numpy as np
+from ..constraints.motion_primitive_constraints import MotionPrimitiveConstraints
+from ..constraints.spatial_constraints.keyframe_constraints import Direction2DConstraint
+from ..constraints.spatial_constraints.keyframe_constraints import GlobalTransformConstraint
 from ..animation_data.motion_editing import create_transformation_matrix
 from ..utilities import write_log
 from .graph_walk import GraphWalk, GraphWalkEntry

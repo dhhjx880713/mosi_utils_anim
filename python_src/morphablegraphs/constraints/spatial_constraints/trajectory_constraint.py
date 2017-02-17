@@ -26,6 +26,7 @@ class TrajectoryConstraint(ParameterizedSpline, SpatialConstraintBase):
         self.unconstrained_indices = unconstrained_indices
         self.range_start = None
         self.range_end = None
+        self.is_collision_avoidance_constraint = False
 
     def create_discrete_trajectory(self, aligned_quat_frames):
         discrete_trajectory_constraint = DiscreteTrajectoryConstraint(self.joint_name, self.skeleton, self.precision, self.weight_factor)

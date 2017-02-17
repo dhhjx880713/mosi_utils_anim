@@ -6,17 +6,13 @@ Created on Thu Jul 16 14:42:13 2015
 """
 import numpy as np
 from copy import copy
-from ...animation_data.motion_editing import align_quaternion_frames, transform_point, quaternion_from_vector_to_vector, euler_to_quaternion, quaternion_multiply
-from .spatial_constraints.keyframe_constraints.global_transform_constraint import GlobalTransformConstraint
-from .spatial_constraints.keyframe_constraints.two_hand_constraint import TwoHandConstraintSet
-from .spatial_constraints.keyframe_constraints.pose_constraint import PoseConstraint
-from .spatial_constraints.keyframe_constraints.direction_2d_constraint import Direction2DConstraint
-from .spatial_constraints.keyframe_constraints.look_at_constraint import LookAtConstraint
+from ..animation_data.motion_editing import align_quaternion_frames, transform_point, quaternion_from_vector_to_vector, euler_to_quaternion, quaternion_multiply
+from .spatial_constraints  import GlobalTransformConstraint, TwoHandConstraintSet, PoseConstraint,  Direction2DConstraint, LookAtConstraint, FeetConstraint
 from .spatial_constraints.keyframe_constraints.global_transform_ca_constraint import GlobalTransformCAConstraint
-from .spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE,SPATIAL_CONSTRAINT_TYPE_KEYFRAME_DIR_2D, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_LOOK_AT, SPATIAL_CONSTRAINT_TYPE_CA_CONSTRAINT
+from .spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE,SPATIAL_CONSTRAINT_TYPE_KEYFRAME_DIR_2D, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_LOOK_AT, SPATIAL_CONSTRAINT_TYPE_CA_CONSTRAINT,SPATIAL_CONSTRAINT_TYPE_KEYFRAME_FEET
 from ik_constraints import JointIKConstraint, TwoJointIKConstraint
 from ik_constraints_builder import IKConstraintsBuilder
-from ...utilities.log import write_log
+from ..utilities.log import write_log
 try:
     from mgrd import CartesianConstraint as MGRDCartesianConstraint
     from mgrd import PoseConstraint as MGRDPoseConstraint
@@ -305,6 +301,17 @@ class MotionPrimitiveConstraints(object):
                                           "semanticAnnotation": c.semantic_annotation}
                 lookat_constraint = LookAtConstraint(self.skeleton, lookat_constraint_desc, c.precision, c.weight_factor)
                 mp_constraints.constraints.append(lookat_constraint)
+
+            elif c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_FEET:
+                left = np.dot(inv_aligning_transform, list(copy(c.left))+[1])[:3]
+                right = np.dot(inv_aligning_transform, list(copy(c.right))+[1])[:3]
+                feet_constraint_desc = {"canonical_keyframe": c.canonical_keyframe,
+                                          "left":  left,
+                                           "right":  right,
+                                           "semanticAnnotation": c.semantic_annotation}
+                feet_constraint = FeetConstraint(self.skeleton, feet_constraint_desc, c.precision,
+                                                     c.weight_factor)
+                mp_constraints.constraints.append(feet_constraint)
         return mp_constraints
 
     def convert_to_ik_constraints(self, motion_state_graph, frame_offset, time_function=None, constrain_orientation=True):

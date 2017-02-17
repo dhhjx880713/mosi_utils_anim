@@ -1,11 +1,12 @@
 __author__ = 'erhe01'
 
 from copy import deepcopy
+
 import numpy as np
+from ..constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE, SPATIAL_CONSTRAINT_TYPE_TRAJECTORY, SPATIAL_CONSTRAINT_TYPE_TRAJECTORY_SET, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_DIR_2D, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPATIAL_CONSTRAINT_TYPE_CA_CONSTRAINT
+from ..constraints.time_constraints_builder import TimeConstraintsBuilder
 from optimization.optimizer_builder import OptimizerBuilder
-from constraints.time_constraints_builder import TimeConstraintsBuilder
-from constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE, SPATIAL_CONSTRAINT_TYPE_TRAJECTORY, SPATIAL_CONSTRAINT_TYPE_TRAJECTORY_SET, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_DIR_2D, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPATIAL_CONSTRAINT_TYPE_CA_CONSTRAINT
-from constraints.motion_primitive_constraints import MotionPrimitiveConstraints
+from ..constraints.motion_primitive_constraints import MotionPrimitiveConstraints
 from ..utilities.log import write_log
 
 GRAPH_WALK_OPTIMIZATION_TWO_HANDS = "none"

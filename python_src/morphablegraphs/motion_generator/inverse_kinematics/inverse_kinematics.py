@@ -8,6 +8,7 @@ from blending import smooth_quaternion_frames_using_slerp, smooth_quaternion_fra
 from skeleton_pose_model import SkeletonPoseModel
 from ...utilities import write_log
 from ...external.transformations import quaternion_matrix, euler_from_matrix
+from ...constraints.ik_constraints import RelativeJointIKConstraint
 
 
 LEN_QUATERNION = 4
