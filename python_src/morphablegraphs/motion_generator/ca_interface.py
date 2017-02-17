@@ -1,10 +1,12 @@
-import numpy as np
 import json
-from copy import deepcopy
 import urllib2
-from ..utilities import write_log, get_bvh_writer, TCPClient
-from constraints.spatial_constraints.keyframe_constraints.global_transform_ca_constraint import GlobalTransformCAConstraint
+from copy import deepcopy
+
+import numpy as np
+
+from ..constraints.spatial_constraints.keyframe_constraints import GlobalTransformCAConstraint
 from ..animation_data.motion_editing import fast_quat_frames_transformation, transform_quaternion_frames, euler_angles_to_rotation_matrix
+from ..utilities import write_log, get_bvh_writer, TCPClient
 
 
 class CAInterface(object):

@@ -10,7 +10,7 @@ from ea_state import ElementaryActionGeneratorState
 from graph_walk import GraphWalkEntry
 from graph_walk_planner import GraphWalkPlanner
 from motion_primitive_generator import MotionPrimitiveGenerator
-from python_src.morphablegraphs.constraints.motion_primitive_constraints_builder import MotionPrimitiveConstraintsBuilder
+from ..constraints.motion_primitive_constraints_builder import MotionPrimitiveConstraintsBuilder
 from ..motion_model import NODE_TYPE_END
 from ..utilities import write_log
 from ..utilities.exceptions import PathSearchError
