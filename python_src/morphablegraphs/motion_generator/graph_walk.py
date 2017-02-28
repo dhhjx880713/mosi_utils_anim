@@ -355,3 +355,7 @@ class GraphWalk(object):
         constraints["session"] = "session"
         with open(file_path, "wb") as out:
             json.dump(constraints, out)
+
+    def get_number_of_actions(self):
+        return len(self.elementary_action_list)
+
