@@ -62,6 +62,16 @@ class SkeletonNodeBase(object):
     def get_number_of_frame_parameters(self, rotation_type):
         pass
 
+    def to_unity_json(self, joints, animated_joint_list):
+        joint_desc = dict()
+        joint_desc["name"] = self.node_name
+        joint_desc["children"] = []
+        joints.append(joint_desc)
+        for c in self.children:
+            if c.node_name in animated_joint_list:
+                joint_desc["children"].append(c.node_name)
+                c.to_unity_json(joints, animated_joint_list)
+
 
 class SkeletonRootNode(SkeletonNodeBase):
     def __init__(self, node_name, channels, parent=None):
