@@ -3,8 +3,10 @@ import heapq
 import cPickle as pickle
 from clustering import find_clusters, all_equal
 import scipy.stats.mstats
+
 MAX_SIMILARITY_CHECK = 10
 PROBABILITIES = (0.25,0.75)
+
 
 def _filter_outliers(values, nodes):
     """ http://www.varsitytutors.com/ap_statistics-help/how-to-find-outliers

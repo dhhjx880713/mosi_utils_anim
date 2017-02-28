@@ -1,11 +1,3 @@
-"""http://scikit-learn.org/stable/modules/clustering.html#hierarchical-clustering
-TODO:
-https://datasciencelab.wordpress.com/2013/12/12/clustering-with-k-means-in-python/
-https://datasciencelab.wordpress.com/2013/12/27/finding-the-k-in-k-means-clustering/
-
-https://datasciencelab.wordpress.com/2014/01/15/improved-seeding-for-clustering-with-k-means/
-https://datasciencelab.wordpress.com/2014/01/21/selection-of-k-in-k-means-clustering-reloaded/
-"""
 import numpy as np
 from sklearn import cluster
 
