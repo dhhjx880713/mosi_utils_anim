@@ -108,34 +108,3 @@ def find_clusters(features, indices, options):
     else:#elif len(indices) == 1:#indices is not None and
         print "return indices",indices
         return indices
-
-"""
-if method == CLUSTERING_METHOD_KMEANS:
-    clusters = _find_clusters_kmeans(features, indices, n_subdivisions)
-elif method == CLUSTERING_METHOD_MEDIAN:
-    clusters = _find_clusters_median(features, indices, n_subdivisions)
-elif method == CLUSTERING_METHOD_PCA:
-    clusters = _find_clusters_pca(features, indices, n_subdivisions)
-elif method == CLUSTERING_METHOD_CMEANS:
-    clusters = _find_clusters_cmeans(features, indices, n_subdivisions)
-elif method == CLUSTERING_METHOD_RANDOM_PROJECTION:
-    clusters = _find_clusters_random_projection(features, indices, n_subdivisions)
-elif method == CLUSTERING_METHOD_2D_GRID:
-    clusters = _find_clusters_2d_grid(features, indices, n_subdivisions)
-elif method == CLUSTERING_METHOD_KMEDOIDS:
-    clusters = _find_clusters_kmedoids(features, indices, n_subdivisions)
-elif method == CLUSTERING_METHOD_GMM:
-    clusters = _find_clusters_gmm(features, indices, n_subdivisions)
-elif method == CLUSTERING_METHOD_DPSCAN:
-    clusters = _find_clusters_dpscan(features, indices, n_subdivisions)
-elif method == CLUSTERING_METHOD_BIRCH:
-    clusters = _find_clusters_birch(features, indices, n_subdivisions)
-elif method == CLUSTERING_METHOD_SOM:
-    clusters = _find_clusters_self_organizing_map(features, indices, n_subdivisions)
-elif method == CLUSTERING_METHOD_GMM_AIC:
-    clusters = _find_clusters_gmm_aic(features, indices, n_subdivisions)
-elif method == CLUSTERING_METHOD_KMEANS_AIC:
-    clusters = _find_clusters_kmeans_aic(features, indices, n_subdivisions)
-elif method == CLUSTERING_METHOD_MEAN_SHIFT:
-    clusters = _find_clusters_mean_shift(features, indices, n_subdivisions)
-    """
