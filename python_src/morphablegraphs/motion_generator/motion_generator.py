@@ -47,7 +47,7 @@ class MotionGenerator(object):
         self.graph_walk_generator.set_algorithm_config(self._algorithm_config)
         self.graph_walk_optimizer.set_algorithm_config(self._algorithm_config)
 
-    def generate_motion(self, mg_input, activate_joint_map=False, activate_coordinate_transform=False):
+    def generate_motion(self, mg_input, activate_joint_map=False, activate_coordinate_transform=False, complete_motion_vector=True):
         """
         Converts a json input file with a list of elementary actions and constraints
         into a graph_walk saved to a BVH file.
@@ -90,13 +90,14 @@ class MotionGenerator(object):
             self.inverse_kinematics.modify_motion_vector(motion_vector)
             self.inverse_kinematics.fill_rotate_events(motion_vector)
 
+        if complete_motion_vector:
 
-        motion_vector.frames = self.motion_state_graph.skeleton.complete_motion_vector_from_reference(motion_vector.frames)
-        if motion_vector.frames is not None:
-            if self.motion_state_graph.hand_pose_generator is not None:
-                write_log("Generate hand poses")
-                self.motion_state_graph.hand_pose_generator.generate_hand_poses(motion_vector)
-            self._output_info(graph_walk, start_time)
+            motion_vector.frames = self.motion_state_graph.skeleton.complete_motion_vector_from_reference(motion_vector.frames)
+            if motion_vector.frames is not None:
+                if self.motion_state_graph.hand_pose_generator is not None:
+                    write_log("Generate hand poses")
+                    self.motion_state_graph.hand_pose_generator.generate_hand_poses(motion_vector)
+                self._output_info(graph_walk, start_time)
         return motion_vector
 
     def _output_info(self, graph_walk, start_time):
