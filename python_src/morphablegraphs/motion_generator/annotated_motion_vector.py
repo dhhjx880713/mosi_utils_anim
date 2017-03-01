@@ -65,6 +65,6 @@ class AnnotatedMotionVector(MotionVector):
 
         result_object = dict()
         result_object["frames"] = global_frames
-        #result_object["jointSequence"] = self.skeleton.animated_joints
+        result_object["frameTime"] = self.frame_time
         return result_object
 
