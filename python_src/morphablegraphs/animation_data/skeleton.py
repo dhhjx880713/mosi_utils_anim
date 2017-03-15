@@ -14,7 +14,6 @@ from quaternion_frame import QuaternionFrame
 from ..animation_data.motion_editing import euler_to_quaternion
 from itertools import izip
 from skeleton_node import SkeletonRootNode, SkeletonJointNode, SkeletonEndSiteNode, SKELETON_NODE_TYPE_JOINT
-from ..utilities import write_to_json_file
 from . import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER
 try:
     from mgrd import Skeleton as MGRDSkeleton
@@ -219,7 +218,10 @@ class Skeleton(object):
         data["node_channels"] = self.node_channels
         data["tool_nodes"] = self.tool_nodes
         data["node_name_frame_map"] = self.node_name_frame_map
-        write_to_json_file(file_name, data)
+        with open(file_name, 'wb') as outfile:
+            tmp = json.dumps(data, indent=4)
+            outfile.write(tmp)
+            outfile.close()
 
     def extract_channels(self):
         for node_idx, node_name in enumerate(self.node_names):
