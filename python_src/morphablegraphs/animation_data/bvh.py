@@ -213,7 +213,7 @@ class BVHWriter(object):
         outfile.close()
 
     def generate_bvh_string(self):
-        bvh_string = self._generate_hierarchy_string(self.skeleton.root, self.skeleton.node_names) + "\n"
+        bvh_string = self._generate_hierarchy_string(self.skeleton) + "\n"
         if self.is_quaternion:
             euler_frames = self.convert_quaternion_to_euler_frames_skipping_fixed_joints(self.frame_data, self.is_quaternion)
             #euler_frames = self.convert_quaternion_to_euler_frames(self.frame_data)
@@ -223,15 +223,15 @@ class BVHWriter(object):
         bvh_string += self._generate_bvh_frame_string(euler_frames, self.frame_time)
         return bvh_string
 
-    def _generate_hierarchy_string(self, root, node_names):
+    def _generate_hierarchy_string(self, skeleton):
         """ Initiates the recursive generation of the skeleton structure string
             by calling _generate_joint_string with the root joint
         """
         hierarchy_string = "HIERARCHY\n"
-        hierarchy_string += self._generate_joint_string(root, node_names, 0)
+        hierarchy_string += self._generate_joint_string(skeleton.root, skeleton, 0)
         return hierarchy_string
 
-    def _generate_joint_string(self, joint, node_names, joint_level):
+    def _generate_joint_string(self, joint, skeleton, joint_level):
         """ Recursive traversing of the joint hierarchy to create a
             skeleton structure string in the BVH format
         """
@@ -246,20 +246,20 @@ class BVHWriter(object):
         if joint_level == 0:
             joint_string += tab_string + "ROOT " + joint + "\n"
         else:
-            if joint != "End Site" and joint in node_names.keys() and "channels" in node_names[joint].keys():
+            if len(skeleton.nodes[joint].children) > 0:
                 joint_string += tab_string + "JOINT " + joint + "\n"
             else:
                 joint_string += tab_string + "End Site" + "\n"
 
         # open bracket add offset
         joint_string += tab_string + "{" + "\n"
-        joint_string += tab_string + "\t"  + "OFFSET " + "\t " + \
-            str(node_names[joint]["offset"][0]) + "\t " + str(node_names[joint]["offset"][1]) \
-            + "\t " + str(node_names[joint]["offset"][2]) + "\n"
+        offset = skeleton.nodes[joint].offset
+        joint_string += tab_string + "\t" + "OFFSET " + "\t " + \
+            str(offset[0]) + "\t " + str(offset[1]) + "\t " + str(offset[2]) + "\n"
 
-        if joint != "End Site" and "channels" in node_names[joint].keys():
+        if len(skeleton.nodes[joint].children) > 0:
             # channel information
-            channels = node_names[joint]["channels"]
+            channels = skeleton.nodes[joint].channels
             joint_string += tab_string + "\t" + \
                 "CHANNELS " + str(len(channels)) + " "
             for tok in channels:
@@ -268,9 +268,8 @@ class BVHWriter(object):
 
             joint_level += 1
             # recursive call for all children
-            for child in node_names[joint]["children"]:
-                joint_string += self._generate_joint_string(child, node_names,
-                                                            joint_level)
+            for child in skeleton.nodes[joint].children:
+                joint_string += self._generate_joint_string(child.node_name, skeleton, joint_level)
 
         # close the bracket
         joint_string += tab_string + "}" + "\n"
