@@ -53,8 +53,21 @@ class SkeletonNodeBase(object):
                 self.cached_global_matrix = self.get_local_matrix(quaternion_frame)
                 return self.cached_global_matrix
 
+    def get_global_matrix_from_anim_frame(self, frame, use_cache=False):
+        if self.cached_global_matrix is not None and use_cache:
+            return self.cached_global_matrix
+        else:
+            if self.parent is not None:
+                parent_matrix = self.parent.get_global_matrix2(frame, use_cache)
+                self.cached_global_matrix = np.dot(parent_matrix, frame[self.node_name])
+                return self.cached_global_matrix
+            else:
+                self.cached_global_matrix = frame[self.node_name]
+                return self.cached_global_matrix
+
     def get_local_matrix(self, quaternion_frame):
         pass
+
 
     def get_frame_parameters(self, frame, rotation_type):
         pass
@@ -62,15 +75,19 @@ class SkeletonNodeBase(object):
     def get_number_of_frame_parameters(self, rotation_type):
         pass
 
-    def to_unity_json(self, joints, animated_joint_list):
+    def to_unity_json(self, joints, animated_joint_list, joint_name_map=None):
         joint_desc = dict()
         joint_desc["name"] = self.node_name
+        if joint_name_map is not None and self.node_name in joint_name_map:
+            joint_desc["targetName"] = joint_name_map[self.node_name]
+        else:
+            joint_desc["targetName"] = "none"
         joint_desc["children"] = []
         joints.append(joint_desc)
         for c in self.children:
             if c.node_name in animated_joint_list:
                 joint_desc["children"].append(c.node_name)
-                c.to_unity_json(joints, animated_joint_list)
+                c.to_unity_json(joints, animated_joint_list, joint_name_map=joint_name_map)
 
 
 class SkeletonRootNode(SkeletonNodeBase):
