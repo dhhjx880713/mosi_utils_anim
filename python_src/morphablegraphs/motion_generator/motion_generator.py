@@ -133,5 +133,8 @@ class MotionGenerator(object):
             else:
                 write_log("Error: no motion data to export")
 
+    def get_skeleton(self):
+        return self.motion_state_graph.skeleton
+
 
 
