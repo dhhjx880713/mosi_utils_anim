@@ -1,10 +1,7 @@
 import os
-from datetime import datetime
-import numpy as np
-from ..animation_data import MotionVector, ROTATION_TYPE_QUATERNION, Skeleton, BVHReader, motion_editing,SKELETON_NODE_TYPE_ROOT, SKELETON_NODE_TYPE_JOINT, SKELETON_NODE_TYPE_END_SITE
-from ..utilities import write_to_json_file, write_to_logfile
+from ..animation_data import MotionVector, ROTATION_TYPE_QUATERNION, Skeleton, BVHReader
+from ..utilities import write_to_json_file
 from ..utilities.io_helper_functions import get_bvh_writer
-from ..external.transformations import euler_from_quaternion, quaternion_matrix, quaternion_from_matrix
 
 
 class AnnotatedMotionVector(MotionVector):
@@ -40,7 +37,7 @@ class AnnotatedMotionVector(MotionVector):
         bvh_writer = get_bvh_writer(self.skeleton, self.frames)
         return bvh_writer.generate_bvh_string()
 
-    def to_unity_local(self):
+    def to_unity_format(self):
         global_frames = []
         for node in self.skeleton.nodes.values():
             node.quaternion_index = node.index
@@ -51,12 +48,9 @@ class AnnotatedMotionVector(MotionVector):
                 if node.node_name in self.skeleton.animated_joints:
                     if node.node_name == self.skeleton.root:
                         t = (node.get_global_position(frame)-node.offset).tolist()
-                        #t = (np.array(t) / scale).tolist()
                         global_frame["rootTranslation"] = {"x": t[0], "y": t[1], "z": t[2]}
-                        #print global_frame["rootTranslation"]
 
                     t = node.offset
-                    #t = (np.array(t)/scale).tolist()
                     global_frame["translations"].append({"x": t[0], "y": t[1], "z": t[2]})
                     r = frame[offset:offset+4]
                     global_frame["rotations"].append({"x": r[1], "y": r[2], "z": r[3], "w": r[0]})

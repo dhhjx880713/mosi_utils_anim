@@ -23,8 +23,29 @@ from morphablegraphs.utilities.io_helper_functions import get_bvh_writer
 
 SERVICE_CONFIG_FILE = "config" + os.sep + "service.config"
 
+ROCKETBOX_TO_GAME_ENGINE_MAP = dict()
+ROCKETBOX_TO_GAME_ENGINE_MAP["Hips"] = "pelvis"
+ROCKETBOX_TO_GAME_ENGINE_MAP["Spine"] = "spine_01"
+ROCKETBOX_TO_GAME_ENGINE_MAP["Spine_1"] = "spine_02"
+ROCKETBOX_TO_GAME_ENGINE_MAP["Neck"] = "neck_01"
+ROCKETBOX_TO_GAME_ENGINE_MAP["Head"] = "head"
+ROCKETBOX_TO_GAME_ENGINE_MAP["LeftShoulder"] = "clavicle_l"
+ROCKETBOX_TO_GAME_ENGINE_MAP["RightShoulder"] = "clavicle_r"
+ROCKETBOX_TO_GAME_ENGINE_MAP["LeftArm"] = "upperarm_l"
+ROCKETBOX_TO_GAME_ENGINE_MAP["RightArm"] = "upperarm_r"
+ROCKETBOX_TO_GAME_ENGINE_MAP["LeftForeArm"] = "lowerarm_l"
+ROCKETBOX_TO_GAME_ENGINE_MAP["RightForeArm"] = "lowerarm_r"
+ROCKETBOX_TO_GAME_ENGINE_MAP["LeftHand"] = "hand_l"
+ROCKETBOX_TO_GAME_ENGINE_MAP["RightHand"] = "hand_r"
+ROCKETBOX_TO_GAME_ENGINE_MAP["LeftUpLeg"] = "thigh_l"
+ROCKETBOX_TO_GAME_ENGINE_MAP["RightUpLeg"] = "thigh_r"
+ROCKETBOX_TO_GAME_ENGINE_MAP["LeftLeg"] = "calf_l"
+ROCKETBOX_TO_GAME_ENGINE_MAP["RightLeg"] = "calf_r"
+ROCKETBOX_TO_GAME_ENGINE_MAP["LeftFoot"] = "foot_l"
+ROCKETBOX_TO_GAME_ENGINE_MAP["RightFoot"] = "foot_r"
 
-class MGInputHandler(tornado.web.RequestHandler):
+
+class GenerateMotionHandler(tornado.web.RequestHandler):
     """Handles HTTP POST Requests to a registered server url.
         Starts the morphable graphs algorithm if an input file
         is detected in the request body.
@@ -41,7 +62,7 @@ class MGInputHandler(tornado.web.RequestHandler):
         self.write(error_string)
 
     def post(self):
-        try:#  try to decode message body
+        try:
             mg_input = json.loads(self.request.body)
         except:
             error_string = "Error: Could not decode request body as JSON."
@@ -50,33 +71,52 @@ class MGInputHandler(tornado.web.RequestHandler):
 
         # start algorithm if predefined keys were found
         if "elementaryActions" in mg_input.keys() or "tasks" in mg_input.keys():
-            motion_vector = self.application.generate_motion(mg_input)
-            self._handle_result(motion_vector)
+
+            if mg_input["outputMode"] == "Unity":
+                mg_input = self._set_orientation_to_null(mg_input)
+                motion_vector = self.application.generate_motion(mg_input, complete_motion_vector=False)
+            else:
+                motion_vector = self.application.generate_motion(mg_input)
+
+            self._handle_result(mg_input, motion_vector)
+
         else:
             print mg_input
             error_string = "Error: Did not find expected keys in the input data."
             self.write(error_string)
 
-    def _handle_result(self, motion_vector):
+    def _handle_result(self, mg_input, motion_vector):
         """Sends the result back as an answer to a post request.
         """
         if motion_vector.has_frames():
-            print "Converting the motion into the BVH format..."
-            start = time.time()
-            bvh_writer = get_bvh_writer(motion_vector.skeleton, motion_vector.frames)
-            bvh_string = bvh_writer.generate_bvh_string()
-            result_object = {
-                "bvh": bvh_string,
-                "annotation": motion_vector.keyframe_event_list.frame_annotation,
-                "event_list": motion_vector.keyframe_event_list.keyframe_events_dict}
-            print "Finished converting the motion to a BVH string in", time.time()-start, "seconds"
-            self.write(json.dumps(result_object))  # send result back
-            if self.application.export_motion_to_file:
-                self._export_motion_to_file(bvh_string, motion_vector)
+            if mg_input["outputMode"] == "Unity":
+                result_object = motion_vector.to_unity_format()
+                if self.application.export_motion_to_file:
+                    motion_vector.export(self.application.service_config["output_dir"], self.application.service_config["output_filename"],
+                                         add_time_stamp=False, export_details=False)
+            else:
+                result_object = self.convert_to_interact_format(motion_vector)
+
+            self.write(json.dumps(result_object))
+
         else:
             error_string = "Error: Failed to generate motion data."
             print error_string
             self.write(error_string)
+
+    def convert_to_interact_format(self, motion_vector):
+        print "Converting the motion into the BVH format..."
+        start = time.time()
+        bvh_writer = get_bvh_writer(motion_vector.skeleton, motion_vector.frames)
+        bvh_string = bvh_writer.generate_bvh_string()
+        result_object = {
+            "bvh": bvh_string,
+            "annotation": motion_vector.keyframe_event_list.frame_annotation,
+            "event_list": motion_vector.keyframe_event_list.keyframe_events_dict}
+        print "Finished converting the motion to a BVH string in", time.time() - start, "seconds"
+        if self.application.export_motion_to_file:
+            self._export_motion_to_file(bvh_string, motion_vector)
+        return result_object
 
     def _export_motion_to_file(self, bvh_string, motion_vector):
         bvh_filename = self.application.service_config["output_dir"] + os.sep + self.application.service_config["output_filename"]
@@ -91,8 +131,38 @@ class MGInputHandler(tornado.web.RequestHandler):
             motion_vector.keyframe_event_list.export_to_file(bvh_filename)
 
 
+    def _set_orientation_to_null(self, mg_input):
+        print mg_input
+        mg_input["startPose"]["orientation"] = [None, None, None, None]
+        for action in mg_input["elementaryActions"]:
+            for constraint in action["constraints"]:
+                print constraint
+                for p in constraint["trajectoryConstraints"]:
+                    p["orientation"] = [None, None, None, None]
+        return mg_input
 
-class MGConfigurationHandler(tornado.web.RequestHandler):
+class GetSkeletonHandler(tornado.web.RequestHandler):
+    """Handles HTTP POST Requests to a registered server url.
+        Starts the morphable graphs algorithm if an input file
+        is detected in the request body.
+    """
+
+    def __init__(self, application, request, **kwargs):
+        tornado.web.RequestHandler.__init__(
+            self, application, request, **kwargs)
+        self.application = application
+
+    def get(self):
+        error_string = "GET request not implemented. Use POST instead."
+        print error_string
+        self.write(error_string)
+
+    def post(self):
+        result_object = self.application.get_skeleton().to_unity_json(joint_name_map=ROCKETBOX_TO_GAME_ENGINE_MAP)
+        self.write(json.dumps(result_object))
+
+
+class SetConfigurationHandler(tornado.web.RequestHandler):
     """Handles HTTP POST Requests to a registered server url.
         Sets the configuration of the morphable graphs algorithm
         if an input file is detected in the request body.
@@ -159,21 +229,18 @@ class MGRestApplication(tornado.web.Application):
         self.motion_generator = MotionGenerator(self.service_config, self.algorithm_config)
         print "Finished construction from file in", time.clock() - start, "seconds"
 
-    def generate_motion(self, mg_input):
+    def generate_motion(self, mg_input, complete_motion_vector=True):
         return self.motion_generator.generate_motion(mg_input, activate_joint_map=self.activate_joint_map,
-                                                     activate_coordinate_transform=self.activate_coordinate_transform)
+                                                     activate_coordinate_transform=self.activate_coordinate_transform,
+                                                     complete_motion_vector=complete_motion_vector)
+
+    def get_skeleton(self):
+        return self.motion_generator.get_skeleton()
 
     def set_algorithm_config(self, algorithm_config):
         self.motion_generator.set_algorithm_config(algorithm_config)
 
     def _test_ca_interface(self, service_config):
-        # ca_service_url = service_config["collision_avoidance_service_url"]
-        # try:
-        #    urllib2.urlopen('http://'+ca_service_url)
-        # except Exception as e:
-        #    print "Warning: Could not open collision avoidance service URL", ca_service_url, "\n Collision avoidance will be disabled"
-        #
-        #
         if "collision_avoidance_service_url" in service_config.keys() and "collision_avoidance_service_port" in service_config.keys():
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             address = (service_config["collision_avoidance_service_url"], service_config["collision_avoidance_service_port"])
@@ -191,8 +258,8 @@ class MGRestApplication(tornado.web.Application):
 
 
 
-class MorphableGraphsRESTfulInterface(object):
-    """Implements a RESTful interface for MorphableGraphs.
+class MGRESTInterface(object):
+    """Implements a REST interface for MorphableGraphs.
 
     Parameters:
     ----------
@@ -205,7 +272,7 @@ class MorphableGraphsRESTfulInterface(object):
 
     How to use from client side:
     ----------------------------
-    send POST request to 'http://localhost:port/runmorphablegraphs' with JSON
+    send POST request to 'http://localhost:port/generate_motion' with JSON
     formatted input as body.
     Example with urllib2 when output_mode is answer_request:
     request = urllib2.Request(mg_server_url, mg_input_data)
@@ -231,8 +298,10 @@ class MorphableGraphsRESTfulInterface(object):
 
         #  Construct morphable graph from files
         self.application = MGRestApplication(service_config, algorithm_config,
-                                             [(r"/run_morphablegraphs", MGInputHandler),
-                                              (r"/config_morphablegraphs", MGConfigurationHandler)
+                                             [(r"/run_morphablegraphs", GenerateMotionHandler),#legacy
+                                              (r"/config_morphablegraphs", SetConfigurationHandler),
+                                              (r"/generate_motion", GenerateMotionHandler),
+                                               (r"/get_skeleton", GetSkeletonHandler)
                                               ])
 
         self.port = service_config["port"]
@@ -246,7 +315,7 @@ class MorphableGraphsRESTfulInterface(object):
 
 def main():
     if os.path.isfile(SERVICE_CONFIG_FILE):
-        mg_service = MorphableGraphsRESTfulInterface(SERVICE_CONFIG_FILE)
+        mg_service = MGRESTInterface(SERVICE_CONFIG_FILE)
         mg_service.start()
     else:
         print "Error: could not open service or algorithm configuration file"
