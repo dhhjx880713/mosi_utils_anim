@@ -37,28 +37,31 @@ class AnnotatedMotionVector(MotionVector):
         bvh_writer = get_bvh_writer(self.skeleton, self.frames)
         return bvh_writer.generate_bvh_string()
 
-    def to_unity_format(self):
-        global_frames = []
+    def to_unity_format(self, scale=1.0):
+        unity_frames = []
         for node in self.skeleton.nodes.values():
             node.quaternion_index = node.index
         for frame in self.frames:
-            global_frame = {"translations": [], "rotations": [], "rootTranslation": None}
+            unity_frame = {"translations": [], "rotations": [], "rootTranslation": None}
             offset = 3
-            for node in self.skeleton.nodes.values():
-                if node.node_name in self.skeleton.animated_joints:
-                    if node.node_name == self.skeleton.root:
-                        t = (node.get_global_position(frame)-node.offset).tolist()
-                        global_frame["rootTranslation"] = {"x": t[0], "y": t[1], "z": t[2]}
+            for node_name in self.skeleton.nodes.keys():#TODO check order of skeleton.nodes dict
+                if node_name in self.skeleton.animated_joints:
+                    #print node_name
+                    node = self.skeleton.nodes[node_name]
+                    if node_name == self.skeleton.root:
+                        t = (node.get_global_position(frame)-node.offset)*scale
+                        unity_frame["rootTranslation"] = {"x": t[0], "y": t[1], "z": t[2]}
 
-                    t = node.offset
-                    global_frame["translations"].append({"x": t[0], "y": t[1], "z": t[2]})
+                    t = np.array(node.offset) * scale
+                    unity_frame["translations"].append({"x": t[0], "y": t[1], "z": t[2]})
                     r = frame[offset:offset+4]
-                    global_frame["rotations"].append({"x": r[1], "y": r[2], "z": r[3], "w": r[0]})
+                    
+                    unity_frame["rotations"].append({"x": r[1], "y": r[2], "z": r[3], "w": r[0]})
                     offset += 4
-            global_frames.append(global_frame)
+            unity_frames.append(unity_frame)
 
         result_object = dict()
-        result_object["frames"] = global_frames
+        result_object["frames"] = unity_frames
         result_object["frameTime"] = self.frame_time
         result_object["jointSequence"] = self.skeleton.animated_joints
         return result_object
