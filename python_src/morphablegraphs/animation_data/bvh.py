@@ -171,6 +171,12 @@ class BVHReader(object):
         indices = [self.node_channels.index(nc) for nc in node_channels]
         return self.frames[:, indices]
 
+    def get_animated_joints(self):
+        """Returns an ordered list of joints which have animation channels"""
+        for name, node in self.node_names.iteritems():
+            if "channels" in node.keys() and len(node["channels"]) > 0:
+                yield name
+
 
 class BVHWriter(object):
 
