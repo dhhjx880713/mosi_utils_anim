@@ -212,6 +212,8 @@ class Skeleton(object):
         self._chain_names = self._generate_chain_names()
 
     def load_from_fbx_data(self, data):
+        self.nodes = collections.OrderedDict()
+
         self.animated_joints = data["animated_joints"]
         #self.inv_bind_poses = [self._create_node_from_desc(node, None) for node in data["nodes"].values()]
         self.root = data["root"]
@@ -245,6 +247,7 @@ class Skeleton(object):
     def _create_node_from_desc2(self, data, node_name, parent):
         node_data = data["nodes"][node_name]
 
+
         channels = node_data["channels"]
         if parent is None:
             node = SkeletonRootNode(node_name, channels, parent)
@@ -258,11 +261,10 @@ class Skeleton(object):
         node.rotation = np.array(node_data["rotation"])
         node.quaternion_frame_index = node_data["quaternion_frame_index"]
         node.children = []
-
+        self.nodes[node_name] = node
         for c_name in node_data["children"]:
             c_node = self._create_node_from_desc2(data, c_name, node)
             node.children.append(c_node)
-        self.nodes[node_name] = node
 
         return node
 
