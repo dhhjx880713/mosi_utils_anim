@@ -62,7 +62,8 @@ class MotionState(MotionPrimitiveModelWrapper):
         skeleton = self.motion_state_group.motion_state_graph.mgrd_skeleton
         print "Init motion state",self.name
         self._initialize_from_json(skeleton, desc["mm"], self.motion_state_group.motion_state_graph.animated_joints)
-        self.cluster_tree = desc["space_partition"]
+        if "space_partition" in desc.keys():
+            self.cluster_tree = desc["space_partition"]
         if "stats" in desc.keys():
             self.parameter_bb = desc["stats"]["pose_bb"]
             self.cartesian_bb = desc["stats"]["cartesian_bb"]
