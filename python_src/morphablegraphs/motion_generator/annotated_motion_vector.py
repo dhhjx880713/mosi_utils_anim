@@ -1,4 +1,5 @@
 import os
+import numpy as np
 from ..animation_data import MotionVector, ROTATION_TYPE_QUATERNION, Skeleton, BVHReader
 from ..utilities import write_to_json_file
 from ..utilities.io_helper_functions import get_bvh_writer
