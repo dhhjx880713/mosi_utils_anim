@@ -116,7 +116,9 @@ class Skeleton(object):
         self.parent_dict = dict()
         self._chain_names = []
 
-    def load_from_bvh(self, bvh_reader, animated_joints=DEFAULT_ANIMATED_JOINT_LIST, add_tool_joints=True):
+    def load_from_bvh(self, bvh_reader, animated_joints=None, add_tool_joints=True):
+        if animated_joints is None:
+            animated_joints = DEFAULT_ANIMATED_JOINT_LIST
         self.animated_joints = animated_joints
         self.frame_time = deepcopy(bvh_reader.frame_time)
         self.root = deepcopy(bvh_reader.root)
@@ -169,13 +171,13 @@ class Skeleton(object):
         print "node", node_name, node.quaternion_frame_index, node.index
 
         node.offset = self.node_names[node_name]["offset"]
-
+        self.nodes[node_name] = node
         if "children" in node_names[node_name].keys():
             for c in node_names[node_name]["children"]:
                 c_node = self.construct_hierarchy_from_bvh(node_names, node_channels, c)
                 c_node.parent = node
                 node.children.append(c_node)
-        self.nodes[node_name] = node
+
 
         return node
 
