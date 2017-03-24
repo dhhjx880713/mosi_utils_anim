@@ -73,7 +73,7 @@ class GetSkeletonHandler(tornado.web.RequestHandler):
 
     def post(self):
         joint_name_map = {key: key for key in self.application.skeleton.animated_joints}
-        result_object = self.application.skeleton.to_unity_json(joint_name_map=joint_name_map)
+        result_object = self.application.skeleton.to_unity_json(joint_name_map=joint_name_map, scale=10)
         self.write(json.dumps(result_object))
 
 
@@ -113,7 +113,7 @@ class UnityAnimationPlayerInterface(object):
 
 
 def main():
-    bvh_path = "skeleton.bvh"
+    bvh_path = "game_engine.bvh"
     if os.path.isfile(bvh_path):
         mg_service = UnityAnimationPlayerInterface(bvh_path)
         mg_service.start()
