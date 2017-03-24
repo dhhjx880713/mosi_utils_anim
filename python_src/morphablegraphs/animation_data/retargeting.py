@@ -27,6 +27,9 @@ ROCKETBOX_TO_GAME_ENGINE_MAP["LeftLeg"] = "calf_l"
 ROCKETBOX_TO_GAME_ENGINE_MAP["RightLeg"] = "calf_r"
 ROCKETBOX_TO_GAME_ENGINE_MAP["LeftFoot"] = "foot_l"
 ROCKETBOX_TO_GAME_ENGINE_MAP["RightFoot"] = "foot_r"
+ROCKETBOX_TO_GAME_ENGINE_MAP["Bip01_L_Toe0"] = "ball_l"
+ROCKETBOX_TO_GAME_ENGINE_MAP["Bip01_R_Toe0"] = "ball_r"
+
 
 ROOT_JOINT = "Hips"
 ROOT_CHILDREN = ["RightUpLeg", "LeftUpLeg", "Spine"]
