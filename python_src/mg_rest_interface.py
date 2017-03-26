@@ -133,7 +133,7 @@ class GenerateMotionHandler(tornado.web.RequestHandler):
 
     def _set_orientation_to_null(self, mg_input):
         print mg_input
-        if "useTrajectoryOrientation" in mg_input.keys() and mg_input["useTrajectoryOrientation"]:
+        if "setOrientationFromTrajectory" in mg_input.keys() and mg_input["setOrientationFromTrajectory"]:
             mg_input["startPose"]["orientation"] = [None, None, None]
         for action in mg_input["elementaryActions"]:
             for constraint in action["constraints"]:
