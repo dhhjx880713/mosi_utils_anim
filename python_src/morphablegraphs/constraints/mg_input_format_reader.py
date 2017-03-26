@@ -419,10 +419,11 @@ class MGInputFormatReader(object):
         """ Checks if the label is in the semantic annotation dict of a constraint
         """
         if "semanticAnnotation" in constraint_definition.keys():
-            annotation = constraint_definition["semanticAnnotation"]
-            #print "semantic Annotation",annotation
-            if label in annotation.keys():
+            if label in constraint_definition["semanticAnnotation"].keys():
                 return True
+        elif "keyframeLabel" in constraint_definition.keys() and constraint_definition["keyframeLabel"] == label:
+            constraint_definition["semanticAnnotation"] = {label:True}
+            return True
         return False
 
     def _transform_point_from_cad_to_opengl_cs(self, point):
