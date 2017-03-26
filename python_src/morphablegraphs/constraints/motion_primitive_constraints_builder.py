@@ -139,13 +139,6 @@ class MotionPrimitiveConstraintsBuilder(object):
             ca_trajectory_set_constraint.set_min_arc_length_from_previous_frames(self.status["prev_frames"])
             ca_trajectory_set_constraint.set_number_of_canonical_frames(self.status["n_canonical_frames"])
             mp_constraints.constraints.append(ca_trajectory_set_constraint)
-            #TODO generate discrete ca constraint where frames are fixed as inside or outside of the range
-        #    for i in xrange(len(ca_trajectory_set_constraint.joint_trajectories)):
-        #       discrete_trajectory_constraint = ca_trajectory_set_constraint.joint_trajectories[i].create_discrete_trajectory(self.status["aligned_sample_frames"])
-        #       discrete_trajectory_constraint.set_min_arc_length_from_previous_frames(self.status["prev_frames"])
-        #       mp_constraints.constraints.append(discrete_trajectory_constraint)
-        #       ca_trajectory_set_constraint.joint_trajectories[i].set_min_arc_length_from_previous_frames(self.status["prev_frames"])
-        #       mp_constraints.ca_constraints.append(ca_trajectory_set_constraint.joint_trajectories[i])
 
     def _add_feet_constraint(self, mp_constraints):
         if "LeftFoot" in self.skeleton.nodes.keys() and "RightFoot" in self.skeleton.nodes.keys():
