@@ -71,6 +71,7 @@ class GraphWalk(object):
         annotated_motion_vector = AnnotatedMotionVector()
         annotated_motion_vector.frames = self.motion_vector.frames
         annotated_motion_vector.n_frames = self.motion_vector.n_frames
+        annotated_motion_vector.frame_time = self.motion_state_graph.skeleton.frame_time
         annotated_motion_vector.keyframe_event_list = self.keyframe_event_list
         annotated_motion_vector.skeleton = self.motion_state_graph.skeleton
         annotated_motion_vector.mg_input = self.mg_input
