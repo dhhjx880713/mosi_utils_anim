@@ -289,6 +289,8 @@ class MGRESTInterface(object):
 
         #  Load configuration files
         service_config = load_json_file(service_config_file)
+        if "log_level" in service_config.keys():
+            set_log_mode(service_config["log_level"])
         algorithm_config_builder = AlgorithmConfigurationBuilder()
         algorithm_config_file = "config" + os.sep + service_config["algorithm_settings"] + "_algorithm.config"
         if os.path.isfile(algorithm_config_file):
