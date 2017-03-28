@@ -73,7 +73,7 @@ class GetSkeletonHandler(tornado.web.RequestHandler):
 
     def post(self):
         joint_name_map = {key: key for key in self.application.skeleton.animated_joints}
-        result_object = self.application.skeleton.to_unity_json(joint_name_map=joint_name_map, scale=10)
+        result_object = self.application.skeleton.to_unity_format(joint_name_map=joint_name_map, scale=10)
         self.write(json.dumps(result_object))
 
 
