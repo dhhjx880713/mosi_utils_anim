@@ -159,7 +159,7 @@ class GetSkeletonHandler(tornado.web.RequestHandler):
         self.write(error_string)
 
     def post(self):
-        result_object = self.application.get_skeleton().to_unity_json(joint_name_map=ROCKETBOX_TO_GAME_ENGINE_MAP)
+        result_object = self.application.get_skeleton().to_unity_format(joint_name_map=ROCKETBOX_TO_GAME_ENGINE_MAP)
         self.write(json.dumps(result_object))
 
 

@@ -512,13 +512,13 @@ class Skeleton(object):
     def get_n_joints(self):
         return len([node for node in self.nodes.values() if len(node.channels) > 0])
 
-    def to_unity_json(self, joint_name_map=None, scale=1):
+    def to_unity_format(self, joint_name_map=None, scale=1):
         """ Converts the skeleton into a custom json format and applies a coordinate transform to the left-handed coordinate system of Unity.
             src: http://answers.unity3d.com/questions/503407/need-to-convert-to-right-handed-coordinates.html
         """
 
         joint_descs = []
-        self.nodes[self.root].to_unity_json(joint_descs, self.animated_joints, joint_name_map=joint_name_map)
+        self.nodes[self.root].to_unity_format(joint_descs, self.animated_joints, joint_name_map=joint_name_map)
 
         data = dict()
         data["root"] = self.root
