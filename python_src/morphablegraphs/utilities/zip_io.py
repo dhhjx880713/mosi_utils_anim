@@ -8,6 +8,7 @@ import zipfile
 import json
 import cPickle
 import time
+from log import write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_ERROR, LOG_MODE_INFO
 
 MORPHABLE_MODEL_FILE_ENDING = "mm.json"
 MM_TYPE = "quaternion"
@@ -41,7 +42,7 @@ class ZipReader(object):
         else:
             self.format_version = 1.0
 
-        print "format version", self.format_version
+        write_message_to_log("Format version " +str(self.format_version), LOG_MODE_DEBUG)
         if self.format_version >= 2.0:
             structure_desc = self._read_elementary_action_file_structure_from_zip_v2()
             data["handPoseInfo"] = self._read_hand_pose_data()
@@ -100,7 +101,7 @@ class ZipReader(object):
                     if splitted_name[0] == "hand_poses" and splitted_name[1][-4:] == ".bvh":
                         hand_pose_info["skeletonStrings"][filename] = self.zip_file.read(file_path)
         except:
-            print "Error: Did not find example skeletons for hand pose in zip file"
+            write_message_to_log("Error: Did not find example skeletons for hand pose in zip file ", LOG_MODE_ERROR)
             pass
         return hand_pose_info
 
@@ -109,7 +110,7 @@ class ZipReader(object):
         for structure_key in structure_desc[self.elementary_action_directory].keys():
             action_data_key = structure_key.split("_")[2]
             if self.verbose:
-                print "action key", action_data_key
+                write_message_to_log("action key" +str(action_data_key), LOG_MODE_INFO)
             self.graph_data[action_data_key] = {}
             self.graph_data[action_data_key]["name"] = action_data_key
             meta_info_file = self._get_meta_info_file_path(structure_key)
@@ -127,7 +128,7 @@ class ZipReader(object):
         mm_data = json.loads(mm_string)
         self.graph_data[action_data_key]["nodes"][mp_data_key]["mm"] = mm_data
         if self.verbose:
-            print "\t", motion_primitive_name
+            write_message_to_log("\t"+ "action key" + motion_primitive_name, LOG_MODE_INFO)
         statsfile = structure_key + "/" + (motion_primitive_name[:-self.type_offset] + ".stats")
         self._add_stats(action_data_key, mp_data_key, statsfile)
         space_partition_file = self._get_space_partitioning_file_path(structure_key, motion_primitive_name)
