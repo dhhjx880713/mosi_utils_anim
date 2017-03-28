@@ -513,6 +513,10 @@ class Skeleton(object):
         return len([node for node in self.nodes.values() if len(node.channels) > 0])
 
     def to_unity_json(self, joint_name_map=None, scale=1):
+        """ Converts the skeleton into a custom json format and applies a coordinate transform to the left-handed coordinate system of Unity.
+            src: http://answers.unity3d.com/questions/503407/need-to-convert-to-right-handed-coordinates.html
+        """
+
         joint_descs = []
         self.nodes[self.root].to_unity_json(joint_descs, self.animated_joints, joint_name_map=joint_name_map)
 
@@ -524,15 +528,14 @@ class Skeleton(object):
         default_pose["rotations"] = []
         for node in self.nodes.values():
               if node.node_name in self.animated_joints and len(node.children) > 0:
-                  print node.node_name
                   q = node.rotation
                   if len(q) ==4:
-                    r = {"x":q[1], "y":q[2], "z":q[3], "w":q[0]}
+                    r = {"x":-q[1], "y":q[2], "z":q[3], "w":-q[0]}
                   else:
                       r = {"x":0, "y":0, "z":0, "w":1}
                   default_pose["rotations"].append(r)
 
-        default_pose["translations"] = [{"x":scale*node.offset[0], "y":scale*node.offset[1], "z":scale*node.offset[2]} for node in self.nodes.values() if node.node_name in self.animated_joints and len(node.children) > 0]
+        default_pose["translations"] = [{"x":-scale*node.offset[0], "y":scale*node.offset[1], "z":scale*node.offset[2]} for node in self.nodes.values() if node.node_name in self.animated_joints and len(node.children) > 0]
 
         data["referencePose"] = default_pose
         return data
