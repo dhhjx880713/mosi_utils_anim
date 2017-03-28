@@ -6,7 +6,7 @@ from ..constraints.motion_primitive_constraints import MotionPrimitiveConstraint
 from ..constraints.spatial_constraints.keyframe_constraints import Direction2DConstraint
 from ..constraints.spatial_constraints.keyframe_constraints import GlobalTransformConstraint
 from ..animation_data.motion_editing import create_transformation_matrix
-from ..utilities import write_log
+from ..utilities import write_log, write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO, LOG_MODE_ERROR
 from .graph_walk import GraphWalk, GraphWalkEntry
 from ea_state import ElementaryActionGeneratorState
 
@@ -131,7 +131,7 @@ class GraphWalkPlanner(object):
             errors, s_vectors = self._evaluate_options_looking_ahead(state, mp_constraints, options, add_orientation)
         min_idx = np.argmin(errors)
         next_node = options[min_idx]
-        write_log("####################################Next node is", next_node)#, "with an error of", errors[min_idx]
+        write_message_to_log("####################################Next node is" +str(next_node) , LOG_MODE_DEBUG)
         return next_node
 
     def _evaluate_option(self, node_name, mp_constraints, prev_frames):
@@ -142,7 +142,7 @@ class GraphWalkPlanner(object):
         s_vector = self.mp_generator._get_best_fit_sample_using_cluster_tree(motion_primitive_node, mp_constraints,
                                                                              prev_frames, 1)
 
-        write_log("Evaluated option", node_name, mp_constraints.min_error)
+        write_message_to_log("Evaluated option " + str(node_name) + str(mp_constraints.min_error), LOG_MODE_DEBUG)
         return s_vector, mp_constraints.min_error
 
     def _evaluate_options(self, state, mp_constraints, options):

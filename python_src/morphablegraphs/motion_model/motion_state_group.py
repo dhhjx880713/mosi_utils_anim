@@ -7,6 +7,7 @@ Created on Thu Jul 16 15:57:42 2015
 
 from . import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END, NODE_TYPE_SINGLE,  NODE_TYPE_CYCLE_END
 from elementary_action_meta_info import ElementaryActionMetaInfo
+from ..utilities import write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO, LOG_MODE_ERROR
 
 
 class MotionStateGroup(ElementaryActionMetaInfo):
@@ -24,15 +25,15 @@ class MotionStateGroup(ElementaryActionMetaInfo):
         self._set_node_attributes()
 
     def _set_node_attributes(self):
-        print "elementary_action", self.elementary_action_name
-        print "start states", self.start_states
+        write_message_to_log("elementary_action" + str(self.elementary_action_name), LOG_MODE_DEBUG)
+        write_message_to_log("start states" + str(self.start_states), LOG_MODE_DEBUG)
         if len(self.nodes) == 1:
             node_key = self.nodes.keys()[0]
             self.nodes[node_key].node_type = NODE_TYPE_SINGLE
         else:
             for k in self.start_states:
                 self.nodes[(self.elementary_action_name, k)].node_type = NODE_TYPE_START
-            print "end states", self.end_states
+            write_message_to_log("end states" + str(self.end_states), LOG_MODE_DEBUG)
             for k in self.end_states:
                  self.nodes[(self.elementary_action_name, k)].node_type = NODE_TYPE_END
             for k in self.cycle_states:
@@ -49,8 +50,8 @@ class MotionStateGroup(ElementaryActionMetaInfo):
                 self.nodes[node_key].update_motion_stats()
                 self.meta_information["stats"][node_key[1]] = {"average_step_length": self.nodes[node_key].average_step_length,
                                                                "n_standard_transitions": self.nodes[node_key].n_standard_transitions}
-                print"n standard transitions", node_key, self.nodes[node_key].n_standard_transitions
-            print "updated meta information", self.meta_information
+                write_message_to_log("n standard transitions " + str(node_key) +" "+ str(self.nodes[node_key].n_standard_transitions), LOG_MODE_DEBUG)
+            write_message_to_log("Updated meta information " + str(self.meta_information), LOG_MODE_DEBUG)
         else:
             if self.meta_information is None:
                 self.meta_information = {}
@@ -65,7 +66,7 @@ class MotionStateGroup(ElementaryActionMetaInfo):
                     self.meta_information["stats"][node_key[1]] = {"average_step_length": self.nodes[node_key].average_step_length,
                                                                    "n_standard_transitions": self.nodes[node_key].n_standard_transitions }
                     changed_meta_info = True
-            print "loaded stats from meta information file", self.meta_information
+            write_message_to_log("Loaded stats from meta information file " + str(self.meta_information), LOG_MODE_DEBUG)
         if changed_meta_info and not self.loaded_from_dict:
             self.save_updated_meta_info()
 
@@ -105,7 +106,7 @@ class MotionStateGroup(ElementaryActionMetaInfo):
             # trying to reach the goal using a last step
             next_node_type = NODE_TYPE_END
 
-        print "generate", next_node_type, "transition from trajectory"
+        write_message_to_log("Generate "+ str(next_node_type) + " transition from trajectory", LOG_MODE_DEBUG)
         return next_node_type
 
     def get_transition_type_for_action(self, graph_walk, action_constraint):
@@ -115,7 +116,7 @@ class MotionStateGroup(ElementaryActionMetaInfo):
             next_node_type = NODE_TYPE_STANDARD
         else:
             next_node_type = NODE_TYPE_END
-        print "generate", next_node_type, "transition without trajectory", n_standard_transitions, prev_node
+        write_message_to_log("Generate " + str(next_node_type) + " transition without trajectory " + str(n_standard_transitions) +" " + str(prev_node), LOG_MODE_DEBUG)
         if action_constraint.cycled_next and next_node_type == NODE_TYPE_END:
             next_node_type = NODE_TYPE_CYCLE_END
         return next_node_type

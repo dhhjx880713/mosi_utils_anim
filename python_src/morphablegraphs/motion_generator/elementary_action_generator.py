@@ -4,7 +4,6 @@ from copy import copy
 
 import numpy as np
 from ..constraints import CA_CONSTRAINTS_MODE_DIRECT_CONNECTION
-
 from ca_interface import CAInterface
 from ea_state import ElementaryActionGeneratorState
 from graph_walk import GraphWalkEntry
@@ -12,7 +11,7 @@ from graph_walk_planner import GraphWalkPlanner
 from motion_primitive_generator import MotionPrimitiveGenerator
 from ..constraints.motion_primitive_constraints_builder import MotionPrimitiveConstraintsBuilder
 from ..motion_model import NODE_TYPE_END
-from ..utilities import write_log
+from ..utilities import write_log, write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO, LOG_MODE_ERROR
 from ..utilities.exceptions import PathSearchError
 
 
@@ -34,7 +33,7 @@ class ElementaryActionGenerator(object):
         self.path_planner = GraphWalkPlanner(self.motion_state_graph, algorithm_config)
 
         if service_config["collision_avoidance_service_url"] is not None:
-            print "created ca interface", service_config["collision_avoidance_service_url"]
+            write_message_to_log("created ca interface" + service_config["collision_avoidance_service_url"], LOG_MODE_DEBUG)
             self.ca_interface = CAInterface(self, service_config)
         else:
             self.ca_interface = None
@@ -66,14 +65,16 @@ class ElementaryActionGenerator(object):
         self.path_planner.set_state(graph_walk, self.motion_primitive_generator, self.action_state, self.action_constraints, self.arc_length_of_end)
 
         if self.action_state.current_node is None:  # is start state
-            if self.action_constraints.root_trajectory is not None: # use trajectory to determine best start
+            if self.action_constraints.root_trajectory is not None:  # use trajectory to determine best start
                 next_node = self.path_planner.get_best_start_node()
             else:
                 next_node = self.motion_state_graph.get_random_action_transition(graph_walk, self.action_constraints.action_name, self.action_constraints.cycled_previous)
 
             next_node_type = self.motion_state_graph.nodes[next_node].node_type
             if next_node is None:
-                write_log("Error: Could not find a transition of type action_transition from ", self.action_state.prev_action_name, self.action_state.prev_mp_name, " to state", self.action_state.current_node)
+                write_message_to_log("Error: Could not find a transition of type action_transition from " +
+                                     self.action_state.prev_action_name + " " + self.action_state.prev_mp_name + " to state "
+                                     + self.action_state.current_node, LOG_MODE_INFO)
 
         else:  # is intermediate start state
             next_node, next_node_type = self.path_planner.get_best_transition_node()
@@ -102,7 +103,7 @@ class ElementaryActionGenerator(object):
             return self.motion_primitive_constraints_builder.build()
 
         except PathSearchError as e:
-            write_log("Error: Moved beyond last point of spline using parameters", str(e.search_parameters))
+            write_message_to_log("Error: Moved beyond last point of spline using parameters "+str(e.search_parameters), LOG_MODE_ERROR)
             return None
 
     def append_action_to_graph_walk(self, graph_walk):
@@ -130,7 +131,7 @@ class ElementaryActionGenerator(object):
         else:
             max_arc_length = np.inf
         self.action_state.initialize_from_previous_graph_walk(graph_walk, max_arc_length, self.action_constraints.cycled_next)
-        write_log("Start synthesis of elementary action", self.action_constraints.action_name)
+        write_message_to_log("Start synthesis of elementary action " + self.action_constraints.action_name, LOG_MODE_INFO)
         errors = [0]
         distances = []
         while not self.action_state.is_end_state():
@@ -141,48 +142,44 @@ class ElementaryActionGenerator(object):
             if self.action_constraints.root_trajectory is not None:
                 d = self._distance_to_path(graph_walk)
                 distances.append(d)
-                write_log("distance to path",d)
+                write_message_to_log("Distance to path"+str(d), LOG_MODE_DEBUG)
                 if d >= self.max_distance_to_path:
-                    write_log("Warning: Distance to path has become larger than", self.max_distance_to_path)
+                    write_message_to_log("Warning: Distance to path has become larger than" + str(self.max_distance_to_path), LOG_MODE_DEBUG)
                     return False
 
         graph_walk.step_count += self.action_state.temp_step
         graph_walk.update_frame_annotation(self.action_constraints.action_name, self.action_state.action_start_frame, graph_walk.get_num_of_frames())
         avg_error = np.average(errors)
-        write_log("Reached end of elementary action", self.action_constraints.action_name, "with an average error of", avg_error)
+        write_message_to_log("Reached end of elementary action " + self.action_constraints.action_name +
+                             " with an average error of " + str(avg_error), LOG_MODE_INFO)
+
         return avg_error < self.average_elementary_action_error_threshold
 
     def _transition_to_next_action_state(self, graph_walk):
 
         new_node, new_node_type = self._select_next_motion_primitive_node(graph_walk)
         if new_node is None:
-            write_log("Error: Failed to find a transition")
+            write_message_to_log("Error: Failed to find a transition", LOG_MODE_INFO)
             return None
-        write_log("Transition to state", new_node)
+        write_message_to_log("Transition to state " + str(new_node), LOG_MODE_INFO)
 
         mp_constraints = self._gen_motion_primitive_constraints(new_node, new_node_type, graph_walk)
 
-        #f self.action_constraints.cycled_next:
-        #    print "is cycled action"
-        #    new_node_type = NODE_TYPE_CYCLE_END
-        #else:
-        #    print "is not cycled"
-
         if mp_constraints is None:
-            write_log("Error: Failed to generate constraints")
+            write_message_to_log("Error: Failed to generate constraints", LOG_MODE_INFO)
             return None
         new_motion_spline, new_parameters = self.motion_primitive_generator.generate_constrained_motion_spline(mp_constraints, graph_walk)
 
         if self.activate_direction_ca_connection and self.ca_interface is not None and self.action_constraints.action_name in self.ca_action_names:
             ca_constraints = self.ca_interface.get_constraints(self.action_constraints.group_id, new_node, new_motion_spline, graph_walk)
-            print "ca constraints",ca_constraints
+            write_message_to_log("Received CA constraints "+str(ca_constraints), LOG_MODE_DEBUG)
+
             if ca_constraints is not None and len(ca_constraints) > 0:
                 mp_constraints.constraints += ca_constraints
                 new_motion_spline, new_parameters = self.motion_primitive_generator.generate_constrained_motion_spline(mp_constraints, graph_walk)
 
         new_arc_length = self._create_graph_walk_entry(new_node, new_motion_spline, new_parameters, mp_constraints, graph_walk)
         self.action_state.transition(new_node, new_node_type, new_arc_length, graph_walk.get_num_of_frames())
-
         return mp_constraints.min_error
 
     def _create_graph_walk_entry(self, new_node, new_motion_spline, new_parameters, mp_constraints, graph_walk):
@@ -194,7 +191,6 @@ class ElementaryActionGenerator(object):
             new_travelled_arc_length = self._update_travelled_arc_length(graph_walk.get_quat_frames(), prev_steps, self.action_state.travelled_arc_length)
         else:
             new_travelled_arc_length = 0
-        #new_travelled_arc_length = mp_constraints.goal_arc_length
 
         new_step = GraphWalkEntry(self.motion_state_graph, new_node, new_parameters,
                                   new_travelled_arc_length, self.action_state.step_start_frame,

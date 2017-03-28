@@ -8,7 +8,7 @@ from algorithm_configuration import AlgorithmConfigurationBuilder
 from graph_walk_generator import GraphWalkGenerator
 from graph_walk_optimizer import GraphWalkOptimizer
 from inverse_kinematics import InverseKinematics
-from ..utilities import load_json_file, write_log, clear_log, save_log
+from ..utilities import load_json_file, write_log, clear_log, save_log, write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO, LOG_MODE_ERROR, set_log_mode
 
 
 class MotionGenerator(object):
@@ -67,7 +67,8 @@ class MotionGenerator(object):
            Contains a list of quaternion frames and their annotation based on actions.
         """
         clear_log()
-        write_log("Start motion synthesis with algorithm config", self._algorithm_config)
+        write_message_to_log("Start motion synthesis", LOG_MODE_INFO)
+        write_message_to_log("Use configuration " + str(self._algorithm_config), LOG_MODE_DEBUG)
         if type(mg_input) != dict:
             mg_input = load_json_file(mg_input)
         start_time = time.clock()
@@ -78,33 +79,36 @@ class MotionGenerator(object):
         time_in_seconds = time.clock() - start_time
         minutes = int(time_in_seconds/60)
         seconds = time_in_seconds % 60
-        write_log("Finished graph walk generation in " + str(minutes) + " minutes " + str(seconds) + " seconds")
+        write_message_to_log("Finished graph walk generation in " + str(minutes) + " minutes " + str(seconds) + " seconds", LOG_MODE_INFO)
         if self._algorithm_config["use_global_time_optimization"]:
             graph_walk = self.graph_walk_optimizer.optimize_time_parameters_over_graph_walk(graph_walk)
 
         motion_vector = graph_walk.convert_to_annotated_motion()
 
         if self._algorithm_config["activate_inverse_kinematics"]:
-            write_log("Modify using inverse kinematics")
+            write_message_to_log("Modify using inverse kinematics", LOG_MODE_DEBUG)
             self.inverse_kinematics = InverseKinematics(self.motion_state_graph.skeleton, self._algorithm_config, motion_vector.frames[0])
             self.inverse_kinematics.modify_motion_vector(motion_vector)
             self.inverse_kinematics.fill_rotate_events(motion_vector)
+
+
+        time_in_seconds = time.clock() - start_time
+        minutes = int(time_in_seconds / 60)
+        seconds = time_in_seconds % 60
+        write_message_to_log("Finished synthesis in " + str(minutes) + " minutes " + str(seconds) + " seconds", LOG_MODE_INFO)
 
         if complete_motion_vector:
 
             motion_vector.frames = self.motion_state_graph.skeleton.complete_motion_vector_from_reference(motion_vector.frames)
             if motion_vector.frames is not None:
                 if self.motion_state_graph.hand_pose_generator is not None:
-                    write_log("Generate hand poses")
+                    write_message_to_log("Generate hand poses", LOG_MODE_DEBUG)
                     self.motion_state_graph.hand_pose_generator.generate_hand_poses(motion_vector)
                 self._output_info(graph_walk, start_time)
         return motion_vector
 
     def _output_info(self, graph_walk, start_time):
-            time_in_seconds = time.clock() - start_time
-            minutes = int(time_in_seconds/60)
-            seconds = time_in_seconds % 60
-            write_log("Finished synthesis in " + str(minutes) + " minutes " + str(seconds) + " seconds")
+
             write_log(graph_walk.get_statistics_string())
             if self._service_config["write_log"]:
                 time_stamp = unicode(datetime.now().strftime("%d%m%y_%H%M%S"))
@@ -131,7 +135,7 @@ class MotionGenerator(object):
                 outfile.write("\n"+constraints_string)
                 outfile.close()
             else:
-                write_log("Error: no motion data to export")
+                write_message_to_log("Error: no motion data to export", LOG_MODE_ERROR)
 
     def get_skeleton(self):
         return self.motion_state_graph.skeleton
