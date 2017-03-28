@@ -6,7 +6,7 @@ from collections import OrderedDict
 from ...animation_data import ROTATION_TYPE_EULER,ROTATION_TYPE_QUATERNION
 from blending import smooth_quaternion_frames_using_slerp, smooth_quaternion_frames_using_slerp_overwrite_frames, apply_slerp
 from skeleton_pose_model import SkeletonPoseModel
-from ...utilities import write_log
+from ...utilities import write_log, write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO
 from ...external.transformations import quaternion_matrix, euler_from_matrix
 from ...constraints.ik_constraints import RelativeJointIKConstraint
 
@@ -95,7 +95,8 @@ class InverseKinematics(object):
             delta = new_delta
             iteration += 1
         if self.verbose:
-            write_log("Finished optimization after", iteration, "iterations with error", delta, "in", time.clock()-start, "seconds")
+            write_message_to_log("Finished optimization after " + str(iteration) + " iterations with error" +
+                                 str(delta) + " in " + str(time.clock()-start) + " seconds", LOG_MODE_DEBUG)
         parameters = self._extract_free_parameters(free_joints)
         return parameters, delta
 
@@ -120,7 +121,8 @@ class InverseKinematics(object):
         if self.verbose:
             self.pose.set_channel_values(initial_guess, free_joints)
             p = self.pose.evaluate_position(constraint.joint_name)
-            write_log("start optimization for joint",constraint.joint_name, len(initial_guess), len(free_joints), p)
+            write_message_to_log("Start optimization for joint " + constraint.joint_name +" " + str(len(initial_guess))
+                                 + " " + str(len(free_joints)) + " " + str(p), LOG_MODE_DEBUG)
         cons = None#self.pose.generate_constraints(free_joints)
         if self.solving_method == IK_METHOD_UNCONSTRAINED_OPTIMIZATION:
             start = time.clock()
@@ -143,14 +145,15 @@ class InverseKinematics(object):
         initial_guess = self._extract_free_parameters(free_joints)
         data = self.pose, free_joints, target_joint, target_position, target_direction
         if self.verbose:
-            write_log("start optimization for joint", target_joint, len(initial_guess), len(free_joints))
+            write_message_to_log("Start optimization for joint " + target_joint + " " +  str(len(initial_guess))
+                                 + " " + str(len(free_joints)), LOG_MODE_DEBUG)
         start = time.clock()
         cons = None#self.pose.generate_constraints(free_joints)
         result = self._run_optimization(obj_inverse_kinematics, initial_guess, data, cons)
         position = self.pose.evaluate_position(target_joint)
         error = np.linalg.norm(position-target_position)
         if self.verbose:
-            write_log("finished optimization in",time.clock()-start, "seconds with error", error) #,result["x"].tolist(), initial_guess.tolist()
+            write_message_to_log("Finished optimization in " + str(time.clock()-start) + " seconds with error " + str(error), LOG_MODE_DEBUG) #,result["x"].tolist(), initial_guess.tolist()
         self.pose.set_channel_values(result["x"], free_joints)
         return error
 
@@ -181,7 +184,7 @@ class InverseKinematics(object):
                 terminate = True
             delta = new_delta
             iteration += 1
-        write_log("Finished optimization after", iteration, "iterations with error", delta, "in", time.clock()-start, "seconds")
+        write_message_to_log(" ".join(map(str, ["Finished optimization after", iteration, "iterations with error", delta, "in", time.clock()-start, "seconds"])), LOG_MODE_DEBUG)
         return delta
 
     def evaluate_delta(self, parameters, target_joint, target_position, free_joints):
@@ -194,7 +197,7 @@ class InverseKinematics(object):
 
     def modify_motion_vector(self, motion_vector):
         for idx, elementary_action_ik_constraints in enumerate(motion_vector.ik_constraints):
-            print "Optimize elementary action", idx
+            write_message_to_log("Apply IK to elementary action " + str(idx), LOG_MODE_DEBUG)
             self._optimize_elementary_action_ik_constraints(motion_vector, elementary_action_ik_constraints)
 
         if self.adapt_hands_during_both_hand_carry:
@@ -227,10 +230,9 @@ class InverseKinematics(object):
             last_error = error
             i += 1
             keep_running = i < self.elementary_action_max_iterations and delta > self.elementary_action_epsilon
-            print "IK iteration", i, error, delta, self.elementary_action_epsilon
+            write_message_to_log("IK iteration " + str(i) + " "+ str(error) + " "+  str(delta) + " "+  str(self.elementary_action_epsilon),LOG_MODE_DEBUG)
 
     def _modify_motion_vector_using_keyframe_constraint_list(self, motion_vector, constraints):
-        #write_log("number of ik keyframe constraints", len(constraints))
         error = 0.0
         for keyframe, constraints in constraints.items():
             if "single" in constraints.keys():
@@ -241,7 +243,6 @@ class InverseKinematics(object):
                         else:
                             error += self._modify_frame_using_keyframe_constraint(motion_vector, c, keyframe)
                     if self.activate_look_at and c.look_at:
-                        #write_log("look at constraint")
                         start = keyframe
                         end = keyframe+1
                         self._look_at_in_range(motion_vector, c.position, start, end)
@@ -258,7 +259,6 @@ class InverseKinematics(object):
 
     def _modify_motion_vector_using_keyframe_constraint_range(self, motion_vector, constraint, frame_range):
         error = 0.0
-        #print "use constraint on frame range"
         for frame in range(frame_range[0],frame_range[1]+1):
             self.set_pose_from_frame(motion_vector.frames[frame])
             error += self._modify_pose_general(constraint)
@@ -268,7 +268,7 @@ class InverseKinematics(object):
         return error
 
     def interpolate_around_keyframe(self, frames, joint_names, keyframe, window):
-        write_log("Smooth and interpolate", joint_names)
+        write_message_to_log("Smooth and interpolate" + str(joint_names), LOG_MODE_DEBUG)
         for target_joint_name in joint_names:
             joint_parameter_indices = self._extract_free_parameter_indices(self.pose.free_joints_map[target_joint_name])
             for joint_name in self.pose.free_joints_map[target_joint_name]:

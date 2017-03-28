@@ -9,7 +9,7 @@ from elementary_action_constraints import ElementaryActionConstraints
 from spatial_constraints import TrajectoryConstraint
 from spatial_constraints import TrajectorySetConstraint
 from . import *
-from ..utilities.log import write_log
+from ..utilities.log import write_log, write_message_to_log, LOG_MODE_DEBUG
 
 REFERENCE_2D_OFFSET = np.array([0.0, -1.0])# components correspond to x, z - we assume the motions are initially oriented into that direction
 LEFT_HAND_JOINT = "LeftToolEndSite"
@@ -68,7 +68,7 @@ class ElementaryActionConstraintsBuilder(object):
                     action_constraints.cycled_previous = True
                 if idx+1 < n_actions and action_constraints_list[idx+1].action_name == action_name:
                     action_constraints.cycled_next = True
-                    print idx,action_name,"cycle",n_actions
+                    write_message_to_log(str(idx) + action_name +" cycle "+ str(n_actions),LOG_MODE_DEBUG)
 
     def _build_action_constraint(self, action_index):
         action_constraints = ElementaryActionConstraints()
@@ -93,7 +93,7 @@ class ElementaryActionConstraintsBuilder(object):
             if len(root_trajectories) > 0:
                 if root_trajectories[0] is not None:
                     self.start_pose["orientation"] = self.get_start_orientation_from_trajectory(root_trajectories[0])
-            write_log("Set start orientation from trajectory to", self.start_pose["orientation"])
+            write_message_to_log("Set start orientation from trajectory to"+ str(self.start_pose["orientation"]), LOG_MODE_DEBUG)
 
     def get_start_pose(self):
         return self.start_pose

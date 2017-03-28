@@ -7,7 +7,7 @@ from ..constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_P
 from ..constraints.time_constraints_builder import TimeConstraintsBuilder
 from optimization.optimizer_builder import OptimizerBuilder
 from ..constraints.motion_primitive_constraints import MotionPrimitiveConstraints
-from ..utilities.log import write_log
+from ..utilities.log import write_log, write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO, LOG_MODE_ERROR
 
 GRAPH_WALK_OPTIMIZATION_TWO_HANDS = "none"
 GRAPH_WALK_OPTIMIZATION_ALL = "all"
@@ -38,28 +38,22 @@ class GraphWalkOptimizer(object):
                self.spatial_mode == GRAPH_WALK_OPTIMIZATION_TWO_HANDS and action_constraints.contains_two_hands_constraints
 
     def optimize(self, graph_walk, action_generator, action_constraints):
-         #print "has user constraints", action_constraints.contains_user_constraints
         if self._is_optimization_required(action_constraints):
             start_step = max(action_generator.action_state.start_step - self._global_spatial_optimization_steps, 0)
-            write_log("start spatial graph walk optimization at", start_step, "looking back", self._global_spatial_optimization_steps, "steps")
+            message = " ".join(map(str, ["Start spatial graph walk optimization at", start_step, "looking back", self._global_spatial_optimization_steps, "steps"]))
+            write_message_to_log(message, LOG_MODE_DEBUG)
             graph_walk = self.optimize_spatial_parameters_over_graph_walk(graph_walk, start_step)
 
         elif self.spatial_mode == GRAPH_WALK_OPTIMIZATION_END_POINT and action_constraints.root_trajectory is not None:
             start_step = max(len(graph_walk.steps) - self._global_spatial_optimization_steps, 0)
-            write_log("start spatial graph walk optimization at", start_step, "looking back", self._global_spatial_optimization_steps, "steps")
+            message = " ".join(map(str, ["Start spatial graph walk optimization at", start_step, "looking back", self._global_spatial_optimization_steps, "steps"]))
+            write_message_to_log(message, LOG_MODE_DEBUG)
             graph_walk = self.optimize_spatial_parameters_over_graph_walk(graph_walk, start_step)
 
         if self.optimize_collision_avoidance_constraints_extra and action_constraints.collision_avoidance_constraints is not None and len(action_constraints.collision_avoidance_constraints) > 0 :
-            write_log("optimize collision avoidance parameters")
+            write_message_to_log("Optimize collision avoidance parameters", LOG_MODE_DEBUG)
             graph_walk = self.optimize_for_collision_avoidance_constraints(graph_walk, action_constraints, action_generator.action_state.start_step)
         return graph_walk
-
-    #def _optimize_over_graph_walk(self, graph_walk, start_step=-1):
-    #    start_step = max(start_step, 0)
-    #    if self._algorithm_config["use_global_spatial_optimization"]:
-    #        self.optimize_spatial_parameters_over_graph_walk(graph_walk, start_step)
-    #    if self._algorithm_config["use_global_time_optimization"]:
-    #        self.optimize_time_parameters_over_graph_walk(graph_walk)
 
     def optimize_spatial_parameters_over_graph_walk(self, graph_walk, start_step=0):
         initial_guess = graph_walk.get_global_spatial_parameter_vector(start_step)
@@ -76,7 +70,7 @@ class GraphWalkOptimizer(object):
                     prev_frames, 1.0)
             # init_error_sum = 10000
             init_error_sum = max(abs(np.sum(self.global_error_minimizer._objective_function(initial_guess, data))), 1.0)
-            print "sum of errors", init_error_sum
+            write_message_to_log("Sum of errors" + str(init_error_sum), LOG_MODE_DEBUG)
             data = (self.motion_primitive_graph, graph_walk.steps[start_step:],
                     self._algorithm_config["global_spatial_optimization_settings"]["error_scale_factor"],
                     self._algorithm_config["global_spatial_optimization_settings"]["quality_scale_factor"],
@@ -87,7 +81,7 @@ class GraphWalkOptimizer(object):
             graph_walk.update_spatial_parameters(optimal_parameters, start_step)
             graph_walk.convert_graph_walk_to_quaternion_frames(start_step, use_time_parameters=False)
         else:
-            print "no user defined constraints"
+            write_message_to_log("No user defined constraints", LOG_MODE_INFO)
         return graph_walk
 
     def _filter_constraints(self, graph_walk, start_step):
@@ -134,17 +128,15 @@ class GraphWalkOptimizer(object):
                 #print "result ",optimal_parameters
                 graph_walk.update_time_parameters(optimal_parameters, start_step, end_step)
                 #graph_walk.convert_graph_walk_to_quaternion_frames(start_step, use_time_parameters=True)
-                #print "updated"
             else:
-                print "no time constraints for action",idx
+                write_message_to_log("No time constraints for action "+str(idx), LOG_MODE_DEBUG)
 
         return graph_walk
 
     def optimize_for_collision_avoidance_constraints(self, graph_walk, action_constraints, start_step=0):
-        #return graph_walk
         reduced_motion_vector = deepcopy(graph_walk.motion_vector)
         reduced_motion_vector.reduce_frames(graph_walk.steps[start_step].start_frame)
-        print "start frame", graph_walk.steps[start_step].start_frame
+        write_message_to_log("start frame " + str(graph_walk.steps[start_step].start_frame), LOG_MODE_DEBUG)
         step_index = start_step
         n_steps = len(graph_walk.steps)
         print reduced_motion_vector.n_frames, graph_walk.get_num_of_frames(), reduced_motion_vector.n_frames - graph_walk.get_num_of_frames()
@@ -171,8 +163,7 @@ class GraphWalkOptimizer(object):
             motion_primitive_sample = node.back_project(graph_walk.steps[step_index].parameters, use_time_parameters=False)
             reduced_motion_vector.append_quat_frames(motion_primitive_sample.get_motion_vector())
             step_index += 1
-        print step_index, len(graph_walk.steps)
+        write_message_to_log("start frame " + str(step_index) + " "+ str(len(graph_walk.steps)), LOG_MODE_DEBUG)
         assert (len(graph_walk.motion_vector.frames)) == len(reduced_motion_vector.frames), (str(len(graph_walk.motion_vector.frames))) + "," + str(len(reduced_motion_vector.frames))
         graph_walk.motion_vector = reduced_motion_vector
-
         return graph_walk

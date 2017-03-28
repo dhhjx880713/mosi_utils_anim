@@ -6,6 +6,7 @@ Created on Thu Jul 16 15:57:51 2015
 """
 
 import collections
+from ..utilities import write_message_to_log, LOG_MODE_DEBUG
 
 
 class MotionStateGraph(object):
@@ -72,13 +73,13 @@ class MotionStateGraph(object):
       
             if prev_node_key in self.nodes.keys():
                 next_node = self.nodes[prev_node_key].generate_random_action_transition(action_name,is_cycle)
-            print "generate start from transition of last action", prev_node_key, next_node
+            write_message_to_log("Generate start from transition of last action " + str(prev_node_key) + str(next_node), mode=LOG_MODE_DEBUG)
         # if there is no previous elementary action or no action transition
         #  use transition to random start state
         if next_node is None or next_node not in self.node_groups[action_name].nodes:
             #print next_node, "not in", action_name
             next_node = self.node_groups[action_name].get_random_start_state()
-            print "generate random start", next_node
+            write_message_to_log("Generate random start" + str(next_node), mode=LOG_MODE_DEBUG)
         return next_node
 
     def get_start_nodes(self, graph_walk, action_name):

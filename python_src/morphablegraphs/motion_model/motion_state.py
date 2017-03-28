@@ -11,6 +11,7 @@ from . import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END
 from motion_primitive_wrapper import MotionPrimitiveModelWrapper
 from ..animation_data.motion_editing import extract_root_positions_from_frames, get_arc_length_from_points
 from ..space_partitioning import ClusterTree
+from ..utilities import write_message_to_log, LOG_MODE_DEBUG
 
 
 class MotionState(MotionPrimitiveModelWrapper):
@@ -60,7 +61,7 @@ class MotionState(MotionPrimitiveModelWrapper):
         self.name = desc["name"]
 
         skeleton = self.motion_state_group.motion_state_graph.mgrd_skeleton
-        print "Init motion state",self.name
+        write_message_to_log("Init motion state "+self.name, LOG_MODE_DEBUG)
         self._initialize_from_json(skeleton, desc["mm"], self.motion_state_group.motion_state_graph.animated_joints)
         if "space_partition" in desc.keys():
             self.cluster_tree = desc["space_partition"]
@@ -72,7 +73,7 @@ class MotionState(MotionPrimitiveModelWrapper):
     def _construct_space_partition(self, cluster_file_name, reconstruct=False):
         self.cluster_tree = None
         if not reconstruct and os.path.isfile(cluster_file_name+"cluster_tree.pck"):
-            print "load space partitioning data structure"
+            write_message_to_log("Load space partitioning data structure" + self.name, LOG_MODE_DEBUG)
             self.cluster_tree = ClusterTree()
             self.cluster_tree.load_from_file_pickle(cluster_file_name+"cluster_tree.pck")
 

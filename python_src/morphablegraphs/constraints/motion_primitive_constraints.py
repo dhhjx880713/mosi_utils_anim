@@ -12,7 +12,7 @@ from .spatial_constraints.keyframe_constraints.global_transform_ca_constraint im
 from .spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE,SPATIAL_CONSTRAINT_TYPE_KEYFRAME_DIR_2D, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_LOOK_AT, SPATIAL_CONSTRAINT_TYPE_CA_CONSTRAINT,SPATIAL_CONSTRAINT_TYPE_KEYFRAME_FEET
 from ik_constraints import JointIKConstraint, TwoJointIKConstraint
 from ik_constraints_builder import IKConstraintsBuilder
-from ..utilities.log import write_log
+from ..utilities.log import write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO
 try:
     from mgrd import CartesianConstraint as MGRDCartesianConstraint
     from mgrd import PoseConstraint as MGRDPoseConstraint
@@ -53,10 +53,10 @@ class MotionPrimitiveConstraints(object):
         self.is_last_step = False
         self.time = 0.0
 
-    def print_status(self):
-        write_log("starting from:", self.step_start)
-        write_log("the new goal for " + self.motion_primitive_name, "is", self.step_goal)
-        write_log("arc length is: " + str(self.goal_arc_length))
+    def print_status(self, mode=LOG_MODE_DEBUG):
+        write_message_to_log("starting from:" + str(self.step_start), mode)
+        write_message_to_log("the new goal for " + self.motion_primitive_name + "is" + str(self.step_goal), mode)
+        write_message_to_log("arc length is: " + str(self.goal_arc_length), mode)
 
     def evaluate(self, motion_primitive, parameters, prev_frames, use_time_parameters=False):
         """
@@ -226,7 +226,7 @@ class MotionPrimitiveConstraints(object):
     def transform_constraints_to_local_cos(self):
         if self.is_local or self.aligning_transform is None:
             return self
-        write_log("transform to local coordinate system")
+        write_message_to_log("Transform constraints to local coordinate system", LOG_MODE_DEBUG)
         inv_aligning_transform = np.linalg.inv(self.aligning_transform)
         mp_constraints = MotionPrimitiveConstraints()
         mp_constraints.start_pose = {"orientation": [0,0,0], "position": [0,0,0]}

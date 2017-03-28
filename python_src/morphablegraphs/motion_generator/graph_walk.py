@@ -12,7 +12,7 @@ from ..animation_data import MotionVector, align_quaternion_frames
 from annotated_motion_vector import AnnotatedMotionVector
 from ..constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION
 from keyframe_event_list import KeyframeEventList
-from ..utilities import write_log
+from ..utilities import write_log, write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_ERROR, LOG_MODE_INFO
 
 DEFAULT_PLACE_ACTION_LIST = ["placeRight", "placeLeft","insertRight","insertLeft","screwRight", "screwLeft"] #list of actions in which the orientation constraints are ignored
 
@@ -57,7 +57,7 @@ class GraphWalk(object):
         self.use_time_parameters = algorithm_config["activate_time_variation"]
         self.apply_smoothing = algorithm_config["smoothing_settings"]["spatial_smoothing"]
         self.constrain_place_orientation = algorithm_config["inverse_kinematics_settings"]["constrain_place_orientation"]
-        write_log("Use time parameters", self.use_time_parameters)
+        write_message_to_log("Use time parameters" + str(self.use_time_parameters), LOG_MODE_DEBUG)
         self.keyframe_event_list = KeyframeEventList(create_ca_vis_data)
         self.place_action_list = DEFAULT_PLACE_ACTION_LIST
 
@@ -82,7 +82,7 @@ class GraphWalk(object):
     def get_action_from_keyframe(self, keyframe):
         found_action_index = -1
         step_index = self.get_step_from_keyframe(keyframe)
-        print "found step", step_index
+        write_message_to_log("Found keyframe in step " + str(step_index), LOG_MODE_DEBUG)
         if step_index < 0:
             return found_action_index
         for action_index, action in enumerate(self.elementary_action_list):
@@ -130,7 +130,7 @@ class GraphWalk(object):
         return initial_guess
 
     def update_spatial_parameters(self, parameter_vector, start_step=0):
-        write_log("update spatial parameters")
+        write_message_to_log("Update spatial parameters", LOG_MODE_DEBUG)
         offset = 0
         for step in self.steps[start_step:]:
             new_alpha = parameter_vector[offset:offset+step.n_spatial_components]
@@ -162,7 +162,7 @@ class GraphWalk(object):
     def _create_ik_constraints(self):
         ik_constraints = []
         for idx, action in enumerate(self.elementary_action_list):
-            print "action", idx, action.start_step,self.steps[action.start_step].start_frame
+            write_message_to_log("Create IK constraints for action" + " " + str(idx) + " " + str(action.start_step) + " " + str(self.steps[action.start_step].start_frame), LOG_MODE_DEBUG)
             if not self.constrain_place_orientation and action.action_name in self.place_action_list:
                 constrain_orientation = False
             else:
@@ -212,22 +212,25 @@ class GraphWalk(object):
         return trajectory_constraints
 
     def _create_ik_trajectory_constraints_from_annotated_trajectories(self, action_idx):
-        print "extract annotated trajectories"
+        write_message_to_log("extract annotated trajectories", LOG_MODE_DEBUG)
         frame_annotation = self.keyframe_event_list.frame_annotation['elementaryActionSequence'][action_idx]
         start_frame = frame_annotation["startFrame"]
         trajectory_constraints = list()
         action = self.elementary_action_list[action_idx]
         for constraint in action.action_constraints.annotated_trajectory_constraints:
             label = constraint.semantic_annotation.keys()[0]
-            print "trajectory constraint label",constraint.semantic_annotation.keys()
+            write_message_to_log("trajectory constraint label " + str(constraint.semantic_annotation.keys()), LOG_MODE_DEBUG)
             action_name = action.action_name
             for step in self.steps[action.start_step: action.end_step+1]:
                 motion_primitive_name = step.node_key[1]
-                print "look for action annotation of",action_name,motion_primitive_name
+                write_message_to_log("look for action annotation of " + action_name+" "+motion_primitive_name, LOG_MODE_DEBUG)
+
                 if motion_primitive_name not in self.motion_state_graph.node_groups[action_name].motion_primitive_annotation_regions:
                     continue
                 annotations = self.motion_state_graph.node_groups[action_name].motion_primitive_annotation_regions[motion_primitive_name]
-                print "action annotation",annotations,frame_annotation["startFrame"],frame_annotation["endFrame"]
+                write_message_to_log("action annotation" + str(annotations) +" "+  str(frame_annotation["startFrame"]) + " " + str(frame_annotation["endFrame"]),
+                                     LOG_MODE_DEBUG)
+
                 if label not in annotations.keys():
                     continue
                 annotation_range = annotations[label]
@@ -253,7 +256,7 @@ class GraphWalk(object):
 
                 traj_constraint["joint_name"] = joint_name
                 traj_constraint["delta"] = 1.0
-                print "create ik trajectory constraint from label", label
+                write_message_to_log( "create ik trajectory constraint from label " + str(label), LOG_MODE_DEBUG)
                 trajectory_constraints.append(traj_constraint)
         return trajectory_constraints
 

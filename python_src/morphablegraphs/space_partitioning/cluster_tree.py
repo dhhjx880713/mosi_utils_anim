@@ -10,6 +10,7 @@ import json
 import cPickle as pickle
 from cluster_tree_node_builder import ClusterTreeNodeBuilder
 from . import ROOT_NODE
+from ..utilities import write_message_to_log, LOG_MODE_DEBUG
 
 DEFAULT_N_SUBDIVISIONS_PER_LEVEL = 4
 DEFAULT_N_LEVELS = 4
@@ -100,7 +101,7 @@ class ClusterTree(object):
             Multiple candidates are kept at each level in order to find the global
             optimum.
         """
-        print "search with", n_candidates, "candidates in tree with ", self.n_subdivisions, " subdivisions and ", self.max_level, "levels"
+        write_message_to_log("search with " + str(n_candidates) + " candidates in tree with " + str(self.n_subdivisions) + " subdivisions and "+ str(self.max_level)+ " levels", LOG_MODE_DEBUG)
         results = list()
         candidates = list()
         candidates.append((np.inf, self.root))

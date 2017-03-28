@@ -3,6 +3,7 @@ import heapq
 import cPickle as pickle
 from clustering import find_clusters, all_equal
 import scipy.stats.mstats
+from ..utilities import write_message_to_log, LOG_MODE_DEBUG
 
 MAX_SIMILARITY_CHECK = 10
 PROBABILITIES = (0.25,0.75)
@@ -124,7 +125,7 @@ class FeatureClusterTree(object):
             Multiple candidates are kept at each level in order to find the global
             optimum.
         """
-        print "search with", n_candidates, "candidates in tree with ", self._n_subdivisions, " subdivisions "
+        write_message_to_log("search with " + str(n_candidates) + "candidates in tree with " +str(self._n_subdivisions) +" subdivisions ", LOG_MODE_DEBUG)
         results = list()
         candidates = list()
         candidates.append((np.inf, self))
@@ -142,11 +143,11 @@ class FeatureClusterTree(object):
             candidates = new_candidates[:n_candidates]
             level += 1
 
-        print "depth", level
+        write_message_to_log("depth" +str(level), LOG_MODE_DEBUG)
         if len(results) > 0:
             value, node = heapq.heappop(results)
-            print len(node._indices)#node._indices[0]
-            print len(self.data)
+            write_message_to_log(str(len(node._indices)), LOG_MODE_DEBUG)#node._indices[0]
+            write_message_to_log(str(len(self.data)), LOG_MODE_DEBUG)
             return value, self.data[node._indices[0]]
         else:
             print "Error: failed to find a result"
