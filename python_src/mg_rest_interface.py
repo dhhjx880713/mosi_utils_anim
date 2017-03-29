@@ -255,12 +255,11 @@ class MGRestApplication(tornado.web.Application):
                 write_message_to_log("Try to connect to CA interface using address " + str(address), LOG_MODE_DEBUG)
                 s.connect(address)
                 s.close()
+                write_message_to_log("Collision avoidance will be activated", LOG_MODE_INFO)
                 return True
             except Exception as e:
-                write_message_to_log("Could not create connection" + str(e.message), LOG_MODE_ERROR)
-        write_message_to_log("Warning: Could not open collision avoidance service URL " +
-                             service_config["collision_avoidance_service_url"] +
-                             "\nCollision avoidance will be disabled", LOG_MODE_INFO)
+                write_message_to_log("Warning: Could not create connection to collision avoidance interface" + str(e.message), LOG_MODE_ERROR)
+        write_message_to_log("Collision avoidance will be disabled", LOG_MODE_INFO)
         service_config["collision_avoidance_service_url"] = None
         return False
 
@@ -337,6 +336,7 @@ class MGRESTInterface(object):
 
     def stop(self):
         tornado.ioloop.IOLoop.instance().stop()
+
 
 def parse_commandline_args():
     parser = argparse.ArgumentParser(description="Start the MorphableGraphs REST-interface")
