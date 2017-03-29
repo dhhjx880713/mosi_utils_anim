@@ -239,7 +239,7 @@ class MGRestApplication(tornado.web.Application):
 
     def is_initiated(self):
         return self.motion_generator.motion_state_graph.skeleton is not None \
-                and len(self.motion_generator.motion_state_graph.node) > 0
+                and len(self.motion_generator.motion_state_graph.nodes) > 0
 
     def get_skeleton(self):
         return self.motion_generator.get_skeleton()
