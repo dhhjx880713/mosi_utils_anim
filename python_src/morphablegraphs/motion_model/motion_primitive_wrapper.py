@@ -12,7 +12,7 @@ except ImportError:
     has_mgrd = False
 
 from ..utilities import load_json_file, write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO, LOG_MODE_ERROR
-from sklearn.mixture.gmm import GMM
+from sklearn.mixture.gaussian_mixture import GaussianMixture, _compute_precision_cholesky
 
 
 class MotionPrimitiveModelWrapper(object):
@@ -103,6 +103,8 @@ class MotionPrimitiveModelWrapper(object):
         return self.motion_primitive.back_project(s_vec, use_time_parameters)
 
     def back_project_mgrd(self, s_vec, use_time_parameters=True):
+        if len(s_vec.shape) == 2:
+            s_vec = np.ravel(s_vec)
         quat_spline = self.motion_primitive.create_spatial_spline(s_vec)
         if use_time_parameters:
             time_spline = self.motion_primitive.create_time_spline(s_vec)
@@ -200,20 +202,21 @@ class MotionPrimitiveModelWrapper(object):
 
     @staticmethod
     def load_mixture_model(data, use_mgrd=True):
-        if use_mgrd:
-            mm = ExtendedMGRDMixtureModel.load_from_json({
-                'covars': data['gmm_covars'],
-                'means': data['gmm_means'],
-                'weights': data['gmm_weights']
-            })
-        else:
-            n_components = len(np.array(data['gmm_weights']))
-            mm = GMM(n_components, covariance_type='full')
-            mm.weights_ = np.array(data['gmm_weights'])
-            mm.means_ = np.array(data['gmm_means'])
-            mm.converged_ = True
-            mm.covars_ = np.array(data['gmm_covars'])
-            mm.n_dims = len(mm.covars_[0])
-            write_message_to_log("Initialize scipy GMM", LOG_MODE_DEBUG)
-        return mm
+         if use_mgrd:
+             mm = ExtendedMGRDMixtureModel.load_from_json({'covars': data['gmm_covars'], 'means': data['gmm_means'], 'weights': data['gmm_weights']})
+         else:
+             n_components =len(np.array(data['gmm_weights']))
+             mm = GaussianMixture(n_components=n_components, covariance_type='full')#weights_init=np.array(data['gmm_weights']),
+            #reg_covar=np.array(data['gmm_covars']),
+            #means_init=np.array(data['gmm_means']), covariance_type='full')
+             mm.weights_ = np.array(data['gmm_weights'])
+             mm.means_ = np.array(data['gmm_means'])
+             mm.converged_ = True
+             mm.covariances_ = np.array(data['gmm_covars'])
+             mm.precisions_cholesky_ = _compute_precision_cholesky(mm.covariances_, covariance_type='full')
+             mm.n_dims =len(mm.means_[0])
+             # if 'gmm_precisions_cholesky' not in data.keys():
+
+             write_message_to_log("Initialize scipy GMM", LOG_MODE_DEBUG)
+         return mm
 
