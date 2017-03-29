@@ -5,11 +5,12 @@ Created on Thu Jul 23 10:06:37 2015
 @author: du, MAUERMA
 """
 
-from ...animation_data.bvh import BVHReader, BVHWriter
+from morphablegraphs.animation_data.bvh import BVHReader, BVHWriter
+from morphablegraphs.animation_data import Skeleton
 from morphablegraphs.construction.preprocessing.motion_normalization \
     import MotionNormalization
-from ...animation_data.motion_editing import calculate_frame_distance
-from ...animation_data.skeleton import Skeleton
+from morphablegraphs.animation_data.motion_editing import calculate_frame_distance
+from morphablegraphs.animation_data.skeleton import Skeleton
 import numpy as np
 import rpy2.robjects.numpy2ri as numpy2ri
 import rpy2.robjects as robjects
@@ -82,8 +83,8 @@ class MotionDynamicTimeWarping(MotionNormalization):
         res = MotionDynamicTimeWarping.calculate_path(distgrid)
         ref_indeces = res[0]
         test_indeces = res[1]
-        warping_index = self.get_warping_index(test_indeces, ref_indeces,
-                                               (len(test_indeces), len(ref_indeces)))
+        warping_index = self.get_warping_index(ref_indeces, test_indeces,
+                                               (int(ref_indeces[-1]), int(test_indeces[-1])))
         warped_frames = MotionDynamicTimeWarping.get_warped_frames(warping_index,
                                                                    test_motion['frames'])
         return warped_frames, warping_index
@@ -107,9 +108,10 @@ class MotionDynamicTimeWarping(MotionNormalization):
     def save_warped_motion(self, save_path):
         if not save_path.endswith(os.sep):
             save_path += os.sep
+        skeleton = Skeleton(self.ref_bvhreader)
         warping_index_dic = {}
         for filename, motion_data in self.warped_motions.iteritems():
-            BVHWriter(save_path + filename, self.ref_bvhreader,
+            BVHWriter(save_path + filename, skeleton,
                       motion_data['frames'],
                       frame_time=self.ref_bvhreader.frame_time,
                       is_quaternion=False)
@@ -128,15 +130,16 @@ class MotionDynamicTimeWarping(MotionNormalization):
         return warped_frames
 
     def get_distgrid(self, ref_motion, test_motion):
-        skeleton = Skeleton(self.ref_bvhreader)
+        skeleton = Skeleton()
+        skeleton.load_from_bvh(self.ref_bvhreader)
         n_ref_frames = len(ref_motion['frames'])
         n_test_frames = len(test_motion['frames'])
-        distgrid = np.zeros([n_ref_frames, n_test_frames])
-        for i in xrange(n_ref_frames):
-            for j in xrange(n_test_frames):
+        distgrid = np.zeros([n_test_frames, n_ref_frames])
+        for i in xrange(n_test_frames):
+            for j in xrange(n_ref_frames):
                 distgrid[i, j] = calculate_frame_distance(skeleton,
-                                                          ref_motion['frames'][i],
-                                                          test_motion['frames'][j])
+                                                          ref_motion['frames'][j],
+                                                          test_motion['frames'][i])
         if self.verbose:
             res = MotionDynamicTimeWarping.calculate_path(distgrid)
             ref_indices = res[0]
@@ -155,7 +158,7 @@ class MotionDynamicTimeWarping(MotionNormalization):
             plt.show()
         return distgrid
 
-    def get_warping_index(self, test_indices, ref_indices, shape):
+    def get_warping_index(self, ref_indices, test_indices, shape):
         """ @brief Calculate the warping index from a given set of x and y values
 
         Calculate the warping path from the return values of the dtw R function
@@ -173,13 +176,12 @@ class MotionDynamicTimeWarping(MotionNormalization):
         @return A list with exactly refmotion_framenumber Elements.
         """
         # create Pairs:
-        path_pairs = [(int(test_indices[i]) - 1, int(ref_indices[i]) - 1)
+        path_pairs = [(int(ref_indices[i]) - 1, int(test_indices[i]) - 1)
                       for i in xrange(len(ref_indices))]
         # create Pathmatirx:
         pathmatrix = np.zeros(shape)
         for pair in path_pairs:
             pathmatrix[pair] = 1
-
         warping_index = []
         for i in xrange(shape[1]):
             index = np.nonzero(pathmatrix[:, i])[0][-1]

@@ -5,41 +5,38 @@ Created on Mon Aug 03 10:48:53 2015
 @author: hadu01
 """
 
-from morphablegraphs.construction.fpca.pca_functional_data import PCAFunctionalData
+from .pca_functional_data import PCAFunctionalData
+from .functional_data import FunctionalData
 import numpy as np
 
 
 class FPCASpatialData(object):
 
-    def __init__(self, motion_data, n_basis, fraction):
+    def __init__(self, n_basis, n_components=None, fraction=0.95):
         """
         * motion_data: dictionary
         \tContains quaternion frames of each file
         """
-        self.spatial_data = motion_data
         self.n_basis = n_basis
         self.fraction = fraction
         self.reshaped_data = None
         self.fpcaobj = None
         self.fileorder = None
+        self.n_components = n_components
 
-    def fpca_on_spatial_data(self):
-        self.convert_data_for_fpca()
-        self.fpcaobj = PCAFunctionalData(self.reshaped_data, self.n_basis, self.fraction)
+    def fit_motion_dictionary(self, motion_dic):
+        self.fileorder = motion_dic.keys()
+        self.fit(np.asarray(motion_dic.values()))
 
-    def convert_data_for_fpca(self):
-        # reorder data based on filename
-        self.fileorder = sorted(self.spatial_data.keys())
-        reordered_data = []
-        for filename in self.fileorder:
-            reordered_data.append(self.spatial_data[filename])
-        reordered_data = np.array(reordered_data)
-        # print reordered_data.shape
-        n_samples, n_frames, n_dims = reordered_data.shape
-        # in order to use Functional data representation from Fda(R), the
-        # input data should be a matrix of shape (n_frames * n_samples *
-        # n_dims)
-        self.reshaped_data = np.zeros((n_frames, n_samples, n_dims))
-        for i in xrange(n_frames):
-            for j in xrange(n_samples):
-                self.reshaped_data[i, j] = reordered_data[j, i]
+    def fit(self, motion_data):
+        """
+        Reduce the dimension of motion data using Functional Principal Component Analysis
+        :param motion_data (numpy.array<3d>): can be either spatial data or temporal data, n_samples * n_frames * n_dims
+        :return lowVs (numpy.array<2d>): low dimensional representation of motion data
+        """
+        assert len(motion_data.shape) == 3
+        self.fpcaobj = PCAFunctionalData(motion_data,
+                                         n_basis=self.n_basis,
+                                         fraction=self.fraction,
+                                         n_pc=self.n_components)
+

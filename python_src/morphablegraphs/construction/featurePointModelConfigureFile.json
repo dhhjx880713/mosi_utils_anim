@@ -1,0 +1,5 @@
+{
+    "model_data_dir": "C:\\Users\\du\\MG++\\git-repos\\ulm\\morphablegraphs\\python_src\\experiments\\optimization_test\\motion_primitive_data",
+    "skeleton_file_dir": "C:\\Users\\du\\MG++\\git-repos\\ulm\\morphablegraphs\\python_src\\skeleton.bvh",
+    "n_samples": 10000
+}

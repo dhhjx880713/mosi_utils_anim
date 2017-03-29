@@ -10,6 +10,7 @@ from ..utilities.io_helper_functions import load_json_file
 ROOT_DIR = os.path.dirname(__file__) + os.sep + r'../..'
 SERVICE_CONFIG_FILE = ROOT_DIR + os.sep + "config" + os.sep + "service.config"
 
+
 class ConstructionAlgorithmConfigurationBuilder(object):
 
     def __init__(self, elementary_action, motion_primitive):
@@ -27,7 +28,8 @@ class ConstructionAlgorithmConfigurationBuilder(object):
         self.motion_primitive = motion_primitive
         path_data = load_json_file(SERVICE_CONFIG_FILE)
         self.data_path = path_data['data_folder']
-        self.save_path = path_data['model_data']
+        # self.save_path = path_data['model_data']
+        self.save_path = r'C:\repo\data\3 - Motion primitives\motion_primitives_quaternion_PCA95'
         self._get_retarget_folder()
         self._get_annotation_file()
 
