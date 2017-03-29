@@ -22,7 +22,7 @@ from morphablegraphs import MotionGenerator, AlgorithmConfigurationBuilder, load
 from morphablegraphs.utilities.io_helper_functions import get_bvh_writer
 from morphablegraphs.utilities import write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO, LOG_MODE_ERROR, set_log_mode
 
-SERVICE_CONFIG_FILE = "config" + os.sep + "service.config"
+SERVICE_CONFIG_FILE = "config" + os.sep + "local_service.config"
 
 ROCKETBOX_TO_GAME_ENGINE_MAP = dict()
 ROCKETBOX_TO_GAME_ENGINE_MAP["Hips"] = "pelvis"
@@ -286,7 +286,6 @@ class MGRESTInterface(object):
     """
 
     def __init__(self, service_config_file):
-
         #  Load configuration files
         service_config = load_json_file(service_config_file)
         if "log_level" in service_config.keys():
@@ -315,6 +314,9 @@ class MGRESTInterface(object):
         """
         self.application.listen(self.port)
         tornado.ioloop.IOLoop.instance().start()
+
+    def stop(self):
+        tornado.ioloop.IOLoop.instance().stop()
 
 
 def main():
