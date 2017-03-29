@@ -23,8 +23,10 @@ class MotionPrimitiveModelWrapper(object):
 
     def __init__(self):
         self.motion_primitive = None
+        self.use_mgrd_mixture_model = False
 
     def _load_from_file(self, mgrd_skeleton, file_name, animated_joints=None, use_mgrd_mixture_model=False):
+        self.use_mgrd_mixture_model = use_mgrd_mixture_model
         data = load_json_file(file_name)
         if data is not None:
             self._initialize_from_json(mgrd_skeleton, data, animated_joints, use_mgrd_mixture_model)
@@ -89,14 +91,16 @@ class MotionPrimitiveModelWrapper(object):
         return self.motion_primitive.sample_low_dimensional_vector(1)
 
     def sample_vector_mgrd(self):
-        return self.motion_primitive.get_random_samples(1)[0]
+        return self.motion_primitive.mixture.sample(1)[0]# we assume the sklearn Gaussian Mixture model is used
+        #return self.motion_primitive.get_random_samples(1)[0]
     sample_low_dimensional_vector = sample_vector_mgrd if has_mgrd else sample_vector_legacy
 
     def sample_vectors_legacy(self, n_samples=1):
         return self.motion_primitive.sample_low_dimensional_vector(n_samples)
 
     def sample_vectors_mgrd(self, n_samples=1):
-        return self.motion_primitive.get_random_samples(n_samples)
+        return self.motion_primitive.mixture.sample(n_samples)[0]  # we assume the sklearn Gaussian Mixture model is used
+        #return self.motion_primitive.get_random_samples(n_samples)[0]
     sample_low_dimensional_vectors = sample_vectors_mgrd if has_mgrd else sample_vectors_legacy
 
     def back_project_legacy(self, s_vec, use_time_parameters=True):
