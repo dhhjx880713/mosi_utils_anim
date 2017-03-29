@@ -1,9 +1,10 @@
-__author__ = 'hadu01'
+
 import os
 import json
-from ....morphablegraphs.construction.fpca.fpca_spatial_data import  FPCASpatialData
-from ...libtest import params, pytest_generate_tests
 ROOTDIR = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-4]) + os.sep
+from morphablegraphs.construction.fpca.fpca_spatial_data import  FPCASpatialData
+from ...libtest import params, pytest_generate_tests
+
 TEST_DATA_PATH = ROOTDIR + os.sep + r'../test_data/constrction/fpca'
 
 
