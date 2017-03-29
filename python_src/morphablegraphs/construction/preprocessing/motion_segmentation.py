@@ -14,7 +14,7 @@ class MotionSegmentation(object):
 
     def __init__(self, verbose=False):
         self.verbose = verbose
-        self.cutted_motions = {}
+        self.aligned_motions = {}
         self.annotation_label = {}
         self.bvhreader = None
 
@@ -77,7 +77,7 @@ class MotionSegmentation(object):
                                   '_%s_%d_%d.bvh' % (primitive_type,
                                                      start_frame,
                                                      end_frame)
-                    self.cutted_motions[outfilename] = cutted_frames
+                    self.aligned_motions[outfilename] = cutted_frames
                 else:
                     print "cannot find motion primitive " + elementary_action + '_' \
                           + primitive_type + ' in ' + filename
@@ -87,7 +87,7 @@ class MotionSegmentation(object):
             raise ValueError('Please give saving path!')
         if not save_path.endswith(os.sep):
             save_path += os.sep
-        for outfilename, frames in self.cutted_motions.iteritems():
+        for outfilename, frames in self.aligned_motions.iteritems():
             save_filename = save_path + outfilename
             BVHWriter(save_filename, self.bvhreader, frames,
                       frame_time=self.bvhreader.frame_time,

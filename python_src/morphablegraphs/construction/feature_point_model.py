@@ -4,7 +4,8 @@ import numpy as np
 from ..motion_model.motion_primitive import MotionPrimitive
 import json
 from ..animation_data.motion_editing import pose_orientation_quat, \
-                                            get_cartesian_coordinates_from_quaternion
+                                            get_cartesian_coordinates_from_quaternion, \
+                                            get_rotation_angle
 import matplotlib.pyplot as plt
 from .motion_primitive.gmm_trainer import GMMTrainer
 from sklearn import mixture
@@ -24,8 +25,10 @@ class FeaturePointModel(object):
         self.threshold = None
         self.root_pos = []
         self.root_orientation = []
+        self.root_rot_angles = []
         self.feature_point_dist = None
         self.root_feature_dist = None
+        self.root_feature_dist_type = None
 
     def create_feature_points(self, joint_name_list, n, frame_idx):
         """
@@ -64,11 +67,27 @@ class FeaturePointModel(object):
             rot_ori = pose_orientation_quat(quat_frames[-1])
             self.root_pos.append(rot_pos)
             self.root_orientation.append(rot_ori)
+        self.root_feature_dist_type = 'vector'
+
+    def convert_ori_to_angle_deg(self, ref_ori=[0, -1]):
+        assert self.root_orientation != [], ("please create root orientation list first!")
+        for ori_vec in self.root_orientation:
+            angle = -get_rotation_angle(ori_vec, ref_ori)
+            angle_rad = np.deg2rad(angle)
+            self.root_rot_angles.append(angle_rad)
+        self.root_feature_dist_type = 'angle'
 
     def model_root_dist(self):
-        training_samples = np.concatenate((np.asarray(self.root_pos),
-                                           np.asarray(self.root_orientation)),
-                                          axis=1)
+        if self.root_feature_dist_type == 'vector':
+            training_samples = np.concatenate((np.asarray(self.root_pos),
+                                               np.asarray(self.root_orientation)),
+                                              axis=1)
+        elif self.root_feature_dist_type == 'angle':
+            training_samples = np.concatenate((np.asarray(self.root_pos),
+                                               np.reshape(self.root_rot_angles, (len(self.root_rot_angles), 1))),
+                                              axis=1)
+        else:
+            raise ValueError('The type of root feature points is not specified!')
         gmm_trainer = GMMTrainer(training_samples)
         self.root_feature_dist = gmm_trainer.gmm
         self.root_threshold = gmm_trainer.averageScore
@@ -76,7 +95,8 @@ class FeaturePointModel(object):
     def sample_new_root_feature(self):
         new_sample = np.ravel(self.root_feature_dist.sample())
         # normalize orientation
-        new_sample[2:] = new_sample[2:]/np.linalg.norm(new_sample[2:])
+        if self.root_feature_dist_type == 'vector':
+            new_sample[2:] = new_sample[2:]/np.linalg.norm(new_sample[2:])
         return new_sample
 
     def save_root_feature_dist(self, save_filename):
@@ -85,7 +105,8 @@ class FeaturePointModel(object):
                 'gmm_weights': self.root_feature_dist.weights_.tolist(),
                 'gmm_means': self.root_feature_dist.means_.tolist(),
                 'gmm_covars': self.root_feature_dist.covars_.tolist(),
-                'threshold': self.root_threshold}
+                'threshold': self.root_threshold,
+                'feature_type': self.root_feature_dist_type}
         with open(save_filename, 'wb') as outfile:
             json.dump(data, outfile)
 
@@ -98,11 +119,15 @@ class FeaturePointModel(object):
         self.root_feature_dist.means_ = np.array(data['gmm_means'])
         self.root_feature_dist.converged_ = True
         self.root_feature_dist.covars_ = np.array(data['gmm_covars'])
+        self.root_feature_dist_type = data['feature_type']
         self.root_feature_threshold = data['threshold']
 
     def score_trajectory_target(self, target):
-        assert len(target) == 4, 'The trajectory target should be a vector of length 4.'
         assert self.root_feature_dist is not None, 'Please model or load root feature distribution.'
+        if self.root_feature_dist_type == 'vector':
+            assert len(target) == 4, 'The trajectory target should be a vector of length 4.'
+        else:
+            assert len(target) == 3, 'The trajectory target should be a vector of length 3.'
         return self.root_feature_dist.score([target,])[0]
 
     def save_data(self, save_filename):

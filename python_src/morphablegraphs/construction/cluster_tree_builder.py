@@ -193,3 +193,6 @@ class ClusterTreeBuilder(object):
             return True
         else:
             return False
+
+    def build_for_one_motion_primitive(self, motion_primitive_file, space_partition_file):
+        self._create_space_partitioning(motion_primitive_file, space_partition_file)

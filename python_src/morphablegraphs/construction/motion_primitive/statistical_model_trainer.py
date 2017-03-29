@@ -6,28 +6,46 @@ Created on Fri Jan 23 09:34:02 2015
 """
 import json
 import numpy as np
-import matplotlib.pyplot as plt
-from sklearn import mixture
 import os
 from ...animation_data.bvh import BVHReader, BVHWriter
 import rpy2.robjects as robjects
+from .gmm_trainer import GMMTrainer
+from morphablegraphs.utilities import get_b_spline_knots
 
 
+class StatisticalModelTrainer(GMMTrainer):
 
-class StatisticalModelTrainer(object):
-
-    def __init__(self, fdata, save_path=None):
-
-        self._load_data(fdata)
-        self._combine_spatial_temporal_parameters()
+    def __init__(self, fdata=None, save_path=None, temporal_data=True):
+        super(StatisticalModelTrainer, self).__init__()
+        self.use_semantic_annotation = False
+        self.use_temporal_data = temporal_data
+        self.semantic_eigenvectors = None
+        self.semantic_npc = None
+        self.semantic_mean = None
+        self.semantic_weight = None
+        if fdata is not None:
+            if self.use_temporal_data:
+                self._load_data(fdata)
+                self._combine_spatial_temporal_parameters()
+            else:
+                self._load_spatial_data(fdata)
         self.save_path = save_path
 
     def gen_motion_primitive_model(self):
-        self._train_gmm()
-        self._create_gmm()
+        self.fit(self._motion_parameters)
         self._save_model(self.save_path)
+        return self.data
+
+    def gen_motion_primitive_model_without_semantic(self, score='AIC'):
+        self.fit(self._motion_parameters, score)
+        if self.use_temporal_data:
+            self._save_model_without_semantic(self.save_path)
+        else:
+            self._save_spatial_model(self.save_path)
+        print("Export motion primitive to " + self.save_path)
 
     def export_model_data(self, save_path):
+        # save the intermediate data
         save_data = {}
         motion_data = {}
         assert len(self._file_order) == len(self._motion_parameters)
@@ -41,7 +59,7 @@ class StatisticalModelTrainer(object):
         save_data['translation_maxima'] = self._scale_vec
         save_data['n_basis_spatial'] = self._n_basis
         save_data['n_canonical_frames'] = self._n_frames
-        save_data['n_basis_temporal'] = 8
+        save_data['n_basis_temporal'] = 8  # remove magic value
         with open(save_path, 'wb') as outfile:
             json.dump(save_data, outfile)
 
@@ -68,6 +86,17 @@ class StatisticalModelTrainer(object):
         self._temporal_parameters = np.asarray(
             self._temporal_pca[self._temporal_pca.names.index('scores')])
 
+    def _load_spatial_data(self, fdata):
+        self._motion_primitive_name = fdata['motion_type']
+        self._motion_parameters = fdata['spatial_parameters']
+        self._spatial_eigenvectors = fdata['spatial_eigenvectors']
+        self._n_frames = int(fdata['n_frames'])
+        self._scale_vec = fdata['scale_vector']
+        self._n_basis = fdata['n_basis']
+        self._file_order = fdata['file_order']
+        self._mean_motion = fdata['mean_motion']
+        self._n_dim_spatial = int(fdata['n_dim_spatial'])
+
     def _weight_temporal_parameters(self):
         '''
         Weight low dimensional temporal parameters
@@ -89,41 +118,48 @@ class StatisticalModelTrainer(object):
                                                   self._temporal_parameters,),
                                                  axis=1)
 
-    def _train_gmm(self, n_K=10, DEBUG=0):
-        '''
-        Find the best number of Gaussian using BIC score
-        '''
+    def load_data_from_file(self, spatial_temporal_data, temporal_semantic_file):
+        # with open(spatial_temporal_file, 'r') as infile:
+        #     spatial_temporal_data = json.load(infile)
+        with open(temporal_semantic_file, 'r') as infile:
+            temporal_semantic_data = json.load(infile)
+        # self._motion_parameters = np.array(spatial_temporal_data['motion_data'])
+        self.use_semantic_annotation = True
+        motion_data = spatial_temporal_data['motion_data']
+        self._n_frames = spatial_temporal_data['n_canonical_frames']
+        self._scale_vec = spatial_temporal_data['translation_maxima']
+        self._n_basis = spatial_temporal_data['n_basis_spatial']
+        self._n_dim_spatial = spatial_temporal_data['n_dim_spatial']
+        # self._mean_time_vector = np.array(spatial_temporal_data['mean_time_vector'])
+        self._motion_primitive_name = spatial_temporal_data['motion_type']
+        self._spatial_eigenvectors = np.array(spatial_temporal_data['eigen_vector_spatial'])
+        # self._eigen_vectors_time = np.array(spatial_temporal_data['eigen_vector_temporal'])
+        self._mean_motion = np.array(spatial_temporal_data['mean_spatial_vector'])
 
-        obs = np.random.permutation(self._motion_parameters)
-        lowestBIC = np.infty
-        BIC = []
-        K = range(1, n_K)
-        BICscores = []
-        for i in K:
-            gmm = mixture.GMM(n_components=i, covariance_type='full')
-            gmm.fit(obs)
-            BIC.append(gmm.bic(obs))
-            BICscores.append(BIC[-1])
-            if BIC[-1] < lowestBIC:
-                lowestBIC = BIC[-1]
-        index = min(xrange(n_K - 1), key=BIC.__getitem__)
-        print 'number of Gaussian: ' + str(index + 1)
-        self.numberOfGaussian = index + 1
-        if DEBUG:
-            fig = plt.figure()
-            plt.plot(BICscores)
-            plt.show()
+        # loading temporal and semantic data
+        self.temporal_semantic_npc = temporal_semantic_data['n_pc']
+        self.n_dim_temporal_semantic = temporal_semantic_data['n_dim']
+        self._n_basis_temporal_semantic = temporal_semantic_data['n_basis']
+        self.temporal_semantic_lowVs = np.array(temporal_semantic_data['low_dimensional_data'])
+        self.temporal_semantic_fileorder = temporal_semantic_data['fileorder']
+        self.temporal_semantic_eigenvectors = np.array(temporal_semantic_data["eigen_vector"])
+        self.temporal_semantic_mean = temporal_semantic_data['mean_vec']
+        self.combine_motion_and_temporal_semantic_data(motion_data, self.temporal_semantic_lowVs,
+                                                       self.temporal_semantic_fileorder)
+        self.semantic_annotation = temporal_semantic_data["semantic_annotation"]
 
-    def _create_gmm(self):
-        '''
-        Using GMM to model the data with optimized number of Gaussian
-        '''
-        self.gmm = mixture.GMM(n_components=self.numberOfGaussian,
-                               covariance_type='full')
-        self.gmm.fit(self._motion_parameters)
-        scores = self.gmm.score(self._motion_parameters)
-        averageScore = np.mean(scores)
-        print 'average score is:' + str(averageScore)
+    def combine_motion_and_temporal_semantic_data(self, motion_data, temproal_semantic_data, fileorder):
+        self._motion_parameters = []
+        for i in range(len(fileorder)):
+            if fileorder[i] not in motion_data.keys():
+                print(fileorder[i] + ' is not in motion data!')
+                continue
+            tmp_spatial_data = motion_data[fileorder[i]][:-3]
+            self._motion_parameters.append(np.concatenate((tmp_spatial_data, temproal_semantic_data[i])))
+        self._motion_parameters = np.asarray(self._motion_parameters)
+
+    def weight_temporal_semantic_data(self, factor):
+        self.temporal_semantic_eigenvectors *= factor
 
     def _sample_spatial_parameters(self, n, save_path=None):
         '''Generate ranmdon sample from mrophable model based on spatial p
@@ -164,17 +200,102 @@ class StatisticalModelTrainer(object):
         BVHWriter(filename, reader, frames, frame_time=0.013889,
                   is_quaternion=True)
 
-    def get_b_spline_knots(self, n_basis, n_canonical_frames):
-        rcode = """
-            n_basis = %d
-            n_frames = %d
-            basisobj = create.bspline.basis(c(0, n_frames - 1), nbasis = n_basis)
-        """% ( n_basis, n_canonical_frames)
-        robjects.r(rcode)
-        basis_function = robjects.globalenv['basisobj']
-        return np.asarray(robjects.r['knots'](basis_function, False))
+    def save_low_level_semantic_model(self):
+        pass
 
     def _save_model(self, save_path=None):
+        '''
+        Save model as a json file
+
+        Parameters
+        ----------
+        *filename: string
+        \tGive the file name to json file
+        '''
+        elementary_action_name = self._motion_primitive_name.split('_')[0]
+        if save_path is None:
+            filename = self._motion_primitive_name + '_quaternion_mm.json'
+        else:
+            if not save_path.endswith(os.sep):
+                save_path += os.sep
+            folder_path = save_path + 'elementary_action_%s' % (elementary_action_name)
+            if not os.path.exists(folder_path):
+                os.mkdir(folder_path)
+            filename = folder_path + os.sep + self._motion_primitive_name + '_quaternion_mm_with_semantic.json'
+        weights = self.gmm.weights_.tolist()
+        means = self.gmm.means_.tolist()
+        covars = self.gmm.covariances_.tolist()
+        if not self.use_semantic_annotation:
+            mean_fd = self._temporal_pca[self._temporal_pca.names.index('meanfd')]
+            self._mean_time_vector = np.array(
+                mean_fd[mean_fd.names.index('coefs')])
+            self._mean_time_vector = np.ravel(self._mean_time_vector)
+            harms = self._temporal_pca[self._temporal_pca.names.index('harmonics')]
+            # self._eigen_vectors_time = np.array(harms[harms.names.index('coefs')])
+
+        self.data = {'name': self._motion_primitive_name,
+                'gmm_weights': weights,
+                'gmm_means': means,
+                'gmm_covars': covars,
+                'eigen_vectors_spatial': self._spatial_eigenvectors.tolist(),
+                'mean_spatial_vector': self._mean_motion.tolist(),
+                'n_canonical_frames': self._n_frames,
+                'translation_maxima': self._scale_vec,
+                'n_basis_spatial': self._n_basis,
+                'npc_spatial': len(self._spatial_eigenvectors),
+                'eigen_vectors_temporal_semantic': self.temporal_semantic_eigenvectors.tolist(),
+                'mean_temporal_semantic_vector': self.temporal_semantic_mean,
+                'n_dim_spatial': self._n_dim_spatial,
+                'n_basis_temporal_semantic': self._n_basis_temporal_semantic,
+                'b_spline_knots_spatial': get_b_spline_knots(self._n_basis, self._n_frames).tolist(),
+                'b_spline_knots_temporal_semantic': get_b_spline_knots(self._n_basis_temporal_semantic,
+                                                                            self._n_frames).tolist(),
+                'npc_temporal_semantic': self.temporal_semantic_npc,
+                'semantic_annotation': self.semantic_annotation,
+                'n_dim_temporal_semantic': self.n_dim_temporal_semantic}
+        with open(filename, 'wb') as outfile:
+            json.dump(self.data, outfile)
+        outfile.close()
+
+    def _save_spatial_model(self, save_path=None):
+        '''
+        Save model as a json file
+
+        Parameters
+        ----------
+        *filename: string
+        \tGive the file name to json file
+        '''
+        elementary_action_name = self._motion_primitive_name.split('_')[0]
+        if save_path is None:
+            filename = self._motion_primitive_name + '_quaternion_spatial_mm.json'
+        else:
+            if not save_path.endswith(os.sep):
+                save_path += os.sep
+            folder_path = save_path + 'elementary_action_%s' % (elementary_action_name)
+            if not os.path.exists(folder_path):
+                os.mkdir(folder_path)
+            filename = folder_path + os.sep + self._motion_primitive_name + '_quaternion_spatial_mm.json'
+        weights = self.gmm.weights_.tolist()
+        means = self.gmm.means_.tolist()
+        covars = self.gmm.covariances_.tolist()
+
+        data = {'name': self._motion_primitive_name,
+                'gmm_weights': weights,
+                'gmm_means': means,
+                'gmm_covars': covars,
+                'eigen_vectors_spatial': self._spatial_eigenvectors.tolist(),
+                'mean_spatial_vector': self._mean_motion.tolist(),
+                'n_canonical_frames': self._n_frames,
+                'translation_maxima': self._scale_vec,
+                'n_basis_spatial': self._n_basis,
+                'n_dim_spatial': self._n_dim_spatial,
+                'b_spline_knots_spatial': get_b_spline_knots(self._n_basis, self._n_frames).tolist()}
+        with open(filename, 'wb') as outfile:
+            json.dump(data, outfile)
+        outfile.close()
+
+    def _save_model_without_semantic(self, save_path=None):
         '''
         Save model as a json file
 
@@ -195,7 +316,7 @@ class StatisticalModelTrainer(object):
             filename = folder_path + os.sep + self._motion_primitive_name + '_quaternion_mm.json'
         weights = self.gmm.weights_.tolist()
         means = self.gmm.means_.tolist()
-        covars = self.gmm.covars_.tolist()
+        covars = self.gmm.covariances_.tolist()
         mean_fd = self._temporal_pca[self._temporal_pca.names.index('meanfd')]
         self._mean_time_vector = np.array(
             mean_fd[mean_fd.names.index('coefs')])
@@ -217,10 +338,8 @@ class StatisticalModelTrainer(object):
                 'mean_time_vector': self._mean_time_vector.tolist(),
                 'n_dim_spatial': self._n_dim_spatial,
                 'n_basis_time': n_basis_time,
-                'b_spline_knots_spatial': self.get_b_spline_knots(self._n_basis, self._n_frames).tolist(),
-                'b_spline_knots_time': self.get_b_spline_knots(n_basis_time, self._n_frames).tolist()}
+                'b_spline_knots_spatial': get_b_spline_knots(self._n_basis, self._n_frames).tolist(),
+                'b_spline_knots_time': get_b_spline_knots(n_basis_time, self._n_frames).tolist()}
         with open(filename, 'wb') as outfile:
             json.dump(data, outfile)
         outfile.close()
-
-

@@ -169,23 +169,6 @@ def calc_bitvector_walking(frames, features, skeleton=None, verbose=False,
 
     if verbose:
         # Plots:
-#        plt.figure()
-#        for feature in ['Bip01_L_Toe0', 'LeftFoot']:
-#            plt.plot(bitvectors_smoothed[feature], label=feature)
-#        plt.legend()
-#        plt.ylim([0, 2])
-#        plt.title('walk')
-#        plt.xlabel('frameindex')
-#        plt.ylabel('bitvalue')
-#
-#        plt.figure()
-#        for feature in ['Bip01_R_Toe0', 'RightFoot']:
-#            plt.plot(bitvectors_smoothed[feature], label=feature)
-#        plt.legend()
-#        plt.ylim([0, 2])
-#        plt.title('walk')
-#        plt.xlabel('frameindex')
-#        plt.ylabel('bitvalue')
 
         plt.figure()
         for feature in ['Bip01_L_Toe0', 'Bip01_R_Toe0']:
@@ -423,85 +406,132 @@ def splitt_motion(frames, keyframes, mname, skeleton_file='skeleton.bvh',
             counter += 1.0
 
 
-def filter_tpose(frames, features):
-    """ TODO """
-    bitvectors = calc_bitvector_walking(frames, features, threshold=0.1)
-
-    converted = {feature: [] for feature in features}
-    for i in xrange(len(bitvectors)):
-        for feature in features:
-            converted[feature].append(bitvectors[i][feature])
-
-    first_falling_flank = np.inf
-    last_rising_flank = 0
-
-    for feature in features:
-        vector = np.array(converted[feature])
-        zeros_a = np.where(vector == 0)[0]
-        if zeros_a[0] < first_falling_flank:
-            first_falling_flank = zeros_a[0]
-        if zeros_a[-1] > last_rising_flank:
-            last_rising_flank = zeros_a[-1]
-
-    frames = motion.getFramesData(weighted=0, usingQuaternion=False)
-    # Add a few Frames as buffer
-    subframes = np.ravel(frames[first_falling_flank:last_rising_flank + 11])
-    new_motion = deepcopy(motion)
-    new_motion.fromVectorToMotionData(subframes, weighted=0,
-                                      usingQuaternion=False)
-    return new_motion
+def get_joint_speed(bvhreader, feature_joints):
+    skeleton = Skeleton()
+    skeleton.load_from_bvh(bvhreader)
+    left_toe_pos = []
+    right_toe_pos = []
+    left_toe_speed = [0]
+    right_toe_speed = [0]
+    for i in range(len(bvhreader.frames)):
+        left_toe_pos.append(get_cartesian_coords(bvhreader,
+                                                 skeleton,
+                                                 feature_joints[0],
+                                                 bvhreader.frames[i]))
+        right_toe_pos.append(get_cartesian_coords(bvhreader,
+                                                  skeleton,
+                                                  feature_joints[1],
+                                                  bvhreader.frames[i]))
+    for i in range(len(bvhreader.frames) - 1):
+        left_toe_speed.append((left_toe_pos[i+1][0] - left_toe_pos[i][0])**2 +
+                              (left_toe_pos[i+1][2] - left_toe_pos[i][2])**2)
+        right_toe_speed.append((right_toe_pos[i+1][0] - right_toe_pos[i][0])**2 +
+                               (right_toe_pos[i+1][2] - right_toe_pos[i][2])**2)
+    return left_toe_speed, right_toe_speed
 
 
-def segmentation(source, segmentfolders, exclude, skeltonfile, features,
-                 motion_type='walking', hastpose=True, tmppath=None,
-                 verbose=False):
-    """ TODO """
-    if source[-1] != os.sep:
-        source = source + os.sep
-
-    if not tmppath:
-        tmppath = source
-    if tmppath[-1] != os.sep:
-        tmppath = tmppath + os.sep
-
-    if hastpose:
-        for f in glob.glob(source + r'*.bvh'):
-            new_motion = AnimationData.SkeletonAnimationData()
-            new_motion.buildFromBVHFile(f)
-            tmp = filter_tpose(new_motion, features)
-            tmp.saveToFile(tmppath + tmp.name, usingQuaternion=False)
-
-    for f in glob.glob(tmppath + '*.bvh'):
-        new_motion = AnimationData.SkeletonAnimationData()
-        new_motion.buildFromBVHFile(f)
-
-        keyframes = detect_keyframes(new_motion, features,
-                                     motion_type=motion_type,
-                                     verbose=verbose)
-        print keyframes
-        splitted_motions = splitt_motion(new_motion, keyframes,
-                                         skeleton_file=skeltonfile)
-
-        if exclude[-1] != os.sep:
-            exclude = exclude + os.sep
-        if not os.path.exists(exclude):
-            os.makedirs(exclude)
-
-        for feature, path in zip(features, segmentfolders):
-            print feature
-            if path[-1] != os.sep:
-                path = path + os.sep
-            if not os.path.exists(path):
-                os.makedirs(path)
-
-            for splitted_motion in splitted_motions[feature]:
-                if splitted_motion.name.split('_')[0] == 'begin' or \
-                        splitted_motion.name.split('_')[0] == 'end':
-                    splitted_motion.saveToFile(exclude + splitted_motion.name,
-                                               usingQuaternion=False)
-                else:
-                    splitted_motion.saveToFile(path + splitted_motion.name,
-                                               usingQuaternion=False)
-        os.remove(f)
+def count_blocks(bit_vec):
+    extended_bit_vec = np.zeros(len(bit_vec) + 1)
+    extended_bit_vec[:-1] = bit_vec[:]
+    extended_bit_vec[-1] = bit_vec[-2]
+    blocks = []
+    block_length = 1
+    for i in range(len(bit_vec)):
+        if extended_bit_vec[i+1] == extended_bit_vec[i]:
+            block_length += 1
+        else:
+            blocks.append(block_length)
+            block_length = 1
+    blocks.append(block_length)
+    return blocks
 
 
+def majority_vote(index, vector, w):
+    selected_elements = vector[index-w: index+w+1]
+    one_counter = sum(selected_elements == 1)
+    zero_counter = sum(selected_elements == 0)
+    if one_counter > zero_counter:
+        vector[index] = 1
+    else:
+        vector[index] = 0
+
+
+def majority_vote_smoothing(annotation_vec, n_block):
+    """
+    automatically adapt window size based on the number of blocks the final result wants
+    :param annotation_vec:
+    :return:
+    """
+    block_sizes = count_blocks(annotation_vec)
+    if len(block_sizes) > 3:
+        sorted_block_sizes = sorted(block_sizes, reverse=True)
+        w = sorted_block_sizes[3]
+        # mirror the boundary
+        extended_vec = np.zeros(len(annotation_vec) + 2*w)
+        extended_vec[w: -w] = annotation_vec[:]
+        for i in range(w):
+            extended_vec[i] = annotation_vec[w-1-i]
+            extended_vec[-i + 1] = annotation_vec[-w+i]
+        for i in range(len(annotation_vec)):
+            majority_vote(i, extended_vec, w)
+        smoothed_annotation_vec = extended_vec[w: -w]
+        return smoothed_annotation_vec
+    else:
+
+        return [int(i) for i in annotation_vec]
+
+
+def gen_annotation(left_speed, right_speed, label):
+    if label == 'left':
+        threshold = max(right_speed)
+        # threshold = 0.1
+        annotation = [i<=threshold for i in left_speed]
+        annotation = majority_vote_smoothing(annotation, n_block=3)
+    elif label == 'right':
+        threshold = max(left_speed)
+        # threshold = 0.1
+        annotation = [i<=threshold for i in right_speed]
+        annotation = majority_vote_smoothing(annotation, n_block=3)
+    elif label == 'sideStep':
+        threshold = 0.01
+        annotation = [i<=threshold for i in right_speed]
+        annotation = majority_vote_smoothing(annotation, n_block=3)
+    else:
+        raise KeyError('Unknown label')
+    annotation[0] = 1
+    annotation[-1] = 1
+    if type(annotation) is not list:
+        annotation = annotation.tolist()
+    return annotation
+
+
+def gen_foot_contact_annotation(bvhfile, feature_joints, motion_primitive_model):
+    """
+
+    :param bvhfile:
+    :param feature_joints: [left joint, right joint]
+    :return:
+    """
+    bvhreader = BVHReader(bvhfile)
+    n_frames = len(bvhreader.frames)
+    left_joint_speed, right_joint_speed = get_joint_speed(bvhreader, feature_joints)
+    start_anno = np.zeros(n_frames)
+    start_anno[0] = 1.0
+    end_anno = np.zeros(n_frames)
+    end_anno[-1] = 1.0
+    semantic_annotation = {'LeftFootContact': [],
+                           'RightFootContact': [],
+                           'start': start_anno.tolist(),
+                           'end': end_anno.tolist()}
+    if motion_primitive_model == 'leftStance':
+        semantic_annotation['RightFootContact'] = np.ones(n_frames).tolist()
+        semantic_annotation['LeftFootContact'] = gen_annotation(left_joint_speed, right_joint_speed, 'left')
+    elif motion_primitive_model == 'rightStance':
+        semantic_annotation['RightFootContact'] = gen_annotation(left_joint_speed, right_joint_speed, 'right')
+        semantic_annotation['LeftFootContact'] = np.ones(n_frames).tolist()
+    elif motion_primitive_model == 'sideStep':
+        semantic_annotation['RightFootContact'] = gen_annotation(left_joint_speed, right_joint_speed, 'sideStep')
+        semantic_annotation['LeftFootContact'] = gen_annotation(left_joint_speed, right_joint_speed, 'sideStep')
+    else:
+        raise NotImplementedError
+    return semantic_annotation
