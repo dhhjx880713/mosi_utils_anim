@@ -1,12 +1,10 @@
 import json
 import urllib2
 from copy import deepcopy
-
 import numpy as np
-
 from ..constraints.spatial_constraints.keyframe_constraints import GlobalTransformCAConstraint
 from ..animation_data.motion_editing import fast_quat_frames_transformation, transform_quaternion_frames, euler_angles_to_rotation_matrix
-from ..utilities import write_log, get_bvh_writer, TCPClient
+from ..utilities import write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO, LOG_MODE_ERROR, get_bvh_writer, TCPClient
 
 
 class CAInterface(object):
@@ -69,7 +67,7 @@ class CAInterface(object):
                                                                  "semanticAnnotation":  {"generated": True, "keyframeLabel": None},
                                                                  "ca_constraint": True},
                                                                 1.0, 1.0, len(graph_walk.steps))
-                    print "CREATE CA constraint", joint_name, ca_constraint.position
+                    write_message_to_log("CREATE CA constraint "+ str(joint_name)+" " +str(ca_constraint.position), LOG_MODE_DEBUG)
                     ca_constraints.append(ca_constraint)
         return ca_constraints
 
@@ -77,8 +75,8 @@ class CAInterface(object):
             """ call ca rest interface using a json payload
             """
             if self.ca_service_url is not None:
-                write_log("Call CA interface", self.ca_service_url, "for", ca_input["elementary_action_name"],
-                          ca_input["motion_primitive_name"])
+                write_message_to_log("Call CA interface "+ str(self.ca_service_url,) + " for " + ca_input["elementary_action_name"]+ \
+                          ca_input["motion_primitive_name"], LOG_MODE_DEBUG)
                 request = urllib2.Request("http://" + self.ca_service_url, json.dumps(ca_input))
                 try:
                     handler = urllib2.urlopen(request)
@@ -86,9 +84,9 @@ class CAInterface(object):
                     ca_result = json.loads(ca_output_string)
                     return ca_result
                 except urllib2.HTTPError, e:
-                    write_log(e.code)
+                    write_message_to_log(str(e.code), LOG_MODE_ERROR)
                 except urllib2.URLError, e:
-                    write_log(e.args)
+                    write_message_to_log(str(e.args), LOG_MODE_ERROR)
             return None
 
     def _get_aligned_motion_spline(self, new_motion_spline, prev_frames):

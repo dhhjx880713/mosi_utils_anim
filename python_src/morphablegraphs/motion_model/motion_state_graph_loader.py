@@ -17,6 +17,7 @@ from motion_state_transition import MotionStateTransition
 from motion_state_graph import MotionStateGraph
 from ..motion_generator.hand_pose_generator import HandPoseGenerator
 from . import ELEMENTARY_ACTION_DIRECTORY_NAME, TRANSITION_MODEL_DIRECTORY_NAME, NODE_TYPE_START, NODE_TYPE_STANDARD,NODE_TYPE_CYCLE_END, NODE_TYPE_END, TRANSITION_DEFINITION_FILE_NAME, TRANSITION_MODEL_FILE_ENDING
+from ..utilities import write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_ERROR, LOG_MODE_INFO
 
 SKELETON_FILE = "skeleton"  # TODO replace with standard skeleton in data directory
 SKELETON_BVH_STRING_KEY = "skeletonString"
@@ -33,7 +34,6 @@ class MotionStateGraphLoader(object):
         self.motion_state_graph_path = None
         self.elementary_action_directory = None
         self.motion_primitive_node_group_builder = MotionStateGroupLoader()
-
 
     def set_data_source(self, motion_state_graph_path, load_transition_models=False, update_stats=False):
         """ Set the source which is used to load the data structure into memory.
@@ -76,7 +76,6 @@ class MotionStateGraphLoader(object):
             return
 
         motion_state_graph.animated_joints = motion_state_graph.skeleton.animated_joints
-        #motion_state_graph.skeleton = motion_state_graph.full_skeleton.create_reduced_copy()
         motion_state_graph.mgrd_skeleton = motion_state_graph.skeleton.convert_to_mgrd_skeleton()
 
         #skeleton_path = self.motion_state_graph_path + os.sep + SKELETON_FILE
@@ -88,7 +87,6 @@ class MotionStateGraphLoader(object):
             node_group = self.motion_primitive_node_group_builder.build(motion_state_graph)
             motion_state_graph.nodes.update(node_group.nodes)
             motion_state_graph.node_groups[node_group.elementary_action_name] = node_group
-        #print "add transitions between nodes from", transition_dict
         self._set_transitions_from_dict(motion_state_graph, transition_dict)
 
         self._update_motion_state_stats(motion_state_graph, recalculate=False)
@@ -121,19 +119,17 @@ class MotionStateGraphLoader(object):
             #load graphs representing elementary actions including transitions between actions
             for key in next(os.walk(self.motion_state_graph_path + os.sep + ELEMENTARY_ACTION_DIRECTORY_NAME))[1]:
                 subgraph_path = self. motion_state_graph_path + os.sep + ELEMENTARY_ACTION_DIRECTORY_NAME + os.sep + key
-                print subgraph_path
                 name = key.split("_")[-1]
                 self.motion_primitive_node_group_builder.set_directory_as_data_source(name, subgraph_path)
                 node_group = self.motion_primitive_node_group_builder.build(motion_state_graph)
                 motion_state_graph.nodes.update(node_group.nodes)
                 motion_state_graph.node_groups[node_group.elementary_action_name] = node_group
 
-
             if "transitions" in graph_definition.keys():
-                print "add transitions between subgraphs from", graph_definition_file
+                write_message_to_log("add transitions between subgraphs from" + graph_definition_file, LOG_MODE_DEBUG)
                 self._set_transitions_from_dict(motion_state_graph, graph_definition["transitions"])
         else:
-            print "did not find graph definition file", graph_definition_file
+            write_message_to_log("Error: Did not find graph definition file " + graph_definition_file, LOG_MODE_ERROR)
 
         self._update_motion_state_stats(motion_state_graph, recalculate=recalculate_motion_stats)
 
@@ -147,7 +143,6 @@ class MotionStateGraphLoader(object):
             from_motion_primitive_name = node_key.split("_")[1]
             from_node_key = (from_action_name, from_motion_primitive_name)
             if from_node_key in motion_state_graph.nodes.keys():
-                #print "add action transitions for", subgraph_key,"###############################"
                 for to_key in transition_dict[node_key]:
                     to_action_name = to_key.split("_")[0]
                     to_motion_primitive_name = to_key.split("_")[1]
@@ -162,7 +157,7 @@ class MotionStateGraphLoader(object):
             output_gmm = motion_state_graph.nodes[to_node_key].gaussian_mixture_model
             return GPMixture.load(transition_model_file, motion_state_graph.nodes[from_node_key].gaussian_mixture_model,output_gmm)
         else:
-            print "did not find transition model file", transition_model_file
+            write_message_to_log("Error: Did not find transition model file " + transition_model_file, LOG_MODE_ERROR)
             return None
 
     def _get_transition_type(self, motion_state_graph, from_node_key, to_node_key):
@@ -182,5 +177,4 @@ class MotionStateGraphLoader(object):
         if self.load_transition_models:
             transition_model = self._load_transition_model(motion_state_graph, from_node_key, to_node_key)
         transition_type = self._get_transition_type(motion_state_graph, from_node_key, to_node_key)
-        #print "create edge", from_node_key, to_node_key
         motion_state_graph.nodes[from_node_key].outgoing_edges[to_node_key] = MotionStateTransition(from_node_key, to_node_key, transition_type, transition_model)

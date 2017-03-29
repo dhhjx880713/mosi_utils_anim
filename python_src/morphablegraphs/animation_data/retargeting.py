@@ -27,6 +27,9 @@ ROCKETBOX_TO_GAME_ENGINE_MAP["LeftLeg"] = "calf_l"
 ROCKETBOX_TO_GAME_ENGINE_MAP["RightLeg"] = "calf_r"
 ROCKETBOX_TO_GAME_ENGINE_MAP["LeftFoot"] = "foot_l"
 ROCKETBOX_TO_GAME_ENGINE_MAP["RightFoot"] = "foot_r"
+ROCKETBOX_TO_GAME_ENGINE_MAP["Bip01_L_Toe0"] = "ball_l"
+ROCKETBOX_TO_GAME_ENGINE_MAP["Bip01_R_Toe0"] = "ball_r"
+
 
 ROOT_JOINT = "Hips"
 ROOT_CHILDREN = ["RightUpLeg", "LeftUpLeg", "Spine"]
@@ -72,3 +75,26 @@ def get_dir_to_child(skeleton, name, child_name, frame, use_cache=False):
     global_target_dir /= np.linalg.norm(global_target_dir)
     return global_target_dir
 
+
+def get_2d_root_rotation(target_skeleton, src_skeleton, src_frame, target_frame, src_root="Hips", target_root="pelvis"):
+    global_src = src_skeleton.nodes[src_root].get_global_matrix(src_frame)
+    global_src[:3, 3] = [0, 0, 0]
+
+    global_target = target_skeleton.nodes[target_root].get_global_matrix(target_frame)
+    global_target[:3, 3] = [0, 0, 0]
+
+    ref_offset = [0, 0, 1, 1]
+    rotated_point = np.dot(global_src, ref_offset)
+    src_dir = np.array([rotated_point[0], rotated_point[2]])
+    src_dir /= np.linalg.norm(src_dir)
+    src_dir = [src_dir[0], src_dir[1]]
+
+    rotated_point = np.dot(global_target, ref_offset)
+    target_dir = np.array([rotated_point[0], rotated_point[2]])
+    target_dir /= np.linalg.norm(src_dir)
+    target_dir = [target_dir[0], target_dir[1]]
+
+    angle = np.arccos(np.dot(src_dir, target_dir))
+    angle = np.degrees(angle)
+    #print "root quaternion", angle, src_dir, target_dir
+    return quaternion_from_euler(*np.radians([0, angle, 0]))
