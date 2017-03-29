@@ -18,7 +18,7 @@ try:
 except ImportError:
     pass
 from mgrd_filter import MGRDFilter
-from ..utilities import write_log
+from ..utilities import write_log, write_message_to_log, LOG_MODE_INFO, LOG_MODE_DEBUG, LOG_MODE_ERROR
 SAMPLING_MODE_RANDOM = "random_discrete"
 SAMPLING_MODE_CLUSTER_TREE_SEARCH = "cluster_tree_search"
 SAMPLING_MODE_RANDOM_SPLINE = "random_spline"
@@ -95,13 +95,13 @@ class MotionPrimitiveGenerator(object):
                 parameters = self.generate_constrained_sample(mp_name, mp_constraints,prev_mp_name,
                                                               prev_graph_walk.get_quat_frames(), prev_parameters)
             except ConstraintError as exception:
-                write_log("Exception", exception.message)
+                write_message_to_log("Exception " + exception.message, mode=LOG_MODE_ERROR)
                 raise SynthesisError(prev_graph_walk.get_quat_frames(), exception.bad_samples)
         else:  # no constraints were given
-            write_log("No constraints specified pick random sample instead")
+            write_message_to_log("No constraints specified pick random sample instead", mode=LOG_MODE_DEBUG)
             parameters = self.generate_random_sample(mp_name, prev_mp_name, prev_parameters)
         mp_constraints.time = time.clock() - start
-        write_log("Found best fit motion primitive sample in " + str(mp_constraints.time) + " seconds")
+        write_message_to_log("Found best fit motion primitive sample in " + str(mp_constraints.time) + " seconds", mode=LOG_MODE_DEBUG)
 
         motion_spline = self._motion_state_graph.nodes[(self.action_name, mp_name)].back_project(parameters, use_time_parameters=False)
         return motion_spline, parameters
@@ -154,10 +154,10 @@ class MotionPrimitiveGenerator(object):
         if scores is not None:
             best_idx = np.argmin(scores)
             mp_constraints.min_error = scores[best_idx]
-            write_log("Found best sample with score", scores[best_idx])
+            write_message_to_log("Found best sample with score "+ str(scores[best_idx]), LOG_MODE_DEBUG)
             return samples[best_idx]
         else:
-            write_log("Error: MGRD returned None. Use random sample instead.")
+            write_message_to_log("Error: MGRD returned None. Use random sample instead.", LOG_MODE_ERROR)
             return self.generate_random_sample(graph_node.name)
 
     def _optimize_parameters_numerically(self, initial_guess, graph_node, mp_constraints, prev_frames):
@@ -191,7 +191,7 @@ class MotionPrimitiveGenerator(object):
             parameters, min_error = self._sample_from_gmm_using_constraints_and_validity_check(graph_node, gmm,
                                                                                                mp_constraints,
                                                                                                prev_frames)
-        write_log("Found best sample with distance:", min_error)
+        write_message_to_log("Found best sample with distance: "+ str(min_error), LOG_MODE_DEBUG)
         return parameters
 
     def generate_random_sample(self, mp_name, prev_mp_name="", prev_parameters=None):
@@ -212,7 +212,7 @@ class MotionPrimitiveGenerator(object):
         n_candidates = self.n_cluster_search_candidates if n_candidates < 1 else n_candidates
         data = graph_node, constraints, prev_frames
         distance, s = graph_node.search_best_sample(obj_spatial_error_sum, data, n_candidates)
-        write_log("Found best sample with distance:", distance)
+        write_message_to_log("Found best sample with distance: " + str(distance), LOG_MODE_DEBUG)
         constraints.min_error = distance
         return np.array(s)
 
@@ -292,11 +292,11 @@ class MotionPrimitiveGenerator(object):
                     best_sample = samples[idx]
             else:
                 if self.verbose:
-                    write_log("Sample", idx, "failed validity check")
+                    write_message_to_log("Sample " +str(idx) + " failed validity check", LOG_MODE_DEBUG)
                 tmp_bad_samples += 1
             idx += 1
         if reached_max_bad_samples:
-            write_log("Warning: Failed to pick a valid sample from GMM")
+            write_message_to_log("Warning: Failed to pick a valid sample from GMM", LOG_MODE_DEBUG)
             return best_sample, min_error
         constraints.min_error = min_error
         return best_sample, min_error

@@ -2,6 +2,7 @@ __author__ = 'erhe01'
 
 from time_constraints import TimeConstraints
 from spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
+from ..utilities import write_message_to_log, LOG_MODE_DEBUG
 
 
 class TimeConstraintsBuilder(object):
@@ -12,7 +13,6 @@ class TimeConstraintsBuilder(object):
         self.time_constraint_list = []
         self.n_time_constraints = 0
         self._extract_time_constraints_from_graph_walk(graph_walk.steps, index_range)
-
 
     def _extract_time_constraints_from_graph_walk_entry(self, constrained_step_count, graph_walk_entry):
         """Extract time constraints on any keyframe constraints used during this graph walk step
@@ -37,9 +37,9 @@ class TimeConstraintsBuilder(object):
 
     def build(self, motion_primitive_graph, graph_walk):
         if self.n_time_constraints > 0:
-            print "Found", self.n_time_constraints, "time constraints"
+            write_message_to_log("Found " + str(self.n_time_constraints) + " time constraints", LOG_MODE_DEBUG)
             return TimeConstraints(motion_primitive_graph, graph_walk, self.start_step, self.end_step, self.time_constraint_list)
         else:
-            print "Did not find time constraints"
+            write_message_to_log("Did not find time constraints", LOG_MODE_DEBUG)
             return None
 

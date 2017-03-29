@@ -2,6 +2,7 @@
 from copy import copy
 from .spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE,SPATIAL_CONSTRAINT_TYPE_KEYFRAME_DIR_2D, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_LOOK_AT, SPATIAL_CONSTRAINT_TYPE_CA_CONSTRAINT
 from ik_constraints import JointIKConstraint, TwoJointIKConstraint
+from ..utilities import write_message_to_log, LOG_MODE_DEBUG
 
 SUPPORTED_CONSTRAINT_TYPES = [SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION,
                               SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION,SPATIAL_CONSTRAINT_TYPE_KEYFRAME_LOOK_AT]
@@ -77,7 +78,7 @@ class IKConstraintsBuilder(object):
         free_joints = self.skeleton.free_joints_map[c.joint_name]
         frame_range = self._detect_frame_range(c, frame_offset, time_function)
         if frame_range is None:
-            print "Did not find frame range for", c.keyframe_label
+            write_message_to_log("Did not find frame range for" + str(c.keyframe_label), LOG_MODE_DEBUG)
         if constrain_orientation:
             orientation = c.orientation
         else:

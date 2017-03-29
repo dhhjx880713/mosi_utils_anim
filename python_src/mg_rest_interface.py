@@ -20,6 +20,7 @@ import time
 from datetime import datetime
 from morphablegraphs import MotionGenerator, AlgorithmConfigurationBuilder, load_json_file, write_to_json_file
 from morphablegraphs.utilities.io_helper_functions import get_bvh_writer
+from morphablegraphs.utilities import write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO, LOG_MODE_ERROR, set_log_mode
 
 SERVICE_CONFIG_FILE = "config" + os.sep + "service.config"
 
@@ -81,8 +82,8 @@ class GenerateMotionHandler(tornado.web.RequestHandler):
             self._handle_result(mg_input, motion_vector)
 
         else:
-            print mg_input
             error_string = "Error: Did not find expected keys in the input data."
+            write_message_to_log(error_string, LOG_MODE_ERROR)
             self.write(error_string)
 
     def _handle_result(self, mg_input, motion_vector):
@@ -101,11 +102,11 @@ class GenerateMotionHandler(tornado.web.RequestHandler):
 
         else:
             error_string = "Error: Failed to generate motion data."
-            print error_string
+            write_message_to_log(error_string, LOG_MODE_ERROR)
             self.write(error_string)
 
     def convert_to_interact_format(self, motion_vector):
-        print "Converting the motion into the BVH format..."
+        write_message_to_log("Converting the motion into the BVH format...", LOG_MODE_DEBUG)
         start = time.time()
         bvh_writer = get_bvh_writer(motion_vector.skeleton, motion_vector.frames)
         bvh_string = bvh_writer.generate_bvh_string()
@@ -113,7 +114,8 @@ class GenerateMotionHandler(tornado.web.RequestHandler):
             "bvh": bvh_string,
             "annotation": motion_vector.keyframe_event_list.frame_annotation,
             "event_list": motion_vector.keyframe_event_list.keyframe_events_dict}
-        print "Finished converting the motion to a BVH string in", time.time() - start, "seconds"
+        message = "Finished converting the motion to a BVH string in " + str(time.time() - start) + " seconds"
+        write_message_to_log(message, LOG_MODE_INFO)
         if self.application.export_motion_to_file:
             self._export_motion_to_file(bvh_string, motion_vector)
         return result_object
@@ -122,7 +124,7 @@ class GenerateMotionHandler(tornado.web.RequestHandler):
         bvh_filename = self.application.service_config["output_dir"] + os.sep + self.application.service_config["output_filename"]
         if self.application.add_timestamp_to_filename:
             bvh_filename += "_"+unicode(datetime.now().strftime("%d%m%y_%H%M%S"))
-        print "export motion to file", bvh_filename
+        write_message_to_log("export motion to file " + bvh_filename, LOG_MODE_DEBUG)
         with open(bvh_filename+".bvh", "wb") as out_file:
             out_file.write(bvh_string)
         if motion_vector.mg_input is not None:
@@ -130,17 +132,15 @@ class GenerateMotionHandler(tornado.web.RequestHandler):
         if motion_vector.keyframe_event_list is not None:
             motion_vector.keyframe_event_list.export_to_file(bvh_filename)
 
-
     def _set_orientation_to_null(self, mg_input):
-        print mg_input
         if "setOrientationFromTrajectory" in mg_input.keys() and mg_input["setOrientationFromTrajectory"]:
             mg_input["startPose"]["orientation"] = [None, None, None]
         for action in mg_input["elementaryActions"]:
             for constraint in action["constraints"]:
-                print constraint
                 for p in constraint["trajectoryConstraints"]:
                     p["orientation"] = [None, None, None]
         return mg_input
+
 
 class GetSkeletonHandler(tornado.web.RequestHandler):
     """Handles HTTP POST Requests to a registered server url.
@@ -155,7 +155,7 @@ class GetSkeletonHandler(tornado.web.RequestHandler):
 
     def get(self):
         error_string = "GET request not implemented. Use POST instead."
-        print error_string
+        write_message_to_log(error_string, LOG_MODE_ERROR)
         self.write(error_string)
 
     def post(self):
@@ -176,7 +176,7 @@ class SetConfigurationHandler(tornado.web.RequestHandler):
 
     def get(self):
         error_string = "GET request is not implemented. Use POST instead."
-        print error_string
+        write_message_to_log(error_string, LOG_MODE_ERROR)
         self.write(error_string)
 
     def post(self):
@@ -228,7 +228,8 @@ class MGRestApplication(tornado.web.Application):
 
         start = time.clock()
         self.motion_generator = MotionGenerator(self.service_config, self.algorithm_config)
-        print "Finished construction from file in", time.clock() - start, "seconds"
+        message = "Finished construction from file in " + str(time.clock() - start) + "seconds"
+        write_message_to_log(message, LOG_MODE_INFO)
 
     def generate_motion(self, mg_input, complete_motion_vector=True):
         return self.motion_generator.generate_motion(mg_input, activate_joint_map=self.activate_joint_map,
@@ -288,6 +289,8 @@ class MGRESTInterface(object):
 
         #  Load configuration files
         service_config = load_json_file(service_config_file)
+        if "log_level" in service_config.keys():
+            set_log_mode(service_config["log_level"])
         algorithm_config_builder = AlgorithmConfigurationBuilder()
         algorithm_config_file = "config" + os.sep + service_config["algorithm_settings"] + "_algorithm.config"
         if os.path.isfile(algorithm_config_file):

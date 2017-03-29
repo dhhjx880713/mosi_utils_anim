@@ -11,6 +11,7 @@ KEYFRAME_LABEL_END = "end"
 KEYFRAME_LABEL_START = "start"
 KEYFRAME_LABEL_MIDDLE = "middle"
 
+
 class ElementaryActionMetaInfo(object):
     def __init__(self, elementary_action_name, elementary_action_directory):
         self.elementary_action_name = elementary_action_name

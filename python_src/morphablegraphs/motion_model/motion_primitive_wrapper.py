@@ -11,7 +11,7 @@ except ImportError:
     pass
     has_mgrd = False
 
-from ..utilities import load_json_file
+from ..utilities import load_json_file, write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO, LOG_MODE_ERROR
 from sklearn.mixture.gmm import GMM
 
 
@@ -31,10 +31,10 @@ class MotionPrimitiveModelWrapper(object):
 
     def _initialize_from_json(self, mgrd_skeleton, data, animated_joints=None, use_mgrd_mixture_model=False):
         if has_mgrd and "tspm" in data.keys():
-            print "Init motion primitive model with semantic annotation"
+            write_message_to_log("Init motion primitive model with semantic annotation", LOG_MODE_DEBUG)
             self.motion_primitive = MotionPrimitiveModelWrapper.load_model_from_json(mgrd_skeleton, data, use_mgrd_mixture_model)
         elif has_mgrd and animated_joints is not None:
-            print "Init motion primitive model without semantic annotation"
+            write_message_to_log("Init motion primitive model without semantic annotation", LOG_MODE_DEBUG)
             mm = MotionPrimitiveModelWrapper.load_mixture_model(data, use_mgrd_mixture_model)
             tspm = LegacyTemporalSplineModel(data)
             sspm = MGRDQuaternionSplineModel.load_from_json(mgrd_skeleton,{
@@ -50,7 +50,7 @@ class MotionPrimitiveModelWrapper(object):
             self._pre_scale_root_translation(sspm, data['translation_maxima'])
             self.motion_primitive = MGRDMotionPrimitiveModel(mgrd_skeleton, sspm, tspm, mm)
         else:
-            print "Init legacy motion primitive model"
+            write_message_to_log("Init legacy motion primitive model", LOG_MODE_DEBUG)
             self.motion_primitive = MGMotionPrimitive(None)
             self.motion_primitive._initialize_from_json(data)
 
@@ -214,6 +214,6 @@ class MotionPrimitiveModelWrapper(object):
             mm.converged_ = True
             mm.covars_ = np.array(data['gmm_covars'])
             mm.n_dims = len(mm.covars_[0])
-            print "initialize scipy GMM"
+            write_message_to_log("Initialize scipy GMM", LOG_MODE_DEBUG)
         return mm
 
