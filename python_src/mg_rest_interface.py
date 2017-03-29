@@ -219,16 +219,16 @@ class MGRestApplication(tornado.web.Application):
             self.activate_coordinate_transform = service_config["activate_coordinate_transform"]
 
         if self.export_motion_to_file:
-            print "Results are written as file to the directory", self.service_config["output_dir"]
+            write_message_to_log("Motions are written as BVH file to the directory" + self.service_config["output_dir"], LOG_MODE_INFO)
         else:
-            print "Results are returned as answer to the request"
+            write_message_to_log("Motions are returned as answer to the HTTP POST request", LOG_MODE_INFO)
 
         if not service_config["activate_collision_avoidance"] or not self._test_ca_interface(service_config):
             service_config["collision_avoidance_service_url"] = None
 
         start = time.clock()
         self.motion_generator = MotionGenerator(self.service_config, self.algorithm_config)
-        message = "Finished construction from file in " + str(time.clock() - start) + "seconds"
+        message = "Finished construction from file in " + str(time.clock() - start) + " seconds"
         write_message_to_log(message, LOG_MODE_INFO)
 
     def generate_motion(self, mg_input, complete_motion_vector=True):
@@ -247,13 +247,15 @@ class MGRestApplication(tornado.web.Application):
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             address = (service_config["collision_avoidance_service_url"], service_config["collision_avoidance_service_port"])
             try:
-                print "Try to connect to CA interface using address ", address
+                write_message_to_log("Try to connect to CA interface using address " + str(address), LOG_MODE_DEBUG)
                 s.connect(address)
                 s.close()
                 return True
             except Exception as e:
-                print "Could not create connection", e.message
-        print "Warning: Could not open collision avoidance service URL", service_config["collision_avoidance_service_url"], "\n Collision avoidance will be disabled"
+                write_message_to_log("Could not create connection" + str(e.message), LOG_MODE_ERROR)
+        write_message_to_log("Warning: Could not open collision avoidance service URL " +
+                             service_config["collision_avoidance_service_url"] +
+                             "\nCollision avoidance will be disabled", LOG_MODE_INFO)
         service_config["collision_avoidance_service_url"] = None
         return False
 
@@ -293,10 +295,11 @@ class MGRESTInterface(object):
         algorithm_config_builder = AlgorithmConfigurationBuilder()
         algorithm_config_file = "config" + os.sep + service_config["algorithm_settings"] + "_algorithm.config"
         if os.path.isfile(algorithm_config_file):
-            print "Load algorithm configuration from", algorithm_config_file
+            write_message_to_log("Load algorithm configuration from " + algorithm_config_file, LOG_MODE_INFO)
             algorithm_config_builder.from_json(algorithm_config_file)
         else:
-            print "Did not find algorithm configuration file", algorithm_config_file
+            write_message_to_log("Did not find algorithm configuration file " + algorithm_config_file, LOG_MODE_INFO)
+
         algorithm_config = algorithm_config_builder.build()
 
         #  Construct morphable graph from files
