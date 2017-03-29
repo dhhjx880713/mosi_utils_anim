@@ -34,7 +34,7 @@ class ZipReader(object):
             data structure is also deserialized into an object.
             If pickle_objects is False the space partitioning is ignored.
         """
-        print "Loading data from file ", self.zip_file_path, "..."
+        write_message_to_log("Loading model data from file " + self.zip_file_path + " ...", LOG_MODE_INFO)
         self.zip_file = zipfile.ZipFile(self.zip_file_path, "r", zipfile.ZIP_DEFLATED)
         data = json.loads(self.zip_file.read(GRAPH_DEFINITION_FILE))
         if "formatVersion" in data.keys():
@@ -110,7 +110,7 @@ class ZipReader(object):
         for structure_key in structure_desc[self.elementary_action_directory].keys():
             action_data_key = structure_key.split("_")[2]
             if self.verbose:
-                write_message_to_log("action key" +str(action_data_key), LOG_MODE_INFO)
+                write_message_to_log("Load action " +str(action_data_key), LOG_MODE_INFO)
             self.graph_data[action_data_key] = {}
             self.graph_data[action_data_key]["name"] = action_data_key
             meta_info_file = self._get_meta_info_file_path(structure_key)
@@ -128,7 +128,7 @@ class ZipReader(object):
         mm_data = json.loads(mm_string)
         self.graph_data[action_data_key]["nodes"][mp_data_key]["mm"] = mm_data
         if self.verbose:
-            write_message_to_log("\t"+ "action key" + motion_primitive_name, LOG_MODE_INFO)
+            write_message_to_log("\t"+ "Load motion primitive " + motion_primitive_name, LOG_MODE_INFO)
         statsfile = structure_key + "/" + (motion_primitive_name[:-self.type_offset] + ".stats")
         self._add_stats(action_data_key, mp_data_key, statsfile)
         space_partition_file = self._get_space_partitioning_file_path(structure_key, motion_primitive_name)
