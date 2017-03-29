@@ -21,8 +21,9 @@ from datetime import datetime
 from morphablegraphs import MotionGenerator, AlgorithmConfigurationBuilder, load_json_file, write_to_json_file
 from morphablegraphs.utilities.io_helper_functions import get_bvh_writer
 from morphablegraphs.utilities import write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO, LOG_MODE_ERROR, set_log_mode
+import argparse
 
-SERVICE_CONFIG_FILE = "config" + os.sep + "local_service.config"
+SERVICE_CONFIG_FILE = "config" + os.sep + "service.config"
 
 ROCKETBOX_TO_GAME_ENGINE_MAP = dict()
 ROCKETBOX_TO_GAME_ENGINE_MAP["Hips"] = "pelvis"
@@ -236,6 +237,10 @@ class MGRestApplication(tornado.web.Application):
                                                      activate_coordinate_transform=self.activate_coordinate_transform,
                                                      complete_motion_vector=complete_motion_vector)
 
+    def is_initiated(self):
+        return self.motion_generator.motion_state_graph.skeleton is not None \
+                and len(self.motion_generator.motion_state_graph.node) > 0
+
     def get_skeleton(self):
         return self.motion_generator.get_skeleton()
 
@@ -287,11 +292,21 @@ class MGRESTInterface(object):
     'http://localhost:port/configmorphablegraphs'
     """
 
-    def __init__(self, service_config_file):
+    def __init__(self, args, service_config_file):
+
         #  Load configuration files
         service_config = load_json_file(service_config_file)
+        if args.model_data is not None:
+            service_config["model_data"] = args.model_data
+        if args.port is not None:
+            service_config["port"] = args.port
+        if args.log_level is not None:
+            service_config["log_level"] = args.log_level
+
+        print "set config to", service_config["model_data"], service_config["port"],service_config["log_level"],
         if "log_level" in service_config.keys():
             set_log_mode(service_config["log_level"])
+
         algorithm_config_builder = AlgorithmConfigurationBuilder()
         algorithm_config_file = "config" + os.sep + service_config["algorithm_settings"] + "_algorithm.config"
         if os.path.isfile(algorithm_config_file):
@@ -315,20 +330,36 @@ class MGRESTInterface(object):
     def start(self):
         """ Start the web server loop
         """
-        self.application.listen(self.port)
-        tornado.ioloop.IOLoop.instance().start()
+        if self.application.is_initiated():
+            self.application.listen(self.port)
+            tornado.ioloop.IOLoop.instance().start()
+        else:
+            write_message_to_log("Error: Could not initiate MG REST service", LOG_MODE_ERROR)
 
     def stop(self):
         tornado.ioloop.IOLoop.instance().stop()
 
+def parse_commandline_args():
+    parser = argparse.ArgumentParser(description="Start the MorphableGraphs REST-interface")
+    parser.add_argument("-m", "--model_data", nargs='?', default=None,
+                        help="Path to the motion primitive model file.")
+    parser.add_argument("-p", "--port", nargs='?', default=None,
+                        help="Port of the REST service.")
+    parser.add_argument("-l", "--log_level", nargs='?', default=None,
+                        help="Set log level. Possible values: 1=info, 2=debug")
+    args = parser.parse_args()
+    return args
 
-def main():
+
+def main(args):
     if os.path.isfile(SERVICE_CONFIG_FILE):
-        mg_service = MGRESTInterface(SERVICE_CONFIG_FILE)
+        mg_service = MGRESTInterface(args, SERVICE_CONFIG_FILE)
         mg_service.start()
     else:
-        print "Error: could not open service or algorithm configuration file"
+        write_message_to_log("Error: could not open service or algorithm configuration file", LOG_MODE_ERROR)
 
 
 if __name__ == "__main__":
-    main()
+    args = parse_commandline_args()
+    main(args)
+
