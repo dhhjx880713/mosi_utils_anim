@@ -54,6 +54,8 @@ def filter_dofs(q, fixed_dims):
 def ik_dir_objective(q, new_skeleton, free_joint_name, child_name, target_bone_dir, frame, offset):
     """ get distance based on fk methods of skeleton
     """
+    #if free_joint_name in GAME_ENGINE_EXTREMITIES:
+    #    q = filter_dofs(q, [1])
     frame[offset: offset + 4] = q
     bone_dir = get_dir_to_child(new_skeleton, free_joint_name, child_name, frame)
     delta = bone_dir - target_bone_dir
@@ -66,7 +68,8 @@ def find_rotation_using_optimization(new_skeleton, free_joint_name, child_name, 
         guess = [1, 0, 0, 0]
     args = new_skeleton, free_joint_name, child_name, target_bone_dir, frame, offset
     r = minimize(ik_dir_objective, guess, args)
-    return r.x
+    q = normalize(r.x)
+    return q
 
 
 def get_dir_to_child(skeleton, name, child_name, frame, use_cache=False):
@@ -98,3 +101,70 @@ def get_2d_root_rotation(target_skeleton, src_skeleton, src_frame, target_frame,
     angle = np.degrees(angle)
     #print "root quaternion", angle, src_dir, target_dir
     return quaternion_from_euler(*np.radians([0, angle, 0]))
+
+
+def get_targets_from_motion(src_skeleton, src_frames, src_to_target_joint_map):
+    targets = []
+    for idx in range(0, len(src_frames)):
+        frame_targets = dict()
+        for src_name in src_skeleton.animated_joints:
+            if src_name not in src_to_target_joint_map.keys():
+                print "skip1", src_name
+                continue
+            target_name = src_to_target_joint_map[src_name]
+            frame_targets[target_name] = dict()
+            frame_targets[target_name]["pos"] = src_skeleton.nodes[src_name].get_global_position(src_frames[idx])
+            if len(src_skeleton.nodes[src_name].children) > -1:
+                child_name = src_skeleton.nodes[src_name].children[-1].node_name
+                if child_name not in src_to_target_joint_map.keys():
+                    print "skip2", src_name
+                    continue
+                frame_targets[target_name]["dir"] = get_dir_to_child(src_skeleton, src_name, child_name,
+                                                                     src_frames[idx])
+                frame_targets[target_name]["dir_name"] = src_to_target_joint_map[child_name]
+
+        targets.append(frame_targets)
+    return targets
+
+def get_new_frames_from_direction_constraints(target_skeleton, src_skeleton, src_frames, targets, frame_range=None,
+                                              root=GAME_ENGINE_ROOT_JOINT,
+                                              extremities=GAME_ENGINE_EXTREMITIES,
+                                              root_children=GAME_ENGINE_ROOT_CHILDREN,
+                                              extra_root=True, scale_factor=1.0):
+
+    n_params = len(target_skeleton.animated_joints) * 4 + 3
+
+    if frame_range is None:
+        frame_range = (0, len(targets))
+    new_frames = []
+    for frame_idx, frame_targets in enumerate(targets[frame_range[0]:frame_range[1]]):
+        assert root in frame_targets.keys()
+        new_frame = np.zeros(n_params)
+        new_frame[:3] = np.array(targets[frame_idx][root]["pos"])
+        if extra_root:
+            new_frame[:3] -= target_skeleton.nodes["pelvis"].offset
+        new_frame[:3] *= scale_factor
+        new_frame[3:7] = [1, 0, 0, 0]
+        offset = 7
+        target_skeleton.clear_cached_global_matrices()
+        for free_joint_name in target_skeleton.animated_joints[1:]:
+            if free_joint_name == root:
+                src_frame = src_frames[frame_idx]
+                new_frame[offset:offset + 4] = get_2d_root_rotation(target_skeleton, src_skeleton, src_frame, new_frame,
+                                                                    "Hips", root)
+            else:
+                q = [1, 0, 0, 0]
+                if free_joint_name in frame_targets.keys() and "dir_name" in frame_targets[free_joint_name].keys():
+                    print free_joint_name
+                    # q = get_joint_rotation(target_skeleton, targets, frame_idx, free_joint_name, extremities, new_frame, root, root_children, guess=q)
+                    q = find_rotation_using_optimization(target_skeleton,
+                                                         free_joint_name,
+                                                         frame_targets[free_joint_name]["dir_name"],
+                                                         frame_targets[free_joint_name]["dir"],
+                                                         new_frame, offset)
+
+                new_frame[offset:offset + 4] = q
+            offset += 4
+        # apply_ik_constraints(target_skeleton, new_frame, constraints[frame_idx])#TODO
+        new_frames.append(new_frame)
+    return new_frames
