@@ -11,6 +11,7 @@ import os
 import sys
 ROOTDIR = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-3]) + os.sep
 sys.path.append(ROOTDIR)
+sys.path.append(os.path.join(ROOTDIR, 'test'))
 from morphablegraphs.animation_data.bvh import BVHReader, BVHWriter
 from morphablegraphs.animation_data.motion_editing import get_cartesian_coordinates_from_euler_full_skeleton
 from morphablegraphs.animation_data.skeleton import Skeleton
