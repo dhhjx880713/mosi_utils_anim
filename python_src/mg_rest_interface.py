@@ -303,7 +303,6 @@ class MGRESTInterface(object):
         if args.log_level is not None:
             service_config["log_level"] = args.log_level
 
-        print "set config to", service_config["model_data"], service_config["port"],service_config["log_level"],
         if "log_level" in service_config.keys():
             set_log_mode(service_config["log_level"])
 
