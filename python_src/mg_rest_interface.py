@@ -22,7 +22,7 @@ from morphablegraphs import MotionGenerator, AlgorithmConfigurationBuilder, load
 from morphablegraphs.utilities.io_helper_functions import get_bvh_writer
 from morphablegraphs.utilities import write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO, LOG_MODE_ERROR, set_log_mode
 import argparse
-from jsonpath_wrapper import update_data_from_jsonpath
+from jsonpath_wrapper import update_data_using_jsonpath
 
 SERVICE_CONFIG_FILE = "config" + os.sep + "service.config"
 
@@ -295,7 +295,7 @@ class MGRESTInterface(object):
 
         #  Load configuration files
         service_config = load_json_file(service_config_file)
-        update_data_from_jsonpath(service_config, json_path_expressions)
+        update_data_using_jsonpath(service_config, json_path_expressions)
         algorithm_config_builder = AlgorithmConfigurationBuilder()
         algorithm_config_file = "config" + os.sep + service_config["algorithm_settings"] + "_algorithm.config"
         if os.path.isfile(algorithm_config_file):
