@@ -1,4 +1,5 @@
-""" Simple JSONPath search library because existing libaries do not support changing values.
+""" Functions for setting the values in dictionary based on JSONPath.
+    Existing libraries do not support changing values (03/30/17)
 
     Some functions are copied from the following sources:
     https://github.com/kennknowles/python-jsonpath-rw/issues/2
@@ -45,11 +46,12 @@ def get_path_from_string(path_str):
     temp_path_list = path_str.split(".")[1:]
     path_list = []
     for idx, key in enumerate(temp_path_list):
-        match = re.search("[-?\d+]", key)
-        if (match):
+        match = re.search("\[-?\d+\]", key)
+        if match:
             span = match.span()
-            index = int(key[span[0]:span[1]])
-            key = key[:span[0] - 1]
+            index = int(key[span[0]+1:span[1]-1])
+            key = key[:span[0]]
+
             path_list.append(key)
             path_list.append(index)
         else:
@@ -68,7 +70,7 @@ def search_for_path(data, path_str):
     return current
 
 
-def update_data_from_jsonpath(data, expressions, split_str="="):
+def update_data_using_jsonpath(data, expressions, split_str="="):
     """Takes a dictionary and a list of expressions in the form JSONPath=value, e.g. "$.write_log=True".
         Expressions and values should not contain the split_str="="
     """
@@ -105,4 +107,4 @@ if __name__ == "__main__":
     parser.add_argument("-set", nargs='+', default=[], help="JSONPath expression")
     args = parser.parse_args()
 
-    update_data_from_jsonpath(test_data, args.set)
+    update_data_using_jsonpath(test_data, args.set)
