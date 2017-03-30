@@ -1,4 +1,4 @@
-""" Wrapper around the jsonpath-rw library which does not support changing values in version 1.3.0.
+""" Simple JSONPath search library because existing libaries do not support changing values.
 
     Some functions are copied from the following sources:
     https://github.com/kennknowles/python-jsonpath-rw/issues/2
@@ -6,10 +6,10 @@
     http://stackoverflow.com/questions/715417/converting-from-a-string-to-boolean-in-python
 """
 
-from jsonpath_rw import jsonpath, parse
+
 from morphablegraphs.utilities import write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_ERROR, set_log_mode
 import distutils
-
+import re
 
 TYPE_CONVERTER = {
     "int": int,
@@ -23,26 +23,10 @@ def update_json(data, path, value):
     """Update JSON dictionnary PATH with VALUE. Return updated JSON"""
     try:
         first = next(path)
-        # check if item is an array
-        if first.startswith('[') and first.endswith(']'):
-            try:
-                first = int(first[1:-1])
-            except ValueError:
-                pass
         data[first] = update_json(data[first], path, value)
         return data
     except StopIteration:
         return value
-
-
-def get_path(match):
-    """return an iterator based upon MATCH.PATH. Each item is a path component,
-        start from outer most item.
-    """
-    if match.context is not None:
-        for path_element in get_path(match.context):
-            yield path_element
-        yield str(match.path)
 
 
 def get_type_of_string(value):
@@ -57,6 +41,33 @@ def get_type_of_string(value):
     return "str"
 
 
+def get_path_from_string(path_str):
+    temp_path_list = path_str.split(".")[1:]
+    path_list = []
+    for idx, key in enumerate(temp_path_list):
+        match = re.search("[-?\d+]", key)
+        if (match):
+            span = match.span()
+            index = int(key[span[0]:span[1]])
+            key = key[:span[0] - 1]
+            path_list.append(key)
+            path_list.append(index)
+        else:
+            path_list.append(key)
+    return path_list
+
+
+def search_for_path(data, path_str):
+    path = get_path_from_string(path_str)
+    current = data
+    for key in path:
+        try:
+            current = current[key]
+        except:
+            return None
+    return current
+
+
 def update_data_from_jsonpath(data, expressions, split_str="="):
     """Takes a dictionary and a list of expressions in the form JSONPath=value, e.g. "$.write_log=True".
         Expressions and values should not contain the split_str="="
@@ -67,14 +78,13 @@ def update_data_from_jsonpath(data, expressions, split_str="="):
         value = expr_t[1]
         value_type = get_type_of_string(value)
         value = TYPE_CONVERTER[value_type](value)
-        path = parse(path_str)
-        matches = path.find(data)
-        if len(matches) > 0:
-            match = matches[0]
-            before = match.value
-            update_json(data, get_path(match), value)
-            match = path.find(data)[0]
-            message = "set value of " + path_str + " from " + str(before) + " to " + str(match.value) + " with " + str(type(match.value))
+        match = search_for_path(data, path_str)
+        if match is not None:
+            before = match
+            path_list = iter(get_path_from_string(path_str))
+            update_json(data, path_list, value)
+            match = search_for_path(data, path_str)
+            message = "set value of " + path_str + " from " + str(before) + " to " + str(match) + " with " + str(type(match))
             write_message_to_log(message, LOG_MODE_DEBUG)
         else:
             write_message_to_log("Warning: Did not find JSONPath " + path_str + " in data", LOG_MODE_ERROR)
@@ -85,7 +95,8 @@ if __name__ == "__main__":
         "model_data": "motion_primitives_quaternion_PCA95_unity-integration-1.0.0",
         "port": 8888,
         "write_log": True,
-        "log_level": 1
+        "log_level": 1,
+        "list_test": [{"ab":1},{"ab":3}]
     }
 
     import argparse
