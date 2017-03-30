@@ -22,6 +22,7 @@ from morphablegraphs import MotionGenerator, AlgorithmConfigurationBuilder, load
 from morphablegraphs.utilities.io_helper_functions import get_bvh_writer
 from morphablegraphs.utilities import write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO, LOG_MODE_ERROR, set_log_mode
 import argparse
+from jsonpath_wrapper import update_data_from_jsonpath
 
 SERVICE_CONFIG_FILE = "config" + os.sep + "service.config"
 
@@ -272,11 +273,10 @@ class MGRESTInterface(object):
     Parameters:
     ----------
     * service_config_file : String
-        Path to service settings
-    * output_mode : String
-        Can be either "answer_request" or "file_output".
-        answer_request: send result to HTTP client
-        file_output: save result to files in preconfigured paths.
+        Path to service configuration
+    * json_path_expressions : List
+        List of JSONPath expressions to change the default values in the
+        configuration file. Example: "$.port=8889"
 
     How to use from client side:
     ----------------------------
@@ -288,23 +288,14 @@ class MGRESTInterface(object):
     bvh_string, annotations, actions = json.loads(handler.read())
 
     configuration can be changed by sending the data to the URL
-    'http://localhost:port/configmorphablegraphs'
+    'http://localhost:port/config_morphablegraphs'
     """
 
-    def __init__(self, args, service_config_file):
+    def __init__(self, service_config_file, json_path_expressions):
 
         #  Load configuration files
         service_config = load_json_file(service_config_file)
-        if args.model_data is not None:
-            service_config["model_data"] = args.model_data
-        if args.port is not None:
-            service_config["port"] = args.port
-        if args.log_level is not None:
-            service_config["log_level"] = args.log_level
-
-        if "log_level" in service_config.keys():
-            set_log_mode(service_config["log_level"])
-
+        update_data_from_jsonpath(service_config, json_path_expressions)
         algorithm_config_builder = AlgorithmConfigurationBuilder()
         algorithm_config_file = "config" + os.sep + service_config["algorithm_settings"] + "_algorithm.config"
         if os.path.isfile(algorithm_config_file):
@@ -329,6 +320,7 @@ class MGRESTInterface(object):
         """ Start the web server loop
         """
         if self.application.is_initiated():
+            write_message_to_log("Start listening to port " + str(self.port), LOG_MODE_INFO)
             self.application.listen(self.port)
             tornado.ioloop.IOLoop.instance().start()
         else:
@@ -338,27 +330,19 @@ class MGRESTInterface(object):
         tornado.ioloop.IOLoop.instance().stop()
 
 
-def parse_commandline_args():
+def main():
     parser = argparse.ArgumentParser(description="Start the MorphableGraphs REST-interface")
-    parser.add_argument("-m", "--model_data", nargs='?', default=None,
-                        help="Path to the motion primitive model file.")
-    parser.add_argument("-p", "--port", nargs='?', default=None,
-                        help="Port of the REST service.")
-    parser.add_argument("-l", "--log_level", nargs='?', default=None,
-                        help="Set log level. Possible values: 1=info, 2=debug")
+    parser.add_argument("-set", nargs='+', default=[], help="JSONPath expression")
+    parser.add_argument("--config_file", nargs='?', default=SERVICE_CONFIG_FILE, help="JSONPath expression")
     args = parser.parse_args()
-    return args
 
-
-def main(args):
-    if os.path.isfile(SERVICE_CONFIG_FILE):
-        mg_service = MGRESTInterface(args, SERVICE_CONFIG_FILE)
+    if os.path.isfile(args.config_file):
+        mg_service = MGRESTInterface(args.config_file, args.set)
         mg_service.start()
     else:
         write_message_to_log("Error: could not open service or algorithm configuration file", LOG_MODE_ERROR)
 
 
 if __name__ == "__main__":
-    args = parse_commandline_args()
-    main(args)
+    main()
 
