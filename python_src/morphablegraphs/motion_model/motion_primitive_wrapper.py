@@ -107,7 +107,7 @@ class MotionPrimitiveModelWrapper(object):
         return self.motion_primitive.back_project(s_vec, use_time_parameters)
 
     def back_project_mgrd(self, s_vec, use_time_parameters=True):
-        if len(s_vec.shape) == 2:
+        if len(np.asarray(s_vec.shape)) == 2:
             s_vec = np.ravel(s_vec)
         quat_spline = self.motion_primitive.create_spatial_spline(s_vec)
         if use_time_parameters:
@@ -120,6 +120,8 @@ class MotionPrimitiveModelWrapper(object):
         return self.motion_primitive._back_transform_gamma_to_canonical_time_function(s_vec[self.get_n_spatial_components():])
 
     def back_project_time_function_mgrd(self, s_vec):
+        if len(np.asarray(s_vec.shape)) == 2:
+            s_vec = np.ravel(s_vec)
         time_spline = self.motion_primitive.create_time_spline(s_vec, labels=[])
         return np.asarray(time_spline.evaluate_domain(step_size=1.0))[:,0]
     back_project_time_function = back_project_time_function_mgrd if has_mgrd else back_project_time_function_legacy
