@@ -21,7 +21,7 @@ TYPE_CONVERTER = {
 
 
 def update_json(data, path, value):
-    """Update JSON dictionnary PATH with VALUE. Return updated JSON"""
+    """ Update JSON dictionnary PATH with VALUE. Return updated JSON"""
     try:
         first = next(path)
         data[first] = update_json(data[first], path, value)
@@ -30,11 +30,12 @@ def update_json(data, path, value):
         return value
 
 
-def get_type_of_string(value):
+def get_type_of_string(str_value):
+    """ Identiy the type of a string value """
     for type, test in TYPE_CONVERTER.items():
         try:
-            v = test(value)
-            if value == str(v):
+            v = test(str_value)
+            if str_value == str(v):
                 return type
         except ValueError:
             continue
@@ -42,25 +43,29 @@ def get_type_of_string(value):
     return "str"
 
 
-def get_path_from_string(path_str):
-    temp_path_list = path_str.split(".")[1:]
+def get_path_from_string(json_path_str):
+    """ Convert a JSONPath string into a list of keys for access to the dictionary"""
+    temp_path_list = json_path_str.split(".")[1:]
     path_list = []
     for idx, key in enumerate(temp_path_list):
-        match = re.search("\[-?\d+\]", key)
-        if match:
-            span = match.span()
-            index = int(key[span[0]+1:span[1]-1])
-            key = key[:span[0]]
+        matches = list(re.finditer("\[-?\d+\]", key))
+        if len(matches) > 0:
+            for match_idx, match in enumerate(matches):
+                span = match.span()
+                index = int(key[span[0] + 1:span[1] - 1])
 
-            path_list.append(key)
-            path_list.append(index)
+                if match_idx == 0:
+                    short_key = key[:span[0]]
+                    path_list.append(short_key)
+                path_list.append(index)
         else:
             path_list.append(key)
     return path_list
 
 
-def search_for_path(data, path_str):
-    path = get_path_from_string(path_str)
+def search_for_path(data, json_path_str):
+    """ Get the reference to the value in a dictionary given a JSONPath """
+    path = get_path_from_string(json_path_str)
     current = data
     for key in path:
         try:
@@ -71,25 +76,28 @@ def search_for_path(data, path_str):
 
 
 def update_data_using_jsonpath(data, expressions, split_str="="):
-    """Takes a dictionary and a list of expressions in the form JSONPath=value, e.g. "$.write_log=True".
+    """ Takes a dictionary and a list of expressions in the form JSONPath=value, e.g. "$.write_log=True".
         Expressions and values should not contain the split_str="="
     """
     for expr in expressions:
         expr_t = expr.split(split_str)
-        path_str = expr_t[0]
+        json_path_str = expr_t[0]
         value = expr_t[1]
-        value_type = get_type_of_string(value)
-        value = TYPE_CONVERTER[value_type](value)
-        match = search_for_path(data, path_str)
+
+        match = search_for_path(data, json_path_str)
         if match is not None:
             before = match
-            path_list = iter(get_path_from_string(path_str))
-            update_json(data, path_list, value)
-            match = search_for_path(data, path_str)
-            message = "set value of " + path_str + " from " + str(before) + " to " + str(match) + " with " + str(type(match))
+            path_list = iter(get_path_from_string(json_path_str))
+
+            value_type = get_type_of_string(value)
+            update_json(data, path_list, TYPE_CONVERTER[value_type](value))
+
+            match = search_for_path(data, json_path_str)
+            message = "set value of " + json_path_str + " from " + str(before) + " to " + str(match) + " with " + str(type(match))
             write_message_to_log(message, LOG_MODE_DEBUG)
+
         else:
-            write_message_to_log("Warning: Did not find JSONPath " + path_str + " in data", LOG_MODE_ERROR)
+            write_message_to_log("Warning: Did not find JSONPath " + json_path_str + " in data", LOG_MODE_ERROR)
 
 
 if __name__ == "__main__":
