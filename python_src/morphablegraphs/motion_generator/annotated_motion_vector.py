@@ -39,28 +39,14 @@ class AnnotatedMotionVector(MotionVector):
         return bvh_writer.generate_bvh_string()
 
     def to_unity_format(self, scale=1.0):
-        """ Converts the frames into a custom json format and applies a coordinate transform to the left-handed coordinate system of Unity.
-            src: http://answers.unity3d.com/questions/503407/need-to-convert-to-right-handed-coordinates.html
-        """
+        """ Converts the frames into a custom json format for use in a Unity client"""
         unity_frames = []
+
         for node in self.skeleton.nodes.values():
             node.quaternion_index = node.index
-        for frame in self.frames:
-            unity_frame = {"translations": [], "rotations": [], "rootTranslation": None}
-            offset = 3
-            for node_name in self.skeleton.nodes.keys():
-                if node_name in self.skeleton.animated_joints:
-                    node = self.skeleton.nodes[node_name]
-                    if node_name == self.skeleton.root:
-                        t = (node.get_global_position(frame)-node.offset)*scale
-                        unity_frame["rootTranslation"] = {"x": -t[0], "y": t[1], "z": t[2]}
 
-                    t = np.array(node.offset) * scale
-                    unity_frame["translations"].append({"x": -t[0], "y": t[1], "z": t[2]})
-                    r = frame[offset:offset+4]
-                    
-                    unity_frame["rotations"].append({"x": -r[1], "y": r[2], "z": r[3], "w": -r[0]})
-                    offset += 4
+        for frame in self.frames:
+            unity_frame = self._convert_frame_to_unity_format(frame, scale)
             unity_frames.append(unity_frame)
 
         result_object = dict()
@@ -69,3 +55,22 @@ class AnnotatedMotionVector(MotionVector):
         result_object["jointSequence"] = self.skeleton.animated_joints
         return result_object
 
+    def _convert_frame_to_unity_format(self, frame, scale=1.0):
+        """ Converts the frame into a custom json format and converts the transformations
+            to the left-handed coordinate system of Unity.
+            src: http://answers.unity3d.com/questions/503407/need-to-convert-to-right-handed-coordinates.html
+        """
+        unity_frame = {"rotations": [], "rootTranslation": None}
+        offset = 3
+        for node_name in self.skeleton.nodes.keys():
+            if node_name in self.skeleton.animated_joints:
+                node = self.skeleton.nodes[node_name]
+                if node_name == self.skeleton.root:
+                    t = (node.get_global_position(frame) - node.offset) * scale
+                    unity_frame["rootTranslation"] = {"x": -t[0], "y": t[1], "z": t[2]}
+
+                r = frame[offset:offset + 4]
+
+                unity_frame["rotations"].append({"x": -r[1], "y": r[2], "z": r[3], "w": -r[0]})
+                offset += 4
+        return unity_frame
