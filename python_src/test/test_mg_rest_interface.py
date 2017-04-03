@@ -10,15 +10,14 @@ import time, threading
 import tornado.ioloop
 import requests
 TESTPATH = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-3]) + os.sep + 'test_data'
-SERVICE_CONFIG_FILE = os.path.join(ROOTDIR, 'config', 'local_service.config')
+SERVICE_CONFIG_FILE = os.path.join(ROOTDIR, 'config', 'service.config')
 from morphablegraphs.utilities import load_json_file
 
 
 class TestMGRESTInterface(object):
-
     def setup_class(self):
 
-        self.mg_service = MGRESTInterface(SERVICE_CONFIG_FILE)
+        self.mg_service = MGRESTInterface(SERVICE_CONFIG_FILE, ["$.model_data="+os.path.join(TESTPATH, 'motion_model', 'motion_primitives_quaternion_PCA95_two_steps_normal')])
         threading.Thread(target=self.mg_service.start).start()
 
     @pytest.fixture(scope='class')
