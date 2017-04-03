@@ -100,7 +100,7 @@ def get_2d_root_rotation(target_skeleton, src_skeleton, src_frame, target_frame,
     angle = np.arccos(np.dot(src_dir, target_dir))
     angle = np.degrees(angle)
     #print "root quaternion", angle, src_dir, target_dir
-    return quaternion_from_euler(*np.radians([0, angle, 0]))
+    return quaternion_from_euler(*np.radians([0, angle, -90]))
 
 
 def get_targets_from_motion(src_skeleton, src_frames, src_to_target_joint_map):
@@ -122,14 +122,17 @@ def get_targets_from_motion(src_skeleton, src_frames, src_to_target_joint_map):
                 frame_targets[target_name]["dir"] = get_dir_to_child(src_skeleton, src_name, child_name,
                                                                      src_frames[idx])
                 frame_targets[target_name]["dir_name"] = src_to_target_joint_map[child_name]
+                frame_targets[target_name]["src_name"] = src_name
 
         targets.append(frame_targets)
     return targets
 
-def get_new_frames_from_direction_constraints(target_skeleton, src_skeleton, src_frames, targets, frame_range=None,
-                                              root=GAME_ENGINE_ROOT_JOINT,
+
+def get_new_frames_from_direction_constraints(target_skeleton, src_skeleton, src_frames, targets, frame_range=(0,1),
+                                              target_root=GAME_ENGINE_ROOT_JOINT,
                                               extremities=GAME_ENGINE_EXTREMITIES,
                                               root_children=GAME_ENGINE_ROOT_CHILDREN,
+                                              src_root="Hips",
                                               extra_root=True, scale_factor=1.0):
 
     n_params = len(target_skeleton.animated_joints) * 4 + 3
@@ -138,20 +141,32 @@ def get_new_frames_from_direction_constraints(target_skeleton, src_skeleton, src
         frame_range = (0, len(targets))
     new_frames = []
     for frame_idx, frame_targets in enumerate(targets[frame_range[0]:frame_range[1]]):
-        assert root in frame_targets.keys()
+        print "process", frame_idx,target_skeleton.animated_joints
+        assert target_root in frame_targets.keys()
         new_frame = np.zeros(n_params)
-        new_frame[:3] = np.array(targets[frame_idx][root]["pos"])
+        new_frame[:3] = np.array(targets[frame_idx][target_root]["pos"]) *scale_factor
+
         if extra_root:
             new_frame[:3] -= target_skeleton.nodes["pelvis"].offset
-        new_frame[:3] *= scale_factor
-        new_frame[3:7] = [1, 0, 0, 0]
-        offset = 7
+            new_frame[3:7] = find_rotation_using_optimization(target_skeleton,
+                                                              "Root",
+                                                              target_root,
+                                                              [0, 1, 0],
+                                                              new_frame, 3)
+            offset = 7
+        else:
+            offset = 3
+
+
+
+
         target_skeleton.clear_cached_global_matrices()
         for free_joint_name in target_skeleton.animated_joints[1:]:
-            if free_joint_name == root:
+            if free_joint_name == target_root:
                 src_frame = src_frames[frame_idx]
-                new_frame[offset:offset + 4] = get_2d_root_rotation(target_skeleton, src_skeleton, src_frame, new_frame,
-                                                                    "Hips", root)
+                new_frame[offset:offset + 4] = get_2d_root_rotation(target_skeleton, src_skeleton,
+                                                                    src_frame, new_frame,
+                                                                    src_root, target_root)
             else:
                 q = [1, 0, 0, 0]
                 if free_joint_name in frame_targets.keys() and "dir_name" in frame_targets[free_joint_name].keys():
