@@ -47,7 +47,7 @@ class MotionGenerator(object):
         self.graph_walk_generator.set_algorithm_config(self._algorithm_config)
         self.graph_walk_optimizer.set_algorithm_config(self._algorithm_config)
 
-    def generate_motion(self, mg_input, activate_joint_map=False, activate_coordinate_transform=False, complete_motion_vector=True):
+    def generate_motion(self, mg_input, activate_joint_map=False, activate_coordinate_transform=False, complete_motion_vector=True, speed=1.0):
         """
         Converts a json input file with a list of elementary actions and constraints
         into a graph_walk saved to a BVH file.
@@ -71,8 +71,14 @@ class MotionGenerator(object):
         write_message_to_log("Use configuration " + str(self._algorithm_config), LOG_MODE_DEBUG)
         if type(mg_input) != dict:
             mg_input = load_json_file(mg_input)
+
+        if mg_input["outputMode"] == "Unity":
+            complete_motion_vector = False
+
         start_time = time.clock()
-        mg_input_reader = MGInputFormatReader(mg_input, activate_joint_map, activate_coordinate_transform)
+        mg_input_reader = MGInputFormatReader(self.motion_state_graph, activate_joint_map, activate_coordinate_transform)
+        if not mg_input_reader.read_from_dict(mg_input):
+            return None
 
         graph_walk = self.graph_walk_generator.generate(mg_input_reader)
 
@@ -82,33 +88,35 @@ class MotionGenerator(object):
         write_message_to_log("Finished graph walk generation in " + str(minutes) + " minutes " + str(seconds) + " seconds", LOG_MODE_INFO)
         if self._algorithm_config["use_global_time_optimization"]:
             graph_walk = self.graph_walk_optimizer.optimize_time_parameters_over_graph_walk(graph_walk)
+        motion_vector = graph_walk.convert_to_annotated_motion(speed)
+        motion_vector = self._post_process(motion_vector, complete_motion_vector, graph_walk, start_time)
+        return motion_vector
 
-        motion_vector = graph_walk.convert_to_annotated_motion()
-
+    def _post_process(self, motion_vector, complete_motion_vector, graph_walk, start_time):
         if self._algorithm_config["activate_inverse_kinematics"]:
             write_message_to_log("Modify using inverse kinematics", LOG_MODE_DEBUG)
-            self.inverse_kinematics = InverseKinematics(self.motion_state_graph.skeleton, self._algorithm_config, motion_vector.frames[0])
+            self.inverse_kinematics = InverseKinematics(self.motion_state_graph.skeleton, self._algorithm_config,
+                                                        motion_vector.frames[0])
             self.inverse_kinematics.modify_motion_vector(motion_vector)
             self.inverse_kinematics.fill_rotate_events(motion_vector)
-
 
         time_in_seconds = time.clock() - start_time
         minutes = int(time_in_seconds / 60)
         seconds = time_in_seconds % 60
-        write_message_to_log("Finished synthesis in " + str(minutes) + " minutes " + str(seconds) + " seconds", LOG_MODE_INFO)
+        write_message_to_log("Finished synthesis in " + str(minutes) + " minutes " + str(seconds) + " seconds",
+                             LOG_MODE_INFO)
 
         if complete_motion_vector:
-
-            motion_vector.frames = self.motion_state_graph.skeleton.complete_motion_vector_from_reference(motion_vector.frames)
+            motion_vector.frames = self.motion_state_graph.skeleton.complete_motion_vector_from_reference(
+                motion_vector.frames)
             if motion_vector.frames is not None:
                 if self.motion_state_graph.hand_pose_generator is not None:
                     write_message_to_log("Generate hand poses", LOG_MODE_DEBUG)
                     self.motion_state_graph.hand_pose_generator.generate_hand_poses(motion_vector)
-                self._output_info(graph_walk, start_time)
+                self._output_info(graph_walk)
         return motion_vector
 
-    def _output_info(self, graph_walk, start_time):
-
+    def _output_info(self, graph_walk):
             write_log(graph_walk.get_statistics_string())
             if self._service_config["write_log"]:
                 time_stamp = unicode(datetime.now().strftime("%d%m%y_%H%M%S"))
