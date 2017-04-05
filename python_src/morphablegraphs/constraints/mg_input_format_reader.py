@@ -2,7 +2,7 @@ __author__ = 'erhe01'
 
 import numpy as np
 import json
-from ..utilities.log import write_log
+from ..utilities.log import write_log, write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_ERROR, LOG_MODE_INFO
 
 CONSTRAINT_TYPES = ["keyframeConstraints", "directionConstraints"]
 
@@ -16,9 +16,10 @@ class MGInputFormatReader(object):
     * mg_input_file : file path or json data read from a file
         Contains elementary action list with constraints, start pose and keyframe annotations.
     """
-    def __init__(self, mg_input_file, activate_joint_mapping=False, activate_coordinate_transform=True):
+    def __init__(self, motion_state_graph, activate_joint_mapping=False, activate_coordinate_transform=True):
         #activate_joint_mapping = False
-        self.mg_input_file = mg_input_file
+        self.motion_state_graph = motion_state_graph
+        self.mg_input_file = None
         self.elementary_action_list = list()
         self.keyframe_annotations = list()
         self.joint_name_map = dict()
@@ -27,21 +28,21 @@ class MGInputFormatReader(object):
         self.activate_joint_mapping = activate_joint_mapping
         self.activate_coordinate_transform = activate_coordinate_transform
         self.scale_factor = 1.0
-        if type(mg_input_file) != dict:
-            mg_input_file = open(mg_input_file)
-            input_string = mg_input_file.read()
-            if self.activate_joint_mapping:
-                input_string = self._apply_joint_mapping_on_string(input_string)
-            self.mg_input_file = json.loads(input_string)
-            #self.mg_input_file = load_json_file(mg_input_file)
-        else:
-            if self.activate_joint_mapping:
-                input_string = self._apply_joint_mapping_on_string(json.dumps(mg_input_file))
-                self.mg_input_file = json.loads(input_string)
-            else:
-                self.mg_input_file = mg_input_file
 
-        self._extract_elementary_actions()
+    def read_from_dict(self, mg_input):
+        if self.activate_joint_mapping:
+            input_string = self._apply_joint_mapping_on_string(json.dumps(mg_input))
+            self.mg_input_file = json.loads(input_string)
+        else:
+            self.mg_input_file = mg_input
+
+        success = self._verify_input()
+        if success:
+            if mg_input["outputMode"] == "Unity":
+                self._set_orientation_to_null()
+
+            self._extract_elementary_actions()
+        return success
 
     def _extract_elementary_actions(self):
         if "elementaryActions" in self.mg_input_file.keys():
@@ -468,3 +469,43 @@ class MGInputFormatReader(object):
             return self.inverse_joint_name_map[joint_name]
         else:
             return joint_name
+
+    def _verify_input(self):
+        success = True
+        error_string = ""
+        if "elementaryActions" not in self.mg_input_file.keys() and "tasks" not in self.mg_input_file.keys():
+            error_string = "Error: Did not find expected keys in the input data."
+            success = False
+
+        for action in self.mg_input_file["elementaryActions"]:
+            action_name = action["action"]
+            if action_name not in self.motion_state_graph.node_groups.keys():
+                error_string = "Error: Unknown action " + action_name
+                success = False
+
+            action_type = self.motion_state_graph.node_groups[action_name].get_action_type()
+            if action_type == "locomotion" and len(action["constraints"]) < 1:
+                error_string = "Error: A trajectory constraint needs to be specified for the locomotion action " + action_name
+                success = False
+
+        write_message_to_log(error_string, LOG_MODE_ERROR)
+        return success
+
+
+    def _set_orientation_to_null(self):
+        if "setOrientationFromTrajectory" in self.mg_input_file.keys() and \
+                self.mg_input_file["setOrientationFromTrajectory"]:
+            self.mg_input_file["startPose"]["orientation"] = [None, None, None]
+
+        for action in self.mg_input_file["elementaryActions"]:
+            for constraint in action["constraints"]:
+                for p in constraint["trajectoryConstraints"]:
+                    p["orientation"] = [None, None, None]
+
+    def translate_constraints(self, offset):
+        for action in self.mg_input_file["elementaryActions"]:
+            for constraint in action["constraints"]:
+                for p in constraint["keyframeConstraints"]:
+                    p["position"] -= offset
+                for p in constraint["trajectoryConstraints"]:
+                    p["position"] -= offset

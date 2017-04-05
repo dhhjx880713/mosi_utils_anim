@@ -11,6 +11,7 @@ import os
 file_dir_name, file_name = os.path.split(os.path.abspath(__file__))
 os.chdir(file_dir_name)
 import urllib2
+import numpy as np
 import socket
 import tornado.escape
 import tornado.ioloop
@@ -61,7 +62,7 @@ class GenerateMotionHandler(tornado.web.RequestHandler):
 
     def get(self):
         error_string = "GET request not implemented. Use POST instead."
-        print error_string
+        write_message_to_log(error_string, LOG_MODE_ERROR)
         self.write(error_string)
 
     def post(self):
@@ -69,23 +70,15 @@ class GenerateMotionHandler(tornado.web.RequestHandler):
             mg_input = json.loads(self.request.body)
         except:
             error_string = "Error: Could not decode request body as JSON."
+            write_message_to_log(error_string, LOG_MODE_ERROR)
             self.write(error_string)
             return
+        motion_vector = self.application.generate_motion(mg_input)
 
-        # start algorithm if predefined keys were found
-        if "elementaryActions" in mg_input.keys() or "tasks" in mg_input.keys():
-
-            if mg_input["outputMode"] == "Unity":
-                mg_input = self._set_orientation_to_null(mg_input)
-                motion_vector = self.application.generate_motion(mg_input, complete_motion_vector=False)
-            else:
-                motion_vector = self.application.generate_motion(mg_input)
-
+        if motion_vector is not None:
             self._handle_result(mg_input, motion_vector)
-
         else:
-            error_string = "Error: Did not find expected keys in the input data."
-            write_message_to_log(error_string, LOG_MODE_ERROR)
+            error_string = "Error: Could not generate motion."
             self.write(error_string)
 
     def _handle_result(self, mg_input, motion_vector):
@@ -95,7 +88,8 @@ class GenerateMotionHandler(tornado.web.RequestHandler):
             if mg_input["outputMode"] == "Unity":
                 result_object = motion_vector.to_unity_format()
                 if self.application.export_motion_to_file:
-                    motion_vector.export(self.application.service_config["output_dir"], self.application.service_config["output_filename"],
+                    motion_vector.export(self.application.service_config["output_dir"],
+                                         self.application.service_config["output_filename"],
                                          add_time_stamp=False, export_details=False)
             else:
                 result_object = self.convert_to_interact_format(motion_vector)
@@ -133,15 +127,6 @@ class GenerateMotionHandler(tornado.web.RequestHandler):
             write_to_json_file(bvh_filename+ "_input.json", motion_vector.mg_input.mg_input_file)
         if motion_vector.keyframe_event_list is not None:
             motion_vector.keyframe_event_list.export_to_file(bvh_filename)
-
-    def _set_orientation_to_null(self, mg_input):
-        if "setOrientationFromTrajectory" in mg_input.keys() and mg_input["setOrientationFromTrajectory"]:
-            mg_input["startPose"]["orientation"] = [None, None, None]
-        for action in mg_input["elementaryActions"]:
-            for constraint in action["constraints"]:
-                for p in constraint["trajectoryConstraints"]:
-                    p["orientation"] = [None, None, None]
-        return mg_input
 
 
 class GetSkeletonHandler(tornado.web.RequestHandler):
@@ -332,8 +317,8 @@ class MGRESTInterface(object):
 
 def main():
     parser = argparse.ArgumentParser(description="Start the MorphableGraphs REST-interface")
-    parser.add_argument("-set", nargs='+', default=[], help="JSONPath expression")
-    parser.add_argument("--config_file", nargs='?', default=SERVICE_CONFIG_FILE, help="JSONPath expression")
+    parser.add_argument("-set", nargs='+', default=[], help="JSONPath expression, e.g. -set $.model_data=path/to/data")
+    parser.add_argument("-config_file", nargs='?', default=SERVICE_CONFIG_FILE, help="Path to default config file")
     args = parser.parse_args()
 
     if os.path.isfile(args.config_file):

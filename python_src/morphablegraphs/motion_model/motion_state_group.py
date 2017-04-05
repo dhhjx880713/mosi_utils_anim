@@ -39,6 +39,16 @@ class MotionStateGroup(ElementaryActionMetaInfo):
             for k in self.cycle_states:
                  self.nodes[(self.elementary_action_name, k)].node_type = NODE_TYPE_CYCLE_END
 
+    def get_action_type(self):
+        n_standard_nodes = 0
+        for node_key in self.nodes.keys():
+            if self.nodes[node_key].node_type == NODE_TYPE_STANDARD:
+                n_standard_nodes += 1
+        if n_standard_nodes > 0:
+            return "locomotion"
+        else:
+            return "upper body"
+
     def _update_motion_state_stats(self, recalculate=False):
         """  Update stats of motion states for faster lookup.
         """
