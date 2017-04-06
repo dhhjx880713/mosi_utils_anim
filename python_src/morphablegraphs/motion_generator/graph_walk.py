@@ -264,14 +264,14 @@ class GraphWalk(object):
         keyframe_constraint_errors = []
         step_index = 0
         prev_frames = None
-        for step in self.steps:
+        for step_idx, step in enumerate(self.steps):
             quat_frames = self.motion_state_graph.nodes[step.node_key].back_project(step.parameters, use_time_parameters=False).get_motion_vector()
             aligned_frames = align_quaternion_frames(quat_frames, prev_frames, self.motion_vector.start_pose)
-            for constraint in step.motion_primitive_constraints.constraints:
+            for c_idx, constraint in enumerate(step.motion_primitive_constraints.constraints):
                 if constraint.constraint_type in [SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION] and\
                    not "generated" in constraint.semantic_annotation.keys():
                     error = constraint.evaluate_motion_sample(aligned_frames)
-                    print error
+                    write_message_to_log("Error of Keyframe constraint " +str(step_idx) + "-" + str(c_idx) +": " +str(error), LOG_MODE_DEBUG)
                     keyframe_constraint_errors.append(error)
             prev_frames = aligned_frames
             step_index += 1
@@ -311,16 +311,19 @@ class GraphWalk(object):
 
     def get_statistics_string(self):
         average_error = self.get_average_error()
-        evaluations_string = "total number of objective evaluations " + str(self.get_number_of_object_evaluations())
-        error_string = "average error for " + str(len(self.steps)) + \
+        evaluations_string = "Total number of objective evaluations " + str(self.get_number_of_object_evaluations())
+        error_string = "Average error for " + str(len(self.steps)) + \
                        " motion primitives: " + str(average_error)
         average_keyframe_error = self.get_average_keyframe_constraint_error()
-        average_keyframe_error_string = "average keyframe constraint error " + str(average_keyframe_error)
+        if average_keyframe_error > -1:
+            average_keyframe_error_string = "Average keyframe constraint error " + str(average_keyframe_error)
+        else:
+            average_keyframe_error_string = "No keyframe constraint specified"
         average_time_per_step = 0.0
         for step in self.steps:
             average_time_per_step += step.motion_primitive_constraints.time
         average_time_per_step /= len(self.steps)
-        average_time_string = "average time per step " + str(average_time_per_step)
+        average_time_string = "Average time per motion primitive " + str(average_time_per_step)
         return average_keyframe_error_string + "\n" + evaluations_string + "\n" + average_time_string + "\n" + error_string
 
     def export_generated_constraints(self, file_path="goals.path"):
@@ -329,7 +332,7 @@ class GraphWalk(object):
         root_control_point_data = []
         hand_constraint_data = []
         for idx, step in enumerate(self.steps):
-            step_constraints = {"semanticAnnotation":{"step": idx}}
+            step_constraints = {"semanticAnnotation": {"step": idx}}
             for c in step.motion_primitive_constraints.constraints:
                 if c.constraint_type == "keyframe_position" and c.joint_name == self.motion_state_graph.skeleton.root:
                     p = c.position
