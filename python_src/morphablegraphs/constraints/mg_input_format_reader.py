@@ -30,13 +30,14 @@ class MGInputFormatReader(object):
         self.scale_factor = 1.0
 
     def read_from_dict(self, mg_input):
+        self.mg_input_file = mg_input
+
         if self.activate_joint_mapping:
             input_string = self._apply_joint_mapping_on_string(json.dumps(mg_input))
             self.mg_input_file = json.loads(input_string)
-        else:
-            self.mg_input_file = mg_input
 
         success = self._verify_input()
+
         if success:
             if mg_input["outputMode"] == "Unity":
                 self._set_orientation_to_null()
@@ -502,10 +503,16 @@ class MGInputFormatReader(object):
                 for p in constraint["trajectoryConstraints"]:
                     p["orientation"] = [None, None, None]
 
-    def translate_constraints(self, offset):
+    def center_constraints(self):
+        offset = np.array(self.mg_input_file["startPose"]["position"])
         for action in self.mg_input_file["elementaryActions"]:
             for constraint in action["constraints"]:
                 for p in constraint["keyframeConstraints"]:
-                    p["position"] -= offset
+                    new_p = p["position"] - offset
+                    p["position"] = new_p.tolist()
+
                 for p in constraint["trajectoryConstraints"]:
-                    p["position"] -= offset
+                    new_p = p["position"] - offset
+                    p["position"] = new_p.tolist()
+        self.mg_input_file["startPose"]["position"] = [0, 0, 0]
+        return offset

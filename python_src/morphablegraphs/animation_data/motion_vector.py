@@ -87,3 +87,6 @@ class MotionVector(object):
         else:
             self.frames = self.frames[:end_frame]
 
+    def translate_root(self, offset):
+        for idx in xrange(self.n_frames):
+            self.frames[idx][:3] += offset
