@@ -14,7 +14,7 @@ from ..constraints import ElementaryActionConstraintsBuilder
 from elementary_action_generator import ElementaryActionGenerator
 from graph_walk import GraphWalk
 from graph_walk_optimizer import GraphWalkOptimizer
-from ..utilities import write_log
+from ..utilities import write_log, write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_ERROR, LOG_MODE_INFO
 
 
 class GraphWalkGenerator(object):
@@ -73,19 +73,21 @@ class GraphWalkGenerator(object):
             start_action_idx = graph_walk.get_number_of_actions()
             action_constraint_list = action_constraint_list[start_action_idx:]
         for action_constraints in action_constraint_list:
+
             if self._algorithm_config["debug_max_step"] > -1 and graph_walk.step_count > self._algorithm_config["debug_max_step"]:
-                write_log("Aborting motion synthesis: Reached maximum debug step number")
+                write_message_to_log("Abort motion synthesis. Reached maximum debug step number.", LOG_MODE_INFO)
                 break
+
             success = self._add_elementary_action_to_graph_walk(action_constraints, graph_walk)
+
             if not success:
-                write_log("Aborting motion synthesis due to exception or high error due to unreachable constraints.")
+                write_message_to_log("Error: Aborting motion synthesis due to exception or high error due "
+                                     "to unreachable constraints.", LOG_MODE_ERROR)
                 return graph_walk
         return graph_walk
 
     def _add_elementary_action_to_graph_walk(self, action_constraints, graph_walk):
-        if self._algorithm_config["verbose"]:
-            write_log("Generate graph walk for", action_constraints.action_name)
-
+        write_message_to_log("Generate graph walk for" + action_constraints.action_name, LOG_MODE_DEBUG)
         self.action_generator.set_action_constraints(action_constraints)
         success = self.action_generator.append_action_to_graph_walk(graph_walk)
         if success:
