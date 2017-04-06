@@ -61,7 +61,7 @@ class ElementaryActionGenerator(object):
             self.arc_length_of_end = 0.0
 
     def _select_next_motion_primitive_node(self, graph_walk):
-        """extract from graph based on previous step and heuristic """
+        """Extract from graph based on previous step and heuristic """
         self.path_planner.set_state(graph_walk, self.motion_primitive_generator, self.action_state, self.action_constraints, self.arc_length_of_end)
 
         if self.action_state.current_node is None:  # is start state
@@ -73,10 +73,10 @@ class ElementaryActionGenerator(object):
             next_node_type = self.motion_state_graph.nodes[next_node].node_type
             if next_node is None:
                 write_message_to_log("Error: Could not find a transition of type action_transition from " +
-                                     self.action_state.prev_action_name + " " + self.action_state.prev_mp_name + " to state "
-                                     + self.action_state.current_node, LOG_MODE_INFO)
+                                     self.action_state.prev_action_name + " " + self.action_state.prev_mp_name
+                                     + " to state " + self.action_state.current_node, LOG_MODE_ERROR)
 
-        else:  # is intermediate start state
+        else:  # is intermediate state
             next_node, next_node_type = self.path_planner.get_best_transition_node()
         return next_node, next_node_type
 
@@ -137,14 +137,15 @@ class ElementaryActionGenerator(object):
         while not self.action_state.is_end_state():
             error = self._transition_to_next_action_state(graph_walk)
             if error is None:
-                return False  # the generation of the state was not successful
+                write_message_to_log("Error: Could not transition to the next state.", LOG_MODE_ERROR)
+                return False
             errors.append(error)
             if self.action_constraints.root_trajectory is not None:
                 d = self._distance_to_path(graph_walk)
                 distances.append(d)
                 write_message_to_log("Distance to path"+str(d), LOG_MODE_DEBUG)
                 if d >= self.max_distance_to_path:
-                    write_message_to_log("Warning: Distance to path has become larger than" + str(self.max_distance_to_path), LOG_MODE_DEBUG)
+                    write_message_to_log("Error: Distance to path has become larger than " + str(self.max_distance_to_path), LOG_MODE_ERROR)
                     return False
 
         graph_walk.step_count += self.action_state.temp_step
@@ -170,17 +171,25 @@ class ElementaryActionGenerator(object):
             return None
         new_motion_spline, new_parameters = self.motion_primitive_generator.generate_constrained_motion_spline(mp_constraints, graph_walk)
 
-        if self.activate_direction_ca_connection and self.ca_interface is not None and self.action_constraints.action_name in self.ca_action_names:
-            ca_constraints = self.ca_interface.get_constraints(self.action_constraints.group_id, new_node, new_motion_spline, graph_walk)
-            write_message_to_log("Received CA constraints "+str(ca_constraints), LOG_MODE_DEBUG)
-
-            if ca_constraints is not None and len(ca_constraints) > 0:
-                mp_constraints.constraints += ca_constraints
-                new_motion_spline, new_parameters = self.motion_primitive_generator.generate_constrained_motion_spline(mp_constraints, graph_walk)
+        if self.activate_direction_ca_connection and self.ca_interface is not None \
+                and self.action_constraints.action_name in self.ca_action_names:
+            new_motion_spline, new_parameters = self._handle_ca_constraints(new_node, new_motion_spline, new_parameters,
+                                                                            mp_constraints, graph_walk)
 
         new_arc_length = self._create_graph_walk_entry(new_node, new_motion_spline, new_parameters, mp_constraints, graph_walk)
         self.action_state.transition(new_node, new_node_type, new_arc_length, graph_walk.get_num_of_frames())
         return mp_constraints.min_error
+
+    def _handle_ca_constraints(self, new_node, new_motion_spline, new_parameters, mp_constraints, graph_walk):
+        ca_constraints = self.ca_interface.get_constraints(self.action_constraints.group_id, new_node,
+                                                           new_motion_spline, graph_walk)
+        write_message_to_log("Received CA constraints " + str(ca_constraints), LOG_MODE_DEBUG)
+
+        if ca_constraints is not None and len(ca_constraints) > 0:
+            mp_constraints.constraints += ca_constraints
+            new_motion_spline, new_parameters = self.motion_primitive_generator.generate_constrained_motion_spline(
+                mp_constraints, graph_walk)
+        return new_motion_spline, new_parameters
 
     def _create_graph_walk_entry(self, new_node, new_motion_spline, new_parameters, mp_constraints, graph_walk):
         """ Concatenate frames to motion and apply smoothing """
