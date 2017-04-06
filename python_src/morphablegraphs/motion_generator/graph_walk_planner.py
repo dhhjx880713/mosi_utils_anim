@@ -63,6 +63,7 @@ class GraphWalkPlanner(object):
                                                                                             self.arc_length_of_end)
         else:
             next_node_type = self.node_group.get_transition_type_for_action(state.graph_walk, self.action_constraints)
+
         edges = self.motion_state_graph.nodes[self.state.current_node].outgoing_edges
         options = [edge_key for edge_key in edges.keys() if edges[edge_key].transition_type == next_node_type]
         #print "options",next_node_type, options
@@ -80,12 +81,14 @@ class GraphWalkPlanner(object):
                 random_index = random.randrange(0, n_transitions, 1)
                 next_node = options[random_index]
         else:
-            write_log("Error: Could not find a transition from state", self.state.current_node,
-                      len(self.motion_state_graph.nodes[self.state.current_node].outgoing_edges))
+            n_outgoing_edges = len(self.motion_state_graph.nodes[self.state.current_node].outgoing_edges)
+            write_message_to_log("Error: Could not find a transition from state " + str(self.state.current_node)
+                                 + " " + str(n_outgoing_edges))
             next_node = self.node_group.get_random_start_state()
             next_node_type = self.motion_state_graph.nodes[next_node].node_type
         if next_node is None:
-            write_log("Error: Could not find a transition of type", next_node_type, "from state",  self.state.current_node)
+            write_message_to_log("Error: Could not find a transition of type " + next_node_type +
+                                 " from state " + str(self.state.current_node))
         return next_node, next_node_type
 
     def _add_constraint_with_orientation(self, constraint_desc, goal_arc_length, mp_constraints):
@@ -131,7 +134,7 @@ class GraphWalkPlanner(object):
             errors, s_vectors = self._evaluate_options_looking_ahead(state, mp_constraints, options, add_orientation)
         min_idx = np.argmin(errors)
         next_node = options[min_idx]
-        write_message_to_log("####################################Next node is" +str(next_node) , LOG_MODE_DEBUG)
+        write_message_to_log("####################################Next node is" +str(next_node), LOG_MODE_DEBUG)
         return next_node
 
     def _evaluate_option(self, node_name, mp_constraints, prev_frames):
@@ -184,7 +187,7 @@ class GraphWalkPlanner(object):
         return next_node
 
     def _look_ahead_deeper(self, state, options, max_depth, add_orientation=False):
-        print "#####################################Look deeper from", state.current_node
+        #print "#####################################Look deeper from", state.current_node
         mp_constraints = self._generate_node_evaluation_constraints(state, add_orientation)
         errors, s_vectors = self._evaluate_options(state, mp_constraints, options)
         min_idx = np.argmin(errors)
