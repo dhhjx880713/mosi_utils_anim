@@ -104,24 +104,26 @@ class ClusterTree(object):
         write_message_to_log("search with " + str(n_candidates) + " candidates in tree with " + str(self.n_subdivisions) + " subdivisions and "+ str(self.max_level)+ " levels", LOG_MODE_DEBUG)
         results = list()
         candidates = list()
-        candidates.append((np.inf, self.root))
+        candidates.append((np.inf, 0, self.root))
         level = 0
         while len(candidates) > 0:
             new_candidates = list()
-            for value, node in candidates:
+            for c_idx, c_data in enumerate(candidates):
+                value, tie_breaker, node = c_data
                 if not node.leaf:
                     good_candidates = node.find_best_cluster_candidates(obj, data, n_candidates)
-                    for c in good_candidates:
-                        heapq.heappush(new_candidates, c)
+                    for idx, c in enumerate(good_candidates):
+                        heapq.heappush(new_candidates, (c[0], idx, c[2]))
                 else:
-                    kdtree_result = node.find_best_example(obj, data) 
-                    heapq.heappush(results, kdtree_result)
-            
+                    v, sample = node.find_best_example(obj, data)
+                    heapq.heappush(results, (v, c_idx, sample))
+
             candidates = new_candidates[:n_candidates]
             level += 1
 
         if len(results) > 0:
-            return heapq.heappop(results)    
+            r = heapq.heappop(results)
+            return r[0], r[2]
         else:
             print "Error: failed to find a result"
             return np.inf, self.root.mean

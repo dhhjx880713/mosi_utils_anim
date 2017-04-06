@@ -111,7 +111,7 @@ class ClusterTreeNode(object):
         for cluster_index in xrange(len(self.clusters)):
             sample = self.clusters[cluster_index].mean
             cluster_value = obj(sample, data)
-            heapq.heappush(result_queue, (cluster_value, self.clusters[cluster_index]))
+            heapq.heappush(result_queue, (cluster_value,cluster_index, self.clusters[cluster_index]))
       
         return result_queue[:n_candidates]
 
