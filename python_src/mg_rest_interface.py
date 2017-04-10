@@ -20,6 +20,7 @@ import json
 import time
 from datetime import datetime
 from morphablegraphs import MotionGenerator, AlgorithmConfigurationBuilder, load_json_file, write_to_json_file
+from morphablegraphs.animation_data.fbx_io import export_motion_vector_to_fbx_file
 from morphablegraphs.utilities.io_helper_functions import get_bvh_writer
 from morphablegraphs.utilities import write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO, LOG_MODE_ERROR, set_log_mode
 import argparse
