@@ -81,16 +81,14 @@ if has_fbx:
             curve.KeySetInterpolation(key_index, FbxAnimCurveDef.eInterpolationLinear)
         curve.KeyModifyEnd()
 
-    def create_euler_curve(fbx_node, anim_layer, node_idx, euler_frames, frame_time, dimension, dim_idx):
-        offset = node_idx * 3 + 3
+    def create_euler_curve(fbx_node, anim_layer, euler_frames, frame_time, dimension, dim_idx):
         t = FbxTime()
         curve = fbx_node.LclRotation.GetCurve(anim_layer, dimension, True)
         curve.KeyModifyBegin()
         for idx, frame in enumerate(euler_frames):
             t.SetSecondDouble(idx * frame_time)
             key_index = curve.KeyAdd(t)[0]
-            e = frame[offset:offset + 3][dim_idx]
-            curve.KeySetValue(key_index, e)
+            curve.KeySetValue(key_index, frame[dim_idx])
             curve.KeySetInterpolation(key_index, FbxAnimCurveDef.eInterpolationConstant)
         curve.KeyModifyEnd()
 
@@ -104,9 +102,10 @@ if has_fbx:
         if node_name not in skeleton.animated_joints:
             return
         node_idx = skeleton.animated_joints.index(node_name)
-        create_euler_curve(fbx_node, anim_layer, node_idx, euler_frames, frame_time, "X", 0)
-        create_euler_curve(fbx_node, anim_layer, node_idx, euler_frames, frame_time, "Y", 1)
-        create_euler_curve(fbx_node, anim_layer, node_idx, euler_frames, frame_time, "Z", 2)
+        offset = node_idx * 3 + 3
+        create_euler_curve(fbx_node, anim_layer, euler_frames, frame_time, "X", offset)
+        create_euler_curve(fbx_node, anim_layer, euler_frames, frame_time, "Y", offset+1)
+        create_euler_curve(fbx_node, anim_layer, euler_frames, frame_time, "Z", offset+2)
 
     def add_rotation_curves_recursively(fbx_node, anim_layer, skeleton, euler_frames, frame_time, is_root=False):
         if is_root:
