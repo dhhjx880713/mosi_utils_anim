@@ -88,9 +88,8 @@ class GenerateMotionHandler(tornado.web.RequestHandler):
             if mg_input["outputMode"] == "Unity":
                 result_object = motion_vector.to_unity_format()
                 if self.application.export_motion_to_file:
-                    motion_vector.export(self.application.service_config["output_dir"],
-                                         self.application.service_config["output_filename"],
-                                         add_time_stamp=False, export_details=False)
+                    out_file_name = self.application.service_config["output_dir"] + os.sep + self.application.service_config["output_filename"]
+                    export_motion_vector_to_fbx_file(self.application.get_skeleton(), motion_vector, out_file_name)
             else:
                 result_object = self.convert_to_interact_format(motion_vector)
 
