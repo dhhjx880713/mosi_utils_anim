@@ -21,22 +21,32 @@ if has_fbx:
         info.mTitle = "MotionExportScene"
         scene.SetSceneInfo(info)
         root_node = create_skeleton(sdk_manager, "", skeleton)
+        scene.GetRootNode().LclTranslation.Set(FbxDouble3(0, 0, 0))
         scene.GetRootNode().AddChild(root_node)
         set_rest_pose(sdk_manager, scene, root_node, skeleton)
         set_animation_curves(scene, root_node, skeleton, motion_vector)
+        return root_node
+
 
     def create_skeleton(sdk_manager, name, skeleton):
-        root_node = create_skeleton_nodes_recursively(sdk_manager, name, skeleton, skeleton.root)
+        root_node = create_root_node(sdk_manager, name, skeleton)
         return root_node
+
+    def create_root_node(sdk_manager, name, skeleton):
+        node_type = FbxSkeleton.eRoot
+        node_attribute = FbxSkeleton.Create(sdk_manager, name)
+        node_attribute.SetSkeletonType(node_type)
+        extra_root_node = FbxNode.Create(sdk_manager,  "Root")
+        extra_root_node.SetNodeAttribute(node_attribute)
+        skeleton_root = create_skeleton_nodes_recursively(sdk_manager, name, skeleton, skeleton.root)
+        extra_root_node.AddChild(skeleton_root)
+        return extra_root_node
 
     def create_skeleton_nodes_recursively(sdk_manager, skeleton_name, skeleton, node_name):
         node = skeleton.nodes[node_name]
         name = skeleton_name + node_name
         skeleton_node_attribute = FbxSkeleton.Create(sdk_manager, skeleton_name)
-        if node.parent is None:
-            node_type = FbxSkeleton.eRoot
-        else:
-            node_type = FbxSkeleton.eLimbNode
+        node_type = FbxSkeleton.eLimbNode
         skeleton_node_attribute.SetSkeletonType(node_type)
         skeleton_node = FbxNode.Create(sdk_manager, name)
         skeleton_node.SetNodeAttribute(skeleton_node_attribute)
@@ -48,27 +58,32 @@ if has_fbx:
             skeleton_node.AddChild(c_node)
         return skeleton_node
 
+
     def set_rest_pose_recursively(pose, fbx_node, skeleton):
         name = fbx_node.GetName()
-        node = skeleton.nodes[name]
-        t = node.offset
+        if name in skeleton.nodes.keys():
+            node = skeleton.nodes[name]
+            t = node.offset
 
-        l_t = FbxVector4(t[0], t[1], t[2])
-        l_r = FbxVector4(0.0, 0.0, 0.0)
-        l_s = FbxVector4(1.0, 1.0, 1.0)
+            l_t = FbxVector4(t[0], t[1], t[2])
+            l_t = FbxVector4(0,0,0)
+            l_r = FbxVector4(0.0, 0.0, 0.0)
+            l_s = FbxVector4(1.0, 1.0, 1.0)
 
-        transform = FbxMatrix()
-        transform.SetTRS(l_t, l_r, l_s)
-        pose.Add(fbx_node, transform, True)
+            transform = FbxMatrix()
+            transform.SetTRS(l_t, l_r, l_s)
+            pose.Add(fbx_node, transform, True)# maybe set this to false
         n_children = fbx_node.GetChildCount()
         for idx in xrange(n_children):
             c_node = fbx_node.GetChild(idx)
             set_rest_pose_recursively(pose, c_node, skeleton)
 
+
     def set_rest_pose(sdk_manager, scene, root_node, skeleton):
         pose = FbxPose.Create(sdk_manager, "RestPose")
         set_rest_pose_recursively(pose, root_node, skeleton)
         scene.AddPose(pose)
+
 
     def create_translation_curve(fbx_node, anim_layer, euler_frames, frame_time, dimension, dim_idx):
         t = FbxTime()
@@ -78,8 +93,9 @@ if has_fbx:
             t.SetSecondDouble(idx * frame_time)
             key_index = curve.KeyAdd(t)[0]
             curve.KeySetValue(key_index, frame[dim_idx])
-            curve.KeySetInterpolation(key_index, FbxAnimCurveDef.eInterpolationLinear)
+            curve.KeySetInterpolation(key_index, FbxAnimCurveDef.eInterpolationConstant)
         curve.KeyModifyEnd()
+
 
     def create_euler_curve(fbx_node, anim_layer, euler_frames, frame_time, dimension, dim_idx):
         t = FbxTime()
@@ -92,10 +108,12 @@ if has_fbx:
             curve.KeySetInterpolation(key_index, FbxAnimCurveDef.eInterpolationConstant)
         curve.KeyModifyEnd()
 
+
     def create_translation_curves(fbx_node, anim_layer, euler_frames, frame_time):
         create_translation_curve(fbx_node, anim_layer, euler_frames, frame_time, "X", 0)
         create_translation_curve(fbx_node, anim_layer, euler_frames, frame_time, "Y", 1)
         create_translation_curve(fbx_node, anim_layer, euler_frames, frame_time, "Z", 2)
+
 
     def create_rotation_curves(fbx_node, anim_layer, skeleton, euler_frames, frame_time):
         node_name = fbx_node.GetName()
@@ -107,10 +125,12 @@ if has_fbx:
         create_euler_curve(fbx_node, anim_layer, euler_frames, frame_time, "Y", offset+1)
         create_euler_curve(fbx_node, anim_layer, euler_frames, frame_time, "Z", offset+2)
 
+
     def add_rotation_curves_recursively(fbx_node, anim_layer, skeleton, euler_frames, frame_time, is_root=False):
         if is_root:
             create_translation_curves(fbx_node, anim_layer, euler_frames, frame_time)
-        create_rotation_curves(fbx_node, anim_layer, skeleton, euler_frames, frame_time)
+        else:
+            create_rotation_curves(fbx_node, anim_layer, skeleton, euler_frames, frame_time)
         n_children = fbx_node.GetChildCount()
         for idx in xrange(n_children):
             c_node = fbx_node.GetChild(idx)
@@ -132,6 +152,7 @@ if has_fbx:
         return euler_frame
 
     def set_animation_curves(scene, root_node, skeleton, motion_vector):
+
         # convert frames from quaternion to euler
         euler_frames = []
         for frame in motion_vector.frames:
@@ -147,8 +168,7 @@ if has_fbx:
 
     def export_motion_vector_to_fbx_file(skeleton, motion_vector, out_file_name):
         sdk_manager, scene = FbxCommon.InitializeSdkObjects()
-
-        create_scene(sdk_manager, scene, skeleton, motion_vector)
+        root_node = create_scene(sdk_manager, scene, skeleton, motion_vector)
         FbxCommon.SaveScene(sdk_manager, scene, out_file_name)
 
         sdk_manager.Destroy()
