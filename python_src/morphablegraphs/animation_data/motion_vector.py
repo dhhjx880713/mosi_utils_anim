@@ -5,8 +5,8 @@ from motion_editing import fast_quat_frames_alignment, align_frames,transform_eu
                                           transform_quaternion_frames,\
                                             convert_euler_frames_to_quaternion_frames
 from ..utilities.io_helper_functions import export_frames_to_bvh_file
+from ..external.transformations import euler_from_quaternion, quaternion_multiply
 from . import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER
-
 
 def concatenate_frames(prev_frames, new_frames,start_pose, rotation_type, apply_spatial_smoothing=True, smoothing_window=20):
     if prev_frames is not None:
@@ -86,4 +86,34 @@ class MotionVector(object):
             self.frames = None
         else:
             self.frames = self.frames[:end_frame]
+
+
+    def from_fbx(self, animation, animated_joints=None):
+        if animated_joints is None:
+            animated_joints = animation["curves"].keys()
+        self.frame_time = animation["frame_time"]
+        print "animated joints", animated_joints
+        root_joint = animated_joints[0]
+        self.n_frames = len(animation["curves"][root_joint])
+        self.frames = []
+        for idx in xrange(self.n_frames):
+            frame = self._create_frame_from_fbx(animation, animated_joints, idx)
+            self.frames.append(frame)
+
+    def _create_frame_from_fbx(self, animation, animated_joints, idx):
+        n_dims = len(animated_joints) * 4 + 3
+        frame = np.zeros(n_dims)
+        offset = 3
+        root_name = animated_joints[0]
+        frame[:3] = animation["curves"][root_name][idx]["local_translation"]
+        print "root translation", frame[:3]
+        for node_name in animated_joints:
+            if node_name in animation["curves"].keys():
+                rotation = animation["curves"][node_name][idx]["local_rotation"]
+                frame[offset:offset+4] = rotation
+            else:
+                frame[offset:offset+4] = [1, 0, 0, 0]
+            offset += 4
+
+        return frame
 
