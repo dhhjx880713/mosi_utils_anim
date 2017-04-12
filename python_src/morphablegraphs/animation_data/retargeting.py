@@ -29,8 +29,8 @@ ROCKETBOX_TO_GAME_ENGINE_MAP["LeftFoot"] = "foot_l"
 ROCKETBOX_TO_GAME_ENGINE_MAP["RightFoot"] = "foot_r"
 ROCKETBOX_TO_GAME_ENGINE_MAP["Bip01_L_Toe0"] = "ball_l"
 ROCKETBOX_TO_GAME_ENGINE_MAP["Bip01_R_Toe0"] = "ball_r"
-
-
+OPENGL_UP_AXIS = np.array([0, 1, 0])
+EXTRA_ROOT_NAME = "Root"
 ROOT_JOINT = "Hips"
 ROOT_CHILDREN = ["Spine", "LeftUpLeg","RightUpLeg"]
 EXTREMITIES = ["RightUpLeg", "LeftUpLeg", "RightLeg", "LeftLeg", "RightArm", "LeftArm", "RightForeArm", "LeftForeArm"]
@@ -52,23 +52,24 @@ def filter_dofs(q, fixed_dims):
     return q
 
 
-def ik_dir_objective(q, new_skeleton, free_joint_name, children, target_bone_dirs, frame, offset):
-    """ get distance based on fk methods of skeleton
+def ik_dir_objective(q, new_skeleton, free_joint_name, targets, frame, offset):
+    """ Get distance to multiple target directions similar to the Blender implementation based on FK methods
+        of the Skeleton class
     """
 
     error = 0.0
     frame[offset: offset + 4] = q
-    for idx, child_name in enumerate(children):
-        bone_dir = get_dir_to_child(new_skeleton, free_joint_name, child_name, frame)
-        delta = bone_dir - target_bone_dirs[idx]
+    for target in targets:
+        bone_dir = get_dir_to_child(new_skeleton, free_joint_name, target["dir_name"], frame)
+        delta = bone_dir - target["dir_to_child"]
         error += np.linalg.norm(delta)
     return error
 
 
-def find_rotation_using_optimization(new_skeleton, free_joint_name, children, target_bone_dirs, frame, offset, guess=None):
+def find_rotation_using_optimization(new_skeleton, free_joint_name, targets, frame, offset, guess=None):
     if guess is None:
         guess = [1, 0, 0, 0]
-    args = new_skeleton, free_joint_name, children, target_bone_dirs, frame, offset
+    args = new_skeleton, free_joint_name, targets, frame, offset
     r = minimize(ik_dir_objective, guess, args)
     q = normalize(r.x)
     return q
@@ -117,23 +118,18 @@ def get_targets_from_motion(src_skeleton, src_frames, src_to_target_joint_map):
             frame_targets[target_name] = dict()
             frame_targets[target_name]["pos"] = src_skeleton.nodes[src_name].get_global_position(src_frames[idx])
             if len(src_skeleton.nodes[src_name].children) > -1:
-                frame_targets[target_name]["dir"] = []
-                frame_targets[target_name]["dir_name"] = []
-                frame_targets[target_name]["src_name"] = []
+                frame_targets[target_name]["targets"] = []
                 for child_node in src_skeleton.nodes[src_name].children:
                     child_name = child_node.node_name
                     if child_name not in src_to_target_joint_map.keys():
                         #print "skip2", src_name
                         continue
-                    dir_to_child = get_dir_to_child(src_skeleton, src_name, child_name,
-                                                    src_frames[idx])
-                    frame_targets[target_name]["dir"].append(dir_to_child)
-                    dir_name = src_to_target_joint_map[child_name]
-                    frame_targets[target_name]["dir_name"].append(dir_name)
-                    frame_targets[target_name]["src_name"].append(src_name)
+                    target = {"dir_to_child": get_dir_to_child(src_skeleton, src_name, child_name,
+                                                               src_frames[idx]),
+                              "dir_name": src_to_target_joint_map[child_name],
+                              "src_name": src_name
 
-
-
+                              }
         targets.append(frame_targets)
     return targets
 
@@ -160,11 +156,12 @@ def get_new_frames_from_direction_constraints(target_skeleton, src_skeleton, src
         new_frame[:3] = np.array(targets[frame_idx][target_root]["pos"]) *scale_factor
 
         if extra_root:
+            targets = [{"dir_name":target_root,
+                       "dir_to_child":OPENGL_UP_AXIS}]
             new_frame[:3] -= np.array(target_skeleton.nodes[target_root].offset)*scale_factor
             new_frame[3:7] = find_rotation_using_optimization(target_skeleton,
-                                                              "Root",
-                                                              [target_root],
-                                                              [np.array([0, 1, 0])],
+                                                              EXTRA_ROOT_NAME,
+                                                              targets,
                                                               new_frame, 3)
             offset = 7
         else:
@@ -172,11 +169,10 @@ def get_new_frames_from_direction_constraints(target_skeleton, src_skeleton, src
 
         for free_joint_name in target_skeleton.animated_joints[1:]:
             q = [1, 0, 0, 0]
-            if free_joint_name in frame_targets.keys() and len(frame_targets[free_joint_name]["dir_name"]) > 0:
+            if free_joint_name in frame_targets.keys() and len(frame_targets[free_joint_name]["targets"]) > 0:
                 q = find_rotation_using_optimization(target_skeleton, free_joint_name,
-                                                                 frame_targets[free_joint_name]["dir_name"],
-                                                                 frame_targets[free_joint_name]["dir"],
-                                                                 new_frame, offset)
+                                                     frame_targets[free_joint_name]["targets"],
+                                                     new_frame, offset)
             new_frame[offset:offset + 4] = q
             offset += 4
 
