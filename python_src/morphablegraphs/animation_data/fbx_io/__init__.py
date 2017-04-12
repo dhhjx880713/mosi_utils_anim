@@ -1,8 +1,5 @@
-"""
-Code to export an animated skeleton to an FBX file based on a skeleton and a motion vector.
-The code is based on Example01 of the FBX SDK samples.
-"""
-
+from ..motion_vector import MotionVector
+from ..skeleton import Skeleton
 
 has_fbx = True
 try:
@@ -12,10 +9,10 @@ except ImportError, e:
     print("Warning: could not import FBX library")
     pass
 
+
 if has_fbx:
     from fbx_import import load_fbx_file
     from fbx_export import export_motion_vector_to_fbx_file
-
 else:
     def load_fbx_file(file_path):
         raise NotImplementedError
@@ -23,4 +20,18 @@ else:
     def export_motion_vector_to_fbx_file(skeleton, motion_vector, out_file_name):
         raise NotImplementedError
 
+
+def load_skeleton_and_animations_from_fbx(file_path):
+    mesh_list, skeleton_def, animations = load_fbx_file(file_path)
+    skeleton = Skeleton()
+    skeleton.load_from_fbx_data(skeleton_def)
+    anim_names = animations.keys()
+    motion_vectors = []
+    if len(anim_names) > 0:
+        anim_name = anim_names[0]
+        mv = MotionVector()
+        mv.from_fbx(animations[anim_name], skeleton.animated_joints)
+        motion_vectors.append(mv)
+
+    return skeleton, motion_vectors
 
