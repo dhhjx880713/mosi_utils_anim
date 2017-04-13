@@ -31,6 +31,7 @@ DEFAULT_ROTATION_ORDER = ['Xrotation','Yrotation','Zrotation']
 DEFAULT_SMOOTHING_WINDOW_SIZE = 20
 LEN_QUAT = 4
 LEN_ROOT_POS = 3
+LEN_EULER = 3
 
 if use_euler_fk:
     FK_FUNCS = [

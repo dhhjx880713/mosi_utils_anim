@@ -128,11 +128,6 @@ def get_2d_root_rotation(target_skeleton, src_skeleton, src_frame, target_frame,
 
 
 def get_targets_from_motion(src_skeleton, src_frames, src_to_target_joint_map):
-
-def get_targets_from_motion(src_skeleton, src_frames, src_to_target_joint_map, additional_rotation_map=None):
-    if additional_rotation_map is not None:
-        src_frames = apply_additional_rotation_on_frames(src_skeleton.animated_joints, src_frames, additional_rotation_map)
-
     targets = []
     for idx in range(0, len(src_frames)):
         frame_targets = dict()

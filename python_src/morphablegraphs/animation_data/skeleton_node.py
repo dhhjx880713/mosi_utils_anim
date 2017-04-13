@@ -19,9 +19,11 @@ class SkeletonNodeBase(object):
         self.children = []
         self.index = -1
         self.quaternion_frame_index = -1
+        self.euler_frame_index = -1
         self.node_type = None
         self.offset = [0.0, 0.0, 0.0]
         self.rotation = np.array([1.0, 0.0, 0.0, 0.0])
+        self.euler_angles = np.array([0.0, 0.0, 0.0])
         self.fixed = True
         self.cached_global_matrix = None
 
@@ -32,6 +34,11 @@ class SkeletonNodeBase(object):
         global_matrix = self.get_global_matrix(quaternion_frame, use_cache)
         point = np.dot(global_matrix, self.ORIGIN)
         return point[:3]#.tolist()
+
+    def get_global_position_from_euler(self, euler_frame, use_cache=False):
+        global_matrix = self.get_global_matrix_from_euler_frame(euler_frame, use_cache)
+        point = np.dot(global_matrix, self.ORIGIN)
+        return point[:3]
 
     def get_global_orientation_quaternion(self, quaternion_frame, use_cache=False):
         global_matrix = self.get_global_matrix(quaternion_frame, use_cache)
@@ -53,6 +60,15 @@ class SkeletonNodeBase(object):
                 self.cached_global_matrix = self.get_local_matrix(quaternion_frame)
                 return self.cached_global_matrix
 
+    def get_global_matrix_from_euler_frame(self, euler_frame, use_cache=False):
+        if self.parent is not None:
+            parent_matrix = self.parent.get_global_matrix_from_euler_frame(euler_frame)
+            self.cached_global_matrix = np.dot(parent_matrix, self.get_local_matrix_from_euler(euler_frame))
+            return self.cached_global_matrix
+        else:
+            self.cached_global_matrix = self.get_local_matrix_from_euler(euler_frame)
+            return self.cached_global_matrix
+
     def get_global_matrix_from_anim_frame(self, frame, use_cache=False):
         if self.cached_global_matrix is not None and use_cache:
             return self.cached_global_matrix
@@ -68,6 +84,8 @@ class SkeletonNodeBase(object):
     def get_local_matrix(self, quaternion_frame):
         pass
 
+    def get_local_matrix_from_euler(self, euler_frame):
+        pass
 
     def get_frame_parameters(self, frame, rotation_type):
         pass
@@ -100,11 +118,22 @@ class SkeletonRootNode(SkeletonNodeBase):
         local_matrix[:3, 3] = [t + o for t, o in izip(quaternion_frame[:3], self.offset)]
         return local_matrix
 
+    def get_local_matrix_from_euler(self, euler_frame):
+        local_matrix = euler_matrix(*np.radians(euler_frame[3:6]), axes='rxyz')
+        local_matrix[:3, 3] = [t + o for t, o in izip(euler_frame[:3], self.offset)]
+        return local_matrix
+
     def get_frame_parameters(self, frame, rotation_type):
         if not self.fixed:
             return frame[:7].tolist()
         else:
             return [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0]
+
+    def get_euler_frame_parameters(self, euler_frame):
+        if not self.fixed:
+            return euler_frame[:6].tolist()
+        else:
+            return [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
     def get_number_of_frame_parameters(self, rotation_type):
         if rotation_type == ROTATION_TYPE_QUATERNION:
@@ -125,6 +154,15 @@ class SkeletonJointNode(SkeletonNodeBase):
             local_matrix = quaternion_matrix(quaternion_frame[frame_index: frame_index + 4])
         else:
             local_matrix = quaternion_matrix(self.rotation)
+        local_matrix[:3, 3] = self.offset
+        return local_matrix
+
+    def get_local_matrix_from_euler(self, euler_frame):
+        if not self.fixed:
+            frame_index = self.euler_frame_index * 3 + 3
+            local_matrix = euler_matrix(*np.radians(euler_frame[frame_index: frame_index + 3]), axes='rxyz')
+        else:
+            local_matrix = euler_matrix(*np.radians(self.euler_angles), axes='rxyz')
         local_matrix[:3, 3] = self.offset
         return local_matrix
 

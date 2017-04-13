@@ -13,7 +13,7 @@ from ..external.transformations import quaternion_matrix
 from quaternion_frame import QuaternionFrame
 from ..animation_data.motion_editing import euler_to_quaternion
 from itertools import izip
-from skeleton_node import SkeletonRootNode, SkeletonJointNode, SkeletonEndSiteNode, SKELETON_NODE_TYPE_JOINT
+from skeleton_node import SkeletonRootNode, SkeletonJointNode, SkeletonEndSiteNode, SKELETON_NODE_TYPE_JOINT, SKELETON_NODE_TYPE_END_SITE
 from . import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER
 try:
     from mgrd import Skeleton as MGRDSkeleton
@@ -117,10 +117,15 @@ class Skeleton(object):
 
         self.parent_dict = self._get_parent_dict()
         self._chain_names = self._generate_chain_names()
+        self.create_euler_frame_indice()
+
+    def create_euler_frame_indice(self):
+        nodes_without_endsite = [node for node in self.nodes.values() if node.node_type != SKELETON_NODE_TYPE_END_SITE]
+        for node in nodes_without_endsite:
+            node.euler_frame_index = nodes_without_endsite.index(node)
 
     def construct_hierarchy_from_bvh(self, node_names, node_channels, node_name):
         joint_index = node_names.keys().index(node_name)
-
         if node_name == self.root:
             node = SkeletonRootNode(node_name, node_channels[node_name], None)
             if node_name in self.animated_joints:
