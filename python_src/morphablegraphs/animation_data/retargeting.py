@@ -161,12 +161,9 @@ def get_targets_from_motion(src_skeleton, src_frames, src_to_target_joint_map, a
     return targets
 
 
-def get_new_frames_from_direction_constraints(target_skeleton, src_skeleton, src_frames, targets, frame_range=(0,1),
+def get_new_frames_from_direction_constraints(target_skeleton, targets, frame_range=None,
                                               target_root=GAME_ENGINE_ROOT_JOINT,
-                                              extremities=GAME_ENGINE_EXTREMITIES,
-                                              root_children=GAME_ENGINE_ROOT_CHILDREN,
-                                              src_root="Hips",
-                                              extra_root=True, scale_factor=1.0):
+                                              extra_root=True, scale_factor=1.0, use_optimization=False):
 
     n_params = len(target_skeleton.animated_joints) * 4 + 3
 
