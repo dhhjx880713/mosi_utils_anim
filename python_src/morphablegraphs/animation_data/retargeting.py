@@ -44,7 +44,6 @@ GAME_ENGINE_ROOT_CHILDREN = ["spine_01", "clavicle_l", "clavicle_r"]#[ROCKETBOX_
 GAME_ENGINE_EXTREMITIES = [ROCKETBOX_TO_GAME_ENGINE_MAP[k] for k in EXTREMITIES]
 
 
-def get_cross_correlation_3d(src, dest):
 def normalize(v):
     return v/np.linalg.norm(v)
 
@@ -156,10 +155,10 @@ def get_new_frames_from_direction_constraints(target_skeleton, src_skeleton, src
     for frame_idx, frame_targets in enumerate(targets[frame_range[0]:frame_range[1]]):
         target_skeleton.clear_cached_global_matrices()
 
-        print "process", frame_idx,src_skeleton.animated_joints, target_skeleton.animated_joints
+        print "process", frame_range[0]+frame_idx,src_skeleton.animated_joints, target_skeleton.animated_joints
         assert target_root in frame_targets.keys()
         new_frame = np.zeros(n_params)
-        new_frame[:3] = np.array(targets[frame_idx][target_root]["pos"]) *scale_factor
+        new_frame[:3] = np.array(frame_targets[target_root]["pos"]) *scale_factor
 
         if extra_root:
             targets = [{"dir_name": target_root, "dir_to_child": OPENGL_UP_AXIS}]
