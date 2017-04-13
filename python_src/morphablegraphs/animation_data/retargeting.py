@@ -155,15 +155,17 @@ def get_new_frames_from_direction_constraints(target_skeleton, src_skeleton, src
     for frame_idx, frame_targets in enumerate(targets[frame_range[0]:frame_range[1]]):
         target_skeleton.clear_cached_global_matrices()
 
-        print "process", frame_range[0]+frame_idx,src_skeleton.animated_joints, target_skeleton.animated_joints
-        assert target_root in frame_targets.keys()
+        print "process", frame_range[0]+frame_idx
+
         new_frame = np.zeros(n_params)
-        new_frame[:3] = np.array(frame_targets[target_root]["pos"]) *scale_factor
+        new_frame[:3] = np.array(frame_targets[target_root]["pos"]) * scale_factor
 
         if extra_root:
-            targets = [{"dir_name": target_root, "dir_to_child": OPENGL_UP_AXIS}]
             new_frame[:3] -= np.array(target_skeleton.nodes[target_root].offset)*scale_factor
+
+            targets = [{"dir_name": target_root, "dir_to_child": OPENGL_UP_AXIS}]
             new_frame[3:7] = find_rotation_using_optimization(target_skeleton, EXTRA_ROOT_NAME, targets, new_frame, 3)
+
             offset = 7
         else:
             offset = 3
@@ -179,30 +181,5 @@ def get_new_frames_from_direction_constraints(target_skeleton, src_skeleton, src
 
         # apply_ik_constraints(target_skeleton, new_frame, constraints[frame_idx])#TODO
 
-        new_frames.append(new_frame)
-    return new_frames
-
-
-        target_skeleton.clear_cached_global_matrices()
-        for free_joint_name in target_skeleton.animated_joints[1:]:
-            if free_joint_name == target_root:
-                src_frame = src_frames[frame_idx]
-                new_frame[offset:offset + 4] = get_2d_root_rotation(target_skeleton, src_skeleton,
-                                                                    src_frame, new_frame,
-                                                                    src_root, target_root)
-            else:
-                q = [1, 0, 0, 0]
-                if free_joint_name in frame_targets.keys() and "dir_name" in frame_targets[free_joint_name].keys():
-                    print free_joint_name
-                    # q = get_joint_rotation(target_skeleton, targets, frame_idx, free_joint_name, extremities, new_frame, root, root_children, guess=q)
-                    q = find_rotation_using_optimization(target_skeleton,
-                                                         free_joint_name,
-                                                         frame_targets[free_joint_name]["dir_name"],
-                                                         frame_targets[free_joint_name]["dir"],
-                                                         new_frame, offset)
-
-                new_frame[offset:offset + 4] = q
-            offset += 4
-        # apply_ik_constraints(target_skeleton, new_frame, constraints[frame_idx])#TODO
         new_frames.append(new_frame)
     return new_frames
