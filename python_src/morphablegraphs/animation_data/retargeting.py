@@ -14,10 +14,7 @@ from scipy.optimize import minimize
 
 ROCKETBOX_TO_GAME_ENGINE_MAP = dict()
 ROCKETBOX_TO_GAME_ENGINE_MAP["Hips"] = "pelvis"
-ROCKETBOX_TO_GAME_ENGINE_MAP["Spine"] = "spine_01"
-#ROCKETBOX_TO_GAME_ENGINE_MAP["Spine_1"] = "spine_02"
-#ROCKETBOX_TO_GAME_ENGINE_MAP["Neck"] = "neck_01"
-#ROCKETBOX_TO_GAME_ENGINE_MAP["Head"] = "head"
+ROCKETBOX_TO_GAME_ENGINE_MAP["Spine"] = "head"
 ROCKETBOX_TO_GAME_ENGINE_MAP["LeftShoulder"] = "clavicle_l"
 ROCKETBOX_TO_GAME_ENGINE_MAP["RightShoulder"] = "clavicle_r"
 ROCKETBOX_TO_GAME_ENGINE_MAP["LeftArm"] = "upperarm_l"
