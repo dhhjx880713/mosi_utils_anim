@@ -31,6 +31,10 @@ ROCKETBOX_TO_GAME_ENGINE_MAP["LeftFoot"] = "foot_l"
 ROCKETBOX_TO_GAME_ENGINE_MAP["RightFoot"] = "foot_r"
 ROCKETBOX_TO_GAME_ENGINE_MAP["Bip01_L_Toe0"] = "ball_l"
 ROCKETBOX_TO_GAME_ENGINE_MAP["Bip01_R_Toe0"] = "ball_r"
+ADDITIONAL_ROTATION_MAP = dict()
+ADDITIONAL_ROTATION_MAP["LeftShoulder"] = [0, 0, -20]
+ADDITIONAL_ROTATION_MAP["RightShoulder"] = [0, 0, 20]
+
 OPENGL_UP_AXIS = np.array([0, 1, 0])
 EXTRA_ROOT_NAME = "Root"
 ROOT_JOINT = "Hips"
@@ -51,6 +55,22 @@ def filter_dofs(q, fixed_dims):
         e[d] = 0
     q = quaternion_from_euler(*e)
     return q
+
+
+def apply_additional_rotation_on_frames(animated_joints, frames, additional_rotation_map):
+    new_frames = []
+    for frame in frames:
+        new_frame = frame[:]
+        for idx, name in enumerate(animated_joints):
+            if name in additional_rotation_map:
+                euler = np.radians(additional_rotation_map[name])
+                additional_q = quaternion_from_euler(*euler)
+                offset = idx *4+3
+                q = new_frame[offset:offset + 4]
+                new_frame[offset:offset + 4] = quaternion_multiply(q, additional_q)
+
+        new_frames.append(new_frame)
+    return new_frames
 
 
 def ik_dir_objective(q, new_skeleton, free_joint_name, targets, frame, offset):
@@ -108,6 +128,11 @@ def get_2d_root_rotation(target_skeleton, src_skeleton, src_frame, target_frame,
 
 
 def get_targets_from_motion(src_skeleton, src_frames, src_to_target_joint_map):
+
+def get_targets_from_motion(src_skeleton, src_frames, src_to_target_joint_map, additional_rotation_map=None):
+    if additional_rotation_map is not None:
+        src_frames = apply_additional_rotation_on_frames(src_skeleton.animated_joints, src_frames, additional_rotation_map)
+
     targets = []
     for idx in range(0, len(src_frames)):
         frame_targets = dict()
@@ -148,12 +173,16 @@ def get_new_frames_from_direction_constraints(target_skeleton, src_skeleton, src
     if frame_range is None:
         frame_range = (0, len(targets))
 
+    if extra_root:
+        animated_joints = target_skeleton.animated_joints[1:]
+    else:
+        animated_joints = target_skeleton.animated_joints
+
     new_frames = []
     for frame_idx, frame_targets in enumerate(targets[frame_range[0]:frame_range[1]]):
         target_skeleton.clear_cached_global_matrices()
 
-        print "process", frame_range[0]+frame_idx
-
+        print "process frame", frame_range[0]+frame_idx
         new_frame = np.zeros(n_params)
         new_frame[:3] = np.array(frame_targets[target_root]["pos"]) * scale_factor
 
@@ -167,7 +196,7 @@ def get_new_frames_from_direction_constraints(target_skeleton, src_skeleton, src
         else:
             offset = 3
 
-        for free_joint_name in target_skeleton.animated_joints[1:]:
+        for free_joint_name in animated_joints:
             q = [1, 0, 0, 0]
             if free_joint_name in frame_targets.keys() and len(frame_targets[free_joint_name]["targets"]) > 0:
                 q = find_rotation_using_optimization(target_skeleton, free_joint_name,
