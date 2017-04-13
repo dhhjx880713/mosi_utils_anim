@@ -1,3 +1,8 @@
+"""
+Functions for retargeting based on the paper "Using an Intermediate Skeleton and Inverse Kinematics for Motion Retargeting"
+by Monzani et al.
+See: http://www.vis.uni-stuttgart.de/plain/vdl/vdl_upload/91_35_retargeting%20monzani00using.pdf
+"""
 import numpy as np
 from copy import deepcopy
 from math import degrees
@@ -130,6 +135,7 @@ def get_targets_from_motion(src_skeleton, src_frames, src_to_target_joint_map):
                               "src_name": src_name
 
                               }
+                    frame_targets[target_name]["targets"].append(target)
         targets.append(frame_targets)
     return targets
 
@@ -156,13 +162,9 @@ def get_new_frames_from_direction_constraints(target_skeleton, src_skeleton, src
         new_frame[:3] = np.array(targets[frame_idx][target_root]["pos"]) *scale_factor
 
         if extra_root:
-            targets = [{"dir_name":target_root,
-                       "dir_to_child":OPENGL_UP_AXIS}]
+            targets = [{"dir_name": target_root, "dir_to_child": OPENGL_UP_AXIS}]
             new_frame[:3] -= np.array(target_skeleton.nodes[target_root].offset)*scale_factor
-            new_frame[3:7] = find_rotation_using_optimization(target_skeleton,
-                                                              EXTRA_ROOT_NAME,
-                                                              targets,
-                                                              new_frame, 3)
+            new_frame[3:7] = find_rotation_using_optimization(target_skeleton, EXTRA_ROOT_NAME, targets, new_frame, 3)
             offset = 7
         else:
             offset = 3
