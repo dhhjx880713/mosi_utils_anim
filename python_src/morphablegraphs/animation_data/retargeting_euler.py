@@ -72,7 +72,7 @@ def get_new_euler_frames_from_direction_constraints(target_skeleton,
     new_frames = []
     for frame_idx, frame_targets in enumerate(targets[frame_range[0]:frame_range[1]]):
         target_skeleton.clear_cached_global_matrices()
-        print "process", frame_range[0]+frame_idx
+        print "process", "frame " + str(frame_range[0]+frame_idx)
 
         new_frame = np.zeros(n_params)
         new_frame[:3] = np.array(frame_targets[target_root]["pos"]) *scale_factor
@@ -99,8 +99,6 @@ def get_new_euler_frames_from_direction_constraints(target_skeleton,
             else:
                 angles = get_euler_rotation_by_name(free_joint_name, new_frames[frame_idx - 1], target_skeleton)
             if free_joint_name in frame_targets.keys() and len(frame_targets[free_joint_name]["targets"]) > 0:
-                print free_joint_name
-                # q = get_joint_rotation(target_skeleton, targets, frame_idx, free_joint_name, extremities, new_frame, root, root_children, guess=q)
                 angles = find_rotation_euler_using_optimization(target_skeleton,
                                                                 free_joint_name,
                                                                 frame_targets[free_joint_name]["targets"],
