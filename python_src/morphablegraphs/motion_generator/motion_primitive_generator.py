@@ -240,7 +240,7 @@ class MotionPrimitiveGenerator(object):
         best_sample = None
         min_error = np.inf
         idx = 0
-        samples = gmm.sample(self.n_random_samples)
+        samples = gmm.sample(self.n_random_samples)[0]
         while idx < self.n_random_samples:
             object_function_params = mp_node, constraints, prev_frames
             error = obj_spatial_error_sum(samples[idx], object_function_params)
