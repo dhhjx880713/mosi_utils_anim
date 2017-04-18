@@ -96,7 +96,7 @@ class GraphWalkPlanner(object):
         constraint_desc["position"] = goal_position.tolist()
         pos_constraint = GlobalTransformConstraint(self.motion_state_graph.skeleton, constraint_desc, 1.0, 1.0)
         mp_constraints.constraints.append(pos_constraint)
-        dir_constraint_desc = {"joint": "Hips", "canonical_keyframe": -1, "dir_vector": tangent_line,
+        dir_constraint_desc = {"joint": self.motion_state_graph.skeleton.root, "canonical_keyframe": -1, "dir_vector": tangent_line,
                                "semanticAnnotation": {"keyframeLabel": "end", "generated": True}}
         # TODO add weight to configuration
         dir_constraint = Direction2DConstraint(self.motion_state_graph.skeleton, dir_constraint_desc, 1.0, 1.0)
