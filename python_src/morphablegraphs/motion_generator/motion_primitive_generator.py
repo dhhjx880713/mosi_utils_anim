@@ -186,11 +186,11 @@ class MotionPrimitiveGenerator(object):
         #  2) sample parameters  from the Gaussian Mixture Model based on constraints and make sure
         #     the resulting motion is valid
         if not self.activate_parameter_check:
-            parameters, min_error = self._sample_from_gmm_using_constraints(graph_node, gmm, mp_constraints, prev_frames)
+            parameters, min_error = self._sample_from_gmm_using_constraints(graph_node, gmm, mp_constraints, prev_frames, self.n_random_samples)
         else:
             parameters, min_error = self._sample_from_gmm_using_constraints_and_validity_check(graph_node, gmm,
                                                                                                mp_constraints,
-                                                                                               prev_frames)
+                                                                                               prev_frames, self.n_random_samples)
         write_message_to_log("Found best sample with distance: "+ str(min_error), LOG_MODE_DEBUG)
         return parameters
 
@@ -216,7 +216,7 @@ class MotionPrimitiveGenerator(object):
         constraints.min_error = distance
         return np.array(s)
 
-    def _sample_from_gmm_using_constraints(self, mp_node, gmm, constraints, prev_frames):
+    def _sample_from_gmm_using_constraints(self, mp_node, gmm, constraints, prev_frames, n_samples):
         """samples and picks the best samples out of a given set, quality measure
         is naturalness
 
@@ -239,19 +239,18 @@ class MotionPrimitiveGenerator(object):
         """
         best_sample = None
         min_error = np.inf
-        idx = 0
-        samples = gmm.sample(self.n_random_samples)[0]
-        while idx < self.n_random_samples:
+        samples = gmm.sample(n_samples)[0]
+        for idx, s_vector in enumerate(samples):
             object_function_params = mp_node, constraints, prev_frames
-            error = obj_spatial_error_sum(samples[idx], object_function_params)
+            error = obj_spatial_error_sum(s_vector, object_function_params)
+            print "evaluated sample", idx, error
             if min_error > error:
                 min_error = error
-                best_sample = samples[idx]
-            idx += 1
+                best_sample = s_vector
         constraints.min_error = min_error
         return best_sample, min_error
 
-    def _sample_from_gmm_using_constraints_and_validity_check(self, mp_node, gmm, constraints, prev_frames):
+    def _sample_from_gmm_using_constraints_and_validity_check(self, mp_node, gmm, constraints, prev_frames, n_samples):
         """samples and picks the best samples out of a given set, quality measure
         is naturalness
 
@@ -277,7 +276,7 @@ class MotionPrimitiveGenerator(object):
         reached_max_bad_samples = False
         tmp_bad_samples = 0
         idx = 0
-        samples = np.ravel(gmm.sample(self.n_random_samples))
+        samples = np.ravel(gmm.sample(n_samples))[0]
         while idx < self.n_random_samples:
             if tmp_bad_samples > self.max_bad_samples:
                     reached_max_bad_samples = True

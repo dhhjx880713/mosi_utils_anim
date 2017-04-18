@@ -113,7 +113,7 @@ class GraphWalkPlanner(object):
         mp_constraints.skeleton = self.motion_state_graph.skeleton
         mp_constraints.aligning_transform = create_transformation_matrix(state.graph_walk.motion_vector.start_pose["position"], state.graph_walk.motion_vector.start_pose["orientation"])
         mp_constraints.start_pose = state.graph_walk.motion_vector.start_pose
-        constraint_desc = {"joint": "Hips", "canonical_keyframe": -1, "n_canonical_frames": 0,
+        constraint_desc = {"joint": self.motion_state_graph.skeleton.root, "canonical_keyframe": -1, "n_canonical_frames": 0,
                            "semanticAnnotation": {"keyframeLabel": "end", "generated": True}}
         if add_orientation:
             self._add_constraint_with_orientation(constraint_desc, goal_arc_length, mp_constraints)
@@ -142,9 +142,15 @@ class GraphWalkPlanner(object):
         canonical_keyframe = motion_primitive_node.get_n_canonical_frames() - 1
         for c in mp_constraints.constraints:
             c.canonical_keyframe = canonical_keyframe
-        s_vector = self.mp_generator._get_best_fit_sample_using_cluster_tree(motion_primitive_node, mp_constraints,
-                                                                             prev_frames, 1)
 
+        if motion_primitive_node.cluster_tree is not None:
+
+            s_vector = self.mp_generator._get_best_fit_sample_using_cluster_tree(motion_primitive_node, mp_constraints,
+                                                                             prev_frames, 1)
+        else:
+            s_vector, error = self.mp_generator._sample_from_gmm_using_constraints(motion_primitive_node,
+                                                             motion_primitive_node.get_gaussian_mixture_model(),
+                                                             mp_constraints, prev_frames, 10)
         write_message_to_log("Evaluated option " + str(node_name) + str(mp_constraints.min_error), LOG_MODE_DEBUG)
         return s_vector, mp_constraints.min_error
 
