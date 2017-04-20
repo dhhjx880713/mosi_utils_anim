@@ -1,24 +1,29 @@
-from morphablegraphs.animation_data import Skeleton, MotionVector, BVHReader
-from morphablegraphs.animation_data.retargeting import get_targets_from_motion, get_new_frames_from_direction_constraints, \
-    ROCKETBOX_TO_GAME_ENGINE_MAP, point_cloud_alignment_via_optimization, get_point_cloud_distance, verify, get_point_cloud_distance,\
-    point_cloud_alignment, ADDITIONAL_ROTATION_MAP
-from morphablegraphs.animation_data.fbx_io import load_skeleton_and_animations_from_fbx
-from morphablegraphs.external.transformations import euler_from_quaternion, quaternion_matrix,euler_matrix,quaternion_from_matrix
+import numpy as np
+from morphablegraphs.animation_data import Skeleton, MotionVector, BVHReader, BVHWriter
+from morphablegraphs.animation_data.retargeting import get_targets_from_motion, ROCKETBOX_TO_GAME_ENGINE_MAP
+from morphablegraphs.animation_data.retargeting import get_new_frames_from_direction_constraints as get_new_frames_using_quaternion
+from morphablegraphs.animation_data.retargeting_euler import get_new_euler_frames_from_direction_constraints as get_new_frames_using_euler
+from morphablegraphs.animation_data.fbx_io import load_skeleton_and_animations_from_fbx, export_motion_vector_to_fbx_file
 
 
-def retarget(src_skeleton, src_motion, target_skeleton, inv_joint_map=ROCKETBOX_TO_GAME_ENGINE_MAP, additional_rotation_map=None, frame_range=None, scale_factor=1.0, use_optimization=True):
+def retarget(src_skeleton, src_motion, target_skeleton, out_file, inv_joint_map=ROCKETBOX_TO_GAME_ENGINE_MAP, additional_rotation_map=None, frame_range=None, scale_factor=1.0, use_optimization=True, use_euler=False):
     targets = get_targets_from_motion(src_skeleton, src_motion.frames, inv_joint_map, additional_rotation_map=additional_rotation_map)
-    new_frames = get_new_frames_from_direction_constraints(target_skeleton, targets,
-                                                           frame_range=frame_range,
-                                                           scale_factor=scale_factor,
-                                                           use_optimization=use_optimization)
-    return new_frames
+    if not use_euler:
+        new_frames = get_new_frames_using_quaternion(target_skeleton, targets,
+                                                     frame_range=frame_range,
+                                                     scale_factor=scale_factor,
+                                                     use_optimization=use_optimization)
+        mv = MotionVector()
+        mv.frames = new_frames
 
+        mv.export(target_skeleton, ".", out_file, add_time_stamp=False)
+    else:
+        new_frames = get_new_frames_using_euler(target_skeleton,
+                                    targets,
+                                    frame_range=frame_range,
+                                    scale_factor=scale_factor)
+        BVHWriter(out_file, target_skeleton, new_frames, target_skeleton.frame_time)
 
-def export(skeleton, frames, out_file):
-    mv = MotionVector()
-    mv.frames = frames
-    mv.export(skeleton, ".", out_file, add_time_stamp=False)
 
 def load_target_skeleton(file_path):
     skeleton = None
@@ -31,12 +36,19 @@ def load_target_skeleton(file_path):
         skeleton.load_from_bvh(target_bvh, animated_joints, add_tool_joints=False)
     return skeleton
 
+def scale_skeleton(skeleton, scale_factor):
+    for node in skeleton.nodes.values():
+        node.offset = np.array(node.offset) * scale_factor
+
 if __name__ == "__main__":
-    src_file = "skeleton.bvh"
-    target_file = "game_engine_target.fbx"
-    out_file = "out"
-    frame_range = [0,100]
-    use_optimization = True
+
+    src_file = "export15.bvh"
+    target_file = "game_engine_target.bvh"
+    out_file = "out_euler"
+    frame_range = [0,1]
+    use_optimization = False
+    use_euler = True
+    scale_factor = 10  # is applied on the root translation of the source and the offsets of the skeleton
 
     src_bvh = BVHReader(src_file)
     src_skeleton = Skeleton()
@@ -46,14 +58,15 @@ if __name__ == "__main__":
 
     target_skeleton = load_target_skeleton(target_file)
     if target_skeleton is not None:
-        scale_factor = 1.0/10  # is applied on the root translation of the source
-        new_frames = retarget(src_skeleton, src_motion, target_skeleton,
+
+        scale_skeleton(target_skeleton, scale_factor)
+
+        retarget(src_skeleton, src_motion, target_skeleton, out_file,
                               inv_joint_map=ROCKETBOX_TO_GAME_ENGINE_MAP,
-                              additional_rotation_map=ADDITIONAL_ROTATION_MAP,
+                              additional_rotation_map=None,
                               frame_range=frame_range,
-                              scale_factor=scale_factor,
-                              use_optimization=use_optimization)
-        export(target_skeleton, new_frames, out_file)
+                              scale_factor=1.0/scale_factor,
+                              use_optimization=use_optimization,
+                              use_euler=use_euler)
     else:
         print "Error: could not read target skeleton", target_file
-
