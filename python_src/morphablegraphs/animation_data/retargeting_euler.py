@@ -61,6 +61,7 @@ def get_new_euler_frames_from_direction_constraints(target_skeleton,
                                                     targets,
                                                     frame_range=(0,1),
                                                     target_root=GAME_ENGINE_ROOT_JOINT,
+                                                    src_root_offset=ROCKETBOX_ROOT_OFFSET,
                                                     src_root="Hips",
                                                     extra_root=True,
                                                     scale_factor=1.0):
@@ -82,7 +83,9 @@ def get_new_euler_frames_from_direction_constraints(target_skeleton,
                 angles = [0, 0, 0]
             else:
                 angles = get_euler_rotation_by_name(EXTRA_ROOT_NAME, new_frames[frame_idx - 1], target_skeleton)
-            new_frame[:3] -= target_skeleton.nodes["pelvis"].offset
+
+            new_frame[:3] -= src_root_offset*scale_factor
+
             targets = [{"dir_name": target_root, "dir_to_child": OPENGL_UP_AXIS}]
             new_frame[3:6] = find_rotation_euler_using_optimization(target_skeleton,
                                                                     EXTRA_ROOT_NAME,

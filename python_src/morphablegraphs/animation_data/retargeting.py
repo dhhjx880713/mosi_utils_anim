@@ -41,6 +41,7 @@ ADDITIONAL_ROTATION_MAP["RightShoulder"] = [0, 0, 20]
 ADDITIONAL_ROTATION_MAP["RightArm"] = [0, 0, -20]
 
 OPENGL_UP_AXIS = np.array([0, 1, 0])
+ROCKETBOX_ROOT_OFFSET = np.array([0, 100.949997, 0])
 EXTRA_ROOT_NAME = "Root"
 ROOT_JOINT = "Hips"
 ROOT_CHILDREN = ["Spine", "LeftUpLeg","RightUpLeg"]
@@ -251,9 +252,12 @@ def find_rotation_of_joint(target_skeleton, free_joint_name, targets, new_frame,
     return q
 
 
-def get_new_frames_from_direction_constraints(target_skeleton, targets, frame_range=None,
+def get_new_frames_from_direction_constraints(target_skeleton,
+                                              targets, frame_range=None,
                                               target_root=GAME_ENGINE_ROOT_JOINT,
-                                              extra_root=True, scale_factor=1.0, use_optimization=True):
+                                              src_root_offset=ROCKETBOX_ROOT_OFFSET,
+                                              extra_root=True, scale_factor=1.0,
+                                              use_optimization=True):
 
     n_params = len(target_skeleton.animated_joints) * 4 + 3
 
@@ -274,7 +278,7 @@ def get_new_frames_from_direction_constraints(target_skeleton, targets, frame_ra
         new_frame[:3] = np.array(frame_targets[target_root]["pos"]) * scale_factor
 
         if extra_root:
-            new_frame[:3] -= np.array(target_skeleton.nodes[target_root].offset)*scale_factor
+            new_frame[:3] -= src_root_offset*scale_factor
             new_frame[3:7] = find_orientation_of_extra_root(target_skeleton, new_frame, target_root, use_optimization)
             offset = 7
         else:
