@@ -278,7 +278,7 @@ def get_new_frames_from_direction_constraints(target_skeleton,
         new_frame[:3] = np.array(frame_targets[target_root]["pos"]) * scale_factor
 
         if extra_root:
-            new_frame[:3] -= src_root_offset*scale_factor
+            new_frame[:3] -= src_root_offset*scale_factor - target_skeleton.nodes[EXTRA_ROOT_NAME].offset
             new_frame[3:7] = find_orientation_of_extra_root(target_skeleton, new_frame, target_root, use_optimization)
             offset = 7
         else:
