@@ -82,6 +82,7 @@ class Skeleton(object):
         self.bounds = DEFAULT_BOUNDS
         self.frame_time = None
         self.root = None
+        self.aligning_root_node = None  # Node that defines body orientation. Can be different from the root node.
         self.node_names = None
         self.reference_frame = None
         self.reference_frame_length = None
@@ -91,7 +92,6 @@ class Skeleton(object):
         self.max_level = -1
         self.parent_dict = dict()
         self._chain_names = []
-        self.aligning_root_node = "Hips" #TODO read from skeleton json format
 
     def load_from_bvh(self, bvh_reader, animated_joints=None, add_tool_joints=True):
         if animated_joints is None:
@@ -196,6 +196,8 @@ class Skeleton(object):
         self._chain_names = self._generate_chain_names()
         if "aligning_root_node" in data.keys():
             self.aligning_root_node = data["aligning_root_node"]
+        else:
+            self.aligning_root_node = self.root
 
     def load_from_fbx_data(self, data):
         self.nodes = collections.OrderedDict()
