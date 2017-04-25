@@ -6,11 +6,10 @@ from ..utilities.io_helper_functions import get_bvh_writer
 
 
 class AnnotatedMotionVector(MotionVector):
-    def __init__(self, algorithm_config=None, rotation_type=ROTATION_TYPE_QUATERNION):
-        super(AnnotatedMotionVector, self).__init__(algorithm_config, rotation_type)
+    def __init__(self, skeleton=None, algorithm_config=None, rotation_type=ROTATION_TYPE_QUATERNION):
+        super(AnnotatedMotionVector, self).__init__(skeleton, algorithm_config, rotation_type)
         self.keyframe_event_list = None
         self.mg_input = None
-        self.skeleton = None
         self.graph_walk = None
         self.ik_constraints = {}
 

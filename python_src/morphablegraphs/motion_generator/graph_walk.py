@@ -49,7 +49,7 @@ class GraphWalk(object):
         self.step_count = 0
         self.mg_input = mg_input
         self._algorithm_config = algorithm_config
-        self.motion_vector = MotionVector(algorithm_config)
+        self.motion_vector = MotionVector(self.motion_state_graph.skeleton, algorithm_config)
         if start_pose is None:
             start_pose = mg_input.get_start_pose()
         self.motion_vector.start_pose = start_pose
@@ -64,11 +64,11 @@ class GraphWalk(object):
     def add_entry_to_action_list(self, action_name, start_step, end_step, action_constraints):
         self.elementary_action_list.append(HighLevelGraphWalkEntry(action_name, start_step, end_step, action_constraints))
 
-    def convert_to_annotated_motion(self, speed=1.0):
+    def convert_to_annotated_motion(self, step_size=1.0):
         self.motion_vector.apply_spatial_smoothing = self.apply_smoothing
-        self.convert_graph_walk_to_quaternion_frames(use_time_parameters=self.use_time_parameters, speed=speed)
+        self.convert_graph_walk_to_quaternion_frames(use_time_parameters=self.use_time_parameters, step_size=step_size)
         self.keyframe_event_list.update_events(self, 0)
-        annotated_motion_vector = AnnotatedMotionVector()
+        annotated_motion_vector = AnnotatedMotionVector(self.motion_state_graph.skeleton)
         annotated_motion_vector.frames = self.motion_vector.frames
         annotated_motion_vector.n_frames = self.motion_vector.n_frames
         annotated_motion_vector.frame_time = self.motion_state_graph.skeleton.frame_time
