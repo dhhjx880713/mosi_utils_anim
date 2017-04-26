@@ -25,13 +25,13 @@ class MotionPrimitiveModelWrapper(object):
         self.motion_primitive = None
         self.use_mgrd_mixture_model = False
 
-    def _load_from_file(self, mgrd_skeleton, file_name, animated_joints=None, use_mgrd_mixture_model=False):
+    def _load_from_file(self, mgrd_skeleton, file_name, animated_joints=None, use_mgrd_mixture_model=False, scale=None):
         self.use_mgrd_mixture_model = use_mgrd_mixture_model
         data = load_json_file(file_name)
         if data is not None:
-            self._initialize_from_json(mgrd_skeleton, data, animated_joints, use_mgrd_mixture_model)
+            self._initialize_from_json(mgrd_skeleton, data, animated_joints, use_mgrd_mixture_model, scale)
 
-    def _initialize_from_json(self, mgrd_skeleton, data, animated_joints=None, use_mgrd_mixture_model=False, scale=[10,10,10]):
+    def _initialize_from_json(self, mgrd_skeleton, data, animated_joints=None, use_mgrd_mixture_model=False, scale=None):#[10,10,10]
         if has_mgrd and "tspm" in data.keys():
             self.motion_primitive = self._load_mgrd_model_from_json(mgrd_skeleton, data, use_mgrd_mixture_model, scale)
         elif has_mgrd and animated_joints is not None:
