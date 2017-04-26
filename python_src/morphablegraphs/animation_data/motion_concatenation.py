@@ -194,7 +194,7 @@ def get_transform_from_start_pose(start_pose):
         q = quaternion_from_euler(*e)
         m = quaternion_matrix(q)
     else:
-        m = np.eyes(4)
+        m = np.eye(4)
     if None not in p:
         m[:3,3] = p
     return m
