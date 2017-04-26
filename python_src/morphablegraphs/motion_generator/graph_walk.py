@@ -99,7 +99,7 @@ class GraphWalk(object):
                 found_step_index = step_index
         return found_step_index
 
-    def convert_graph_walk_to_quaternion_frames(self, start_step=0, use_time_parameters=False, speed=1.0):
+    def convert_graph_walk_to_quaternion_frames(self, start_step=0, use_time_parameters=False, step_size=1.0):
         """
         :param start_step:
         :return:
@@ -112,7 +112,7 @@ class GraphWalk(object):
         for step in self.steps[start_step:]:
             step.start_frame = start_frame
             #write_log(step.node_key, len(step.parameters))
-            quat_frames = self.motion_state_graph.nodes[step.node_key].back_project(step.parameters, use_time_parameters).get_motion_vector()
+            quat_frames = self.motion_state_graph.nodes[step.node_key].back_project(step.parameters, use_time_parameters).get_motion_vector(step_size)
             self.motion_vector.append_frames(quat_frames)
             step.end_frame = self.get_num_of_frames()-1
             start_frame = step.end_frame + 1
