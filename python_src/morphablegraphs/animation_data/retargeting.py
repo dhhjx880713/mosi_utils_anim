@@ -290,7 +290,11 @@ def find_rotation_analytically2(new_skeleton, free_joint_name, target, frame, jo
 
     # find rotation around y axis as rotation between aligned_target_x_vec and global_src_x_vec
     qx = find_rotation_between_vectors(aligned_target_x_vec, global_src_x_vec)
-    q = quaternion_multiply(qx, qy)
+    #print "r", aligned_target_x_vec, global_src_x_vec, qx
+    if not np.isnan(qx).any():
+        q = quaternion_multiply(qx, qy)
+    else:
+        q = qy
     q = to_local_cos(new_skeleton, free_joint_name, frame, q)
     return q
 
@@ -466,10 +470,12 @@ def rotate_bone2(src_skeleton,target_skeleton, src_name,target_name, src_to_targ
     return q
 
 
-def retarget_from_src_to_target(src_skeleton, target_skeleton, src_frames, target_to_src_joint_map, additional_rotation_map=None):
+def retarget_from_src_to_target(src_skeleton, target_skeleton, src_frames, target_to_src_joint_map, additional_rotation_map=None, scale_factor=1.0,extra_root=False):
 
-    src_cos_map = create_local_cos_map(src_skeleton, [1,0,0], [0,1,0])
-    target_cos_map = create_local_cos_map(target_skeleton, [0,1,0], [1,0,0])
+    src_cos_map = create_local_cos_map(src_skeleton, [1,0,0], [0,1,0]) # TODO get up axes and cross vector from src skeleton
+    target_cos_map = create_local_cos_map(target_skeleton, [0,1,0], [1,0,0])# TODO get up axes and cross vector from target skeleton
+    target_cos_map["Root"]["y"]=[1,0,0]
+    target_cos_map["Root"]["x"] = [0,1,0]
     src_to_target_joint_map = {v:k for k, v in target_to_src_joint_map.items()}
     #if additional_rotation_map is not None:
     #    src_frames = apply_additional_rotation_on_frames(src_skeleton.animated_joints, src_frames, additional_rotation_map)
@@ -477,29 +483,30 @@ def retarget_from_src_to_target(src_skeleton, target_skeleton, src_frames, targe
     target_frames = []
     print "n_params", n_params
     for idx, src_frame in enumerate(src_frames):
-        target_offset = 3
+
         target_frame = np.zeros(n_params)
-        for target_name in target_skeleton.animated_joints:
+        target_frame[:3] = src_frame[:3]*scale_factor
+        if extra_root:
+            animated_joints = target_skeleton.animated_joints[1:]
+            target_offset = 7
+            #target = {"dir_name": "pelvis", "dir_to_child": [0,1,0]}
+            #target_frame[3:7] = find_rotation_analytically_old(target_skeleton, "Root",
+            #                                               target, target_frame)
+            # target_frame[3:7] = quaternion_from_euler(*np.radians([0,0,90]))
+            target = {"global_src_up_vec": [0,1,0], "global_src_x_vec": [1, 0, 0]}
+            target_frame[3:7] = find_rotation_analytically2(target_skeleton, "Root",
+                                                               target, target_frame, target_cos_map)
+        else:
+            animated_joints = target_skeleton.animated_joints
+            target_offset = 3
+
+        for target_name in animated_joints:
             q = [1, 0, 0, 0]
             if target_name in target_to_src_joint_map.keys():
-                # get coordinate system of src, i.e. axes rotated by global matrix of parent
                 src_name = target_to_src_joint_map[target_name]
-                src_parent = src_skeleton.nodes[src_name].parent
-                target_parent = target_skeleton.nodes[target_name].parent
-
-                if src_parent is not None and target_parent is not None and len(src_skeleton.nodes[src_name].children)>0:
-                    src_parent_name = src_parent.node_name
-                    target_parent_name = target_parent.node_name
-
-                    #q = rotate_bone_change_of_basis(src_skeleton, target_skeleton,
-                    #                src_parent_name, target_parent_name,
-                    #                src_frame, target_frame)
-
-
-                    #q = get_bone_rotation_from_axes2(src_skeleton, target_skeleton, src_parent_name, target_parent_name, src_frame, target_frame)
                 q = rotate_bone2(src_skeleton,target_skeleton, src_name,target_name,
-                                              src_to_target_joint_map, src_frame,target_frame,
-                                              src_cos_map, target_cos_map)
+                                  src_to_target_joint_map, src_frame,target_frame,
+                                  src_cos_map, target_cos_map)
             target_frame[target_offset:target_offset+4] = q
             target_offset += 4
 
