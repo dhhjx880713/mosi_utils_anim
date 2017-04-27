@@ -530,3 +530,13 @@ def retarget_from_src_to_target(src_skeleton, target_skeleton, src_frames, targe
 
 
 
+
+def get_coordinate_system_axes(skeleton, joint_name, frame, axes):
+    global_m = skeleton.nodes[joint_name].get_global_matrix(frame)[:3,:3]
+    #global_m[:3, 3] = [0, 0, 0]
+    dirs = []
+    for axis in axes:
+        direction = np.dot(global_m, axis)
+        direction /= np.linalg.norm(direction)
+        dirs.append(direction)
+    return np.array(dirs)
