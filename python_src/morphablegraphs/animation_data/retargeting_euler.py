@@ -59,9 +59,10 @@ def get_euler_rotation_by_name(joint_name, frame, skeleton, root_offset=3):
 
 def get_new_euler_frames_from_direction_constraints(target_skeleton,
                                                     targets,
-                                                    frame_range=(0,1),
+                                                    frame_range=None,
                                                     target_root=GAME_ENGINE_ROOT_JOINT,
-                                                    src_root="Hips",
+                                                    src_root_offset=ROCKETBOX_ROOT_OFFSET,
+                                                    reference_pose=GAME_ENGINE_REFERENCE_POSE_EULER,
                                                     extra_root=True,
                                                     scale_factor=1.0):
 
@@ -82,7 +83,8 @@ def get_new_euler_frames_from_direction_constraints(target_skeleton,
                 angles = [0, 0, 0]
             else:
                 angles = get_euler_rotation_by_name(EXTRA_ROOT_NAME, new_frames[frame_idx - 1], target_skeleton)
-            new_frame[:3] -= target_skeleton.nodes["pelvis"].offset
+            new_frame[:3] -=  src_root_offset*scale_factor - target_skeleton.nodes[EXTRA_ROOT_NAME].offset
+
             targets = [{"dir_name": target_root, "dir_to_child": OPENGL_UP_AXIS}]
             new_frame[3:6] = find_rotation_euler_using_optimization(target_skeleton,
                                                                     EXTRA_ROOT_NAME,
@@ -94,11 +96,12 @@ def get_new_euler_frames_from_direction_constraints(target_skeleton,
             offset = 3
 
         for free_joint_name in target_skeleton.animated_joints[1:]:
-            if frame_idx == 0:
-                angles = [0, 0, 0]
-            else:
-                angles = get_euler_rotation_by_name(free_joint_name, new_frames[frame_idx - 1], target_skeleton)
+
+            if frame_idx > 0:
+                reference_pose = new_frames[frame_idx - 1]
+            angles = get_euler_rotation_by_name(free_joint_name, reference_pose, target_skeleton)
             if free_joint_name in frame_targets.keys() and len(frame_targets[free_joint_name]["targets"]) > 0:
+
                 angles = find_rotation_euler_using_optimization(target_skeleton,
                                                                 free_joint_name,
                                                                 frame_targets[free_joint_name]["targets"],

@@ -6,7 +6,8 @@ Created on Thu Jul 16 14:42:13 2015
 """
 import numpy as np
 from copy import copy
-from ..animation_data.motion_editing import align_quaternion_frames, transform_point, quaternion_from_vector_to_vector, euler_to_quaternion, quaternion_multiply
+from ..animation_data.motion_editing import transform_point, quaternion_from_vector_to_vector, euler_to_quaternion, quaternion_multiply
+from ..animation_data.motion_concatenation import align_quaternion_frames_with_start
 from .spatial_constraints  import GlobalTransformConstraint, TwoHandConstraintSet, PoseConstraint,  Direction2DConstraint, LookAtConstraint, FeetConstraint
 from .spatial_constraints.keyframe_constraints.global_transform_ca_constraint import GlobalTransformCAConstraint
 from .spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE,SPATIAL_CONSTRAINT_TYPE_KEYFRAME_DIR_2D, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_LOOK_AT, SPATIAL_CONSTRAINT_TYPE_CA_CONSTRAINT,SPATIAL_CONSTRAINT_TYPE_KEYFRAME_FEET
@@ -71,7 +72,9 @@ class MotionPrimitiveConstraints(object):
         motion_spline = motion_primitive.back_project(parameters, use_time_parameters)
         if not self.is_local:
             #find aligned frames once for all constraints#
-            motion_spline.coeffs = align_quaternion_frames(motion_spline.coeffs, prev_frames, self.start_pose)
+            motion_spline.coeffs = align_quaternion_frames_with_start(self.skeleton, self.skeleton.aligning_root_node,
+                                                                      motion_spline.coeffs, prev_frames,  self.start_pose)
+
 
         #evaluate constraints with the generated motion
         error_sum = 0
@@ -93,7 +96,8 @@ class MotionPrimitiveConstraints(object):
         motion_spline = motion_primitive.back_project(parameters, use_time_parameters)
         if not self.is_local:
             #find aligned frames once for all constraints
-            motion_spline.coeffs = align_quaternion_frames(motion_spline.coeffs, prev_frames, self.start_pose)
+            motion_spline.coeffs = align_quaternion_frames_with_start(self.skeleton, self.skeleton.aligning_root_node,
+                                                                      motion_spline.coeffs, prev_frames, self.start_pose)
         #evaluate constraints with the generated motion
         residual_vector = []
         for constraint in self.constraints:

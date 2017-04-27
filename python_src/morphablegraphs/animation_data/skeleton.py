@@ -82,6 +82,7 @@ class Skeleton(object):
         self.bounds = DEFAULT_BOUNDS
         self.frame_time = None
         self.root = None
+        self.aligning_root_node = None  # Node that defines body orientation. Can be different from the root node.
         self.node_names = None
         self.reference_frame = None
         self.reference_frame_length = None
@@ -193,6 +194,10 @@ class Skeleton(object):
         self._set_joint_weights()
         self.parent_dict = self._get_parent_dict()
         self._chain_names = self._generate_chain_names()
+        if "aligning_root_node" in data.keys():
+            self.aligning_root_node = data["aligning_root_node"]
+        else:
+            self.aligning_root_node = self.root
 
     def load_from_fbx_data(self, data):
         self.nodes = collections.OrderedDict()

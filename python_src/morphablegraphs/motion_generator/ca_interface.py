@@ -3,7 +3,8 @@ import urllib2
 from copy import deepcopy
 import numpy as np
 from ..constraints.spatial_constraints.keyframe_constraints import GlobalTransformCAConstraint
-from ..animation_data.motion_editing import fast_quat_frames_transformation, transform_quaternion_frames, euler_angles_to_rotation_matrix
+from ..animation_data.motion_editing import euler_angles_to_rotation_matrix
+from ..animation_data.motion_concatenation import get_node_aligning_2d_transform, transform_quaternion_frames, get_transform_from_start_pose
 from ..utilities import write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO, LOG_MODE_ERROR, get_bvh_writer, TCPClient
 
 
@@ -92,20 +93,11 @@ class CAInterface(object):
     def _get_aligned_motion_spline(self, new_motion_spline, prev_frames):
         aligned_motion_spline = deepcopy(new_motion_spline)
         if prev_frames is not None:
-            angle, offset = fast_quat_frames_transformation(prev_frames, new_motion_spline.coeffs)
-            aligned_motion_spline.coeffs = transform_quaternion_frames(aligned_motion_spline.coeffs,
-                                                                       [0, angle, 0], offset)
-            global_transformation = euler_angles_to_rotation_matrix([0, angle, 0])
-            global_transformation[:3, 3] = offset
+            global_transformation = get_node_aligning_2d_transform(skeleton, node_name, prev_frames, new_motion_spline.coeffs)
+            aligned_motion_spline.coeffs = transform_quaternion_frames(aligned_motion_spline.coeffs, global_transformation)
         elif self.ea_generator.action_constraints.start_pose is not None:
-            aligned_motion_spline.coeffs = transform_quaternion_frames(aligned_motion_spline.coeffs,
-                                                                       self.ea_generator.action_constraints.start_pose[
-                                                                           "orientation"],
-                                                                       self.ea_generator.action_constraints.start_pose[
-                                                                           "position"])
-            global_transformation = euler_angles_to_rotation_matrix(
-                self.ea_generator.action_constraints.start_pose["orientation"])
-            global_transformation[:3, 3] = self.ea_generator.action_constraints.start_pose["position"]
+            global_transformation = get_transform_from_start_pose(self.ea_generator.action_constraints.start_pose)
+            aligned_motion_spline.coeffs = transform_quaternion_frames(aligned_motion_spline.coeffs, global_transformation)
         else:
             global_transformation = np.eye(4, 4)
         return aligned_motion_spline, global_transformation

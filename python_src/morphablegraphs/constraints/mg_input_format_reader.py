@@ -39,7 +39,7 @@ class MGInputFormatReader(object):
         success = self._verify_input()
 
         if success:
-            if mg_input["outputMode"] == "Unity":
+            if "outputMode" in mg_input.keys() and mg_input["outputMode"] == "Unity":
                 self._set_orientation_to_null()
 
             self._extract_elementary_actions()
@@ -478,16 +478,17 @@ class MGInputFormatReader(object):
             error_string = "Error: Did not find expected keys in the input data."
             success = False
 
-        for action in self.mg_input_file["elementaryActions"]:
-            action_name = action["action"]
-            if action_name not in self.motion_state_graph.node_groups.keys():
-                error_string = "Error: Unknown action " + action_name
-                success = False
+        if "elementaryActions" in self.mg_input_file.keys():
+            for action in self.mg_input_file["elementaryActions"]:
+                action_name = action["action"]
+                if action_name not in self.motion_state_graph.node_groups.keys():
+                    error_string = "Error: Unknown action " + action_name
+                    success = False
 
-            action_type = self.motion_state_graph.node_groups[action_name].get_action_type()
-            if action_type == "locomotion" and len(action["constraints"]) < 1:
-                error_string = "Error: A trajectory constraint needs to be specified for the locomotion action " + action_name
-                success = False
+                action_type = self.motion_state_graph.node_groups[action_name].get_action_type()
+                if action_type == "locomotion" and len(action["constraints"]) < 1:
+                    error_string = "Error: A trajectory constraint needs to be specified for the locomotion action " + action_name
+                    success = False
 
         write_message_to_log(error_string, LOG_MODE_ERROR)
         return success

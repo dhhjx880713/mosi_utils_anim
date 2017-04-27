@@ -162,7 +162,49 @@ def set_animation_curves(scene, root_node, skeleton, motion_vector):
 def export_motion_vector_to_fbx_file(skeleton, motion_vector, out_file_name):
     sdk_manager, scene = FbxCommon.InitializeSdkObjects()
     root_node = create_scene(sdk_manager, scene, skeleton, motion_vector)
-    FbxCommon.SaveScene(sdk_manager, scene, out_file_name)
+
+    #sdk_manager.GetIOSettings().SetBoolProp(EXP_FBX_EMBEDDED, True)
+    SaveScene(sdk_manager, scene, out_file_name, pEmbedMedia=False)
+    print "finished"
 
     sdk_manager.Destroy()
 
+
+def SaveScene(pSdkManager, pScene, pFilename, pFileFormat = -1, pEmbedMedia = False):
+    """ copied from fbx common
+    changed settings to a Blender compatible version according to
+    http://stackoverflow.com/questions/29833986/fbx-sdk-exporting-into-older-fbx-file-format
+    """
+
+    lExporter = FbxExporter.Create(pSdkManager, "")
+    lExporter.SetFileExportVersion("FBX201200", FbxSceneRenamer.eFBX_TO_FBX)
+
+    if pFileFormat < 0 or pFileFormat >= pSdkManager.GetIOPluginRegistry().GetWriterFormatCount():
+        pFileFormat = pSdkManager.GetIOPluginRegistry().GetNativeWriterFormat()
+        if not pEmbedMedia:
+            lFormatCount = pSdkManager.GetIOPluginRegistry().GetWriterFormatCount()
+            for lFormatIndex in range(lFormatCount):
+                if pSdkManager.GetIOPluginRegistry().WriterIsFBX(lFormatIndex):
+                    lDesc = pSdkManager.GetIOPluginRegistry().GetWriterFormatDescription(lFormatIndex)
+                    if "binary" in lDesc:
+                        pFileFormat = lFormatIndex
+                        break
+
+    if not pSdkManager.GetIOSettings():
+        ios = FbxIOSettings.Create(pSdkManager, IOSROOT)
+        pSdkManager.SetIOSettings(ios)
+
+    pSdkManager.GetIOSettings().SetBoolProp(EXP_FBX_MATERIAL, True)
+    pSdkManager.GetIOSettings().SetBoolProp(EXP_FBX_TEXTURE, True)
+    pSdkManager.GetIOSettings().SetBoolProp(EXP_FBX_EMBEDDED, pEmbedMedia)
+    pSdkManager.GetIOSettings().SetBoolProp(EXP_FBX_SHAPE, True)
+    pSdkManager.GetIOSettings().SetBoolProp(EXP_FBX_GOBO, True)
+    pSdkManager.GetIOSettings().SetBoolProp(EXP_FBX_ANIMATION, True)
+    pSdkManager.GetIOSettings().SetBoolProp(EXP_FBX_GLOBAL_SETTINGS, True)
+
+    result = lExporter.Initialize(pFilename, pFileFormat, pSdkManager.GetIOSettings())
+    if result == True:
+        result = lExporter.Export(pScene)
+
+    lExporter.Destroy()
+    return result

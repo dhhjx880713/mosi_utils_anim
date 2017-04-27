@@ -10,14 +10,18 @@ from ..skeleton_node import SKELETON_NODE_TYPE_ROOT,SKELETON_NODE_TYPE_JOINT, SK
 
 def load_fbx_file(file_path):
     importer = FBXSkinnedMeshImporter(file_path)
-    mesh_list = importer.load_mesh()
+    importer.load()
     importer.destroy()
-    return mesh_list, importer.skeleton, importer.animations
+    return importer.mesh_list, importer.skeleton, importer.animations
 
 
 class FBXSkinnedMeshImporter(object):
     def __init__(self, file_path):
         self.skeleton = None
+        self.skinning_data = dict()
+        self.animations = dict()
+        self.mesh_list = []
+
         (self.sdk_manager, self.fbx_scene) = FbxCommon.InitializeSdkObjects()
         FbxCommon.LoadScene(self.sdk_manager, self.fbx_scene, file_path)
         FbxAxisSystem.OpenGL.ConvertScene(self.fbx_scene)
@@ -25,14 +29,14 @@ class FBXSkinnedMeshImporter(object):
     def destroy(self):
         self.sdk_manager.Destroy()
 
-    def load_mesh(self):
+    def load(self):
         self.skeleton = None
         self.skinning_data = dict()
         self.animations = dict()
-        mesh_list = []
-        self.parseFBXNodeHierarchy(self.fbx_scene.GetRootNode(), 0, mesh_list)
+        self.mesh_list = []
+        self.parseFBXNodeHierarchy(self.fbx_scene.GetRootNode(), 0, self.mesh_list)
         self.animations = self.read_animations()
-        return mesh_list
+
 
     def parseFBXNodeHierarchy(self, fbx_node, depth, mesh_list):
         n_attributes = fbx_node.GetNodeAttributeCount()
@@ -108,37 +112,40 @@ class FBXSkinnedMeshImporter(object):
             print "Mesh has no deformers"
         return mesh_data
 
-    def create_skeleton(self, node):
+    def create_skeleton(self, node, set_pose=False):
         current_time = FbxTime()
         current_time.SetFrame(0, FbxTime.eFrames24)
-        def add_child_node_recursively(skeleton, fbx_node, parentTransform, applyRotationOnOffset=False):
+        def add_child_node_recursively(skeleton, fbx_node, parentTransform, set_pose=False):
 
             node_name = fbx_node.GetName()
             node_idx = len(skeleton["animated_joints"])
 
             localTransform = fbx_node.EvaluateLocalTransform(current_time)
             transform = parentTransform * localTransform
-
             lT = localTransform.GetT()
 
-            parentRM = FbxAMatrix()
-            parentRM.SetIdentity()
-            parentRM.SetQ(parentTransform.GetQ())
+            if set_pose:
+                parentRM = FbxAMatrix()
+                parentRM.SetIdentity()
+                parentRM.SetQ(parentTransform.GetQ())
 
-            localDirM = FbxAMatrix()
-            localDirM.SetIdentity()
-            localDirM.SetT(lT)
+                localDirM = FbxAMatrix()
+                localDirM.SetIdentity()
+                localDirM.SetT(lT)
 
-            globalDirM = parentRM * localDirM
-            gT = globalDirM.GetT()
-
-            if applyRotationOnOffset:
+                globalDirM = parentRM * localDirM
+                gT = globalDirM.GetT()
                 offset = np.array([gT[0], gT[1], gT[2]])
                 rotation = [1, 0, 0, 0]
             else:
-                q = localTransform.GetQ()
+                o = fbx_node.LclTranslation.Get()
+                offset = np.array([o[0], o[1], o[2]])
+                #q = fbx_node.LclRotation.Get()
                 rotation = [1, 0, 0, 0]
-                offset = np.array([lT[0], lT[1], lT[2]])
+
+                #q = localTransform.GetQ()
+                #rotation = [1, 0, 0, 0]
+                #offset = np.array([lT[0], lT[1], lT[2]])
 
             node = {"name": node_name,
                         "children": [],
@@ -154,12 +161,12 @@ class FBXSkinnedMeshImporter(object):
 
             n_children = fbx_node.GetChildCount()
             for idx in xrange(n_children):
-                c_node = add_child_node_recursively(skeleton, fbx_node.GetChild(idx), transform)
+                c_node = add_child_node_recursively(skeleton, fbx_node.GetChild(idx), transform, set_pose)
                 node["children"].append(c_node["name"])
 
             # add endsite
             if n_children == 0:
-                end_site_name = node_name+"EndSite"
+                end_site_name = node_name+"_EndSite"
                 end_site = {"name": end_site_name,"offset":[0,0,0], "rotation": [1,0,0,0], "index": -1,
                             "quaternion_frame_index": -1, "node_type": SKELETON_NODE_TYPE_END_SITE,
                             "channels": [], "children": [], "fixed": True,
@@ -172,10 +179,20 @@ class FBXSkinnedMeshImporter(object):
             return node
 
         transform = node.EvaluateLocalTransform(current_time)
-        o = node.LclTranslation.Get()
-        offset = np.array([o[0], o[1], o[2]])
-        q = node.LclRotation.Get()
-        rotation = quaternion_from_euler(*q)
+        if set_pose:
+            o = transform.GetT()
+            offset = np.array([o[0], o[1], o[2]])
+            q = transform.GetQ()
+            rotation = [q[3], q[0], q[1], q[2]]
+
+        else:
+            o = node.LclTranslation.Get()
+            offset = np.array([o[0], o[1], o[2]])
+            q = node.LclRotation.Get()
+            rotation = quaternion_from_euler(*q)
+            rotation = [1, 0, 0, 0]
+
+
         root_name = node.GetName()
         skeleton = dict()
         skeleton["animated_joints"] = [root_name]
@@ -196,7 +213,7 @@ class FBXSkinnedMeshImporter(object):
 
         skeleton["nodes"][root_name] = root_node
         for idx in xrange(node.GetChildCount()):
-            c_node = add_child_node_recursively(skeleton, node.GetChild(idx), transform)
+            c_node = add_child_node_recursively(skeleton, node.GetChild(idx), transform, set_pose)
             root_node["children"].append(c_node["name"])
 
         skeleton["root"] = root_name

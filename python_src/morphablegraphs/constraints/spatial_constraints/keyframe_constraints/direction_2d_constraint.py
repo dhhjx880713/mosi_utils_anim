@@ -6,7 +6,7 @@ Created on Mon Aug 03 19:01:21 2015
 """
 
 import numpy as np
-from ....animation_data.motion_editing import pose_orientation_quat
+from ....animation_data.motion_concatenation import get_global_node_orientation_vector
 from keyframe_constraint_base import KeyframeConstraintBase
 from .. import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_DIR_2D
 from math import acos, degrees
@@ -16,6 +16,7 @@ class Direction2DConstraint(KeyframeConstraintBase):
 
     def __init__(self, skeleton, constraint_desc, precision, weight_factor=1.0):
         super(Direction2DConstraint, self).__init__(constraint_desc, precision, weight_factor)
+        self.skeleton = skeleton
         self.constraint_type = SPATIAL_CONSTRAINT_TYPE_KEYFRAME_DIR_2D
         self.direction_constraint = constraint_desc["dir_vector"]
         self.target_dir = np.array([self.direction_constraint[0], self.direction_constraint[2]])
@@ -24,7 +25,7 @@ class Direction2DConstraint(KeyframeConstraintBase):
 
     def evaluate_motion_spline(self, aligned_spline):
         frame = aligned_spline.evaluate(self.canonical_keyframe)
-        motion_dir = pose_orientation_quat(frame)
+        motion_dir = get_global_node_orientation_vector(self.skeleton, self.skeleton.aligning_root_node, frame)
         magnitude = self.target_dir_len * np.linalg.norm(motion_dir)
         cos_angle = np.dot(self.target_dir, motion_dir)/magnitude
         #print self.target_dir, motion_dir
@@ -35,7 +36,8 @@ class Direction2DConstraint(KeyframeConstraintBase):
         return error
 
     def evaluate_motion_sample(self, aligned_quat_frames):
-        motion_dir = pose_orientation_quat(aligned_quat_frames[self.canonical_keyframe])
+        frame = aligned_quat_frames[self.canonical_keyframe]
+        motion_dir = get_global_node_orientation_vector(self.skeleton, self.skeleton.aligning_root_node, frame)
         #TODO implement alternative constraint using trajectory direction instead of pose direction
         # root_points = extract_root_positions(aligned_quat_frames)
         # print root_points

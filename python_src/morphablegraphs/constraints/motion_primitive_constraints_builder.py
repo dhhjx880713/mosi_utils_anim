@@ -10,15 +10,15 @@ import numpy as np
 from ..utilities.exceptions import PathSearchError
 from .motion_primitive_constraints import MotionPrimitiveConstraints
 from .spatial_constraints import PoseConstraint, Direction2DConstraint, GlobalTransformConstraint, PoseConstraintQuatFrame, TwoHandConstraintSet, LookAtConstraint, FeetConstraint
-from ..animation_data.motion_vector import concatenate_frames
-from ..animation_data.motion_editing import get_2d_pose_transform, inverse_pose_transform, fast_quat_frames_transformation, create_transformation_matrix
+from ..animation_data.motion_concatenation import align_and_concatenate_frames, get_transform_from_start_pose, get_node_aligning_2d_transform
 from . import CA_CONSTRAINTS_MODE_SET, OPTIMIZATION_MODE_ALL, OPTIMIZATION_MODE_KEYFRAMES, OPTIMIZATION_MODE_TWO_HANDS
 from .spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
 from ..motion_model.elementary_action_meta_info import KEYFRAME_LABEL_END, KEYFRAME_LABEL_START, KEYFRAME_LABEL_MIDDLE
 from keyframe_event import KeyframeEvent
 
+
 class MotionPrimitiveConstraintsBuilder(object):
-    """ Extracts a list of constraints for a motion primitive from ElementaryActionConstraints 
+    """ Extracts a list of constraints for a motion primitive from ElementaryActionConstraints
         based on the variables set by the method set_status. Generates constraints for path following.
     """
 
@@ -36,7 +36,7 @@ class MotionPrimitiveConstraintsBuilder(object):
         self.ca_constraint_mode = "None"
         self.use_local_coordinates = False
         self.use_transition_constraint = False
-    
+
     def set_action_constraints(self, action_constraints):
         self.action_constraints = action_constraints
         self.motion_state_graph = action_constraints.motion_state_graph
@@ -60,7 +60,10 @@ class MotionPrimitiveConstraintsBuilder(object):
         #create a sample to estimate the trajectory arc lengths
         mp_sample_frames = self.motion_state_graph.nodes[node_key].sample(False).get_motion_vector()
         if self.use_local_coordinates:
-            aligned_sample_frames = concatenate_frames(prev_frames, mp_sample_frames, graph_walk.motion_vector.start_pose, graph_walk.motion_vector.rotation_type, apply_spatial_smoothing=False)
+            aligned_sample_frames = align_and_concatenate_frames(self.skeleton, self.skeleton.aligning_root_node,
+                                                                       mp_sample_frames, prev_frames,
+                                                                       graph_walk.motion_vector.start_pose,
+                                                                       0)
             self.status["aligned_sample_frames"] = aligned_sample_frames[n_prev_frames:]
         self.status["action_name"] = node_key[0]
         self.status["motion_primitive_name"] = node_key[1]
@@ -84,12 +87,11 @@ class MotionPrimitiveConstraintsBuilder(object):
     def _set_aligning_transform(self, node_key, prev_frames):
         if prev_frames is None:
             #print "create aligning transform from start pose",self.action_constraints.start_pose
-            transform = copy(self.action_constraints.start_pose)
+            self.status["aligning_transform"] = get_transform_from_start_pose(self.action_constraints.start_pose)
         else:
-            aligning_angle, aligning_offset = fast_quat_frames_transformation(prev_frames, self.motion_state_graph.nodes[node_key].sample(False).get_motion_vector()) #TODO return from concatenate_frames
-            transform = {"position": aligning_offset,"orientation":[0,aligning_angle,0]}
-
-        self.status["aligning_transform"] = create_transformation_matrix(transform["position"], transform["orientation"])
+            sample = self.motion_state_graph.nodes[node_key].sample(False)
+            frames = sample.get_motion_vector()
+            self.status["aligning_transform"] = get_node_aligning_2d_transform(self.skeleton, self.skeleton.aligning_root_node, prev_frames, frames)
 
     def build(self):
         mp_constraints = MotionPrimitiveConstraints()
