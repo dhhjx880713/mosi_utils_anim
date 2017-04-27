@@ -88,9 +88,9 @@ if __name__ == "__main__":
     out_file = "out8"
     export_format = "fbx"
     frame_range = [0,50]
-    use_optimization = True
+    use_optimization = False
     use_euler = False
-    scale_factor = 10  # is applied on the root translation of the source and the offsets of the skeleton
+    scale_factor = 0.1  # is applied on the the offsets of the skeleton to match the root translation
 
     src_bvh = BVHReader(src_file)
     src_skeleton = Skeleton()
@@ -101,13 +101,13 @@ if __name__ == "__main__":
     target_skeleton = load_target_skeleton(target_file)
     if target_skeleton is not None:
 
-        scale_skeleton(target_skeleton, scale_factor)
+        scale_skeleton(target_skeleton, 1)
 
         new_frames = retarget(src_skeleton, src_motion, target_skeleton,
                               inv_joint_map=ROCKETBOX_TO_GAME_ENGINE_MAP,
                               additional_rotation_map=ADDITIONAL_ROTATION_MAP,
                               frame_range=frame_range,
-                              scale_factor=1,
+                              scale_factor=scale_factor,
                               use_optimization=use_optimization,
                               use_euler=use_euler)
         export(target_skeleton,new_frames,out_file, use_euler, export_format)
