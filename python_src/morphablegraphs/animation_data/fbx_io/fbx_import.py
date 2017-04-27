@@ -39,12 +39,14 @@ class FBXSkinnedMeshImporter(object):
 
 
     def parseFBXNodeHierarchy(self, fbx_node, depth, mesh_list):
+
+        if self.skeleton is None and fbx_node.GetChildCount() > 0 and depth > 0:
+            self.skeleton = self.create_skeleton(fbx_node)
+
         n_attributes = fbx_node.GetNodeAttributeCount()
         for idx in range(n_attributes):
             attribute = fbx_node.GetNodeAttributeByIndex(idx)
-            if self.skeleton is None and fbx_node.GetChildCount() > 0:
-                self.skeleton = self.create_skeleton(fbx_node)
-            elif attribute.GetAttributeType() == FbxNodeAttribute.eMesh:
+            if attribute.GetAttributeType() == FbxNodeAttribute.eMesh:
                 self.create_mesh_data(fbx_node, attribute, mesh_list)
 
         for idx in xrange(fbx_node.GetChildCount()):
