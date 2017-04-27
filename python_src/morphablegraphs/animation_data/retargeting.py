@@ -159,13 +159,17 @@ def quaternion_from_axis_angle(axis, angle):
     return q
 
 
-def find_rotation_between_vectors(a,b, axis=None):
+def find_rotation_between_vectors(a,b, guess=None):
     """http://math.stackexchange.com/questions/293116/rotating-one-3d-vector-to-another"""
-    if axis is None:
-        axis = normalize(np.cross(a, b))
+    #if guess is not None:
+    #    a = np.dot(quaternion_matrix(guess)[:3,:3], a)
+    axis = normalize(np.cross(a, b))
     magnitude = np.linalg.norm(a) * np.linalg.norm(b)
     angle = math.acos(np.dot(a,b)/magnitude)
-    return quaternion_from_axis_angle(axis, angle)
+    q = quaternion_from_axis_angle(axis, angle)
+    #if guess is not None:
+    #    q = quaternion_multiply(q,guess )
+    return q
 
 
 def find_rotation_analytically_old(new_skeleton, free_joint_name, target, frame):
@@ -190,6 +194,105 @@ def find_rotation_analytically(new_skeleton, free_joint_name, target, frame):
     q = quaternion_from_matrix(lr)
     return q
 
+def to_local_cos(skeleton, node_name, frame, q):
+    # bring into parent coordinate system
+    pm = skeleton.nodes[node_name].get_global_matrix(frame)
+    pm[:3, 3] = [0, 0, 0]
+    inv_pm = np.linalg.inv(pm)
+    r = quaternion_matrix(q)
+    lr = np.dot(inv_pm, r)
+    q = quaternion_from_matrix(lr)
+    return q
+
+def find_angle_x(v):
+    # angle around y axis to rotate v to match 1,0,0
+    if v[0] == 0:
+        if v[1] > 0:
+            return -0.5 * math.pi
+        else:
+            return 0.5 * math.pi
+    if v[0] == 1:
+        return 0
+    if v[0] == -1:
+        return math.pi
+
+    alpha = math.acos(v[0])
+    if v[1] > 0:
+        alpha = - alpha
+    return alpha
+
+def find_rotation_analytically_from_axis(new_skeleton, free_joint_name, target, frame, offset):
+    #find global orientation
+    global_src_up_vec = normalize(target["global_src_up_vec"])
+    global_src_x_vec = normalize(target["global_src_x_vec"])
+    local_target_up_vec = [0,1,0]
+    local_target_x_vec = [1,0,0]
+    #find rotation between up vector of target skeleton and global src up axis
+    qy = find_rotation_between_vectors(local_target_up_vec, global_src_up_vec)
+
+    #find rotation around y axis after aligning y axis
+    m = quaternion_matrix(qy)[:3,:3]
+    local_target_x_vec = np.dot(m, local_target_x_vec)
+    local_target_x_vec = normalize(local_target_x_vec)
+    #q = q1
+    qx = find_rotation_between_vectors(local_target_x_vec, global_src_x_vec)
+    q = quaternion_multiply(qx,qy)
+    q = to_local_cos(new_skeleton, free_joint_name, frame, q)
+
+    #frame[offset:offset+4] = lq
+    #axes = get_coordinate_system_axes(new_skeleton,free_joint_name, frame, AXES)
+    #v = change_of_basis(global_src_x_vec, *axes)
+    #normalize(v)
+    #a = find_angle_x(v)
+    #xq = quaternion_from_axis_angle(global_src_up_vec, a)
+    #q = quaternion_multiply(q1,xq)
+    #bring into local coordinate system of target skeleton
+    #q = to_local_cos(new_skeleton, free_joint_name,frame, q)
+
+
+    #m = quaternion_matrix(q1)[:3,:3]
+    #x_target = np.dot(m, x_target)
+    #q2 = to_local_cos(new_skeleton, free_joint_name,frame, q2)
+    #
+    return q
+
+def create_local_cos_map(skeleton, up_vector, x_vector):
+    joint_cos_map = dict()
+    for j in skeleton.nodes.keys():
+        joint_cos_map[j] = dict()
+        joint_cos_map[j]["y"] = up_vector
+        if j == skeleton.root:
+            joint_cos_map[j]["x"] = (-np.array(x_vector)).tolist()
+        else:
+            joint_cos_map[j]["x"] = x_vector
+    return joint_cos_map
+
+
+def find_rotation_analytically2(new_skeleton, free_joint_name, target, frame, joint_cos_map):
+    #find global orientation
+    global_src_up_vec = normalize(target["global_src_up_vec"])
+    global_src_x_vec = normalize(target["global_src_x_vec"])
+    #local_target_up_vec = [0,1,0] #TODO get from target skeleton
+    #if free_joint_name == "pelvis":
+    #    local_target_x_vec = [-1, 0, 0]  # TODO get from target skeleton
+    #else:
+    #    local_target_x_vec = [1,0,0]  # TODO get from target skeleton
+
+    local_target_x_vec = joint_cos_map[free_joint_name]["x"]
+    local_target_up_vec = joint_cos_map[free_joint_name]["y"]
+    #find rotation between up vector of target skeleton and global src up axis
+    qy = find_rotation_between_vectors(local_target_up_vec, global_src_up_vec)
+
+    #apply the rotation on the  local_target_x_vec
+    m = quaternion_matrix(qy)[:3,:3]
+    aligned_target_x_vec = np.dot(m, local_target_x_vec)
+    aligned_target_x_vec = normalize(aligned_target_x_vec)
+
+    # find rotation around y axis as rotation between aligned_target_x_vec and global_src_x_vec
+    qx = find_rotation_between_vectors(aligned_target_x_vec, global_src_x_vec)
+    q = quaternion_multiply(qx, qy)
+    q = to_local_cos(new_skeleton, free_joint_name, frame, q)
+    return q
 
 def get_targets_from_motion(src_skeleton, src_frames, src_to_target_joint_map, additional_rotation_map=None):
     if additional_rotation_map is not None:
@@ -299,4 +402,112 @@ def get_new_frames_from_direction_constraints(target_skeleton,
         print "processed frame", frame_range[0] + frame_idx, use_optimization, "in", duration, "seconds"
         new_frames.append(new_frame)
     return new_frames
+
+def change_of_basis(v, x,y,z):
+    m = np.array([x,y,z])
+    m = np.linalg.inv(m)
+    return np.dot(m, v)
+
+
+def rotation_from_axes(target_axes, src_axes):
+    target_bone_y = target_axes[1]
+    local_target_bone_y = change_of_basis(target_bone_y, *src_axes)
+    local_target_bone_y = normalize(local_target_bone_y)
+    return quaternion_from_vector_to_vector([0, 1, 0], local_target_bone_y)
+
+def get_bone_rotation_from_axes(src_skeleton, target_skeleton,
+                                src_parent_name, target_parent_name,
+                                src_frame, target_frame):
+    src_axes = get_coordinate_system_axes(src_skeleton, src_parent_name, src_frame, AXES)
+    target_axes = get_coordinate_system_axes(target_skeleton, target_parent_name, target_frame, AXES)
+    return rotation_from_axes(target_axes, src_axes)
+
+
+def get_bone_rotation_from_axes2(src_skeleton, target_skeleton,
+                                    src_parent_name, target_parent_name,
+                                    src_frame, target_frame):
+    target_m = target_skeleton.nodes[target_parent_name].get_global_matrix(target_frame)[:3, :3]
+    direction = normalize(target_skeleton.nodes[target_parent_name].offset)
+    target_y = np.dot(target_m, direction)
+
+    src_m = src_skeleton.nodes[src_parent_name].get_global_matrix(src_frame)[:3, :3]
+    l_target_y = np.dot(np.linalg.inv(src_m), target_y)
+    return quaternion_from_vector_to_vector( l_target_y, [0, 1, 0])
+
+def rotate_bone_change_of_basis(src_skeleton,target_skeleton, src_parent_name, target_parent_name, src_frame,target_frame):
+    src_global_axes = get_coordinate_system_axes(src_skeleton, src_parent_name, src_frame, AXES)
+
+    # Bring global target y axis into local source coordinate system
+    target_global_matrix = target_skeleton.nodes[target_parent_name].get_global_matrix(target_frame)
+    global_target_y = np.dot(target_global_matrix[:3, :3], [0, 1, 0])
+    local_target_y = change_of_basis(global_target_y, *src_global_axes)
+
+    # find rotation difference between target axis and local y-axis
+    q = quaternion_from_vector_to_vector(local_target_y, [0, 1, 0])
+    return q
+
+
+def rotate_bone2(src_skeleton,target_skeleton, src_name,target_name, src_to_target_joint_map, src_frame,target_frame, src_cos_map, target_cos_map):
+    q = [1,0,0,0]
+    src_child_name = src_skeleton.nodes[src_name].children[0].node_name
+    rocketbox_x_axis = src_cos_map[src_name]["x"]#[0, 1, 0]
+    rocketbox_up_axis = src_cos_map[src_name]["y"]#[1, 0, 0]
+    if src_child_name in src_to_target_joint_map: # This prevents the spine from being rotated by 180 degrees. TODO Find out how to fix this without this condition.
+        global_m = src_skeleton.nodes[src_name].get_global_matrix(src_frame)[:3, :3]
+        global_src_up_vec = np.dot(global_m, rocketbox_up_axis)
+        global_src_up_vec = normalize(global_src_up_vec)
+        global_src_x_vec = np.dot(global_m, rocketbox_x_axis)
+        global_src_x_vec = normalize(global_src_x_vec)
+        target = {"global_src_up_vec": global_src_up_vec, "global_src_x_vec":global_src_x_vec}
+        q = find_rotation_analytically2(target_skeleton, target_name, target, target_frame, target_cos_map)
+
+    else:
+        print "ignore", src_name, src_child_name
+    return q
+
+
+def retarget_from_src_to_target(src_skeleton, target_skeleton, src_frames, target_to_src_joint_map, additional_rotation_map=None):
+
+    src_cos_map = create_local_cos_map(src_skeleton, [1,0,0], [0,1,0])
+    target_cos_map = create_local_cos_map(target_skeleton, [0,1,0], [1,0,0])
+    src_to_target_joint_map = {v:k for k, v in target_to_src_joint_map.items()}
+    #if additional_rotation_map is not None:
+    #    src_frames = apply_additional_rotation_on_frames(src_skeleton.animated_joints, src_frames, additional_rotation_map)
+    n_params = len(target_skeleton.animated_joints) * 4 + 3
+    target_frames = []
+    print "n_params", n_params
+    for idx, src_frame in enumerate(src_frames):
+        target_offset = 3
+        target_frame = np.zeros(n_params)
+        for target_name in target_skeleton.animated_joints:
+            q = [1, 0, 0, 0]
+            if target_name in target_to_src_joint_map.keys():
+                # get coordinate system of src, i.e. axes rotated by global matrix of parent
+                src_name = target_to_src_joint_map[target_name]
+                src_parent = src_skeleton.nodes[src_name].parent
+                target_parent = target_skeleton.nodes[target_name].parent
+
+                if src_parent is not None and target_parent is not None and len(src_skeleton.nodes[src_name].children)>0:
+                    src_parent_name = src_parent.node_name
+                    target_parent_name = target_parent.node_name
+
+                    #q = rotate_bone_change_of_basis(src_skeleton, target_skeleton,
+                    #                src_parent_name, target_parent_name,
+                    #                src_frame, target_frame)
+
+
+                    #q = get_bone_rotation_from_axes2(src_skeleton, target_skeleton, src_parent_name, target_parent_name, src_frame, target_frame)
+                q = rotate_bone2(src_skeleton,target_skeleton, src_name,target_name,
+                                              src_to_target_joint_map, src_frame,target_frame,
+                                              src_cos_map, target_cos_map)
+            target_frame[target_offset:target_offset+4] = q
+            target_offset += 4
+
+        target_frames.append(target_frame)
+
+    return target_frames
+
+
+
+
 
