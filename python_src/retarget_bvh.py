@@ -1,8 +1,8 @@
 import numpy as np
 from morphablegraphs.animation_data import Skeleton, MotionVector, BVHReader, BVHWriter
 from morphablegraphs.external.transformations import quaternion_from_euler
-from morphablegraphs.animation_data.retargeting import get_targets_from_motion, ROCKETBOX_TO_GAME_ENGINE_MAP, ADDITIONAL_ROTATION_MAP
-from morphablegraphs.animation_data.retargeting import get_new_frames_from_direction_constraints as get_new_frames_using_quaternion
+from morphablegraphs.animation_data.retargeting import get_targets_from_motion, ROCKETBOX_TO_GAME_ENGINE_MAP, ADDITIONAL_ROTATION_MAP,GAME_ENGINE_TO_ROCKETBOX_MAP
+from morphablegraphs.animation_data.retargeting import get_new_frames_from_direction_constraints as get_new_frames_using_quaternion, retarget_from_src_to_target
 from morphablegraphs.animation_data.retargeting_euler import get_new_euler_frames_from_direction_constraints as get_new_frames_using_euler
 from morphablegraphs.animation_data.fbx_io import load_skeleton_and_animations_from_fbx, export_motion_vector_to_fbx_file
 
@@ -28,22 +28,27 @@ def create_motion_vector_from_euler_frames(skeleton, euler_frames):
     quat_frames = []
     for e_frame in euler_frames:
         quat_frames.append(convert_euler_to_quat_frame(skeleton, e_frame))
-    mv.frames = quat_frames
+    mv.frames = np.array(quat_frames)
     return mv
 
 
 def retarget(src_skeleton, src_motion, target_skeleton, inv_joint_map=ROCKETBOX_TO_GAME_ENGINE_MAP, additional_rotation_map=None, frame_range=None, scale_factor=1.0, use_optimization=True, use_euler=False):
-    targets = get_targets_from_motion(src_skeleton, src_motion.frames, inv_joint_map, additional_rotation_map=additional_rotation_map)
-    if not use_euler:
-        new_frames = get_new_frames_using_quaternion(target_skeleton, targets,
-                                                     frame_range=frame_range,
-                                                     scale_factor=scale_factor,
-                                                     use_optimization=use_optimization)
+    if use_optimization:
+        targets = get_targets_from_motion(src_skeleton, src_motion.frames, inv_joint_map, additional_rotation_map=additional_rotation_map)
+        if not use_euler:
+            new_frames = get_new_frames_using_quaternion(target_skeleton, targets,
+                                                         frame_range=frame_range,
+                                                         scale_factor=scale_factor,
+                                                         use_optimization=use_optimization)
 
+        else:
+            new_frames = get_new_frames_using_euler(target_skeleton, targets,
+                                                    frame_range=frame_range,
+                                                    scale_factor=scale_factor)
     else:
-        new_frames = get_new_frames_using_euler(target_skeleton, targets,
-                                                frame_range=frame_range,
-                                                scale_factor=scale_factor)
+        new_frames = retarget_from_src_to_target(src_skeleton, target_skeleton, src_motion.frames, GAME_ENGINE_TO_ROCKETBOX_MAP, additional_rotation_map)
+
+
     return new_frames
 
 
@@ -102,7 +107,7 @@ if __name__ == "__main__":
                               inv_joint_map=ROCKETBOX_TO_GAME_ENGINE_MAP,
                               additional_rotation_map=ADDITIONAL_ROTATION_MAP,
                               frame_range=frame_range,
-                              scale_factor=1.0,
+                              scale_factor=1,
                               use_optimization=use_optimization,
                               use_euler=use_euler)
         export(target_skeleton,new_frames,out_file, use_euler, export_format)
