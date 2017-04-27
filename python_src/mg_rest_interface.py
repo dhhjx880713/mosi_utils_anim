@@ -19,7 +19,10 @@ import tornado.web
 import json
 import time
 from datetime import datetime
-from morphablegraphs import MotionGenerator, AlgorithmConfigurationBuilder, load_json_file, write_to_json_file
+from morphablegraphs import MotionGenerator, AlgorithmConfigurationBuilder, load_json_file, write_to_json_file,AnnotatedMotionVector
+from morphablegraphs.animation_data.retargeting import retarget_from_src_to_target, GAME_ENGINE_TO_ROCKETBOX_MAP, ROCKETBOX_ROOT_OFFSET
+from morphablegraphs.animation_data import Skeleton, MotionVector, BVHReader, BVHWriter
+from morphablegraphs.animation_data.fbx_io import load_skeleton_and_animations_from_fbx, export_motion_vector_to_fbx_file
 from morphablegraphs.animation_data.fbx_io import export_motion_vector_to_fbx_file
 from morphablegraphs.utilities.io_helper_functions import get_bvh_writer
 from morphablegraphs.utilities import write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO, LOG_MODE_ERROR, set_log_mode
@@ -49,6 +52,27 @@ ROCKETBOX_TO_GAME_ENGINE_MAP["RightLeg"] = "calf_r"
 ROCKETBOX_TO_GAME_ENGINE_MAP["LeftFoot"] = "foot_l"
 ROCKETBOX_TO_GAME_ENGINE_MAP["RightFoot"] = "foot_r"
 
+
+def retarget_motion_vector(src_motion_vector, target_skeleton, scale_factor=0.1, extra_root=True):
+    target_frames = retarget_from_src_to_target(src_motion_vector.skeleton,
+                                                target_skeleton,
+                                                src_motion_vector.frames,
+                                                GAME_ENGINE_TO_ROCKETBOX_MAP, None, scale_factor,
+                                                extra_root, ROCKETBOX_ROOT_OFFSET)
+    motion_vector = AnnotatedMotionVector(target_skeleton)
+    motion_vector.frames = target_frames
+    return motion_vector
+
+def load_target_skeleton(file_path):
+    skeleton = None
+    if file_path.lower().endswith("fbx"):
+        skeleton, mvs = load_skeleton_and_animations_from_fbx(file_path)
+    elif file_path.lower().endswith("bvh"):
+        target_bvh = BVHReader(file_path)
+        animated_joints = list(target_bvh.get_animated_joints())
+        skeleton = Skeleton()
+        skeleton.load_from_bvh(target_bvh, animated_joints, add_tool_joints=False)
+    return skeleton
 
 class GenerateMotionHandler(tornado.web.RequestHandler):
     """Handles HTTP POST Requests to a registered server url.
@@ -87,10 +111,17 @@ class GenerateMotionHandler(tornado.web.RequestHandler):
         """
         if motion_vector.has_frames():
             if mg_input["outputMode"] == "Unity":
+
+                target_skeleton = self.application.get_target_skeleton()
+
+                if target_skeleton is not None:
+                    motion_vector = retarget_motion_vector(motion_vector, target_skeleton)
+
                 result_object = motion_vector.to_unity_format()
+
                 if self.application.export_motion_to_file:
                     out_file_name = self.application.service_config["output_dir"] + os.sep + self.application.service_config["output_filename"]
-                    export_motion_vector_to_fbx_file(self.application.get_skeleton(), motion_vector, out_file_name)
+                    export_motion_vector_to_fbx_file(motion_vector.skeleton, motion_vector, out_file_name)
             else:
                 result_object = self.convert_to_interact_format(motion_vector)
 
@@ -215,6 +246,7 @@ class MGRestApplication(tornado.web.Application):
 
         start = time.clock()
         self.motion_generator = MotionGenerator(self.service_config, self.algorithm_config)
+        self.target_skeleton = None
         message = "Finished construction from file in " + str(time.clock() - start) + " seconds"
         write_message_to_log(message, LOG_MODE_INFO)
 
@@ -229,6 +261,12 @@ class MGRestApplication(tornado.web.Application):
 
     def get_skeleton(self):
         return self.motion_generator.get_skeleton()
+
+    def get_target_skeleton(self):
+        return self.target_skeleton
+
+    def set_target_skeleton(self, skeleton_file):
+        self.target_skeleton = load_target_skeleton(skeleton_file)
 
     def set_algorithm_config(self, algorithm_config):
         self.motion_generator.set_algorithm_config(algorithm_config)
@@ -301,6 +339,9 @@ class MGRESTInterface(object):
 
         self.port = service_config["port"]
 
+    def set_target_skeleton(self, skeleton_file):
+        self.application.set_target_skeleton(skeleton_file)
+
     def start(self):
         """ Start the web server loop
         """
@@ -316,6 +357,7 @@ class MGRESTInterface(object):
 
 
 def main():
+    skeleton_file = "game_engine_target.fbx"
     parser = argparse.ArgumentParser(description="Start the MorphableGraphs REST-interface")
     parser.add_argument("-set", nargs='+', default=[], help="JSONPath expression, e.g. -set $.model_data=path/to/data")
     parser.add_argument("-config_file", nargs='?', default=SERVICE_CONFIG_FILE, help="Path to default config file")
@@ -323,6 +365,7 @@ def main():
 
     if os.path.isfile(args.config_file):
         mg_service = MGRESTInterface(args.config_file, args.set)
+        mg_service.set_target_skeleton(skeleton_file)
         mg_service.start()
     else:
         write_message_to_log("Error: could not open service or algorithm configuration file", LOG_MODE_ERROR)
