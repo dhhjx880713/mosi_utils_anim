@@ -30,6 +30,7 @@ import argparse
 from jsonpath_wrapper import update_data_using_jsonpath
 
 SERVICE_CONFIG_FILE = "config" + os.sep + "service.config"
+TARGET_SKELETON = "game_engine_target.fbx"
 
 ROCKETBOX_TO_GAME_ENGINE_MAP = dict()
 ROCKETBOX_TO_GAME_ENGINE_MAP["Hips"] = "pelvis"
@@ -53,15 +54,18 @@ ROCKETBOX_TO_GAME_ENGINE_MAP["LeftFoot"] = "foot_l"
 ROCKETBOX_TO_GAME_ENGINE_MAP["RightFoot"] = "foot_r"
 
 
-def retarget_motion_vector(src_motion_vector, target_skeleton, scale_factor=0.1, extra_root=True):
+def retarget_motion_vector(src_motion_vector, target_skeleton, scale_factor=1, extra_root=True):
     target_frames = retarget_from_src_to_target(src_motion_vector.skeleton,
                                                 target_skeleton,
                                                 src_motion_vector.frames,
                                                 GAME_ENGINE_TO_ROCKETBOX_MAP, None, scale_factor,
                                                 extra_root, ROCKETBOX_ROOT_OFFSET)
-    motion_vector = AnnotatedMotionVector(target_skeleton)
-    motion_vector.frames = target_frames
-    return motion_vector
+    target_skeleton.frame_time = src_motion_vector.skeleton.frame_time
+    target_motion_vector = AnnotatedMotionVector(target_skeleton)
+    target_motion_vector.frame_time = src_motion_vector.frame_time
+    target_motion_vector.frames = target_frames
+    return target_motion_vector
+
 
 def load_target_skeleton(file_path):
     skeleton = None
@@ -73,6 +77,7 @@ def load_target_skeleton(file_path):
         skeleton = Skeleton()
         skeleton.load_from_bvh(target_bvh, animated_joints, add_tool_joints=False)
     return skeleton
+
 
 class GenerateMotionHandler(tornado.web.RequestHandler):
     """Handles HTTP POST Requests to a registered server url.
@@ -98,7 +103,7 @@ class GenerateMotionHandler(tornado.web.RequestHandler):
             write_message_to_log(error_string, LOG_MODE_ERROR)
             self.write(error_string)
             return
-        motion_vector = self.application.generate_motion(mg_input)
+        motion_vector = self.application.generate_motion(mg_input, False)
 
         if motion_vector is not None:
             self._handle_result(mg_input, motion_vector)
@@ -177,7 +182,11 @@ class GetSkeletonHandler(tornado.web.RequestHandler):
         self.write(error_string)
 
     def post(self):
-        result_object = self.application.get_skeleton().to_unity_format(joint_name_map=ROCKETBOX_TO_GAME_ENGINE_MAP)
+        target_skeleton = self.application.get_target_skeleton()
+        if target_skeleton is None:
+            target_skeleton = self.application.get_skeleton()
+
+        result_object = target_skeleton.to_unity_format(joint_name_map=ROCKETBOX_TO_GAME_ENGINE_MAP)
         self.write(json.dumps(result_object))
 
 
@@ -356,16 +365,18 @@ class MGRESTInterface(object):
         tornado.ioloop.IOLoop.instance().stop()
 
 
+
 def main():
-    skeleton_file = "game_engine_target.fbx"
+
     parser = argparse.ArgumentParser(description="Start the MorphableGraphs REST-interface")
     parser.add_argument("-set", nargs='+', default=[], help="JSONPath expression, e.g. -set $.model_data=path/to/data")
     parser.add_argument("-config_file", nargs='?', default=SERVICE_CONFIG_FILE, help="Path to default config file")
+    parser.add_argument("-target_skeleton", nargs='?', default=TARGET_SKELETON, help="Path to target skeleton file")
     args = parser.parse_args()
 
     if os.path.isfile(args.config_file):
         mg_service = MGRESTInterface(args.config_file, args.set)
-        mg_service.set_target_skeleton(skeleton_file)
+        mg_service.set_target_skeleton(args.target_skeleton)
         mg_service.start()
     else:
         write_message_to_log("Error: could not open service or algorithm configuration file", LOG_MODE_ERROR)
