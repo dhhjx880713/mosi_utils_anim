@@ -20,6 +20,7 @@ GAME_ENGINE_T_POSE_QUAT = [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.5, 0.5, 0.5, 0.5
 GAME_ENGINE_T_POSE_QUAT2 = [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.49999999999999994, 0.4999999999999999, 0.5000000000000001, 0.5, -0.403411655110279, 0.580740076558511, 0.4034116551102787, 0.580740076558511, 0.9718569538668924, 0.23557177509320731, -1.1102230246251565e-16, -5.968195498419857e-17, 0.9842093673640194, -0.1770082517650419, -1.1102230246251565e-16, 2.0412255914177302e-17, 0.9988215725658266, 0.048533145139473176, -5.451801732357127e-11, -6.046241931335687e-10, 0.7247803814041406, 0.01259276975548319, 0.06644647837284066, -0.6856527447574329, 0.9983567056586048, 0.03270386259213981, -0.025876101002807867, -0.03930360078853271, 0.9965682409037495, 0.05203248433858597, -0.05702657667158798, 0.02987191571830869, 0.9297560338521894, 0.0938946447181523, 0.35307513735725493, -0.04555722323467876, 0.9837331424375664, -0.07731875619354524, 0.14664502687453732, -0.06918200997051585, 0.9992691595380855, -0.015669716666298614, -0.028769659982590092, -0.01969551827528555, 0.9975311344163895, 0.043754971654412625, 0.034215414983260944, -0.04297026533541807, 0.9536776598189318, -0.04860775743717038, 0.27978214161803483, -0.09928826874732462, 0.9987647232093212, 0.005804170391240985, -0.037637539488489344, 0.03191794009533878, 0.9966582124862364, 0.05189556899956851, 0.04677066205094588, -0.042329216544453055, 0.9329213679197007, -0.08913572545953655, 0.33917282714338165, -0.08169661592258473, 0.9995615741071782, 0.009141850996163941, -0.017560293698508003, 0.02201640783520972, 0.9998819715691587, -0.0037191151629663473, 0.010434642587769397, -0.010645625742181223, 0.9322424364820183, -0.049902285186377245, 0.34260421999390694, -0.10514822869460992, 0.998091533582815, 0.005996155911585122, -0.042812236782500714, 0.044095907817706205, 0.9963697981737438, 0.04513667408334925, 0.05368016564497273, -0.04825293520849179, 0.23499248374450388, 0.3113214522469106, 0.8367206208326696, 0.38439054180332677, 0.7909589011799447, 0.4641388444503785, 0.3410569180887902, -0.20649292564215949, 0.9802741605131498, 0.0919125114780102, 0.1496537278105361, 0.09065551398814238, 0.7247803805906643, 0.012592769950276477, -0.06644647823619135, 0.6856527456269966, 0.9983567056586048, 0.03270386259213981, 0.025876101002807867, 0.03930360078853271, 0.9965682518976974, 0.05203243726121293, 0.0570265067892121, -0.029871764354401035, 0.9297559857383895, 0.09389467503126457, -0.35307511485991344, 0.04555831703506896, 0.9837333505578089, -0.0773206378561401, -0.14664363717968507, 0.06917989329668171, 0.9992693467177034, -0.01566521395483443, 0.02876404136210034, 0.019697809691507178, 0.9975314823914718, 0.04375194186426231, -0.034211206589911884, 0.04296862302472713, 0.9536775069844243, -0.04860738335408094, -0.2797828498948747, 0.09928792403985989, 0.998764644963548, 0.005801503439722635, 0.037639470215515725, -0.031918596625989504, 0.9966579624324049, 0.05189784790399392, -0.04677243175768359, 0.04233035471732105, 0.9329213062385932, -0.08913527150951468, -0.33917298087208786, 0.08169717734013165, 0.9995615367687092, 0.009137951896926988, 0.017561320824289475, -0.022018902302621688, 0.9998819504532211, -0.003717226867335589, -0.010435123687285549, 0.010647796763219678, 0.9322427205484667, -0.04990446256988014, -0.34260361428257413, 0.10514665035331486, 0.9980915983630924, 0.005999462058972744, 0.04281045823362141, -0.04409571858851882, 0.9963701280372361, 0.0451325761082384, -0.05367786508650819, 0.04825251629346674, -0.2349907227904058, -0.3113794298585417, 0.8366855880920271, 0.38442091194745265, 0.7910190999601722, 0.46409672817503295, -0.340912216815663, 0.20659591191807034, 0.9802667852924343, 0.09194228474479453, -0.149703099387827, -0.09062355081336093, 0.9778768812145765, 0.2091812735071013, 2.5771778407872157e-10, 5.811305966265294e-10, 0.9909380491926936, -0.13431970317931294, -5.0667640825130154e-11, -6.867799960398851e-12, -0.13369806954332625, 0.9663855808203412, 0.04173833379266804, -0.21559602703930203, 0.9725347805290097, 0.06177508746674525, 0.2239589618338054, -0.014224016457760126, 0.8338287133788124, -0.551035806008606, 0.022043010546564164, -0.024562632748227346, 0.9633980641900158, -0.2673236757690231, 0.018056317099323232, 0.008728785773340153, -0.1336980711990351, 0.9663855803372884, -0.04173831577537872, 0.2155960316658332, 0.9725347764611815, 0.06177510013854294, -0.2239589750420736, 0.014224031586576648, 0.833828670305466, -0.5510358718071292, -0.02204302348057051, 0.02456260723560276, 0.9633982456929496, -0.2673230219086038, -0.018056289743750415, -0.008728834635210405]
 ROCKETBOX_TO_GAME_ENGINE_MAP = dict()
 ROCKETBOX_TO_GAME_ENGINE_MAP["Hips"] = "Game_engine"
+ROCKETBOX_TO_GAME_ENGINE_MAP["Hips"] = "pelvis"
 ROCKETBOX_TO_GAME_ENGINE_MAP["Spine"] = "head"
 ROCKETBOX_TO_GAME_ENGINE_MAP["LeftShoulder"] = "clavicle_l"
 ROCKETBOX_TO_GAME_ENGINE_MAP["RightShoulder"] = "clavicle_r"
@@ -284,10 +285,10 @@ def create_local_cos_map(skeleton, up_vector, x_vector):
         else:
             if len(skeleton.nodes[j].children) >0:
                 node = skeleton.nodes[j].children[0]
-                joint_cos_map[j]["y"] = node.offset
+                joint_cos_map[j]["y"] = normalize(node.offset)
     return joint_cos_map
 
-def find_rotation_analytically2(new_skeleton, free_joint_name, target, frame, joint_cos_map):
+def find_rotation_analytically2_bak(new_skeleton, free_joint_name, target, frame, joint_cos_map):
     #find global orientation
     global_src_up_vec = target["global_src_up_vec"]
     global_src_x_vec = target["global_src_x_vec"]
@@ -316,6 +317,54 @@ def find_rotation_analytically2(new_skeleton, free_joint_name, target, frame, jo
         q = qy
     q = to_local_cos(new_skeleton, free_joint_name, frame, q)
     return q
+
+def align_axis(axes, key, new_vec):
+    q = find_rotation_between_vectors(axes[key], new_vec)
+    m = quaternion_matrix(q)[:3, :3]
+    aligned_axes = dict()
+    for key, a in axes.items():
+        aligned_axes[key] = np.dot(m, a)
+        aligned_axes[key] = normalize(aligned_axes[key])
+    return q, aligned_axes
+
+def find_rotation_analytically2(new_skeleton, free_joint_name, target, frame, joint_cos_map):
+    #find global orientation
+    global_src_up_vec = target["global_src_up_vec"]
+    global_src_x_vec = target["global_src_x_vec"]
+
+    axes = joint_cos_map[free_joint_name]
+    qy = [1,0,0,0]
+    qx = [1,0,0,0]
+    if free_joint_name != new_skeleton.root:
+
+        qy, axes = align_axis(axes, "y", global_src_up_vec) # first align the bone vectors
+        if free_joint_name == "pelvis":
+            #original = get_quaternion_rotation_by_name(free_joint_name, GAME_ENGINE_T_POSE_QUAT, new_skeleton)
+            #m = quaternion_matrix(original)[:3, :3]
+            #local_original = np.dot(m, joint_cos_map[free_joint_name]["y"])
+            #qoffset = find_rotation_between_vectors(global_src_up_vec, local_original)
+            e = np.radians([-20,0,0]) #TODO replace with value from reference frame
+            qoffset = quaternion_from_euler(*e)
+            qy = quaternion_multiply(qoffset, qy)
+
+        qx, axes = align_axis(axes, "x", global_src_x_vec) # then align the twisting angles
+        if not np.isnan(qx).any():
+            q = quaternion_multiply(qx, qy)
+        else:
+            q = qy
+
+    else:
+        print "align root",free_joint_name
+        qx, axes = align_axis(axes, "x", global_src_x_vec) # first find rotation to align x axis
+        qy, axes = align_axis(axes, "y", OPENGL_UP_AXIS) # then add a rotation to let the y axis point up
+        q = quaternion_multiply(qy,qx)
+
+        #e = np.radians([0,180,0])
+        #q180 = quaternion_from_euler(*e)
+        #qx = quaternion_multiply(q180,qx)
+
+    return to_local_cos(new_skeleton, free_joint_name, frame, q)
+
 
 def get_targets_from_motion(src_skeleton, src_frames, src_to_target_joint_map, additional_rotation_map=None):
     if additional_rotation_map is not None:
@@ -530,8 +579,11 @@ def retarget_from_src_to_target(src_skeleton, target_skeleton, src_frames, targe
 
         for target_name in animated_joints:
             q = get_quaternion_rotation_by_name(target_name, GAME_ENGINE_T_POSE_QUAT, target_skeleton, root_offset=3)
-            if target_name in target_to_src_joint_map.keys():
-                src_name = target_to_src_joint_map[target_name]
+            if target_name in target_to_src_joint_map.keys() or target_name == "Game_engine":
+                if target_name != "Game_engine":
+                    src_name = target_to_src_joint_map[target_name]
+                else:
+                    src_name = "Hips"
                 q = rotate_bone2(src_skeleton,target_skeleton, src_name,target_name,
                                   src_to_target_joint_map, src_frame,target_frame,
                                   src_cos_map, target_cos_map, q)
