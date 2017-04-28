@@ -141,11 +141,13 @@ class FBXSkinnedMeshImporter(object):
                 rotation = [1, 0, 0, 0]
             else:
                 o = fbx_node.LclTranslation.Get()
-                offset = np.array([o[0], o[1], o[2]])
-                #q = fbx_node.LclRotation.Get()
-                rotation = [1, 0, 0, 0]
+                offset = self.scale*np.array([o[0], o[1], o[2]])
+                #rotation = [1, 0, 0, 0]
+                #e = fbx_node.LclRotation.Get()
+                #rotation = quaternion_from_euler(*e, axes='szyx')
+                q = localTransform.GetQ()
+                rotation = np.array([q[3],q[0], q[1], q[2]])
 
-                #q = localTransform.GetQ()
                 #rotation = [1, 0, 0, 0]
                 #offset = np.array([lT[0], lT[1], lT[2]])
 
@@ -189,10 +191,10 @@ class FBXSkinnedMeshImporter(object):
 
         else:
             o = node.LclTranslation.Get()
-            offset = np.array([o[0], o[1], o[2]])
-            q = node.LclRotation.Get()
-            rotation = quaternion_from_euler(*q)
-            rotation = [1, 0, 0, 0]
+            offset = self.scale*np.array([o[0], o[1], o[2]])
+            e = node.LclRotation.Get()
+            rotation = quaternion_from_euler(*e, axes='sxyz')
+            #rotation = [1, 0, 0, 0]
 
 
         root_name = node.GetName()
