@@ -339,12 +339,13 @@ def find_rotation_analytically2(new_skeleton, free_joint_name, target, frame, jo
 
         qy, axes = align_axis(axes, "y", global_src_up_vec) # first align the bone vectors
         if free_joint_name == "pelvis":
-            #original = get_quaternion_rotation_by_name(free_joint_name, GAME_ENGINE_T_POSE_QUAT, new_skeleton)
-            #m = quaternion_matrix(original)[:3, :3]
-            #local_original = np.dot(m, joint_cos_map[free_joint_name]["y"])
-            #qoffset = find_rotation_between_vectors(global_src_up_vec, local_original)
-            e = np.radians([-20,0,0]) #TODO replace with value from reference frame
-            qoffset = quaternion_from_euler(*e)
+            node = new_skeleton.nodes[free_joint_name]
+            t_pose_global_m = node.get_global_matrix(GAME_ENGINE_T_POSE_QUAT)[:3,:3]
+            global_original = np.dot(t_pose_global_m, joint_cos_map[free_joint_name]["y"])
+            global_original = normalize(global_original)
+            qoffset = find_rotation_between_vectors(OPENGL_UP_AXIS, global_original)
+            #e = np.radians([-20.4283728382,0,0]) #TODO replace with value from reference frame
+            #qoffset = quaternion_from_euler(*e)
             qy = quaternion_multiply(qoffset, qy)
 
         qx, axes = align_axis(axes, "x", global_src_x_vec) # then align the twisting angles
