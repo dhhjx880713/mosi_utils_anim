@@ -284,7 +284,7 @@ def create_local_cos_map(skeleton, up_vector, x_vector):
         else:
             if len(skeleton.nodes[j].children) >0:
                 node = skeleton.nodes[j].children[0]
-                joint_cos_map[j]["y"] = node.offset
+                joint_cos_map[j]["y"] = normalize(node.offset)
     return joint_cos_map
 
 def find_rotation_analytically2(new_skeleton, free_joint_name, target, frame, joint_cos_map):
