@@ -16,11 +16,12 @@ def load_fbx_file(file_path):
 
 
 class FBXSkinnedMeshImporter(object):
-    def __init__(self, file_path):
+    def __init__(self, file_path, scale=1.0):
         self.skeleton = None
         self.skinning_data = dict()
         self.animations = dict()
         self.mesh_list = []
+        self.scale = scale
 
         (self.sdk_manager, self.fbx_scene) = FbxCommon.InitializeSdkObjects()
         FbxCommon.LoadScene(self.sdk_manager, self.fbx_scene, file_path)

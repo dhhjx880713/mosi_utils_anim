@@ -172,14 +172,18 @@ def quaternion_from_axis_angle(axis, angle):
 
 def find_rotation_between_vectors(a,b, guess=None):
     """http://math.stackexchange.com/questions/293116/rotating-one-3d-vector-to-another"""
-    #if guess is not None:
-    #    a = np.dot(quaternion_matrix(guess)[:3,:3], a)
+    if np.array_equal(a, b):
+        return [1, 0, 0, 0]
+
+    #aa = [a[0]*a[0], a[1]*a[1], a[2]*a[2]]
+    #bb = [b[0] * b[0], b[1] * b[1], b[2] * b[2]]
+    #if np.array_equal(aa,bb):
+    #    return quaternion_from_euler()
     axis = normalize(np.cross(a, b))
     magnitude = np.linalg.norm(a) * np.linalg.norm(b)
     angle = math.acos(np.dot(a,b)/magnitude)
+    #print "a",angle,axis,np.cross(a, b),a,b
     q = quaternion_from_axis_angle(axis, angle)
-    #if guess is not None:
-    #    q = quaternion_multiply(q,guess )
     return q
 
 
@@ -516,9 +520,9 @@ def retarget_from_src_to_target(src_skeleton, target_skeleton, src_frames, targe
             #target_frame[3:7] = find_rotation_analytically_old(target_skeleton, "Root",
             #                                               target, target_frame)
             # target_frame[3:7] = quaternion_from_euler(*np.radians([0,0,90]))
-            target = {"global_src_up_vec": [0,1,0], "global_src_x_vec": [1, 0, 0]}
-            target_frame[3:7] = find_rotation_analytically2(target_skeleton, "Root",
-                                                               target, target_frame, target_cos_map)
+            #target = {"global_src_up_vec": [0,1,0], "global_src_x_vec": [1, 0, 0]}
+            #target_frame[3:7] = find_rotation_analytically2(target_skeleton, "Root",
+            #                                                   target, target_frame, target_cos_map)
             target_frame[3:7] = get_quaternion_rotation_by_name("Game_engine", GAME_ENGINE_T_POSE_QUAT, target_skeleton, root_offset=3)
         else:
             animated_joints = target_skeleton.animated_joints
