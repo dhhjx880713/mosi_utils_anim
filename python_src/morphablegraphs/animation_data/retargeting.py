@@ -542,6 +542,8 @@ def rotate_bone2(src_skeleton,target_skeleton, src_name,target_name, src_to_targ
 
 def retarget_from_src_to_target(src_skeleton, target_skeleton, src_frames, target_to_src_joint_map, additional_rotation_map=None, scale_factor=1.0,extra_root=False, src_root_offset=ROCKETBOX_ROOT_OFFSET):
 
+def retarget_from_src_to_target(src_skeleton, target_skeleton, src_frames, target_to_src_joint_map, additional_rotation_map=None, scale_factor=1.0,extra_root=False, src_root_offset=ROCKETBOX_ROOT_OFFSET,frame_range=None):
+
     src_cos_map = create_local_cos_map(src_skeleton, [1,0,0], [0,1,0]) # TODO get up axes and cross vector from src skeleton
     #src_cos_map["LeftFoot"]["x"] = [0,1,0]
     #src_cos_map["LeftFoot"]["y"] = [0,0,1]#src_skeleton.nodes["LeftFoot"].children[0].offset
@@ -556,9 +558,11 @@ def retarget_from_src_to_target(src_skeleton, target_skeleton, src_frames, targe
     #if additional_rotation_map is not None:
     #    src_frames = apply_additional_rotation_on_frames(src_skeleton.animated_joints, src_frames, additional_rotation_map)
     n_params = len(target_skeleton.animated_joints) * 4 + 3
+    if frame_range is None:
+        frame_range = 0, len(src_frames)-1
     target_frames = []
     print "n_params", n_params
-    for idx, src_frame in enumerate(src_frames):
+    for idx, src_frame in enumerate(src_frames[frame_range[0]:frame_range[1]]):#[src_frames[384]]
 
         target_frame = np.zeros(n_params)
         target_frame[:3] = src_frame[:3]*scale_factor
