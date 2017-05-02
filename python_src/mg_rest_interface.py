@@ -30,7 +30,7 @@ import argparse
 from jsonpath_wrapper import update_data_using_jsonpath
 
 SERVICE_CONFIG_FILE = "config" + os.sep + "service.config"
-TARGET_SKELETON = "game_engine_target.fbx"
+TARGET_SKELETON = "game_engine_target.bvh"
 
 ROCKETBOX_TO_GAME_ENGINE_MAP = dict()
 ROCKETBOX_TO_GAME_ENGINE_MAP["Hips"] = "pelvis"
