@@ -137,11 +137,11 @@ class Skeleton(object):
             node.index = joint_index
         elif "children" in node_names[node_name].keys() and len(node_names[node_name]["children"]) > 0:
             node = SkeletonJointNode(node_name, node_channels[node_name], None)
-            offset = joint_index * 4 + 3
-            node.rotation = self.reference_frame[offset: offset + 4]
             if node_name in self.animated_joints:
                 node.fixed = False
                 node.quaternion_frame_index = self.animated_joints.index(node_name)
+                offset = node.quaternion_frame_index * 4 + 3
+                node.rotation = self.reference_frame[offset: offset + 4]
             else:
                 node.fixed = True
             node.index = joint_index
