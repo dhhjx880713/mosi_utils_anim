@@ -168,7 +168,7 @@ def quaternion_from_axis_angle(axis, angle):
     q[2] = axis[1] * math.sin(angle / 2)
     q[3] = axis[2] * math.sin(angle / 2)
     q[0] = math.cos(angle / 2)
-    return q
+    return normalize(q)
 
 
 def find_rotation_between_vectors(a,b, guess=None):
@@ -330,7 +330,8 @@ def rotate_axes(axes, q):
 
 def align_axis(axes, key, new_vec):
     #print "align axis",axes[key] new_vec
-    q = find_rotation_between_vectors(axes[key], new_vec)
+    #q = find_rotation_between_vectors(axes[key], new_vec)
+    q = quaternion_from_vector_to_vector(axes[key], new_vec)
     aligned_axes = rotate_axes(axes, q)
     return q, aligned_axes
 
