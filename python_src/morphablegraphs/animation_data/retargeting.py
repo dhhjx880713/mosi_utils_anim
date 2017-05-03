@@ -349,8 +349,10 @@ def find_rotation_analytically2(new_skeleton, free_joint_name, target, frame, jo
         while not_aligned:
             qx, axes = align_axis(axes, "x", global_src_x_vec)  # first find rotation to align x axis
             q = quaternion_multiply(qx, q)
+            q = normalize(q)
             qy, axes = align_axis(axes, "y", OPENGL_UP_AXIS)  # then add a rotation to let the y axis point up
             q = quaternion_multiply(qy, q)
+            q = normalize(q)
             a_y = math.acos(np.dot(axes["y"], OPENGL_UP_AXIS))
             a_x = math.acos(np.dot(axes["x"], global_src_x_vec))
             iter_count += 1
@@ -360,6 +362,8 @@ def find_rotation_analytically2(new_skeleton, free_joint_name, target, frame, jo
         q = [1, 0, 0, 0]
         qy, axes = align_axis(axes, "y", global_src_up_vec)
         q = quaternion_multiply(qy, q)
+        q = normalize(q)
+
         if free_joint_name == "pelvis":
             # handle special case of applying the x axis rotation of the Hip to the pelvis
             node = new_skeleton.nodes[free_joint_name]
@@ -368,10 +372,12 @@ def find_rotation_analytically2(new_skeleton, free_joint_name, target, frame, jo
             global_original = normalize(global_original)
             qoffset = find_rotation_between_vectors(OPENGL_UP_AXIS, global_original)
             q = quaternion_multiply(qoffset, q)
+            q = normalize(q)
 
         # then align the twisting angles
         qx, axes = align_axis(axes, "x", global_src_x_vec)
         q = quaternion_multiply(qx, q)
+        q = normalize(q)
     return to_local_cos(new_skeleton, free_joint_name, frame, q)
 
 
