@@ -1,5 +1,4 @@
 import os
-from PIL import Image
 import FbxCommon
 from fbx import *
 import numpy as np
@@ -8,7 +7,7 @@ from ...external.transformations import quaternion_matrix, euler_from_quaternion
 from ..skeleton_node import SKELETON_NODE_TYPE_ROOT,SKELETON_NODE_TYPE_JOINT, SKELETON_NODE_TYPE_END_SITE
 has_image_library = True
 try:
-    import PIL
+    from PIL import Image
 except ImportError, e:
     has_image_library = False
     print("Warning: could not import PIL library")
