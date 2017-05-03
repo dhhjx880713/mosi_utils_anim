@@ -67,7 +67,7 @@ def retarget_motion_vector(src_motion_vector, target_skeleton, scale_factor=1, e
     return target_motion_vector
 
 
-def load_target_skeleton(file_path,scale_factor=1):
+def load_target_skeleton(file_path, scale_factor=1.0):
     skeleton = None
     if file_path.lower().endswith("fbx"):
         skeleton, mvs = load_skeleton_and_animations_from_fbx(file_path)
@@ -278,7 +278,7 @@ class MGRestApplication(tornado.web.Application):
     def get_target_skeleton(self):
         return self.target_skeleton
 
-    def set_target_skeleton(self, skeleton_file,scale_factor=1):
+    def set_target_skeleton(self, skeleton_file,scale_factor=1.0):
         self.target_skeleton = load_target_skeleton(skeleton_file, scale_factor)
 
     def set_algorithm_config(self, algorithm_config):
@@ -352,8 +352,8 @@ class MGRESTInterface(object):
 
         self.port = service_config["port"]
 
-    def set_target_skeleton(self, skeleton_file):
-        self.application.set_target_skeleton(skeleton_file)
+    def set_target_skeleton(self, skeleton_file, scale_factor=1.0):
+        self.application.set_target_skeleton(skeleton_file, scale_factor)
 
     def start(self):
         """ Start the web server loop
@@ -376,11 +376,12 @@ def main():
     parser.add_argument("-set", nargs='+', default=[], help="JSONPath expression, e.g. -set $.model_data=path/to/data")
     parser.add_argument("-config_file", nargs='?', default=SERVICE_CONFIG_FILE, help="Path to default config file")
     parser.add_argument("-target_skeleton", nargs='?', default=TARGET_SKELETON, help="Path to target skeleton file")
+    parser.add_argument("-skeleton_scale", nargs='?', default=1.0, help="Scale applied to the target skeleton offsets")
     args = parser.parse_args()
 
     if os.path.isfile(args.config_file):
         mg_service = MGRESTInterface(args.config_file, args.set)
-        mg_service.set_target_skeleton(args.target_skeleton)
+        mg_service.set_target_skeleton(args.target_skeleton, scale_factor=args.skeleton_scale)
         mg_service.start()
     else:
         write_message_to_log("Error: could not open service or algorithm configuration file", LOG_MODE_ERROR)
