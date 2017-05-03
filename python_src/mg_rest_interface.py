@@ -67,7 +67,7 @@ def retarget_motion_vector(src_motion_vector, target_skeleton, scale_factor=1, e
     return target_motion_vector
 
 
-def load_target_skeleton(file_path):
+def load_target_skeleton(file_path,scale_factor=1):
     skeleton = None
     if file_path.lower().endswith("fbx"):
         skeleton, mvs = load_skeleton_and_animations_from_fbx(file_path)
@@ -76,6 +76,10 @@ def load_target_skeleton(file_path):
         animated_joints = list(target_bvh.get_animated_joints())
         skeleton = Skeleton()
         skeleton.load_from_bvh(target_bvh, animated_joints, add_tool_joints=False)
+    for node in skeleton.nodes.values():
+        node.offset[0] *= scale_factor
+        node.offset[1] *= scale_factor
+        node.offset[2] *= scale_factor
     return skeleton
 
 
@@ -274,8 +278,8 @@ class MGRestApplication(tornado.web.Application):
     def get_target_skeleton(self):
         return self.target_skeleton
 
-    def set_target_skeleton(self, skeleton_file):
-        self.target_skeleton = load_target_skeleton(skeleton_file)
+    def set_target_skeleton(self, skeleton_file,scale_factor=1):
+        self.target_skeleton = load_target_skeleton(skeleton_file, scale_factor)
 
     def set_algorithm_config(self, algorithm_config):
         self.motion_generator.set_algorithm_config(algorithm_config)
