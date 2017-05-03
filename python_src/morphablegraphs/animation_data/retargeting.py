@@ -559,17 +559,11 @@ def rotate_bone2(src_skeleton,target_skeleton, src_name,target_name, src_to_targ
 
 
 def retarget_from_src_to_target(src_skeleton, target_skeleton, src_frames, target_to_src_joint_map, additional_rotation_map=None, scale_factor=1.0,extra_root=False, src_root_offset=ROCKETBOX_ROOT_OFFSET):
-
-    src_cos_map = create_local_cos_map(src_skeleton, [1,0,0], [0,1,0], [0,0,1]) # TODO get up axes and cross vector from src skeleton
-    #src_cos_map["LeftFoot"]["x"] = [0,1,0]
-    #src_cos_map["LeftFoot"]["y"] = [0,0,1]#src_skeleton.nodes["LeftFoot"].children[0].offset
-    #src_cos_map["RightFoot"]["x"] = [0,1,0]
-    #src_cos_map["RightFoot"]["y"] = [0,0,1]#src_skeleton.nodes["RightFoot"].children[0].offset
-    target_cos_map = create_local_cos_map(target_skeleton, [0,1,0], [1,0,0], [0,0,1])# TODO get up axes and cross vector from target skeleton
-    #target_cos_map["Root"]["y"] = [1,0,0]
-    #target_cos_map["Root"]["x"] = [0,1,0]
-    #target_cos_map["Game_engine"]["y"] = [1, 0, 0]
+    # TODO get up axes and cross vector from skeleton heuristically, bone_dir = up, left leg to right leg = cross for all bones
+    src_cos_map = create_local_cos_map(src_skeleton, [1,0,0], [0,1,0], [0,0,1])
+    target_cos_map = create_local_cos_map(target_skeleton, [0,1,0], [1,0,0], [0,0,1])
     target_cos_map["Game_engine"]["x"] = [1, 0, 0]
+    target_cos_map["neck_01"]["x"] = [-1, 0, 0]
     src_to_target_joint_map = {v:k for k, v in target_to_src_joint_map.items()}
     #if additional_rotation_map is not None:
     #    src_frames = apply_additional_rotation_on_frames(src_skeleton.animated_joints, src_frames, additional_rotation_map)
@@ -580,16 +574,13 @@ def retarget_from_src_to_target(src_skeleton, target_skeleton, src_frames, targe
 
         target_frame = np.zeros(n_params)
         target_frame[:3] = src_frame[:3]*scale_factor
-
-
-
         animated_joints = target_skeleton.animated_joints
         target_offset = 3
 
         for target_name in animated_joints:
             q = get_quaternion_rotation_by_name(target_name, GAME_ENGINE_T_POSE_QUAT, target_skeleton, root_offset=3)
             if target_name in target_to_src_joint_map.keys() or target_name == "Game_engine":
-                if target_name != "Game_engine":
+                if target_name != "Game_engine": # special case for splitting the rotation onto two joints
                     src_name = target_to_src_joint_map[target_name]
                 else:
                     src_name = "Hips"
