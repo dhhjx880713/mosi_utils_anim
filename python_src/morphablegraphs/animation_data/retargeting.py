@@ -597,12 +597,20 @@ def retarget_from_src_to_target(src_skeleton, target_skeleton, src_frames, targe
         m = quaternion_matrix(q)[:3, :3]
         target_frame[:3] -= np.dot(m, target_skeleton.nodes["Root"].offset)
 
+        target_frame = align_root_translation(target_skeleton, target_frame, src_frame, "pelvis")
         target_frames.append(target_frame)
-
+    target_frames = np.array(target_frames)
     return target_frames
 
 
-
+def align_root_translation(target_skeleton, target_frame, src_frame, root_node="pelvis"):
+    target_pos = target_skeleton.nodes[root_node].get_global_position(target_frame)
+    target_pos = np.array([target_pos[0], target_pos[2]])
+    src_pos = np.array([src_frame[0], src_frame[2]])
+    delta = src_pos - target_pos
+    target_frame[0] += delta[0]
+    target_frame[2] += delta[1]
+    return target_frame
 
 
 
