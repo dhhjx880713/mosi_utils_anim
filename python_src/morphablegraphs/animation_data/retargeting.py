@@ -21,7 +21,7 @@ GAME_ENGINE_T_POSE_QUAT2 = [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.499999999999999
 ROCKETBOX_TO_GAME_ENGINE_MAP = dict()
 ROCKETBOX_TO_GAME_ENGINE_MAP["Hips"] = "Game_engine"
 ROCKETBOX_TO_GAME_ENGINE_MAP["Hips"] = "pelvis"
-ROCKETBOX_TO_GAME_ENGINE_MAP["Spine"] = "head"
+ROCKETBOX_TO_GAME_ENGINE_MAP["Spine"] = "spine"
 ROCKETBOX_TO_GAME_ENGINE_MAP["LeftShoulder"] = "clavicle_l"
 ROCKETBOX_TO_GAME_ENGINE_MAP["RightShoulder"] = "clavicle_r"
 ROCKETBOX_TO_GAME_ENGINE_MAP["LeftArm"] = "upperarm_l"
@@ -39,7 +39,7 @@ ROCKETBOX_TO_GAME_ENGINE_MAP["RightFoot"] = "foot_r"
 ROCKETBOX_TO_GAME_ENGINE_MAP["Bip01_L_Toe0"] = "ball_l"
 ROCKETBOX_TO_GAME_ENGINE_MAP["Bip01_R_Toe0"] = "ball_r"
 #ROCKETBOX_TO_GAME_ENGINE_MAP["Neck"] = "neck_01"
-#ROCKETBOX_TO_GAME_ENGINE_MAP["Head"] = "head"
+ROCKETBOX_TO_GAME_ENGINE_MAP["Head"] = "neck_01"
 GAME_ENGINE_TO_ROCKETBOX_MAP = {v:k for k,v in ROCKETBOX_TO_GAME_ENGINE_MAP.items()}
 ADDITIONAL_ROTATION_MAP = dict()
 ADDITIONAL_ROTATION_MAP["LeftShoulder"] = [0, 0, -20]
@@ -284,9 +284,11 @@ def create_local_cos_map(skeleton, up_vector, x_vector, z_vector):
         if j == skeleton.root:
             joint_cos_map[j]["x"] = (-np.array(x_vector)).tolist()
         else:
-            if len(skeleton.nodes[j].children) >0:
+            if len(skeleton.nodes[j].children) > 0:
                 node = skeleton.nodes[j].children[0]
-                joint_cos_map[j]["y"] = normalize(node.offset)
+                o = np.array(node.offset)
+                if sum(o*o) > 0:
+                    joint_cos_map[j]["y"] = normalize(node.offset)
     return joint_cos_map
 
 def find_rotation_analytically2_bak(new_skeleton, free_joint_name, target, frame, joint_cos_map):
@@ -537,22 +539,20 @@ def rotate_bone_change_of_basis(src_skeleton,target_skeleton, src_parent_name, t
 
 def rotate_bone2(src_skeleton,target_skeleton, src_name,target_name, src_to_target_joint_map, src_frame,target_frame, src_cos_map, target_cos_map, guess):
     q = guess
-    src_child_name = src_skeleton.nodes[src_name].children[0].node_name
-    rocketbox_x_axis = src_cos_map[src_name]["x"]#[0, 1, 0]
-    rocketbox_up_axis = src_cos_map[src_name]["y"]#[1, 0, 0]
+    src_child_name = src_skeleton.nodes[src_name].children[0].node_name # TODO take into account changed targets
+    rocketbox_x_axis = src_cos_map[src_name]["x"]
+    rocketbox_up_axis = src_cos_map[src_name]["y"]
 
-    if src_child_name in src_to_target_joint_map: # This prevents the spine from being rotated by 180 degrees. TODO Find out how to fix this without this condition.
+    if src_child_name in src_to_target_joint_map or target_name =="neck_01":
+        print "estimate rotation of",target_name
         global_m = src_skeleton.nodes[src_name].get_global_matrix(src_frame)[:3, :3]
         local_m = src_skeleton.nodes[src_name].get_local_matrix(src_frame)[:3, :3]
-
         global_src_up_vec = normalize(np.dot(global_m, rocketbox_up_axis))
         global_src_x_vec = normalize(np.dot(global_m, rocketbox_x_axis))
         local_src_x_vec = normalize(np.dot(local_m, rocketbox_x_axis))
 
         target = {"global_src_up_vec": global_src_up_vec, "global_src_x_vec":global_src_x_vec, "local_src_x_vec": local_src_x_vec}
         q = find_rotation_analytically2(target_skeleton, target_name, target, target_frame, target_cos_map)
-        print "found", src_name, q
-
     else:
         print "ignore", src_name, src_child_name
     return q
