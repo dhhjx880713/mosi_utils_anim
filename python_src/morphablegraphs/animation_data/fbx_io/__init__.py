@@ -9,12 +9,6 @@ except ImportError, e:
     print("Warning: could not import FBX library")
     pass
 
-try:
-    import PIL
-except ImportError, e:
-    has_fbx = False
-    print("Warning: could not import PIL library")
-    pass
 
 if has_fbx:
     from fbx_import import load_fbx_file
