@@ -5,12 +5,12 @@ See: http://www.vis.uni-stuttgart.de/plain/vdl/vdl_upload/91_35_retargeting%20mo
 """
 import numpy as np
 import math
-from constants import OPENGL_UP_AXIS, GAME_ENGINE_T_POSE_QUAT, ROCKETBOX_ROOT_OFFSET
+from constants import OPENGL_UP_AXIS, GAME_ENGINE_T_POSE_QUAT
 from utils import normalize, align_axis, find_rotation_between_vectors, align_root_translation, to_local_cos, get_quaternion_rotation_by_name
 from ...external.transformations import quaternion_matrix, quaternion_multiply
 
 
-def find_rotation_analytically2(new_skeleton, free_joint_name, target, frame, joint_cos_map, max_iter_count=10):
+def find_rotation_analytically(new_skeleton, free_joint_name, target, frame, joint_cos_map, max_iter_count=10):
     global_src_up_vec = target["global_src_up_vec"]
     global_src_x_vec = target["global_src_x_vec"]
 
@@ -56,15 +56,13 @@ def find_rotation_analytically2(new_skeleton, free_joint_name, target, frame, jo
     return to_local_cos(new_skeleton, free_joint_name, frame, q)
 
 
-def rotate_bone2(src_skeleton,target_skeleton, src_name,target_name, src_to_target_joint_map, src_frame,target_frame, src_cos_map, target_cos_map, guess):
+def rotate_bone(src_skeleton,target_skeleton, src_name,target_name, src_to_target_joint_map, src_frame,target_frame, src_cos_map, target_cos_map, guess):
     q = guess
     src_child_name = src_skeleton.nodes[src_name].children[0].node_name # TODO take into account changed targets
     rocketbox_x_axis = src_cos_map[src_name]["x"]
     rocketbox_up_axis = src_cos_map[src_name]["y"]
 
-    if src_child_name in src_to_target_joint_map or target_name =="neck_01"or target_name.startswith("hand") :#
-
-        print "estimate rotation of",target_name
+    if src_child_name in src_to_target_joint_map or target_name =="neck_01" or target_name.startswith("hand") :#
         global_m = src_skeleton.nodes[src_name].get_global_matrix(src_frame)[:3, :3]
         local_m = src_skeleton.nodes[src_name].get_local_matrix(src_frame)[:3, :3]
         global_src_up_vec = normalize(np.dot(global_m, rocketbox_up_axis))
@@ -72,9 +70,7 @@ def rotate_bone2(src_skeleton,target_skeleton, src_name,target_name, src_to_targ
         local_src_x_vec = normalize(np.dot(local_m, rocketbox_x_axis))
 
         target = {"global_src_up_vec": global_src_up_vec, "global_src_x_vec":global_src_x_vec, "local_src_x_vec": local_src_x_vec}
-        q = find_rotation_analytically2(target_skeleton, target_name, target, target_frame, target_cos_map)
-    else:
-        print "ignore", src_name, src_child_name
+        q = find_rotation_analytically(target_skeleton, target_name, target, target_frame, target_cos_map)
     return q
 
 
@@ -103,10 +99,27 @@ def create_local_cos_map(skeleton, up_vector, x_vector, z_vector, child_map=None
     return joint_cos_map
 
 
-def retarget_from_src_to_target(src_skeleton, target_skeleton, src_frames, target_to_src_joint_map, additional_rotation_map=None, scale_factor=1.0,extra_root=False, src_root_offset=ROCKETBOX_ROOT_OFFSET,frame_range=None):
+def retarget_from_src_to_target(src_skeleton, target_skeleton, src_frames, target_to_src_joint_map, additional_rotation_map=None, scale_factor=1.0, frame_range=None):
+    """
+
+    Parameters
+    ----------
+    src_skeleton
+    target_skeleton
+    src_frames
+    target_to_src_joint_map
+    additional_rotation_map
+    scale_factor
+    frame_range
+
+    Returns
+    -------
+
+    """
+    #TODO get up axes and cross vector from skeleton heuristically, bone_dir = up, left leg to right leg = cross for all bones
     if frame_range is None:
         frame_range = (0, len(src_frames))
-    # TODO get up axes and cross vector from skeleton heuristically, bone_dir = up, left leg to right leg = cross for all bones
+
     src_child_map = {"RightHand": "Bip01_R_Finger3","LeftHand": "Bip01_L_Finger3"}
     target_child_map={"hand_r":"middle_01_r","hand_l": "middle_01_l"}
     src_cos_map = create_local_cos_map(src_skeleton, [1,0,0], [0,1,0], [0,0,1], src_child_map)
@@ -147,7 +160,7 @@ def retarget_from_src_to_target(src_skeleton, target_skeleton, src_frames, targe
                     src_name = target_to_src_joint_map[target_name]
                 else:
                     src_name = "Hips"
-                q = rotate_bone2(src_skeleton,target_skeleton, src_name,target_name,
+                q = rotate_bone(src_skeleton,target_skeleton, src_name,target_name,
                                   src_to_target_joint_map, src_frame,target_frame,
                                   src_cos_map, target_cos_map, q)
 
