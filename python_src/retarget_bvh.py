@@ -3,7 +3,7 @@ from morphablegraphs.animation_data import Skeleton, MotionVector, BVHReader, BV
 from morphablegraphs.external.transformations import quaternion_from_euler
 from morphablegraphs.animation_data.retargeting import get_targets_from_motion, ROCKETBOX_TO_GAME_ENGINE_MAP, ADDITIONAL_ROTATION_MAP,GAME_ENGINE_TO_ROCKETBOX_MAP
 from morphablegraphs.animation_data.retargeting import get_new_frames_from_direction_constraints as get_new_frames_using_quaternion, retarget_from_src_to_target
-from morphablegraphs.animation_data.retargeting_euler import get_new_euler_frames_from_direction_constraints as get_new_frames_using_euler
+from morphablegraphs.animation_data.retargeting import get_new_euler_frames_from_direction_constraints as get_new_frames_using_euler
 from morphablegraphs.animation_data.fbx_io import load_skeleton_and_animations_from_fbx, export_motion_vector_to_fbx_file
 
 
@@ -87,7 +87,7 @@ if __name__ == "__main__":
     src_file = "skeleton.bvh"
     target_file = "game_engine_target.fbx"
     out_file = "out8"
-    export_format = "fbx"
+    export_format = "bvh"
     frame_range = [0,50]
     use_optimization = False
     use_euler = False
