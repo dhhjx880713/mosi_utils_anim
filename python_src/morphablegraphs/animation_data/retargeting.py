@@ -38,6 +38,9 @@ ROCKETBOX_TO_GAME_ENGINE_MAP["LeftFoot"] = "foot_l"
 ROCKETBOX_TO_GAME_ENGINE_MAP["RightFoot"] = "foot_r"
 ROCKETBOX_TO_GAME_ENGINE_MAP["Bip01_L_Toe0"] = "ball_l"
 ROCKETBOX_TO_GAME_ENGINE_MAP["Bip01_R_Toe0"] = "ball_r"
+
+ROCKETBOX_TO_GAME_ENGINE_MAP["Bip01_L_Finger3"] = "middle_01_l"
+ROCKETBOX_TO_GAME_ENGINE_MAP["Bip01_R_Finger3"] = "middle_01_r"
 #ROCKETBOX_TO_GAME_ENGINE_MAP["Neck"] = "neck_01"
 ROCKETBOX_TO_GAME_ENGINE_MAP["Head"] = "neck_01"
 GAME_ENGINE_TO_ROCKETBOX_MAP = {v:k for k,v in ROCKETBOX_TO_GAME_ENGINE_MAP.items()}
@@ -543,7 +546,8 @@ def rotate_bone2(src_skeleton,target_skeleton, src_name,target_name, src_to_targ
     rocketbox_x_axis = src_cos_map[src_name]["x"]
     rocketbox_up_axis = src_cos_map[src_name]["y"]
 
-    if src_child_name in src_to_target_joint_map or target_name =="neck_01":
+    if src_child_name in src_to_target_joint_map or target_name =="neck_01"or target_name.startswith("hand") :#
+
         print "estimate rotation of",target_name
         global_m = src_skeleton.nodes[src_name].get_global_matrix(src_frame)[:3, :3]
         local_m = src_skeleton.nodes[src_name].get_local_matrix(src_frame)[:3, :3]
@@ -558,12 +562,26 @@ def rotate_bone2(src_skeleton,target_skeleton, src_name,target_name, src_to_targ
     return q
 
 
-def retarget_from_src_to_target(src_skeleton, target_skeleton, src_frames, target_to_src_joint_map, additional_rotation_map=None, scale_factor=1.0,extra_root=False, src_root_offset=ROCKETBOX_ROOT_OFFSET):
+def retarget_from_src_to_target(src_skeleton, target_skeleton, src_frames, target_to_src_joint_map, additional_rotation_map=None, scale_factor=1.0,extra_root=False, src_root_offset=ROCKETBOX_ROOT_OFFSET,frame_range=None):
+    if frame_range is None:
+        frame_range = (0, len(src_frames))
     # TODO get up axes and cross vector from skeleton heuristically, bone_dir = up, left leg to right leg = cross for all bones
     src_cos_map = create_local_cos_map(src_skeleton, [1,0,0], [0,1,0], [0,0,1])
     target_cos_map = create_local_cos_map(target_skeleton, [0,1,0], [1,0,0], [0,0,1])
     target_cos_map["Game_engine"]["x"] = [1, 0, 0]
     target_cos_map["neck_01"]["x"] = [-1, 0, 0]
+
+    target_cos_map["hand_r"]["x"] = [0, 0, -1]
+    target_cos_map["hand_l"]["x"] = [0, 0, 1]
+    target_cos_map["hand_r"]["y"] = [0, 1, 0]
+    target_cos_map["hand_l"]["y"] = [0, 1, 0]
+    target_cos_map["hand_r"]["z"] = [1, 0, 0]
+    target_cos_map["hand_l"]["z"] = [1, 0, 0]
+
+    src_cos_map["RightHand"]["x"] = [0, 1, 0]
+    src_cos_map["LeftHand"]["x"] = [0, 1, 0]
+    src_cos_map["RightHand"]["y"] = [1, 0, 0]
+    src_cos_map["LeftHand"]["y"] = [1, 0, 0]
     src_to_target_joint_map = {v:k for k, v in target_to_src_joint_map.items()}
     #if additional_rotation_map is not None:
     #    src_frames = apply_additional_rotation_on_frames(src_skeleton.animated_joints, src_frames, additional_rotation_map)
@@ -571,7 +589,7 @@ def retarget_from_src_to_target(src_skeleton, target_skeleton, src_frames, targe
     target_frames = []
     print "n_params", n_params,
     ref_frame = None
-    for idx, src_frame in enumerate(src_frames):
+    for idx, src_frame in enumerate(src_frames[frame_range[0]:frame_range[1]]):
 
         target_frame = np.zeros(n_params)
         target_frame[:3] = src_frame[:3]*scale_factor
