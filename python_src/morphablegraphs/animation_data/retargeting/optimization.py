@@ -5,27 +5,14 @@ See: http://www.vis.uni-stuttgart.de/plain/vdl/vdl_upload/91_35_retargeting%20mo
 """
 import numpy as np
 from ...external.transformations import quaternion_from_matrix, quaternion_matrix, quaternion_multiply, quaternion_from_euler
-from utils import normalize, find_rotation_between_vectors, to_local_cos, to_global_cos, rotate_axes
+from utils import normalize, find_rotation_between_vectors, to_local_cos, to_global_cos, rotate_axes, apply_additional_rotation_on_frames
 from constants import EXTRA_ROOT_NAME, GAME_ENGINE_ROOT_JOINT, ROCKETBOX_ROOT_OFFSET, OPENGL_UP_AXIS
 from scipy.optimize import minimize
 import math
 import time
 
 
-def apply_additional_rotation_on_frames(animated_joints, frames, additional_rotation_map):
-    new_frames = []
-    for frame in frames:
-        new_frame = frame[:]
-        for idx, name in enumerate(animated_joints):
-            if name in additional_rotation_map:
-                euler = np.radians(additional_rotation_map[name])
-                additional_q = quaternion_from_euler(*euler)
-                offset = idx *4+3
-                q = new_frame[offset:offset + 4]
-                new_frame[offset:offset + 4] = quaternion_multiply(q, additional_q)
 
-        new_frames.append(new_frame)
-    return new_frames
 
 
 def get_dir_to_child(skeleton, name, child_name, frame, use_cache=False):

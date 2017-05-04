@@ -55,6 +55,7 @@ ROCKETBOX_TO_GAME_ENGINE_MAP["RightFoot"] = "foot_r"
 
 
 def retarget_motion_vector(src_motion_vector, target_skeleton, scale_factor=1):
+    write_message_to_log("Start retargeting...", LOG_MODE_INFO)
     target_frames = retarget_from_src_to_target(src_motion_vector.skeleton,
                                                 target_skeleton,
                                                 src_motion_vector.frames,

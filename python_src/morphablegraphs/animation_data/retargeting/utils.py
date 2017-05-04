@@ -119,3 +119,18 @@ def to_global_cos(skeleton, node_name, frame, q):
     lr = np.dot(pm, r)[:3, :3]
     q = quaternion_from_matrix(lr)
     return q
+
+def apply_additional_rotation_on_frames(animated_joints, frames, additional_rotation_map):
+    new_frames = []
+    for frame in frames:
+        new_frame = frame[:]
+        for idx, name in enumerate(animated_joints):
+            if name in additional_rotation_map:
+                euler = np.radians(additional_rotation_map[name])
+                additional_q = quaternion_from_euler(*euler)
+                offset = idx *4+3
+                q = new_frame[offset:offset + 4]
+                new_frame[offset:offset + 4] = quaternion_multiply(q, additional_q)
+
+        new_frames.append(new_frame)
+    return new_frames

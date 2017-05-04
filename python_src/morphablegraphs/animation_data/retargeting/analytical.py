@@ -6,7 +6,7 @@ See: http://www.vis.uni-stuttgart.de/plain/vdl/vdl_upload/91_35_retargeting%20mo
 import numpy as np
 import math
 from constants import OPENGL_UP_AXIS, GAME_ENGINE_T_POSE_QUAT
-from utils import normalize, align_axis, find_rotation_between_vectors, align_root_translation, to_local_cos, get_quaternion_rotation_by_name
+from utils import normalize, align_axis, find_rotation_between_vectors, align_root_translation, to_local_cos, get_quaternion_rotation_by_name, apply_additional_rotation_on_frames
 from ...external.transformations import quaternion_matrix, quaternion_multiply
 
 
@@ -62,7 +62,7 @@ def rotate_bone(src_skeleton,target_skeleton, src_name,target_name, src_to_targe
     rocketbox_x_axis = src_cos_map[src_name]["x"]
     rocketbox_up_axis = src_cos_map[src_name]["y"]
 
-    if src_child_name in src_to_target_joint_map or target_name =="neck_01" or target_name.startswith("hand") :#
+    if src_child_name in src_to_target_joint_map or target_name =="neck_01" or target_name.startswith("hand"):
         global_m = src_skeleton.nodes[src_name].get_global_matrix(src_frame)[:3, :3]
         local_m = src_skeleton.nodes[src_name].get_local_matrix(src_frame)[:3, :3]
         global_src_up_vec = normalize(np.dot(global_m, rocketbox_up_axis))
@@ -97,6 +97,41 @@ def create_local_cos_map(skeleton, up_vector, x_vector, z_vector, child_map=None
             if sum(o*o) > 0:
                 joint_cos_map[j]["y"] = o
     return joint_cos_map
+
+
+def retarget_frame(src_skeleton, target_skeleton, src_frame, target_to_src_joint_map, src_to_target_joint_map,
+                   src_cos_map,target_cos_map, n_params, scale_factor, ref_frame):
+    target_frame = np.zeros(n_params)
+    target_frame[:3] = src_frame[:3] * scale_factor
+    animated_joints = target_skeleton.animated_joints
+    target_offset = 3
+
+    for target_name in animated_joints:
+        q = get_quaternion_rotation_by_name(target_name, GAME_ENGINE_T_POSE_QUAT, target_skeleton, root_offset=3)
+        if target_name in target_to_src_joint_map.keys() or target_name == "Game_engine":
+            if target_name != "Game_engine":  # special case for splitting the rotation onto two joints
+                src_name = target_to_src_joint_map[target_name]
+            else:
+                src_name = "Hips"
+            q = rotate_bone(src_skeleton, target_skeleton, src_name, target_name,
+                            src_to_target_joint_map, src_frame, target_frame,
+                            src_cos_map, target_cos_map, q)
+
+        if ref_frame is not None:
+            #  align quaternion to the reference frame to allow interpolation
+            #  http://physicsforgames.blogspot.de/2010/02/quaternions.html
+            ref_q = ref_frame[target_offset:target_offset + 4]
+            if np.dot(ref_q, q) < 0:
+                q = -q
+        target_frame[target_offset:target_offset + 4] = q
+        target_offset += 4
+
+    # apply offset on the root taking the orientation into account
+    q = target_frame[3:7]
+    m = quaternion_matrix(q)[:3, :3]
+    target_frame[:3] -= np.dot(m, target_skeleton.nodes["Root"].offset)
+    target_frame = align_root_translation(target_skeleton, target_frame, src_frame, "pelvis")
+    return target_frame
 
 
 def retarget_from_src_to_target(src_skeleton, target_skeleton, src_frames, target_to_src_joint_map, additional_rotation_map=None, scale_factor=1.0, frame_range=None):
@@ -144,45 +179,14 @@ def retarget_from_src_to_target(src_skeleton, target_skeleton, src_frames, targe
     #    src_frames = apply_additional_rotation_on_frames(src_skeleton.animated_joints, src_frames, additional_rotation_map)
     n_params = len(target_skeleton.animated_joints) * 4 + 3
     target_frames = []
-    print "n_params", n_params,
     ref_frame = None
     for idx, src_frame in enumerate(src_frames[frame_range[0]:frame_range[1]]):
-
-        target_frame = np.zeros(n_params)
-        target_frame[:3] = src_frame[:3]*scale_factor
-        animated_joints = target_skeleton.animated_joints
-        target_offset = 3
-
-        for target_name in animated_joints:
-            q = get_quaternion_rotation_by_name(target_name, GAME_ENGINE_T_POSE_QUAT, target_skeleton, root_offset=3)
-            if target_name in target_to_src_joint_map.keys() or target_name == "Game_engine":
-                if target_name != "Game_engine": # special case for splitting the rotation onto two joints
-                    src_name = target_to_src_joint_map[target_name]
-                else:
-                    src_name = "Hips"
-                q = rotate_bone(src_skeleton,target_skeleton, src_name,target_name,
-                                  src_to_target_joint_map, src_frame,target_frame,
-                                  src_cos_map, target_cos_map, q)
-
-            if ref_frame is not None:
-                #  align quaternion to the reference frame to allow interpolation
-                #  http://physicsforgames.blogspot.de/2010/02/quaternions.html
-                ref_q = ref_frame[target_offset:target_offset + 4]
-                if np.dot(ref_q, q) < 0:
-                    q = -q
-            target_frame[target_offset:target_offset+4] = q
-            target_offset += 4
-
-        # apply offset on the root taking the orientation into account
-        q = target_frame[3:7]
-        m = quaternion_matrix(q)[:3, :3]
-        target_frame[:3] -= np.dot(m, target_skeleton.nodes["Root"].offset)
-
-        target_frame = align_root_translation(target_skeleton, target_frame, src_frame, "pelvis")
+        target_frame = retarget_frame(src_skeleton, target_skeleton, src_frame, target_to_src_joint_map,
+                                      src_to_target_joint_map,
+                                      src_cos_map, target_cos_map, n_params, scale_factor, ref_frame)
         if ref_frame is None:
             ref_frame = target_frame
         target_frames.append(target_frame)
-
     target_frames = np.array(target_frames)
     return target_frames
 
