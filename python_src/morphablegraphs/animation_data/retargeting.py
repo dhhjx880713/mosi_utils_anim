@@ -570,6 +570,7 @@ def retarget_from_src_to_target(src_skeleton, target_skeleton, src_frames, targe
     n_params = len(target_skeleton.animated_joints) * 4 + 3
     target_frames = []
     print "n_params", n_params,
+    ref_frame = None
     for idx, src_frame in enumerate(src_frames):
 
         target_frame = np.zeros(n_params)
@@ -587,15 +588,24 @@ def retarget_from_src_to_target(src_skeleton, target_skeleton, src_frames, targe
                 q = rotate_bone2(src_skeleton,target_skeleton, src_name,target_name,
                                   src_to_target_joint_map, src_frame,target_frame,
                                   src_cos_map, target_cos_map, q)
+            if ref_frame is not None:
+                #  align quaternion to the reference frame to allow interpolation
+                #  http://physicsforgames.blogspot.de/2010/02/quaternions.html
+                ref_q = ref_frame[target_offset:target_offset + 4]
+                if np.dot(ref_q, q) < 0:
+                    q = -q
             target_frame[target_offset:target_offset+4] = q
             target_offset += 4
 
         # apply offset on the root taking the orientation into account
+
         q = target_frame[3:7]
         m = quaternion_matrix(q)[:3, :3]
         target_frame[:3] -= np.dot(m, target_skeleton.nodes["Root"].offset)
 
         target_frame = align_root_translation(target_skeleton, target_frame, src_frame, "pelvis")
+        if ref_frame is None:
+            ref_frame = target_frame
         target_frames.append(target_frame)
     target_frames = np.array(target_frames)
     return target_frames
