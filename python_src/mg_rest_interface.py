@@ -54,12 +54,11 @@ ROCKETBOX_TO_GAME_ENGINE_MAP["LeftFoot"] = "foot_l"
 ROCKETBOX_TO_GAME_ENGINE_MAP["RightFoot"] = "foot_r"
 
 
-def retarget_motion_vector(src_motion_vector, target_skeleton, scale_factor=1, extra_root=False):
+def retarget_motion_vector(src_motion_vector, target_skeleton, scale_factor=1):
     target_frames = retarget_from_src_to_target(src_motion_vector.skeleton,
                                                 target_skeleton,
                                                 src_motion_vector.frames,
-                                                GAME_ENGINE_TO_ROCKETBOX_MAP, None, scale_factor,
-                                                extra_root, ROCKETBOX_ROOT_OFFSET)
+                                                GAME_ENGINE_TO_ROCKETBOX_MAP, None, scale_factor)
     target_skeleton.frame_time = src_motion_vector.skeleton.frame_time
     target_motion_vector = AnnotatedMotionVector(target_skeleton)
     target_motion_vector.frame_time = src_motion_vector.frame_time
