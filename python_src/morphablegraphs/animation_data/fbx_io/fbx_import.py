@@ -1,11 +1,17 @@
 import os
-from PIL import Image
 import FbxCommon
 from fbx import *
 import numpy as np
 import collections
 from ...external.transformations import quaternion_matrix, euler_from_quaternion, quaternion_from_euler
 from ..skeleton_node import SKELETON_NODE_TYPE_ROOT,SKELETON_NODE_TYPE_JOINT, SKELETON_NODE_TYPE_END_SITE
+has_image_library = True
+try:
+    from PIL import Image
+except ImportError, e:
+    has_image_library = False
+    print("Warning: could not import PIL library")
+    pass
 
 
 def load_fbx_file(file_path):
@@ -56,7 +62,10 @@ class FBXSkinnedMeshImporter(object):
     def create_mesh_data(self, fbx_node, attribute, mesh_list):
         mesh_name = fbx_node.GetName()
         mesh = self.read_mesh(mesh_name, attribute)
-        material = extractMaterialFromNode(fbx_node)
+        if has_image_library:
+            material = extractMaterialFromNode(fbx_node)
+        else:
+            material = None
         if material is not None:
             mesh["material"] = material
             mesh["has_material"] = True
