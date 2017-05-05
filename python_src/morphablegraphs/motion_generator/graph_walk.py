@@ -13,6 +13,7 @@ from annotated_motion_vector import AnnotatedMotionVector
 from ..constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION
 from keyframe_event_list import KeyframeEventList
 from ..utilities import write_log, write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_ERROR, LOG_MODE_INFO
+from ..animation_data.motion_concatenation import align_and_concatenate_frames
 
 DEFAULT_PLACE_ACTION_LIST = ["placeRight", "placeLeft","insertRight","insertLeft","screwRight", "screwLeft"] #list of actions in which the orientation constraints are ignored
 
@@ -266,7 +267,9 @@ class GraphWalk(object):
         prev_frames = None
         for step_idx, step in enumerate(self.steps):
             quat_frames = self.motion_state_graph.nodes[step.node_key].back_project(step.parameters, use_time_parameters=False).get_motion_vector()
-            aligned_frames = align_quaternion_frames(quat_frames, prev_frames, self.motion_vector.start_pose)
+            skeleton = self.motion_vector.skeleton
+            aligned_frames = align_and_concatenate_frames(skeleton, skeleton.aligning_root_node, quat_frames, prev_frames,
+                                         self.motion_vector.start_pose, 0)
             for c_idx, constraint in enumerate(step.motion_primitive_constraints.constraints):
                 if constraint.constraint_type in [SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION] and\
                    not "generated" in constraint.semantic_annotation.keys():
