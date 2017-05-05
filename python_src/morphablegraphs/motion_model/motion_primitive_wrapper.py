@@ -32,12 +32,48 @@ class MotionPrimitiveModelWrapper(object):
             self._initialize_from_json(mgrd_skeleton, data, animated_joints, use_mgrd_mixture_model, scale)
 
     def _initialize_from_json(self, mgrd_skeleton, data, animated_joints=None, use_mgrd_mixture_model=False, scale=None):#[10,10,10]
-        if has_mgrd and "tspm" in data.keys():
-            self.motion_primitive = self._load_mgrd_model_from_json(mgrd_skeleton, data, use_mgrd_mixture_model, scale)
-        elif has_mgrd and animated_joints is not None:
-            self.motion_primitive = self._load_mgrd_model_from_legacy_json(mgrd_skeleton, data, use_mgrd_mixture_model, animated_joints)
+        if not has_mgrd:
+            if "tspm" in data.keys():
+                self.motion_primitive = self._load_legacy_model_from_mgrd_json(data)
+            else:
+                self.motion_primitive = self._load_legacy_model_from_legacy_json(data)
         else:
-            self.motion_primitive = self._load_legacy_model_from_legacy_json(data)
+            if "tspm" in data.keys():
+                self.motion_primitive = self._load_mgrd_model_from_mgrd_json(mgrd_skeleton, data, use_mgrd_mixture_model, scale)
+            elif animated_joints is not None:
+                self.motion_primitive = self._load_mgrd_model_from_legacy_json(mgrd_skeleton, data, use_mgrd_mixture_model, animated_joints)
+            else:
+                raise Exception("Motion Primitive format is not supported")
+
+    def _load_legacy_model_from_mgrd_json(self, data):
+        motion_primitive = MGMotionPrimitive(None)
+        sspm = data["sspm"]
+        tspm = data["tspm"]
+        gmm = data["gmm"]
+        n_canonical_frames = int(max(tspm["knots"])+1)
+
+        legacy_data = {"eigen_vectors_spatial": sspm["eigen"],
+                       "mean_spatial_vector": sspm["mean"],
+                       "n_basis_spatial": sspm["n_coeffs"],
+                       "n_dim_spatial": sspm["n_dims"],
+                       "b_spline_knots_spatial": sspm["knots"],
+                       "animated_joints": sspm["animated_joints"],
+
+                       "gmm_covars": gmm["covars"],
+                       "gmm_means": gmm["means"],
+                       "gmm_weights": gmm["weights"],
+                       # time fpca is done differently in mgrd and the legacy motion primitive
+                       #"eigen_vectors_time":time_eigen_vectors,
+                       #"mean_time_vector":time_mean,
+                       #"n_basis_time":tspm["n_coeffs"],
+                       #"b_spline_knots_time":tspm["knots"],
+                       #"n_dim_time": 1,
+
+                       "n_canonical_frames": n_canonical_frames,
+                       "translation_maxima": np.array([1,1,1])
+                       }
+        motion_primitive._initialize_from_json(legacy_data)
+        return motion_primitive
 
     def _load_mgrd_model_from_legacy_json(self, mgrd_skeleton, data, use_mgrd_mixture_model, animated_joints):
         write_message_to_log("Init motion primitive model without semantic annotation", LOG_MODE_DEBUG)
@@ -55,6 +91,19 @@ class MotionPrimitiveModelWrapper(object):
         })
         self._pre_scale_root_translation(sspm, data['translation_maxima'])
         return MGRDMotionPrimitiveModel(mgrd_skeleton, sspm, tspm, mm)
+
+    def _load_mgrd_model_from_mgrd_json(self, skeleton, mm_data, use_mgrd_mixture_model=True, scale=None):
+        write_message_to_log("Init motion primitive model with semantic annotation", LOG_MODE_DEBUG)
+        sspm = MGRDQuaternionSplineModel.load_from_json(skeleton, mm_data['sspm'])
+        tspm = MGRDTemporalSplineModel.load_from_json(mm_data['tspm'])
+        mixture_model = MotionPrimitiveModelWrapper.load_mixture_model({
+            'gmm_covars': mm_data['gmm']['covars'],
+            'gmm_means': mm_data['gmm']['means'],
+            'gmm_weights': mm_data['gmm']['weights']
+        }, use_mgrd_mixture_model)
+        if scale is not None:
+            self._pre_scale_root_translation(sspm, scale)
+        return MGRDMotionPrimitiveModel(skeleton, sspm, tspm, mixture_model)
 
     def _load_legacy_model_from_legacy_json(self, data):
         write_message_to_log("Init legacy motion primitive model", LOG_MODE_DEBUG)
@@ -123,7 +172,10 @@ class MotionPrimitiveModelWrapper(object):
     back_project = back_project_mgrd if has_mgrd else back_project_legacy
 
     def back_project_time_function_legacy(self, s_vec):
-        return self.motion_primitive._back_transform_gamma_to_canonical_time_function(s_vec[self.get_n_spatial_components():])
+        if self.motion_primitive.has_time_parameters:
+            return self.motion_primitive._back_transform_gamma_to_canonical_time_function(s_vec[self.get_n_spatial_components():])
+        else:
+            return list(xrange(0,self.motion_primitive.n_canonical_frames))
 
     def back_project_time_function_mgrd(self, s_vec):
         if len(np.asarray(s_vec.shape)) == 2:
@@ -201,20 +253,6 @@ class MotionPrimitiveModelWrapper(object):
             return eigen[coeff_indices]
 
     get_spatial_eigen_vectors = get_spatial_eigen_vector_matrix_mgrd if has_mgrd else get_spatial_eigen_vector_matrix_legacy
-
-
-    def _load_mgrd_model_from_json(self, skeleton, mm_data, use_mgrd_mixture_model=True, scale=None):
-        write_message_to_log("Init motion primitive model with semantic annotation", LOG_MODE_DEBUG)
-        sspm = MGRDQuaternionSplineModel.load_from_json(skeleton, mm_data['sspm'])
-        tspm = MGRDTemporalSplineModel.load_from_json(mm_data['tspm'])
-        mixture_model = MotionPrimitiveModelWrapper.load_mixture_model({
-                'gmm_covars': mm_data['gmm']['covars'],
-                'gmm_means': mm_data['gmm']['means'],
-                'gmm_weights': mm_data['gmm']['weights']
-            }, use_mgrd_mixture_model)
-        if scale is not None:
-            self._pre_scale_root_translation(sspm, scale)
-        return MGRDMotionPrimitiveModel(skeleton, sspm, tspm, mixture_model)
 
     @staticmethod
     def load_mixture_model(data, use_mgrd=True):

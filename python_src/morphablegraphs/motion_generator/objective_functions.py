@@ -138,7 +138,7 @@ def obj_spatial_error_residual_vector_and_naturalness(s, data):
     * residual_vector: list
     """
     motion_primitive, motion_primitive_constraints, prev_frames, error_scale_factor, quality_scale_factor, init_error_sum = data
-    negative_log_likelihood = -data[0].get_gaussian_mixture_model().score(s.reshape((1, len(s)))) * quality_scale_factor
+    negative_log_likelihood = float(-data[0].get_gaussian_mixture_model().score(s.reshape((1, len(s)))) * quality_scale_factor)
     residual_vector = motion_primitive_constraints.get_residual_vector(motion_primitive, s, prev_frames, use_time_parameters=False)
     motion_primitive_constraints.min_error = np.sum(residual_vector)
     n_error_values = len(residual_vector)
