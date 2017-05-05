@@ -47,7 +47,7 @@ def retarget(src_skeleton, src_motion, target_skeleton, inv_joint_map=ROCKETBOX_
                                                     scale_factor=scale_factor)
     else:
         new_frames = retarget_from_src_to_target(src_skeleton, target_skeleton, src_motion.frames, GAME_ENGINE_TO_ROCKETBOX_MAP, additional_rotation_map,
-                                                 scale_factor=scale_factor, extra_root=False, frame_range=frame_range)
+                                                 scale_factor=scale_factor, frame_range=frame_range)
 
 
     return new_frames

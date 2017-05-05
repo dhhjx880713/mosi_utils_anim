@@ -178,4 +178,4 @@ class Retargeting(object):
 
 def retarget_from_src_to_target(src_skeleton, target_skeleton, src_frames, target_to_src_joint_map, additional_rotation_map=None, scale_factor=1.0, frame_range=None):
     retargeting = Retargeting(src_skeleton, target_skeleton, target_to_src_joint_map, scale_factor)
-    return retargeting.run(src_frames, additional_rotation_map, frame_range)
+    return retargeting.run(src_frames, frame_range, additional_rotation_map)
