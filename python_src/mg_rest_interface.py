@@ -375,13 +375,13 @@ def main():
     parser = argparse.ArgumentParser(description="Start the MorphableGraphs REST-interface")
     parser.add_argument("-set", nargs='+', default=[], help="JSONPath expression, e.g. -set $.model_data=path/to/data")
     parser.add_argument("-config_file", nargs='?', default=SERVICE_CONFIG_FILE, help="Path to default config file")
-    parser.add_argument("-target_skeleton", nargs='?', default=TARGET_SKELETON, help="Path to target skeleton file")
+    parser.add_argument("-target_skeleton", nargs='?', default=None, help="Path to target skeleton file")
     parser.add_argument("-skeleton_scale", nargs='?', default=1.0, help="Scale applied to the target skeleton offsets")
     args = parser.parse_args()
-
     if os.path.isfile(args.config_file):
         mg_service = MGRESTInterface(args.config_file, args.set)
-        mg_service.set_target_skeleton(args.target_skeleton, scale_factor=args.skeleton_scale)
+        if args.target_skeleton is not None:
+            mg_service.set_target_skeleton(args.target_skeleton, scale_factor=args.skeleton_scale)
         mg_service.start()
     else:
         write_message_to_log("Error: could not open service or algorithm configuration file", LOG_MODE_ERROR)
