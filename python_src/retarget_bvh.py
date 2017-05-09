@@ -91,24 +91,24 @@ if __name__ == "__main__":
     frame_range = [0,50]
     use_optimization = False
     use_euler = False
-    scale_factor = 0.1  # is applied on the the offsets of the skeleton to match the root translation
+    root_scale_factor = 0.08815605958679036
+    skeleton_scale = 8.815605958679036
 
     src_bvh = BVHReader(src_file)
     src_skeleton = Skeleton()
     src_skeleton.load_from_bvh(src_bvh, add_tool_joints=False)
     src_motion = MotionVector()
     src_motion.from_bvh_reader(src_bvh)
-
     target_skeleton = load_target_skeleton(target_file)
     if target_skeleton is not None:
 
-        scale_skeleton(target_skeleton, 1)
+        scale_skeleton(target_skeleton, skeleton_scale)
 
         new_frames = retarget(src_skeleton, src_motion, target_skeleton,
                               inv_joint_map=ROCKETBOX_TO_GAME_ENGINE_MAP,
                               additional_rotation_map=ADDITIONAL_ROTATION_MAP,
                               frame_range=frame_range,
-                              scale_factor=scale_factor,
+                              scale_factor=root_scale_factor,
                               use_optimization=use_optimization,
                               use_euler=use_euler)
         export(target_skeleton,new_frames,out_file, use_euler, export_format)
