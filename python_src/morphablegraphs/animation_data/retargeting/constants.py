@@ -31,7 +31,6 @@ ADDITIONAL_ROTATION_MAP["LeftShoulder"] = [0, 0, -20]
 ADDITIONAL_ROTATION_MAP["LeftArm"] = [0, 0, 20]
 ADDITIONAL_ROTATION_MAP["RightShoulder"] = [0, 0, 20]
 ADDITIONAL_ROTATION_MAP["RightArm"] = [0, 0, -20]
-
 OPENGL_UP_AXIS = np.array([0, 1, 0])
 ROCKETBOX_ROOT_OFFSET = np.array([0, 100.949997, 0])
 EXTRA_ROOT_NAME = "Root"
@@ -41,5 +40,6 @@ EXTREMITIES = ["RightUpLeg", "LeftUpLeg", "RightLeg", "LeftLeg", "RightArm", "Le
 GAME_ENGINE_ROOT_JOINT = ROCKETBOX_TO_GAME_ENGINE_MAP[ROOT_JOINT]
 GAME_ENGINE_ROOT_CHILDREN = ["spine_01", "clavicle_l", "clavicle_r"]#[ROCKETBOX_TO_GAME_ENGINE_MAP[k] for k in ROOT_CHILDREN]
 GAME_ENGINE_EXTREMITIES = [ROCKETBOX_TO_GAME_ENGINE_MAP[k] for k in EXTREMITIES]
+GAME_ENGINE_SPINE_OFFSET_LIST = ["pelvis", "spine_01"] # list of bones that have an additional rotation offset
 AXES = [[1,0,0], [0,1,0], [0,0,1]]
 

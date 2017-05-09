@@ -5,7 +5,7 @@ See: http://www.vis.uni-stuttgart.de/plain/vdl/vdl_upload/91_35_retargeting%20mo
 """
 import numpy as np
 import math
-from constants import OPENGL_UP_AXIS, GAME_ENGINE_T_POSE_QUAT
+from constants import OPENGL_UP_AXIS, GAME_ENGINE_T_POSE_QUAT, GAME_ENGINE_SPINE_OFFSET_LIST
 from utils import normalize, align_axis, find_rotation_between_vectors, align_root_translation, to_local_cos, get_quaternion_rotation_by_name, apply_additional_rotation_on_frames
 from ...external.transformations import quaternion_matrix, quaternion_multiply
 
@@ -53,13 +53,13 @@ def align_root_joint(axes, global_src_x_vec, max_iter_count=10):
         not_aligned = a_y > 0.1 or a_x > 0.1 and iter_count < max_iter_count
     return q
 
-def align_joint(new_skeleton, free_joint_name, axes, global_src_up_vec,global_src_x_vec, joint_cos_map):
+def align_joint(new_skeleton, free_joint_name, axes, global_src_up_vec,global_src_x_vec, joint_cos_map, spine_offset_list=GAME_ENGINE_SPINE_OFFSET_LIST):
     # first align the bone vectors
     q = [1, 0, 0, 0]
     qy, axes = align_axis(axes, "y", global_src_up_vec)
     q = quaternion_multiply(qy, q)
     q = normalize(q)
-    if free_joint_name == "pelvis":
+    if free_joint_name in spine_offset_list:
         # handle special case of applying the x axis rotation of the Hip to the pelvis
         node = new_skeleton.nodes[free_joint_name]
         t_pose_global_m = node.get_global_matrix(GAME_ENGINE_T_POSE_QUAT)[:3, :3]
