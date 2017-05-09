@@ -88,10 +88,10 @@ if __name__ == "__main__":
     target_file = "game_engine_target.fbx"
     out_file = "out8"
     export_format = "bvh"
-    frame_range = [0,50]
+    frame_range = None
     use_optimization = False
     use_euler = False
-    root_scale_factor = 0.08815605958679036
+    root_scale_factor = 1# 0.08815605958679036
     skeleton_scale = 8.815605958679036
 
     src_bvh = BVHReader(src_file)

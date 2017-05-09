@@ -3,6 +3,7 @@ import math
 from ...external.transformations import quaternion_from_matrix, euler_matrix, quaternion_matrix, quaternion_multiply, euler_from_quaternion, quaternion_from_euler, quaternion_inverse, euler_from_matrix
 from ..motion_editing import quaternion_from_vector_to_vector
 
+
 def align_root_translation(target_skeleton, target_frame, src_frame, root_node="pelvis"):
     target_pos = target_skeleton.nodes[root_node].get_global_position(target_frame)
     target_pos = np.array([target_pos[0], target_pos[2]])
@@ -11,7 +12,6 @@ def align_root_translation(target_skeleton, target_frame, src_frame, root_node="
     target_frame[0] += delta[0]
     target_frame[2] += delta[1]
     return target_frame
-
 
 
 def align_quaternion_frames(target_skeleton, frames):
@@ -34,7 +34,6 @@ def align_quaternion_frames(target_skeleton, frames):
                 offset += 4
         new_frames.append(frame)
     return new_frames
-
 
 
 def get_coordinate_system_axes(skeleton, joint_name, frame, axes):
@@ -63,6 +62,7 @@ def align_axis(axes, key, new_vec):
     q = quaternion_from_vector_to_vector(axes[key], new_vec)
     aligned_axes = rotate_axes(axes, q)
     return q, aligned_axes
+
 
 def get_quaternion_rotation_by_name(joint_name, frame, skeleton, root_offset=3):
     assert joint_name in skeleton.animated_joints
