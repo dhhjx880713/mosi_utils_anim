@@ -54,8 +54,9 @@ class InverseKinematics(object):
         if self.use_euler:
             self.skeleton.set_rotation_type(ROTATION_TYPE_EULER)#change to euler
         self.channels = OrderedDict()
+        animated_joints = list(set(skeleton.animated_joints+[skeleton.head_joint]))
         for node in self.skeleton.nodes.values():
-            if node.node_name in skeleton.animated_joints:
+            if node.node_name in animated_joints:
                 node_channels = copy(node.channels)
                 if not self.use_euler:
                     if np.all([ch in node_channels for ch in ["Xrotation", "Yrotation", "Zrotation"]]):
@@ -212,17 +213,15 @@ class InverseKinematics(object):
         while keep_running:
             error = 0.0
             if "trajectories" in elementary_action_ik_constraints.keys():
-                error += self._modify_motion_vector_using_trajectory_constraint_list(motion_vector,
-                                                                                     elementary_action_ik_constraints[
-                                                                                         "trajectories"]) * trajectory_weights
+                constraints = elementary_action_ik_constraints["trajectories"]
+                c_error = self._modify_motion_vector_using_trajectory_constraint_list(motion_vector,constraints)
+                error += c_error * trajectory_weights
             if "collision_avoidance" in elementary_action_ik_constraints.keys():
-                error += self._modify_motion_vector_using_ca_constraints(motion_vector,
-                                                                         elementary_action_ik_constraints[
-                                                                             "collision_avoidance"])
+                constraints = elementary_action_ik_constraints["collision_avoidance"]
+                error += self._modify_motion_vector_using_ca_constraints(motion_vector, constraints)
             if "keyframes" in elementary_action_ik_constraints.keys():
-                error += self._modify_motion_vector_using_keyframe_constraint_list(motion_vector,
-                                                                                   elementary_action_ik_constraints[
-                                                                                       "keyframes"])
+                constraints = elementary_action_ik_constraints["keyframes"]
+                error += self._modify_motion_vector_using_keyframe_constraint_list(motion_vector, constraints)
             if last_error is not None:
                 delta = abs(last_error - error)
             else:

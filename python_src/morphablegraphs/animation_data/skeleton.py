@@ -61,6 +61,7 @@ DEG2RAD = np.pi / 180
 hand_bounds = [{"dim": 0, "min":30*DEG2RAD, "max": 180*DEG2RAD}, {"dim": 1, "min": -15*DEG2RAD, "max":120*DEG2RAD}, {"dim": 1, "min": -40*DEG2RAD, "max":40*DEG2RAD}]
 DEFAULT_HEAD_JOINT = "Head"
 DEFAULT_NECK_JOINT = "Neck"
+DEFAULT_ROOT_DIR = [0,0,1]
 DEFAULT_BOUNDS = {"LeftArm":[],#{"dim": 1, "min": 0, "max": 90}
                        "RightArm":[]#{"dim": 1, "min": 0, "max": 90},{"dim": 0, "min": 0, "max": 90}
                  ,"RightHand":hand_bounds,#[[-90, 90],[0, 0],[-90,90]]
@@ -84,7 +85,7 @@ class Skeleton(object):
         self.frame_time = None
         self.root = None
         self.aligning_root_node = None  # Node that defines body orientation. Can be different from the root node.
-        self.aligning_root_dir = None
+        self.aligning_root_dir = DEFAULT_ROOT_DIR
         self.node_names = None
         self.reference_frame = None
         self.reference_frame_length = None
@@ -200,7 +201,7 @@ class Skeleton(object):
         if "aligning_root_dir" in data.keys():
             self.aligning_root_dir = data["aligning_root_dir"]
         else:
-            self.aligning_root_dir = [0,0,1]
+            self.aligning_root_dir = DEFAULT_ROOT_DIR
 
     def load_from_fbx_data(self, data):
         self.nodes = collections.OrderedDict()
@@ -545,25 +546,30 @@ class Skeleton(object):
             src: http://answers.unity3d.com/questions/503407/need-to-convert-to-right-handed-coordinates.html
         """
 
+        animated_joints = [j for j, n in self.nodes.items() if "EndSite" not in j and len(n.children) > 0]#self.animated_joints
         joint_descs = []
-        self.nodes[self.root].to_unity_format(joint_descs, self.animated_joints, joint_name_map=joint_name_map)
+        self.nodes[self.root].to_unity_format(joint_descs, animated_joints, joint_name_map=joint_name_map)
 
         data = dict()
         data["root"] = self.root
         data["jointDescs"] = joint_descs
-        data["jointSequence"] = self.animated_joints
+        data["jointSequence"] = animated_joints
         default_pose = dict()
         default_pose["rotations"] = []
         for node in self.nodes.values():
-              if node.node_name in self.animated_joints and len(node.children) > 0:
+              if node.node_name in animated_joints:
                   q = node.rotation
                   if len(q) ==4:
-                    r = {"x":-q[1], "y":q[2], "z":q[3], "w":-q[0]}
+                      r = {"x":-q[1], "y":q[2], "z":q[3], "w":-q[0]}
                   else:
                       r = {"x":0, "y":0, "z":0, "w":1}
                   default_pose["rotations"].append(r)
 
-        default_pose["translations"] = [{"x":-scale*node.offset[0], "y":scale*node.offset[1], "z":scale*node.offset[2]} for node in self.nodes.values() if node.node_name in self.animated_joints and len(node.children) > 0]
+        default_pose["translations"] = [{"x":-scale*node.offset[0], "y":scale*node.offset[1], "z":scale*node.offset[2]} for node in self.nodes.values() if node.node_name in animated_joints and len(node.children) > 0]
 
         data["referencePose"] = default_pose
+        print "rotations", len(default_pose["rotations"])
+        print "translations", len(default_pose["translations"])
+
+        print "joints",len(data["jointSequence"])
         return data
