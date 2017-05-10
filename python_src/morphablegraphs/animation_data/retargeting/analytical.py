@@ -83,7 +83,7 @@ def find_rotation_analytically(new_skeleton, free_joint_name, target, frame, joi
     if free_joint_name == new_skeleton.root:
         q = align_root_joint(axes, global_src_x_vec, max_iter_count)
     else:
-       q = align_joint(new_skeleton, free_joint_name, axes, global_src_up_vec,global_src_x_vec, joint_cos_map)
+        q = align_joint(new_skeleton, free_joint_name, axes, global_src_up_vec,global_src_x_vec, joint_cos_map)
     return to_local_cos(new_skeleton, free_joint_name, frame, q)
 
 
@@ -154,8 +154,9 @@ class Retargeting(object):
     def retarget_frame(self, src_frame, ref_frame):
         #print "apply y offset", self.target_skeleton.nodes["pelvis"].offset[0]
         target_frame = np.zeros(self.n_params)
+        # copy the root translation assuming the rocketbox skeleton with static offset on the hips is used as source
         target_frame[0] = src_frame[0] #* self.scale_factor
-        target_frame[1] = src_frame[1]- self.target_skeleton.nodes["pelvis"].offset[0]# * self.scale_factor
+        target_frame[1] = src_frame[1]#- self.target_skeleton.nodes["pelvis"].offset[0]# * self.scale_factor
         target_frame[2] = src_frame[2] #* self.scale_factor
 
         if self.constant_offset is not None:
@@ -196,6 +197,7 @@ class Retargeting(object):
         #    src_frames = apply_additional_rotation_on_frames(src_skeleton.animated_joints, src_frames, additional_rotation_map)
         target_frames = []
         ref_frame = None
+        print frame_range
         for idx, src_frame in enumerate(src_frames[frame_range[0]:frame_range[1]]):
             target_frame = self.retarget_frame(src_frame, ref_frame)
             if ref_frame is None:
