@@ -568,8 +568,4 @@ class Skeleton(object):
         default_pose["translations"] = [{"x":-scale*node.offset[0], "y":scale*node.offset[1], "z":scale*node.offset[2]} for node in self.nodes.values() if node.node_name in animated_joints and len(node.children) > 0]
 
         data["referencePose"] = default_pose
-        print "rotations", len(default_pose["rotations"])
-        print "translations", len(default_pose["translations"])
-
-        print "joints",len(data["jointSequence"])
         return data
