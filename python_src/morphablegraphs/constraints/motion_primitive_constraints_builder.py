@@ -180,8 +180,8 @@ class MotionPrimitiveConstraintsBuilder(object):
             mp_constraints.goal_arc_length = self.action_constraints.root_trajectory.full_arc_length
         mp_constraints.step_goal, dir_vector = self._get_point_and_orientation_from_arc_length(mp_constraints.goal_arc_length)
         mp_constraints.print_status()
-        self._add_path_following_goal_constraint(self.skeleton.root, mp_constraints, mp_constraints.step_goal)
-        self._add_path_following_direction_constraint(self.skeleton.root, mp_constraints, dir_vector)
+        self._add_path_following_goal_constraint(self.skeleton.aligning_root_node, mp_constraints, mp_constraints.step_goal)
+        self._add_path_following_direction_constraint(self.skeleton.aligning_root_node, mp_constraints, dir_vector)
 
     def _get_approximate_step_length(self):
         node_key = (self.action_constraints.action_name, self.status["motion_primitive_name"])
