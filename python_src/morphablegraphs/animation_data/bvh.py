@@ -221,8 +221,8 @@ class BVHWriter(object):
     def generate_bvh_string(self):
         bvh_string = self._generate_hierarchy_string(self.skeleton) + "\n"
         if self.is_quaternion:
-            euler_frames = self.convert_quaternion_to_euler_frames_skipping_fixed_joints(self.frame_data, self.is_quaternion)
-            #euler_frames = self.convert_quaternion_to_euler_frames(self.frame_data)
+            #euler_frames = self.convert_quaternion_to_euler_frames_skipping_fixed_joints(self.frame_data, self.is_quaternion)
+            euler_frames = self.convert_quaternion_to_euler_frames(self.frame_data)
 
         else:
             euler_frames = self.frame_data

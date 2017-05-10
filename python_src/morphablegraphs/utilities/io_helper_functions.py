@@ -202,9 +202,9 @@ def get_bvh_writer(skeleton, quat_frames, start_pose=None, is_quaternion=True):
         quat_frames = transform_quaternion_frames(quat_frames,
                                                   start_pose["orientation"],
                                                   start_pose["position"])
-
-    bvh_writer = BVHWriter(None, skeleton, quat_frames, skeleton.frame_time,
-                           is_quaternion)
+    if len(quat_frames) > 0 and len(quat_frames[0]) < skeleton.reference_frame_length:
+        quat_frames = skeleton.complete_motion_vector_from_reference(quat_frames)
+    bvh_writer = BVHWriter(None, skeleton, quat_frames, skeleton.frame_time, is_quaternion)
     return bvh_writer
 
 

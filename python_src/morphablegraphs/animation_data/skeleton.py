@@ -352,17 +352,19 @@ class Skeleton(object):
         :return:
         """
         new_frame = np.zeros(self.reference_frame_length)
+        joint_index = 0
         for joint_name in self.nodes.keys():
-            if len(self.nodes[joint_name].children) > 0:
+            if len(self.nodes[joint_name].children) > 0 and "EndSite" not in joint_name:
                 if joint_name == self.root:
                     new_frame[:7] = reduced_frame[:7]
                 else:
-                    dest_start = self.nodes[joint_name].index * 4 + 3
+                    dest_start = joint_index * 4 + 3
                     if self.nodes[joint_name].fixed:
                         new_frame[dest_start: dest_start+4] = self.nodes[joint_name].rotation
                     else:
                         src_start = self.nodes[joint_name].quaternion_frame_index * 4 + 3
                         new_frame[dest_start: dest_start+4] = reduced_frame[src_start: src_start + 4]
+                joint_index += 1
         return new_frame
 
     def _get_max_level(self):
