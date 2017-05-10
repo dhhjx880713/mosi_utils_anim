@@ -187,6 +187,15 @@ class ElementaryActionConstraintsBuilder(object):
         #print "merged keyframe constraint", merged_constraint_desc
         return merged_constraint_desc
 
+    def _create_root_trajectory(self, action_index):
+        root_trajectory = None
+        root_trajectories = self._create_trajectory_constraints_for_joint(action_index,
+                                                                          self.motion_state_graph.skeleton.aligning_root_node)
+
+        if len(root_trajectories) > 0:
+           root_trajectory = root_trajectories[0]
+        return root_trajectory
+
     def _add_trajectory_constraints(self, action_constraints, action_index):
         """ Extracts the root_trajectory if it is found and trajectories for other joints.
             If semanticAnnotation is found they are treated as collision avoidance constraint.
@@ -194,14 +203,15 @@ class ElementaryActionConstraintsBuilder(object):
         action_constraints.trajectory_constraints = list()
         action_constraints.collision_avoidance_constraints = list()
         action_constraints.annotated_trajectory_constraints = list()
+        action_constraints.root_trajectory = self._create_root_trajectory(action_index)
+        self._add_joint_trajectory_constraints(action_constraints, action_index)
 
-        root_trajectories = self._create_trajectory_constraints_for_joint(action_index, self.motion_state_graph.skeleton.root)
-        if len(root_trajectories) > 0:
-            action_constraints.root_trajectory = root_trajectories[0]
+    def _add_joint_trajectory_constraints(self, action_constraints, action_index):
         for joint_name in self.motion_state_graph.skeleton.node_name_frame_map.keys():
             if joint_name != self.motion_state_graph.skeleton.root:
                 self._add_trajectory_constraint(action_constraints, action_index, joint_name)
-        if self.collision_avoidance_constraints_mode == CA_CONSTRAINTS_MODE_SET and len(action_constraints.collision_avoidance_constraints) > 0:
+        if self.collision_avoidance_constraints_mode == CA_CONSTRAINTS_MODE_SET and len(
+                action_constraints.collision_avoidance_constraints) > 0:
             self._add_ca_trajectory_constraint_set(action_constraints)
 
     def _add_trajectory_constraint(self, action_constraints, action_index, joint_name):

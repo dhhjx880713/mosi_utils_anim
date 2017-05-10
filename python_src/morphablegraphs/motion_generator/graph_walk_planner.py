@@ -96,7 +96,7 @@ class GraphWalkPlanner(object):
         constraint_desc["position"] = goal_position.tolist()
         pos_constraint = GlobalTransformConstraint(self.motion_state_graph.skeleton, constraint_desc, 1.0, 1.0)
         mp_constraints.constraints.append(pos_constraint)
-        dir_constraint_desc = {"joint": self.motion_state_graph.skeleton.root, "canonical_keyframe": -1, "dir_vector": tangent_line,
+        dir_constraint_desc = {"joint": self.motion_state_graph.skeleton.aligning_root_node, "canonical_keyframe": -1, "dir_vector": tangent_line,
                                "semanticAnnotation": {"keyframeLabel": "end", "generated": True}}
         # TODO add weight to configuration
         dir_constraint = Direction2DConstraint(self.motion_state_graph.skeleton, dir_constraint_desc, 1.0, 1.0)
@@ -113,7 +113,7 @@ class GraphWalkPlanner(object):
         mp_constraints.skeleton = self.motion_state_graph.skeleton
         mp_constraints.aligning_transform = create_transformation_matrix(state.graph_walk.motion_vector.start_pose["position"], state.graph_walk.motion_vector.start_pose["orientation"])
         mp_constraints.start_pose = state.graph_walk.motion_vector.start_pose
-        constraint_desc = {"joint": self.motion_state_graph.skeleton.root, "canonical_keyframe": -1, "n_canonical_frames": 0,
+        constraint_desc = {"joint": self.motion_state_graph.skeleton.aligning_root_node, "canonical_keyframe": -1, "n_canonical_frames": 0,
                            "semanticAnnotation": {"keyframeLabel": "end", "generated": True}}
         if add_orientation:
             self._add_constraint_with_orientation(constraint_desc, goal_arc_length, mp_constraints)

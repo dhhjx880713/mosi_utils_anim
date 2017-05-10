@@ -25,7 +25,7 @@ class Direction2DConstraint(KeyframeConstraintBase):
 
     def evaluate_motion_spline(self, aligned_spline):
         frame = aligned_spline.evaluate(self.canonical_keyframe)
-        motion_dir = get_global_node_orientation_vector(self.skeleton, self.skeleton.aligning_root_node, frame)
+        motion_dir = get_global_node_orientation_vector(self.skeleton, self.skeleton.aligning_root_node, frame, self.skeleton.aligning_root_dir)
         magnitude = self.target_dir_len * np.linalg.norm(motion_dir)
         cos_angle = np.dot(self.target_dir, motion_dir)/magnitude
         #print self.target_dir, motion_dir
@@ -37,7 +37,7 @@ class Direction2DConstraint(KeyframeConstraintBase):
 
     def evaluate_motion_sample(self, aligned_quat_frames):
         frame = aligned_quat_frames[self.canonical_keyframe]
-        motion_dir = get_global_node_orientation_vector(self.skeleton, self.skeleton.aligning_root_node, frame)
+        motion_dir = get_global_node_orientation_vector(self.skeleton, self.skeleton.aligning_root_node, frame, self.skeleton.aligning_root_dir)
         #TODO implement alternative constraint using trajectory direction instead of pose direction
         # root_points = extract_root_positions(aligned_quat_frames)
         # print root_points
