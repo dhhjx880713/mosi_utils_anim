@@ -23,7 +23,6 @@ from morphablegraphs import MotionGenerator, AlgorithmConfigurationBuilder, load
 from morphablegraphs.animation_data.retargeting import retarget_from_src_to_target, GAME_ENGINE_TO_ROCKETBOX_MAP, ROCKETBOX_ROOT_OFFSET
 from morphablegraphs.animation_data import Skeleton, MotionVector, BVHReader, BVHWriter
 from morphablegraphs.animation_data.fbx_io import load_skeleton_and_animations_from_fbx, export_motion_vector_to_fbx_file
-from morphablegraphs.animation_data.fbx_io import export_motion_vector_to_fbx_file
 from morphablegraphs.utilities.io_helper_functions import get_bvh_writer
 from morphablegraphs.utilities import write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO, LOG_MODE_ERROR, set_log_mode
 import argparse
@@ -129,8 +128,8 @@ class GenerateMotionHandler(tornado.web.RequestHandler):
                 result_object = motion_vector.to_unity_format()
 
                 if self.application.export_motion_to_file:
-                    out_file_name = self.application.service_config["output_dir"] + os.sep + self.application.service_config["output_filename"]
-                    export_motion_vector_to_fbx_file(motion_vector.skeleton, motion_vector, out_file_name)
+                        out_file_name = self.application.service_config["output_dir"] + os.sep + self.application.service_config["output_filename"]
+                        export_motion_vector_to_fbx_file(motion_vector.skeleton, motion_vector, out_file_name)
             else:
                 result_object = self.convert_to_interact_format(motion_vector)
 
