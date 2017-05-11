@@ -54,7 +54,7 @@ class InverseKinematics(object):
         if self.use_euler:
             self.skeleton.set_rotation_type(ROTATION_TYPE_EULER)#change to euler
         self.channels = OrderedDict()
-        animated_joints = list(set(skeleton.animated_joints+[skeleton.head_joint]))
+        animated_joints = skeleton.animated_joints
         for node in self.skeleton.nodes.values():
             if node.node_name in animated_joints:
                 node_channels = copy(node.channels)
