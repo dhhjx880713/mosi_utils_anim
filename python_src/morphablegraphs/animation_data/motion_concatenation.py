@@ -123,10 +123,13 @@ def get_node_aligning_2d_transform(skeleton, node_name, prev_frames, new_frames)
     dir_vec_a = get_orientation_vector_from_matrix(m_a[:3, :3])
     dir_vec_b = get_orientation_vector_from_matrix(m_b[:3, :3])
     angle = get_rotation_angle(dir_vec_a, dir_vec_b)
-    offset_x = m_a[0, 3] - m_b[0, 3]
-    offset_z = m_a[2, 3] - m_b[2, 3]
     q = quaternion_about_axis(np.deg2rad(angle), [0, 1, 0])
     m = quaternion_matrix(q)
+
+    first_frame_pos = m_b[:4,3]
+    rotated_first_frame_pos = np.dot(m, first_frame_pos)[:3]
+    offset_x = m_a[0, 3] - rotated_first_frame_pos[0]
+    offset_z = m_a[2, 3] - rotated_first_frame_pos[2]
     m[:3,3] = [offset_x, 0.0, offset_z]
     return m
 
@@ -134,13 +137,14 @@ def get_node_aligning_2d_transform(skeleton, node_name, prev_frames, new_frames)
 def transform_quaternion_frames(frames, m,
                                 translation_param_range=(0, 3),
                                 orientation_param_range=(3, 7)):
-    """ possibly broken
+    """ possibly broken because not 3,7 is the root orientation but 7,11
     """
     q = quaternion_from_matrix(m)
     for frame in frames:
         ot = frame[translation_param_range[0]:translation_param_range[1]].tolist() + [1]
         oq = frame[orientation_param_range[0]:orientation_param_range[1]]
-        frame[translation_param_range[0]:translation_param_range[1]] = np.dot(m, ot)[:3]
+        transformed_t = np.dot(m, ot)[:3]
+        frame[translation_param_range[0]:translation_param_range[1]] = transformed_t
         frame[orientation_param_range[0]:orientation_param_range[1]] = quaternion_multiply(q, oq)
     return frames
 
@@ -182,7 +186,12 @@ def align_quaternion_frames_with_start(skeleton, node_name, new_frames, prev_fra
         return align_quaternion_frames(skeleton, node_name, new_frames,  prev_frames)
     elif start_pose is not None:
         m = get_transform_from_start_pose(start_pose)
-        return transform_quaternion_frames(new_frames, m)
+        first_frame_pos = new_frames[0][:3].tolist() + [1]
+        transformed_first_frame_pos = np.dot(m, first_frame_pos)[:3]
+        delta = start_pose["position"] - transformed_first_frame_pos
+        m[:3, 3] = delta
+        transformed_frames = transform_quaternion_frames(new_frames, m)
+        return transformed_frames
     else:
         return new_frames
 
