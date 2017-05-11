@@ -551,7 +551,7 @@ class Skeleton(object):
         self.nodes[self.root].to_unity_format(joint_descs, animated_joints, joint_name_map=joint_name_map)
 
         data = dict()
-        data["root"] = self.root
+        data["root"] = self.aligning_root_node
         data["jointDescs"] = joint_descs
         data["jointSequence"] = animated_joints
         default_pose = dict()
