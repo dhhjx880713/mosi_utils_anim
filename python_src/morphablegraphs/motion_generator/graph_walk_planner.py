@@ -37,6 +37,7 @@ class GraphWalkPlanner(object):
         self.node_group = None
         self.trajectory = None
         self._n_steps_looking_ahead = 1
+        self.add_orientation_constraints = False
 
     def set_state(self, graph_walk, mp_generator, action_state, action_constraints, arc_length_of_end):
         self.mp_generator = mp_generator
@@ -51,7 +52,7 @@ class GraphWalkPlanner(object):
         n_nodes = len(start_nodes)
         if n_nodes > 1:
             options = [(self.action_constraints.action_name, next_node) for next_node in start_nodes]
-            return self.select_next_step(self.state, options, add_orientation=False)
+            return self.select_next_step(self.state, options, add_orientation=self.add_orientation_constraints)
         else:
             return self.action_constraints.action_name, start_nodes[0]
 
@@ -76,7 +77,7 @@ class GraphWalkPlanner(object):
             next_node = options[0]
         elif n_transitions > 1:
             if self.trajectory is not None:
-                next_node = self.select_next_step(self.state, options, add_orientation=False)
+                next_node = self.select_next_step(self.state, options, add_orientation=self.add_orientation_constraints)
             else:  # use random transition if there is no path to follow
                 random_index = random.randrange(0, n_transitions, 1)
                 next_node = options[random_index]
@@ -92,11 +93,12 @@ class GraphWalkPlanner(object):
         return next_node, next_node_type
 
     def _add_constraint_with_orientation(self, constraint_desc, goal_arc_length, mp_constraints):
-        goal_position, tangent_line = self.trajectory.get_tangent_at_arc_length(goal_arc_length)
-        constraint_desc["position"] = goal_position.tolist()
+        goal_position = self.trajectory.query_point_by_absolute_arc_length(goal_arc_length).tolist()
+        tangent = self.trajectory.get_direction_vector_by_absolute_arc_length(goal_arc_length)
+        constraint_desc["position"] = goal_position
         pos_constraint = GlobalTransformConstraint(self.motion_state_graph.skeleton, constraint_desc, 1.0, 1.0)
         mp_constraints.constraints.append(pos_constraint)
-        dir_constraint_desc = {"joint": self.motion_state_graph.skeleton.aligning_root_node, "canonical_keyframe": -1, "dir_vector": tangent_line,
+        dir_constraint_desc = {"joint": self.motion_state_graph.skeleton.aligning_root_node, "canonical_keyframe": -1, "dir_vector": tangent,
                                "semanticAnnotation": {"keyframeLabel": "end", "generated": True}}
         # TODO add weight to configuration
         dir_constraint = Direction2DConstraint(self.motion_state_graph.skeleton, dir_constraint_desc, 1.0, 1.0)

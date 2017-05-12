@@ -8,8 +8,10 @@ import numpy as np
 from elementary_action_constraints import ElementaryActionConstraints
 from spatial_constraints import TrajectoryConstraint
 from spatial_constraints import TrajectorySetConstraint
+from ..constraints.mg_input_format_reader import P_KEY, O_KEY, T_KEY
 from . import *
 from ..utilities.log import write_log, write_message_to_log, LOG_MODE_DEBUG
+from ..constraints.spatial_constraints.splines.utils import complete_orientations_from_tangents, tangents_to_quaternions, complete_tangents
 
 REFERENCE_2D_OFFSET = np.array([0.0, -1.0])# components correspond to x, z - we assume the motions are initially oriented into that direction
 LEFT_HAND_JOINT = "LeftToolEndSite"
@@ -172,11 +174,11 @@ class ElementaryActionConstraintsBuilder(object):
 
     def _create_two_hand_constraint_definition(self, constraint_list, left_hand_index, right_hand_index):
         joint_names = [LEFT_HAND_JOINT, RIGHT_HAND_JOINT]
-        positions = [constraint_list[left_hand_index]["position"],
-                     constraint_list[right_hand_index]["position"]]
-        orientations = [constraint_list[left_hand_index]["orientation"],
-                        constraint_list[right_hand_index]["orientation"]]
-        time = constraint_list[left_hand_index]["time"]
+        positions = [constraint_list[left_hand_index][P_KEY],
+                     constraint_list[right_hand_index][P_KEY]]
+        orientations = [constraint_list[left_hand_index][O_KEY],
+                        constraint_list[right_hand_index][O_KEY]]
+        time = constraint_list[left_hand_index][T_KEY]
         semantic_annotation = constraint_list[left_hand_index]["semanticAnnotation"]
         merged_constraint_desc = {"joint": joint_names,
                                    "positions": positions,
@@ -249,30 +251,43 @@ class ElementaryActionConstraintsBuilder(object):
         \t The trajectory constraints defined by the control points from the
             trajectory_constraint or an empty list if there is no constraint
         """
+        print "create trajectory", action_index, joint_name
         desc = self.mg_input.extract_trajectory_desc(action_index, joint_name, self.control_point_distance_threshold)
-        traj_constraints = list()
-        for idx, control_points in enumerate(desc["control_points_list"]):
-            if control_points is None:
-                continue
-            else:
-                traj_constraint = TrajectoryConstraint(joint_name, control_points,
-                                              self.default_spline_type, 0.0,
-                                              desc["unconstrained_indices"],
-                                              self.motion_state_graph.skeleton,
-                                              self.constraint_precision, self.default_constraint_weight,
-                                              self.closest_point_search_accuracy,
-                                              self.closest_point_search_max_iterations,
-                                              self.spline_arc_length_parameter_granularity)
-                traj_constraint.semantic_annotation = desc["semantic_annotation"]
-                if desc["active_regions"][idx] is not None:
-                    # only collision avoidance constraints have a active regions
-                    traj_constraint.is_collision_avoidance_constraint = True
-                    self._set_active_range_from_region(traj_constraint, desc["active_regions"][idx])
-                traj_constraints.append(traj_constraint)
-        return traj_constraints
+        control_points_list = desc["control_points_list"]
+        if len(control_points_list) > 0 and len(control_points_list[0][P_KEY]) > 0:
+            control_points = control_points_list[0]
+            print "control points",control_points
+            #orientations = complete_orientations_from_tangents(control_points[P_KEY], control_points[O_KEY])
+            orientations = complete_tangents(control_points[P_KEY], control_points[O_KEY])
+            #orientations = tangents_to_quaternions(orientations)
+            traj_constraint = TrajectoryConstraint(joint_name,  control_points[P_KEY], orientations,
+                                               self.default_spline_type, 0.0,
+                                               desc["unconstrained_indices"],
+                                               self.motion_state_graph.skeleton,
+                                               self.constraint_precision, self.default_constraint_weight,
+                                               self.closest_point_search_accuracy,
+                                               self.closest_point_search_max_iterations,
+                                               self.spline_arc_length_parameter_granularity)
+            return [traj_constraint]
+        else:
+            return []
 
-    def _set_active_range_from_region(self, traj_constraint, active_region):
-        if active_region["start_point"] is not None and active_region["end_point"] is not None:
-            range_start, closest_point = traj_constraint.get_absolute_arc_length_of_point(active_region["start_point"])
-            range_end, closest_point = traj_constraint.get_absolute_arc_length_of_point(active_region["end_point"])
-            traj_constraint.set_active_range(range_start, range_end)
+    #    traj_constraint.semantic_annotation = desc["semantic_annotation"]
+    #    traj_constraints = list()
+    #    for idx, control_points in enumerate(desc["control_points_list"]):
+    #        if control_points is None:
+    #            continue
+    #        else:
+    #
+    #            if desc["active_regions"][idx] is not None:
+    #                # only collision avoidance constraints have a active regions
+    #                traj_constraint.is_collision_avoidance_constraint = True
+    #                self._set_active_range_from_region(traj_constraint, desc["active_regions"][idx])
+    #            traj_constraints.append(traj_constraint)
+    #    return traj_constraints
+
+    #def _set_active_range_from_region(self, traj_constraint, active_region):
+    #    if active_region["start_point"] is not None and active_region["end_point"] is not None:
+    #        range_start, closest_point = traj_constraint.get_absolute_arc_length_of_point(active_region["start_point"])
+    #        range_end, closest_point = traj_constraint.get_absolute_arc_length_of_point(active_region["end_point"])
+    #        traj_constraint.set_active_range(range_start, range_end)

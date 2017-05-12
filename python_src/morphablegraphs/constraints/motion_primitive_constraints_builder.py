@@ -340,8 +340,11 @@ class MotionPrimitiveConstraintsBuilder(object):
         """
         point = self.action_constraints.root_trajectory.query_point_by_absolute_arc_length(arc_length).tolist()
         reference_vector = np.array([0.0, 1.0])  # is interpreted as x, z
-        start, dir_vector, angle = self.action_constraints.root_trajectory.get_angle_at_arc_length_2d(arc_length,
-                                                                                                      reference_vector)
+        start, dir_vector1, angle = self.action_constraints.root_trajectory.get_angle_at_arc_length_2d(arc_length, reference_vector)
+        #dir_vector = self.action_constraints.root_trajectory.get_direction_vector_by_absolute_arc_length(arc_length)
+        dir_vector = self.action_constraints.root_trajectory.query_orientation_by_absolute_arc_length(arc_length)
+        dir_vector/=np.linalg.norm(dir_vector)
+        print "orientation vector", dir_vector,dir_vector1
         for i in self.action_constraints.root_trajectory.unconstrained_indices:
             point[i] = None
         return point, dir_vector
