@@ -1,7 +1,7 @@
 from parameterized_spline import ParameterizedSpline
 import numpy as np
 import math
-from ....external.transformations import  quaternion_from_euler
+from ....external.transformations import quaternion_from_euler, euler_from_quaternion
 
 REF_VECTOR = [0.0,1.0]
 
@@ -20,8 +20,8 @@ def get_tangent_at_parameter(spline, u, eval_range=0.5):
     while magnitude == 0:  # handle cases where the granularity of the spline is too low
         l1 = u - eval_range
         l2 = u + eval_range
-        p1 = spline.query_point_by_parameter(l1)
-        p2 = spline.query_point_by_parameter(l2)
+        p1 = spline.query_point_by_absolute_arc_length(l1)
+        p2 = spline.query_point_by_absolute_arc_length(l2)
         tangent = p2 - p1
         magnitude = np.linalg.norm(tangent)
         eval_range += 0.1
@@ -53,7 +53,8 @@ def get_tangents2d(translation, eval_range=0.5):
 def complete_tangents(translation, given_tangents, eval_range=0.5):
     steps = len(translation)
     spline = ParameterizedSpline(translation)
-    parameters = np.linspace(0, 1, steps)
+    parameters = [spline.get_absolute_arc_length_of_point(t)[0] for t in translation]
+    #parameters = np.linspace(0, 1, steps)
     tangents = given_tangents
     for idx, u in enumerate(parameters):
         if tangents[idx] is None:
