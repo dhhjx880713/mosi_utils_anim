@@ -4,8 +4,10 @@ import numpy as np
 import json
 from ...utilities.log import write_log, write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_ERROR, LOG_MODE_INFO
 from utils import _transform_point_from_cad_to_opengl_cs
+from constants import *
 from trajectory_constraint_reader import TrajectoryConstraintReader
 from keyframe_constraint_reader import KeyframeConstraintReader
+
 
 
 class MGInputFormatReader(object):
@@ -41,46 +43,46 @@ class MGInputFormatReader(object):
         success = self._verify_input()
 
         if success:
-            if "outputMode" in mg_input.keys() and mg_input["outputMode"] == "Unity":
+            if OUTPUT_MODE_KEY in mg_input.keys() and mg_input[OUTPUT_MODE_KEY] == "Unity":
                 self._set_orientation_to_null()
 
             self._extract_elementary_actions()
         return success
 
     def _extract_elementary_actions(self):
-        if "elementaryActions" in self.mg_input_file.keys():
-            self.elementary_action_list = self.mg_input_file["elementaryActions"]
-        elif "tasks" in self.mg_input_file.keys():
+        if ACTIONS_KEY in self.mg_input_file.keys():
+            self.elementary_action_list = self.mg_input_file[ACTIONS_KEY]
+        elif TASKS_KEY in self.mg_input_file.keys():
             self.elementary_action_list = []
-            for task in self.mg_input_file["tasks"]:
-                if "elementaryActions" in task.keys():
-                    self.elementary_action_list += task["elementaryActions"]
+            for task in self.mg_input_file[TASKS_KEY]:
+                if ACTIONS_KEY in task.keys():
+                    self.elementary_action_list += task[ACTIONS_KEY]
         self.keyframe_annotations = self._extract_keyframe_annotations()
 
     def get_number_of_actions(self):
         return len(self.elementary_action_list)
 
     def get_session_id(self):
-        if "session" not in self.mg_input_file.keys():
+        if SESSION_KEY not in self.mg_input_file.keys():
             return ""
-        return self.mg_input_file["session"]
+        return self.mg_input_file[SESSION_KEY]
 
     def get_group_id(self):
-        if "groupId" not in self.mg_input_file.keys():
+        if GROUP_KEY not in self.mg_input_file.keys():
             return ""
-        return self.mg_input_file["groupId"]
+        return self.mg_input_file[GROUP_KEY]
 
     def get_start_pose(self):
         start_pose = dict()
-        if None in self.mg_input_file["startPose"]["orientation"]:
-            start_pose["orientation"] = None
+        if None in self.mg_input_file[START_KEY][O_KEY]:
+            start_pose[O_KEY] = None
         else:
-            start_pose["orientation"] = _transform_point_from_cad_to_opengl_cs(self.mg_input_file["startPose"]["orientation"])
-        start_pose["position"] = _transform_point_from_cad_to_opengl_cs(self.mg_input_file["startPose"]["position"])
+            start_pose[O_KEY] = _transform_point_from_cad_to_opengl_cs(self.mg_input_file[START_KEY][O_KEY])
+        start_pose[P_KEY] = _transform_point_from_cad_to_opengl_cs(self.mg_input_file[START_KEY][P_KEY])
         return start_pose
 
     def get_elementary_action_name(self, action_index):
-        return self.elementary_action_list[action_index]["action"]
+        return self.elementary_action_list[action_index][ACTION_KEY]
 
     def _fill_joint_name_map(self):
         # TODO: read from file
@@ -103,19 +105,19 @@ class MGInputFormatReader(object):
     def _verify_input(self):
         success = True
         error_string = ""
-        if "elementaryActions" not in self.mg_input_file.keys() and "tasks" not in self.mg_input_file.keys():
+        if ACTIONS_KEY not in self.mg_input_file.keys() and TASKS_KEY not in self.mg_input_file.keys():
             error_string = "Error: Did not find expected keys in the input data."
             success = False
 
-        if "elementaryActions" in self.mg_input_file.keys():
-            for action in self.mg_input_file["elementaryActions"]:
-                action_name = action["action"]
+        if ACTIONS_KEY in self.mg_input_file.keys():
+            for action in self.mg_input_file[ACTIONS_KEY]:
+                action_name = action[ACTION_KEY]
                 if action_name not in self.motion_state_graph.node_groups.keys():
                     error_string = "Error: Unknown action " + action_name
                     success = False
 
                 action_type = self.motion_state_graph.node_groups[action_name].get_action_type()
-                if action_type == "locomotion" and len(action["constraints"]) < 1:
+                if action_type == "locomotion" and len(action[CONSTRAINTS_KEY]) < 1:
                     error_string = "Error: A trajectory constraint needs to be specified for the locomotion action " + action_name
                     success = False
 
@@ -123,27 +125,28 @@ class MGInputFormatReader(object):
         return success
 
     def _set_orientation_to_null(self):
-        if "setOrientationFromTrajectory" in self.mg_input_file.keys() and \
-                self.mg_input_file["setOrientationFromTrajectory"]:
-            self.mg_input_file["startPose"]["orientation"] = [None, None, None]
+        if ESTIMATE_ORIENTATION_KEY in self.mg_input_file.keys() and \
+                self.mg_input_file[ESTIMATE_ORIENTATION_KEY]:
+            self.mg_input_file[START_KEY][O_KEY] = [None, None, None]
 
-        for action in self.mg_input_file["elementaryActions"]:
-            for constraint in action["constraints"]:
-                for p in constraint["trajectoryConstraints"]:
-                    p["orientation"] = [None, None, None]
+        for action in self.mg_input_file[ACTIONS_KEY]:
+            for constraint in action[CONSTRAINTS_KEY]:
+                for p in constraint[TRAJECTORY_CONSTRAINTS_KEY]:
+                    if O_KEY not in p.keys() or len(p[O_KEY]) == 0:
+                        p[O_KEY] = [None, None, None]
 
     def center_constraints(self):
-        offset = np.array(self.mg_input_file["startPose"]["position"])
-        for action in self.mg_input_file["elementaryActions"]:
-            for constraint in action["constraints"]:
-                for p in constraint["keyframeConstraints"]:
-                    new_p = p["position"] - offset
-                    p["position"] = new_p.tolist()
+        offset = np.array(self.mg_input_file[START_KEY][P_KEY])
+        for action in self.mg_input_file[ACTIONS_KEY]:
+            for constraint in action[CONSTRAINTS_KEY]:
+                for p in constraint[KEYFRAME_CONSTRAINTS_KEY]:
+                    new_p = p[P_KEY] - offset
+                    p[P_KEY] = new_p.tolist()
 
-                for p in constraint["trajectoryConstraints"]:
-                    new_p = p["position"] - offset
-                    p["position"] = new_p.tolist()
-        self.mg_input_file["startPose"]["position"] = [0, 0, 0]
+                for p in constraint[TRAJECTORY_CONSTRAINTS_KEY]:
+                    new_p = p[P_KEY] - offset
+                    p[P_KEY] = new_p.tolist()
+        self.mg_input_file[START_KEY][P_KEY] = [0, 0, 0]
         return offset
 
     def extract_trajectory_desc(self, action_index, joint_name, distance_treshold=-1):
@@ -178,8 +181,8 @@ class MGInputFormatReader(object):
           Contains for every elementary action a dict that associates of events/actions with certain keyframes
         """
         annotations = dict()
-        if "keyframeAnnotations" in self.elementary_action_list[action_index].keys():
-            for annotation in self.elementary_action_list[action_index]["keyframeAnnotations"]:
-                keyframe_label = annotation["keyframe"]
+        if ANNOTATIONS_KEY in self.elementary_action_list[action_index].keys():
+            for annotation in self.elementary_action_list[action_index][ANNOTATIONS_KEY]:
+                keyframe_label = annotation[KEYFRAME_KEY]
                 annotations[keyframe_label] = annotation
         return annotations
