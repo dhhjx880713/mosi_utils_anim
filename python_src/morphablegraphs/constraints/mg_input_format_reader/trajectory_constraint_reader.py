@@ -1,6 +1,7 @@
 import numpy as np
+import math
 from ...utilities.log import write_log, write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_ERROR, LOG_MODE_INFO
-from ...external.transformations import quaternion_from_euler
+from ...external.transformations import quaternion_from_euler, euler_from_quaternion
 from utils import _transform_point_from_cad_to_opengl_cs, _transform_unconstrained_indices_from_cad_to_opengl_cs
 from constants import *
 
@@ -135,7 +136,15 @@ class TrajectoryConstraintReader(object):
         point = np.asarray(_transform_point_from_cad_to_opengl_cs(point, self.activate_coordinate_transform))
 
         if O_KEY in control_point.keys() and None not in control_point[O_KEY]:
-            orientation = quaternion_from_euler(*np.radians(control_point[O_KEY]))
+            #q = quaternion_from_euler(*np.radians(control_point[O_KEY]))
+            ref_vector = [0, 1]
+            angle = np.radians(control_point[O_KEY][1])
+            sa = math.sin(angle)
+            ca = math.cos(angle)
+            m = np.array([[ca, -sa], [sa, ca]])
+            orientation = np.dot(m, ref_vector)
+            orientation /= np.linalg.norm(orientation)
+            orientation = np.array([orientation[0],0,orientation[1]])
         else:
             orientation = None
         #orientation = None

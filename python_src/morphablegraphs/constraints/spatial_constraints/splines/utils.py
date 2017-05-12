@@ -80,6 +80,14 @@ def tangent_to_quaternion(tangent, ref_vector=REF_VECTOR):
     angle = get_angle_between_vectors(a, b)
     return quaternion_from_euler(0, angle, 0)
 
+def quaternion_to_tangent(q, ref_vector=REF_VECTOR):
+    e = euler_from_quaternion(q)
+    angle = e[1]
+    sa = math.sin(angle)
+    ca = math.cos(angle)
+    m = np.array([[ca, -sa], [sa, ca]])
+    return np.dot(m, ref_vector)
+
 
 def tangents_to_quaternions(tangents, ref_vector=REF_VECTOR):
     quaternions = []
