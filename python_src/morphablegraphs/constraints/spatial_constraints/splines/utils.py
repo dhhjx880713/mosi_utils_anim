@@ -20,8 +20,8 @@ def get_tangent_at_parameter(spline, u, eval_range=0.5):
     while magnitude == 0:  # handle cases where the granularity of the spline is too low
         l1 = u - eval_range
         l2 = u + eval_range
-        p1 = spline.query_point_by_absolute_arc_length(l1)
-        p2 = spline.query_point_by_absolute_arc_length(l2)
+        p1 = spline.query_point_by_parameter(l1)
+        p2 = spline.query_point_by_parameter(l2)
         tangent = p2 - p1
         magnitude = np.linalg.norm(tangent)
         eval_range += 0.1
@@ -38,10 +38,11 @@ def get_angle_between_vectors(a,b):
 
 
 def get_tangents2d(translation, eval_range=0.5):
+    """ Create a list of tangents for a list of translations to be used for an AnnotatedSpline"""
     """ TODO fix """
     steps = len(translation)
     spline = ParameterizedSpline(translation)
-    parameters = np.linspace(0, spline.full_arc_length, steps)# this is not correct
+    parameters = np.linspace(0, 1, steps)# this is not correct
     tangents = []
     for u in parameters:
         tangent = get_tangent_at_parameter(spline, u, eval_range)
@@ -52,7 +53,7 @@ def get_tangents2d(translation, eval_range=0.5):
 def complete_tangents(translation, given_tangents, eval_range=0.5):
     steps = len(translation)
     spline = ParameterizedSpline(translation)
-    parameters = np.linspace(0, spline.full_arc_length, steps)
+    parameters = np.linspace(0, 1, steps)
     tangents = given_tangents
     for idx, u in enumerate(parameters):
         if tangents[idx] is None:
@@ -63,7 +64,7 @@ def complete_tangents(translation, given_tangents, eval_range=0.5):
 def complete_orientations_from_tangents(translation, given_orientations, eval_range=0.5, ref_vector=REF_VECTOR):
     steps = len(translation)
     spline = ParameterizedSpline(translation)
-    parameters = np.linspace(0, spline.full_arc_length, steps)
+    parameters = np.linspace(0, 1, steps)
     orientations = given_orientations
     for idx, u in enumerate(parameters):
         if orientations[idx] is None:
@@ -89,6 +90,11 @@ def tangents_to_quaternions(tangents, ref_vector=REF_VECTOR):
 
 
 def get_orientations_from_tangents2d(translation, ref_vector=REF_VECTOR):
+    """ Create a list of orientations for a list of translations to be used for an AnnotatedSpline.
+        Note it seems that as long as the number of points are the same, the same spline parameters can be used for the
+        query of the spline.
+    """
+    """ TODO fix """
     ref_vector = np.array(ref_vector)
     steps = len(translation)
     spline = ParameterizedSpline(translation)
