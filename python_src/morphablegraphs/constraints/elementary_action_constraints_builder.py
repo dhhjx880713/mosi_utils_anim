@@ -11,7 +11,7 @@ from spatial_constraints import TrajectorySetConstraint
 from ..constraints.mg_input_format_reader import P_KEY, O_KEY, T_KEY
 from . import *
 from ..utilities.log import write_log, write_message_to_log, LOG_MODE_DEBUG
-from ..constraints.spatial_constraints.splines.utils import complete_orientations_from_tangents, tangents_to_quaternions, complete_tangents, get_tangents,plot_annotated_spline
+from ..constraints.spatial_constraints.splines.utils import get_tangents
 
 REFERENCE_2D_OFFSET = np.array([0.0, -1.0])# components correspond to x, z - we assume the motions are initially oriented into that direction
 LEFT_HAND_JOINT = "LeftToolEndSite"
