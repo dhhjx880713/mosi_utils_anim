@@ -8,6 +8,7 @@ class AnnotatedSpline(ParameterizedSpline):
     def __init__(self, translation, orientation, spline_type=SPLINE_TYPE_CATMULL_ROM,
                  granularity=1000, closest_point_search_accuracy=0.001,
                  closest_point_search_max_iterations=5000, verbose=False):
+        assert len(translation) == len(orientation), "Error: The number of points need to be equal"
         super(AnnotatedSpline, self).__init__(translation, spline_type, granularity,
                                         closest_point_search_accuracy,
                                         closest_point_search_max_iterations, verbose)
