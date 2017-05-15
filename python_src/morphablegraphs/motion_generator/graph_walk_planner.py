@@ -37,7 +37,7 @@ class GraphWalkPlanner(object):
         self.node_group = None
         self.trajectory = None
         self._n_steps_looking_ahead = 1
-        self.add_orientation_constraints = False
+        self.add_orientation_constraints = True
 
     def set_state(self, graph_walk, mp_generator, action_state, action_constraints, arc_length_of_end):
         self.mp_generator = mp_generator
@@ -94,7 +94,9 @@ class GraphWalkPlanner(object):
 
     def _add_constraint_with_orientation(self, constraint_desc, goal_arc_length, mp_constraints):
         goal_position = self.trajectory.query_point_by_absolute_arc_length(goal_arc_length).tolist()
-        tangent = self.trajectory.get_direction_vector_by_absolute_arc_length(goal_arc_length)
+        tangent = self.trajectory.query_orientation_by_absolute_arc_length(goal_arc_length)
+        tangent /= np.linalg.norm(tangent)
+
         constraint_desc["position"] = goal_position
         pos_constraint = GlobalTransformConstraint(self.motion_state_graph.skeleton, constraint_desc, 1.0, 1.0)
         mp_constraints.constraints.append(pos_constraint)
