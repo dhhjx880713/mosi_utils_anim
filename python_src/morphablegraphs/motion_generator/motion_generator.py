@@ -71,9 +71,6 @@ class MotionGenerator(object):
         write_message_to_log("Start motion synthesis", LOG_MODE_INFO)
         write_message_to_log("Use configuration " + str(self._algorithm_config), LOG_MODE_DEBUG)
 
-        if mg_input["outputMode"] == "Unity":
-            complete_motion_vector = False
-
         start_time = time.clock()
 
         mg_input_reader = MGInputFormatReader(self.motion_state_graph, activate_joint_map, activate_coordinate_transform)
