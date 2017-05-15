@@ -11,7 +11,7 @@ from spatial_constraints import TrajectorySetConstraint
 from ..constraints.mg_input_format_reader import P_KEY, O_KEY, T_KEY
 from . import *
 from ..utilities.log import write_log, write_message_to_log, LOG_MODE_DEBUG
-from ..constraints.spatial_constraints.splines.utils import complete_orientations_from_tangents, tangents_to_quaternions, complete_tangents
+from ..constraints.spatial_constraints.splines.utils import complete_orientations_from_tangents, tangents_to_quaternions, complete_tangents, get_tangents,plot_annotated_spline
 
 REFERENCE_2D_OFFSET = np.array([0.0, -1.0])# components correspond to x, z - we assume the motions are initially oriented into that direction
 LEFT_HAND_JOINT = "LeftToolEndSite"
@@ -33,15 +33,21 @@ class ElementaryActionConstraintsBuilder(object):
         self.motion_state_graph = motion_state_graph
         self.default_constraint_weight = 1.0
         self.constraint_precision = 1.0
+        self.spline_supersampling_factor = 10
         self.set_algorithm_config(algorithm_config)
 
     def set_algorithm_config(self, algorithm_config):
-        self.closest_point_search_accuracy = algorithm_config["trajectory_following_settings"]["closest_point_search_accuracy"]
-        self.closest_point_search_max_iterations = algorithm_config["trajectory_following_settings"]["closest_point_search_max_iterations"]
-        self.default_spline_type = algorithm_config["trajectory_following_settings"]["spline_type"]
-        self.control_point_distance_threshold = algorithm_config["trajectory_following_settings"]["control_point_filter_threshold"]
+        if "trajectory_following_settings" in algorithm_config.keys():
+            trajectory_following_settings = algorithm_config["trajectory_following_settings"]
+            self.closest_point_search_accuracy = trajectory_following_settings["closest_point_search_accuracy"]
+            self.closest_point_search_max_iterations = trajectory_following_settings["closest_point_search_max_iterations"]
+            self.default_spline_type = trajectory_following_settings["spline_type"]
+            self.spline_arc_length_parameter_granularity = trajectory_following_settings["arc_length_granularity"]
+            self.control_point_distance_threshold = trajectory_following_settings["control_point_filter_threshold"]
+            if "spline_supersampling_factor" in trajectory_following_settings.keys():
+                self.spline_supersampling_factor = trajectory_following_settings["spline_supersampling_factor"]
+
         self.collision_avoidance_constraints_mode = algorithm_config["collision_avoidance_constraints_mode"]
-        self.spline_arc_length_parameter_granularity = algorithm_config["trajectory_following_settings"]["arc_length_granularity"]
 
     def build_list_from_input_file(self, mg_input):
         """
@@ -258,9 +264,15 @@ class ElementaryActionConstraintsBuilder(object):
             control_points = control_points_list[0]
             print "control points",control_points
             #orientations = complete_orientations_from_tangents(control_points[P_KEY], control_points[O_KEY])
-            orientations = complete_tangents(control_points[P_KEY], control_points[O_KEY])
+            #orientations = complete_tangents(control_points[P_KEY], control_points[O_KEY])
+            supersampling_size = self.spline_supersampling_factor*len(control_points)
+            points, orientations = get_tangents(control_points[P_KEY], supersampling_size)
+            if control_points[O_KEY][-1] is not None:
+                orientations[-1] = control_points[O_KEY][-1]
+
             #orientations = tangents_to_quaternions(orientations)
-            traj_constraint = TrajectoryConstraint(joint_name,  control_points[P_KEY], orientations,
+            print "create constraint"
+            traj_constraint = TrajectoryConstraint(joint_name, points, orientations,
                                                self.default_spline_type, 0.0,
                                                desc["unconstrained_indices"],
                                                self.motion_state_graph.skeleton,
@@ -268,6 +280,7 @@ class ElementaryActionConstraintsBuilder(object):
                                                self.closest_point_search_accuracy,
                                                self.closest_point_search_max_iterations,
                                                self.spline_arc_length_parameter_granularity)
+
             return [traj_constraint]
         else:
             return []

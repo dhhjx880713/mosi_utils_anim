@@ -117,3 +117,16 @@ def get_orientations_from_tangents2d(translation, ref_vector=REF_VECTOR):
         orientation.append(quaternion_from_euler(*np.radians([0, angle, 0])))
     return orientation
 
+
+def get_tangents(points, length):
+    print "points",points
+    spline = ParameterizedSpline(points)
+    x = np.linspace(0, spline.full_arc_length, length)
+    new_points = []
+    tangents = []
+    for v in x:
+        s, t = spline.get_tangent_at_arc_length(v)
+        new_points.append(s)
+        tangents.append(t)
+    return new_points, tangents
+
