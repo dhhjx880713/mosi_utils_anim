@@ -112,17 +112,26 @@ class GraphWalkPlanner(object):
         mp_constraints.constraints.append(pos_constraint)
 
     def _generate_node_evaluation_constraints(self, state, add_orientation=False):
+        joint = self.motion_state_graph.skeleton.aligning_root_node
         goal_arc_length = state.travelled_arc_length + self.step_look_ahead_distance
+        half_goal_arc_length = state.travelled_arc_length + self.step_look_ahead_distance/2
+
         mp_constraints = MotionPrimitiveConstraints()
         mp_constraints.skeleton = self.motion_state_graph.skeleton
         mp_constraints.aligning_transform = create_transformation_matrix(state.graph_walk.motion_vector.start_pose["position"], state.graph_walk.motion_vector.start_pose["orientation"])
         mp_constraints.start_pose = state.graph_walk.motion_vector.start_pose
-        constraint_desc = {"joint": self.motion_state_graph.skeleton.aligning_root_node, "canonical_keyframe": -1, "n_canonical_frames": 0,
+        constraint_desc = {"joint": joint, "canonical_keyframe": -1, "n_canonical_frames": 0,
                            "semanticAnnotation": {"keyframeLabel": "end", "generated": True}}
+        # the canonical keyframe is updated per option based on the keyframeLabel
+        half_step_constraint_desc = {"joint": joint, "canonical_keyframe": -1, "n_canonical_frames": 0,
+                                     "semanticAnnotation": {"keyframeLabel": "middle", "generated": True}}
+
         if add_orientation:
             self._add_constraint_with_orientation(constraint_desc, goal_arc_length, mp_constraints)
+            self._add_constraint(half_step_constraint_desc, half_goal_arc_length, mp_constraints)
         else:
             self._add_constraint(constraint_desc, goal_arc_length, mp_constraints)
+            self._add_constraint(half_step_constraint_desc, half_goal_arc_length, mp_constraints)
 
         if self.use_local_coordinates and False:
             mp_constraints = mp_constraints.transform_constraints_to_local_cos()
@@ -145,7 +154,10 @@ class GraphWalkPlanner(object):
         motion_primitive_node = self.motion_state_graph.nodes[node_name]
         canonical_keyframe = motion_primitive_node.get_n_canonical_frames() - 1
         for c in mp_constraints.constraints:
-            c.canonical_keyframe = canonical_keyframe
+            if c.keyframe_label == "end":
+                c.canonical_keyframe = canonical_keyframe
+            elif c.keyframe_label == "middle":
+                c.canonical_keyframe = canonical_keyframe/2
 
         if motion_primitive_node.cluster_tree is not None:
 
