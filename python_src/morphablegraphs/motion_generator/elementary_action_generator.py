@@ -3,12 +3,13 @@ __author__ = 'erhe01'
 from copy import copy
 
 import numpy as np
-from ..constraints import CA_CONSTRAINTS_MODE_DIRECT_CONNECTION
+from ..constraints import CA_CONSTRAINTS_MODE_DIRECT_CONNECTION, OPTIMIZATION_MODE_ALL
 from ca_interface import CAInterface
 from ea_state import ElementaryActionGeneratorState
 from graph_walk import GraphWalkEntry
 from graph_walk_planner import GraphWalkPlanner
 from motion_primitive_generator import MotionPrimitiveGenerator
+from graph_walk_optimizer import GraphWalkOptimizer
 from ..constraints.motion_primitive_constraints_builder import MotionPrimitiveConstraintsBuilder
 from ..motion_model import NODE_TYPE_END
 from ..utilities import write_log, write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO, LOG_MODE_ERROR
@@ -17,20 +18,22 @@ from ..utilities.exceptions import PathSearchError
 
 class ElementaryActionGenerator(object):
 
-    def __init__(self, motion_primitive_graph, algorithm_config, service_config):
-        self.motion_state_graph = motion_primitive_graph
+    def __init__(self, motion_state_graph, algorithm_config, service_config):
+        self.motion_state_graph = motion_state_graph
         self._algorithm_config = algorithm_config
         self.ca_action_names = service_config["collision_avoidance_actions"]
         self.motion_primitive_constraints_builder = MotionPrimitiveConstraintsBuilder()
         self.motion_primitive_constraints_builder.set_algorithm_config(self._algorithm_config)
         self.action_state = ElementaryActionGeneratorState(self._algorithm_config)
-        self.step_look_ahead_distance = algorithm_config["trajectory_following_settings"]["look_ahead_distance"]
-        self.average_elementary_action_error_threshold = algorithm_config["average_elementary_action_error_threshold"]
-        self.use_local_coordinates = self._algorithm_config["use_local_coordinates"]
-        self.end_step_length_factor = algorithm_config["trajectory_following_settings"]["end_step_length_factor"]
-        self.max_distance_to_path = algorithm_config["trajectory_following_settings"]["max_distance_to_path"]
-        self.activate_direction_ca_connection = algorithm_config["collision_avoidance_constraints_mode"] == CA_CONSTRAINTS_MODE_DIRECT_CONNECTION
+        #self.step_look_ahead_distance = algorithm_config["trajectory_following_settings"]["look_ahead_distance"]
+        #self.average_elementary_action_error_threshold = algorithm_config["average_elementary_action_error_threshold"]
+        #self.use_local_coordinates = self._algorithm_config["use_local_coordinates"]
+        #self.end_step_length_factor = algorithm_config["trajectory_following_settings"]["end_step_length_factor"]
+        #self.max_distance_to_path = algorithm_config["trajectory_following_settings"]["max_distance_to_path"]
+        #self.activate_direction_ca_connection = algorithm_config["collision_avoidance_constraints_mode"] == CA_CONSTRAINTS_MODE_DIRECT_CONNECTION
         self.path_planner = GraphWalkPlanner(self.motion_state_graph, algorithm_config)
+        self.graph_walk_optimizer = GraphWalkOptimizer(self.motion_state_graph, algorithm_config)
+        self.set_algorithm_config(algorithm_config)
 
         if service_config["collision_avoidance_service_url"] is not None:
             write_message_to_log("created ca interface" + service_config["collision_avoidance_service_url"], LOG_MODE_DEBUG)
@@ -46,8 +49,10 @@ class ElementaryActionGenerator(object):
         self.use_local_coordinates = self._algorithm_config["use_local_coordinates"]
         self.end_step_length_factor = algorithm_config["trajectory_following_settings"]["end_step_length_factor"]
         self.max_distance_to_path = algorithm_config["trajectory_following_settings"]["max_distance_to_path"]
+        self.activate_global_optimization = algorithm_config["global_spatial_optimization_mode"] == OPTIMIZATION_MODE_ALL
         self.activate_direction_ca_connection = algorithm_config["collision_avoidance_constraints_mode"] == CA_CONSTRAINTS_MODE_DIRECT_CONNECTION
-        self.motion_primitive_constraints_builder.set_algorithm_config(self._algorithm_config)
+        self.motion_primitive_constraints_builder.set_algorithm_config(algorithm_config)
+        self.graph_walk_optimizer.set_algorithm_config(algorithm_config)
 
     def set_action_constraints(self, action_constraints):
         self.action_constraints = action_constraints
@@ -132,6 +137,7 @@ class ElementaryActionGenerator(object):
             max_arc_length = np.inf
         self.action_state.initialize_from_previous_graph_walk(graph_walk, max_arc_length, self.action_constraints.cycled_next)
         write_message_to_log("Start synthesis of elementary action " + self.action_constraints.action_name, LOG_MODE_INFO)
+        optimization_steps = self.graph_walk_optimizer._global_spatial_optimization_steps
         errors = [0]
         distances = []
         while not self.action_state.is_end_state():
@@ -147,6 +153,11 @@ class ElementaryActionGenerator(object):
                 if d >= self.max_distance_to_path:
                     write_message_to_log("Error: Distance to path has become larger than " + str(self.max_distance_to_path), LOG_MODE_ERROR)
                     return False
+
+            if self.activate_global_optimization and self.action_state.temp_step % optimization_steps == 0:
+                start_step = self.action_state.temp_step - optimization_steps
+                self.graph_walk_optimizer.optimize_spatial_parameters_over_graph_walk(graph_walk, graph_walk.step_count+start_step)
+
 
         graph_walk.step_count += self.action_state.temp_step
         graph_walk.update_frame_annotation(self.action_constraints.action_name, self.action_state.action_start_frame, graph_walk.get_num_of_frames())
