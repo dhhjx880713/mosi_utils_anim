@@ -130,3 +130,43 @@ def get_tangents(points, length):
         tangents.append(t)
     return new_points, tangents
 
+def plot_annotated_spline(spline,root_motion, filename, scale_factor=0.7):
+    from matplotlib import pyplot as plt
+
+    def plot_annotated_tangent(ax, spline, x, length):
+
+        p = spline.query_point_by_absolute_arc_length(x)*scale_factor
+        t = spline.query_orientation_by_absolute_arc_length(x)*scale_factor
+        start = -p[0], p[2]
+        p_prime = [-p[0] + -t[0] * length, p[2] + t[2] * length]
+        # p_prime = [p[0] + t[0] * length, p[2] + t[2] * length]
+        points = np.array([start, p_prime]).T
+        # t = tangent.T.tolist()
+        #
+        # print "tangent", t
+        ax.plot(*points)
+
+
+    fig = plt.figure()
+    sub_plot_coordinate = (1, 1, 1)
+    ax = fig.add_subplot(*sub_plot_coordinate)
+    points = []
+    for v in np.linspace(0,spline.full_arc_length,100):
+        p = spline.query_point_by_absolute_arc_length(v)
+        p = np.array([-p[0], p[2]])
+        points.append(p*scale_factor)
+
+    points = np.array(points).T
+    all_points = points[0].tolist() + points[1].tolist()
+    min_v = min(all_points)
+    max_v = max(all_points)
+    ax.set_xlim([min_v - 50, max_v + 50])
+    ax.set_ylim([min_v - 50, max_v + 50])
+    x = points[0]
+    z = points[1]
+    ax.plot(x,z)
+    root_motion = root_motion.T*scale_factor
+    ax.plot(-root_motion[0], root_motion[2])
+    for v in np.linspace(0,spline.full_arc_length,100):
+        plot_annotated_tangent(ax, spline, v, length=10)
+    fig.savefig(filename,  format="png")

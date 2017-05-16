@@ -14,6 +14,7 @@ from ..constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_P
 from keyframe_event_list import KeyframeEventList
 from ..utilities import write_log, write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_ERROR, LOG_MODE_INFO
 from ..animation_data.motion_concatenation import align_and_concatenate_frames
+from ..constraints.spatial_constraints.splines.utils import plot_annotated_spline
 
 DEFAULT_PLACE_ACTION_LIST = ["placeRight", "placeLeft","insertRight","insertLeft","screwRight", "screwLeft"] #list of actions in which the orientation constraints are ignored
 
@@ -368,4 +369,15 @@ class GraphWalk(object):
 
     def get_number_of_actions(self):
         return len(self.elementary_action_list)
+
+    def plot_constraints(self, file_name="traj"):
+        for idx, action in enumerate(self.elementary_action_list):
+            start_frame = self.steps[action.start_step].start_frame
+            end_frame = self.steps[action.end_step].end_frame
+
+            root_motion = self.motion_vector.frames#[start_frame:end_frame,:3]
+            if action.action_constraints.root_trajectory is not None:
+                traj_constraint = action.action_constraints.root_trajectory
+                plot_annotated_spline(traj_constraint,root_motion, file_name+str(idx)+".png")
+
 
