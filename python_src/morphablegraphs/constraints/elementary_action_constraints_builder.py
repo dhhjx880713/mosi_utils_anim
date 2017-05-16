@@ -257,12 +257,10 @@ class ElementaryActionConstraintsBuilder(object):
         \t The trajectory constraints defined by the control points from the
             trajectory_constraint or an empty list if there is no constraint
         """
-        print "create trajectory", action_index, joint_name
         desc = self.mg_input.extract_trajectory_desc(action_index, joint_name, self.control_point_distance_threshold)
         control_points_list = desc["control_points_list"]
         if len(control_points_list) > 0 and len(control_points_list[0][P_KEY]) > 0:
             control_points = control_points_list[0]
-            print "control points",control_points
             #orientations = complete_orientations_from_tangents(control_points[P_KEY], control_points[O_KEY])
             #orientations = complete_tangents(control_points[P_KEY], control_points[O_KEY])
             supersampling_size = self.spline_supersampling_factor*len(control_points)
@@ -271,7 +269,6 @@ class ElementaryActionConstraintsBuilder(object):
                 orientations[-1] = control_points[O_KEY][-1]
 
             #orientations = tangents_to_quaternions(orientations)
-            print "create constraint"
             traj_constraint = TrajectoryConstraint(joint_name, points, orientations,
                                                self.default_spline_type, 0.0,
                                                desc["unconstrained_indices"],
