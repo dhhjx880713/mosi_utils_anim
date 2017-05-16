@@ -33,7 +33,7 @@ class ElementaryActionConstraintsBuilder(object):
         self.motion_state_graph = motion_state_graph
         self.default_constraint_weight = 1.0
         self.constraint_precision = 1.0
-        self.spline_supersampling_factor = 10
+        self.spline_supersampling_factor = 20
         self.set_algorithm_config(algorithm_config)
 
     def set_algorithm_config(self, algorithm_config):
