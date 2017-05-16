@@ -19,3 +19,4 @@ from .keyframe_constraints.pose_constraint_quat_frame import PoseConstraintQuatF
 from .keyframe_constraints.two_hand_constraint import TwoHandConstraintSet
 from .keyframe_constraints.look_at_constraint import LookAtConstraint
 from .keyframe_constraints.feet_constraint import FeetConstraint
+from .keyframe_constraints.local_trajectory_constraint import LocalTrajectoryConstraint, SPATIAL_CONSTRAINT_TYPE_LOCAL_TRAJECTORY
