@@ -33,7 +33,7 @@ class ElementaryActionConstraintsBuilder(object):
         self.motion_state_graph = motion_state_graph
         self.default_constraint_weight = 1.0
         self.constraint_precision = 1.0
-        self.spline_supersampling_factor = 20
+        self.spline_super_sampling_factor = 20
         self.set_algorithm_config(algorithm_config)
 
     def set_algorithm_config(self, algorithm_config):
@@ -45,7 +45,7 @@ class ElementaryActionConstraintsBuilder(object):
             self.spline_arc_length_parameter_granularity = trajectory_following_settings["arc_length_granularity"]
             self.control_point_distance_threshold = trajectory_following_settings["control_point_filter_threshold"]
             if "spline_supersampling_factor" in trajectory_following_settings.keys():
-                self.spline_supersampling_factor = trajectory_following_settings["spline_supersampling_factor"]
+                self.spline_super_sampling_factor = trajectory_following_settings["spline_super_sampling_factor"]
 
         self.collision_avoidance_constraints_mode = algorithm_config["collision_avoidance_constraints_mode"]
 
@@ -263,7 +263,7 @@ class ElementaryActionConstraintsBuilder(object):
             control_points = control_points_list[0]
             #orientations = complete_orientations_from_tangents(control_points[P_KEY], control_points[O_KEY])
             #orientations = complete_tangents(control_points[P_KEY], control_points[O_KEY])
-            supersampling_size = self.spline_supersampling_factor*len(control_points)
+            supersampling_size = self.spline_super_sampling_factor*len(control_points)
             points, orientations = get_tangents(control_points[P_KEY], supersampling_size)
             if control_points[O_KEY][-1] is not None:
                 orientations[-1] = control_points[O_KEY][-1]
