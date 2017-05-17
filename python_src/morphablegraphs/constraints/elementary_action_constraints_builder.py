@@ -268,7 +268,6 @@ class ElementaryActionConstraintsBuilder(object):
             if control_points[O_KEY][-1] is not None:
                 orientations[-1] = control_points[O_KEY][-1]
 
-            #orientations = tangents_to_quaternions(orientations)
             traj_constraint = TrajectoryConstraint(joint_name, points, orientations,
                                                self.default_spline_type, 0.0,
                                                desc["unconstrained_indices"],
@@ -282,22 +281,3 @@ class ElementaryActionConstraintsBuilder(object):
         else:
             return []
 
-    #    traj_constraint.semantic_annotation = desc["semantic_annotation"]
-    #    traj_constraints = list()
-    #    for idx, control_points in enumerate(desc["control_points_list"]):
-    #        if control_points is None:
-    #            continue
-    #        else:
-    #
-    #            if desc["active_regions"][idx] is not None:
-    #                # only collision avoidance constraints have a active regions
-    #                traj_constraint.is_collision_avoidance_constraint = True
-    #                self._set_active_range_from_region(traj_constraint, desc["active_regions"][idx])
-    #            traj_constraints.append(traj_constraint)
-    #    return traj_constraints
-
-    #def _set_active_range_from_region(self, traj_constraint, active_region):
-    #    if active_region["start_point"] is not None and active_region["end_point"] is not None:
-    #        range_start, closest_point = traj_constraint.get_absolute_arc_length_of_point(active_region["start_point"])
-    #        range_end, closest_point = traj_constraint.get_absolute_arc_length_of_point(active_region["end_point"])
-    #        traj_constraint.set_active_range(range_start, range_end)

@@ -119,7 +119,6 @@ def get_orientations_from_tangents2d(translation, ref_vector=REF_VECTOR):
 
 
 def get_tangents(points, length):
-    print "points",points
     spline = ParameterizedSpline(points)
     x = np.linspace(0, spline.full_arc_length, length)
     new_points = []
