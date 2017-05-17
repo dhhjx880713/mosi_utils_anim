@@ -150,6 +150,9 @@ def plot_annotated_spline(spline,root_motion, filename, scale_factor=0.7):
     fig = plt.figure()
     sub_plot_coordinate = (1, 1, 1)
     ax = fig.add_subplot(*sub_plot_coordinate)
+
+    control_points = spline.spline.control_points
+    control_points = np.array(control_points).T
     points = []
     for v in np.linspace(0,spline.full_arc_length,100):
         p = spline.query_point_by_absolute_arc_length(v)
@@ -165,6 +168,8 @@ def plot_annotated_spline(spline,root_motion, filename, scale_factor=0.7):
     x = points[0]
     z = points[1]
     ax.plot(x,z)
+
+    ax.scatter(-control_points[0]*scale_factor, control_points[2]*scale_factor)
     root_motion = root_motion.T*scale_factor
     ax.plot(-root_motion[0], root_motion[2])
     for v in np.linspace(0,spline.full_arc_length,100):
