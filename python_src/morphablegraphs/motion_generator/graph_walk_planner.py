@@ -41,6 +41,11 @@ class GraphWalkPlanner(object):
         else:
             self.constrain_transition_orientation = False
 
+        if "generate_half_step_constraint" in trajectory_following_settings.keys():
+            self.generate_half_step_constraint = trajectory_following_settings["generate_half_step_constraint"]
+        else:
+            self.generate_half_step_constraint = False
+
         self.use_local_coordinates = algorithm_config["use_local_coordinates"]
         self.mp_generator = None
         self.state = None
@@ -125,7 +130,6 @@ class GraphWalkPlanner(object):
     def _generate_node_evaluation_constraints(self, state, add_orientation=False):
         joint = self.motion_state_graph.skeleton.aligning_root_node
         goal_arc_length = state.travelled_arc_length + self.step_look_ahead_distance
-        half_goal_arc_length = state.travelled_arc_length + self.step_look_ahead_distance/2
 
         mp_constraints = MotionPrimitiveConstraints()
         mp_constraints.skeleton = self.motion_state_graph.skeleton
@@ -139,9 +143,11 @@ class GraphWalkPlanner(object):
 
         if add_orientation:
             self._add_constraint_with_orientation(constraint_desc, goal_arc_length, mp_constraints)
-            self._add_constraint(half_step_constraint_desc, half_goal_arc_length, mp_constraints)
         else:
             self._add_constraint(constraint_desc, goal_arc_length, mp_constraints)
+
+        if self.generate_half_step_constraint:
+            half_goal_arc_length = state.travelled_arc_length + self.step_look_ahead_distance / 2
             self._add_constraint(half_step_constraint_desc, half_goal_arc_length, mp_constraints)
 
         if self.use_local_coordinates and False:

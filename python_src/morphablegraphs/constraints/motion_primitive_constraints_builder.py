@@ -36,6 +36,7 @@ class MotionPrimitiveConstraintsBuilder(object):
         self.ca_constraint_mode = "None"
         self.use_local_coordinates = False
         self.use_transition_constraint = False
+        self.generate_half_step_constraint = False
 
     def set_action_constraints(self, action_constraints):
         self.action_constraints = action_constraints
@@ -52,6 +53,8 @@ class MotionPrimitiveConstraintsBuilder(object):
         self.use_local_coordinates = algorithm_config["use_local_coordinates"]
         self.use_mgrd = algorithm_config["constrained_sampling_mode"] == "random_spline"
         self.use_transition_constraint = self.trajectory_following_settings["use_transition_constraint"]
+        if "generate_half_step_constraint" in self.trajectory_following_settings.keys():
+            self.generate_half_step_constraint = self.trajectory_following_settings["generate_half_step_constraint"]
 
     def set_status(self, node_key, last_arc_length, graph_walk, is_last_step=False):
         n_prev_frames = graph_walk.get_num_of_frames()
@@ -174,21 +177,24 @@ class MotionPrimitiveConstraintsBuilder(object):
     def _add_path_following_constraints(self, mp_constraints):
         # if it is the last step we need to reach the point exactly otherwise
         # make a guess for a reachable point on the path that we have not visited yet
-        prev_goal_arc_length = mp_constraints.goal_arc_length
         if not self.status["is_last_step"]:
             mp_constraints.goal_arc_length = self._estimate_step_goal_arc_length()
         else:
             mp_constraints.goal_arc_length = self.action_constraints.root_trajectory.full_arc_length
 
-        half_step_arc_length = prev_goal_arc_length * 0.5 + mp_constraints.goal_arc_length * 0.5
 
         mp_constraints.step_goal, goal_dir_vector = self._get_point_and_orientation_from_arc_length(mp_constraints.goal_arc_length)
         mp_constraints.print_status()
-        half_step_goal, half_step_dir_vector = self._get_point_and_orientation_from_arc_length(half_step_arc_length)
+        if self.generate_half_step_constraint:
+            prev_goal_arc_length = self.status["last_arc_length"]
+            half_step_arc_length = prev_goal_arc_length * 0.5 + mp_constraints.goal_arc_length * 0.5
+            half_step_goal, half_step_dir_vector = self._get_point_and_orientation_from_arc_length(half_step_arc_length)
+            self._add_path_following_half_step_constraint(self.skeleton.aligning_root_node, mp_constraints,
+                                                          half_step_goal)
 
         self._add_path_following_goal_constraint(self.skeleton.aligning_root_node, mp_constraints, mp_constraints.step_goal)
 
-        self._add_path_following_half_step_constraint(self.skeleton.aligning_root_node, mp_constraints, half_step_goal)
+
 
         self._add_path_following_direction_constraint(self.skeleton.aligning_root_node, mp_constraints, goal_dir_vector)
 
