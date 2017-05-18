@@ -28,7 +28,19 @@ class PlannerState(object):
 class GraphWalkPlanner(object):
     def __init__(self, motion_state_graph,  algorithm_config):
         self.motion_state_graph = motion_state_graph
-        self.step_look_ahead_distance = algorithm_config["trajectory_following_settings"]["look_ahead_distance"]
+        trajectory_following_settings = algorithm_config["trajectory_following_settings"]
+        self.step_look_ahead_distance = trajectory_following_settings["look_ahead_distance"]
+
+        if "constrain_start_orientation" in trajectory_following_settings.keys():
+            self.constrain_start_orientation = trajectory_following_settings["constrain_start_orientation"]
+        else:
+            self.constrain_start_orientation = True
+
+        if "constrain_transition_orientation" in trajectory_following_settings.keys():
+            self.constrain_transition_orientation = trajectory_following_settings["constrain_transition_orientation"]
+        else:
+            self.constrain_transition_orientation = False
+
         self.use_local_coordinates = algorithm_config["use_local_coordinates"]
         self.mp_generator = None
         self.state = None
@@ -37,7 +49,6 @@ class GraphWalkPlanner(object):
         self.node_group = None
         self.trajectory = None
         self._n_steps_looking_ahead = 1
-        self.add_orientation_constraints = True
 
     def set_state(self, graph_walk, mp_generator, action_state, action_constraints, arc_length_of_end):
         self.mp_generator = mp_generator
@@ -52,7 +63,7 @@ class GraphWalkPlanner(object):
         n_nodes = len(start_nodes)
         if n_nodes > 1:
             options = [(self.action_constraints.action_name, next_node) for next_node in start_nodes]
-            return self.select_next_step(self.state, options, add_orientation=True)
+            return self.select_next_step(self.state, options, add_orientation=self.constrain_start_orientation)
         else:
             return self.action_constraints.action_name, start_nodes[0]
 
@@ -77,7 +88,7 @@ class GraphWalkPlanner(object):
             next_node = options[0]
         elif n_transitions > 1:
             if self.trajectory is not None:
-                next_node = self.select_next_step(self.state, options, add_orientation=False)
+                next_node = self.select_next_step(self.state, options, add_orientation=self.constrain_transition_orientation)
             else:  # use random transition if there is no path to follow
                 random_index = random.randrange(0, n_transitions, 1)
                 next_node = options[random_index]
