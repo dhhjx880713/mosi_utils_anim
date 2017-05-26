@@ -290,8 +290,11 @@ def align_quaternion_frames_with_start(skeleton, node_name, new_frames, prev_fra
     elif start_pose is not None:
         m = get_transform_from_start_pose(start_pose)
         first_frame_pos = new_frames[0][:3].tolist() + [1]
-        transformed_first_frame_pos = np.dot(m, first_frame_pos)[:3]
-        delta = start_pose["position"] - transformed_first_frame_pos
+        t_pos = np.dot(m, first_frame_pos)[:3]
+        delta = start_pose["position"]
+        # FIXME this assumes the y translation is the up axis and can be ignored
+        delta[0] -= t_pos[0]
+        delta[2] -= t_pos[2]
         m[:3, 3] = delta
         transformed_frames = transform_quaternion_frames(new_frames, m)
         return transformed_frames
