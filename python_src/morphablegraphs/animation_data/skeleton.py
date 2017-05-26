@@ -278,12 +278,9 @@ class Skeleton(object):
             node_desc["parent"] = node.parent.node_name
         else:
             node_desc["parent"] = None
-        if name in self.animated_joints:
-            node.quaternion_frame_index = self.animated_joints.index(name)
-        else:
-            node.quaternion_frame_index = -1
-        node_desc["index"] = node.index
 
+        node_desc["quaternion_frame_index"] = node.quaternion_frame_index
+        node_desc["index"] = node.index
         node_desc["offset"] = node.offset
         node_desc["channels"] = node.channels
         node_desc["rotation"] = node.rotation.tolist()
