@@ -115,7 +115,8 @@ class Skeleton(object):
         self.max_level = self._get_max_level()
         self._set_joint_weights()
         self.nodes = collections.OrderedDict()
-        self.construct_hierarchy_from_bvh(bvh_reader.node_names, self.node_channels, self.root)
+        joint_list = [k for k in bvh_reader.node_names if "children" in bvh_reader.node_names[k].keys() and len(bvh_reader.node_names[k]["children"]) > 0]
+        self.construct_hierarchy_from_bvh(joint_list, bvh_reader.node_names, self.node_channels, self.root)
 
         self.parent_dict = self._get_parent_dict()
         self._chain_names = self._generate_chain_names()
@@ -126,8 +127,11 @@ class Skeleton(object):
         for node in nodes_without_endsite:
             node.euler_frame_index = nodes_without_endsite.index(node)
 
-    def construct_hierarchy_from_bvh(self, node_names, node_channels, node_name):
-        joint_index = node_names.keys().index(node_name)
+    def construct_hierarchy_from_bvh(self, joints, node_info, node_channels, node_name):
+        if node_name in joints:
+            joint_index = joints.index(node_name)
+        else:
+            joint_index = -1
         if node_name == self.root:
             node = SkeletonRootNode(node_name, node_channels[node_name], None)
             if node_name in self.animated_joints:
@@ -136,7 +140,7 @@ class Skeleton(object):
             else:
                 node.fixed = True
             node.index = joint_index
-        elif "children" in node_names[node_name].keys() and len(node_names[node_name]["children"]) > 0:
+        elif "children" in node_info[node_name].keys() and len(node_info[node_name]["children"]) > 0:
             node = SkeletonJointNode(node_name, node_channels[node_name], None)
             if node_name in self.animated_joints:
                 node.fixed = False
@@ -155,9 +159,9 @@ class Skeleton(object):
 
         node.offset = self.node_names[node_name]["offset"]
         self.nodes[node_name] = node
-        if "children" in node_names[node_name].keys():
-            for c in node_names[node_name]["children"]:
-                c_node = self.construct_hierarchy_from_bvh(node_names, node_channels, c)
+        if "children" in node_info[node_name].keys():
+            for c in node_info[node_name]["children"]:
+                c_node = self.construct_hierarchy_from_bvh(joints, node_info, node_channels, c)
                 c_node.parent = node
                 node.children.append(c_node)
         return node
