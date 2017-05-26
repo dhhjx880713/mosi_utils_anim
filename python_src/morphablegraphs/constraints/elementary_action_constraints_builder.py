@@ -8,8 +8,10 @@ import numpy as np
 from elementary_action_constraints import ElementaryActionConstraints
 from spatial_constraints import TrajectoryConstraint
 from spatial_constraints import TrajectorySetConstraint
+from ..constraints.mg_input_format_reader import P_KEY, O_KEY, T_KEY
 from . import *
 from ..utilities.log import write_log, write_message_to_log, LOG_MODE_DEBUG
+from ..constraints.spatial_constraints.splines.utils import get_tangents
 
 REFERENCE_2D_OFFSET = np.array([0.0, -1.0])# components correspond to x, z - we assume the motions are initially oriented into that direction
 LEFT_HAND_JOINT = "LeftToolEndSite"
@@ -31,15 +33,21 @@ class ElementaryActionConstraintsBuilder(object):
         self.motion_state_graph = motion_state_graph
         self.default_constraint_weight = 1.0
         self.constraint_precision = 1.0
+        self.spline_super_sampling_factor = 20
         self.set_algorithm_config(algorithm_config)
 
     def set_algorithm_config(self, algorithm_config):
-        self.closest_point_search_accuracy = algorithm_config["trajectory_following_settings"]["closest_point_search_accuracy"]
-        self.closest_point_search_max_iterations = algorithm_config["trajectory_following_settings"]["closest_point_search_max_iterations"]
-        self.default_spline_type = algorithm_config["trajectory_following_settings"]["spline_type"]
-        self.control_point_distance_threshold = algorithm_config["trajectory_following_settings"]["control_point_filter_threshold"]
+        if "trajectory_following_settings" in algorithm_config.keys():
+            trajectory_following_settings = algorithm_config["trajectory_following_settings"]
+            self.closest_point_search_accuracy = trajectory_following_settings["closest_point_search_accuracy"]
+            self.closest_point_search_max_iterations = trajectory_following_settings["closest_point_search_max_iterations"]
+            self.default_spline_type = trajectory_following_settings["spline_type"]
+            self.spline_arc_length_parameter_granularity = trajectory_following_settings["arc_length_granularity"]
+            self.control_point_distance_threshold = trajectory_following_settings["control_point_filter_threshold"]
+            if "spline_supersampling_factor" in trajectory_following_settings.keys():
+                self.spline_super_sampling_factor = trajectory_following_settings["spline_super_sampling_factor"]
+
         self.collision_avoidance_constraints_mode = algorithm_config["collision_avoidance_constraints_mode"]
-        self.spline_arc_length_parameter_granularity = algorithm_config["trajectory_following_settings"]["arc_length_granularity"]
 
     def build_list_from_input_file(self, mg_input):
         """
@@ -172,11 +180,11 @@ class ElementaryActionConstraintsBuilder(object):
 
     def _create_two_hand_constraint_definition(self, constraint_list, left_hand_index, right_hand_index):
         joint_names = [LEFT_HAND_JOINT, RIGHT_HAND_JOINT]
-        positions = [constraint_list[left_hand_index]["position"],
-                     constraint_list[right_hand_index]["position"]]
-        orientations = [constraint_list[left_hand_index]["orientation"],
-                        constraint_list[right_hand_index]["orientation"]]
-        time = constraint_list[left_hand_index]["time"]
+        positions = [constraint_list[left_hand_index][P_KEY],
+                     constraint_list[right_hand_index][P_KEY]]
+        orientations = [constraint_list[left_hand_index][O_KEY],
+                        constraint_list[right_hand_index][O_KEY]]
+        time = constraint_list[left_hand_index][T_KEY]
         semantic_annotation = constraint_list[left_hand_index]["semanticAnnotation"]
         merged_constraint_desc = {"joint": joint_names,
                                    "positions": positions,
@@ -250,29 +258,26 @@ class ElementaryActionConstraintsBuilder(object):
             trajectory_constraint or an empty list if there is no constraint
         """
         desc = self.mg_input.extract_trajectory_desc(action_index, joint_name, self.control_point_distance_threshold)
-        traj_constraints = list()
-        for idx, control_points in enumerate(desc["control_points_list"]):
-            if control_points is None:
-                continue
-            else:
-                traj_constraint = TrajectoryConstraint(joint_name, control_points,
-                                              self.default_spline_type, 0.0,
-                                              desc["unconstrained_indices"],
-                                              self.motion_state_graph.skeleton,
-                                              self.constraint_precision, self.default_constraint_weight,
-                                              self.closest_point_search_accuracy,
-                                              self.closest_point_search_max_iterations,
-                                              self.spline_arc_length_parameter_granularity)
-                traj_constraint.semantic_annotation = desc["semantic_annotation"]
-                if desc["active_regions"][idx] is not None:
-                    # only collision avoidance constraints have a active regions
-                    traj_constraint.is_collision_avoidance_constraint = True
-                    self._set_active_range_from_region(traj_constraint, desc["active_regions"][idx])
-                traj_constraints.append(traj_constraint)
-        return traj_constraints
+        control_points_list = desc["control_points_list"]
+        if len(control_points_list) > 0 and len(control_points_list[0][P_KEY]) > 0:
+            control_points = control_points_list[0]
+            #orientations = complete_orientations_from_tangents(control_points[P_KEY], control_points[O_KEY])
+            #orientations = complete_tangents(control_points[P_KEY], control_points[O_KEY])
+            supersampling_size = self.spline_super_sampling_factor*len(control_points)
+            points, orientations = get_tangents(control_points[P_KEY], supersampling_size)
+            if control_points[O_KEY][-1] is not None:
+                orientations[-1] = control_points[O_KEY][-1]
 
-    def _set_active_range_from_region(self, traj_constraint, active_region):
-        if active_region["start_point"] is not None and active_region["end_point"] is not None:
-            range_start, closest_point = traj_constraint.get_absolute_arc_length_of_point(active_region["start_point"])
-            range_end, closest_point = traj_constraint.get_absolute_arc_length_of_point(active_region["end_point"])
-            traj_constraint.set_active_range(range_start, range_end)
+            traj_constraint = TrajectoryConstraint(joint_name, points, orientations,
+                                               self.default_spline_type, 0.0,
+                                               desc["unconstrained_indices"],
+                                               self.motion_state_graph.skeleton,
+                                               self.constraint_precision, self.default_constraint_weight,
+                                               self.closest_point_search_accuracy,
+                                               self.closest_point_search_max_iterations,
+                                               self.spline_arc_length_parameter_granularity)
+
+            return [traj_constraint]
+        else:
+            return []
+

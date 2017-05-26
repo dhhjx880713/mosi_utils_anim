@@ -1,6 +1,7 @@
 P_KEY = "position"
 O_KEY = "orientation"
 START_KEY = "startPose"
+T_KEY = "time"
 ACTIONS_KEY = "elementaryActions"
 ACTION_KEY = "action"
 TASKS_KEY = "tasks"

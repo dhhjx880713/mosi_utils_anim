@@ -1,6 +1,10 @@
 import numpy as np
 
+
 class RelativeArcLengthMap(object):
+    """ Contains a table from relative or normalized arc length in range 0 to 1
+        to a spline parameter also in range 0 to 1.
+    """
     LOWER_VALUE_SEARCH_FOUND_EXACT_VALUE = 0
     LOWER_VALUE_SEARCH_FOUND_LOWER_VALUE = 1
     LOWER_VALUE_SEARCH_VALUE_TOO_SMALL = 2

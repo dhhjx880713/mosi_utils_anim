@@ -28,7 +28,24 @@ class PlannerState(object):
 class GraphWalkPlanner(object):
     def __init__(self, motion_state_graph,  algorithm_config):
         self.motion_state_graph = motion_state_graph
-        self.step_look_ahead_distance = algorithm_config["trajectory_following_settings"]["look_ahead_distance"]
+        trajectory_following_settings = algorithm_config["trajectory_following_settings"]
+        self.step_look_ahead_distance = trajectory_following_settings["look_ahead_distance"]
+
+        if "constrain_start_orientation" in trajectory_following_settings.keys():
+            self.constrain_start_orientation = trajectory_following_settings["constrain_start_orientation"]
+        else:
+            self.constrain_start_orientation = True
+
+        if "constrain_transition_orientation" in trajectory_following_settings.keys():
+            self.constrain_transition_orientation = trajectory_following_settings["constrain_transition_orientation"]
+        else:
+            self.constrain_transition_orientation = False
+
+        if "generate_half_step_constraint" in trajectory_following_settings.keys():
+            self.generate_half_step_constraint = trajectory_following_settings["generate_half_step_constraint"]
+        else:
+            self.generate_half_step_constraint = False
+
         self.use_local_coordinates = algorithm_config["use_local_coordinates"]
         self.mp_generator = None
         self.state = None
@@ -51,7 +68,7 @@ class GraphWalkPlanner(object):
         n_nodes = len(start_nodes)
         if n_nodes > 1:
             options = [(self.action_constraints.action_name, next_node) for next_node in start_nodes]
-            return self.select_next_step(self.state, options, add_orientation=False)
+            return self.select_next_step(self.state, options, add_orientation=self.constrain_start_orientation)
         else:
             return self.action_constraints.action_name, start_nodes[0]
 
@@ -76,7 +93,7 @@ class GraphWalkPlanner(object):
             next_node = options[0]
         elif n_transitions > 1:
             if self.trajectory is not None:
-                next_node = self.select_next_step(self.state, options, add_orientation=False)
+                next_node = self.select_next_step(self.state, options, add_orientation=self.constrain_transition_orientation)
             else:  # use random transition if there is no path to follow
                 random_index = random.randrange(0, n_transitions, 1)
                 next_node = options[random_index]
@@ -92,11 +109,14 @@ class GraphWalkPlanner(object):
         return next_node, next_node_type
 
     def _add_constraint_with_orientation(self, constraint_desc, goal_arc_length, mp_constraints):
-        goal_position, tangent_line = self.trajectory.get_tangent_at_arc_length(goal_arc_length)
-        constraint_desc["position"] = goal_position.tolist()
+        goal_position = self.trajectory.query_point_by_absolute_arc_length(goal_arc_length).tolist()
+        tangent = self.trajectory.query_orientation_by_absolute_arc_length(goal_arc_length)
+        tangent /= np.linalg.norm(tangent)
+
+        constraint_desc["position"] = goal_position
         pos_constraint = GlobalTransformConstraint(self.motion_state_graph.skeleton, constraint_desc, 1.0, 1.0)
         mp_constraints.constraints.append(pos_constraint)
-        dir_constraint_desc = {"joint": self.motion_state_graph.skeleton.aligning_root_node, "canonical_keyframe": -1, "dir_vector": tangent_line,
+        dir_constraint_desc = {"joint": self.motion_state_graph.skeleton.aligning_root_node, "canonical_keyframe": -1, "dir_vector": tangent,
                                "semanticAnnotation": {"keyframeLabel": "end", "generated": True}}
         # TODO add weight to configuration
         dir_constraint = Direction2DConstraint(self.motion_state_graph.skeleton, dir_constraint_desc, 1.0, 1.0)
@@ -108,17 +128,27 @@ class GraphWalkPlanner(object):
         mp_constraints.constraints.append(pos_constraint)
 
     def _generate_node_evaluation_constraints(self, state, add_orientation=False):
+        joint = self.motion_state_graph.skeleton.aligning_root_node
         goal_arc_length = state.travelled_arc_length + self.step_look_ahead_distance
+
         mp_constraints = MotionPrimitiveConstraints()
         mp_constraints.skeleton = self.motion_state_graph.skeleton
         mp_constraints.aligning_transform = create_transformation_matrix(state.graph_walk.motion_vector.start_pose["position"], state.graph_walk.motion_vector.start_pose["orientation"])
         mp_constraints.start_pose = state.graph_walk.motion_vector.start_pose
-        constraint_desc = {"joint": self.motion_state_graph.skeleton.aligning_root_node, "canonical_keyframe": -1, "n_canonical_frames": 0,
+        constraint_desc = {"joint": joint, "canonical_keyframe": -1, "n_canonical_frames": 0,
                            "semanticAnnotation": {"keyframeLabel": "end", "generated": True}}
+        # the canonical keyframe is updated per option based on the keyframeLabel
+        half_step_constraint_desc = {"joint": joint, "canonical_keyframe": -1, "n_canonical_frames": 0,
+                                     "semanticAnnotation": {"keyframeLabel": "middle", "generated": True}}
+
         if add_orientation:
             self._add_constraint_with_orientation(constraint_desc, goal_arc_length, mp_constraints)
         else:
             self._add_constraint(constraint_desc, goal_arc_length, mp_constraints)
+
+        if self.generate_half_step_constraint:
+            half_goal_arc_length = state.travelled_arc_length + self.step_look_ahead_distance / 2
+            self._add_constraint(half_step_constraint_desc, half_goal_arc_length, mp_constraints)
 
         if self.use_local_coordinates and False:
             mp_constraints = mp_constraints.transform_constraints_to_local_cos()
@@ -141,7 +171,10 @@ class GraphWalkPlanner(object):
         motion_primitive_node = self.motion_state_graph.nodes[node_name]
         canonical_keyframe = motion_primitive_node.get_n_canonical_frames() - 1
         for c in mp_constraints.constraints:
-            c.canonical_keyframe = canonical_keyframe
+            if c.keyframe_label == "end":
+                c.canonical_keyframe = canonical_keyframe
+            elif c.keyframe_label == "middle":
+                c.canonical_keyframe = canonical_keyframe/2
 
         if motion_primitive_node.cluster_tree is not None:
 
