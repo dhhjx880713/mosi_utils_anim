@@ -6,7 +6,7 @@ Created on Tue Jul 21 13:44:05 2015
 """
 
 import os
-from ...animation_data.bvh import BVHReader, BVHWriter
+from morphablegraphs.animation_data import BVHReader, BVHWriter
 import json
 
 

@@ -1,6 +1,7 @@
 import numpy as np
-from motion_editing import euler_substraction, point_to_euler_angle, euler_to_quaternion, euler_angles_to_rotation_matrix, get_rotation_angle, DEFAULT_ROTATION_ORDER
-from ..external.transformations import quaternion_matrix, quaternion_about_axis, quaternion_multiply, quaternion_from_matrix, quaternion_from_euler
+from motion_editing import euler_substraction, point_to_euler_angle, euler_to_quaternion, euler_angles_to_rotation_matrix, get_rotation_angle, DEFAULT_ROTATION_ORDER, LEN_QUAT, LEN_EULER, LEN_ROOT_POS
+from ..external.transformations import quaternion_matrix, quaternion_about_axis, quaternion_multiply, quaternion_from_matrix, quaternion_from_euler, quaternion_slerp
+import copy
 
 
 def transform_quaternion_frames_legacy(quat_frames, angles, offset, rotation_order=None):
@@ -50,6 +51,43 @@ def fast_quat_frames_transformation(quaternion_frames_a,
     return angle, offset
 
 
+def slerp_quaternion_frame(frame_a, frame_b, weight):
+    frame_a = np.asarray(frame_a)
+    frame_b = np.asarray(frame_b)
+    assert len(frame_a) == len(frame_b)
+    n_joints = (len(frame_a) - 3) / 4
+    new_frame = np.zeros(len(frame_a))
+    # linear interpolate root translation
+    new_frame[:3] = (1 - weight) * frame_a[:3] + weight * frame_b[:3]
+    for i in range(n_joints):
+        new_frame[3+ i*4 : 3 + (i+1) * 4] = quaternion_slerp(frame_a[3 + i*4 : 3 + (i+1) * 4],
+                                                             frame_b[3 + i*4 : 3 + (i+1) * 4],
+                                                             weight)
+    return new_frame
+
+
+def smooth_quaternion_frames_with_slerp(frames, discontinuity, window=20):
+    n_frames = len(frames)
+    d = float(discontinuity)
+    ref_pose = slerp_quaternion_frame(frames[int(d)-1], frames[int(d)], 0.5)
+    w = float(window)
+    new_quaternion_frames = []
+    for f in xrange(n_frames):
+        if f < d - w:
+            new_quaternion_frames.append(frames[f])
+        elif d - w <= f < d:
+            tmp = (f - d + w) / w
+            weight =2 * ( 0.5 * tmp ** 2)
+            new_quaternion_frames.append(slerp_quaternion_frame(frames[f], ref_pose, weight))
+        elif d <= f <= d + w:
+            tmp = (f - d + w) / w
+            weight =2 * ( 0.5 * tmp ** 2 - 2 * tmp + 2)
+            new_quaternion_frames.append(slerp_quaternion_frame(frames[f], ref_pose, weight))
+        else:
+            new_quaternion_frames.append(frames[f])
+    return np.asarray(new_quaternion_frames)
+
+
 
 def smooth_quaternion_frames(frames, discontinuity, window=20):
     """ Smooth quaternion frames given discontinuity frame
@@ -74,8 +112,7 @@ def smooth_quaternion_frames(frames, discontinuity, window=20):
             q1 = np.array(frames[j][3 + i * 4: 3 + (i + 1) * 4])
             q2 = np.array(frames[j + 1][3 + i * 4:3 + (i + 1) * 4])
             if np.dot(q1, q2) < 0:
-                frames[
-                    j + 1][3 + i * 4:3 + (i + 1) * 4] = -frames[j + 1][3 + i * 4:3 + (i + 1) * 4]
+                frames[j + 1][3 + i * 4:3 + (i + 1) * 4] = -frames[j + 1][3 + i * 4:3 + (i + 1) * 4]
     # generate curve of smoothing factors
     d = float(discontinuity)
     w = float(window)
@@ -98,6 +135,46 @@ def smooth_quaternion_frames(frames, discontinuity, window=20):
         new_quaternion_frames.append(new_value)
     new_quaternion_frames = np.array(new_quaternion_frames).T
     return new_quaternion_frames
+
+
+def linear_blending(ref_pose, quat_frames, skeleton, weights, joint_list=None):
+    '''
+    Apply linear blending on quaternion motion data
+    :param ref_pose (QuaternionFrame):
+    :param quat_frames:
+    :param skeleton (morphablegraphs.animation_data.Skeleton):
+    :param weights (numpy.array): weights used for slerp
+    :param joint_list (list): animated joint to be blended
+    :return:
+    '''
+    if joint_list is None:
+        joint_list = skeleton.animated_joints
+    new_frames = copy.deepcopy(quat_frames)
+    for i in range(len(quat_frames)):
+        for joint in joint_list:
+            joint_index = skeleton.nodes[joint].quaternion_frame_index
+            start_index = LEN_ROOT_POS + LEN_QUAT * joint_index
+            end_index = LEN_ROOT_POS + LEN_QUAT * (joint_index + 1)
+            ref_q = ref_pose[start_index: end_index]
+            motion_q = quat_frames[i, start_index: end_index]
+            new_frames[i, start_index: end_index] = quaternion_slerp(ref_q, motion_q, weights[i])
+    return new_frames
+
+def blend_quaternion_frames(new_frames, prev_frames, skeleton, smoothing_window=None):
+    '''
+    Blend new frames linearly based on the last pose of previous frames
+    :param new_frames (Quaternion Frames):
+    :param prev_frames (Quaternion Frames):
+    :param skeleton (morphablegraphs.animation_data.Skeleton):
+    :param smoothing_window (int): smoothing window decides how many frames will be blended, if is None, then blend all
+    :return:
+    '''
+    if smoothing_window is not None and smoothing_window != 0:
+        slerp_weights = np.linspace(0, 1, smoothing_window)
+    else:
+        slerp_weights = np.linspace(0, 1, len(new_frames))
+
+    return linear_blending(prev_frames[-1], new_frames, skeleton, slerp_weights)
 
 
 def get_orientation_vector_from_matrix(m, v=[0, 0, 1]):
@@ -160,10 +237,36 @@ def concatenate_frames(new_frames, prev_frames, smoothing_window=0):
     return frames
 
 
-def align_and_concatenate_frames(skeleton, node_name, new_frames, prev_frames=None, start_pose=None, smoothing_window=0):
+def concatenate_frames_with_slerp(new_frames, prev_frames, smoothing_window=0):
+    '''
+
+    :param new_frames (numpy.array): n_frames * n_dims
+    :param prev_frames (numpy.array): n_frames * n_dims
+    :param smoothing_window:
+    :return:
+    '''
+    d = len(prev_frames)
+    frames = prev_frames.tolist()
+    for f in new_frames:
+        frames.append(f)
+    frames = np.array(frames)
+    if smoothing_window > 0:
+        frames = smooth_quaternion_frames_with_slerp(frames, d, smoothing_window)
+    return frames
+
+
+def align_and_concatenate_frames(skeleton, node_name, new_frames, prev_frames=None, start_pose=None, smoothing_window=0,
+                                 method='smoothing'):
     new_frames = align_quaternion_frames_with_start(skeleton, node_name, new_frames, prev_frames, start_pose)
     if prev_frames is not None:
-        return concatenate_frames(new_frames, prev_frames, smoothing_window)
+        if method == 'smoothing':
+            return concatenate_frames(new_frames, prev_frames, smoothing_window)
+        elif method == 'blending':
+            return blend_quaternion_frames(new_frames, prev_frames, skeleton, smoothing_window)
+        elif method == 'slerp_smoothing':
+            return concatenate_frames_with_slerp(new_frames, prev_frames, smoothing_window)
+        else:
+            raise KeyError('Unknown method!')
     else:
         return new_frames
 

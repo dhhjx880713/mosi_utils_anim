@@ -35,7 +35,7 @@ class MotionVector(object):
         self.n_frames = len(self.frames)
         self.frame_time = bvh_reader.frame_time
 
-    def append_frames(self, new_frames):
+    def append_frames(self, new_frames, concatenate_method='smoothing'):
         """Align quaternion frames to previous frames
 
         Parameters
@@ -47,7 +47,7 @@ class MotionVector(object):
             smoothing_window = self.smoothing_window
         else:
             smoothing_window = 0
-        self.frames = align_and_concatenate_frames(self.skeleton, self.skeleton.aligning_root_node, new_frames, self.frames, self.start_pose, smoothing_window)
+        self.frames = align_and_concatenate_frames(self.skeleton, self.skeleton.aligning_root_node, new_frames, self.frames, self.start_pose, smoothing_window, concatenate_method)
         self.n_frames = len(self.frames)
 
 
