@@ -12,6 +12,7 @@ from ..motion_model.motion_state_group import NODE_TYPE_END
 from ..constraints import OPTIMIZATION_MODE_ALL
 from ..motion_model.motion_state_graph_loader import MotionStateGraphLoader
 from graph_walk_optimizer import GraphWalkOptimizer
+from inverse_kinematics import InverseKinematics
 from ..utilities import load_json_file, write_log, clear_log, save_log, write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO, LOG_MODE_ERROR, set_log_mode
 
 
@@ -31,7 +32,6 @@ class MotionGenerator2(object):
         self.step_look_ahead_distance = 100
         self.activate_global_optimization = False
         self.graph_walk_optimizer = GraphWalkOptimizer(self._motion_state_graph, algorithm_config)
-        self.inverse_kinematics = None
 
         self.set_algorithm_config(algorithm_config)
 
@@ -60,6 +60,9 @@ class MotionGenerator2(object):
                              + str(time_in_seconds % 60) + " seconds", LOG_MODE_INFO)
 
         motion_vector = self.graph_walk.convert_to_annotated_motion(speed)
+
+        self._post_process_motion(motion_vector)
+
         if complete_motion_vector:
             motion_vector.frames = self._motion_state_graph.skeleton.complete_motion_vector_from_reference(
                 motion_vector.frames)
@@ -131,6 +134,27 @@ class MotionGenerator2(object):
         self.graph_walk.steps.append(new_step)
 
         action_state.transition(node_key, new_node_type, new_travelled_arc_length, self.graph_walk.get_num_of_frames())
+
+    def _post_process_motion(self, motion_vector):
+        """
+        Applies inverse kinematics constraints on a annotated motion vector
+
+        Parameters
+        ----------
+        * motion_vector : AnnotatedMotionVector
+            Contains motion but also the constraints
+
+        Returns
+        -------
+        * motion_vector : AnnotatedMotionVector
+           Contains a list of quaternion frames and their annotation based on actions.
+        """
+        if self._algorithm_config["activate_inverse_kinematics"]:
+            write_message_to_log("Modify using inverse kinematics", LOG_MODE_INFO)
+            self.inverse_kinematics = InverseKinematics(self._motion_state_graph.skeleton, self._algorithm_config,
+                                                        motion_vector.frames[0])
+            self.inverse_kinematics.modify_motion_vector(motion_vector)
+            self.inverse_kinematics.fill_rotate_events(motion_vector)
 
 
     def get_end_step_arc_length(self, action_constraints):
