@@ -64,7 +64,7 @@ class GraphWalkPlanner(object):
         self.node_group = self.action_constraints.get_node_group()
 
     def get_best_start_node(self):
-        start_nodes = self.motion_state_graph.get_start_nodes(self.state.graph_walk, self.action_constraints.action_name)
+        start_nodes = self.motion_state_graph.get_start_nodes(self.action_constraints.action_name)
         n_nodes = len(start_nodes)
         if n_nodes > 1:
             options = [(self.action_constraints.action_name, next_node) for next_node in start_nodes]

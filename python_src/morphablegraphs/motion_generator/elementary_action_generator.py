@@ -85,12 +85,8 @@ class ElementaryActionGenerator(object):
             next_node, next_node_type = self.path_planner.get_best_transition_node()
         return next_node, next_node_type
 
-    def _update_travelled_arc_length(self, new_quat_frames, prev_graph_walk, prev_travelled_arc_length):
+    def _update_travelled_arc_length(self, new_quat_frames, prev_travelled_arc_length):
         """update travelled arc length based on new closest point on trajectory """
-        #if len(prev_graph_walk) > 0:
-        #    min_arc_length = prev_graph_walk[-1].arc_length
-        #else:
-        #    min_arc_length = 0.0
         max_arc_length = prev_travelled_arc_length + self.step_look_ahead_distance  # was originally set to 80
         closest_point, distance = self.action_constraints.root_trajectory.find_closest_point(new_quat_frames[-1][:3],  prev_travelled_arc_length, max_arc_length)
         new_travelled_arc_length, eval_point = self.action_constraints.root_trajectory.get_absolute_arc_length_of_point(closest_point, min_arc_length=prev_travelled_arc_length)
@@ -138,6 +134,7 @@ class ElementaryActionGenerator(object):
         self.action_state.initialize_from_previous_graph_walk(graph_walk, max_arc_length, self.action_constraints.cycled_next)
         write_message_to_log("Start synthesis of elementary action " + self.action_constraints.action_name, LOG_MODE_INFO)
         optimization_steps = self.graph_walk_optimizer._global_spatial_optimization_steps
+
         errors = [0]
         distances = []
         while not self.action_state.is_end_state():
@@ -158,13 +155,11 @@ class ElementaryActionGenerator(object):
                 start_step = self.action_state.temp_step - optimization_steps
                 self.graph_walk_optimizer.optimize_spatial_parameters_over_graph_walk(graph_walk, graph_walk.step_count+start_step)
 
-
         graph_walk.step_count += self.action_state.temp_step
         graph_walk.update_frame_annotation(self.action_constraints.action_name, self.action_state.action_start_frame, graph_walk.get_num_of_frames())
         avg_error = np.average(errors)
         write_message_to_log("Reached end of elementary action " + self.action_constraints.action_name +
                              " with an average error of " + str(avg_error), LOG_MODE_INFO)
-
         return avg_error < self.average_elementary_action_error_threshold
 
     def _transition_to_next_action_state(self, graph_walk):
@@ -204,11 +199,10 @@ class ElementaryActionGenerator(object):
 
     def _create_graph_walk_entry(self, new_node, new_motion_spline, new_parameters, mp_constraints, graph_walk):
         """ Concatenate frames to motion and apply smoothing """
-        prev_steps = graph_walk.steps
         graph_walk.append_quat_frames(new_motion_spline.get_motion_vector())
 
         if self.action_constraints.root_trajectory is not None:
-            new_travelled_arc_length = self._update_travelled_arc_length(graph_walk.get_quat_frames(), prev_steps, self.action_state.travelled_arc_length)
+            new_travelled_arc_length = self._update_travelled_arc_length(graph_walk.get_quat_frames(), self.action_state.travelled_arc_length)
         else:
             new_travelled_arc_length = 0
 

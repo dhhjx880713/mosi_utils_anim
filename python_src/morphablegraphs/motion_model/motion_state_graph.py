@@ -82,13 +82,11 @@ class MotionStateGraph(object):
             write_message_to_log("Generate random start" + str(next_node), mode=LOG_MODE_DEBUG)
         return next_node
 
-    def get_start_nodes(self, graph_walk, action_name):
+    def get_start_nodes(self, action_name):
         """
         Get all start state based on edge from previous elementary action if possible
-        :param graph_walk:
         :param action_name:
         :return:
         """
-        next_nodes = self.node_groups[action_name].get_start_states()
-        return next_nodes
+        return self.node_groups[action_name].get_start_states()
 
