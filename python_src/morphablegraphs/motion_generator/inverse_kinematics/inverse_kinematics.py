@@ -248,6 +248,7 @@ class InverseKinematics(object):
                         if c.orientation is not None and self.optimize_orientation:
                             self._set_hand_orientation(motion_vector, c.orientation, c.joint_name, keyframe, start, end)
         return error
+
     def _modify_frame_using_keyframe_constraint(self, motion_vector, constraint, keyframe):
         self.set_pose_from_frame(motion_vector.frames[keyframe])
         error = self._modify_pose_general(constraint)
