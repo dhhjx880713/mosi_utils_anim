@@ -91,7 +91,7 @@ class GraphWalkGenerator(object):
         self.action_generator.set_action_constraints(action_constraints)
         success = self.action_generator.append_action_to_graph_walk(graph_walk)
         if success:
-            graph_walk = self.graph_walk_optimizer.optimize(graph_walk, self.action_generator, action_constraints)
+            graph_walk = self.graph_walk_optimizer.optimize(graph_walk, self.action_generator.action_state, action_constraints)
             graph_walk.add_entry_to_action_list(action_constraints.action_name, self.action_generator.action_state.start_step, len(graph_walk.steps) - 1, action_constraints)
         return success
 
