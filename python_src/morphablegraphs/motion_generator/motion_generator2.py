@@ -1,8 +1,6 @@
 
 import time
-import os
-from datetime import datetime
-import json
+from algorithm_configuration import AlgorithmConfigurationBuilder
 from ..constraints.mg_input_format_reader import MGInputFormatReader
 from ..constraints.elementary_action_constraints_builder import ElementaryActionConstraintsBuilder
 from ..constraints.motion_primitive_constraints_builder import MotionPrimitiveConstraintsBuilder
@@ -32,6 +30,8 @@ class MotionGenerator2(object):
         self.step_look_ahead_distance = 100
         self.graph_walk_optimizer = GraphWalkOptimizer(self._motion_state_graph, algorithm_config)
         self.inverse_kinematics = None
+
+        self.set_algorithm_config(algorithm_config)
 
     def generate_motion(self, mg_input, activate_joint_map, activate_coordinate_transform,
             complete_motion_vector=True, speed=1.0):
@@ -120,12 +120,6 @@ class MotionGenerator2(object):
         action_state.transition(node_key, new_node_type, new_travelled_arc_length, self.graph_walk.get_num_of_frames())
 
 
-    def set_action_constraints(self, action_constraints):
-        self.action_constraints = action_constraints
-        self.mp_constraints_builder.set_action_constraints(self.action_constraints)
-        self.motion_primitive_generator = MotionPrimitiveGenerator(self.action_constraints, self._algorithm_config)
-        self.node_group = self.action_constraints.get_node_group()
-
     def get_end_step_arc_length(self, action_constraints):
         node_group = action_constraints.get_node_group()
         end_state = node_group.get_random_end_state()
@@ -151,3 +145,21 @@ class MotionGenerator2(object):
 
     def get_skeleton(self):
         return self._motion_state_graph.skeleton
+
+    def set_algorithm_config(self, algorithm_config):
+        """
+        Parameters
+        ----------
+        * algorithm_config : dict
+            Contains options for the algorithm.
+        """
+        if algorithm_config is None:
+            algorithm_config_builder = AlgorithmConfigurationBuilder()
+            self._algorithm_config = algorithm_config_builder.build()
+        else:
+            self._algorithm_config = algorithm_config
+        self.graph_walk_optimizer.set_algorithm_config(self._algorithm_config)
+        if "trajectory_following_settings" in algorithm_config.keys():
+            trajectory_following_settings = algorithm_config["trajectory_following_settings"]
+            self.end_step_length_factor = trajectory_following_settings["end_step_length_factor"]
+            self.step_look_ahead_distance = trajectory_following_settings["look_ahead_distance"]
