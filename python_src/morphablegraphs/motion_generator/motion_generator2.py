@@ -9,6 +9,7 @@ from motion_primitive_generator import MotionPrimitiveGenerator
 from graph_walk import GraphWalk, GraphWalkEntry
 from graph_walk_planner import GraphWalkPlanner
 from ..motion_model.motion_state_group import NODE_TYPE_END
+from ..constraints import OPTIMIZATION_MODE_ALL
 from ..motion_model.motion_state_graph_loader import MotionStateGraphLoader
 from graph_walk_optimizer import GraphWalkOptimizer
 from ..utilities import load_json_file, write_log, clear_log, save_log, write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO, LOG_MODE_ERROR, set_log_mode
@@ -28,6 +29,7 @@ class MotionGenerator2(object):
         self.mp_constraints_builder.set_algorithm_config(self._algorithm_config)
         self.end_step_length_factor = 1.0
         self.step_look_ahead_distance = 100
+        self.activate_global_optimization = False
         self.graph_walk_optimizer = GraphWalkOptimizer(self._motion_state_graph, algorithm_config)
         self.inverse_kinematics = None
 
@@ -71,17 +73,28 @@ class MotionGenerator2(object):
         self.mp_constraints_builder.set_action_constraints(action_constraints)
         action_state = ElementaryActionGeneratorState(self._algorithm_config)
         arc_length_of_end = self.get_end_step_arc_length(action_constraints)
+        optimization_steps = self.graph_walk_optimizer._global_spatial_optimization_steps
+
         self.graph_walk_planner.set_state(self.graph_walk, self.mp_generator, action_state, action_constraints, arc_length_of_end)
         node_key = self.graph_walk_planner.get_best_start_node()
         self._generate_motion_primitive(action_constraints, node_key, action_state)
+
         while not action_state.is_end_state():
             self.graph_walk_planner.set_state(self.graph_walk, self.mp_generator, action_state, action_constraints, arc_length_of_end)
             node_key, next_node_type = self.graph_walk_planner.get_best_transition_node()
             self._generate_motion_primitive(action_constraints, node_key, action_state, next_node_type==NODE_TYPE_END)
 
+            if self.activate_global_optimization and action_state.temp_step % optimization_steps == 0:
+                start_step = action_state.temp_step - optimization_steps
+                self.graph_walk_optimizer.optimize_spatial_parameters_over_graph_walk(self.graph_walk,
+                                                                                      self.graph_walk.step_count + start_step)
+
         self.graph_walk.step_count += action_state.temp_step
         self.graph_walk.update_frame_annotation(action_constraints.action_name,
                                            action_state.action_start_frame, self.graph_walk.get_num_of_frames())
+
+
+        self.graph_walk = self.graph_walk_optimizer.optimize(self.graph_walk, action_state, action_constraints)
 
         write_message_to_log("Reached end of elementary action " + action_constraints.action_name, LOG_MODE_INFO)
 
@@ -163,3 +176,4 @@ class MotionGenerator2(object):
             trajectory_following_settings = algorithm_config["trajectory_following_settings"]
             self.end_step_length_factor = trajectory_following_settings["end_step_length_factor"]
             self.step_look_ahead_distance = trajectory_following_settings["look_ahead_distance"]
+        self.activate_global_optimization = algorithm_config["global_spatial_optimization_mode"] == OPTIMIZATION_MODE_ALL
