@@ -19,7 +19,7 @@ import tornado.web
 import json
 import time
 from datetime import datetime
-from morphablegraphs import MotionGenerator, AlgorithmConfigurationBuilder, load_json_file, write_to_json_file,AnnotatedMotionVector
+from morphablegraphs import MotionGenerator, MotionGenerator2, AlgorithmConfigurationBuilder, load_json_file, write_to_json_file,AnnotatedMotionVector
 from morphablegraphs.animation_data.retargeting import retarget_from_src_to_target, GAME_ENGINE_TO_ROCKETBOX_MAP, ROCKETBOX_ROOT_OFFSET
 from morphablegraphs.animation_data import Skeleton, MotionVector, BVHReader, BVHWriter
 from morphablegraphs.animation_data.fbx_io import load_skeleton_and_animations_from_fbx, export_motion_vector_to_fbx_file
@@ -257,7 +257,7 @@ class MGRestApplication(tornado.web.Application):
             service_config["collision_avoidance_service_url"] = None
 
         start = time.clock()
-        self.motion_generator = MotionGenerator(self.service_config, self.algorithm_config)
+        self.motion_generator = MotionGenerator2(self.service_config, self.algorithm_config)
         self.target_skeleton = None
         message = "Finished construction from file in " + str(time.clock() - start) + " seconds"
         write_message_to_log(message, LOG_MODE_INFO)
@@ -268,8 +268,8 @@ class MGRestApplication(tornado.web.Application):
                                                      complete_motion_vector=complete_motion_vector)
 
     def is_initiated(self):
-        return self.motion_generator.motion_state_graph.skeleton is not None \
-                and len(self.motion_generator.motion_state_graph.nodes) > 0
+        return self.motion_generator._motion_state_graph.skeleton is not None \
+                and len(self.motion_generator._motion_state_graph.nodes) > 0
 
     def get_skeleton(self):
         return self.motion_generator.get_skeleton()
