@@ -1,4 +1,4 @@
-
+import numpy as np
 import time
 from algorithm_configuration import AlgorithmConfigurationBuilder
 from ..constraints.mg_input_format_reader import MGInputFormatReader
@@ -61,11 +61,7 @@ class MotionGenerator2(object):
 
         motion_vector = self.graph_walk.convert_to_annotated_motion(speed)
 
-        self._post_process_motion(motion_vector)
-
-        if complete_motion_vector:
-            motion_vector.frames = self._motion_state_graph.skeleton.complete_motion_vector_from_reference(
-                motion_vector.frames)
+        self._post_process_motion(motion_vector, complete_motion_vector)
 
         motion_vector.translate_root(offset)
 
@@ -75,6 +71,11 @@ class MotionGenerator2(object):
         self.mp_generator = MotionPrimitiveGenerator(action_constraints, self._algorithm_config)
         self.mp_constraints_builder.set_action_constraints(action_constraints)
         action_state = ElementaryActionGeneratorState(self._algorithm_config)
+        if action_constraints.root_trajectory is not None:
+            max_arc_length = action_constraints.root_trajectory.full_arc_length
+        else:
+            max_arc_length = np.inf
+        action_state.initialize_from_previous_graph_walk(self.graph_walk, max_arc_length, action_constraints.cycled_next)
         arc_length_of_end = self.get_end_step_arc_length(action_constraints)
         optimization_steps = self.graph_walk_optimizer._global_spatial_optimization_steps
 
@@ -98,7 +99,9 @@ class MotionGenerator2(object):
 
 
         self.graph_walk = self.graph_walk_optimizer.optimize(self.graph_walk, action_state, action_constraints)
-
+        self.graph_walk.add_entry_to_action_list(action_constraints.action_name,
+                                            action_state.start_step, len(self.graph_walk.steps) - 1,
+                                            action_constraints)
         write_message_to_log("Reached end of elementary action " + action_constraints.action_name, LOG_MODE_INFO)
 
     def _generate_motion_primitive(self, action_constraints, node_key, action_state, is_last_step=False):
@@ -135,14 +138,17 @@ class MotionGenerator2(object):
 
         action_state.transition(node_key, new_node_type, new_travelled_arc_length, self.graph_walk.get_num_of_frames())
 
-    def _post_process_motion(self, motion_vector):
+    def _post_process_motion(self, motion_vector, complete_motion_vector):
         """
-        Applies inverse kinematics constraints on a annotated motion vector
+        Applies inverse kinematics constraints on a annotated motion vector and adds values for static DOFs
+        that are not part of the motion model.
 
         Parameters
         ----------
         * motion_vector : AnnotatedMotionVector
             Contains motion but also the constraints
+        * complete_motion_vector: bool
+            Sets DOFs that are not modelled by the motion model using default values.
 
         Returns
         -------
@@ -156,6 +162,9 @@ class MotionGenerator2(object):
             self.inverse_kinematics.modify_motion_vector(motion_vector)
             self.inverse_kinematics.fill_rotate_events(motion_vector)
 
+        if complete_motion_vector:
+            motion_vector.frames = self._motion_state_graph.skeleton.complete_motion_vector_from_reference(
+                motion_vector.frames)
 
     def get_end_step_arc_length(self, action_constraints):
         node_group = action_constraints.get_node_group()
