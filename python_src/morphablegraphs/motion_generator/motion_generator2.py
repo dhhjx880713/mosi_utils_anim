@@ -10,19 +10,16 @@ from graph_walk import GraphWalk, GraphWalkEntry
 from graph_walk_planner import GraphWalkPlanner
 from ..motion_model.motion_state_group import NODE_TYPE_END
 from ..constraints import OPTIMIZATION_MODE_ALL
-from ..motion_model.motion_state_graph_loader import MotionStateGraphLoader
 from graph_walk_optimizer import GraphWalkOptimizer
 from inverse_kinematics import InverseKinematics
 from ..utilities import load_json_file, write_log, clear_log, save_log, write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO, LOG_MODE_ERROR, set_log_mode
 
 
 class MotionGenerator2(object):
-    def __init__(self, service_config, algorithm_config):
+    def __init__(self, motion_state_graph, service_config, algorithm_config):
         self._service_config = service_config
         self._algorithm_config = algorithm_config
-        graph_loader = MotionStateGraphLoader()
-        graph_loader.set_data_source(self._service_config["model_data"], self._algorithm_config["use_transition_model"])
-        self._motion_state_graph = graph_loader.build()
+        self._motion_state_graph = motion_state_graph
         self.graph_walk_planner = GraphWalkPlanner(self._motion_state_graph, algorithm_config)
         self.graph_walk = None
         self.action_constraints_builder = ElementaryActionConstraintsBuilder(self._motion_state_graph, algorithm_config)
