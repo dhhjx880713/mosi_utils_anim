@@ -33,7 +33,7 @@ class MotionGenerator2(object):
         self.set_algorithm_config(algorithm_config)
 
     def generate_motion(self, mg_input, activate_joint_map, activate_coordinate_transform,
-            complete_motion_vector=True, speed=1.0):
+                        complete_motion_vector=True, speed=1.0, prev_graph_walk=None):
         clear_log()
         write_message_to_log("Start motion synthesis", LOG_MODE_INFO)
         mg_input_reader = MGInputFormatReader(self._motion_state_graph, activate_joint_map,
@@ -47,13 +47,21 @@ class MotionGenerator2(object):
 
         offset = mg_input_reader.center_constraints()
 
-        self.graph_walk = GraphWalk(self._motion_state_graph, mg_input_reader, self._algorithm_config)
-        action_list = self.action_constraints_builder.build_list_from_input_file(mg_input_reader)
-        for constraints in action_list:
+        action_constraint_list = self.action_constraints_builder.build_list_from_input_file(mg_input_reader)
+
+        if prev_graph_walk is None:
+            self.graph_walk = GraphWalk(self._motion_state_graph, mg_input_reader, self._algorithm_config)
+        else:
+            self.graph_walk = prev_graph_walk
+            self.graph_walk.mg_input = mg_input_reader
+            start_action_idx = self.graph_walk.get_number_of_actions()
+            action_constraint_list = action_constraint_list[start_action_idx:]
+
+        for constraints in action_constraint_list:
             self._generate_action(constraints)
 
         time_in_seconds = time.clock() - start_time
-        write_message_to_log("Finished " + "synthesis" + " in " + str(int(time_in_seconds / 60)) + " minutes "
+        write_message_to_log("Finished synthesis in " + str(int(time_in_seconds / 60)) + " minutes "
                              + str(time_in_seconds % 60) + " seconds", LOG_MODE_INFO)
 
         motion_vector = self.graph_walk.convert_to_annotated_motion(speed)
