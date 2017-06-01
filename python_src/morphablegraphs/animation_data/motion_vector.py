@@ -18,14 +18,18 @@ class MotionVector(object):
         self.frames = None
         self.start_pose = None
         self.rotation_type = rotation_type
-        if algorithm_config is not None:
-            self.apply_spatial_smoothing = algorithm_config["smoothing_settings"]["spatial_smoothing"]
-            self.smoothing_window = algorithm_config["smoothing_settings"]["spatial_smoothing_window"]
-        else:
-            self.apply_spatial_smoothing = False
-            self.smoothing_window = 0
+        self.apply_spatial_smoothing = False
+        self.smoothing_window = 0
+        self.spatial_smoothing_method = "smoothing"
         self.frame_time = 1.0/30.0
         self.skeleton = skeleton
+
+        if algorithm_config is not None:
+            settings = algorithm_config["smoothing_settings"]
+            self.apply_spatial_smoothing = settings["spatial_smoothing"]
+            self.smoothing_window = settings["spatial_smoothing_window"]
+            if "spatial_smoothing_method" in settings:
+                self.spatial_smoothing_method = settings["spatial_smoothing_method"]
 
     def from_bvh_reader(self, bvh_reader, filter_joints=True):
         if self.rotation_type == ROTATION_TYPE_QUATERNION:
@@ -35,7 +39,7 @@ class MotionVector(object):
         self.n_frames = len(self.frames)
         self.frame_time = bvh_reader.frame_time
 
-    def append_frames(self, new_frames, concatenate_method='smoothing'):
+    def append_frames(self, new_frames):
         """Align quaternion frames to previous frames
 
         Parameters
@@ -47,7 +51,8 @@ class MotionVector(object):
             smoothing_window = self.smoothing_window
         else:
             smoothing_window = 0
-        self.frames = align_and_concatenate_frames(self.skeleton, self.skeleton.aligning_root_node, new_frames, self.frames, self.start_pose, smoothing_window, concatenate_method)
+        self.frames = align_and_concatenate_frames(self.skeleton, self.skeleton.aligning_root_node, new_frames, self.frames, self.start_pose,
+                                                   smoothing_window=smoothing_window, blending_method=self.spatial_smoothing_method)
         self.n_frames = len(self.frames)
 
 

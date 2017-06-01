@@ -1,15 +1,15 @@
-import numpy as np
-from copy import copy
 import time
-from scipy.optimize import minimize
 from collections import OrderedDict
-from ...animation_data import ROTATION_TYPE_EULER,ROTATION_TYPE_QUATERNION
-from blending import smooth_quaternion_frames_using_slerp, smooth_quaternion_frames_using_slerp_overwrite_frames, apply_slerp
-from skeleton_pose_model import SkeletonPoseModel
-from ...utilities import write_log, write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO
-from ...external.transformations import quaternion_matrix, euler_from_matrix
-from ...constraints.ik_constraints import RelativeJointIKConstraint
+from copy import copy
 
+import numpy as np
+from scipy.optimize import minimize
+
+from ...animation_data.motion_blending import smooth_quaternion_frames_using_slerp, apply_slerp
+from skeleton_pose_model import SkeletonPoseModel
+from ...animation_data import ROTATION_TYPE_EULER
+from ...external.transformations import quaternion_matrix, euler_from_matrix
+from ...utilities import write_log, write_message_to_log, LOG_MODE_DEBUG
 
 LEN_QUATERNION = 4
 LEN_TRANSLATION = 3

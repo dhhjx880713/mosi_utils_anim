@@ -26,12 +26,7 @@ try:
 except:
     print("Could not find euler FK-Extension")
 
-
-DEFAULT_ROTATION_ORDER = ['Xrotation','Yrotation','Zrotation']
-DEFAULT_SMOOTHING_WINDOW_SIZE = 20
-LEN_QUAT = 4
-LEN_ROOT_POS = 3
-LEN_EULER = 3
+from constants import *
 
 if use_euler_fk:
     FK_FUNCS = [

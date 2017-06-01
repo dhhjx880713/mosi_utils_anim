@@ -55,9 +55,15 @@ class GraphWalk(object):
         if start_pose is None:
             start_pose = mg_input.get_start_pose()
         self.motion_vector.start_pose = start_pose
-        self.motion_vector.apply_spatial_smoothing = False
+
+        smoothing_settings = algorithm_config["smoothing_settings"]
+        self.spatial_smoothing_method = "smoothing"
+        self.apply_smoothing = smoothing_settings["spatial_smoothing"] # set whether the exported motion is smoothed at transitions
+        if "spatial_smoothing_method" in smoothing_settings:
+            self.spatial_smoothing_method = smoothing_settings["spatial_smoothing_method"]
+
+        self.motion_vector.apply_spatial_smoothing = False # deactivate smoothing during the synthesis
         self.use_time_parameters = algorithm_config["activate_time_variation"]
-        self.apply_smoothing = algorithm_config["smoothing_settings"]["spatial_smoothing"]
         self.constrain_place_orientation = algorithm_config["inverse_kinematics_settings"]["constrain_place_orientation"]
         write_message_to_log("Use time parameters" + str(self.use_time_parameters), LOG_MODE_DEBUG)
         self.keyframe_event_list = KeyframeEventList(create_ca_vis_data)
@@ -67,10 +73,11 @@ class GraphWalk(object):
         self.elementary_action_list.append(HighLevelGraphWalkEntry(action_name, start_step, end_step, action_constraints))
 
     def convert_to_annotated_motion(self, step_size=1.0):
-        self.motion_vector.apply_spatial_smoothing = self.apply_smoothing
+        self.motion_vector.apply_spatial_smoothing = self.apply_smoothing # set wether or not smoothing is applied
+        self.motion_vector.spatial_smoothing_method = self.spatial_smoothing_method
         self.convert_graph_walk_to_quaternion_frames(use_time_parameters=self.use_time_parameters, step_size=step_size)
         self.keyframe_event_list.update_events(self, 0)
-        annotated_motion_vector = AnnotatedMotionVector(self.motion_state_graph.skeleton)
+        annotated_motion_vector = AnnotatedMotionVector(self.motion_state_graph.skeleton, self._algorithm_config)
         annotated_motion_vector.frames = self.motion_vector.frames
         annotated_motion_vector.n_frames = self.motion_vector.n_frames
         annotated_motion_vector.frame_time = self.motion_state_graph.skeleton.frame_time
