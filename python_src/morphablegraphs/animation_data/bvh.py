@@ -281,23 +281,24 @@ class BVHWriter(object):
         joint_string += tab_string + "}" + "\n"
         return joint_string
 
-    def convert_quaternion_to_euler_frames(self, quat_frames):
+    def convert_quaternion_to_euler_frames(self, skeleton, quat_frames):
         """ Converts the joint rotations from quaternion to euler rotations
             * quat_frames: array of motion vectors with rotations represented as quaternion
 
         """
+        joint_names = self.skeleton.get_joint_names()
         n_frames = len(quat_frames)
-        n_euler_params = len(quat_frames[0])
-        n_joints = ((n_euler_params-TRANSLATION_LEN)/EULER_LEN)*QUAT_LEN#self.skeleton.get_n_joints()
+        n_joints = len(joint_names)
         n_params = n_joints*QUAT_LEN +TRANSLATION_LEN
         euler_frames = np.zeros((n_frames, n_params))
         for frame_idx, quat_frame in enumerate(quat_frames):
             euler_frames[frame_idx,:TRANSLATION_LEN] = quat_frame[:TRANSLATION_LEN]
             d_offset = TRANSLATION_LEN
             s_offset = TRANSLATION_LEN
-            for idx in xrange(n_joints):
+            for joint_name in joint_names:
+                rotation_order = skeleton.nodes[joint_name].channels[-3:]
                 #print d_offset,s_offset, idx
-                euler_frames[frame_idx,d_offset:d_offset+EULER_LEN] = BVHWriter._quaternion_to_euler(quat_frame[s_offset:s_offset+QUAT_LEN])
+                euler_frames[frame_idx,d_offset:d_offset+EULER_LEN] = BVHWriter._quaternion_to_euler(quat_frame[s_offset:s_offset+QUAT_LEN], rotation_order)
                 d_offset += EULER_LEN
                 s_offset += QUAT_LEN
         return euler_frames

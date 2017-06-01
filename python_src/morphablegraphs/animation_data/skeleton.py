@@ -570,3 +570,6 @@ class Skeleton(object):
 
         data["referencePose"] = default_pose
         return data
+
+    def get_joint_names(self):
+        return [k for k, n in self.nodes.items() if len(n.children) > 0]
