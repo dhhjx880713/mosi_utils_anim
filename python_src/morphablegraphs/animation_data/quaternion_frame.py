@@ -119,21 +119,11 @@ class QuaternionFrame(collections.OrderedDict):
 
 
         """
-        x_idx = bvh_reader.node_channels.index((node_name, 'Xrotation'))
-        y_idx = bvh_reader.node_channels.index((node_name, 'Yrotation'))
-        z_idx = bvh_reader.node_channels.index((node_name, 'Zrotation'))
-        assert y_idx - x_idx == 1 and z_idx - y_idx == 1
-        euler_angles_x = frame_vector[x_idx]
-        euler_angles_y = frame_vector[y_idx]
-        euler_angles_z = frame_vector[z_idx]
-        euler_angles = [euler_angles_x, euler_angles_y, euler_angles_z]
-        #if node_name.startswith("Bip"):
-        #    euler_angles = [0, 0, 0]     # Set Fingers to zero
-
-        rotation_order = (
-            'Xrotation',
-            'Yrotation',
-            'Zrotation')  # hard coded for now
+        rotation_order = bvh_reader.node_names[node_name]["channels"][-3:]
+        euler_angles = []
+        for ch in rotation_order:
+            idx = bvh_reader.node_channels.index((node_name, ch))
+            euler_angles.append(frame_vector[idx])
         return QuaternionFrame._get_quaternion_from_euler(
                                 euler_angles,
                                 rotation_order,
