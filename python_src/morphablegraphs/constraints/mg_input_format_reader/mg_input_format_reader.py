@@ -2,6 +2,7 @@ __author__ = 'erhe01'
 
 import numpy as np
 import json
+from copy import copy
 from ...utilities.log import write_log, write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_ERROR, LOG_MODE_INFO
 from utils import _transform_point_from_cad_to_opengl_cs
 from constants import *
@@ -137,17 +138,29 @@ class MGInputFormatReader(object):
 
     def center_constraints(self):
         offset = np.array(self.mg_input_file[START_KEY][P_KEY])
-        for action in self.mg_input_file[ACTIONS_KEY]:
-            for constraint in action[CONSTRAINTS_KEY]:
-                for p in constraint[KEYFRAME_CONSTRAINTS_KEY]:
-                    new_p = p[P_KEY] - offset
-                    p[P_KEY] = new_p.tolist()
+        if TASKS_KEY in self.mg_input_file:
+            for task in self.mg_input_file[TASKS_KEY]:
+                for action in task[ACTIONS_KEY]:
+                    self.translate_action_constraints(action, offset)
+        else:
+            for action in self.mg_input_file[ACTIONS_KEY]:
+                self.translate_action_constraints(action, offset)
 
-                for p in constraint[TRAJECTORY_CONSTRAINTS_KEY]:
-                    new_p = p[P_KEY] - offset
-                    p[P_KEY] = new_p.tolist()
         self.mg_input_file[START_KEY][P_KEY] = [0, 0, 0]
         return offset
+
+    def translate_action_constraints(self, action, offset):
+        for constraint in action[CONSTRAINTS_KEY]:
+            for p in constraint[KEYFRAME_CONSTRAINTS_KEY]:
+                new_p = p[P_KEY] - offset
+                p[P_KEY] = new_p.tolist()
+
+            for p in constraint[TRAJECTORY_CONSTRAINTS_KEY]:
+                new_p = copy(p[P_KEY])
+                for idx, v in enumerate(new_p):
+                    if v is not None:
+                        new_p[idx] -= offset[idx]
+                p[P_KEY] = new_p#.tolist()
 
     def extract_trajectory_desc(self, action_index, joint_name, distance_treshold=-1):
         return self.trajectory_constraints_reader.extract_trajectory_desc(self.elementary_action_list, action_index, joint_name, distance_treshold)
