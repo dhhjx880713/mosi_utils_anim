@@ -165,7 +165,7 @@ class Retargeting(object):
         target_offset = 3
 
         for target_name in animated_joints:
-            q = get_quaternion_rotation_by_name(target_name, GAME_ENGINE_T_POSE_QUAT, self.target_skeleton, root_offset=3)
+            q = get_quaternion_rotation_by_name(target_name, self.target_skeleton.reference_frame, self.target_skeleton, root_offset=3)
             if target_name in self.target_to_src_joint_map.keys() or target_name == "Game_engine":
                 if target_name != "Game_engine":  # special case for splitting the rotation onto two joints
                     src_name = self.target_to_src_joint_map[target_name]
