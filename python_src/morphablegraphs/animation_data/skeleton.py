@@ -220,6 +220,14 @@ class Skeleton(object):
         self.parent_dict = self._get_parent_dict()
         self._chain_names = self._generate_chain_names()
 
+        n_params = len(self.animated_joints) * 4 + 3
+        self.reference_frame = np.zeros(n_params)
+        offset = 3
+        for node_name in self.animated_joints:
+            self.reference_frame[offset:offset + 4] = data["nodes"][node_name]["rotation"]
+            offset += 4
+        self.reference_frame_length = len(self.reference_frame)
+
     def _create_node_from_desc(self, data, parent):
         node_name = data["name"]
         channels = data["channels"]
