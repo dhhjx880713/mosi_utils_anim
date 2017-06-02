@@ -222,7 +222,7 @@ class BVHWriter(object):
         bvh_string = self._generate_hierarchy_string(self.skeleton) + "\n"
         if self.is_quaternion:
             #euler_frames = self.convert_quaternion_to_euler_frames_skipping_fixed_joints(self.frame_data, self.is_quaternion)
-            euler_frames = self.convert_quaternion_to_euler_frames(self.frame_data)
+            euler_frames = self.convert_quaternion_to_euler_frames(self.skeleton, self.frame_data)
 
         else:
             euler_frames = self.frame_data
@@ -426,22 +426,26 @@ class BVHWriter(object):
         * euler_angles: list
         \tEuler angles in degree with specified order
         """
+
+        rotation_order = [v.lower() for v in rotation_order]
         quat = np.asarray(quat)
         quat = quat / np.linalg.norm(quat)
         rotmat_quat = quaternion_matrix(quat)
-        if rotation_order[0] == 'Xrotation':
-            if rotation_order[1] == 'Yrotation':
+        if rotation_order[0] == 'xrotation':
+            if rotation_order[1] == 'yrotation':
                 euler_angles = np.rad2deg(euler_from_matrix(rotmat_quat, 'rxyz'))
-            elif rotation_order[1] == 'Zrotation':
+            elif rotation_order[1] == 'zrotation':
                 euler_angles = np.rad2deg(euler_from_matrix(rotmat_quat, 'rxzy'))
-        elif rotation_order[0] == 'Yrotation':
-            if rotation_order[1] == 'Xrotation':
+        elif rotation_order[0] == 'yrotation':
+            if rotation_order[1] == 'xrotation':
                 euler_angles = np.rad2deg(euler_from_matrix(rotmat_quat, 'ryxz'))
-            elif rotation_order[1] == 'Zrotation':
+            elif rotation_order[1] == 'zrotation':
                 euler_angles = np.rad2deg(euler_from_matrix(rotmat_quat, 'ryzx'))
-        elif rotation_order[0] == 'Zrotation':
-            if rotation_order[1] == 'Xrotation':
+        elif rotation_order[0] == 'zrotation':
+            if rotation_order[1] == 'xrotation':
                 euler_angles = np.rad2deg(euler_from_matrix(rotmat_quat, 'rzxy'))
-            elif rotation_order[1] == 'Yrotation':
+            elif rotation_order[1] == 'yrotation':
                 euler_angles = np.rad2deg(euler_from_matrix(rotmat_quat, 'rzyx'))
-        return euler_angles#.tolist()
+        return euler_angles
+
+
