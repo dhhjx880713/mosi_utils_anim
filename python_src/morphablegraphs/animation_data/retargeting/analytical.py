@@ -62,7 +62,7 @@ def align_joint(new_skeleton, free_joint_name, axes, global_src_up_vec,global_sr
     if free_joint_name in spine_offset_list:
         # handle special case of applying the x axis rotation of the Hip to the pelvis
         node = new_skeleton.nodes[free_joint_name]
-        t_pose_global_m = node.get_global_matrix(GAME_ENGINE_T_POSE_QUAT)[:3, :3]
+        t_pose_global_m = node.get_global_matrix(new_skeleton.reference_frame)[:3, :3]
         global_original = np.dot(t_pose_global_m, joint_cos_map[free_joint_name]["y"])
         global_original = normalize(global_original)
         qoffset = find_rotation_between_vectors(OPENGL_UP_AXIS, global_original)
