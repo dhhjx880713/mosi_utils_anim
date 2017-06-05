@@ -215,8 +215,6 @@ class Skeleton(object):
         self.root = data["root"]
         self._create_node_from_desc2(data, self.root, None)
         self.frame_time = data["frame_time"]
-        #self.max_level = self._get_max_level()
-        #self._set_joint_weights()
         self.parent_dict = self._get_parent_dict()
         self._chain_names = self._generate_chain_names()
 
@@ -581,3 +579,7 @@ class Skeleton(object):
 
     def get_joint_names(self):
         return [k for k, n in self.nodes.items() if len(n.children) > 0]
+
+    def scale(self, scale_factor):
+        for node in self.nodes.values():
+            node.offset = np.array(node.offset) * scale_factor
