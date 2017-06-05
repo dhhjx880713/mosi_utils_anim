@@ -9,8 +9,16 @@ import numpy as np
 from sklearn.mixture.gmm import _log_multivariate_normal_density_full
 from scipy.optimize.optimize import approx_fprime
 from ..animation_data.motion_editing import  align_quaternion_frames_only_last_frame
-from ..animation_data.motion_concatenation import align_quaternion_frames_with_start
+from ..animation_data.motion_concatenation import align_quaternion_frames
 from ..constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_TRAJECTORY_SET
+
+
+def obj_frame_error(s, data):
+    motion_primitive, target, joint_name, frame_idx = data
+    sample = motion_primitive.back_project(s, use_time_parameters=False)# TODO backproject only current frame
+    frame = sample.get_motion_vector()[frame_idx]
+    p = motion_primitive.skeleton.nodes[joint_name].get_global_position(frame)
+    return np.linalg.norm(target-p)
 
 
 def obj_spatial_error_sum(s, data):
@@ -201,7 +209,7 @@ def obj_global_error_sum(s, data):
         #print "got sample frames"
         step_data = motion_primitive_graph.nodes[step.node_key], step.motion_primitive_constraints, \
                        prev_frames#, error_scale_factor, quality_scale_factor
-        prev_frames = align_quaternion_frames_with_start(skeleton, node_name, sample_frames, prev_frames,
+        prev_frames = align_quaternion_frames(skeleton, node_name, sample_frames, prev_frames,
                                               step.motion_primitive_constraints.start_pose, 0)
         error += obj_spatial_error_sum(alpha, step_data)#_and_naturalness
         offset += step.n_spatial_components
@@ -233,7 +241,7 @@ def obj_global_residual_vector(s, data):
         sample_frames = motion_primitive_graph.nodes[step.node_key].back_project(alpha, use_time_parameters=False).get_motion_vector()
         step_data = motion_primitive_graph.nodes[step.node_key], step.motion_primitive_constraints, \
                        prev_frames, error_scale_factor, quality_scale_factor
-        prev_frames = align_quaternion_frames_with_start(skeleton, node_name, sample_frames, prev_frames,
+        prev_frames = align_quaternion_frames(skeleton, node_name, sample_frames, prev_frames,
                                               step.motion_primitive_constraints.start_pose)
         residual_vector += obj_spatial_error_residual_vector(alpha, step_data)
         offset += step.n_spatial_components
@@ -310,7 +318,7 @@ def obj_global_residual_vector_and_naturalness(s, data):
                        prev_frames, error_scale_factor, quality_scale_factor, 1.0
         concat_alpha = np.hstack((alpha, step.parameters[step.n_spatial_components:]))
         residual_vector = np.hstack( (residual_vector,obj_spatial_error_residual_vector_and_naturalness(concat_alpha, step_data)))
-        prev_frames = align_quaternion_frames_with_start(skeleton, node_name, sample_frames, prev_frames, step.motion_primitive_constraints.start_pose)
+        prev_frames = align_quaternion_frames(skeleton, node_name, sample_frames, prev_frames, step.motion_primitive_constraints.start_pose)
         offset += step.n_spatial_components
     #print "global error", sum(residual_vector)
     return residual_vector/init_error_sum#10000.0

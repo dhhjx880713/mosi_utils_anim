@@ -1,7 +1,81 @@
 import numpy as np
 from motion_editing import euler_substraction, point_to_euler_angle, euler_to_quaternion, euler_angles_to_rotation_matrix, get_rotation_angle, DEFAULT_ROTATION_ORDER, LEN_QUAT, LEN_EULER, LEN_ROOT_POS
-from ..external.transformations import quaternion_matrix, quaternion_about_axis, quaternion_multiply, quaternion_from_matrix, quaternion_from_euler, quaternion_slerp
+from ..external.transformations import quaternion_matrix, quaternion_about_axis, quaternion_multiply, quaternion_from_matrix, quaternion_from_euler, quaternion_slerp, euler_matrix
 from motion_blending import smooth_quaternion_frames_with_slerp, smooth_quaternion_frames, blend_quaternion_frames, smooth_quaternion_frames_using_slerp, smooth_translation_in_quat_frames
+
+ALIGNMENT_MODE_FAST = 0
+ALIGNMENT_MODE_PCL = 1
+
+
+
+def convert_quat_frame_to_point_cloud(skeleton, frame, joints=None):
+    points = []
+    if joints is None:
+        joints = [k for k, n in skeleton.nodes.items() if len(n.children) > 0 and "Bip" not in n.node_name]
+    for j in joints:
+        p = skeleton.nodes[j].get_global_position(frame)
+        points.append(p)
+    return points
+
+
+def _align_point_clouds_2D(a, b, weights):
+    '''
+     Finds aligning 2d transformation of two equally sized point clouds.
+     from Motion Graphs paper by Kovar et al.
+     Parameters
+     ---------
+     *a: list
+     \t point cloud
+     *b: list
+     \t point cloud
+     *weights: list
+     \t weights of correspondences
+     Returns
+     -------
+     *theta: float
+     \t angle around y axis in radians
+     *offset_x: float
+     \t
+     *offset_z: float
+
+     '''
+    if len(a) != len(b):
+        raise ValueError("two point cloud should have the same number points: "+str(len(a))+","+str(len(b)))
+    n_points = len(a)
+    numerator_left = 0
+    denominator_left = 0
+    weighted_sum_a_x = 0
+    weighted_sum_b_x = 0
+    weighted_sum_a_z = 0
+    weighted_sum_b_z = 0
+    sum_of_weights = 0.0
+    #    if not weights:
+    #        weight = 1.0/n_points # todo set weight base on joint level
+    for index in range(n_points):
+        numerator_left += weights[index] * (a[index][0] * b[index][2] -
+                                            b[index][0] * a[index][2])
+        denominator_left += weights[index] * (a[index][0] * b[index][0] +
+                                              a[index][2] * b[index][2])
+        sum_of_weights += weights[index]
+        weighted_sum_a_x += weights[index] * a[index][0]
+        weighted_sum_b_x += weights[index] * b[index][0]
+        weighted_sum_a_z += weights[index] * a[index][2]
+        weighted_sum_b_z += weights[index] * b[index][2]
+    numerator_right = 1.0 / sum_of_weights * \
+        (weighted_sum_a_x * weighted_sum_b_z -
+         weighted_sum_b_x * weighted_sum_a_z)
+    numerator = numerator_left - numerator_right
+    denominator_right = 1.0 / sum_of_weights * \
+        (weighted_sum_a_x * weighted_sum_b_x +
+         weighted_sum_a_z * weighted_sum_b_z)
+    denominator = denominator_left - denominator_right
+    theta = np.arctan2(numerator, denominator)
+    offset_x = (weighted_sum_a_x - weighted_sum_b_x *
+                np.cos(theta) - weighted_sum_b_z * np.sin(theta)) / sum_of_weights
+    offset_z = (weighted_sum_a_z + weighted_sum_b_x *
+                np.sin(theta) - weighted_sum_b_z * np.cos(theta)) / sum_of_weights
+
+    return theta, offset_x, offset_z
 
 
 def transform_quaternion_frames_legacy(quat_frames, angles, offset, rotation_order=None):
@@ -70,6 +144,7 @@ def get_global_node_orientation_vector(skeleton, node_name, frame, v=[0, 0, 1]):
 
 def get_node_aligning_2d_transform(skeleton, node_name, prev_frames, new_frames):
     """from last of prev frames to first of new frames"""
+
     m_a = skeleton.nodes[node_name].get_global_matrix(prev_frames[-1])
     m_b = skeleton.nodes[node_name].get_global_matrix(new_frames[0])
     dir_vec_a = get_orientation_vector_from_matrix(m_a[:3, :3])
@@ -85,6 +160,18 @@ def get_node_aligning_2d_transform(skeleton, node_name, prev_frames, new_frames)
     m[:3,3] = [offset_x, 0.0, offset_z]
     return m
 
+def get_transform_from_point_cloud_alignment(skeleton, prev_frames, new_frames):
+    weights = skeleton.get_joint_weights()
+    p_a = convert_quat_frame_to_point_cloud(skeleton, prev_frames[-1])
+    p_b = convert_quat_frame_to_point_cloud(skeleton, new_frames[0])
+    theta, offset_x, offset_z = _align_point_clouds_2D(p_a, p_b, weights)
+    euler = [0, np.radians(theta), 0]
+    m = np.eye(4)
+    m[:3,:3] = euler_matrix(*euler)[:3,:3]
+    m[0,3] = offset_x
+    m[2,3] = offset_z
+    print "run point cloud alignment", theta, offset_x, offset_z, m
+    return m
 
 def transform_quaternion_frames(frames, m,
                                 translation_param_range=(0, 3),
@@ -152,41 +239,26 @@ def concatenate_frames_with_slerp2(skeleton, new_frames, prev_frames, smoothing_
     return frames
 
 
-def align_and_concatenate_frames(skeleton, node_name, new_frames, prev_frames=None, start_pose=None, smoothing_window=0,
-                                 blending_method='slerp_smoothing2'):
-    new_frames = align_quaternion_frames_with_start(skeleton, node_name, new_frames, prev_frames, start_pose)
 
-    if prev_frames is not None:
-        if blending_method == 'smoothing':
-            return concatenate_frames(new_frames, prev_frames, smoothing_window)
-        elif blending_method == 'blending':
-            return blend_quaternion_frames(new_frames, prev_frames, skeleton, smoothing_window)
-        elif blending_method == 'slerp_smoothing':
-            return concatenate_frames_with_slerp(new_frames, prev_frames, smoothing_window)
-        elif blending_method == 'slerp_smoothing2':
-            return concatenate_frames_with_slerp2(skeleton, new_frames, prev_frames, smoothing_window)
-        else:
-            raise KeyError('Unknown method!')
+def align_quaternion_frames_automatically(skeleton, node_name, new_frames, prev_frames, alignment_mode=ALIGNMENT_MODE_FAST):
+    if alignment_mode == ALIGNMENT_MODE_FAST:
+        m = get_node_aligning_2d_transform(skeleton, node_name, prev_frames, new_frames)
     else:
-        return new_frames
+        m = get_transform_from_point_cloud_alignment(skeleton, prev_frames, new_frames)
 
-
-def align_quaternion_frames(skeleton, node_name, new_frames, prev_frames):
-    """new general version"""
-    m = get_node_aligning_2d_transform(skeleton, node_name, prev_frames, new_frames)
     new_frames = transform_quaternion_frames(new_frames, m)
     return new_frames
 
 
-def align_quaternion_frames2(skeleton, node_name, new_frames, prev_frames):
+def align_quaternion_frames_automatically2(skeleton, node_name, new_frames, prev_frames):
     angle, offset = fast_quat_frames_transformation(prev_frames, new_frames)
     new_frames = transform_quaternion_frames_legacy(new_frames, [0, angle, 0], offset)
     return new_frames
 
 
-def align_quaternion_frames_with_start(skeleton, node_name, new_frames, prev_frames=None,  start_pose=None):
+def align_quaternion_frames(skeleton, node_name, new_frames, prev_frames=None,  start_pose=None):
     if prev_frames is not None:
-        return align_quaternion_frames(skeleton, node_name, new_frames,  prev_frames)
+        return align_quaternion_frames_automatically(skeleton, node_name, new_frames,  prev_frames)
     elif start_pose is not None:
         m = get_transform_from_start_pose(start_pose)
         first_frame_pos = new_frames[0][:3].tolist() + [1]
@@ -214,3 +286,21 @@ def get_transform_from_start_pose(start_pose):
         m[:3,3] = p
     return m
 
+
+def align_and_concatenate_frames(skeleton, node_name, new_frames, prev_frames=None, start_pose=None, smoothing_window=0,
+                                 blending_method='slerp_smoothing2'):
+    new_frames = align_quaternion_frames(skeleton, node_name, new_frames, prev_frames, start_pose)
+
+    if prev_frames is not None:
+        if blending_method == 'smoothing':
+            return concatenate_frames(new_frames, prev_frames, smoothing_window)
+        elif blending_method == 'blending':
+            return blend_quaternion_frames(new_frames, prev_frames, skeleton, smoothing_window)
+        elif blending_method == 'slerp_smoothing':
+            return concatenate_frames_with_slerp(new_frames, prev_frames, smoothing_window)
+        elif blending_method == 'slerp_smoothing2':
+            return concatenate_frames_with_slerp2(skeleton, new_frames, prev_frames, smoothing_window)
+        else:
+            raise KeyError('Unknown method!')
+    else:
+        return new_frames
