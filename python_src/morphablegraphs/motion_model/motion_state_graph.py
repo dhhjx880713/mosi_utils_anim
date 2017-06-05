@@ -7,6 +7,7 @@ Created on Thu Jul 16 15:57:51 2015
 
 import collections
 from ..utilities import write_message_to_log, LOG_MODE_DEBUG
+import random
 
 
 class MotionStateGraph(object):
@@ -90,3 +91,17 @@ class MotionStateGraph(object):
         """
         return self.node_groups[action_name].get_start_states()
 
+    def get_random_start_node(self):
+        """ If there are start sates defined in the graph a node key tuple is returned  (action_name, state_name)
+            else None is returned.
+        """
+        actions = self.node_groups.keys()
+        if len(actions) > 0:
+            random_index = random.randrange(0, len(actions), 1)
+            action_name = actions[random_index]
+            start_states = self.get_start_nodes(action_name)
+            if len(start_states) > 0:
+                random_index = random.randrange(0, len(start_states), 1)
+                state_name = start_states[random_index]
+                return action_name, state_name
+        return None
