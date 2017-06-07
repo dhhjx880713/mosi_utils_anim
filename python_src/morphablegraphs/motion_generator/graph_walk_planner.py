@@ -8,7 +8,6 @@ from ..constraints.spatial_constraints.keyframe_constraints import GlobalTransfo
 from ..animation_data.motion_editing import create_transformation_matrix
 from ..utilities import write_log, write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO, LOG_MODE_ERROR
 from .graph_walk import GraphWalk, GraphWalkEntry
-from ea_state import ElementaryActionGeneratorState
 
 
 class PlannerState(object):
