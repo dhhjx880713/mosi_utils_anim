@@ -116,13 +116,8 @@ class ClusterTreeBuilder(object):
     def set_config(self, config_file_path):
         config_file = open(config_file_path)
         config = json.load(config_file)
-        #self.morphable_model_directory = r"E:\projects\INTERACT\repository\data\3 - Motion primitives\motion_primitives_quaternion_PCA95 m32-integration-1.5.5\elementary_action_models"#config["model_data_dir"]
-        self.morphable_model_directory = os.sep.join(
-            ["E:", "projects", "INTERACT", "data", "3 - Motion primitives",
-             "motion_primitives_quaternion_PCA95_new_walk", "elementary_action_models"
-             ])
-
-        self.n_samples = 10000# config["n_random_samples"]
+        self.morphable_model_directory = config["model_data_dir"]
+        self.n_samples = config["n_random_samples"]
         self.n_subdivisions_per_level = config["n_subdivisions_per_level"]
         self.n_levels = config["n_levels"]
         self.random_seed = config["random_seed"]
@@ -138,7 +133,6 @@ class ClusterTreeBuilder(object):
         self.skeleton.load_from_bvh(BVHReader(skeleton_path), self.animated_joints)
 
     def _get_samples_using_threshold(self, motion_primitive, threshold=0, max_iter_count=5):
-        # data = np.array([motion_primitive.sample_low_dimensional_vector() for i in xrange(self.n_samples)])
         data = []
         count = 0
         iter_count = 0
@@ -157,7 +151,6 @@ class ClusterTreeBuilder(object):
             return None
 
     def _get_best_samples(self, motion_primitive):
-        # data = np.array([motion_primitive.sample_low_dimensional_vector() for i in xrange(self.n_samples)])
         likelihoods = []
         data = motion_primitive.sample_low_dimensional_vectors(self.n_samples*2)
         for idx, sample in enumerate(data):
@@ -173,10 +166,6 @@ class ClusterTreeBuilder(object):
 
     def sample_data(self, motion_primitive):
         return motion_primitive.sample_low_dimensional_vectors(self.n_samples)
-        #data = self._get_samples_using_threshold(motion_primitive)
-        #if data is None:
-        #    data = self._get_best_samples(motion_primitive)
-        #return data
 
     def _create_training_data(self, data_dir, cluster_file_name, mp, n_training_samples):
         print "Create", self.n_samples, "good samples"
@@ -197,7 +186,6 @@ class ClusterTreeBuilder(object):
 
         index = file_name.find("_mm")
         cluster_file_name = file_name[:index]
-        #print "cluster file name", cluster_file_name, elementary_action_dir + os.sep + cluster_file_name + CLUSTER_TREE_FILE_ENDING + ".pck"
 
         cluster_tree_file_name = elementary_action_dir + os.sep + cluster_file_name + CLUSTER_TREE_FILE_ENDING + ".pck"
 
@@ -205,7 +193,6 @@ class ClusterTreeBuilder(object):
 
         if os.path.isfile(cluster_tree_file_name) and False:
             print "Space partitioning data structure", cluster_file_name, "already exists"
-            #data = load_data_from_pickle(cluster_tree_file_name)
 
         elif os.path.isfile(motion_primitive_file_name):
             print "construct space partitioning data structure", cluster_file_name, self.animated_joints
@@ -230,7 +217,6 @@ class ClusterTreeBuilder(object):
         cluster_tree = ClusterTree(self.n_subdivisions_per_level, self.n_levels, n_dims, self.store_indices,
                                    self.use_kd_tree)
         cluster_tree.construct(data)
-        # self.cluster_tree.save_to_file(cluster_file_name+"tree")
         cluster_tree_file_name = elementary_action_dir + os.sep + cluster_file_name + CLUSTER_TREE_FILE_ENDING +".pck"
         cluster_tree.save_to_file_pickle(cluster_tree_file_name)
         n_leafs = cluster_tree.root.get_number_of_leafs()
@@ -243,7 +229,6 @@ class ClusterTreeBuilder(object):
                    "clustering_method": CLUSTERING_METHOD_KMEANS,
                    "use_feature_mean": False}
         cluster_tree = FeatureClusterTree(features, data, None, options, [])
-        #cluster_tree.save_to_file_pickle(cluster_file_name + CLUSTER_TREE_FILE_ENDING)
         n_leafs = cluster_tree.get_number_of_leafs()
         print "number of leafs", n_leafs
         cluster_tree_file = self.morphable_model_directory + os.sep + action_name + os.sep +model_name + CLUSTER_TREE_FILE_ENDING
@@ -299,7 +284,6 @@ class ClusterTreeBuilder(object):
         return True
 
     def build(self):
-        #self._process_elementary_action("elementary_action_carryRight")
         if self.random_seed is not None:
             print "apply random seed", self.random_seed
             np.random.seed(self.random_seed)
