@@ -2,7 +2,7 @@ import numpy as np
 from ..motion_model import NODE_TYPE_END, NODE_TYPE_SINGLE, NODE_TYPE_CYCLE_END
 
 
-class ElementaryActionGeneratorState(object):
+class MotionGeneratorState(object):
         def __init__(self, algorithm_config):
             self.start_step = -1
             self.prev_action_name = None

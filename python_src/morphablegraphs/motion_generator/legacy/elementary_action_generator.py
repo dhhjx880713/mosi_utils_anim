@@ -4,7 +4,7 @@ from copy import copy
 import numpy as np
 from ...constraints import CA_CONSTRAINTS_MODE_DIRECT_CONNECTION, OPTIMIZATION_MODE_ALL
 from ca_interface import CAInterface
-from ..ea_state import ElementaryActionGeneratorState
+from ..motion_generator_state import MotionGeneratorState as ElementaryActionGeneratorState
 from ..graph_walk import GraphWalkEntry
 from ..graph_walk_planner import GraphWalkPlanner
 from ..motion_primitive_generator import MotionPrimitiveGenerator

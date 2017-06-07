@@ -4,7 +4,7 @@ from algorithm_configuration import AlgorithmConfigurationBuilder
 from ..constraints.mg_input_format_reader import MGInputFormatReader
 from ..constraints.elementary_action_constraints_builder import ElementaryActionConstraintsBuilder
 from ..constraints.motion_primitive_constraints_builder import MotionPrimitiveConstraintsBuilder
-from ea_state import ElementaryActionGeneratorState
+from motion_generator_state import MotionGeneratorState
 from motion_primitive_generator import MotionPrimitiveGenerator
 from graph_walk import GraphWalk, GraphWalkEntry
 from graph_walk_planner import GraphWalkPlanner
@@ -53,7 +53,7 @@ class MotionGenerator(object):
         Parameters
         ----------
         * mg_input :  dict
-            Dict contains a list of elementary actions with constraints.
+            Dict contains a list of actions with constraints.
         * activate_joint_map: bool
             Maps left hand to left hand endsite and right hand to right hand endsite
         * activate_coordinate_transform: bool
@@ -61,7 +61,7 @@ class MotionGenerator(object):
         * complete_motion_vector: bool
             Include fixed degrees of freedom in the returned motion
         * speed: float
-            Controls discretization of motion spline
+            Speed scale factor
         * prev_graph_walk : GraphWalk
             Optional previous graph walk that can be extended
 
@@ -119,7 +119,7 @@ class MotionGenerator(object):
         """
         self.mp_generator = MotionPrimitiveGenerator(action_constraints, self._algorithm_config)
         self.mp_constraints_builder.set_action_constraints(action_constraints)
-        action_state = ElementaryActionGeneratorState(self._algorithm_config)
+        action_state = MotionGeneratorState(self._algorithm_config)
         if action_constraints.root_trajectory is not None:
             max_arc_length = action_constraints.root_trajectory.full_arc_length
         else:
@@ -153,7 +153,7 @@ class MotionGenerator(object):
                                             action_constraints)
         write_message_to_log("Reached end of elementary action " + action_constraints.action_name, LOG_MODE_INFO)
 
-    def _generate_motion_primitive(self, action_constraints, node_key, action_state, is_last_step=False):
+    def _generate_motion_primitive(self, action_constraints, node_key, generator_state, is_last_step=False):
         """ Extends the graph walk with a motion primitive based on the given constraints.
 
             Parameters
@@ -162,14 +162,14 @@ class MotionGenerator(object):
                 Constraints for the action
             * node_key: tuple (string, string)
                 Key identifying the motion primitive model
-            * action_state: ElementaryActionGeneratorState
-                Information on the current state of the action
+            * generator_state: MotionGeneratorState
+                Information on the current state of the motion generator
             * is_last_step: bool
                 Sets whether or not the motion primitive is an ending state of the action.
         """
         new_node_type = self._motion_state_graph.nodes[node_key].node_type
         self.mp_constraints_builder.set_status(node_key,
-                                               action_state.travelled_arc_length,
+                                               generator_state.travelled_arc_length,
                                                self.graph_walk,
                                                is_last_step)
         mp_constraints = self.mp_constraints_builder.build()
@@ -185,20 +185,19 @@ class MotionGenerator(object):
                                                   self.graph_walk.get_quat_frames(), prev_parameters)
         motion_spline = self._motion_state_graph.nodes[node_key].back_project(new_parameters, use_time_parameters=False)
 
-
         self.graph_walk.append_quat_frames(motion_spline.get_motion_vector())
 
         new_travelled_arc_length = 0
         if action_constraints.root_trajectory is not None:
             new_travelled_arc_length = self._update_travelled_arc_length(action_constraints, self.graph_walk.get_quat_frames(),
-                                                                         action_state.travelled_arc_length)
+                                                                         generator_state.travelled_arc_length)
         new_step = GraphWalkEntry(self._motion_state_graph, node_key, new_parameters,
-                                  new_travelled_arc_length, action_state.step_start_frame,
+                                  new_travelled_arc_length, generator_state.step_start_frame,
                                   self.graph_walk.get_num_of_frames() - 1, mp_constraints)
 
         self.graph_walk.steps.append(new_step)
 
-        action_state.transition(node_key, new_node_type, new_travelled_arc_length, self.graph_walk.get_num_of_frames())
+        generator_state.transition(node_key, new_node_type, new_travelled_arc_length, self.graph_walk.get_num_of_frames())
 
     def _post_process_motion(self, motion_vector, complete_motion_vector):
         """
