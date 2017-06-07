@@ -17,7 +17,7 @@ try:
     from mgrd import motion_primitive_get_random_samples
 except ImportError:
     pass
-from mgrd_filter import MGRDFilter
+from mgrd_motion_primitive_sample_filter import MGRDMotionPrimitiveSampleFilter as MGRDFilter
 from ..utilities import write_log, write_message_to_log, LOG_MODE_INFO, LOG_MODE_DEBUG, LOG_MODE_ERROR
 SAMPLING_MODE_RANDOM = "random_discrete"
 SAMPLING_MODE_CLUSTER_TREE_SEARCH = "cluster_tree_search"
@@ -149,7 +149,6 @@ class MotionPrimitiveGenerator(object):
 
     def _get_best_fit_sample_using_mgrd(self, graph_node, mp_constraints):
         samples = motion_primitive_get_random_samples(graph_node.motion_primitive, self.n_random_samples)
-        #scores = MGRDFilter.score_samples(graph_node.motion_primitive, samples, mp_constraints)
         scores = MGRDFilter.score_samples(graph_node.motion_primitive, samples, *mp_constraints.convert_to_mgrd_constraints(self.use_semantic_annotation_with_mgrd), weights=(1,1))
         if scores is not None:
             best_idx = np.argmin(scores)

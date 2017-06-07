@@ -14,8 +14,8 @@ except ImportError:
     has_mgrd = False
 
 
-class MGRDFilter(object):
-    """ Implements the filter pipeline to estimate the best fit parameters for one motion primitive.
+class MGRDMotionPrimitiveSampleFilter(object):
+    """ Wrapper around MGRD sample scoring methods to estimate the best fit parameters for one motion primitive.
     """
     def __init__(self, pose_constraint_weights=(1,1)):
         self.pose_constraint_weights = pose_constraint_weights
@@ -66,14 +66,14 @@ class MGRDFilter(object):
             Array<float>
         """
         if has_mgrd:
-            cartesian_constraints = MGRDFilter.extract_cartesian_constraints(mp_constraints)
+            cartesian_constraints = MGRDMotionPrimitiveSampleFilter.extract_cartesian_constraints(mp_constraints)
             if len(cartesian_constraints) > 0:
                 quat_splines = motion_primitive.create_multiple_spatial_splines(samples, joints=None)
                 # transform the splines if the constraints are not in the local coordinate system of the motion primitive
                 if not mp_constraints.is_local and mp_constraints.aligning_transform is not None:
                     start = time.clock()
                     for qs in quat_splines:
-                        MGRDFilter.transform_coeffs(qs, mp_constraints.aligning_transform)
+                        MGRDMotionPrimitiveSampleFilter.transform_coeffs(qs, mp_constraints.aligning_transform)
                     print "transformed splines in", time.clock()-start, "seconds"
                 return MGRDCartesianConstraint.score_splines(quat_splines, cartesian_constraints)
         else:
