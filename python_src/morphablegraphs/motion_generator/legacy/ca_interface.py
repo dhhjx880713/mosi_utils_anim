@@ -2,10 +2,9 @@ import json
 import urllib2
 from copy import deepcopy
 import numpy as np
-from ..constraints.spatial_constraints.keyframe_constraints import GlobalTransformCAConstraint
-from ..animation_data.motion_editing import euler_angles_to_rotation_matrix
-from ..animation_data.motion_concatenation import get_node_aligning_2d_transform, transform_quaternion_frames, get_transform_from_start_pose
-from ..utilities import write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO, LOG_MODE_ERROR, get_bvh_writer, TCPClient
+from ...constraints.spatial_constraints.keyframe_constraints import GlobalTransformCAConstraint
+from ...animation_data.motion_concatenation import get_node_aligning_2d_transform, transform_quaternion_frames, get_transform_from_start_pose
+from ...utilities import write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO, LOG_MODE_ERROR, get_bvh_writer, TCPClient
 
 
 class CAInterface(object):

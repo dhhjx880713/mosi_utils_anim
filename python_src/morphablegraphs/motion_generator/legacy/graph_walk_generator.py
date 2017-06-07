@@ -10,11 +10,11 @@ based on previous steps.
 @author: Erik Herrmann, Han Du, Fabian Rupp, Markus Mauer
 """
 
-from ..constraints import ElementaryActionConstraintsBuilder
+from ...constraints import ElementaryActionConstraintsBuilder
+from ..graph_walk import GraphWalk
+from ..graph_walk_optimizer import GraphWalkOptimizer
 from elementary_action_generator import ElementaryActionGenerator
-from graph_walk import GraphWalk
-from graph_walk_optimizer import GraphWalkOptimizer
-from ..utilities import write_log, write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_ERROR, LOG_MODE_INFO
+from ...utilities import write_log, write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_ERROR, LOG_MODE_INFO
 
 
 class GraphWalkGenerator(object):
