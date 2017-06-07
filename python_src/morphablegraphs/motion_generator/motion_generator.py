@@ -16,6 +16,18 @@ from ..utilities import load_json_file, write_log, clear_log, save_log, write_me
 
 
 class MotionGenerator(object):
+    """
+    Provides a method to synthesize a motion based on a json input file
+
+    Parameters
+    ----------
+    * motion_state_graph : MotionStateGraph
+        Motion graph structure where states represent statistical motion models.
+    * algorithm_config : dict
+        Contains options for the algorithm.
+    * service_config: dict
+        Contains paths to the motion data and information about the input and output format.
+    """
     def __init__(self, motion_state_graph, service_config, algorithm_config):
         self._service_config = service_config
         self._algorithm_config = algorithm_config
@@ -34,6 +46,31 @@ class MotionGenerator(object):
 
     def generate_motion(self, mg_input, activate_joint_map, activate_coordinate_transform,
                         complete_motion_vector=True, speed=1.0, prev_graph_walk=None):
+        """
+        Converts a json input file with a list of elementary actions and constraints
+        into a motion vector
+
+        Parameters
+        ----------
+        * mg_input :  dict
+            Dict contains a list of elementary actions with constraints.
+        * activate_joint_map: bool
+            Maps left hand to left hand endsite and right hand to right hand endsite
+        * activate_coordinate_transform: bool
+            Converts input coordinates from CAD coordinate system to OpenGL coordinate system
+        * complete_motion_vector: bool
+            Include fixed degrees of freedom in the returned motion
+        * speed: float
+            Controls discretization of motion spline
+        * prev_graph_walk : GraphWalk
+            Optional previous graph walk that can be extended
+
+        Returns
+        -------
+        * motion_vector : AnnotatedMotionVector
+           Contains a list of quaternion frames and their annotation based on actions.
+        """
+
         clear_log()
         write_message_to_log("Start motion synthesis", LOG_MODE_INFO)
         mg_input_reader = MGInputFormatReader(self._motion_state_graph, activate_joint_map,
@@ -73,6 +110,13 @@ class MotionGenerator(object):
         return motion_vector
 
     def _generate_action(self, action_constraints):
+        """ Extends the graph walk with an action based on the given constraints.
+
+            Parameters
+            ---------
+            * action_constraints: ElementaryActionConstraints
+                Constraints for the action
+        """
         self.mp_generator = MotionPrimitiveGenerator(action_constraints, self._algorithm_config)
         self.mp_constraints_builder.set_action_constraints(action_constraints)
         action_state = ElementaryActionGeneratorState(self._algorithm_config)
@@ -110,6 +154,19 @@ class MotionGenerator(object):
         write_message_to_log("Reached end of elementary action " + action_constraints.action_name, LOG_MODE_INFO)
 
     def _generate_motion_primitive(self, action_constraints, node_key, action_state, is_last_step=False):
+        """ Extends the graph walk with a motion primitive based on the given constraints.
+
+            Parameters
+            ---------
+            * action_constraints: ElementaryActionConstraints
+                Constraints for the action
+            * node_key: tuple (string, string)
+                Key identifying the motion primitive model
+            * action_state: ElementaryActionGeneratorState
+                Information on the current state of the action
+            * is_last_step: bool
+                Sets whether or not the motion primitive is an ending state of the action.
+        """
         new_node_type = self._motion_state_graph.nodes[node_key].node_type
         self.mp_constraints_builder.set_status(node_key,
                                                action_state.travelled_arc_length,
