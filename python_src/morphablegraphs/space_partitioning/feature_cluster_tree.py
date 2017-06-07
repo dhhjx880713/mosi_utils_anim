@@ -1,5 +1,6 @@
 import numpy as np
 import heapq
+import json
 import cPickle as pickle
 from clustering import find_clusters, all_equal
 import scipy.stats.mstats
@@ -26,6 +27,11 @@ def _filter_outliers(values, nodes):
 
 class FeatureClusterTree(object):
     def __init__(self, features, data, indices, options, feature_args):
+        if features is not None:
+            self._construct(features, data, indices, options, feature_args)
+
+
+    def _construct(self, features, data, indices, options, feature_args):
         self.data = data
         self._features = features
         self._indices = indices
@@ -125,7 +131,7 @@ class FeatureClusterTree(object):
             Multiple candidates are kept at each level in order to find the global
             optimum.
         """
-        write_message_to_log("search with " + str(n_candidates) + "candidates in tree with " +str(self._n_subdivisions) +" subdivisions ", LOG_MODE_DEBUG)
+        write_message_to_log("search with " + str(n_candidates) + " candidates in tree with " +str(self._n_subdivisions) +" subdivisions ", LOG_MODE_DEBUG)
         results = list()
         candidates = list()
         candidates.append((np.inf, self))
@@ -160,7 +166,7 @@ class FeatureClusterTree(object):
             Multiple candidates are kept at each level in order to find the global
             optimum.
         """
-        print "search with", n_candidates, "candidates in tree with ", self._n_subdivisions, " subdivisions "
+        print "search with ", n_candidates, "candidates in tree with ", self._n_subdivisions, " subdivisions "
         results = list()
         candidates = list()
         candidates.append((np.inf, self))
@@ -248,6 +254,53 @@ class FeatureClusterTree(object):
         leafs = self.get_number_of_leafs()
         level = self.get_level(0)
         return leafs, level
+
+
+    @staticmethod
+    def load_from_json_file(file_name):
+        with open(file_name, 'rt') as infile:
+            tree_data = json.load(infile)
+            tree = FeatureClusterTree(None, None, None, None, None)
+
+            data = np.array(tree_data["data"])
+            features = np.array(tree_data["features"])
+            options = tree_data["options"]
+            tree.build_node_from_json(data, features, options, tree_data["root"])
+            return tree
+
+    def save_to_json_file(self, file_name):
+        with open(file_name, 'wt') as oufile:
+            tree_data = dict()
+            tree_data["data"] = self.data.tolist()
+            tree_data["features"] = self._features.tolist()
+            tree_data["options"] = self._options
+            tree_data["root"] = self.node_to_json()
+            json.dump(tree_data, oufile)
+
+    def node_to_json(self):
+        node_data = dict()
+        #node_data["args"] = None#self.args
+        node_data["mean"] = self._mean.tolist()
+        node_data["indices"] = self._indices
+        node_data["children"] = []
+        for c in self._children:
+            c_data = c.node_to_json()
+            node_data["children"].append(c_data)
+        return node_data
+
+    def build_node_from_json(self, data, features, options, node_data):
+        self.data = data
+        self.args = None
+        self._features = features
+        self._options = options
+        self._indices = node_data["indices"]
+        self._n_subdivisions = options["n_subdivisions"]
+        self._mean = np.array(node_data["mean"])
+        self._children = []
+        for c_data in node_data["children"]:
+            c_tree = FeatureClusterTree(None, None, None, None, None)
+            c_tree.build_node_from_json(data, features, options, c_data)
+            self._children.append(c_tree)
 
     def save_to_file_pickle(self, pickle_file_name):
         pickle_file = open(pickle_file_name, 'wb')

@@ -143,11 +143,13 @@ class ZipReader(object):
 
     def _add_space_partitioning_data_structure(self, action_data_key, mp_data_key, space_partition_file):
         if space_partition_file in self.zip_file.namelist():
-            space_partition = self.zip_file.read(space_partition_file)
-            self.graph_data[action_data_key]["nodes"][mp_data_key]["space_partition"] = None
-            if self.pickle_objects:
-                space_partition_data = cPickle.loads(space_partition)
-                self.graph_data[action_data_key]["nodes"][mp_data_key]["space_partition"] = space_partition_data
+            data = self.zip_file.read(space_partition_file)
+            #self.graph_data[action_data_key]["nodes"][mp_data_key]["space_partition"] = None
+            if self.pickle_objects and self.format_version < 4.0:
+                tree = cPickle.loads(data)
+                self.graph_data[action_data_key]["nodes"][mp_data_key]["space_partition_pickle"] = tree
+            elif self.format_version >= 4.0:
+                self.graph_data[action_data_key]["nodes"][mp_data_key]["space_partition_json"] = json.loads(data)
 
     def _get_motion_primitive_file_path(self, structure_key, motion_primitive_name):
         if self.format_version >= 2.0:
@@ -156,7 +158,9 @@ class ZipReader(object):
             return structure_key + "/" + motion_primitive_name + "_mm.json"
 
     def _get_space_partitioning_file_path(self, structure_key, motion_primitive_name):
-        if self.format_version >= 2.0:
+        if self.format_version >= 4.0:
+            return self.elementary_action_directory + "/" + structure_key + "/" + motion_primitive_name + "_cluster_tree.json"
+        elif self.format_version >= 2.0:
             return self.elementary_action_directory + "/" + structure_key + "/" + motion_primitive_name + "_cluster_tree.pck"
         else:
             return structure_key + "/" + motion_primitive_name + "_cluster_tree.pck"

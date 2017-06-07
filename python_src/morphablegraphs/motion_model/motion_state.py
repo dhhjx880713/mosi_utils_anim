@@ -10,7 +10,7 @@ import numpy as np
 from . import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END
 from motion_primitive_wrapper import MotionPrimitiveModelWrapper
 from ..animation_data.motion_editing import extract_root_positions_from_frames, get_arc_length_from_points
-from ..space_partitioning import ClusterTree
+from ..space_partitioning import ClusterTree, FeatureClusterTree
 from ..utilities import write_message_to_log, LOG_MODE_DEBUG
 
 
@@ -63,8 +63,15 @@ class MotionState(MotionPrimitiveModelWrapper):
         skeleton = self.motion_state_group.motion_state_graph.mgrd_skeleton
         write_message_to_log("Init motion state "+self.name, LOG_MODE_DEBUG)
         self._initialize_from_json(skeleton, desc["mm"], self.motion_state_group.motion_state_graph.animated_joints)
-        if "space_partition" in desc.keys():
-            self.cluster_tree = desc["space_partition"]
+        if "space_partition_pickle" in desc.keys():
+            self.cluster_tree = desc["space_partition_pickle"]
+        if "space_partition_json" in desc.keys():
+            tree_data = desc["space_partition_json"]
+            self.cluster_tree = FeatureClusterTree(None,None,None,None, None)
+            data = np.array(tree_data["data"])
+            features = np.array(tree_data["features"])
+            options = tree_data["options"]
+            self.cluster_tree.build_node_from_json(data, features, options, tree_data["root"])
         if "stats" in desc.keys():
             self.parameter_bb = desc["stats"]["pose_bb"]
             self.cartesian_bb = desc["stats"]["cartesian_bb"]
