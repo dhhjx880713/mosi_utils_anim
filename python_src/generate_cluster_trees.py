@@ -1,6 +1,7 @@
 import os
 import time
-from morphablegraphs.construction.cluster_tree_builder import ClusterTreeBuilder
+from morphablegraphs.construction.cluster_tree_builder import ClusterTreeBuilder, TREE_TYPE_CLUSTER_TREE, TREE_TYPE_FEATURE_CLUSTER_TREE, FEATURE_TYPE_S_VECTOR
+
 dirname, filename = os.path.split(os.path.abspath(__file__))
 os.chdir(dirname)
 
@@ -8,7 +9,12 @@ CONIFG_FILE_PATH = "config" + os.sep + "space_partitioning.json"
 
 def main():
     skeleton_path = "skeleton.bvh"
-    cluster_tree_builder = ClusterTreeBuilder()
+    skeleton_path = "raw_skeleton.bvh"
+    settings = dict()
+    settings["tree_type"] = TREE_TYPE_FEATURE_CLUSTER_TREE
+    settings["feature_type"] = FEATURE_TYPE_S_VECTOR
+    settings["output_mode"] = "json"
+    cluster_tree_builder = ClusterTreeBuilder(settings)
     cluster_tree_builder.set_config(CONIFG_FILE_PATH)
     cluster_tree_builder.load_skeleton(skeleton_path)
     start = time.clock()

@@ -9,7 +9,7 @@ Created on Wed Jul 29 16:07:11 2015
 import numpy as np
 from sklearn import cluster
 import uuid
-from .  import KDTREE_WRAPPER_NODE, LEAF_NODE, INNER_NODE, ROOT_NODE
+from . import KDTREE_WRAPPER_NODE, LEAF_NODE, INNER_NODE, ROOT_NODE
 from cluster_tree_node import ClusterTreeNode
 from kdtree_wrapper_node import KDTreeWrapper
 
