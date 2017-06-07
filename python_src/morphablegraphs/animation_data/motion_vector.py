@@ -1,13 +1,12 @@
 __author__ = 'erhe01'
 
+from datetime import datetime
+import os
 import numpy as np
 from motion_editing import  align_frames,transform_euler_frames, convert_euler_frames_to_quaternion_frames
 from motion_concatenation import align_and_concatenate_frames
-from ..utilities.io_helper_functions import export_frames_to_bvh_file
-from ..external.transformations import euler_from_quaternion, quaternion_multiply
 from . import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER
-
-
+from bvh import BVHWriter
 
 class MotionVector(object):
     """
@@ -55,10 +54,16 @@ class MotionVector(object):
                                                    smoothing_window=smoothing_window, blending_method=self.spatial_smoothing_method)
         self.n_frames = len(self.frames)
 
-
     def export(self, skeleton, output_dir, output_filename, add_time_stamp=True):
-        export_frames_to_bvh_file(output_dir, skeleton, self.frames, prefix=output_filename, time_stamp=add_time_stamp,
-                                  is_quaternion=self.rotation_type == ROTATION_TYPE_QUATERNION)
+        bvh_writer = BVHWriter(None, skeleton, self.frames, skeleton.frame_time, True)
+        if add_time_stamp:
+            filepath = output_dir + os.sep + output_filename + "_" + \
+                       unicode(datetime.now().strftime("%d%m%y_%H%M%S")) + ".bvh"
+        elif output_filename != "":
+            filepath = output_dir + os.sep + output_filename + ".bvh"
+        else:
+            filepath = output_dir + os.sep + "output" + ".bvh"
+        bvh_writer.write(filepath)
 
     def reduce_frames(self, n_frames):
         if n_frames == 0:
