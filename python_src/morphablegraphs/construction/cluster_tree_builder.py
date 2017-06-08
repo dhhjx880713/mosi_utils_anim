@@ -16,7 +16,7 @@ from ..space_partitioning.features import map_motions_to_euclidean_pca, END_EFFE
 from ..motion_model.motion_primitive_wrapper import MotionPrimitiveModelWrapper
 from ..animation_data.bvh import BVHReader
 from ..animation_data.skeleton import Skeleton, DEFAULT_ANIMATED_JOINT_LIST
-from ..animation_data.motion_editing import euler_to_quaternion
+from ..animation_data.utils import euler_to_quaternion
 import cPickle as pickle
 
 try:

@@ -9,7 +9,7 @@ import random
 import numpy as np
 from . import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END
 from motion_primitive_wrapper import MotionPrimitiveModelWrapper
-from ..animation_data.motion_editing import extract_root_positions_from_frames, get_arc_length_from_points
+from ..animation_data.utils import extract_root_positions_from_frames, get_arc_length_from_points
 from ..space_partitioning import ClusterTree, FeatureClusterTree
 from ..utilities import write_message_to_log, LOG_MODE_DEBUG
 

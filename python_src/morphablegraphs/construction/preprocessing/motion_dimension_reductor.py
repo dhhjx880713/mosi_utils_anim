@@ -1,12 +1,11 @@
 # encoding: UTF-8
 import numpy as np
-from morphablegraphs.utilities.io_helper_functions import get_data_analysis_folder, write_to_json_file, load_json_file,\
+from ...utilities.io_helper_functions import get_data_analysis_folder, write_to_json_file, load_json_file,\
                                                           get_b_spline_knots
-from morphablegraphs.motion_analysis.prepare_data import get_smoothed_quat_frames, create_quat_functional_data, \
+from ...motion_analysis.prepare_data import get_smoothed_quat_frames, create_quat_functional_data, \
                                                          reshape_data_for_PCA, scale_root_channels
-from morphablegraphs.construction.fpca.scaled_fpca import ScaledFunctionalPCA
+from ..fpca.scaled_fpca import ScaledFunctionalPCA
 from sklearn.preprocessing import StandardScaler
-from morphablegraphs.animation_data import Skeleton
 from sklearn.decomposition import PCA
 import os
 from . import LEN_QUATERNION, LEN_ROOT, LEN_EULER

@@ -8,11 +8,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from copy import deepcopy
 import os
-import glob
 from operator import itemgetter
 from ...animation_data.skeleton import Skeleton
 from ...animation_data.bvh import BVHReader, BVHWriter
-from ...animation_data.motion_editing import \
+from ...animation_data.utils import \
     get_cartesian_coordinates_from_euler_full_skeleton as get_cartesian_coords
 
 

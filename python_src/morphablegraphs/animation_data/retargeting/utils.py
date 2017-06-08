@@ -1,7 +1,7 @@
 import numpy as np
 import math
 from ...external.transformations import quaternion_from_matrix, euler_matrix, quaternion_matrix, quaternion_multiply, euler_from_quaternion, quaternion_from_euler, quaternion_inverse, euler_from_matrix
-from ..motion_editing import quaternion_from_vector_to_vector
+from ..utils import quaternion_from_vector_to_vector
 
 
 def align_root_translation(target_skeleton, target_frame, src_frame, root_node="pelvis"):

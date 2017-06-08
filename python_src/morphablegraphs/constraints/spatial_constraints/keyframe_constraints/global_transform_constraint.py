@@ -7,7 +7,7 @@ Created on Mon Aug 03 19:02:55 2015
 
 from math import sqrt
 import numpy as np
-from ....animation_data.motion_editing import quaternion_to_euler, quaternion_rotate_vector, euler_to_quaternion, get_cartesian_coordinates_from_quaternion
+from ....animation_data.utils import quaternion_to_euler, quaternion_rotate_vector, euler_to_quaternion, get_cartesian_coordinates_from_quaternion
 from ....external.transformations import rotation_matrix, angle_between_vectors
 from keyframe_constraint_base import KeyframeConstraintBase
 from .. import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION

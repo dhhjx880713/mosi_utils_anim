@@ -2,11 +2,10 @@
 import os
 import glob
 import json
-from morphablegraphs.construction.preprocessing import gen_foot_contact_annotation
-from morphablegraphs.utilities.io_helper_functions import get_aligned_data_folder, \
-                                                          write_to_json_file
+from preprocessing import gen_foot_contact_annotation
+from ...utilities.io_helper_functions import get_aligned_data_folder, write_to_json_file
 import numpy as np
-from morphablegraphs.animation_data import BVHReader
+from ...animation_data import BVHReader
 
 
 def create_low_level_semantic_annotation(elementary_action,

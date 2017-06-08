@@ -1,8 +1,8 @@
 # encoding: UTF-8
-from morphablegraphs.utilities import get_aligned_data_folder, load_json_file, load_bvh_files_from_folder
-from morphablegraphs.construction.preprocessing import create_low_level_semantic_annotation
-from morphablegraphs.construction.fpca import FPCATimeSemantic, MotionDimensionReduction, FPCASpatialData
-from morphablegraphs.animation_data import convert_euler_frames_to_quaternion_frames
+from ...utilities import get_aligned_data_folder, load_json_file, load_bvh_files_from_folder
+from ..preprocessing import create_low_level_semantic_annotation
+from ..fpca import FPCATimeSemantic, MotionDimensionReduction, FPCASpatialData
+from ...animation_data import convert_euler_frames_to_quaternion_frames
 import os
 import glob
 import numpy as np

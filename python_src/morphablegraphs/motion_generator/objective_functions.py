@@ -8,7 +8,7 @@ Created on Fri Jul 31 13:21:08 2015
 import numpy as np
 from sklearn.mixture.gmm import _log_multivariate_normal_density_full
 from scipy.optimize.optimize import approx_fprime
-from ..animation_data.motion_editing import  align_quaternion_frames_only_last_frame
+from ..animation_data.utils import  align_quaternion_frames_only_last_frame
 from ..animation_data.motion_concatenation import align_quaternion_frames
 from ..constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_TRAJECTORY_SET
 

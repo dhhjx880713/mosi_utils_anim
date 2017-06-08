@@ -13,7 +13,7 @@ import collections
 import math
 import numpy as np
 from datetime import datetime
-from ..animation_data.motion_editing import transform_euler_frames, \
+from ..animation_data.utils import transform_euler_frames, \
     transform_quaternion_frames
 from ..animation_data.bvh import BVHWriter
 from ..constraints.spatial_constraints.splines import ParameterizedSpline

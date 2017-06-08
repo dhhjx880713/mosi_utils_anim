@@ -1,6 +1,5 @@
 import numpy as np
-from ...animation_data.motion_editing import convert_quaternion_frames_to_euler_frames as convert_quat_to_euler
-from ...animation_data.motion_editing import euler_to_quaternion, quaternion_to_euler
+from ...animation_data.utils import convert_quaternion_frames_to_euler_frames as convert_quat_to_euler, euler_to_quaternion, quaternion_to_euler
 from ...external.transformations import quaternion_matrix, quaternion_from_matrix, quaternion_multiply, quaternion_inverse
 LEN_QUATERNION = 4
 LEN_TRANSLATION = 3

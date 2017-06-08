@@ -7,7 +7,7 @@ Created on Fri Feb 13 10:09:45 2015
 
 import numpy as np
 import sklearn.mixture as mixture
-from ...animation_data.motion_editing import align_quaternion_frames
+from ...animation_data.utils import align_quaternion_frames
 from operator import itemgetter
 from ...utilities.exceptions import ConstraintError
 

@@ -5,14 +5,13 @@ Created on Tue Jul 07 10:34:25 2015
 @author: du
 """
 import os
-from ...animation_data.motion_editing import align_euler_frames, \
-                                             get_cartesian_coordinates_from_euler_full_skeleton, \
-                                             transform_euler_frames, \
-                                             rotate_euler_frames_about_x_axis, \
-                                             rotate_euler_frames
+from ...animation_data.utils import align_euler_frames, \
+                                     get_cartesian_coordinates_from_euler_full_skeleton, \
+                                     transform_euler_frames, \
+                                     rotate_euler_frames_about_x_axis, \
+                                     rotate_euler_frames
 from ...animation_data.bvh import BVHReader, BVHWriter
-from morphablegraphs.construction.preprocessing.motion_segmentation\
-    import MotionSegmentation
+from motion_segmentation import MotionSegmentation
 from ...animation_data.skeleton import Skeleton
 import glob
 import numpy as np

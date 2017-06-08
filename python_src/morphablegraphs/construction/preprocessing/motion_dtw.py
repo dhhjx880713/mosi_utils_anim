@@ -5,12 +5,10 @@ Created on Thu Jul 23 10:06:37 2015
 @author: du, MAUERMA
 """
 
-from morphablegraphs.animation_data.bvh import BVHReader, BVHWriter
-from morphablegraphs.animation_data import Skeleton
-from morphablegraphs.construction.preprocessing.motion_normalization \
-    import MotionNormalization
-from morphablegraphs.animation_data.motion_editing import calculate_frame_distance
-from morphablegraphs.animation_data.skeleton import Skeleton
+from ...animation_data.bvh import BVHReader, BVHWriter
+from motion_normalization import MotionNormalization
+from ...animation_data.utils import calculate_frame_distance
+from ...animation_data.skeleton import Skeleton
 import numpy as np
 import rpy2.robjects.numpy2ri as numpy2ri
 import rpy2.robjects as robjects

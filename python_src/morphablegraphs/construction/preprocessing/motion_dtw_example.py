@@ -2,9 +2,8 @@
 
 from motion_dtw import MotionDynamicTimeWarping
 import os
-from morphablegraphs.animation_data.motion_editing import calculate_frame_distance, get_cartesian_coordinates_from_euler
-from morphablegraphs.animation_data import BVHReader, Skeleton
-from morphablegraphs.motion_analysis import BVHAnalyzer
+from ...animation_data import BVHReader, Skeleton
+from ...motion_analysis import BVHAnalyzer
 
 
 def run_dtw_demo():

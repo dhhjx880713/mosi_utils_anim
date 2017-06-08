@@ -7,12 +7,12 @@ Created on Sun Aug 02 13:15:01 2015
 
 from morphablegraphs.animation_data.quaternion_frame import QuaternionFrame
 import numpy as np
-from morphablegraphs.external.transformations import quaternion_multiply
-from morphablegraphs.construction.fpca.fpca_temporal_data import FPCATemporalData
-from morphablegraphs.construction.fpca.fpca_spatial_data import FPCASpatialData
-from morphablegraphs.utilities.custom_math import areQuatClose, diff_quat, quat_to_logmap, normalize_quaternion, logmap_to_quat
-from morphablegraphs.utilities.io_helper_functions import get_data_analysis_folder, load_json_file, write_to_json_file
-from morphablegraphs.animation_data import BVHReader, convert_euler_frames_to_reduced_euler_frames, \
+from ...external.transformations import quaternion_multiply
+from .fpca_temporal_data import FPCATemporalData
+from .fpca.fpca_spatial_data import FPCASpatialData
+from ...utilities.custom_math import areQuatClose, diff_quat, quat_to_logmap, normalize_quaternion, logmap_to_quat
+from ...utilities.io_helper_functions import get_data_analysis_folder, load_json_file, write_to_json_file
+from ...animation_data import BVHReader, convert_euler_frames_to_reduced_euler_frames, \
                                            convert_euler_frames_to_quaternion_frames
 from collections import OrderedDict
 import os

@@ -5,7 +5,7 @@ import numpy as np
 from ..constraints.motion_primitive_constraints import MotionPrimitiveConstraints
 from ..constraints.spatial_constraints.keyframe_constraints import Direction2DConstraint
 from ..constraints.spatial_constraints.keyframe_constraints import GlobalTransformConstraint
-from ..animation_data.motion_editing import create_transformation_matrix
+from ..animation_data.utils import create_transformation_matrix
 from ..utilities import write_log, write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO, LOG_MODE_ERROR
 from .graph_walk import GraphWalk, GraphWalkEntry
 

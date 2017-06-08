@@ -1,18 +1,17 @@
 # encoding: UTF-8
-from morphablegraphs.construction.fpca.fpca_time_semantic import FPCATimeSemantic
-from morphablegraphs.construction.motion_primitive.statistical_model_trainer import StatisticalModelTrainer
+from ..fpca.fpca_time_semantic import FPCATimeSemantic
+from statistical_model_trainer import StatisticalModelTrainer
 import os
 import json
-from morphablegraphs.utilities.io_helper_functions import get_aligned_data_folder, \
+from ...utilities.io_helper_functions import get_aligned_data_folder, \
                                                           get_low_dimensional_spatial_file, \
                                                           get_motion_primitive_filepath
-from morphablegraphs.construction.preprocessing import gen_walk_annotation, \
-                                                       gen_synthetic_semantic_annotation_pick_and_place, \
-                                                       gen_synthetic_semantic_annotation_for_screw, \
-                                                       gen_synthetic_semantic_annotation_for_transfer
-from morphablegraphs.construction.motion_primitive.motion_primitive_converter import covnert_motion_primitive_data_new_format
-from morphablegraphs.utilities.io_helper_functions import write_to_json_file
-import numpy as np
+from ..preprocessing import gen_walk_annotation, \
+                           gen_synthetic_semantic_annotation_pick_and_place, \
+                           gen_synthetic_semantic_annotation_for_screw, \
+                           gen_synthetic_semantic_annotation_for_transfer
+from motion_primitive_converter import covnert_motion_primitive_data_new_format
+from ...utilities.io_helper_functions import write_to_json_file
 
 
 def get_motion_primitive_model_dir():

@@ -1,8 +1,8 @@
 # encoding: UTF-8
 import mgrd as mgrd
-from morphablegraphs.utilities import load_json_file
-from morphablegraphs.animation_data import BVHReader, convert_euler_frames_to_quaternion_frames
-from morphablegraphs.construction.fpca import FunctionalData
+from ...utilities import load_json_file
+from ...animation_data import BVHReader, convert_euler_frames_to_quaternion_frames
+from ..fpca import FunctionalData
 import numpy as np
 
 

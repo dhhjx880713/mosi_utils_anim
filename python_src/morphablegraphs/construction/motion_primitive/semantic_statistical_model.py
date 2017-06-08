@@ -6,6 +6,7 @@ import numpy as np
 import os
 import json
 
+
 class SemanticStatisticalModel(StatisticalModelTrainer):
 
     def __init__(self, fdata, semantic_label):

@@ -8,7 +8,7 @@ Created on Thu Jul 16 15:57:51 2015
 import os
 from ..animation_data.bvh import BVHReader
 from ..animation_data.skeleton import Skeleton
-from ..animation_data.motion_editing import euler_to_quaternion
+from ..animation_data.utils import euler_to_quaternion
 from ..utilities.io_helper_functions import load_json_file
 from gp_mixture import GPMixture
 from motion_state_group_loader import MotionStateGroupLoader

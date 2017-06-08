@@ -10,7 +10,7 @@ import os
 from ...animation_data.bvh import BVHReader, BVHWriter
 import rpy2.robjects as robjects
 from .gmm_trainer import GMMTrainer
-from morphablegraphs.utilities import get_b_spline_knots
+from ...utilities import get_b_spline_knots
 
 
 class StatisticalModelTrainer(GMMTrainer):

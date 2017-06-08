@@ -1,9 +1,7 @@
 # encoding: UTF-8
 
 from motion_segmentation import MotionSegmentation
-# from motion_normalization import MotionNormalization
-from morphablegraphs.animation_data import BVHReader, BVHWriter, Skeleton
-from morphablegraphs.motion_analysis
+from motion_normalization import MotionNormalization
 
 
 def motion_cutting():

@@ -2,8 +2,8 @@
 """
 Automatically check timewarping file is still corresponding to the bvh files in the alignment folder
 """
-from morphablegraphs.utilities import get_aligned_data_folder, load_json_file, write_to_json_file
-from morphablegraphs.animation_data import BVHReader
+from ...utilities import get_aligned_data_folder, load_json_file, write_to_json_file
+from ...animation_data import BVHReader
 import glob
 import os
 

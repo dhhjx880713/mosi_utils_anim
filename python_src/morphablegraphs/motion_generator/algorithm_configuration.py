@@ -7,7 +7,7 @@ Created on Thu Jul 16 17:19:46 2015
 
 import logging
 from ..utilities.io_helper_functions import load_json_file
-from ..animation_data.motion_editing import DEFAULT_SMOOTHING_WINDOW_SIZE
+from ..animation_data.utils import DEFAULT_SMOOTHING_WINDOW_SIZE
 
 
 class AlgorithmConfigurationBuilder(object):

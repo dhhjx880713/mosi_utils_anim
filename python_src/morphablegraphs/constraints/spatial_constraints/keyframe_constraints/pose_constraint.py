@@ -6,7 +6,7 @@ Created on Mon Aug 03 18:59:44 2015
 """
 
 from math import sqrt
-from ....animation_data.motion_editing import convert_quaternion_frame_to_cartesian_frame,\
+from ....animation_data.utils import convert_quaternion_frame_to_cartesian_frame,\
     align_point_clouds_2D,\
     transform_point_cloud,\
     calculate_point_cloud_distance

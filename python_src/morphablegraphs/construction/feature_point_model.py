@@ -3,13 +3,13 @@ __author__ = 'hadu01'
 import numpy as np
 from ..motion_model.motion_primitive import MotionPrimitive
 import json
-from ..animation_data.motion_editing import pose_orientation_quat, \
+from ..animation_data.utils import pose_orientation_quat, \
                                             get_cartesian_coordinates_from_quaternion, \
                                             get_rotation_angle
 import matplotlib.pyplot as plt
 from .motion_primitive.gmm_trainer import GMMTrainer
 from sklearn import mixture
-from ..animation_data.motion_editing import BVHReader
+from ..animation_data.bvh import BVHReader
 from ..animation_data.skeleton import Skeleton
 
 

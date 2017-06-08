@@ -2,7 +2,7 @@
 '''
 This script is used to convert old format motion primitive model to MGRD compatible format
 '''
-from morphablegraphs.utilities.io_helper_functions import get_motion_primitive_filepath, \
+from ...utilities.io_helper_functions import get_motion_primitive_filepath, \
                                                           load_json_file, \
                                                           write_to_json_file
 import numpy

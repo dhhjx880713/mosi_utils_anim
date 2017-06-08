@@ -1,7 +1,7 @@
 __author__ = 'hadu01'
 
 
-from ....animation_data.motion_editing import \
+from ....animation_data.utils import \
     calculate_weighted_frame_distance_quat, \
     quat_distance
 from keyframe_constraint_base import KeyframeConstraintBase

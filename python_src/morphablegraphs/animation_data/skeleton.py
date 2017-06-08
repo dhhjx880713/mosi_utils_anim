@@ -11,7 +11,7 @@ import json
 import numpy as np
 from ..external.transformations import quaternion_matrix
 from quaternion_frame import QuaternionFrame
-from ..animation_data.motion_editing import euler_to_quaternion
+from ..animation_data.utils import euler_to_quaternion
 from itertools import izip
 from skeleton_node import SkeletonRootNode, SkeletonJointNode, SkeletonEndSiteNode, SKELETON_NODE_TYPE_JOINT, SKELETON_NODE_TYPE_END_SITE
 from . import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER
