@@ -1,5 +1,5 @@
 import numpy as np
-from morphablegraphs.motion_generator.motion_editing import MotionEditing
+from morphablegraphs.motion_generator.motion_editing import MotionEditing, get_average_joint_position
 from morphablegraphs.motion_generator.motion_editing.numerical_inverse_kinematics import IKConstraintSet
 from morphablegraphs.motion_generator.algorithm_configuration import AlgorithmConfigurationBuilder
 from morphablegraphs.animation_data import BVHReader, Skeleton, MotionVector
@@ -14,19 +14,11 @@ RIGHT_HIP = "RightUpLeg"
 LEFT_HIP = "LeftUpLeg"
 
 
-def get_average_position(skeleton, mv, joint_name, start_frame, end_frame):
-    temp_positions = []
-    for idx in xrange(start_frame, end_frame):
-        frame = mv.frames[idx]
-        pos = skeleton.nodes[joint_name].get_global_position(frame)
-        temp_positions.append(pos)
-    return np.mean(temp_positions, axis=0)
-
 
 def create_foot_plant_constraints2(skeleton, mv, me, joint_names, frame_range):
     positions = []
     for joint_name in joint_names:
-        avg_p = get_average_position(skeleton, mv, joint_name, frame_range[0], frame_range[1])
+        avg_p = get_average_joint_position(skeleton, mv, joint_name, frame_range[0], frame_range[1])
         positions.append(avg_p)
     c = IKConstraintSet(frame_range, joint_names, positions)
     for idx in xrange(frame_range[0], frame_range[1]):
@@ -39,7 +31,7 @@ def create_foot_plant_constraints2(skeleton, mv, me, joint_names, frame_range):
 def create_foot_plant_constraints(skeleton, mv, me, joint_names, start_frame, end_frame):
     """ create a constraint based on the average position in the frame range"""
     for joint_name in joint_names:
-        avg_p = get_average_position(skeleton, mv, joint_name, start_frame, end_frame)
+        avg_p = get_average_joint_position(skeleton, mv, joint_name, start_frame, end_frame)
         print joint_name, avg_p
         for idx in xrange(start_frame, end_frame):
             me.add_constraint(joint_name, avg_p, (idx, idx + 1))

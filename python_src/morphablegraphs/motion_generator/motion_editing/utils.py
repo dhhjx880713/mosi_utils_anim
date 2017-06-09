@@ -90,3 +90,12 @@ def convert_euler_to_quat(euler_frame, joints):
 
 def normalize_quaternion(q):
     return quaternion_inverse(q) / np.dot(q, q)
+
+
+def get_average_joint_position(skeleton, mv, joint_name, start_frame, end_frame):
+    temp_positions = []
+    for idx in xrange(start_frame, end_frame):
+        frame = mv.frames[idx]
+        pos = skeleton.nodes[joint_name].get_global_position(frame)
+        temp_positions.append(pos)
+    return np.mean(temp_positions, axis=0)

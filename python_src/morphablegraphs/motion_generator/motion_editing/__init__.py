@@ -1,2 +1,4 @@
 from inverse_kinematics import InverseKinematics
 from motion_editing import MotionEditing
+from utils import get_average_joint_position
+
