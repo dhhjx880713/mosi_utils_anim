@@ -29,7 +29,6 @@ def obj_inverse_kinematics(s, data):
     return np.dot(d, d)
 
 
-
 class InverseKinematics(object):
     def __init__(self, skeleton, algorithm_settings, reference_frame):
         self.skeleton = skeleton
@@ -56,7 +55,6 @@ class InverseKinematics(object):
                         method=self._ik_settings["optimization_method"],#"SLSQP",#best result using L-BFGS-B
                         constraints=cons, tol=self._ik_settings["tolerance"],
                         options={'maxiter': self._ik_settings["max_iterations"], 'disp': self.verbose})#,'eps':1.0
-
 
     def _run_ccd(self, objective, initial_guess, data, cons=None):
         pose, free_joints, target_joint, target_position, target_orientation = data

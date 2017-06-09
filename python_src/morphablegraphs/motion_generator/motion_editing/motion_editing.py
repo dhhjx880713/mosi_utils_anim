@@ -27,11 +27,11 @@ class MotionEditing(object):
         self._ik = NumericalInverseKinematicsQuat(self.pose, self._ik_settings)
 
     def modify_motion_vector(self, motion_vector):
-        for idx, elementary_action_ik_constraints in enumerate(motion_vector.ik_constraints):
+        for idx, action_ik_constraints in enumerate(motion_vector.ik_constraints):
             write_message_to_log("Apply IK to elementary action " + str(idx), LOG_MODE_DEBUG)
-            self._optimize_elementary_action_ik_constraints(motion_vector, elementary_action_ik_constraints)
+            self._optimize_action_ik_constraints(motion_vector, action_ik_constraints)
 
-    def _optimize_elementary_action_ik_constraints(self, motion_vector, elementary_action_ik_constraints):
+    def _optimize_action_ik_constraints(self, motion_vector, action_ik_constraints):
         i = 0
         last_error = None
         keep_running = True
@@ -39,12 +39,12 @@ class MotionEditing(object):
         # modify individual keyframes based on constraints
         while keep_running:
             error = 0.0
-            if "trajectories" in elementary_action_ik_constraints.keys():
-                constraints = elementary_action_ik_constraints["trajectories"]
+            if "trajectories" in action_ik_constraints.keys():
+                constraints = action_ik_constraints["trajectories"]
                 c_error = self._modify_motion_vector_using_trajectory_constraint_list(motion_vector, constraints)
                 error += c_error * trajectory_weights
-            if "keyframes" in elementary_action_ik_constraints.keys():
-                constraints = elementary_action_ik_constraints["keyframes"]
+            if "keyframes" in action_ik_constraints.keys():
+                constraints = action_ik_constraints["keyframes"]
                 error += self._modify_motion_vector_using_keyframe_constraint_list(motion_vector, constraints)
             if last_error is not None:
                 delta = abs(last_error - error)
@@ -237,16 +237,18 @@ class MotionEditing(object):
             keyframe = int(keyframe)
             for event in motion_vector.keyframe_event_list.keyframe_events_dict["events"][keyframe]:
                 if event["event"] == "rotate":
-                    joint_name = event["parameters"]["joint"]
-                    orientation = event["parameters"]["globalOrientation"]
-                    place_keyframe = event["parameters"]["referenceKeyframe"]
-                    frames = motion_vector.frames[place_keyframe]
-                    # compare delta with global hand orientation
-                    joint_orientation = motion_vector.skeleton.nodes[joint_name].get_global_matrix(frames)
-                    joint_orientation[:3, 3] = [0, 0, 0]
-                    orientation_constraint = quaternion_matrix(orientation)
-                    delta_orientation = np.dot(np.linalg.inv(joint_orientation), orientation_constraint)
-                    euler = np.degrees(euler_from_matrix(delta_orientation))
-                    # convert to CAD coordinate system
-                    event["parameters"]["relativeOrientation"] = [euler[0], -euler[2],
-                                                                  euler[1]]
+                    self.fill_rotate_event(motion_vector, event)
+
+    def fill_rotate_event(self, motion_vector, event):
+        joint_name = event["parameters"]["joint"]
+        orientation = event["parameters"]["globalOrientation"]
+        place_keyframe = event["parameters"]["referenceKeyframe"]
+        frames = motion_vector.frames[place_keyframe]
+        # compare delta with global hand orientation
+        joint_orientation = motion_vector.skeleton.nodes[joint_name].get_global_matrix(frames)
+        joint_orientation[:3, 3] = [0, 0, 0]
+        orientation_constraint = quaternion_matrix(orientation)
+        delta_orientation = np.dot(np.linalg.inv(joint_orientation), orientation_constraint)
+        euler = np.degrees(euler_from_matrix(delta_orientation))
+        # convert to CAD coordinate system
+        event["parameters"]["relativeOrientation"] = [euler[0], -euler[2], euler[1]]

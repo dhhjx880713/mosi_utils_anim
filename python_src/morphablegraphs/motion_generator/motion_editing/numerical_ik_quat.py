@@ -2,8 +2,8 @@
 import time
 import numpy as np
 from scipy.optimize import minimize
-from skeleton_pose_model import SkeletonPoseModel
 from ...utilities import write_log, write_message_to_log, LOG_MODE_DEBUG
+
 
 def obj_inverse_kinematics(s, data):
     pose, free_joints, target_joint, target_position, target_direction = data
@@ -49,7 +49,7 @@ class NumericalInverseKinematicsQuat(object):
                 "Start optimization for joint " + constraint.joint_name + " " + str(len(initial_guess))
                 + " " + str(len(free_joints)) + " " + str(p), LOG_MODE_DEBUG)
         cons = None
-        start = time.clock()
+        #start = time.clock()
         error = np.inf
         iter_counter = 0
         result = None
@@ -78,7 +78,6 @@ class NumericalInverseKinematicsQuat(object):
             indices[joint_name] = list(range(*self.pose.extract_parameters_indices(joint_name)))
         return indices
 
-
     def _modify_using_optimization(self, target_joint, target_position, free_joints, target_direction=None):
         initial_guess = self._extract_free_parameters(free_joints)
         data = self.pose, free_joints, target_joint, target_position, target_direction
@@ -94,7 +93,6 @@ class NumericalInverseKinematicsQuat(object):
             write_message_to_log("Finished optimization in " + str(time.clock()-start) + " seconds with error " + str(error), LOG_MODE_DEBUG) #,result["x"].tolist(), initial_guess.tolist()
         self.pose.set_channel_values(result["x"], free_joints)
         return error
-
 
     def optimize_joint(self, objective, target_joint, target_position, target_orientation, free_joint):
         initial_guess = self.pose.extract_parameters(free_joint)  # self._extract_free_parameters([free_joint])
