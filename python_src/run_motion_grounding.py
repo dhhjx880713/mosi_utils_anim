@@ -1,6 +1,6 @@
 import numpy as np
-from morphablegraphs.motion_generator.motion_editing import MotionEditing, get_average_joint_position
-from morphablegraphs.motion_generator.motion_editing.numerical_inverse_kinematics import IKConstraintSet
+from morphablegraphs.motion_generator.motion_editing import MotionGrounding, get_average_joint_position
+from morphablegraphs.motion_generator.motion_editing.numerical_ik_exp import IKConstraintSet
 from morphablegraphs.motion_generator.algorithm_configuration import AlgorithmConfigurationBuilder
 from morphablegraphs.animation_data import BVHReader, Skeleton, MotionVector
 
@@ -48,7 +48,7 @@ def run_motion_editing(bvh_file):
     mv = MotionVector()
     mv.from_bvh_reader(bvh) # filter here
     config = AlgorithmConfigurationBuilder().build()
-    me = MotionEditing(skeleton, config["inverse_kinematics_settings"])
+    me = MotionGrounding(skeleton, config["inverse_kinematics_settings"])
     #free_joints = ["Hips","RightUpLeg", "LeftUpLeg", "RightLeg", "LeftLeg"]
     #me._ik.set_free_joints(free_joints)
     #frame_range = 98, 152
@@ -56,7 +56,8 @@ def run_motion_editing(bvh_file):
     start_frame = 98
     end_frame = 152
     me = create_foot_plant_constraints(skeleton, mv, me, [RIGHT_FOOT, RIGHT_TOE], start_frame, end_frame)
-    me.add_blend_range([RIGHT_FOOT,RIGHT_KNEE, RIGHT_HIP, "Hips"], (start_frame,end_frame))
+    # problem you need to blend the hips joint otherwise it does not work, which is not really a good thing to do because it influences the entire body
+    me.add_blend_range([RIGHT_FOOT,RIGHT_KNEE, RIGHT_HIP, "Hips"], (start_frame,end_frame-1))#the interpolation range must start at end_frame-1 because this is the last modified frame
 
     mv.frames = me.run(mv)
     print "export motion"
