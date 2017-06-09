@@ -1,13 +1,13 @@
-""" Numerical IK using exponential displacement map
- based on Section 5.1 of
-Lee, Jehee, and Sung Yong Shin.
-"A hierarchical approach to interactive motion editing for human-like figures."
-Proceedings of the 26th annual conference on Computer graphics and interactive techniques. 1999.
+""" Numerical IK using exponential displacement map  based on Section 5.1 of [1]
 
 Use current configuration as q_0
 Find v such that (q_i = q_0_i exp(v_i) for 0<i<n where n are the number of joints) reaches the constraints
 i.e. optimize over exponential map representation of displacement based on constraints, i.e. sum of errors of constraints from v
 Minimize also the displacement
+
+[1] Lee, Jehee, and Sung Yong Shin. "A hierarchical approach to interactive motion editing for human-like figures."
+Proceedings of the 26th annual conference on Computer graphics and interactive techniques. 1999.
+
 """
 
 import numpy as np
