@@ -11,7 +11,7 @@ from graph_walk_planner import GraphWalkPlanner
 from ..motion_model.motion_state_group import NODE_TYPE_END
 from ..constraints import OPTIMIZATION_MODE_ALL
 from graph_walk_optimizer import GraphWalkOptimizer
-from motion_editing import InverseKinematics
+from motion_editing import MotionEditing
 from ..utilities import load_json_file, write_log, clear_log, save_log, write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO, LOG_MODE_ERROR, set_log_mode
 
 
@@ -218,8 +218,7 @@ class MotionGenerator(object):
         """
         if self._algorithm_config["activate_inverse_kinematics"]:
             write_message_to_log("Modify using inverse kinematics", LOG_MODE_INFO)
-            self.inverse_kinematics = InverseKinematics(self._motion_state_graph.skeleton, self._algorithm_config,
-                                                        motion_vector.frames[0])
+            self.inverse_kinematics = MotionEditing(self._motion_state_graph.skeleton, self._algorithm_config)
             self.inverse_kinematics.modify_motion_vector(motion_vector)
             self.inverse_kinematics.fill_rotate_events(motion_vector)
 
