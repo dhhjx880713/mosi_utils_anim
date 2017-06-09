@@ -53,8 +53,10 @@ def run_motion_editing(bvh_file):
     #me._ik.set_free_joints(free_joints)
     #frame_range = 98, 152
     #me = create_foot_plant_constraints2(skeleton, mv, me, [RIGHT_FOOT, RIGHT_TOE], frame_range)
-    me = create_foot_plant_constraints(skeleton, mv, me, [RIGHT_FOOT, RIGHT_TOE], 98, 152)
-    me.add_blend_range([RIGHT_FOOT,RIGHT_HIP,RIGHT_KNEE], (98,151))
+    start_frame = 98
+    end_frame = 152
+    me = create_foot_plant_constraints(skeleton, mv, me, [RIGHT_FOOT, RIGHT_TOE], start_frame, end_frame)
+    me.add_blend_range([RIGHT_FOOT,RIGHT_KNEE, RIGHT_HIP, "Hips"], (start_frame,end_frame))
 
     mv.frames = me.run(mv)
     print "export motion"
@@ -64,4 +66,5 @@ def run_motion_editing(bvh_file):
 if __name__ == "__main__":
     bvh_file = "skeleton.bvh"
     bvh_file = "foot_sliding_example.bvh"
+    bvh_file = "no_blending.bvh"
     run_motion_editing(bvh_file)

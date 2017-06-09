@@ -1,7 +1,7 @@
 import collections
 import numpy as np
 from numerical_inverse_kinematics import NumericalInverseKinematics, IKConstraint
-from ...animation_data.motion_blending import apply_slerp
+from ...animation_data.motion_blending import apply_slerp, apply_slerp2, BLEND_DIRECTION_FORWARD, BLEND_DIRECTION_BACKWARD
 from skeleton_pose_model import SkeletonPoseModel
 
 
@@ -52,12 +52,23 @@ class MotionEditing(object):
         self.clear_blend_ranges()
 
     def _blend_around_frame_range(self, frames, start, end, joint_names):
-        for target_joint in joint_names:
-            joint_parameter_indices = list(range(*self.pose.extract_parameters_indices(target_joint)))
+        #start = start+1
+        print "blend", start, end
+        for joint_name in joint_names:
+            #joint_parameter_indices = list(range(*self.pose.extract_parameters_indices(joint_name)))
+
+            idx = self._ik.skeleton.animated_joints.index(joint_name)*4+3
+            joint_parameter_indices = [idx, idx+1, idx+2, idx+3]
+
             transition_start = max(start - self.transition_window, 0)
+
             transition_end = min(end + self.transition_window, frames.shape[0]) - 1
-            apply_slerp(frames, transition_start, start, joint_parameter_indices)
-            apply_slerp(frames, end, transition_end, joint_parameter_indices)
+            #print joint_name, joint_parameter_indices, transition_start, transition_end
+            steps = start - transition_start
+            print joint_name, transition_start, start
+            apply_slerp2(frames, joint_parameter_indices, transition_start, start, steps, BLEND_DIRECTION_FORWARD)
+            steps = transition_end - end
+            apply_slerp2(frames,joint_parameter_indices,  end, transition_end, steps, BLEND_DIRECTION_BACKWARD)
 
     def apply_ik_constraints(self, frames):
         for frame_idx, constraints in self._constraints.items():
@@ -73,6 +84,7 @@ class MotionEditing(object):
             start = frame_range[0]
             end = frame_range[1]
             self._blend_around_frame_range(frames, start, end, joint_names)
+        return frames
 
     def run(self, motion_vector):
         new_frames = motion_vector.frames[:]

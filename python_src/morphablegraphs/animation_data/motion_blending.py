@@ -3,6 +3,9 @@ import numpy as np
 import copy
 from constants import LEN_QUAT, LEN_ROOT_POS
 
+BLEND_DIRECTION_FORWARD = 0
+BLEND_DIRECTION_BACKWARD = 1
+
 def blend_quaternion(a, b, w):
     return quaternion_slerp(a, b, w, spin=0, shortestpath=True)
 
@@ -40,7 +43,31 @@ def smooth_translation(quat_frames, event_frame, window):
         orig = quat_frames[event_frame + i, :3]
         quat_frames[start_frame + i, :3] = (1 - t) * orig + t * from_event_to_end[i]
 
+
 def smooth_quaternion_frames_using_slerp(quat_frames, joint_param_indices, event_frame, window):
+    h_window = window/2
+    start_frame = max(event_frame-h_window, 0)
+    end_frame = min(event_frame+h_window, quat_frames.shape[0]-1)
+    apply_slerp2(quat_frames, joint_param_indices, start_frame, event_frame, h_window, BLEND_DIRECTION_FORWARD)
+    apply_slerp2(quat_frames, joint_param_indices, event_frame, end_frame, h_window, BLEND_DIRECTION_BACKWARD)
+
+
+def apply_slerp2(quat_frames, joint_param_indices, start_frame, end_frame, steps, direction=BLEND_DIRECTION_FORWARD):
+
+    #steps = end_frame - start_frame
+    new_quats = create_frames_using_slerp(quat_frames, start_frame, end_frame, steps, joint_param_indices)
+    for i in range(steps):
+        if direction==BLEND_DIRECTION_FORWARD:
+            t = float(i)/steps
+        else:
+            t = 1.0 - (i / steps)
+        old_quat = quat_frames[start_frame+i, joint_param_indices]
+        blended_quat = blend_quaternion(old_quat, new_quats[i], t)
+        quat_frames[start_frame + i, joint_param_indices] = blended_quat#new_quats[i]#
+        #print old_quat, new_quats[i], blended_quat,t
+
+
+def smooth_quaternion_frames_using_slerp_old(quat_frames, joint_param_indices, event_frame, window):
     h_window = window/2
     start_frame = max(event_frame-h_window, 0)
     end_frame = min(event_frame+h_window, quat_frames.shape[0]-1)
@@ -97,7 +124,7 @@ def apply_slerp(quat_frames, start_frame, end_frame, joint_parameter_indices):
         quat_frames[start_frame+i, joint_parameter_indices] = slerp_q
 
 ###################################
-#from motion_concatentation
+#from motion_concatenation
 
 def slerp_quaternion_frame(frame_a, frame_b, weight):
     frame_a = np.asarray(frame_a)
