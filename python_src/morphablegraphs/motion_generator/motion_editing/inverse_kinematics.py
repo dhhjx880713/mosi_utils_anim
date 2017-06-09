@@ -49,7 +49,7 @@ class InverseKinematics(object):
 
         if self.use_euler:
             self.skeleton.set_rotation_type(ROTATION_TYPE_EULER)
-        self.pose = SkeletonPoseModel(self.skeleton, reference_frame, self.use_euler)
+        self.pose = SkeletonPoseModel(self.skeleton, self.use_euler)
 
     def _run_optimization(self, objective, initial_guess, data, cons=None):
          return minimize(objective, initial_guess, args=(data,),
