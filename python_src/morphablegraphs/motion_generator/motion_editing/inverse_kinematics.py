@@ -20,16 +20,12 @@ IK_METHOD_CYCLIC_COORDINATE_DESCENT = "ccd"
 
 def obj_inverse_kinematics(s, data):
     pose, free_joints, target_joint, target_position, target_direction = data
-    #d = ik.evaluate_delta(s, target_joint, target_position, free_joints)
-    #return d
-    pose.set_channel_values(s, free_joints) #update frame
+    pose.set_channel_values(s, free_joints)
     if target_direction is not None:
         parent_joint = pose.get_parent_joint(target_joint)
         pose.point_in_direction(parent_joint, target_direction)
     position = pose.evaluate_position(target_joint)
     d = position - target_position
-    #print target_joint, position, target_position, parameters
-    #print parameters.tolist()
     return np.dot(d, d)
 
 
@@ -52,17 +48,8 @@ class InverseKinematics(object):
         self.adapt_hands_during_both_hand_carry = self._ik_settings["adapt_hands_during_carry_both"]
 
         if self.use_euler:
-            self.skeleton.set_rotation_type(ROTATION_TYPE_EULER)#change to euler
-        self.channels = OrderedDict()
-        animated_joints = skeleton.animated_joints
-        for node in self.skeleton.nodes.values():
-            if node.node_name in animated_joints:
-                node_channels = copy(node.channels)
-                if not self.use_euler:
-                    if np.all([ch in node_channels for ch in ["Xrotation", "Yrotation", "Zrotation"]]):
-                        node_channels += ["Wrotation"] #TODO fix order
-                self.channels[node.node_name] = node_channels
-        self.pose = SkeletonPoseModel(self.skeleton, reference_frame, self.channels, self.use_euler)
+            self.skeleton.set_rotation_type(ROTATION_TYPE_EULER)
+        self.pose = SkeletonPoseModel(self.skeleton, reference_frame, self.use_euler)
 
     def _run_optimization(self, objective, initial_guess, data, cons=None):
          return minimize(objective, initial_guess, args=(data,),
@@ -84,11 +71,6 @@ class InverseKinematics(object):
         while not terminate:
             for free_joint in reversed_chain:
                 self.optimize_joint(objective, target_joint, target_position, target_orientation, free_joint)
-            #result = self._run_optimization(objective, initial_guess, data)
-            #initial_guess = result["x"]
-            #if activate_orientation:
-            #    #self.pose.set_joint_orientation(parent_joint, target_orientation)
-            #    pose.set_hand_orientation(parent_joint, target_orientation)
             position = pose.evaluate_position(target_joint)
             new_delta = np.linalg.norm(position-target_position)
             if delta < epsilon or abs(delta-new_delta) < epsilon or iteration > max_iter:
@@ -189,11 +171,9 @@ class InverseKinematics(object):
         return delta
 
     def evaluate_delta(self, parameters, target_joint, target_position, free_joints):
-        self.pose.set_channel_values(parameters, free_joints) #update frame
+        self.pose.set_channel_values(parameters, free_joints)
         position = self.pose.evaluate_position(target_joint)
         d = position - target_position
-        #print target_joint, position, target_position, parameters
-        #print parameters.tolist()
         return np.dot(d, d)
 
     def modify_motion_vector(self, motion_vector):
@@ -293,9 +273,7 @@ class InverseKinematics(object):
 
     def _modify_motion_vector_using_trajectory_constraint_list(self, motion_vector, constraints):
         error = 0.0
-        #write_log("Number of ik trajectory constraints", len(constraints))
         for c in constraints:
-            #write_log("IK Trajectory constraint for joint", c["joint_name"])
             if c["fixed_range"]:
                 error += self._modify_motion_vector_using_trajectory_constraint(motion_vector, c)
             else:
@@ -307,7 +285,7 @@ class InverseKinematics(object):
         d = traj_constraint["delta"]
         trajectory = traj_constraint["trajectory"]
         start_idx = traj_constraint["start_frame"]
-        end_idx = traj_constraint["end_frame"]-1# self._find_corresponding_frame_range(motion_vector, traj_constraint)
+        end_idx = traj_constraint["end_frame"]-1
         end_idx = min(len(motion_vector.frames)-1,end_idx)
         n_frames = end_idx-start_idx + 1
         target_direction = None
@@ -315,14 +293,12 @@ class InverseKinematics(object):
             target_direction = trajectory.get_direction()
             if np.linalg.norm(target_direction)==0:
                 target_direction = None
-            #print "direction",target_direction
 
         full_length = n_frames*d
         for idx in xrange(n_frames):
             t = (idx*d)/full_length
             target_position = trajectory.query_point_by_parameter(t)
             keyframe = start_idx+idx
-            #write_log("change frame", idx, t, target, traj_constraint["joint_name"])
             self.set_pose_from_frame(motion_vector.frames[keyframe])
             error = np.inf
             iter_counter = 0
@@ -330,7 +306,6 @@ class InverseKinematics(object):
                 error = self._modify_pose(traj_constraint["joint_name"], target_position, target_direction)
                 iter_counter += 1
             error_sum += error
-            #self._modify_pose(constraint["joint_name"], target)
             motion_vector.frames[keyframe] = self.pose.get_vector()
         parent_joint = self.pose.get_parent_joint(traj_constraint["joint_name"])
 
@@ -371,7 +346,6 @@ class InverseKinematics(object):
                 error = self._modify_pose(traj_constraint["joint_name"], target)
                 iter_counter += 1
             error_sum += error
-            #self._modify_pose(constraint["joint_name"], target)
             motion_vector.frames[keyframe] = self.pose.get_vector()
 
         self._create_transition_for_frame_range(motion_vector.frames, start_idx, keyframe-1, self.pose.free_joints_map[traj_constraint["joint_name"]])
@@ -382,10 +356,8 @@ class InverseKinematics(object):
         end_idx = traj_constraint["end_frame"]
         start_target = traj_constraint["trajectory"].query_point_by_parameter(0.0)
         end_target = traj_constraint["trajectory"].query_point_by_parameter(1.0)
-        #write_log("looking for corresponding frame range in frame range", start_idx, end_idx, start_target, end_target)
         start_idx = self._find_corresponding_frame(motion_vector, start_idx, end_idx, traj_constraint["joint_name"], start_target)
         end_idx = self._find_corresponding_frame(motion_vector, start_idx, end_idx, traj_constraint["joint_name"], end_target)
-        #write_log("found corresponding frame range", start_idx, end_idx)
         return start_idx, end_idx
 
     def _find_corresponding_frame(self, motion_vector, start_idx, end_idx, target_joint, target_position):
@@ -404,7 +376,6 @@ class InverseKinematics(object):
 
     def _modify_motion_vector_using_ca_constraints(self, motion_vector, ca_constraints):
         error = 0.0
-        #print "modify motion vector using ca constraints", len(ca_constraints)
         for c in ca_constraints:
             start_frame = motion_vector.graph_walk.steps[c.step_idx].start_frame
             end_frame = motion_vector.graph_walk.steps[c.step_idx].end_frame
@@ -426,7 +397,6 @@ class InverseKinematics(object):
         indices = {}
         for joint_name in free_joints:
             indices[joint_name] = list(range(*self.pose.extract_parameters_indices(joint_name)))
-            #print ("indices", indices)
         return indices
 
     def _set_hand_orientation(self, motion_vector, orientation, joint_name, keyframe, start, end):
@@ -469,9 +439,6 @@ class InverseKinematics(object):
                 left_free_joints = self.pose.reduced_free_joints_map["LeftHand"]
                 self._adapt_hand_positions_during_carry(motion_vector, frame_range, left_free_joints, right_free_joints)
                 self._adapt_hand_orientations_during_carry(motion_vector, frame_range)
-                #joint_names = list(set(["RightHand", "LeftHand"] + right_free_joints + left_free_joints))
-                #self._create_transition_for_frame_range(motion_vector.frames, frame_range[0], frame_range[1] , joint_names)
-            #print np.all(before == motion_vector.frames[:,joint_parameter_indices])
 
     def _adapt_hand_positions_during_carry(self, motion_vector, frame_region, left_free_joints, right_free_joints):
         action_index = motion_vector.graph_walk.get_action_from_keyframe(frame_region[0])

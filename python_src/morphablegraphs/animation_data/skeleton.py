@@ -583,3 +583,14 @@ class Skeleton(object):
     def scale(self, scale_factor):
         for node in self.nodes.values():
             node.offset = np.array(node.offset) * scale_factor
+
+    def get_channels(self, euler=False):
+        channels = collections.OrderedDict()
+        for node in self.nodes.values():
+            if node.node_name in self.animated_joints:
+                node_channels = copy(node.channels)
+                if not euler:
+                    if np.all([ch in node_channels for ch in ["Xrotation", "Yrotation", "Zrotation"]]):
+                        node_channels += ["Wrotation"]  # TODO fix order
+                channels[node.node_name] = node_channels
+        return channels
