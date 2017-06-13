@@ -42,7 +42,8 @@ def calculate_angle2(upper_limb,lower_limb,target_length):
     c = target_length
     print a, b, c
     temp = (a*a + b*b - c*c) / (2 * a * b)
-    #temp = min(1, temp)
+    temp = min(1, temp)
+    temp = max(-1, temp)
     print temp
     angle = math.acos(temp)
     return angle
@@ -67,8 +68,8 @@ class AnalyticalLimbIK(object):
         joint_pos = self.skeleton.nodes[self.limb_joint].get_global_position(frame)
         end_effector_pos = self.skeleton.nodes[self.end_effector].get_global_position(frame)
 
-        parent_m = self.skeleton.nodes[self.limb_joint].parent.get_global_matrix(frame)[:3, :3]
-        global_joint_axis = normalize(np.dot(parent_m, self.local_joint_axis))
+        #parent_m = self.skeleton.nodes[self.limb_joint].parent.get_global_matrix(frame)[:3, :3]
+        #global_joint_axis = normalize(np.dot(parent_m, self.local_joint_axis))
 
         print self.limb_root, root_pos
         print self.limb_joint, joint_pos
