@@ -7,91 +7,196 @@ Proceedings of the 26th annual conference on Computer graphics and interactive t
 """
 import numpy as np
 import math
-from utils import normalize
+from utils import normalize, limb_projection, to_local_cos,project_vec3
 from ...animation_data.utils import quaternion_from_vector_to_vector
+from ...animation_data.retargeting.utils import find_rotation_between_vectors
 from ...external.transformations import quaternion_multiply, quaternion_about_axis, quaternion_matrix, quaternion_from_matrix
+RIGHT_SHOULDER = "RightShoulder"
+RIGHT_ELBOW = "RightElbow"
+RIGHT_WRIST = "RightHand"
+ELBOW_AXIS = [0,1,0]
 
 
-def calculate_angle(l1, l2, r1, r2, L):
-    l1_sq = l1 * l1
-    l2_sq = l2 * l2
-    r1_sq = r1 * r1
-    r2_sq = r2 * r2
-    temp = (l1_sq + l2_sq + 2 * math.sqrt(l1_sq-r1_sq)* math.sqrt(l2_sq-r2_sq) - L*L )/ (2* r1 * r2)
+def calculate_angle(upper_limb, lower_limb, ru, rl, target_length):
+    upper_limb_sq = upper_limb * upper_limb
+    lower_limb_sq = lower_limb * lower_limb
+    ru_sq = ru * ru
+    rl_sq = rl * rl
+    lusq_rusq = upper_limb_sq - ru_sq
+    lusq_rusq = max(0, lusq_rusq)
+    llsq_rlsq = lower_limb_sq - rl_sq
+    llsq_rlsq = max(0, llsq_rlsq)
+    temp = upper_limb_sq + rl_sq
+    temp += 2 * math.sqrt(lusq_rusq) * math.sqrt(llsq_rlsq)
+    temp += - (target_length*target_length)
+    temp /= 2 * ru * rl
+    print "temp",temp
+    temp = max(-1, temp)
     return math.acos(temp)
 
+def calculate_angle2(upper_limb,lower_limb,target_length):
+    """ get angle between upper and lower limb based on desired length
+    https://www.mathsisfun.com/algebra/trig-solving-sss-triangles.html"""
+    a = upper_limb
+    b = lower_limb
+    c = target_length
+    print a, b, c
+    temp = (a*a + b*b - c*c) / (2 * a * b)
+    #temp = min(1, temp)
+    print temp
+    angle = math.acos(temp)
+    return angle
 
-def to_local_cos(skeleton, node_name, frame, q):
-    # bring into parent coordinate system
-    pm = skeleton.nodes[node_name].get_global_matrix(frame)[:3,:3]
-    #pm[:3, 3] = [0, 0, 0]
-    inv_pm = np.linalg.inv(pm)
-    r = quaternion_matrix(q)[:3,:3]
-    lr = np.dot(inv_pm, r)[:3,:3]
-    q = quaternion_from_matrix(lr)
-    return q
-
-def project_onto_plane(x, n):
-    """https://stackoverflow.com/questions/17915475/how-may-i-project-vectors-onto-a-plane-defined-by-its-orthogonal-vector-in-pytho"""
-    nl = np.linalg.norm(n)
-    d = np.dot(x, n) / nl
-    p = [d * normalize(n)[i] for i in range(len(n))]
-    return [x[i] - p[i] for i in range(len(x))]
-
-
-def project_vec_on_plane(vec, n):
-    """https://math.stackexchange.com/questions/633181/formula-to-project-a-vector-onto-a-plane"""
-    n = normalize(n)
-    d = np.dot(vec, n)
-    return vec - np.dot(d, n)
 
 
 class AnalyticalLimbIK(object):
-    def __init__(self, skeleton):
+    def __init__(self, skeleton, limb_root, limb_joint, end_effector, joint_axis):
         self.skeleton = skeleton
-        self.shoulder = "RightShoulder"
-        self.elbow = "RightElbow"
-        self.wrist = "RightHand"
-        self.local_elbow_axis = [0,1,0]
-        elbow_idx = self.skeleton.animated_joints.index(self.elbow) * 4 + 3
-        self.elbow_indices = [elbow_idx, elbow_idx + 1, elbow_idx + 2, elbow_idx +3]
-        shoulder_idx = self.skeleton.animated_joints.index(self.shoulder) * 4 + 3
-        self.shoulder_indices = [shoulder_idx, shoulder_idx + 1, shoulder_idx + 2, shoulder_idx + 3]
+        self.limb_root = limb_root
+        self.limb_joint = limb_joint
+        self.end_effector = end_effector
+        self.local_joint_axis = joint_axis
+        joint_idx = self.skeleton.animated_joints.index(self.limb_joint) * 4 + 3
+        self.joint_indices = [joint_idx, joint_idx + 1, joint_idx + 2, joint_idx + 3]
+        root_idx = self.skeleton.animated_joints.index(self.limb_root) * 4 + 3
+        self.root_indices = [root_idx, root_idx + 1, root_idx + 2, root_idx + 3]
 
+    def calculate_limb_joint_rotation(self, frame, target_position):
+        """ find angle so the distance from root to end effector is equal to the distance from the root to the target"""
+        root_pos = self.skeleton.nodes[self.limb_root].get_global_position(frame)
+        joint_pos = self.skeleton.nodes[self.limb_joint].get_global_position(frame)
+        end_effector_pos = self.skeleton.nodes[self.end_effector].get_global_position(frame)
+
+        parent_m = self.skeleton.nodes[self.limb_joint].parent.get_global_matrix(frame)[:3, :3]
+        global_joint_axis = normalize(np.dot(parent_m, self.local_joint_axis))
+
+        print self.limb_root, root_pos
+        print self.limb_joint, joint_pos
+
+        upper_limb_vec = root_pos - joint_pos
+        lower_limb_vec = joint_pos - end_effector_pos
+        upper_limb = np.linalg.norm(upper_limb_vec)
+        lower_limb = np.linalg.norm(lower_limb_vec)
+        #upper_limb_proj = limb_projection(root_pos, joint_pos, global_joint_axis)
+        #lower_limb_proj = limb_projection(end_effector_pos, joint_pos, global_joint_axis)
+        #target_length_proj = limb_projection(target_position, joint_pos, global_joint_axis)
+
+        initial_length = np.linalg.norm(root_pos - end_effector_pos)
+
+        target_length = np.linalg.norm(root_pos - target_position)
+        #joint_delta_angle = calculate_angle(upper_limb, lower_limb, upper_limb_proj, lower_limb_proj, target_length)
+        joint_delta_angle = np.pi-calculate_angle2(upper_limb, lower_limb, target_length)
+        #joint_delta_angle = np.deg2rad(65)
+        joint_delta_q = quaternion_about_axis(joint_delta_angle, self.local_joint_axis)
+        joint_delta_q = normalize(joint_delta_q)
+        #local_delta_q = self._to_local_coordinate_system(frame, self.limb_joint, joint_delta_q)
+        # update frame
+        #old_q = frame[self.joint_indices]
+        frame[self.joint_indices] = joint_delta_q#local_delta_q#quaternion_multiply(local_delta_q, old_q)
+
+        end_effector_pos2 = self.skeleton.nodes[self.end_effector].get_global_position(frame)
+        result_length = np.linalg.norm(root_pos - end_effector_pos2)
+        print "found angle", np.degrees(joint_delta_angle), target_length, initial_length, result_length
+        return joint_delta_q
+
+    def calculate_limb_root_rotation(self, frame, target_position):
+        """ find angle between the vectors end_effector - root and target- root """
+        root_pos = self.skeleton.nodes[self.limb_root].get_global_position(frame)
+        end_effector_pos = self.skeleton.nodes[self.end_effector].get_global_position(frame)
+        src_delta = end_effector_pos - root_pos
+        src_dir = src_delta / np.linalg.norm(src_delta)
+
+        target_delta = target_position - root_pos
+        target_dir = target_delta / np.linalg.norm(target_delta)
+
+        root_delta_q = find_rotation_between_vectors(src_dir, target_dir)
+        root_delta_q = normalize(root_delta_q)
+
+        delta_m = quaternion_matrix(root_delta_q)
+        print src_dir, np.dot(delta_m[:3, :3], src_dir), target_dir
+        new_local_q = self._to_local_coordinate_system(frame, self.limb_root, root_delta_q)
+        frame[self.root_indices] = new_local_q
+        end_effector_pos = self.skeleton.nodes[self.end_effector].get_global_position(frame)
+        check_delta = end_effector_pos - root_pos
+        check_dir = check_delta / np.linalg.norm(check_delta)
+        print src_dir, check_dir, target_dir
+
+    def _to_local_coordinate_system(self, frame, joint_name, q):
+        """ given a global rotation concatenate it with an existing local rotation and bring it to the local coordinate system"""
+        # delta*parent*old_local = parent*new_local
+        # inv_parent*delta*parent*old_local = new_local
+        delta_m = quaternion_matrix(q)
+        parent_joint = self.skeleton.nodes[joint_name].parent.node_name
+        parent_m = self.skeleton.nodes[parent_joint].get_global_matrix(frame, use_cache=False)
+        old_global = np.dot(parent_m, self.skeleton.nodes[joint_name].get_local_matrix(frame))
+        new_global = np.dot(delta_m, old_global)
+        new_local = np.dot(np.linalg.inv(parent_m), new_global)
+        new_local_q = quaternion_from_matrix(new_local)
+        return new_local_q
 
     def apply(self, frame, position):
-        parent_m = self.skeleton.nodes[self.elbow].parent.get_global_matrix(frame)[:3,:3]
-        global_elbow_axis = np.dot(parent_m, self.local_elbow_axis)
-        elbow_pos = self.skeleton.nodes[self.elbow]
-        upper_arm_vec = self.skeleton.nodes[self.shoulder]-elbow_pos
-        lower_arm_vec = elbow_pos - self.skeleton.nodes[self.wrist]
-        l1 = np.linalg.norm(upper_arm_vec)
-        l2 = np.linalg.norm(lower_arm_vec)
-        r1 = np.linalg.norm(project_vec_on_plane(upper_arm_vec, global_elbow_axis))
-        r2 = np.linalg.norm(project_vec_on_plane(lower_arm_vec, global_elbow_axis))
 
-        shoulder = self.skeleton.nodes[self.shoulder].get_position(frame)
-        delta = position - shoulder
-        L = np.linalg.norm(delta)
+        # 1 calculate joint angle
+        self.calculate_limb_joint_rotation(frame, position)
 
-        # 1 calculate elbow angle
-        elbow_delta_angle = calculate_angle(l1, l2, r1, r2, L)
-        elbow_delta_q = quaternion_about_axis(elbow_delta_angle, global_elbow_axis)
-        #local_delta_q = to_local_cos(self.skeleton, self.shoulder, frame, elbow_delta_q)
-
-        # update frame
-        old_q = frame[self.elbow_indices]
-        frame[self.elbow_indices] = quaternion_multiply(old_q, elbow_delta_q)
-
-        # 2 calculate shoulder angle
-        wrist_position = self.skeleton.nodes[self.wrist].get_position(frame)
-        constraint_dir = delta /L
-        temp_delta = wrist_position - shoulder
-        temp_dir = temp_delta / np.linalg.norm(temp_delta)
-        shoulder_delta_q = quaternion_from_vector_to_vector(constraint_dir, temp_dir)
-        local_delta_q = to_local_cos(self.skeleton,self.shoulder, frame, shoulder_delta_q)
-
-        # update frame
-        old_q = frame[self.shoulder_indices]
-        frame[self.shoulder_indices] = quaternion_multiply(old_q, local_delta_q)
+        # 2 calculate limb root rotation
+        self.calculate_limb_root_rotation(frame, position)
         return frame
+
+    def calculate_limb_root_rotation_freu_gelobt_sei_gott_und_jesus_christus_und_der_heilige_geist(self, frame, target_position):
+        """ find angle between the vectors end_effector - root and target- root """
+        #frame[self.root_indices] = [1,0,0,0]
+        root_pos = self.skeleton.nodes[self.limb_root].get_global_position(frame)
+        #src_delta = self.skeleton.nodes[self.end_effector].get_global_position(frame) - root_pos
+        joint_pos = self.skeleton.nodes[self.limb_joint].get_global_position(frame)
+        src_delta = joint_pos - root_pos
+        src_dir = src_delta / np.linalg.norm(src_delta)
+
+
+        target_delta = target_position - root_pos
+        target_dir = target_delta / np.linalg.norm(target_delta)
+
+        root_delta_q = find_rotation_between_vectors(src_dir, target_dir)
+        root_delta_q = normalize(root_delta_q)
+
+        delta_m = quaternion_matrix(root_delta_q)
+        print src_dir, np.dot(delta_m[:3, :3], src_dir), target_dir
+        if False:
+            parent_joint = self.skeleton.nodes[self.limb_root].parent.node_name
+            new_local_q = to_local_cos(self.skeleton, parent_joint, frame, root_delta_q)
+            frame[self.root_indices] = new_local_q
+            #root_pos = self.skeleton.nodes[self.limb_root].get_global_position(frame)
+
+            joint_pos = self.skeleton.nodes[self.limb_joint].get_global_position(frame)
+            check_delta = joint_pos - root_pos
+            check_dir = check_delta / np.linalg.norm(check_delta)
+            print src_dir, target_dir, check_dir
+            return new_local_q
+        elif False:
+
+            local_m = self.skeleton.nodes[self.limb_root].get_local_matrix(frame)
+            parent_joint = self.skeleton.nodes[self.limb_root].parent.node_name
+            parent_m = self.skeleton.nodes[parent_joint].get_global_matrix(frame)
+
+            new_local = np.dot(np.linalg.inv(np.dot(parent_m, local_m)), delta_m)
+            new_local_q = quaternion_from_matrix(np.dot(local_m, new_local))
+            frame[self.root_indices] = new_local_q# root_delta_q#quaternion_multiply(old_q, root_delta_q)
+            joint_pos = self.skeleton.nodes[self.limb_joint].get_global_position(frame)
+            check_delta = joint_pos - root_pos
+            check_dir = check_delta / np.linalg.norm(check_delta)
+            print src_dir, check_dir, target_dir
+            return new_local_q
+        else:
+            # delta*parent*old_local = parent*new_local
+            # inv_parent*delta*parent*old_local = new_local
+            parent_joint = self.skeleton.nodes[self.limb_root].parent.node_name
+            parent_m = self.skeleton.nodes[parent_joint].get_global_matrix(frame, use_cache=False)
+            old_global = np.dot(parent_m, self.skeleton.nodes[self.limb_root].get_local_matrix(frame))
+            new_global = np.dot(delta_m, old_global)
+            new_local = np.dot(np.linalg.inv(parent_m), new_global)
+            new_local_q = quaternion_from_matrix(new_local)
+            frame[self.root_indices] = new_local_q
+            joint_pos = self.skeleton.nodes[self.limb_joint].get_global_position(frame)
+            check_delta = joint_pos - root_pos
+            check_dir = check_delta / np.linalg.norm(check_delta)
+            print src_dir, check_dir, target_dir
