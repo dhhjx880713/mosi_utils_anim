@@ -21,7 +21,7 @@ def add_fixed_dofs_to_frame(skeleton, frame):
 
 
 class MotionGrounding(object):
-    def __init__(self, skeleton, ik_settings):
+    def __init__(self, skeleton, ik_settings, ik_chains):
         self.skeleton = skeleton
         self._ik = NumericalInverseKinematicsExp(skeleton, ik_settings)
         self._constraints = collections.OrderedDict()
@@ -29,6 +29,7 @@ class MotionGrounding(object):
         self.transition_window = ik_settings["transition_window"]
         self._blend_ranges = collections.OrderedDict()
         self.use_analytical = True
+        self._ik_chains = ik_chains
 
     def add_constraint(self, joint_name, position, frame_range):
         for frame_idx in xrange(*frame_range):
@@ -77,18 +78,17 @@ class MotionGrounding(object):
             print "process frame", frame_idx
             if 0 <= frame_idx < len(frames):
                 for c in constraints:
-                    if c.joint_name =="RightFoot":
-                        analytical_ik = AnalyticalLimbIK(self.skeleton, "RightUpLeg", "RightLeg", "RightFoot", [1, 0, 0])
+                    if c.joint_name in self._ik_chains.keys():
+                        limb_root = self._ik_chains[c.joint_name]["root"]
+                        limb_joint = self._ik_chains[c.joint_name]["joint"]
+                        joint_axis = self._ik_chains[c.joint_name]["joint_axis"]
+                        analytical_ik = AnalyticalLimbIK(self.skeleton, limb_root, limb_joint, c.joint_name, joint_axis)
                         frames[frame_idx] = analytical_ik.apply(frames[frame_idx], c.position)
-                    elif c.joint_name =="LeftFoot":
-                        analytical_ik = AnalyticalLimbIK(self.skeleton, "LeftUpLeg", "LeftLeg", "LeftFoot", [1, 0, 0])
-                        frames[frame_idx] = analytical_ik.apply(frames[frame_idx], c.position)
-                    elif c.joint_name == "RightHand":
-                        analytical_ik = AnalyticalLimbIK(self.skeleton, "RightArm", "RightForeArm", "RightHand", [0, 1, 0])
-                        frames[frame_idx] = analytical_ik.apply(frames[frame_idx], c.position)
-                    elif c.joint_name == "LeftHand":
-                        analytical_ik = AnalyticalLimbIK(self.skeleton, "LeftArm", "LeftForeArm", "LeftHand", [0, 1, 0])
-                        frames[frame_idx] = analytical_ik.apply(frames[frame_idx], c.position)
+                    else:
+                        print "could not find ik chain definition for ", c.joint_name
+                        ref = frames[frame_idx]
+                        new_frame = self._ik.modify_frame(ref, constraints)
+                        frames[frame_idx] = new_frame
 
     def blend_at_transitions(self, frames):
         for frame_range, joint_names in self._blend_ranges.items():

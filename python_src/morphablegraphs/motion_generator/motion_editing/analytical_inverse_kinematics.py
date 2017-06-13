@@ -49,7 +49,6 @@ def calculate_angle2(upper_limb,lower_limb,target_length):
     return angle
 
 
-
 class AnalyticalLimbIK(object):
     def __init__(self, skeleton, limb_root, limb_joint, end_effector, joint_axis):
         self.skeleton = skeleton
@@ -68,33 +67,18 @@ class AnalyticalLimbIK(object):
         joint_pos = self.skeleton.nodes[self.limb_joint].get_global_position(frame)
         end_effector_pos = self.skeleton.nodes[self.end_effector].get_global_position(frame)
 
-        #parent_m = self.skeleton.nodes[self.limb_joint].parent.get_global_matrix(frame)[:3, :3]
-        #global_joint_axis = normalize(np.dot(parent_m, self.local_joint_axis))
-
-        print self.limb_root, root_pos
-        print self.limb_joint, joint_pos
-
         upper_limb_vec = root_pos - joint_pos
         lower_limb_vec = joint_pos - end_effector_pos
         upper_limb = np.linalg.norm(upper_limb_vec)
         lower_limb = np.linalg.norm(lower_limb_vec)
-        #upper_limb_proj = limb_projection(root_pos, joint_pos, global_joint_axis)
-        #lower_limb_proj = limb_projection(end_effector_pos, joint_pos, global_joint_axis)
-        #target_length_proj = limb_projection(target_position, joint_pos, global_joint_axis)
 
         initial_length = np.linalg.norm(root_pos - end_effector_pos)
 
         target_length = np.linalg.norm(root_pos - target_position)
-        #joint_delta_angle = calculate_angle(upper_limb, lower_limb, upper_limb_proj, lower_limb_proj, target_length)
-        joint_delta_angle = np.pi-calculate_angle2(upper_limb, lower_limb, target_length)
-        #joint_delta_angle = np.deg2rad(65)
+        joint_delta_angle = np.pi - calculate_angle2(upper_limb, lower_limb, target_length)
         joint_delta_q = quaternion_about_axis(joint_delta_angle, self.local_joint_axis)
         joint_delta_q = normalize(joint_delta_q)
-        #local_delta_q = self._to_local_coordinate_system(frame, self.limb_joint, joint_delta_q)
-        # update frame
-        #old_q = frame[self.joint_indices]
-        frame[self.joint_indices] = joint_delta_q#local_delta_q#quaternion_multiply(local_delta_q, old_q)
-
+        frame[self.joint_indices] = joint_delta_q
         end_effector_pos2 = self.skeleton.nodes[self.end_effector].get_global_position(frame)
         result_length = np.linalg.norm(root_pos - end_effector_pos2)
         print "found angle", np.degrees(joint_delta_angle), target_length, initial_length, result_length
@@ -137,11 +121,12 @@ class AnalyticalLimbIK(object):
 
     def apply(self, frame, position):
 
-        # 1 calculate joint angle
+        # 1 calculate joint angle based on the distance to target position
         self.calculate_limb_joint_rotation(frame, position)
 
-        # 2 calculate limb root rotation
+        # 2 calculate limb root rotation to align the end effector with the target position
         self.calculate_limb_root_rotation(frame, position)
+
         return frame
 
     def calculate_limb_root_rotation_freu_gelobt_sei_gott_und_jesus_christus_und_der_heilige_geist(self, frame, target_position):
