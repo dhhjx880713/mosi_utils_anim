@@ -25,7 +25,7 @@ class IKConstraintSet(object):
         self.constraints = []
         for idx in xrange(frame_range[0], frame_range[1]):
             for idx, joint_name in enumerate(joint_names):
-                c = MotionGroundingConstraint(idx, joint_name, positions[idx])
+                c = MotionGroundingConstraint(idx, joint_name, positions[idx], None)
                 self.constraints.append(c)
 
     def add_constraint(self, c):
