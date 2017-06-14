@@ -11,10 +11,6 @@ from utils import normalize, limb_projection, to_local_cos,project_vec3
 from ...animation_data.utils import quaternion_from_vector_to_vector
 from ...animation_data.retargeting.utils import find_rotation_between_vectors
 from ...external.transformations import quaternion_multiply, quaternion_about_axis, quaternion_matrix, quaternion_from_matrix
-RIGHT_SHOULDER = "RightShoulder"
-RIGHT_ELBOW = "RightElbow"
-RIGHT_WRIST = "RightHand"
-ELBOW_AXIS = [0,1,0]
 
 
 def calculate_angle(upper_limb, lower_limb, ru, rl, target_length):
@@ -34,6 +30,7 @@ def calculate_angle(upper_limb, lower_limb, ru, rl, target_length):
     temp = max(-1, temp)
     return math.acos(temp)
 
+
 def calculate_angle2(upper_limb,lower_limb,target_length):
     """ get angle between upper and lower limb based on desired length
     https://www.mathsisfun.com/algebra/trig-solving-sss-triangles.html"""
@@ -50,16 +47,27 @@ def calculate_angle2(upper_limb,lower_limb,target_length):
 
 
 class AnalyticalLimbIK(object):
-    def __init__(self, skeleton, limb_root, limb_joint, end_effector, joint_axis):
+    def __init__(self, skeleton, limb_root, limb_joint, end_effector, joint_axis, local_end_effector_dir):
         self.skeleton = skeleton
         self.limb_root = limb_root
         self.limb_joint = limb_joint
         self.end_effector = end_effector
         self.local_joint_axis = joint_axis
+        self.local_end_effector_dir = local_end_effector_dir
         joint_idx = self.skeleton.animated_joints.index(self.limb_joint) * 4 + 3
         self.joint_indices = [joint_idx, joint_idx + 1, joint_idx + 2, joint_idx + 3]
         root_idx = self.skeleton.animated_joints.index(self.limb_root) * 4 + 3
         self.root_indices = [root_idx, root_idx + 1, root_idx + 2, root_idx + 3]
+        end_effector_idx = self.skeleton.animated_joints.index(self.end_effector) * 4 + 3
+        self.end_effector_indices = [end_effector_idx, end_effector_idx + 1, end_effector_idx + 2, end_effector_idx + 3]
+
+    @classmethod
+    def init_from_dict(cls, skeleton, joint_name, data):
+        limb_root = data["root"]
+        limb_joint = data["joint"]
+        joint_axis = data["joint_axis"]
+        end_effector_dir = data["end_effector_dir"]
+        return AnalyticalLimbIK(skeleton, limb_root, limb_joint, joint_name, joint_axis, end_effector_dir)
 
     def calculate_limb_joint_rotation(self, frame, target_position):
         """ find angle so the distance from root to end effector is equal to the distance from the root to the target"""
@@ -119,13 +127,32 @@ class AnalyticalLimbIK(object):
         new_local_q = quaternion_from_matrix(new_local)
         return new_local_q
 
-    def apply(self, frame, position):
+    def calculate_end_effector_rotation(self, frame, target_dir):
+        print "end effector rotation", self.end_effector, target_dir
+        end_effector_m = self.skeleton.nodes[self.end_effector].get_global_matrix(frame)[:3, :3]
+        #src_dir = np.dot(end_effector_m, self.local_end_effector_dir)
+        #src_dir = normalize(src_dir)
+        src_dir = self.get_joint_dir(frame, self.end_effector)
+        root_delta_q = find_rotation_between_vectors(src_dir, target_dir)
+        new_local_q = self._to_local_coordinate_system(frame, self.end_effector, root_delta_q)
+        frame[self.end_effector_indices] = new_local_q
+
+    def get_joint_dir(self, frame, joint_name):
+        pos1 = self.skeleton.nodes[joint_name].get_global_position(frame)
+        pos2 = self.skeleton.nodes[joint_name].children[0].get_global_position(frame)
+        return normalize(pos2 - pos1)
+
+    def apply(self, frame, position, direction=None):
 
         # 1 calculate joint angle based on the distance to target position
         self.calculate_limb_joint_rotation(frame, position)
 
         # 2 calculate limb root rotation to align the end effector with the target position
         self.calculate_limb_root_rotation(frame, position)
+
+        # 3 orient end effector
+        if direction is not None:
+            self.calculate_end_effector_rotation(frame, direction)
 
         return frame
 

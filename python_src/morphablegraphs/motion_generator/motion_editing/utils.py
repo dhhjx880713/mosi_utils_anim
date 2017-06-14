@@ -92,15 +92,26 @@ def normalize_quaternion(q):
     return quaternion_inverse(q) / np.dot(q, q)
 
 
-def get_average_joint_position(skeleton, mv, joint_name, start_frame, end_frame):
+def get_average_joint_position(skeleton, frames, joint_name, start_frame, end_frame):
     temp_positions = []
     for idx in xrange(start_frame, end_frame):
-        frame = mv.frames[idx]
+        frame = frames[idx]
         pos = skeleton.nodes[joint_name].get_global_position(frame)
         temp_positions.append(pos)
     return np.mean(temp_positions, axis=0)
 
 
+def get_average_joint_direction(skeleton, frames, joint_name, child_joint_name, start_frame, end_frame,ground_height=0):
+    temp_dirs = []
+    for idx in xrange(start_frame, end_frame):
+        frame = frames[idx]
+        pos1 = skeleton.nodes[joint_name].get_global_position(frame)
+        pos2 = skeleton.nodes[child_joint_name].get_global_position(frame)
+        pos2[1] = ground_height
+        joint_dir = pos2 - pos1
+        joint_dir /= np.linalg.norm(joint_dir)
+        temp_dirs.append(joint_dir)
+    return np.mean(temp_dirs, axis=0)
 
 
 def to_local_cos(skeleton, node_name, frame, q):

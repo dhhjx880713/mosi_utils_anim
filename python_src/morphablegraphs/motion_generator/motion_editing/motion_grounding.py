@@ -1,10 +1,42 @@
 import collections
 import numpy as np
-from numerical_ik_exp import NumericalInverseKinematicsExp, IKConstraint
+from numerical_ik_exp import NumericalInverseKinematicsExp
 from analytical_inverse_kinematics import AnalyticalLimbIK
 from ...animation_data.motion_blending import apply_slerp, apply_slerp2, BLEND_DIRECTION_FORWARD, BLEND_DIRECTION_BACKWARD
 from skeleton_pose_model import SkeletonPoseModel
 
+
+class MotionGroundingConstraint(object):
+    def __init__(self, frame_idx, joint_name, position, direction):
+        self.frame_idx = frame_idx
+        self.joint_name = joint_name
+        self.position = position
+        self.direction = direction
+
+    def evaluate(self, skeleton, q_frame):
+        d = self.position - skeleton.nodes[self.joint_name].get_global_position(q_frame)
+        return np.dot(d, d)
+
+
+class IKConstraintSet(object):
+    def __init__(self, frame_range, joint_names, positions):
+        self.frame_range = frame_range
+        self.joint_names = joint_names
+        self.constraints = []
+        for idx in xrange(frame_range[0], frame_range[1]):
+            for idx, joint_name in enumerate(joint_names):
+                c = MotionGroundingConstraint(idx, joint_name, positions[idx])
+                self.constraints.append(c)
+
+    def add_constraint(self, c):
+        self.constraints.append(c)
+
+    def evaluate(self, skeleton, q_frame):
+        error = 0
+        for c in self.constraints:
+            d = c.position - skeleton.nodes[c.joint_name].get_global_position(q_frame)
+            error += np.dot(d, d)
+        return error
 
 def add_fixed_dofs_to_frame(skeleton, frame):
     o = 3
