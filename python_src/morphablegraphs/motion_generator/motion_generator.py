@@ -41,6 +41,8 @@ class MotionGenerator(object):
         self.step_look_ahead_distance = 100
         self.activate_global_optimization = False
         self.graph_walk_optimizer = GraphWalkOptimizer(self._motion_state_graph, algorithm_config)
+        footplant_settings = {"left_foot":"LeftFoot", "right_foot": "RightFoot", "left_toe": "Bip01_L_Toe0", "right_toe": "Bip01_R_Toe0", "window":20,"tolerance":0.001 }
+        self.footplant_constraint_generator = FootplantConstraintGenerator(self._motion_state_graph.skeleton, footplant_settings)
         self.footplant_constraint_generator = FootplantConstraintGenerator(self._motion_state_graph.skeleton)
         self.set_algorithm_config(algorithm_config)
 
@@ -218,9 +220,15 @@ class MotionGenerator(object):
         """
         ik_settings = self._algorithm_config["inverse_kinematics_settings"]
         if ik_settings["motion_grounding"]:
-            constraints = self.footplant_constraint_generator.generate(motion_vector)
-            grounding = MotionGrounding(self._motion_state_graph.skeleton, ik_settings, IK_CHAINS_ROCKETBOX_SKELETON)
+            ik_chain = IK_CHAINS_ROCKETBOX_SKELETON
+            constraints, blend_ranges = self.footplant_constraint_generator.generate(motion_vector)
+            grounding = MotionGrounding(self._motion_state_graph.skeleton, ik_settings, ik_chain)
             grounding.set_constraints(constraints)
+            if ik_settings["activate_blending"]:
+                for target_joint in blend_ranges:
+                    joint_list = [ik_chain[target_joint]["root"], ik_chain[target_joint]["joint"], target_joint]
+                    for frame_range in blend_ranges[target_joint]:
+                        grounding.add_blend_range(joint_list, frame_range)
             grounding.run(motion_vector)
 
         if self._algorithm_config["activate_inverse_kinematics"]:
