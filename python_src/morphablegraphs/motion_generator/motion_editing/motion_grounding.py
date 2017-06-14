@@ -63,9 +63,12 @@ class MotionGrounding(object):
         self.use_analytical = True
         self._ik_chains = ik_chains
 
-    def add_constraint(self, joint_name, position, frame_range):
+    def set_constraints(self, constraints):
+        self._constraints = constraints
+
+    def add_constraint(self, joint_name, frame_range, position, direction=None):
         for frame_idx in xrange(*frame_range):
-            c = IKConstraint(frame_idx, joint_name, position)
+            c = MotionGroundingConstraint(frame_idx, joint_name, position, direction)
             if frame_idx not in self._constraints.keys():
                 self._constraints[frame_idx] = []
             self._constraints[frame_idx].append(c)
@@ -101,9 +104,7 @@ class MotionGrounding(object):
         for frame_idx, constraints in self._constraints.items():
             print "process frame", frame_idx
             if 0 <= frame_idx < len(frames):
-                ref = frames[frame_idx]
-                new_frame = self._ik.modify_frame(ref, constraints)
-                frames[frame_idx] = new_frame
+                frames[frame_idx] = self._ik.modify_frame(frames[frame_idx], constraints)
 
     def apply_analytical_ik(self, frames):
         for frame_idx, constraints in self._constraints.items():
@@ -111,16 +112,12 @@ class MotionGrounding(object):
             if 0 <= frame_idx < len(frames):
                 for c in constraints:
                     if c.joint_name in self._ik_chains.keys():
-                        limb_root = self._ik_chains[c.joint_name]["root"]
-                        limb_joint = self._ik_chains[c.joint_name]["joint"]
-                        joint_axis = self._ik_chains[c.joint_name]["joint_axis"]
-                        analytical_ik = AnalyticalLimbIK(self.skeleton, limb_root, limb_joint, c.joint_name, joint_axis)
-                        frames[frame_idx] = analytical_ik.apply(frames[frame_idx], c.position)
+                        data = self._ik_chains[c.joint_name]
+                        ik = AnalyticalLimbIK.init_from_dict(self.skeleton, c.joint_name, data)
+                        frames[frame_idx] = ik.apply(frames[frame_idx], c.position, c.direction)
                     else:
                         print "could not find ik chain definition for ", c.joint_name
-                        ref = frames[frame_idx]
-                        new_frame = self._ik.modify_frame(ref, constraints)
-                        frames[frame_idx] = new_frame
+                        frames[frame_idx] = self._ik.modify_frame(frames[frame_idx], constraints)
 
     def blend_at_transitions(self, frames):
         for frame_range, joint_names in self._blend_ranges.items():
