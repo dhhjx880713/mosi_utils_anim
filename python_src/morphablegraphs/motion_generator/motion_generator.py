@@ -11,7 +11,7 @@ from graph_walk_planner import GraphWalkPlanner
 from ..motion_model.motion_state_group import NODE_TYPE_END
 from ..constraints import OPTIMIZATION_MODE_ALL
 from graph_walk_optimizer import GraphWalkOptimizer
-from motion_editing import MotionEditing
+from motion_editing import MotionEditing, MotionGrounding, FootplantConstraintGenerator, IK_CHAINS_ROCKETBOX_SKELETON
 from ..utilities import load_json_file, write_log, clear_log, save_log, write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO, LOG_MODE_ERROR, set_log_mode
 
 
@@ -41,7 +41,7 @@ class MotionGenerator(object):
         self.step_look_ahead_distance = 100
         self.activate_global_optimization = False
         self.graph_walk_optimizer = GraphWalkOptimizer(self._motion_state_graph, algorithm_config)
-
+        self.footplant_constraint_generator = FootplantConstraintGenerator(self._motion_state_graph.skeleton)
         self.set_algorithm_config(algorithm_config)
 
     def generate_motion(self, mg_input, activate_joint_map, activate_coordinate_transform,
@@ -165,7 +165,7 @@ class MotionGenerator(object):
             * action_state: MotionGeneratorState
                 Information on the current state of the motion generator
             * is_last_step: bool
-                Sets whether or not the motion primitive is an ending state of the action.
+                Sets whether or not the motion primitive is an ending state of the current action.
         """
         new_node_type = self._motion_state_graph.nodes[node_key].node_type
         self.mp_constraints_builder.set_status(node_key,
@@ -216,11 +216,18 @@ class MotionGenerator(object):
         * motion_vector : AnnotatedMotionVector
            Contains a list of quaternion frames and their annotation based on actions.
         """
+        ik_settings = self._algorithm_config["inverse_kinematics_settings"]
+        if ik_settings["motion_grounding"]:
+            constraints = self.footplant_constraint_generator.generate(motion_vector)
+            grounding = MotionGrounding(self._motion_state_graph.skeleton, ik_settings, IK_CHAINS_ROCKETBOX_SKELETON)
+            grounding.set_constraints(constraints)
+            grounding.run(motion_vector)
+
         if self._algorithm_config["activate_inverse_kinematics"]:
             write_message_to_log("Modify using inverse kinematics", LOG_MODE_INFO)
-            self.inverse_kinematics = MotionEditing(self._motion_state_graph.skeleton, self._algorithm_config)
-            self.inverse_kinematics.modify_motion_vector(motion_vector)
-            self.inverse_kinematics.fill_rotate_events(motion_vector)
+            me = MotionEditing(self._motion_state_graph.skeleton, self._algorithm_config)
+            me.modify_motion_vector(motion_vector)
+            me.fill_rotate_events(motion_vector)
 
         if complete_motion_vector:
             motion_vector.frames = self._motion_state_graph.skeleton.complete_motion_vector_from_reference(
