@@ -43,7 +43,6 @@ class MotionGenerator(object):
         self.graph_walk_optimizer = GraphWalkOptimizer(self._motion_state_graph, algorithm_config)
         footplant_settings = {"left_foot":"LeftFoot", "right_foot": "RightFoot", "left_toe": "Bip01_L_Toe0", "right_toe": "Bip01_R_Toe0", "window":20,"tolerance":0.001 }
         self.footplant_constraint_generator = FootplantConstraintGenerator(self._motion_state_graph.skeleton, footplant_settings)
-        self.footplant_constraint_generator = FootplantConstraintGenerator(self._motion_state_graph.skeleton)
         self.set_algorithm_config(algorithm_config)
 
     def generate_motion(self, mg_input, activate_joint_map, activate_coordinate_transform,
