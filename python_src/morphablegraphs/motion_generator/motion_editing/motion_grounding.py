@@ -2,7 +2,8 @@ import collections
 import numpy as np
 from numerical_ik_exp import NumericalInverseKinematicsExp
 from analytical_inverse_kinematics import AnalyticalLimbIK
-from ...animation_data.motion_blending import apply_slerp, apply_slerp2, BLEND_DIRECTION_FORWARD, BLEND_DIRECTION_BACKWARD
+from ...animation_data.motion_blending import apply_slerp, apply_slerp2, BLEND_DIRECTION_FORWARD, BLEND_DIRECTION_BACKWARD, smooth_translation_in_quat_frames
+from utils import normalize
 from skeleton_pose_model import SkeletonPoseModel
 
 
@@ -51,20 +52,21 @@ def add_fixed_dofs_to_frame(skeleton, frame):
             full_frame += node.rotation.tolist()
     return full_frame
 
-
 class MotionGrounding(object):
     def __init__(self, skeleton, ik_settings, ik_chains, use_analytical_ik=True):
         self.skeleton = skeleton
         self._ik = NumericalInverseKinematicsExp(skeleton, ik_settings)
         self._constraints = collections.OrderedDict()
         self.pose = SkeletonPoseModel(skeleton, False)
-        self.transition_window = ik_settings["transition_window"]
+        self.transition_window = 10#ik_settings["transition_window"]
+        self.translation_blend_window = 40
         self._blend_ranges = collections.OrderedDict()
         self.use_analytical_ik = use_analytical_ik
         self._ik_chains = ik_chains
 
     def set_constraints(self, constraints):
         self._constraints = constraints
+        print self._constraints
 
     def add_constraint(self, joint_name, frame_range, position, direction=None):
         for frame_idx in xrange(*frame_range):
@@ -91,20 +93,40 @@ class MotionGrounding(object):
 
     def _blend_around_frame_range(self, frames, start, end, joint_names):
         for joint_name in joint_names:
-            idx = self._ik.skeleton.animated_joints.index(joint_name)*4+3
-            joint_parameter_indices = [idx, idx+1, idx+2, idx+3]
             transition_start = max(start - self.transition_window, 0)
             transition_end = min(end + self.transition_window, frames.shape[0]) - 1
-            steps = start - transition_start
-            apply_slerp2(frames, joint_parameter_indices, transition_start, start, steps, BLEND_DIRECTION_FORWARD)
-            steps = transition_end - end
-            apply_slerp2(frames, joint_parameter_indices,  end, transition_end, steps, BLEND_DIRECTION_BACKWARD)
+            forward_steps = start - transition_start
+            backward_steps = transition_end - end
+            if joint_name == self.skeleton.root:
+                if start > 0:
+                    frames[:,:3] = smooth_translation_in_quat_frames(frames, start, self.translation_blend_window)
+                temp_frame = min(end + 1, frames.shape[0]-1)
+                frames[:,:3] = smooth_translation_in_quat_frames(frames, temp_frame, self.translation_blend_window)
+
+            idx = self._ik.skeleton.animated_joints.index(joint_name)*4+3
+            joint_parameter_indices = [idx, idx+1, idx+2, idx+3]
+            if start > 0:
+                apply_slerp2(frames, joint_parameter_indices, transition_start, start, forward_steps, BLEND_DIRECTION_FORWARD)
+            apply_slerp2(frames, joint_parameter_indices,  end, transition_end, backward_steps, BLEND_DIRECTION_BACKWARD)
 
     def apply_ik_constraints(self, frames):
         for frame_idx, constraints in self._constraints.items():
             print "process frame", frame_idx
             if 0 <= frame_idx < len(frames):
                 frames[frame_idx] = self._ik.modify_frame(frames[frame_idx], constraints)
+
+    def adapt_root(self, frames):
+        for frame_idx, constraints in self._constraints.items():
+            if 0 <= frame_idx < len(frames):
+                for c in constraints:
+                    root_pos = self.skeleton.nodes[self.skeleton.root].get_global_position(frames[frame_idx])
+                    target_length = np.linalg.norm(c.position - root_pos)
+                    limb_length = np.linalg.norm(self.skeleton.nodes[c.joint_name].offset)
+                    limb_length += np.linalg.norm(self.skeleton.nodes[c.joint_name].parent.offset)
+                    limb_length -= 1
+                    if target_length > limb_length:
+                        new_root_pos = c.position + normalize(root_pos - c.position)*limb_length
+                        frames[frame_idx][:3] = new_root_pos
 
     def apply_analytical_ik(self, frames):
         for frame_idx, constraints in self._constraints.items():
@@ -126,8 +148,19 @@ class MotionGrounding(object):
             self._blend_around_frame_range(frames, start, end, joint_names)
         return frames
 
+    def _shift_root(self, frames, ground_height):
+        static_offset = 91.6
+        for idx, frame in enumerate(frames):
+            shift = ground_height + static_offset - frames[idx][1] # TODO change skeleton to include static offset
+            print shift
+            frames[idx][1] += shift
+
     def run(self, motion_vector):
         new_frames = motion_vector.frames[:]
+        self._shift_root(new_frames, 0)
+        self.adapt_root(new_frames)
+        self.blend_at_transitions(new_frames)
+
         if self.use_analytical_ik:
             self.apply_analytical_ik(new_frames)
         else:
