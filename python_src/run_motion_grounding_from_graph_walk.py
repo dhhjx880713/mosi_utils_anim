@@ -94,7 +94,7 @@ def run_motion_grounding(motion_graph_file, graph_walk_file):
             me.add_blend_range(joint_names, frame_range)
 
 
-    #mv.frames = me.run(mv)
+    mv.frames = me.run(mv)
     print "export motion"
     mv.export("out\\foot_sliding", "out", True)
 

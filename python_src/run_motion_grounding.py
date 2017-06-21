@@ -15,6 +15,8 @@ RIGHT_KNEE = "RightLeg"
 LEFT_KNEE = "LeftLeg"
 RIGHT_HIP = "RightUpLeg"
 LEFT_HIP = "LeftUpLeg"
+LEFT_HEEL = "LeftHeel"
+RIGHT_HEEL = "RightHeel"
 
 
 
@@ -55,6 +57,9 @@ def create_foot_plant_constraints2(skeleton, mv, me, joint_name, start_frame, en
         me.add_constraint(joint_name,(idx, idx + 1), avg_p, avg_direction)
     return me
 
+
+
+
 def run_motion_grounding(bvh_file):
     #right foot 98-152
     # , 167, 249, 330, 389
@@ -67,59 +72,21 @@ def run_motion_grounding(bvh_file):
     config = AlgorithmConfigurationBuilder().build()
     ik_chains = IK_CHAINS_RAW_SKELETON
     me = MotionGrounding(skeleton, config["inverse_kinematics_settings"], ik_chains, use_analytical_ik=True)
-    #free_joints = ["Hips","RightUpLeg", "LeftUpLeg", "RightLeg", "LeftLeg"]
-    #me._ik.set_free_joints(free_joints)
-    #frame_range = 98, 152
-    #me = create_foot_plant_constraints2(skeleton, mv, me, [RIGHT_FOOT, RIGHT_TOE], frame_range)
-    h_start_frame = 98
-    h_end_frame = 140
-    t_start_frame = 120
-    t_end_frame = 170
-    #me = create_foot_plant_constraints2(skeleton, mv, me, RIGHT_FOOT, h_start_frame, h_end_frame)
     footplant_settings = {"left_foot": "LeftFoot", "right_foot": "RightFoot", "left_toe": "LeftToeBase",
-                          "right_toe": "RightToeBase", "window": 20, "tolerance": 0.001}
+                          "right_toe": "RightToeBase", "window": 20, "tolerance": 1}
 
 
-    constraint_generator = FootplantConstraintGenerator(skeleton, footplant_settings, ground_height=-1)
+    constraint_generator = FootplantConstraintGenerator(skeleton, footplant_settings, ground_height=-1, add_heels=True)
     constraints, blend_ranges = constraint_generator.generate(mv)
     me.set_constraints(constraints)
-
-    #me = create_foot_plant_constraints2(skeleton, mv, me, RIGHT_TOE, t_start_frame, t_end_frame)
     # problem you need to blend the hips joint otherwise it does not work, which is not really a good thing to do because it influences the entire body
-    #me.add_blend_range([RIGHT_FOOT,RIGHT_KNEE, RIGHT_HIP], (start_frame,end_frame-1))#the interpolation range must start at end_frame-1 because this is the last modified frame
 
     mv.frames = me.run(mv)
     print "export motion"
-    #mv.frames = skeleton.complete_motion_vector_from_reference(mv.frames)
     mv.export(skeleton, "out\\foot_sliding", "out")
-
-def try_ground_constraint_generator(bvh_file):
-    bvh = BVHReader(bvh_file)
-    animated_joints = list(bvh.get_animated_joints())
-    skeleton = Skeleton()
-    skeleton.load_from_bvh(bvh, animated_joints)  # filter here
-    mv = MotionVector()
-    mv.from_bvh_reader(bvh)
-    footplant_settings = {"left_foot": "LeftFoot", "right_foot": "RightFoot", "left_toe": "LeftToeBase",
-                          "right_toe": "RightToeBase", "window": 20, "tolerance": 0.001}
-    constraint_generator = FootplantConstraintGenerator(skeleton, footplant_settings, ground_height=--1.5)
-    n_frames = len(mv.frames)
-
-    x = np.linspace(0,n_frames, n_frames)
-    joint_name = "LeftFoot"
-    joint_name = "RightFoot"
-    joint_name = "LeftToeBase"
-    #joint_name = "RightToeBase"
-    #y, ya = constraint_generator.get_vertical_acceleration(mv.frames, joint_name)
-    #plt.plot(x, ya)
-    #plt.show(True)
-    #ground_contacts = constraint_generator.detect_ground_contacts(mv.frames, [joint_name])
-    #print ground_contacts
-    constraints, blend_ranges = constraint_generator.generate(mv)
 
 if __name__ == "__main__":
     bvh_file = "skeleton.bvh"
     bvh_file = "foot_sliding_example.bvh"
     #bvh_file = "no_blending.bvh"
     run_motion_grounding(bvh_file)
-    #try_ground_constraint_generator(bvh_file)
