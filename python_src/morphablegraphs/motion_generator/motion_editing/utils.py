@@ -1,7 +1,9 @@
 import numpy as np
 import math
+from matplotlib import pyplot as plt
 from ...external.transformations import quaternion_multiply, quaternion_inverse, quaternion_matrix, quaternion_from_matrix
 from ...animation_data.utils import euler_to_quaternion
+from ...animation_data.skeleton_node import SkeletonEndSiteNode
 
 LEN_QUATERNION = 4
 LEN_TRANSLATION = 3
@@ -107,7 +109,7 @@ def get_average_joint_direction(skeleton, frames, joint_name, child_joint_name, 
         frame = frames[idx]
         pos1 = skeleton.nodes[joint_name].get_global_position(frame)
         pos2 = skeleton.nodes[child_joint_name].get_global_position(frame)
-        pos2[1] = ground_height
+        #pos2[1] = ground_height
         joint_dir = pos2 - pos1
         joint_dir /= np.linalg.norm(joint_dir)
         temp_dirs.append(joint_dir)
@@ -188,3 +190,64 @@ def limb_projection(p1, center, n):
     #print proj_p1, proj_p2, s1, s2, proj_p1, proj_p2, d, n
     #print "d", d
     return d
+
+
+def plot_line(ax, start, end,label=None, color=None):
+    x = start[0], end[0]
+    y = start[1], end[1]
+    ax.plot(x, y, label=label, color=color)
+
+def convert_to_foot_positions(joint_heights):
+
+    n_frames = len(joint_heights.items()[0][1][0])
+    print n_frames
+    foot_positions = []
+    for f in xrange(n_frames):
+        foot_positions.append(dict())
+    for joint, data in joint_heights.items():
+        ps, ya = data
+        for frame_idx, p in enumerate(ps):
+            foot_positions[frame_idx].update({joint: p})
+    return foot_positions
+
+def plot_foot_positions(ax, foot_positions, bodies,step_size=5):
+    for f, data in enumerate(foot_positions):
+        if f%step_size != 0:
+            continue
+        for body in [bodies.values()[0] ]:
+            start_j = body["start"]
+            end_j = body["end"]
+            start = f, data[start_j][1]
+            end = f+5, data[end_j][1]
+            plot_line(ax, start, end, color="k")
+
+def plot_joint_heights(joint_heights, ground_height=0):
+    plt.figure(1)
+    ax = plt.subplot(111)
+    ax.set_ylim(ymin=-10, ymax=500)
+    ax.set_xlim(xmin=-10, xmax=500)
+    n_frames = 0
+    for joint, data in joint_heights.items():
+        ps, ya = data
+        n_frames = len(ps)
+        x = np.linspace(0,n_frames, n_frames)
+        plt.plot(x, ps[:,1], label=joint)
+    plot_line(ax, (0, ground_height),(n_frames, ground_height), "ground")
+    foot_positions = convert_to_foot_positions(joint_heights)
+    bodies = {"left":{"start":"LeftHeel", "end": "LeftToeBase"}, "right":{"start":"RightHeel", "end": "RightToeBase"}}
+    plot_foot_positions(ax, foot_positions, bodies)
+    plt.legend()
+    plt.show(True)
+
+
+def add_heels_to_skeleton(skeleton, left_foot, right_foot, left_heel, right_heel, offset=[0, -5, 0]):
+    left_heel_node = SkeletonEndSiteNode(left_heel, [], skeleton.nodes[left_foot])
+    left_heel_node.offset = np.array(offset)
+    skeleton.nodes[left_heel] = left_heel_node
+    skeleton.nodes[left_foot].children.append(left_heel_node)
+
+    right_heel_node = SkeletonEndSiteNode(right_heel, [], skeleton.nodes[right_foot])
+    right_heel_node.offset = np.array(offset)
+    skeleton.nodes[right_heel] = right_heel_node
+    skeleton.nodes[right_foot].children.append(right_heel_node)
+    return skeleton
