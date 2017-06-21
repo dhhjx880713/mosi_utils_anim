@@ -154,13 +154,13 @@ class MGInputFormatReader(object):
             for p in constraint[KEYFRAME_CONSTRAINTS_KEY]:
                 new_p = p[P_KEY] - offset
                 p[P_KEY] = new_p.tolist()
-
-            for p in constraint[TRAJECTORY_CONSTRAINTS_KEY]:
-                new_p = copy(p[P_KEY])
-                for idx, v in enumerate(new_p):
-                    if v is not None:
-                        new_p[idx] -= offset[idx]
-                p[P_KEY] = new_p#.tolist()
+            if TRAJECTORY_CONSTRAINTS_KEY in constraint.keys():
+                for p in constraint[TRAJECTORY_CONSTRAINTS_KEY]:
+                    new_p = copy(p[P_KEY])
+                    for idx, v in enumerate(new_p):
+                        if v is not None:
+                            new_p[idx] -= offset[idx]
+                    p[P_KEY] = new_p#.tolist()
 
     def extract_trajectory_desc(self, action_index, joint_name, distance_treshold=-1):
         return self.trajectory_constraints_reader.extract_trajectory_desc(self.elementary_action_list, action_index, joint_name, distance_treshold)
