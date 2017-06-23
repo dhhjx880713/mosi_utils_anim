@@ -121,10 +121,10 @@ class MotionGrounding(object):
                 for c in constraints:
                     root_pos = self.skeleton.nodes[self.skeleton.root].get_global_position(frames[frame_idx])
                     target_length = np.linalg.norm(c.position - root_pos)
-                    limb_length = np.linalg.norm(self.skeleton.nodes[c.joint_name].offset)
+                    limb_length = np.linalg.norm(self.skeleton.nodes[c.joint_name].offset)+1
                     limb_length += np.linalg.norm(self.skeleton.nodes[c.joint_name].parent.offset)
-                    limb_length -= 1
-                    if target_length > limb_length:
+                    #limb_length -= 1
+                    if target_length >= limb_length:
                         new_root_pos = c.position + normalize(root_pos - c.position)*limb_length
                         frames[frame_idx][:3] = new_root_pos
 

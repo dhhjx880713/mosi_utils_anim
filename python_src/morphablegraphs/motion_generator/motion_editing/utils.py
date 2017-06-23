@@ -1,6 +1,8 @@
 import numpy as np
 import math
 from matplotlib import pyplot as plt
+import json
+from scipy.interpolate import UnivariateSpline
 from ...external.transformations import quaternion_multiply, quaternion_inverse, quaternion_matrix, quaternion_from_matrix
 from ...animation_data.utils import euler_to_quaternion
 from ...animation_data.skeleton_node import SkeletonEndSiteNode
@@ -115,6 +117,17 @@ def get_average_joint_direction(skeleton, frames, joint_name, child_joint_name, 
         temp_dirs.append(joint_dir)
     return np.mean(temp_dirs, axis=0)
 
+def get_average_direction_from_target(skeleton, frames, target_pos, child_joint_name, start_frame, end_frame,ground_height=0):
+    temp_dirs = []
+    for idx in xrange(start_frame, end_frame):
+        frame = frames[idx]
+        pos2 = skeleton.nodes[child_joint_name].get_global_position(frame)
+        pos2[1] = ground_height
+        joint_dir = pos2 - target_pos
+        joint_dir /= np.linalg.norm(joint_dir)
+        temp_dirs.append(joint_dir)
+    return np.mean(temp_dirs, axis=0)
+
 
 def to_local_cos(skeleton, node_name, frame, q):
     # bring into parent coordinate system
@@ -221,7 +234,35 @@ def plot_foot_positions(ax, foot_positions, bodies,step_size=5):
             end = f+5, data[end_j][1]
             plot_line(ax, start, end, color="k")
 
-def plot_joint_heights(joint_heights, ground_height=0):
+
+def get_vertical_acceleration(skeleton, frames, joint_name):
+    """ https://stackoverflow.com/questions/40226357/second-derivative-in-python-scipy-numpy-pandas
+    """
+    ps = []
+    for frame in frames:
+        p = skeleton.nodes[joint_name].get_global_position(frame)
+        ps.append(p)
+    ps = np.array(ps)
+    x = np.linspace(0, len(frames), len(frames))
+    ys = np.array(ps[:, 1])
+    y_spl = UnivariateSpline(x, ys, s=0, k=4)
+    y_spl_2d = y_spl.derivative(n=2)
+    return ps, y_spl_2d(x)
+
+
+def get_joint_height(skeleton, frames, joints):
+    joint_heights = dict()
+    for joint in joints:
+        joint_heights[joint] = get_vertical_acceleration(skeleton, frames, joint)
+        # print ys
+        # close_to_ground = np.where(y - o - self.ground_height < self.tolerance)
+
+        # zero_crossings = np.where(np.diff(np.sign(ya)))[0]
+        # zero_crossings = np.diff(np.sign(ya)) != 0
+        # print len(zero_crossings)
+        # joint_ground_contacts = np.where(close_to_ground and zero_crossings)
+        # print close_to_ground
+    return joint_heights
     plt.figure(1)
     ax = plt.subplot(111)
     ax.set_ylim(ymin=-10, ymax=500)
@@ -251,3 +292,41 @@ def add_heels_to_skeleton(skeleton, left_foot, right_foot, left_heel, right_heel
     skeleton.nodes[right_heel] = right_heel_node
     skeleton.nodes[right_foot].children.append(right_heel_node)
     return skeleton
+
+def export_constraints(constraints, file_path):
+    unique_dict = dict()
+    for frame_idx in constraints:
+        for c in constraints[frame_idx]:
+            key = tuple(c.position)
+            unique_dict[key] = None
+
+    points = []
+    for p in unique_dict.keys():
+        points.append(p)
+    data = dict()
+    data["points"] = points
+    with open(file_path, "wb") as out:
+        json.dump(data, out)
+
+def plot_constraints(constraints, ground_height=0):
+    colors ={"RightFoot":"r", "LeftFoot":"g"}
+    plt.figure(1)
+    joint_constraints = dict()
+    ax = plt.subplot(111)
+
+    for frame_idx in constraints:
+        for c in constraints[frame_idx]:
+            if c.joint_name not in joint_constraints.keys():
+                joint_constraints[c.joint_name] = []
+            joint_constraints[c.joint_name].append(c.position)
+    for joint_name in joint_constraints.keys():
+        temp = np.array(joint_constraints[joint_name])
+        y = temp[:, 1]
+        n_frames = len(y)
+        x = np.linspace(0, n_frames, n_frames)
+
+        ax.scatter(x,y, label=joint_name, c=colors[joint_name])
+
+    plot_line(ax, (0, ground_height), (n_frames, ground_height), "ground")
+    plt.legend()
+    plt.show(True)

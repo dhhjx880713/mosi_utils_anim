@@ -1,5 +1,7 @@
 import numpy as np
 from morphablegraphs.motion_generator.motion_editing.motion_grounding import MotionGroundingConstraint
+from utils import get_average_joint_position, get_average_joint_direction, plot_joint_heights, \
+                        add_heels_to_skeleton, get_joint_height, normalize, get_average_direction_from_target
 from constants import *
 
 def merge_constraints(a,b):
@@ -10,6 +12,47 @@ def merge_constraints(a,b):
             a[key] = b[key]
     return a
 
+
+def create_ankle_constraint(skeleton, frames, ankle_joint_name, heel_joint_name, toe_joint, frame_idx, end_frame, ground_height):
+    """ create constraint on ankle position and orientation """
+    c = get_average_joint_position(skeleton, frames, heel_joint_name, frame_idx, end_frame)
+    c[1] = ground_height
+    a = get_average_joint_position(skeleton, frames, ankle_joint_name, frame_idx, end_frame)
+    h = get_average_joint_position(skeleton, frames, heel_joint_name, frame_idx, end_frame)
+    target_heel_offset = a - h
+    ca = c + target_heel_offset
+    avg_direction = None
+    if len(skeleton.nodes[ankle_joint_name].children) > 0:
+        avg_direction = get_average_direction_from_target(skeleton, frames, ca, toe_joint,
+                                                    frame_idx, end_frame)
+        toe_length = np.linalg.norm(skeleton.nodes[toe_joint].offset)
+        ct = ca + avg_direction * toe_length
+        ct[1] = ground_height
+        avg_direction = normalize(ct - ca)
+    return MotionGroundingConstraint(frame_idx, ankle_joint_name, ca, avg_direction)
+
+
+def create_ankle_constraint_from_heel(skeleton, frames, ankle_joint_name, heel_joint_name, frame_idx, end_frame, ground_height):
+    """ create constraint on the ankle position without an orientation constraint"""
+    c = get_average_joint_position(skeleton, frames, heel_joint_name, frame_idx, end_frame)
+    c[1] = ground_height
+
+    a = skeleton.nodes[ankle_joint_name].get_global_position(frames[frame_idx])
+    h = skeleton.nodes[heel_joint_name].get_global_position(frames[frame_idx])
+    target_heel_offset = a - h
+    ca = c + target_heel_offset
+    return MotionGroundingConstraint(frame_idx, ankle_joint_name, ca, None)
+
+
+def create_ankle_constraint_from_toe(skeleton, frames, ankle_joint_name, toe_joint_name, frame_idx, end_frame, ground_height):
+    """ create a constraint on the ankle position based on the toe constraint position"""
+    c = get_average_joint_position(skeleton, frames, toe_joint_name, frame_idx, end_frame)
+    c[1] = ground_height
+    a = skeleton.nodes[ankle_joint_name].get_global_position(frames[frame_idx])
+    t = skeleton.nodes[toe_joint_name].get_global_position(frames[frame_idx])
+    target_toe_offset = a - t
+    ca = c + target_toe_offset
+    return MotionGroundingConstraint(frame_idx, ankle_joint_name, ca, None)
 
 class FootplantConstraintGenerator(object):
     def __init__(self, skeleton, settings, ground_height=0, add_heels=False):
@@ -31,6 +74,9 @@ class FootplantConstraintGenerator(object):
         self.ground_height = ground_height
         self.tolerance = settings["tolerance"]
         self.foot_joints = FOOT_JOINTS
+        self.foot_definitions = {"right": {"heel": RIGHT_HEEL, "toe": RIGHT_TOE, "ankle": RIGHT_FOOT},
+                                "left": {"heel": LEFT_HEEL, "toe": LEFT_TOE, "ankle": LEFT_FOOT}}
+
         # add joint offsets because we do not have a heel joint
         self.joint_offset = dict()
         for j in self.foot_joints:
@@ -38,42 +84,13 @@ class FootplantConstraintGenerator(object):
         #self.joint_offset[LEFT_FOOT] = 10
         #self.joint_offset[RIGHT_FOOT] = 10
 
-    def get_vertical_acceleration(self, frames, joint_name):
-        """ https://stackoverflow.com/questions/40226357/second-derivative-in-python-scipy-numpy-pandas
-        """
-        ps = []
-        for frame in frames:
-            p = self.skeleton.nodes[joint_name].get_global_position(frame)
-            ps.append(p)
-        ps = np.array(ps)
-        x = np.linspace(0, len(frames), len(frames))
-        ys = np.array(ps[:,1])
-        y_spl = UnivariateSpline(x, ys, s=0, k=4)
-        y_spl_2d = y_spl.derivative(n=2)
-        return ps, y_spl_2d(x)
 
-    def get_joint_height(self, frames,joints):
-        joint_heights = dict()
-        for joint in joints:
-            joint_heights[joint] = self.get_vertical_acceleration(frames, joint)
-            # print ys
-            # close_to_ground = np.where(y - o - self.ground_height < self.tolerance)
 
-            # zero_crossings = np.where(np.diff(np.sign(ya)))[0]
-            # zero_crossings = np.diff(np.sign(ya)) != 0
-            # print len(zero_crossings)
-            # joint_ground_contacts = np.where(close_to_ground and zero_crossings)
-            # print close_to_ground
-        return joint_heights
-
-    def detect_ground_contacts(self, frames, joints, create_plot=True):
+    def detect_ground_contacts(self, frames, joints):
         """https://stackoverflow.com/questions/3843017/efficiently-detect-sign-changes-in-python
         """
 
-        joint_heights = self.get_joint_height(frames, joints)
-        if create_plot:
-            plot_joint_heights(joint_heights)
-
+        joint_heights = get_joint_height(self.skeleton, frames, joints)
         ground_contacts = []
         for f in frames:
             ground_contacts.append([])
@@ -84,64 +101,122 @@ class FootplantConstraintGenerator(object):
                 print joint, frame_idx, p[1]
                 if p[1] - o - self.ground_height < self.tolerance:#and zero_crossings[frame_idx]
                     ground_contacts[frame_idx].append(joint)
-        return ground_contacts
+        return self.filter_outliers(ground_contacts, joints)
+
+    def filter_outliers(self, ground_contacts, joints):
+
+        n_frames = len(ground_contacts)
+        print n_frames
+        filtered_ground_contacts = [[] for idx in xrange(n_frames)]
+        print len(filtered_ground_contacts)
+        filtered_ground_contacts[0] = ground_contacts[0]
+        filtered_ground_contacts[-1] = ground_contacts[-1]
+        frames_indices = xrange(1,n_frames-1)
+        for frame_idx in frames_indices:
+            filtered_ground_contacts[frame_idx] = []
+            prev_frame = ground_contacts[frame_idx - 1]
+            current_frame = ground_contacts[frame_idx]
+            next_frame = ground_contacts[frame_idx + 1]
+            #print "check", frame_idx, joints, prev_frame, current_frame, next_frame
+            for joint in joints:
+                if joint in current_frame:
+                    if joint not in prev_frame and joint not in next_frame:
+                        print "outlier", frame_idx, joint
+                        continue
+                    else:
+                        filtered_ground_contacts[frame_idx].append(joint)
+        return filtered_ground_contacts
 
     def generate(self, motion_vector):
-        constraints = dict()
+        constraints = dict() # contains a dict for each frame {left: [], right: []}
         blend_ranges = dict()
         blend_ranges[self.right_foot] = []
         blend_ranges[self.left_foot] = []
 
         ground_contacts = self.detect_ground_contacts(motion_vector.frames, self.foot_joints)
+        print "found ground contacts",len(ground_contacts), len(motion_vector.frames)
+        # generate constraints
+        prev_joint_names = []
         for frame_idx, joint_names in enumerate(ground_contacts):
-            constraints[frame_idx] = self.generate_ankle_constraints(motion_vector.frames, frame_idx, joint_names)
+            if frame_idx-1 in constraints.keys():
+                prev_constraints = constraints[frame_idx-1]
+            else:
+                prev_constraints = {"left": None, "right": None}
+            constraints[frame_idx] = self.generate_ankle_constraints2(motion_vector.frames, frame_idx, joint_names, prev_constraints, prev_joint_names)
+            prev_joint_names = joint_names
 
-        return constraints, blend_ranges
+        #merge constraints from both sides
+        merged_constraints = dict()
+        for frame_idx in constraints:
+            merged_constraints[frame_idx] = []
+            for side in constraints[frame_idx].keys():
+                if constraints[frame_idx][side] is not None:
+                    merged_constraints[frame_idx] += constraints[frame_idx][side]
+        return merged_constraints, blend_ranges
 
-    def generate_ankle_constraints(self, frames, frame_idx, joint_names):
-        constraints = []
+    def generate_ankle_constraints2(self, frames, frame_idx, joint_names, prev_constraints, prev_joint_names):
+
+        end_frame = frame_idx + 10
+        temp_constraints = {"left": [], "right": []}
+        for side in self.foot_definitions:
+            foot_joints = self.foot_definitions[side]
+            if foot_joints["heel"] in joint_names and foot_joints["toe"] in joint_names:
+                if foot_joints["heel"] in joint_names and foot_joints["toe"] in prev_joint_names and prev_constraints[side] is not None:
+                    temp_constraints[side] += prev_constraints[side]
+                else:
+                    c = create_ankle_constraint(self.skeleton, frames,
+                                                foot_joints["ankle"],
+                                                foot_joints["heel"],
+                                                foot_joints["toe"],
+                                                frame_idx, end_frame,
+                                                self.ground_height)
+                    temp_constraints[side] = [c]
+                print "add ankle constraint", side, frame_idx, joint_names
+            elif foot_joints["heel"] in joint_names:
+                if foot_joints["heel"] in prev_joint_names and prev_constraints[side] is not None:
+                    temp_constraints[side] += prev_constraints[side]
+                else:
+                    c = create_ankle_constraint_from_heel(self.skeleton, frames,
+                                                        foot_joints["ankle"],
+                                                         foot_joints["heel"],
+                                                        frame_idx, end_frame,
+                                                        self.ground_height)
+                    temp_constraints[side] = [c]
+                print "add heel constraint", side, frame_idx, joint_names
+            elif foot_joints["toe"] in joint_names:
+                if foot_joints["toe"] in prev_joint_names and prev_constraints[side] is not None:
+                    temp_constraints[side] += prev_constraints[side]
+                else:
+                    c = create_ankle_constraint_from_toe(self.skeleton, frames,
+                                                         foot_joints["ankle"],
+                                                         foot_joints["toe"],
+                                                          frame_idx, end_frame,
+                                                          self.ground_height)
+                    temp_constraints[side] = [c]
+                print "add toe constraint", side, frame_idx, joint_names
+        return temp_constraints
+
+    def generate_ankle_constraints(self, frames, frame_idx, joint_names, prev_constraints, prev_joint_names):
+        end_frame = frame_idx + 10
+        new_constraints = dict()
+        temp_constraints = {"left":None, "right":None}
         if RIGHT_HEEL and RIGHT_TOE in joint_names:
-            temp_c = self.create_ankle_constraints_from_heel_and_toe(frames, self.right_foot, frame_idx, frame_idx + 1)
-            for c in temp_c[frame_idx]:
-                constraints.append(c)
-        elif RIGHT_FOOT in joint_names:
-            temp_c = self.create_ankle_constraints_from_heel(frames, self.right_foot, frame_idx, frame_idx + 1)
-            for c in temp_c[frame_idx]:
-                constraints.append(c)
-        elif RIGHT_TOE in joint_names:
-            temp_c = self.create_ankle_constraints_from_toe(frames, self.right_foot, self.right_toe, frame_idx, frame_idx + 1)
-            for c in temp_c[frame_idx]:
-                constraints.append(c)
-
+            if RIGHT_HEEL and RIGHT_TOE in prev_joint_names:
+                temp_constraints["right"] = prev_constraints["right"]
+            else:
+                temp_constraints["right"] = self.create_ankle_constraints_from_heel_and_toe2(frames, self.right_foot, self.right_heel, frame_idx, end_frame)
         if LEFT_HEEL and LEFT_TOE in joint_names:
-            temp_c = self.create_ankle_constraints_from_heel_and_toe(frames, self.left_foot, frame_idx, frame_idx + 1)
-            for c in temp_c[frame_idx]:
-                constraints.append(c)
-        elif LEFT_FOOT in joint_names:
-            temp_c = self.create_ankle_constraints_from_heel(frames, self.left_foot, frame_idx, frame_idx + 1)
-            for c in temp_c[frame_idx]:
-                constraints.append(c)
-        elif LEFT_TOE in joint_names:
-            temp_c = self.create_ankle_constraints_from_toe(frames, self.left_foot, self.left_toe, frame_idx, frame_idx + 1)
-            for c in temp_c[frame_idx]:
-                constraints.append(c)
-
-        return constraints
+            if joint_names == prev_joint_names:
+                temp_constraints["left"] = prev_constraints["left"]
+            else:
+                temp_constraints["left"] = self.create_ankle_constraints_from_heel_and_toe2(frames, self.left_foot,self.left_heel,  frame_idx, end_frame)
+        for side in temp_constraints:
+            new_constraints[side] = temp_constraints[side][0]
+        return new_constraints
 
 
 
-    def create_ankle_constraints_from_heel(self, frames, joint_name, start_frame, end_frame):
-        """ create constraint on the ankle position without an orientation constraint"""
-        constraints = dict()
-        ca = get_average_joint_position(self.skeleton, frames, joint_name, start_frame, end_frame)
-        #ca[1] += OFFSET
-        for frame_idx in xrange(start_frame, end_frame):
-            c = MotionGroundingConstraint(frame_idx, joint_name, ca, None)
-            constraints[frame_idx] = []
-            constraints[frame_idx].append(c)
-        return constraints
-
-    def create_ankle_constraints_from_heel_and_toe(self, frames, ankle_joint_name, start_frame, end_frame):
+    def  create_ankle_constraints_from_heel_and_toe(self, frames, ankle_joint_name, start_frame, end_frame):
         """ create constraint on ankle position and orientation """
         constraints = dict()
         ca = get_average_joint_position(self.skeleton, frames, ankle_joint_name, start_frame, end_frame)
@@ -157,7 +232,6 @@ class FootplantConstraintGenerator(object):
             constraints[frame_idx].append(c)
         return constraints
 
-
     def create_ankle_constraints_from_heel_and_toe2(self, frames, ankle_joint_name, heel_joint_name, start_frame, end_frame):
         """ create constraint on ankle position and orientation """
         constraints = dict()
@@ -168,30 +242,17 @@ class FootplantConstraintGenerator(object):
         delta = ct - ph
         ca = pa + delta
         avg_direction = None
-        print "constraint ankle at",pa, ct, start_frame, end_frame
         if len(self.skeleton.nodes[ankle_joint_name].children) > 0:
             child_joint_name = self.skeleton.nodes[ankle_joint_name].children[0].node_name
             avg_direction = get_average_joint_direction(self.skeleton, frames, ankle_joint_name, child_joint_name,
                                                         start_frame, end_frame)
+        print "constraint ankle at",pa, ct,ca, start_frame, end_frame, avg_direction
         for frame_idx in xrange(start_frame, end_frame):
             c = MotionGroundingConstraint(frame_idx, ankle_joint_name, ca, avg_direction)
             constraints[frame_idx] = []
             constraints[frame_idx].append(c)
         return constraints
 
-    def create_ankle_constraints_from_toe(self, frames, ankle_joint_name, toe_joint_name, start_frame, end_frame):
-        """ create a constraint on the ankle position based on the toe constraint position"""
-        constraints = dict()
-        ct = get_average_joint_position(self.skeleton, frames, toe_joint_name, start_frame, end_frame)
-        for frame_idx in xrange(start_frame, end_frame):
-            pa = self.skeleton.nodes[ankle_joint_name].get_global_position(frames[frame_idx])
-            pt = self.skeleton.nodes[toe_joint_name].get_global_position(frames[frame_idx])
-            translation = ct-pt
-            ca = pa + translation
-            c = MotionGroundingConstraint(frame_idx, ankle_joint_name, ca, None)
-            constraints[frame_idx] = []
-            constraints[frame_idx].append(c)
-        return constraints
 
     def generate_from_graph_walk(self, motion_vector):
         # the interpolation range must start at end_frame-1 because this is the last modified frame

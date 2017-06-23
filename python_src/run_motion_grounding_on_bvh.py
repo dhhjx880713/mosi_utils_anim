@@ -5,7 +5,8 @@ from morphablegraphs.motion_generator.motion_editing.motion_grounding import IKC
 from morphablegraphs.motion_generator.motion_editing import FootplantConstraintGenerator
 from morphablegraphs.motion_generator.algorithm_configuration import AlgorithmConfigurationBuilder
 from morphablegraphs.animation_data import BVHReader, Skeleton, MotionVector
-from morphablegraphs.motion_generator.motion_editing.constants import IK_CHAINS_RAW_SKELETON
+from morphablegraphs.motion_generator.motion_editing.utils import get_average_joint_position, get_average_joint_direction, plot_joint_heights, add_heels_to_skeleton, get_joint_height, export_constraints, plot_constraints
+from morphablegraphs.motion_generator.motion_editing.constants import *
 LEFT_FOOT = "LeftFoot"
 RIGHT_FOOT = "RightFoot"
 RIGHT_TOE = "RightToeBase"
@@ -62,6 +63,7 @@ def create_foot_plant_constraints2(skeleton, mv, me, joint_name, start_frame, en
 def run_motion_grounding(bvh_file):
     #right foot 98-152
     # , 167, 249, 330, 389
+    ground_height = 0.0
     bvh = BVHReader(bvh_file)
     animated_joints = list(bvh.get_animated_joints())
     skeleton = Skeleton()
@@ -74,14 +76,19 @@ def run_motion_grounding(bvh_file):
     footplant_settings = {"left_foot": "LeftFoot", "right_foot": "RightFoot", "left_toe": "LeftToeBase",
                           "right_toe": "RightToeBase", "window": 20, "tolerance": 1}
 
-
-    constraint_generator = FootplantConstraintGenerator(skeleton, footplant_settings, ground_height=0, add_heels=True)
+    #joint_heights = get_joint_height(skeleton, mv.frames, FOOT_JOINTS)
+    #plot_joint_heights(joint_heights)
+    constraint_generator = FootplantConstraintGenerator(skeleton, footplant_settings, ground_height=ground_height, add_heels=True)
     constraints, blend_ranges = constraint_generator.generate(mv)
+    #plot_constraints(constraints, ground_height)
     me.set_constraints(constraints)
     # problem you need to blend the hips joint otherwise it does not work, which is not really a good thing to do because it influences the entire body
 
     mv.frames = me.run(mv)
     print "export motion"
+
+    joint_heights = get_joint_height(skeleton, mv.frames, FOOT_JOINTS)
+    plot_joint_heights(joint_heights)
     mv.export(skeleton, "out\\foot_sliding", "out")
 
 if __name__ == "__main__":
