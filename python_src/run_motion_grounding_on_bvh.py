@@ -6,7 +6,6 @@ from morphablegraphs.motion_generator.motion_editing import FootplantConstraintG
 from morphablegraphs.motion_generator.algorithm_configuration import AlgorithmConfigurationBuilder
 from morphablegraphs.animation_data import BVHReader, Skeleton, MotionVector
 from morphablegraphs.motion_generator.motion_editing.constants import IK_CHAINS_RAW_SKELETON
-
 LEFT_FOOT = "LeftFoot"
 RIGHT_FOOT = "RightFoot"
 RIGHT_TOE = "RightToeBase"
@@ -76,7 +75,7 @@ def run_motion_grounding(bvh_file):
                           "right_toe": "RightToeBase", "window": 20, "tolerance": 1}
 
 
-    constraint_generator = FootplantConstraintGenerator(skeleton, footplant_settings, ground_height=-1, add_heels=True)
+    constraint_generator = FootplantConstraintGenerator(skeleton, footplant_settings, ground_height=0, add_heels=True)
     constraints, blend_ranges = constraint_generator.generate(mv)
     me.set_constraints(constraints)
     # problem you need to blend the hips joint otherwise it does not work, which is not really a good thing to do because it influences the entire body
@@ -87,6 +86,6 @@ def run_motion_grounding(bvh_file):
 
 if __name__ == "__main__":
     bvh_file = "skeleton.bvh"
-    bvh_file = "foot_sliding_example.bvh"
+    bvh_file = "walk_001_1.bvh"
     #bvh_file = "no_blending.bvh"
     run_motion_grounding(bvh_file)
