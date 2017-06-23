@@ -330,3 +330,28 @@ def plot_constraints(constraints, ground_height=0):
     plot_line(ax, (0, ground_height), (n_frames, ground_height), "ground")
     plt.legend()
     plt.show(True)
+
+
+def save_ground_contact_annotation(ground_contacts, n_frames, left_foot, right_foot, file_path):
+    data = dict()
+    contact_label = "contact"
+    no_contact_label = "no_contact"
+    data["color_map"] = {left_foot: [1,0,0],
+                         right_foot: [0,1,0],
+                         contact_label: [0,0,1],
+                         no_contact_label: [1,1,1]}
+    data["frame_annotation"] = []
+    for idx in xrange(n_frames):
+        if left_foot in ground_contacts[idx] or right_foot in ground_contacts[idx]:
+            annotation = contact_label
+        elif left_foot in ground_contacts[idx]:
+            annotation = left_foot
+        elif right_foot in ground_contacts[idx]:
+            annotation = right_foot
+        else:
+            annotation = no_contact_label
+
+        data["frame_annotation"].append(annotation)
+    with open(file_path, "wb") as out:
+        json.dump(data, out)
+
