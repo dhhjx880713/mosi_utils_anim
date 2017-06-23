@@ -1,18 +1,6 @@
 import numpy as np
 from morphablegraphs.motion_generator.motion_editing.motion_grounding import MotionGroundingConstraint
-from utils import get_average_joint_position, get_average_joint_direction, plot_joint_heights, add_heels_to_skeleton
-from scipy.interpolate import UnivariateSpline
-LOCOMOTION_ACTIONS = ["walk", "carryRight", "carryLeft", "carryBoth"]
-DEFAULT_WINDOW_SIZE = 20
-LEFT_FOOT = "LeftFoot"
-RIGHT_FOOT = "RightFoot"
-RIGHT_TOE = "RightToeBase"
-LEFT_TOE = "LeftToeBase"
-LEFT_HEEL = "LeftHeel"
-RIGHT_HEEL = "RightHeel"
-OFFSET = 0
-FOOT_JOINTS = [RIGHT_TOE, LEFT_TOE, RIGHT_HEEL,LEFT_HEEL]
-
+from constants import *
 
 def merge_constraints(a,b):
     for key, item in b.items():
