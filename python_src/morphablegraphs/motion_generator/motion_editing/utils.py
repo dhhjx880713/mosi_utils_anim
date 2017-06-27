@@ -3,8 +3,8 @@ import math
 from matplotlib import pyplot as plt
 import json
 from scipy.interpolate import UnivariateSpline
-from ...external.transformations import quaternion_multiply, quaternion_inverse, quaternion_matrix, quaternion_from_matrix
 from ...animation_data.utils import euler_to_quaternion
+from ...external.transformations import quaternion_multiply, quaternion_inverse, quaternion_matrix, quaternion_from_matrix, euler_from_quaternion
 from ...animation_data.skeleton_node import SkeletonEndSiteNode
 
 LEN_QUATERNION = 4
@@ -97,6 +97,7 @@ def normalize_quaternion(q):
 
 
 def get_average_joint_position(skeleton, frames, joint_name, start_frame, end_frame):
+    end_frame = min(end_frame, frames.shape[0])
     temp_positions = []
     for idx in xrange(start_frame, end_frame):
         frame = frames[idx]
@@ -218,7 +219,7 @@ def convert_to_foot_positions(joint_heights):
     for f in xrange(n_frames):
         foot_positions.append(dict())
     for joint, data in joint_heights.items():
-        ps, ya = data
+        ps, yv, ya = data
         for frame_idx, p in enumerate(ps):
             foot_positions[frame_idx].update({joint: p})
     return foot_positions
@@ -246,8 +247,9 @@ def get_vertical_acceleration(skeleton, frames, joint_name):
     x = np.linspace(0, len(frames), len(frames))
     ys = np.array(ps[:, 1])
     y_spl = UnivariateSpline(x, ys, s=0, k=4)
-    y_spl_2d = y_spl.derivative(n=2)
-    return ps, y_spl_2d(x)
+    velocity = y_spl.derivative(n=1)
+    acceleration = y_spl.derivative(n=2)
+    return ps, velocity(x), acceleration(x)
 
 
 def get_joint_height(skeleton, frames, joints):
@@ -263,20 +265,82 @@ def get_joint_height(skeleton, frames, joints):
         # joint_ground_contacts = np.where(close_to_ground and zero_crossings)
         # print close_to_ground
     return joint_heights
+
+def quaternion_to_axis_angle(q):
+    """http://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToAngle/
+
+    """
+    a = 2* math.acos(q[0])
+    x = q[1] / math.sqrt(1-q[0]*q[0])
+    y = q[2] / math.sqrt(1-q[0]*q[0])
+    z = q[3] / math.sqrt(1-q[0]*q[0])
+    return normalize([x,y,z]),a
+
+def get_delta_quaternion(q1,q2):
+    return quaternion_multiply(quaternion_inverse(q1), q2)
+
+
+def get_angular_velocity(skeleton, frames, joint):
+    """   http://answers.unity3d.com/questions/49082/rotation-quaternion-to-angular-velocity.html
+    """
+    idx = skeleton.animated_joints.index(joint) * 4 + 3
+    angular_velocity = [[0,0,0]]
+    prev_q = frames[0, idx:idx + 4]
+    for frame_idx, frame in enumerate(frames[1:]):
+        q = frames[frame_idx, idx:idx+4]
+        q_delta = get_delta_quaternion(prev_q, q)
+        axis, angle = quaternion_to_axis_angle(q_delta)
+        a = axis * angle
+        angular_velocity.append(a)
+        prev_q = q
+    return np.array(angular_velocity)
+
+
+def get_angular_velocities(skeleton, frames, joints):
+    anglular_velocity = dict()
+    for joint in joints:
+        anglular_velocity[joint] = get_angular_velocity(skeleton, frames, joint)
+    return anglular_velocity
+
+
+def plot_joint_heights(joint_heights, ground_height=0, frame_range=(None,None)):
     plt.figure(1)
     ax = plt.subplot(111)
-    ax.set_ylim(ymin=-10, ymax=500)
-    ax.set_xlim(xmin=-10, xmax=500)
+    #ax.set_ylim(ymin=-10, ymax=500)
+    #ax.set_xlim(xmin=-10, xmax=500)
     n_frames = 0
     for joint, data in joint_heights.items():
-        ps, ya = data
-        n_frames = len(ps)
-        x = np.linspace(0,n_frames, n_frames)
-        plt.plot(x, ps[:,1], label=joint)
-    plot_line(ax, (0, ground_height),(n_frames, ground_height), "ground")
+        ps, yv, ya = data
+        if frame_range == (None, None):
+            start, end = 0, len(ps)
+        else:
+            start, end = frame_range
+        n_frames = end- start
+        x = np.linspace(start,end, n_frames)
+        plt.plot(x, ps[start:end,1], label=joint)
+    plot_line(ax, (start, ground_height),(end, ground_height), "ground")
     foot_positions = convert_to_foot_positions(joint_heights)
     bodies = {"left":{"start":"LeftHeel", "end": "LeftToeBase"}, "right":{"start":"RightHeel", "end": "RightToeBase"}}
-    plot_foot_positions(ax, foot_positions, bodies)
+    #plot_foot_positions(ax, foot_positions, bodies)
+    plt.legend()
+    plt.show(True)
+
+
+def plot_angular_velocities(angular_velocities, frame_range=(None,None)):
+    plt.figure(1)
+    ax = plt.subplot(111)
+    #ax.set_ylim(ymin=-10, ymax=500)
+    #ax.set_xlim(xmin=-10, xmax=500)
+    n_frames = 0
+    for joint, data in angular_velocities.items():
+        if frame_range == (None, None):
+            start, end = 0, len(data)
+        else:
+            start, end = frame_range
+        n_frames = end- start
+        x = np.linspace(start,end, n_frames)
+        v = map(np.linalg.norm, data[start:end])
+        plt.plot(x, np.rad2deg(v), label=joint)
     plt.legend()
     plt.show(True)
 
@@ -342,7 +406,7 @@ def save_ground_contact_annotation(ground_contacts, n_frames, left_foot, right_f
                          no_contact_label: [1,1,1]}
     data["frame_annotation"] = []
     for idx in xrange(n_frames):
-        if left_foot in ground_contacts[idx] or right_foot in ground_contacts[idx]:
+        if left_foot in ground_contacts[idx] and right_foot in ground_contacts[idx]:
             annotation = contact_label
         elif left_foot in ground_contacts[idx]:
             annotation = left_foot
@@ -354,4 +418,93 @@ def save_ground_contact_annotation(ground_contacts, n_frames, left_foot, right_f
         data["frame_annotation"].append(annotation)
     with open(file_path, "wb") as out:
         json.dump(data, out)
+
+def get_intersection_circle(center1, radius1, center2, radius2):
+    """ Calculate the projection on the intersection of two spheres defined by two constraints on the ankles and the leg lengths
+
+        http://mrl.snu.ac.kr/Papers/tog2001.pdf
+    """
+    delta = center2 - center1
+    d = np.linalg.norm(delta)
+    c_n = delta / d  # normal
+
+    # radius (eq 27)
+    r1_sq = radius1 * radius1
+    r2_sq = radius2 * radius2
+    d_sq = d * d
+    nom = r1_sq - r2_sq + d_sq
+    c_r_sq = r1_sq - ((nom * nom) / (4 * d_sq))
+    if c_r_sq < 0:  # no intersection
+        print "no intersection", c_r_sq
+        return
+    c_r = math.sqrt(c_r_sq)
+
+    # center (eq 29)
+    x = (r1_sq - r2_sq + d_sq) / (2 * d)
+    c_c = center1 + x * c_n
+    return c_c, c_r, c_n
+
+
+def get_intersection_circle2(center1, radius1, center2, radius2):
+    """ COPIED FROM http://mathworld.wolfram.com/Sphere-SphereIntersection.html
+    """
+    delta = center2 - center1
+    d = np.linalg.norm(delta)
+    c_n = delta / d  # normal
+
+    R = radius1
+    r = radius2
+
+    # translation of the circle center along the normal (eq 5)
+    x = (d*d - r*r + R*R)/(2*d)
+    c_c = center1 + x * c_n
+
+    # radius of the sphere (eq 9)
+    sq = (-d+r-R)*(-d-r+R)*(-d+r+R)*(d+r+R)
+    c_r = (1/(2*d)) * math.sqrt(sq)
+    return c_c, c_r, c_n
+
+def project_point_onto_plane(point, point_on_plane, normal):
+    """  calculate the projection on the intersection of two spheres defined by two constraints on the ankles and the leg lengths
+
+           http://mrl.snu.ac.kr/Papers/tog2001.pdf
+    """
+    h = np.dot(np.dot(normal, point_on_plane - point), normal)
+    pp = point + h
+    return pp
+
+def project_on_intersection_circle(p, center1, radius1, center2, radius2):
+    """  calculate the projection on the intersection of two spheres defined by two constraints on the ankles and the leg lengths
+
+        http://mrl.snu.ac.kr/Papers/tog2001.pdf
+    """
+
+    c_c, c_r, c_n = get_intersection_circle(center1, radius1, center2, radius2)
+
+    # project root position onto plane on which the circle lies
+    pp = project_point_onto_plane(p, c_c, c_n)
+
+    # project projected point onto circle
+    delta = normalize(pp - c_c)
+    p_c = c_c + delta * c_r
+
+    # set the root position to the projection on the intersection
+    print "two constraints - before", p, "after", p_c
+    return p_c
+
+#h = np.dot(np.dot(c_n, c_c-p), c_n)
+#pp = p+h
+
+def smooth_root_positions(positions, window):
+    h_window = int(window/2)
+    smoothed_positions = []
+    n_pos = len(positions)
+    for idx, p in enumerate(positions):
+        start = max(idx-h_window, 0)
+        end = min(idx + h_window, n_pos)
+        #print start, end, positions[start:end]
+        avg_p = np.average(positions[start:end], axis=0)
+        smoothed_positions.append(avg_p)
+    return smoothed_positions
+
 
