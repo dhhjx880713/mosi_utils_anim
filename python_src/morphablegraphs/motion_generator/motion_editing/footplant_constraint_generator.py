@@ -87,7 +87,7 @@ class FootplantConstraintGenerator(object):
 
                     if p[1] - o - self.ground_height < self.tolerance and velocity < self.velocity_tolerance:#and zero_crossings[frame_idx]
                         ground_contacts[frame_idx].append(joint)
-            return self.filter_outliers(ground_contacts, joints)
+        return self.filter_outliers(ground_contacts, joints)
 
     def filter_outliers(self, ground_contacts, joints):
         n_frames = len(ground_contacts)
