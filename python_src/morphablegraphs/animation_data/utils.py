@@ -1808,3 +1808,33 @@ def quaternion_from_vector_to_vector(a, b):
     w = np.sqrt((np.linalg.norm(a) ** 2) * (np.linalg.norm(b) ** 2)) + np.dot(a, b)
     q = np.array([w, v[0], v[1], v[2]])
     return q/ np.linalg.norm(q)
+
+
+def convert_euler_frame_to_reduced_euler_frame(bvhreader, euler_frame):
+    if type(euler_frame) != list:
+        euler_frame = list(euler_frame)
+    reduced_euler_frame = euler_frame[:3]
+    for node_name in bvhreader.node_names:
+        if not node_name.startswith('Bip') and 'EndSite' not in node_name:
+            x_idx = bvhreader.node_channels.index((node_name, 'Xrotation'))
+            reduced_euler_frame += euler_frame[x_idx: x_idx + LEN_EULER]
+    return reduced_euler_frame
+
+
+def convert_euler_frames_to_reduced_euler_frames(bvhreader, euler_frames):
+    reduced_euler_frames = []
+    for euler_frame in euler_frames:
+        reduced_euler_frames.append(convert_euler_frame_to_reduced_euler_frame(bvhreader, euler_frame))
+    return reduced_euler_frames
+
+
+def point_rotation_by_quaternion(point, q):
+    """
+    Rotate a 3D point by quaternion
+    :param point: [x, y, z]
+    :param q: [qw, qx, qy, qz]
+    :return rotated_point: [x, y, ]
+    """
+    r = [0, point[0], point[1], point[2]]
+    q_conj = [q[0], -1*q[1], -1*q[2], -1*q[3]]
+    return quaternion_multiply(quaternion_multiply(q, r), q_conj)[1:]

@@ -4,17 +4,42 @@ Created on Tue Jul 07 10:34:25 2015
 @brief: preprocess cutted motion clips for dynamic time warping
 @author: du
 """
-import os
-from ...animation_data.utils import align_euler_frames, \
+from ...animation_data.utils import euler_to_quaternion, \
                                      get_cartesian_coordinates_from_euler_full_skeleton, \
                                      transform_euler_frames, \
                                      rotate_euler_frames_about_x_axis, \
-                                     rotate_euler_frames
+                                     rotate_euler_frames, \
+                                    point_rotation_by_quaternion, quaternion_to_euler
+from ...external.transformations import quaternion_inverse, quaternion_multiply
 from ...animation_data.bvh import BVHReader, BVHWriter
 from motion_segmentation import MotionSegmentation
 from ...animation_data.skeleton import Skeleton
+import os
 import glob
+from copy import deepcopy
 import numpy as np
+
+
+def align_euler_frames(euler_frames,
+                       frame_idx,
+                       ref_orientation_euler):
+    new_euler_frames = deepcopy(euler_frames)
+    ref_quat = euler_to_quaternion(ref_orientation_euler)
+    root_rot_angles = euler_frames[frame_idx][3:6]
+    root_rot_quat = euler_to_quaternion(root_rot_angles)
+    quat_diff = quaternion_multiply(ref_quat, quaternion_inverse(root_rot_quat))
+    for euler_frame in new_euler_frames:
+        root_trans = euler_frame[:3]
+        new_root_trans = point_rotation_by_quaternion(root_trans, quat_diff)
+        euler_frame[:3] = new_root_trans
+        root_rot_angles = euler_frame[3:6]
+        root_rot_quat = euler_to_quaternion(root_rot_angles)
+
+        new_root_quat = quaternion_multiply(quat_diff, root_rot_quat)
+        new_root_euler = quaternion_to_euler(new_root_quat)
+        euler_frame[3:6] = new_root_euler
+    return new_euler_frames
+
 
 
 class MotionNormalization(MotionSegmentation):

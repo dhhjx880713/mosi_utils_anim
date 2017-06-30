@@ -48,8 +48,11 @@ class GMMTrainer(object):
         self.averageScore = np.mean(scores)
         print 'average score is:' + str(self.averageScore)
 
-    def save_model(self, filename):
+    def convert_model_to_json(self):
         model_data = {'gmm_weights': self.gmm.weights_.tolist(),
                       'gmm_means': self.gmm.means_.tolist(),
                       'gmm_covars': self.gmm.covariances_.tolist()}
-        write_to_json_file(filename, model_data)
+        return model_data
+
+    def save_model(self, filename):
+        write_to_json_file(filename, self.convert_model_to_json())

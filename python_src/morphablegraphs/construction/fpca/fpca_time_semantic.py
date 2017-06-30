@@ -130,26 +130,22 @@ class FPCATimeSemantic(object):
     def functional_data_representation(self):
         # convert temporal_semantic_data to functional data
         self.fpca_data = []
-        n_canonical_frame = len(self.temporal_semantic_data[0][0])
+        n_canonical_frame = len(self.temporal_semantic_data[0])
         n_basis_funcs = self.n_basis
         knots = self.get_b_spline_knots(n_basis_funcs, n_canonical_frame)
 
         time_vec = range(n_canonical_frame)
-        for value in self.temporal_semantic_data:
-            coeff_vec = []
-            count = 0
-            for item in value:
-                tck = si.splrep(time_vec, item, t=knots[4:-4])
-                control_points = tck[1][:-4]
-                control_points[0] = item[0]
-                control_points[-1] = item[-1]
-                if count == 0:
-                    control_points = self.z_t_transform_vector(control_points)
-                coeff_vec.append(control_points)
-
-                count += 1
-            self.fpca_data.append(np.ravel(coeff_vec))
-        self.fpca_data = np.asarray(self.fpca_data)
+        coeff_vec = []
+        warping_function_list = self.temporal_semantic_data
+        for warping_function in warping_function_list:
+            tck = si.splrep(time_vec, warping_function, t=knots[4:-4])
+            control_points = tck[1][:-4]
+            control_points[0] = warping_function[0]
+            control_points[-1] = warping_function[-1]
+            #print "control points", control_points, warping_function
+            control_points = self.z_t_transform_vector(control_points)
+            coeff_vec.append(control_points)
+        self.fpca_data = np.asarray(coeff_vec)
 
     def functional_pca(self):
         # self.z_t_transform()

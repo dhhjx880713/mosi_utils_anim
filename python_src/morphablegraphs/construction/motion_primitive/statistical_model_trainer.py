@@ -10,7 +10,7 @@ import os
 from ...animation_data.bvh import BVHReader, BVHWriter
 import rpy2.robjects as robjects
 from .gmm_trainer import GMMTrainer
-from ...utilities import get_b_spline_knots
+from ..utils import get_cubic_b_spline_knots
 
 
 class StatisticalModelTrainer(GMMTrainer):
@@ -247,8 +247,8 @@ class StatisticalModelTrainer(GMMTrainer):
                 'mean_temporal_semantic_vector': self.temporal_semantic_mean,
                 'n_dim_spatial': self._n_dim_spatial,
                 'n_basis_temporal_semantic': self._n_basis_temporal_semantic,
-                'b_spline_knots_spatial': get_b_spline_knots(self._n_basis, self._n_frames).tolist(),
-                'b_spline_knots_temporal_semantic': get_b_spline_knots(self._n_basis_temporal_semantic,
+                'b_spline_knots_spatial': get_cubic_b_spline_knots(self._n_basis, self._n_frames).tolist(),
+                'b_spline_knots_temporal_semantic': get_cubic_b_spline_knots(self._n_basis_temporal_semantic,
                                                                             self._n_frames).tolist(),
                 'npc_temporal_semantic': self.temporal_semantic_npc,
                 'semantic_annotation': self.semantic_annotation,
