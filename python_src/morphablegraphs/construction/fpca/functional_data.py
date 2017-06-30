@@ -1,7 +1,7 @@
 # encoding: UTF-8
 import numpy as np
 import scipy.interpolate as si
-from morphablegraphs.utilities import get_b_spline_knots
+from ..utils import get_cubic_b_spline_knots
 
 
 class FunctionalData(object):
@@ -10,7 +10,7 @@ class FunctionalData(object):
         self.knots = None
 
     def get_knots(self, n_basis, n_frames):
-        self.knots = get_b_spline_knots(n_basis, n_frames)
+        self.knots = get_cubic_b_spline_knots(n_basis, n_frames)
 
     def convert_motion_to_functional_data(self, motion_data, n_basis=7, degree=3):
         """

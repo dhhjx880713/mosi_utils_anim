@@ -3,7 +3,7 @@ import json
 import numpy as np
 import scipy.interpolate as si
 from ...external.PCA import Center, PCA
-from morphablegraphs.utilities import get_b_spline_knots
+from ..utils import get_cubic_b_spline_knots
 import copy
 import matplotlib.pyplot as plt
 
@@ -109,7 +109,7 @@ class FPCATimeSemantic(object):
         self.fpca_data = []
         n_canonical_frame = len(self.temporal_semantic_data[0][0])
         n_basis_funcs = 8
-        knots = get_b_spline_knots(n_basis_funcs, n_canonical_frame)
+        knots = get_cubic_b_spline_knots(n_basis_funcs, n_canonical_frame)
 
         time_vec = range(n_canonical_frame)
         for value in self.temporal_semantic_data:

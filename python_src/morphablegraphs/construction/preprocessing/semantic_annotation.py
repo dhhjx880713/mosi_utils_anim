@@ -2,8 +2,9 @@
 import os
 import glob
 import json
-from preprocessing import gen_foot_contact_annotation
-from ...utilities.io_helper_functions import get_aligned_data_folder, write_to_json_file
+from . import gen_foot_contact_annotation
+from ..utils import get_aligned_data_folder
+from ...utilities.io_helper_functions import write_to_json_file
 import numpy as np
 from ...animation_data import BVHReader
 
