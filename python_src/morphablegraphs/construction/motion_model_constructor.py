@@ -1,5 +1,5 @@
 import numpy as np
-import scipy as sp
+from copy import copy
 from fpca.fpca_spatial_data import FPCASpatialData
 from fpca.fpca_time_semantic import FPCATimeSemantic
 from preprocessing.motion_dtw import MotionDynamicTimeWarping
@@ -9,21 +9,9 @@ from ..external.transformations import quaternion_from_euler
 from dtw import run_dtw, get_warping_function, find_reference_motion, warp_motion
 from ..animation_data.skeleton import Skeleton
 from ..utilities.io_helper_functions import export_frames_to_bvh_file
-from copy import copy
 from ..motion_model.motion_spline import MotionSpline
-from utils import convert_poses_to_point_clouds, rotate_frames, align_quaternion_frames, get_cubic_b_spline_knots
-
-
-def gen_gaussian_eigen(covars):
-    covars = np.asarray(covars)
-    eigen = np.empty(covars.shape)
-    for i, covar in enumerate(covars):
-        s, U = sp.linalg.eigh(covar)
-        s.clip(0, out=s)
-        np.sqrt(s, out=s)
-        eigen[i] = U * s
-        eigen[i] = np.transpose(eigen[i])
-    return eigen
+from utils import convert_poses_to_point_clouds, rotate_frames, align_quaternion_frames, get_cubic_b_spline_knots,\
+                  normalize_root_translation, scale_root_translation_in_fpca_data, gen_gaussian_eigen, BSPLINE_DEGREE
 
 
 class MotionModel(object):
@@ -100,7 +88,7 @@ class MotionModelConstructor(MotionModel):
     def _align_frames(self):
         aligned_frames = self._align_frames_spatially(self._input_motions)
         self._aligned_frames, self._temporal_data = self._align_frames_temporally(aligned_frames)
-        self._export_aligned_frames()
+        #self._export_aligned_frames()
 
     def _export_aligned_frames(self):
         for idx, frames in enumerate(self._aligned_frames):
@@ -164,11 +152,8 @@ class MotionModelConstructor(MotionModel):
         self.run_temporal_dimension_reduction()
 
     def run_spatial_dimension_reduction(self):
-        #scaled_quat_frames, scale_vec = normalize_root_translation(self._aligned_frames)
-        #smoothed_quat_frames = smooth_quat_frames(self._aligned_frames)
-        smoothed_quat_frames = align_quaternion_frames(self._skeleton, self._aligned_frames)
-        n_frames = len(smoothed_quat_frames[0])
-        n_dims = len(smoothed_quat_frames[0][0])
+        scaled_quat_frames, scale_vec = normalize_root_translation(self._aligned_frames)
+        smoothed_quat_frames = align_quaternion_frames(self._skeleton, scaled_quat_frames)
         fpca_input = dict(enumerate(smoothed_quat_frames))
         fpca_spatial = FPCASpatialData(self.config["n_basis_functions_spatial"],
                                        self.config["n_components"],
@@ -185,11 +170,11 @@ class MotionModelConstructor(MotionModel):
         result["n_coeffs"] = len(data[0])
         result['n_dim'] = len(data[0][0])
         result["scale_vec"] = [1,1,1]
-        #mean, eigenvectors = scale_root_translation_in_fpca_data(mean,
-        #                                                         eigenvectors,
-        #                                                         scale_vec,
-        #                                                         result['n_coeffs'],
-        #                                                         result['n_dim'])
+        mean, eigenvectors = scale_root_translation_in_fpca_data(mean,
+                                                                 eigenvectors,
+                                                                 scale_vec,
+                                                                 result['n_coeffs'],
+                                                                 result['n_dim'])
         result['mean'] = mean
         result['eigenvectors'] = eigenvectors
         self._spatial_fpca_data = result
@@ -209,9 +194,7 @@ class MotionModelConstructor(MotionModel):
         result['n_basis'] = fpca_temporal.n_basis
         result['n_dim'] = len(fpca_temporal.semantic_annotation_list)+1
         result['semantic_annotation'] = fpca_temporal.semantic_annotation_list
-
         self._temporal_fpca_data = result
-
 
     def learn_statistical_model(self):
         if self._temporal_fpca_data is not None:
@@ -301,7 +284,7 @@ class MotionModelConstructor(MotionModel):
             data['sspm']['n_dims'] = n_dim_spatial
             data['sspm']['knots'] = spatial_knots
             data['sspm']['animated_joints'] = self._skeleton.animated_joints
-            data['sspm']['degree'] = 3
+            data['sspm']['degree'] = BSPLINE_DEGREE
             data['gmm']['covars'] = covars
             data['gmm']['means'] = means
             data['gmm']['weights'] = weights
@@ -311,7 +294,7 @@ class MotionModelConstructor(MotionModel):
             data['tspm']['n_coeffs'] = n_basis_temporal
             data['tspm']['n_dims'] = 1
             data['tspm']['knots'] = temporal_knots
-            data['tspm']['degree'] = 3
+            data['tspm']['degree'] = BSPLINE_DEGREE
             data['tspm']['semantic_labels'] = semantic_label
             data['tspm']['frame_time'] = self._skeleton.frame_time
         return data
