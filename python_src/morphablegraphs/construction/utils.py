@@ -1,12 +1,13 @@
 import os
 import numpy as np
+import scipy as sp
 from copy import copy
 from ..animation_data.motion_distance import convert_quat_frame_to_point_cloud
 from ..external.transformations import  quaternion_matrix, quaternion_from_matrix
 
 LEN_Q = 4
 LEN_P = 3
-
+BSPLINE_DEGREE = 3
 
 
 def get_data_analysis_folder(elementary_action,
@@ -170,3 +171,15 @@ def get_cubic_b_spline_knots(n_basis, n_canonical_frames):
     knots[3: -3] = np.linspace(0, n_canonical_frames-1, n_basis-2)
     knots[-3:] = n_canonical_frames - 1
     return knots
+
+
+def gen_gaussian_eigen(covars):
+    covars = np.asarray(covars)
+    eigen = np.empty(covars.shape)
+    for i, covar in enumerate(covars):
+        s, U = sp.linalg.eigh(covar)
+        s.clip(0, out=s)
+        np.sqrt(s, out=s)
+        eigen[i] = U * s
+        eigen[i] = np.transpose(eigen[i])
+    return eigen
