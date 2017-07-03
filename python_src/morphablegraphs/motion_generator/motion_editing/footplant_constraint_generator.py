@@ -130,6 +130,8 @@ class FootplantConstraintGenerator(object):
             constraints[frame_idx] = self.generate_ankle_constraints(motion_vector.frames, frame_idx, joint_names)
 
 
+        window = 10
+        self.set_smoothing_constraints(motion_vector.frames, constraints, window)
         return constraints, blend_ranges
 
 
@@ -205,6 +207,70 @@ class FootplantConstraintGenerator(object):
         target_toe_offset = a - t  # difference between unmodified toe and ankle at the frame
         ca = c + target_toe_offset  # move ankle so toe is on the ground
         return MotionGroundingConstraint(frame_idx, ankle_joint_name, ca, None, None)
+
+    def set_smoothing_constraints(self, frames, constraints, window):
+        """ Set orientation constraints to singly constrained frames to smooth the foot orientation (Section 4.2)
+        """
+        for frame_idx in constraints.keys():
+            for c in constraints[frame_idx]:
+                if c.joint_name not in self.orientation_constraint_buffer[frame_idx]:  # singly constrained
+                    backward_hit = None
+                    forward_hit = None
+
+                    start_window = max(frame_idx - window, 0)
+                    end_window = min(frame_idx + window, len(frames))
+                    # look backward
+                    for f in xrange(start_window, frame_idx):
+                        if c.joint_name in self.orientation_constraint_buffer[f]:
+                            backward_hit = f
+                            break
+                    # look forward
+                    for f in xrange(frame_idx, end_window):
+                        if c.joint_name in self.orientation_constraint_buffer[f]:
+                            forward_hit = f
+                            break
+
+                    # update q
+                    #print "update q", frame_idx, forward_hit, backward_hit
+                    blend = lambda x: 2 * x * x * x - 3 * x * x + 1
+                    iq = [1, 0, 0, 0]
+                    oq = self.get_global_orientation(c.joint_name, frames[frame_idx])
+                    if backward_hit is not None and forward_hit is not None:
+
+                        bq = self.orientation_constraint_buffer[backward_hit][c.joint_name]
+                        j = frame_idx - backward_hit
+                        bw = (j + 1) / (window + 1)
+                        bdeltaq = normalize(quaternion_slerp(iq, bq, blend(bw), spin=0, shortestpath=True))
+
+                        k = forward_hit - frame_idx
+                        fw = (k + 1) / (window + 1)
+                        fq = self.orientation_constraint_buffer[forward_hit][c.joint_name]
+                        fdeltaq = normalize(quaternion_slerp(fq, iq, blend(fw), spin=0, shortestpath=True))
+
+                        w = (j + 1) / (j + k + window + 1)
+                        global_delta_q = normalize(quaternion_slerp(bdeltaq, fdeltaq, blend(w), spin=0, shortestpath=True))
+
+                        c.orientation = normalize(quaternion_multiply(global_delta_q, oq))
+
+                    elif backward_hit is not None:
+                        bq = self.orientation_constraint_buffer[backward_hit][c.joint_name]
+                        j = frame_idx - backward_hit
+                        w = (j + 1) / (window + 1)
+                        global_delta_q = normalize(quaternion_slerp(iq, bq, blend(w), spin=0, shortestpath=True))
+
+                        c.orientation = normalize(quaternion_multiply(global_delta_q, oq))
+                    elif forward_hit is not None:
+                        k = forward_hit - frame_idx
+                        w = (k + 1) / (window + 1)
+                        fq = self.orientation_constraint_buffer[forward_hit][c.joint_name]
+                        global_delta_q = normalize(quaternion_slerp(fq, iq, blend(w), spin=0, shortestpath=True))
+
+                        c.orientation = normalize(quaternion_multiply(global_delta_q, oq))
+
+    def get_global_orientation(self, joint_name, frame):
+        m = self.skeleton.nodes[joint_name].get_global_matrix(frame)
+        m[:3, 3] = [0, 0, 0]
+        return normalize(quaternion_from_matrix(m))
 
 
 
