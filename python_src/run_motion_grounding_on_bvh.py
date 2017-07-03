@@ -82,6 +82,13 @@ def run_motion_grounding(bvh_file):
     constraints, blend_ranges = constraint_generator.generate(mv)
     #plot_constraints(constraints, ground_height)
     me.set_constraints(constraints)
+
+    ik_chains = IK_CHAINS_RAW_SKELETON
+    for joint_name, frame_ranges in blend_ranges.items():
+        ik_chain = ik_chains[joint_name]
+        for frame_range in frame_ranges:
+            joint_names = joint_names = ["Hips"] + [ik_chain["root"], ik_chain["joint"], joint_name]
+            me.add_blend_range(joint_names, tuple(frame_range))
     # problem you need to blend the hips joint otherwise it does not work, which is not really a good thing to do because it influences the entire body
 
     mv.frames = me.run(mv)

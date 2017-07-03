@@ -129,11 +129,43 @@ class FootplantConstraintGenerator(object):
         for frame_idx, joint_names in enumerate(ground_contacts):
             constraints[frame_idx] = self.generate_ankle_constraints(motion_vector.frames, frame_idx, joint_names)
 
-
-        window = 10
+        window = 15
         self.set_smoothing_constraints(motion_vector.frames, constraints, window)
+
+        n_frames = len(motion_vector.frames)
+        blend_ranges = self.generate_blend_ranges(constraints, n_frames)
         return constraints, blend_ranges
 
+    def generate_blend_ranges(self, constraints, n_frames):
+        blend_ranges = dict()
+        blend_ranges[self.right_foot] = []
+        blend_ranges[self.left_foot] = []
+
+        state = dict()
+        state[self.right_foot] = -1
+        state[self.left_foot] = -1
+
+        joint_names = [self.right_foot, self.left_foot]
+
+        for frame_idx in xrange(n_frames):
+            if frame_idx in constraints.keys():
+                for j in joint_names:
+                    constrained_joints = [c.joint_name for c in constraints[frame_idx]]
+                    if j in constrained_joints:
+                        if state[j] == -1:
+                            # start new constrained range
+                            blend_ranges[j].append([frame_idx, n_frames])
+                            state[j] = len(blend_ranges[j])-1
+                        else:
+                            # update constrained range
+                            idx = state[j]
+                            blend_ranges[j][idx][1] = frame_idx
+                    else:
+                        state[j] = -1  # stop constrained range no constraint defined
+            else:
+                for c in joint_names:
+                    state[c.joint_name] = -1  # stop constrained range no constraint defined
+        return blend_ranges
 
     def generate_ankle_constraints(self, frames, frame_idx, joint_names):
         self.position_constraint_buffer[frame_idx] = dict()
