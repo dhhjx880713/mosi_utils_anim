@@ -7,10 +7,10 @@ Proceedings of the 26th annual conference on Computer graphics and interactive t
 """
 import numpy as np
 import math
-from utils import normalize, limb_projection, to_local_cos,project_vec3
+from utils import normalize, limb_projection, to_local_cos, project_vec3
 from ...animation_data.utils import quaternion_from_vector_to_vector
 from ...animation_data.retargeting.utils import find_rotation_between_vectors
-from ...external.transformations import quaternion_multiply, quaternion_about_axis, quaternion_matrix, quaternion_from_matrix
+from ...external.transformations import quaternion_multiply, quaternion_about_axis, quaternion_matrix, quaternion_from_matrix, quaternion_inverse
 
 
 def calculate_angle(upper_limb, lower_limb, ru, rl, target_length):
@@ -128,32 +128,61 @@ class AnalyticalLimbIK(object):
         return new_local_q
 
     def calculate_end_effector_rotation(self, frame, target_dir):
-        print "end effector rotation", self.end_effector, target_dir
-        end_effector_m = self.skeleton.nodes[self.end_effector].get_global_matrix(frame)[:3, :3]
+        #print "end effector rotation", self.end_effector, target_dir
+        #end_effector_m = self.skeleton.nodes[self.end_effector].get_global_matrix(frame)[:3, :3]
         #src_dir = np.dot(end_effector_m, self.local_end_effector_dir)
         #src_dir = normalize(src_dir)
         src_dir = self.get_joint_dir(frame, self.end_effector)
-        root_delta_q = find_rotation_between_vectors(src_dir, target_dir)
-        new_local_q = self._to_local_coordinate_system(frame, self.end_effector, root_delta_q)
+        global_delta_q = find_rotation_between_vectors(src_dir, target_dir)
+        new_local_q = self._to_local_coordinate_system(frame, self.end_effector, global_delta_q)
         frame[self.end_effector_indices] = new_local_q
+
+    def set_end_effector_rotation(self, frame, target_orientation):
+        #print "set orientation", target_orientation
+        q = self.get_global_joint_orientation(self.end_effector, frame)
+        delta_orientation = quaternion_multiply(target_orientation, quaternion_inverse(q))
+        new_local_q = self._to_local_coordinate_system(frame, self.end_effector, delta_orientation)
+        frame[self.end_effector_indices] = new_local_q
+        #t = self.skeleton.nodes[self.skeleton.nodes[self.end_effector].children[0].node_name].get_global_position(frame)
+        #h = self.skeleton.nodes[self.skeleton.nodes[self.end_effector].children[1].node_name].get_global_position(frame)
+        #original_direction = normalize(t - h)
+        #print original_direction
+
+    def get_global_joint_orientation(self, joint_name, frame):
+        m = self.skeleton.nodes[joint_name].get_global_matrix(frame)
+        m[:3, 3] = [0, 0, 0]
+        return normalize(quaternion_from_matrix(m))
 
     def get_joint_dir(self, frame, joint_name):
         pos1 = self.skeleton.nodes[joint_name].get_global_position(frame)
         pos2 = self.skeleton.nodes[joint_name].children[0].get_global_position(frame)
         return normalize(pos2 - pos1)
 
-    def apply(self, frame, position, direction=None):
+    def apply(self, frame, position=None, direction=None):
 
-        # 1 calculate joint angle based on the distance to target position
-        self.calculate_limb_joint_rotation(frame, position)
+        if position is not None:
+            # 1 calculate joint angle based on the distance to target position
+            self.calculate_limb_joint_rotation(frame, position)
 
-        # 2 calculate limb root rotation to align the end effector with the target position
-        self.calculate_limb_root_rotation(frame, position)
+            # 2 calculate limb root rotation to align the end effector with the target position
+            self.calculate_limb_root_rotation(frame, position)
 
         # 3 orient end effector
         if direction is not None:
             self.calculate_end_effector_rotation(frame, direction)
+        return frame
 
+    def apply2(self, frame, position, orientation):
+        if position is not None:
+            # 1 calculate joint angle based on the distance to target position
+            self.calculate_limb_joint_rotation(frame, position)
+
+            # 2 calculate limb root rotation to align the end effector with the target position
+            self.calculate_limb_root_rotation(frame, position)
+
+        # 3 orient end effector
+        if orientation is not None:
+            self.set_end_effector_rotation(frame, orientation)
         return frame
 
     def calculate_limb_root_rotation_freu_gelobt_sei_gott_und_jesus_christus_und_der_heilige_geist(self, frame, target_position):

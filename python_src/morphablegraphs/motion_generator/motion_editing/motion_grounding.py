@@ -8,11 +8,12 @@ from skeleton_pose_model import SkeletonPoseModel
 
 
 class MotionGroundingConstraint(object):
-    def __init__(self, frame_idx, joint_name, position, direction):
+    def __init__(self, frame_idx, joint_name, position, direction=None, orientation=None):
         self.frame_idx = frame_idx
         self.joint_name = joint_name
         self.position = position
         self.direction = direction
+        self.orientation = orientation
 
     def evaluate(self, skeleton, q_frame):
         d = self.position - skeleton.nodes[self.joint_name].get_global_position(q_frame)
@@ -209,7 +210,7 @@ class MotionGrounding(object):
                     if c.joint_name in self._ik_chains.keys():
                         data = self._ik_chains[c.joint_name]
                         ik = AnalyticalLimbIK.init_from_dict(self.skeleton, c.joint_name, data)
-                        frames[frame_idx] = ik.apply(frames[frame_idx], c.position, c.direction)
+                        frames[frame_idx] = ik.apply2(frames[frame_idx], c.position, c.orientation)
                         #delta = c.position -self.skeleton.nodes[c.joint_name].get_global_position(frames[frame_idx])
                         #heel_joint = "RightHeel"
                         #if c.joint_name == "LeftFoot":
