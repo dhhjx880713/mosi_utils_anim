@@ -5,7 +5,7 @@ from morphablegraphs.motion_generator.motion_editing.motion_grounding import IKC
 from morphablegraphs.motion_generator.motion_editing import FootplantConstraintGenerator
 from morphablegraphs.motion_generator.algorithm_configuration import AlgorithmConfigurationBuilder
 from morphablegraphs.animation_data import BVHReader, Skeleton, MotionVector
-from morphablegraphs.motion_generator.motion_editing.utils import get_average_joint_position, get_average_joint_direction, plot_joint_heights, add_heels_to_skeleton, get_joint_height, export_constraints, plot_constraints
+from morphablegraphs.motion_generator.motion_editing.utils import get_average_joint_position, get_average_joint_direction, plot_joint_heights, add_heels_to_skeleton, get_joint_height, export_constraints, plot_constraints, save_ground_contact_annotation, load_ground_contact_annotation, move_to_ground
 from morphablegraphs.motion_generator.motion_editing.constants import *
 LEFT_FOOT = "LeftFoot"
 RIGHT_FOOT = "RightFoot"
@@ -59,11 +59,10 @@ def create_foot_plant_constraints2(skeleton, mv, me, joint_name, start_frame, en
 
 
 
-
-def run_motion_grounding(bvh_file):
-    #right foot 98-152
-    # , 167, 249, 330, 389
-    ground_height = 0.0
+def run_motion_grounding(bvh_file, skeleton_type):
+    skeleton_def = SKELETON_DEFINITIONS[skeleton_type]
+    source_ground_height = 0.0
+    target_ground_height = 0.0
     bvh = BVHReader(bvh_file)
     animated_joints = list(bvh.get_animated_joints())
     skeleton = Skeleton()
@@ -71,30 +70,35 @@ def run_motion_grounding(bvh_file):
     mv = MotionVector()
     mv.from_bvh_reader(bvh) # filter here
     config = AlgorithmConfigurationBuilder().build()
-    ik_chains = IK_CHAINS_RAW_SKELETON
+    ik_chains = skeleton_def["ik_chains"]
     me = MotionGrounding(skeleton, config["inverse_kinematics_settings"], ik_chains, use_analytical_ik=True)
-    footplant_settings = {"left_foot": "LeftFoot", "right_foot": "RightFoot", "left_toe": "LeftToeBase",
-                          "right_toe": "RightToeBase", "window": 20, "tolerance": 1}
+    footplant_settings = {"window": 20, "tolerance": 1, "constraint_range": 10, "smoothing_constraints_window": 15}
 
     #joint_heights = get_joint_height(skeleton, mv.frames, FOOT_JOINTS)
     #plot_joint_heights(joint_heights)
-    constraint_generator = FootplantConstraintGenerator(skeleton, footplant_settings, ground_height=ground_height, add_heels=True)
+    skeleton = add_heels_to_skeleton(skeleton, skeleton_def["left_foot"],
+                                                 skeleton_def["right_foot"],
+                                                 skeleton_def["left_heel"],
+                                                 skeleton_def["right_heel"],
+                                                 skeleton_def["heel_offset"])
+    constraint_generator = FootplantConstraintGenerator(skeleton, skeleton_def, footplant_settings,
+                                                        source_ground_height=source_ground_height,
+                                                        target_ground_height=target_ground_height)
     constraints, blend_ranges = constraint_generator.generate(mv)
     #plot_constraints(constraints, ground_height)
     me.set_constraints(constraints)
 
-    ik_chains = IK_CHAINS_RAW_SKELETON
     for joint_name, frame_ranges in blend_ranges.items():
         ik_chain = ik_chains[joint_name]
         for frame_range in frame_ranges:
-            joint_names = joint_names = ["Hips"] + [ik_chain["root"], ik_chain["joint"], joint_name]
+            joint_names = ["Hips"] + [ik_chain["root"], ik_chain["joint"], joint_name]
             me.add_blend_range(joint_names, tuple(frame_range))
     # problem you need to blend the hips joint otherwise it does not work, which is not really a good thing to do because it influences the entire body
 
-    mv.frames = me.run(mv)
+    mv.frames = me.run(mv, target_ground_height)
     print "export motion"
 
-    joint_heights = get_joint_height(skeleton, mv.frames, FOOT_JOINTS)
+    joint_heights = get_joint_height(skeleton, mv.frames, skeleton_def["foot_joints"])
     plot_joint_heights(joint_heights)
     mv.export(skeleton, "out\\foot_sliding", "out")
 
@@ -102,4 +106,5 @@ if __name__ == "__main__":
     bvh_file = "skeleton.bvh"
     bvh_file = "walk_001_1.bvh"
     #bvh_file = "no_blending.bvh"
-    run_motion_grounding(bvh_file)
+    skeleton_type = "raw"
+    run_motion_grounding(bvh_file, skeleton_type)

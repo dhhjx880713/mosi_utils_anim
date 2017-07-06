@@ -396,7 +396,39 @@ def plot_constraints(constraints, ground_height=0):
     plt.show(True)
 
 
-def save_ground_contact_annotation(ground_contacts, n_frames, left_foot, right_foot, file_path):
+def get_random_color():
+    random_color = np.random.rand(3, )
+    if np.sum(random_color) < 0.5:
+        random_color += np.array([0, 0, 1])
+    return random_color.tolist()
+
+
+def save_ground_contact_annotation(ground_contacts, joints, n_frames, filename):
+    data = dict()
+    data["color_map"] = {j : get_random_color() for j in joints}
+    data["semantic_annotation"] = dict()
+    for idx in xrange(n_frames):
+        for label in ground_contacts[idx]:
+            if label not in data["semantic_annotation"]:
+                data["semantic_annotation"][label] = []
+            data["semantic_annotation"][label].append(idx)
+    with open(filename, "wb") as out:
+        json.dump(data, out)
+
+
+def load_ground_contact_annotation(filename, n_frames):
+    ground_contacts = [[] for f in xrange(n_frames)]
+    with open(filename, "r") as in_file:
+        annotation_data = json.load(in_file)
+        semantic_annotation = annotation_data["semantic_annotation"]
+        for label in semantic_annotation.keys():
+            for idx in semantic_annotation[label]:
+                ground_contacts[idx].append(label)
+
+    return ground_contacts
+
+
+def save_ground_contact_annotation_merge_labels(ground_contacts, n_frames, left_foot, right_foot, filename):
     data = dict()
     contact_label = "contact"
     no_contact_label = "no_contact"
@@ -416,7 +448,7 @@ def save_ground_contact_annotation(ground_contacts, n_frames, left_foot, right_f
             annotation = no_contact_label
 
         data["frame_annotation"].append(annotation)
-    with open(file_path, "wb") as out:
+    with open(filename, "wb") as out:
         json.dump(data, out)
 
 def get_intersection_circle(center1, radius1, center2, radius2):
@@ -507,4 +539,22 @@ def smooth_root_positions(positions, window):
         smoothed_positions.append(avg_p)
     return smoothed_positions
 
+
+def guess_ground_height(skeleton, frames, n_frames, foot_joints):
+    minimum_height = np.inf
+    joint_heights = get_joint_height(skeleton, frames[:n_frames], foot_joints)
+    for joint in joint_heights.keys():
+        p, v, a = joint_heights[joint]
+        pT = np.array(p).T
+        new_min_height = min(pT[1])
+        if new_min_height < minimum_height:
+            minimum_height = new_min_height
+    return minimum_height
+
+
+def move_to_ground(skeleton, frames, ground_height, foot_joints):
+    minimum_height = guess_ground_height(skeleton, frames, 5, foot_joints)
+    for f in frames:
+        f[:3] += [0, ground_height-minimum_height, 0]
+    return frames
 

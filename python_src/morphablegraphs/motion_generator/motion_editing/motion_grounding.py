@@ -96,13 +96,14 @@ class MotionGrounding(object):
         self.clear_constraints()
         self.clear_blend_ranges()
 
-    def run(self, motion_vector):
+    def run(self, motion_vector, target_ground_height):
         new_frames = motion_vector.frames[:]
         #offset = 10
         #for step in motion_vector.graph_walk.steps:
         #    new_frames[step.start_frame:step.end_frame, 1] += offset
         #    offset += 10
-        self._shift_root_using_static_offset(new_frames, 0)
+        self._shift_root_using_static_offset(new_frames, target_ground_height)
+        #return new_frames
         self.shift_root_to_reach_constraints(new_frames)
         self.blend_at_transitions(new_frames)
         if self.use_analytical_ik:
@@ -167,7 +168,7 @@ class MotionGrounding(object):
         limb_length = self.get_limb_length(c.joint_name)
         if target_length >= limb_length:
             new_root_pos = c.position + normalize(root_pos - c.position) * limb_length
-            print "one constraint on ", c.joint_name, "- before", root_pos, "after", new_root_pos
+            #print "one constraint on ", c.joint_name, "- before", root_pos, "after", new_root_pos
             return new_root_pos
             #frame[:3] = new_root_pos
 
@@ -188,6 +189,7 @@ class MotionGrounding(object):
         r2 = self.get_limb_length(constraint2.joint_name)
         #p2 = c2 + r2 * normalize(p-c2)
         if r1 < t1 and r2 < t2:
+            print "no root constraint"
             return None
         print "adapt root for two constraints", constraint1.position, r1, constraint2.position, r2
 
@@ -224,12 +226,16 @@ class MotionGrounding(object):
         for frame_range, joint_names in self._blend_ranges.items():
             start = frame_range[0]
             end = frame_range[1]
-            print "apply blending in range", frame_range, joint_names
+            #print "apply blending in range", frame_range, joint_names
             self._blend_around_frame_range(frames, start, end, joint_names)
         return frames
 
-    def _shift_root_using_static_offset(self, frames, ground_height, static_offset = 91.6):
+    def _shift_root_using_static_offset(self, frames, target_ground_height):
         # TODO change skeleton to include static offset
+        root_pos = self.skeleton.nodes[self.skeleton.root].get_global_position(frames[0])
+        heel_pos = self.skeleton.nodes["LeftHeel"].get_global_position(frames[0])
+        static_offset = root_pos[1]-heel_pos[1]
         for idx, frame in enumerate(frames):
-            shift = ground_height + static_offset - frames[idx][1]
+            shift = target_ground_height + static_offset - frames[idx][1]
+            print "root shift",idx, shift,frames[idx][1]
             frames[idx][1] += shift
