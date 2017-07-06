@@ -56,7 +56,7 @@ def add_fixed_dofs_to_frame(skeleton, frame):
 
 
 class MotionGrounding(object):
-    def __init__(self, skeleton, ik_settings, ik_chains, use_analytical_ik=True):
+    def __init__(self, skeleton, ik_settings, skeleton_def, use_analytical_ik=True):
         self.skeleton = skeleton
         self._ik = NumericalInverseKinematicsExp(skeleton, ik_settings)
         self._constraints = collections.OrderedDict()
@@ -67,7 +67,8 @@ class MotionGrounding(object):
         self.translation_blend_window = 40
         self._blend_ranges = collections.OrderedDict()
         self.use_analytical_ik = use_analytical_ik
-        self._ik_chains = ik_chains
+        self._ik_chains = skeleton_def["ik_chains"]
+        self._skeleton_def = skeleton_def
 
     def set_constraints(self, constraints):
         self._constraints = constraints

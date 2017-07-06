@@ -5,7 +5,7 @@ from utils import get_average_joint_position, get_average_joint_direction, plot_
                     get_angular_velocities, quaternion_from_vector_to_vector
 from constants import *
 from ...external.transformations import quaternion_from_matrix, quaternion_multiply, quaternion_matrix, quaternion_slerp
-HEEL_OFFSET = [0, -6.480602, 0]
+
 def merge_constraints(a,b):
     for key, item in b.items():
         if key in a:
