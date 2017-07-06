@@ -20,8 +20,10 @@ import json
 import time
 from datetime import datetime
 from morphablegraphs import MotionGenerator, AlgorithmConfigurationBuilder, load_json_file, write_to_json_file
+from morphablegraphs.motion_model import MotionStateGraphLoader
 from morphablegraphs.animation_data.retargeting import retarget_from_src_to_target, GAME_ENGINE_TO_ROCKETBOX_MAP, ROCKETBOX_ROOT_OFFSET
 from morphablegraphs.animation_data import Skeleton, MotionVector, BVHReader, BVHWriter
+from morphablegraphs.motion_generator import AnnotatedMotionVector
 from morphablegraphs.animation_data.fbx_io import load_skeleton_and_animations_from_fbx, export_motion_vector_to_fbx_file
 from morphablegraphs.utilities.io_helper_functions import get_bvh_writer
 from morphablegraphs.utilities import write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO, LOG_MODE_ERROR, set_log_mode
@@ -261,7 +263,7 @@ class MGRestApplication(tornado.web.Application):
         graph_loader = MotionStateGraphLoader()
         graph_loader.set_data_source(service_config["model_data"], algorithm_config["use_transition_model"])
         motion_state_graph = graph_loader.build()
-        self.motion_generator = MotionGenerator2(motion_state_graph, self.service_config, self.algorithm_config)
+        self.motion_generator = MotionGenerator(motion_state_graph, self.service_config, self.algorithm_config)
         self.target_skeleton = None
         message = "Finished construction from file in " + str(time.clock() - start) + " seconds"
         write_message_to_log(message, LOG_MODE_INFO)
