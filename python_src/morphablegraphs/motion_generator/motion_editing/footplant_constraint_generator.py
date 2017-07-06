@@ -1,4 +1,5 @@
 import numpy as np
+import collections
 from motion_grounding import MotionGroundingConstraint
 from utils import get_average_joint_position, get_average_joint_direction, plot_joint_heights, \
                         add_heels_to_skeleton, get_joint_height, normalize, get_average_direction_from_target, \
@@ -390,9 +391,18 @@ class FootplantConstraintGenerator(object):
         return constraints
 
 
+
     def generate_from_graph_walk(self, motion_vector):
         # the interpolation range must start at end_frame-1 because this is the last modified frame
+        self.orientation_constraint_buffer = dict()
+        self.orientation_constraint_buffer = dict()
         constraints = dict()
+        for frame_idx in xrange(motion_vector.n_frames):
+            self.orientation_constraint_buffer[frame_idx] = dict()
+            self.orientation_constraint_buffer[frame_idx] = dict()
+            constraints[frame_idx] = []
+
+
         blend_ranges = dict()
         blend_ranges[self.right_foot] = []
         blend_ranges[self.left_foot] = []
@@ -401,23 +411,21 @@ class FootplantConstraintGenerator(object):
         for step in graph_walk.steps:
             if step.node_key[0] in LOCOMOTION_ACTIONS:
                 plant_range = self.get_plant_frame_range(step)
-                for ankle_joint in plant_range.keys():
-                    if plant_range[ankle_joint]["start"] is not None:
-                        start_frame = plant_range[ankle_joint]["start"]
-                        end_frame = plant_range[ankle_joint]["end"]
-                        heel_joint = self.right_heel
-                        if ankle_joint == self.left_foot:
-                            heel_joint = self.left_heel
-                        new_constraints = self.create_ankle_constraints_from_heel_and_toe2(frames,
-                                                                                           ankle_joint,
-                                                                                           heel_joint,
-                                                                                           start_frame,
-                                                                                           end_frame)
+                for side in plant_range.keys():
+                    if plant_range[side]["start"] is not None:
+                        start_frame = plant_range[side]["start"]
+                        end_frame = plant_range[side]["end"]
+                        foot_joints = self.foot_definitions[side]
+                        c = self.generate_ankle_constraint(frames, foot_joints["ankle"], foot_joints["heel"],
+                                                           foot_joints["toe"], start_frame, end_frame)
+                        new_constraints = dict()
+                        for frame_idx in xrange(start_frame, end_frame):
+                            new_constraints[frame_idx] = []
+                            new_constraints[frame_idx].append(c)
                         constraints = merge_constraints(constraints, new_constraints)
                         frame_range = start_frame, end_frame-1
-                        blend_ranges[ankle_joint].append(frame_range)
-                #self.ground_height+=10
-                #frames[step.start_frame:step.end_frame,1] += 10
+                        blend_ranges[foot_joints["ankle"]].append(frame_range)
+        constraints = collections.OrderedDict(sorted(constraints.items()))
         return constraints, blend_ranges
 
     def get_plant_frame_range(self, step):
@@ -426,45 +434,47 @@ class FootplantConstraintGenerator(object):
         w = self.window
         end_offset = -5
         plant_range = dict()
-        plant_range[self.left_foot] = dict()
-        plant_range[self.right_foot] = dict()
+        L = "left"
+        R = "right"
+        plant_range[L] = dict()
+        plant_range[R] = dict()
 
-        plant_range[self.left_foot]["start"] = None
-        plant_range[self.left_foot]["end"] = None
-        plant_range[self.right_foot]["start"] = None
-        plant_range[self.right_foot]["end"] = None
+        plant_range[L]["start"] = None
+        plant_range[L]["end"] = None
+        plant_range[R]["start"] = None
+        plant_range[R]["end"] = None
 
         if step.node_key[1] == "beginLeftStance":
-            plant_range[self.right_foot]["start"] = start_frame
-            plant_range[self.right_foot]["end"] = end_frame - w / 2 + end_offset
-            plant_range[self.left_foot]["start"] = start_frame
-            plant_range[self.left_foot]["end"] = start_frame + 20
+            plant_range[R]["start"] = start_frame
+            plant_range[R]["end"] = end_frame - w / 2 + end_offset
+            plant_range[L]["start"] = start_frame
+            plant_range[L]["end"] = start_frame + 20
 
         elif step.node_key[1] == "beginRightStance":
-            plant_range[self.left_foot]["start"] = start_frame
-            plant_range[self.left_foot]["end"] = end_frame - w / 2 + end_offset
-            plant_range[self.right_foot]["start"] = start_frame
-            plant_range[self.right_foot]["end"] = start_frame + 20
+            plant_range[L]["start"] = start_frame
+            plant_range[L]["end"] = end_frame - w / 2 + end_offset
+            plant_range[R]["start"] = start_frame
+            plant_range[R]["end"] = start_frame + 20
 
         elif step.node_key[1] == "endLeftStance":
-            plant_range[self.right_foot]["start"] = start_frame + w / 2
-            plant_range[self.right_foot]["end"] = end_frame
-            plant_range[self.left_foot]["start"] = end_frame - 20
-            plant_range[self.left_foot]["end"] = end_frame
+            plant_range[R]["start"] = start_frame + w / 2
+            plant_range[R]["end"] = end_frame
+            plant_range[L]["start"] = end_frame - 20
+            plant_range[L]["end"] = end_frame
 
         elif step.node_key[1] == "endRightStance":
-            plant_range[self.left_foot]["start"] = start_frame + w / 2
-            plant_range[self.left_foot]["end"] = end_frame
-            plant_range[self.right_foot]["start"] = end_frame - 20
-            plant_range[self.right_foot]["end"] = end_frame
+            plant_range[L]["start"] = start_frame + w / 2
+            plant_range[L]["end"] = end_frame
+            plant_range[R]["start"] = end_frame - 20
+            plant_range[R]["end"] = end_frame
 
         elif step.node_key[1] == "leftStance":
-            plant_range[self.right_foot]["start"] = start_frame + w / 2
-            plant_range[self.right_foot]["end"] = end_frame - w / 2 + end_offset
+            plant_range[R]["start"] = start_frame + w / 2
+            plant_range[R]["end"] = end_frame - w / 2 + end_offset
 
         elif step.node_key[1] == "rightStance":
-            plant_range[self.left_foot]["start"] = start_frame + w / 2
-            plant_range[self.left_foot]["end"] = end_frame - w / 2 + end_offset
+            plant_range[L]["start"] = start_frame + w / 2
+            plant_range[L]["end"] = end_frame - w / 2 + end_offset
         return plant_range
 
     def create_foot_plant_constraints_old(self, frames, joint_name, start_frame, end_frame):
