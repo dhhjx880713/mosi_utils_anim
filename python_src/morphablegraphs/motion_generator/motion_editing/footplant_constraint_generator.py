@@ -88,7 +88,7 @@ class FootplantConstraintGenerator(object):
                     #av = np.rad2deg(np.linalg.norm(angular_velocities[knee][frame_idx]))
                     #print joint, frame_idx, p[1], yv[frame_idx], av
                     print joint, p[1], yv[frame_idx]
-                    if p[1] - o - self.source_ground_height < self.tolerance or velocity < self.velocity_tolerance:#and zero_crossings[frame_idx]
+                    if p[1] - o - self.source_ground_height < self.tolerance:# or velocity < self.velocity_tolerance and zero_crossings[frame_idx]
                         ground_contacts[frame_idx].append(joint)
         return self.filter_outliers(ground_contacts, joints)
 
