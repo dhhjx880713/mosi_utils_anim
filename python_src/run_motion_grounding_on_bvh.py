@@ -60,8 +60,8 @@ def create_foot_plant_constraints2(skeleton, mv, me, joint_name, start_frame, en
 
 
 def run_motion_grounding(bvh_file, skeleton_type):
-    skeleton_def = SKELETON_DEFINITIONS[skeleton_type]
-    source_ground_height = 0.0
+    skeleton_def = SKELETON_ANNOTATIONS[skeleton_type]
+    source_ground_height = 100.0
     target_ground_height = 0.0
     bvh = BVHReader(bvh_file)
     animated_joints = list(bvh.get_animated_joints())
@@ -70,8 +70,7 @@ def run_motion_grounding(bvh_file, skeleton_type):
     mv = MotionVector()
     mv.from_bvh_reader(bvh) # filter here
     config = AlgorithmConfigurationBuilder().build()
-    ik_chains = skeleton_def["ik_chains"]
-    me = MotionGrounding(skeleton, config["inverse_kinematics_settings"], ik_chains, use_analytical_ik=True)
+    me = MotionGrounding(skeleton, config["inverse_kinematics_settings"], skeleton_def, use_analytical_ik=True)
     footplant_settings = {"window": 20, "tolerance": 1, "constraint_range": 10, "smoothing_constraints_window": 15}
 
     #joint_heights = get_joint_height(skeleton, mv.frames, FOOT_JOINTS)
@@ -89,9 +88,9 @@ def run_motion_grounding(bvh_file, skeleton_type):
     me.set_constraints(constraints)
 
     for joint_name, frame_ranges in blend_ranges.items():
-        ik_chain = ik_chains[joint_name]
+        ik_chain = skeleton_def["ik_chains"][joint_name]
         for frame_range in frame_ranges:
-            joint_names = ["Hips"] + [ik_chain["root"], ik_chain["joint"], joint_name]
+            joint_names = [skeleton.root] + [ik_chain["root"], ik_chain["joint"], joint_name]
             me.add_blend_range(joint_names, tuple(frame_range))
     # problem you need to blend the hips joint otherwise it does not work, which is not really a good thing to do because it influences the entire body
 
@@ -105,6 +104,8 @@ def run_motion_grounding(bvh_file, skeleton_type):
 if __name__ == "__main__":
     bvh_file = "skeleton.bvh"
     bvh_file = "walk_001_1.bvh"
+    #bvh_file = "walk_014_2.bvh"
+    bvh_file = "game_engine_left_stance.bvh"
     #bvh_file = "no_blending.bvh"
-    skeleton_type = "raw"
+    skeleton_type = "game_engine"
     run_motion_grounding(bvh_file, skeleton_type)
