@@ -395,8 +395,6 @@ class FootplantConstraintGenerator(object):
             constraints[frame_idx].append(c)
         return constraints
 
-
-
     def generate_from_graph_walk(self, motion_vector):
         # the interpolation range must start at end_frame-1 because this is the last modified frame
         self.position_constraint_buffer = dict()
@@ -407,13 +405,16 @@ class FootplantConstraintGenerator(object):
             self.orientation_constraint_buffer[frame_idx] = dict()
             constraints[frame_idx] = []
 
-
         blend_ranges = dict()
         blend_ranges[self.right_foot] = []
         blend_ranges[self.left_foot] = []
         frames = motion_vector.frames
         graph_walk = motion_vector.graph_walk
-        for step in graph_walk.steps:
+        for idx, step in enumerate(graph_walk.steps):
+            if step.end_frame-step.start_frame <= 0:
+                print "small frame range ", idx, step.node_key, step.start_frame, step.end_frame
+
+                continue
             if step.node_key[0] in LOCOMOTION_ACTIONS:
                 plant_range = self.get_plant_frame_range(step)
                 for side in plant_range.keys():
