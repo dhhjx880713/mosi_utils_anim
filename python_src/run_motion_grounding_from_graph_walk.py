@@ -61,8 +61,10 @@ def create_foot_plant_constraints2(skeleton, mv, me, joint_name, start_frame, en
 
 
 
-
-def run_motion_grounding(motion_graph_file, graph_walk_file):
+def run_motion_grounding(motion_graph_file, graph_walk_file, skeleton_type):
+    skeleton_def = SKELETON_ANNOTATIONS[skeleton_type]
+    source_ground_height = 100.0
+    target_ground_height = 0.0
     graph_walk_data = None
     loader = MotionStateGraphLoader()
     loader.set_data_source(motion_graph_file)
@@ -72,35 +74,40 @@ def run_motion_grounding(motion_graph_file, graph_walk_file):
     if graph is None or graph_walk_data is None:
         return
     graph_walk = GraphWalk.from_json(graph, graph_walk_data)
+    graph.skeleton.annotation = SKELETON_ANNOTATIONS["game_engine"]
     skeleton = graph.skeleton
-
-    config = AlgorithmConfigurationBuilder().build()
-    ik_chains = IK_CHAINS_RAW_SKELETON
-    me = MotionGrounding(skeleton, config["inverse_kinematics_settings"], ik_chains, use_analytical_ik=True)
-    footplant_settings = {"left_foot": "LeftFoot",
-                          "right_foot": "RightFoot",
-                          "left_toe": "LeftToeBase",
-                          "right_toe": "RightToeBase",
-                          "window": 35, "tolerance": 1}
-
     mv = graph_walk.convert_to_annotated_motion()
 
-    constraint_generator = FootplantConstraintGenerator(skeleton, footplant_settings, ground_height=0, add_heels=True)
-    #constraints, blend_ranges = constraint_generator.generate(mv)
+    config = AlgorithmConfigurationBuilder().build()
+    me = MotionGrounding(skeleton, config["inverse_kinematics_settings"], skeleton_def, use_analytical_ik=True)
+    footplant_settings = {"window": 20, "tolerance": 1, "constraint_range": 10, "smoothing_constraints_window": 15}
+
+    skeleton = add_heels_to_skeleton(skeleton, skeleton_def["left_foot"],
+                                     skeleton_def["right_foot"],
+                                     skeleton_def["left_heel"],
+                                     skeleton_def["right_heel"],
+                                     skeleton_def["heel_offset"])
+
+    constraint_generator = FootplantConstraintGenerator(skeleton, skeleton_def, footplant_settings,
+                                                        source_ground_height=source_ground_height,
+                                                        target_ground_height=target_ground_height)
     constraints, blend_ranges = constraint_generator.generate_from_graph_walk(mv)
     me.set_constraints(constraints)
-    for joint_name in blend_ranges.keys():
-        ik_chain = ik_chains[joint_name]
-        joint_names = ["Hips"] + [ik_chain["root"], ik_chain["joint"], joint_name]
-        for frame_range in blend_ranges[joint_name]:
-            me.add_blend_range(joint_names, frame_range)
 
+    for joint_name, frame_ranges in blend_ranges.items():
+        ik_chain = skeleton_def["ik_chains"][joint_name]
+        for frame_range in frame_ranges:
+            joint_names = [skeleton.root] + [ik_chain["root"], ik_chain["joint"], joint_name]
+            me.add_blend_range(joint_names, tuple(frame_range))
+            # problem you need to blend the hips joint otherwise it does not work, which is not really a good thing to do because it influences the entire body
 
-    mv.frames = me.run(mv)
+    #mv.frames = me.run(mv, target_ground_height)
     print "export motion"
     mv.export("out\\foot_sliding", "out", True)
 
 if __name__ == "__main__":
-    motion_graph_file = r"E:\projects\unity integration\model_data\motion_primitives_quaternion_PCA95_blender_1.2"
-    graph_walk_file = "graph_walk.data"
-    run_motion_grounding(motion_graph_file, graph_walk_file)
+    motion_graph_file = r"E:\projects\unity integration\model_data\motion_primitives_quaternion_PCA95_unity-integration-final-fix_arm_swing"
+
+    # motion_primitives_quaternion_PCA95_blender_1.2
+    graph_walk_file = "graph_walk5.data"
+    run_motion_grounding(motion_graph_file, graph_walk_file, "game_engine")
