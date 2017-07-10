@@ -399,11 +399,11 @@ class FootplantConstraintGenerator(object):
 
     def generate_from_graph_walk(self, motion_vector):
         # the interpolation range must start at end_frame-1 because this is the last modified frame
-        self.orientation_constraint_buffer = dict()
+        self.position_constraint_buffer = dict()
         self.orientation_constraint_buffer = dict()
         constraints = dict()
         for frame_idx in xrange(motion_vector.n_frames):
-            self.orientation_constraint_buffer[frame_idx] = dict()
+            self.position_constraint_buffer[frame_idx] = dict()
             self.orientation_constraint_buffer[frame_idx] = dict()
             constraints[frame_idx] = []
 
