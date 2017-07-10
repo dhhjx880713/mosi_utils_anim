@@ -291,9 +291,9 @@ def get_transform_from_start_pose(start_pose):
     return m
 
 
-def align_and_concatenate_frames(skeleton, node_name, new_frames, prev_frames=None, start_pose=None, smoothing_window=0,
+def align_and_concatenate_frames(skeleton, joint_name, new_frames, prev_frames=None, start_pose=None, smoothing_window=0,
                                  blending_method='slerp_smoothing2'):
-    new_frames = align_quaternion_frames(skeleton, node_name, new_frames, prev_frames, start_pose)
+    new_frames = align_quaternion_frames(skeleton, joint_name, new_frames, prev_frames, start_pose)
 
     if prev_frames is not None:
         if blending_method == 'smoothing':
