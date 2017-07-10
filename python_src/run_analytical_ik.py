@@ -1,8 +1,8 @@
-import numpy as np
-from morphablegraphs.motion_generator.motion_editing.motion_grounding import MotionGrounding, IKConstraintSet
-from morphablegraphs.motion_generator.algorithm_configuration import AlgorithmConfigurationBuilder
 from morphablegraphs.animation_data import BVHReader, Skeleton, MotionVector
-from morphablegraphs.motion_generator.motion_editing.constants import IK_CHAINS_RAW_SKELETON
+from morphablegraphs.motion_generator.algorithm_configuration import AlgorithmConfigurationBuilder
+from python_src.morphablegraphs.animation_data.motion_editing.constants import SKELETON_ANNOTATIONS
+from python_src.morphablegraphs.animation_data.motion_editing.motion_grounding import MotionGrounding
+from morphablegraphs.animation_data.motion_editing.utils import add_heels_to_skeleton
 
 LEFT_FOOT = "LeftFoot"
 RIGHT_FOOT = "RightFoot"

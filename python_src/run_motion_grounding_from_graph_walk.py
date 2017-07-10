@@ -1,12 +1,14 @@
 import json
-from morphablegraphs.motion_generator.motion_editing import MotionGrounding, get_average_joint_position, get_average_joint_direction
-from morphablegraphs.motion_generator.motion_editing.motion_grounding import IKConstraintSet
-from morphablegraphs.motion_generator.motion_editing import FootplantConstraintGenerator
-from morphablegraphs.motion_model import MotionStateGraphLoader
+
 from morphablegraphs.motion_generator.algorithm_configuration import AlgorithmConfigurationBuilder
-from morphablegraphs.animation_data import BVHReader, Skeleton, MotionVector
-from morphablegraphs.motion_generator.motion_editing.constants import IK_CHAINS_RAW_SKELETON
 from morphablegraphs.motion_generator.graph_walk import GraphWalk
+from morphablegraphs.animation_data.motion_editing import FootplantConstraintGenerator
+from morphablegraphs.animation_data.motion_editing import MotionGrounding, get_average_joint_position, get_average_joint_direction
+from morphablegraphs.motion_model import MotionStateGraphLoader
+from python_src.morphablegraphs.animation_data.motion_editing.constants import SKELETON_ANNOTATIONS
+from python_src.morphablegraphs.animation_data.motion_editing.motion_grounding import IKConstraintSet
+from python_src.morphablegraphs.animation_data.motion_editing.utils import add_heels_to_skeleton
+
 LEFT_FOOT = "LeftFoot"
 RIGHT_FOOT = "RightFoot"
 RIGHT_TOE = "RightToeBase"

@@ -1,12 +1,12 @@
-import numpy as np
-import matplotlib.pyplot as plt
-from morphablegraphs.motion_generator.motion_editing import MotionGrounding, get_average_joint_position, get_average_joint_direction
-from morphablegraphs.motion_generator.motion_editing.motion_grounding import IKConstraintSet
-from morphablegraphs.motion_generator.motion_editing import FootplantConstraintGenerator
-from morphablegraphs.motion_generator.algorithm_configuration import AlgorithmConfigurationBuilder
 from morphablegraphs.animation_data import BVHReader, Skeleton, MotionVector
-from morphablegraphs.motion_generator.motion_editing.utils import get_average_joint_position, get_average_joint_direction, plot_joint_heights, add_heels_to_skeleton, get_joint_height, export_constraints, plot_constraints, save_ground_contact_annotation, load_ground_contact_annotation, move_to_ground
-from morphablegraphs.motion_generator.motion_editing.constants import *
+from morphablegraphs.motion_generator.algorithm_configuration import AlgorithmConfigurationBuilder
+from morphablegraphs.animation_data.motion_editing import FootplantConstraintGenerator
+from morphablegraphs.animation_data.motion_editing import MotionGrounding
+from python_src.morphablegraphs.animation_data.motion_editing.constants import *
+from python_src.morphablegraphs.animation_data.motion_editing.motion_grounding import IKConstraintSet
+from python_src.morphablegraphs.animation_data.motion_editing.utils import get_average_joint_position, get_average_joint_direction, plot_joint_heights, add_heels_to_skeleton, get_joint_height, \
+    save_ground_contact_annotation
+
 LEFT_FOOT = "LeftFoot"
 RIGHT_FOOT = "RightFoot"
 RIGHT_TOE = "RightToeBase"
