@@ -5,7 +5,7 @@ import os
 import numpy as np
 from utils import align_frames,transform_euler_frames, convert_euler_frames_to_quaternion_frames
 from motion_concatenation import align_and_concatenate_frames, align_frames_and_fix_foot
-from motion_editing.constants import SKELETON_DEFINITIONS
+from motion_editing.constants import SKELETON_ANNOTATIONS
 from constants import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER
 from bvh import BVHWriter
 
@@ -39,7 +39,7 @@ class MotionVector(object):
         self.n_frames = len(self.frames)
         self.frame_time = bvh_reader.frame_time
 
-    def append_frames(self, new_frames):
+    def append_frames_generic(self, new_frames):
         """Align quaternion frames to previous frames
 
         Parameters
@@ -53,8 +53,33 @@ class MotionVector(object):
             smoothing_window = 0
         self.frames = align_and_concatenate_frames(self.skeleton, self.skeleton.aligning_root_node, new_frames, self.frames, self.start_pose,
                                                    smoothing_window=smoothing_window, blending_method=self.spatial_smoothing_method)
+
         self.n_frames = len(self.frames)
 
+    def append_frames_with_foot_ik(self, new_frames, plant_foot):
+
+        ik_chains = self.skeleton.annotation["ik_chains"]
+        if self.apply_spatial_smoothing:
+            smoothing_window = self.smoothing_window
+        else:
+            smoothing_window = 0
+        if plant_foot == self.skeleton.annotation["left_foot"]:
+            swing_foot = self.skeleton.annotation["right_foot"]
+        else:
+            swing_foot = self.skeleton.annotation["left_foot"]
+        self.frames = align_frames_and_fix_foot(self.skeleton, self.skeleton.aligning_root_node, new_frames,
+                                                self.frames, self.start_pose, plant_foot, swing_foot, ik_chains, 10,
+                                                smoothing_window)
+        self.n_frames = len(self.frames)
+
+    def append_frames(self, new_frames, plant_foot=None):
+        if self.skeleton.annotation is not None:
+            ik_chains = self.skeleton.annotation["ik_chains"]
+            print "ich will teil der gesellschaft bleiben", plant_foot, ik_chains.keys()
+            if plant_foot in ik_chains:
+                self.append_frames_with_foot_ik(new_frames, plant_foot)
+                return
+        self.append_frames_generic(new_frames)
     def export(self, skeleton, output_dir, output_filename, add_time_stamp=True):
         bvh_writer = BVHWriter(None, skeleton, self.frames, skeleton.frame_time, True)
         if add_time_stamp:
