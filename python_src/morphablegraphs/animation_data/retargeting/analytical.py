@@ -5,7 +5,7 @@ See: http://www.vis.uni-stuttgart.de/plain/vdl/vdl_upload/91_35_retargeting%20mo
 """
 import numpy as np
 import math
-from constants import OPENGL_UP_AXIS, GAME_ENGINE_T_POSE_QUAT, GAME_ENGINE_SPINE_OFFSET_LIST
+from constants import OPENGL_UP_AXIS, GAME_ENGINE_SPINE_OFFSET_LIST
 from utils import normalize, align_axis, find_rotation_between_vectors, align_root_translation, to_local_cos, get_quaternion_rotation_by_name, apply_additional_rotation_on_frames
 from ...external.transformations import quaternion_matrix, quaternion_multiply
 

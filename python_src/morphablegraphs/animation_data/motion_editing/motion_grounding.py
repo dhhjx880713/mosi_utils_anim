@@ -1,10 +1,11 @@
 import collections
+
 import numpy as np
 from numerical_ik_exp import NumericalInverseKinematicsExp
+from ..motion_blending import apply_slerp2, BLEND_DIRECTION_FORWARD, BLEND_DIRECTION_BACKWARD, smooth_translation_in_quat_frames
 from analytical_inverse_kinematics import AnalyticalLimbIK
-from ...animation_data.motion_blending import apply_slerp, apply_slerp2, BLEND_DIRECTION_FORWARD, BLEND_DIRECTION_BACKWARD, smooth_translation_in_quat_frames
 from utils import normalize, project_on_intersection_circle, smooth_root_positions
-from skeleton_pose_model import SkeletonPoseModel
+#from python_src.morphablegraphs.motion_generator.motion_editing.skeleton_pose_model import SkeletonPoseModel
 
 
 class MotionGroundingConstraint(object):
@@ -60,7 +61,7 @@ class MotionGrounding(object):
         self.skeleton = skeleton
         self._ik = NumericalInverseKinematicsExp(skeleton, ik_settings)
         self._constraints = collections.OrderedDict()
-        self.pose = SkeletonPoseModel(skeleton, False)
+        #self.pose = SkeletonPoseModel(skeleton, False)
         self.transition_window = 10#ik_settings["transition_window"]
         self.root_smoothing_window = 20
 
@@ -117,7 +118,7 @@ class MotionGrounding(object):
     def _blend_around_frame_range(self, frames, start, end, joint_names):
         for joint_name in joint_names:
             transition_start = max(start - self.transition_window, 0)
-            transition_end = min(end + self.transition_window, frames.shape[0]) - 1
+            transition_end = min(end + self.transition_window, frames.shape[0]-1) - 1
             forward_steps = start - transition_start
             backward_steps = transition_end - end
             if joint_name == self.skeleton.root:
@@ -164,13 +165,15 @@ class MotionGrounding(object):
                 frames[frame_idx][:3] = p
 
     def generate_root_constraint_for_one_foot(self, frame, c):
-        root_pos = self.skeleton.nodes[self.skeleton.root].get_global_position(frame)
+        root = "pelvis"#self.skeleton.root
+        offset = [0, self.skeleton.nodes[root].offset[0], -self.skeleton.nodes[root].offset[1]]
+        root_pos = self.skeleton.nodes[root].get_global_position(frame)
         target_length = np.linalg.norm(c.position - root_pos)
         limb_length = self.get_limb_length(c.joint_name)
         if target_length >= limb_length:
-            new_root_pos = c.position + normalize(root_pos - c.position) * limb_length
-            #print "one constraint on ", c.joint_name, "- before", root_pos, "after", new_root_pos
-            return new_root_pos
+            new_root_pos = (c.position + normalize(root_pos - c.position) * limb_length)
+            print "one constraint on ", c.joint_name, "- before", root_pos, "after", new_root_pos
+            return new_root_pos - offset
             #frame[:3] = new_root_pos
 
         else:
@@ -178,8 +181,10 @@ class MotionGrounding(object):
 
     def generate_root_constraint_for_two_feet(self, frame, constraint1, constraint2):
         """ Set the root position to the projection on the intersection of two spheres """
+        root = "pelvis"  # self.skeleton.root
+        p = self.skeleton.nodes[root].get_global_position(frame)
+        offset = [0, self.skeleton.nodes[root].offset[0], -self.skeleton.nodes[root].offset[1]]
 
-        p = self.skeleton.nodes[self.skeleton.root].get_global_position(frame)
         t1 = np.linalg.norm(constraint1.position - p)
         t2 = np.linalg.norm(constraint2.position - p)
 
@@ -195,7 +200,7 @@ class MotionGrounding(object):
         print "adapt root for two constraints", constraint1.position, r1, constraint2.position, r2
 
         p_c = project_on_intersection_circle(p, c1, r1, c2, r2)
-        return p_c
+        return p_c - offset
         #if p_c is not None:
         #    frame[:3] = p_c
 
@@ -234,8 +239,11 @@ class MotionGrounding(object):
     def _shift_root_using_static_offset(self, frames, target_ground_height):
         # TODO change skeleton to include static offset
         root_pos = self.skeleton.nodes[self.skeleton.root].get_global_position(frames[0])
-        heel_pos = self.skeleton.nodes["LeftHeel"].get_global_position(frames[0])
+        heel_pos = self.skeleton.nodes[self._skeleton_def["right_heel"]].get_global_position(frames[0])
+
         static_offset = root_pos[1]-heel_pos[1]
+        #static_offset = self.skeleton.nodes["pelvis"].offset[0]
+        static_offset = 0
         for idx, frame in enumerate(frames):
             shift = target_ground_height + static_offset - frames[idx][1]
             print "root shift",idx, shift,frames[idx][1]

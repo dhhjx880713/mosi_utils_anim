@@ -1,10 +1,11 @@
-import numpy as np
 from copy import copy
-from ...animation_data.motion_blending import smooth_quaternion_frames_using_slerp, apply_slerp
-from skeleton_pose_model import SkeletonPoseModel
+
+import numpy as np
 from numerical_ik_quat import NumericalInverseKinematicsQuat
+from skeleton_pose_model import SkeletonPoseModel
+from ..motion_blending import smooth_quaternion_frames_using_slerp, apply_slerp
 from ...external.transformations import quaternion_matrix, euler_from_matrix
-from ...utilities import write_log, write_message_to_log, LOG_MODE_DEBUG
+from ...utilities.log import write_message_to_log, LOG_MODE_DEBUG
 
 
 class MotionEditing(object):

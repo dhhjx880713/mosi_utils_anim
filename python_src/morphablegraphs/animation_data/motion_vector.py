@@ -4,8 +4,9 @@ from datetime import datetime
 import os
 import numpy as np
 from utils import align_frames,transform_euler_frames, convert_euler_frames_to_quaternion_frames
-from motion_concatenation import align_and_concatenate_frames
-from . import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER
+from motion_concatenation import align_and_concatenate_frames, align_frames_and_fix_foot
+from motion_editing.constants import SKELETON_DEFINITIONS
+from constants import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER
 from bvh import BVHWriter
 
 class MotionVector(object):

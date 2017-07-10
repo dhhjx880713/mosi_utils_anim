@@ -1,3 +1,4 @@
+import numpy as np
 IK_CHAINS_RAW_SKELETON = dict()
 IK_CHAINS_RAW_SKELETON["RightFoot"] = {"root": "RightUpLeg", "joint": "RightLeg", "joint_axis": [1, 0, 0], "end_effector_dir": [0,0,1]}
 IK_CHAINS_RAW_SKELETON["LeftFoot"] = {"root": "LeftUpLeg", "joint": "LeftLeg", "joint_axis": [1, 0, 0], "end_effector_dir": [0,0,1]}
@@ -17,10 +18,10 @@ IK_CHAINS_ROCKETBOX_SKELETON["LeftHand"] = {"root": "LeftArm", "joint": "LeftFor
 
 
 IK_CHAINS_GAME_ENGINE_SKELETON = dict()
-IK_CHAINS_GAME_ENGINE_SKELETON["foot_l"] = {"root": "thigh_l", "joint": "calf_l", "joint_axis": [0, 1, 0], "end_effector_dir": [0,0,1]}
-IK_CHAINS_GAME_ENGINE_SKELETON["foot_r"] = {"root": "thigh_r", "joint": "calf_r", "joint_axis": [0, 1, 0], "end_effector_dir": [0,0,1]}
-IK_CHAINS_GAME_ENGINE_SKELETON["hand_r"] = {"root": "upperarm_r", "joint": "lowerarm_r", "joint_axis": [0, 1, 0], "end_effector_dir": [1,0,0]}
-IK_CHAINS_GAME_ENGINE_SKELETON["hand_l"] = {"root": "upperarm_l", "joint": "lowerarm_l", "joint_axis": [0, 1, 0], "end_effector_dir": [1,0,0]}
+IK_CHAINS_GAME_ENGINE_SKELETON["foot_l"] = {"root": "thigh_l", "joint": "calf_l", "joint_axis": [1, 0, 0], "end_effector_dir": [0,0,1]}
+IK_CHAINS_GAME_ENGINE_SKELETON["foot_r"] = {"root": "thigh_r", "joint": "calf_r", "joint_axis": [1, 0, 0], "end_effector_dir": [0,0,1]}
+IK_CHAINS_GAME_ENGINE_SKELETON["hand_r"] = {"root": "upperarm_r", "joint": "lowerarm_r", "joint_axis": [1, 0, 0], "end_effector_dir": [1,0,0]}
+IK_CHAINS_GAME_ENGINE_SKELETON["hand_l"] = {"root": "upperarm_l", "joint": "lowerarm_l", "joint_axis": [1, 0, 0], "end_effector_dir": [1,0,0]}
 
 
 RIGHT_SHOULDER = "RightShoulder"
@@ -61,7 +62,7 @@ SKELETON_DEFINITIONS["game_engine"]["left_toe"] = "ball_l"
 SKELETON_DEFINITIONS["game_engine"]["right_toe"] = "ball_r"
 SKELETON_DEFINITIONS["game_engine"]["left_heel"] = "heel_l"
 SKELETON_DEFINITIONS["game_engine"]["right_heel"] = "heel_r"
-SKELETON_DEFINITIONS["game_engine"]["heel_offset"] = HEEL_OFFSET
+SKELETON_DEFINITIONS["game_engine"]["heel_offset"] = np.array([0, 2.45, 3.480602])*1.75
 SKELETON_DEFINITIONS["game_engine"]["ik_chains"] = IK_CHAINS_GAME_ENGINE_SKELETON
 
 

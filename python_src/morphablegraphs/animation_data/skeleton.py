@@ -6,7 +6,7 @@ Created on Tue Jul 14 14:18:37 2015
 """
 
 import collections
-from copy import deepcopy
+from copy import copy, deepcopy
 import json
 import numpy as np
 from ..external.transformations import quaternion_matrix
@@ -14,7 +14,7 @@ from quaternion_frame import QuaternionFrame
 from ..animation_data.utils import euler_to_quaternion
 from itertools import izip
 from skeleton_node import SkeletonRootNode, SkeletonJointNode, SkeletonEndSiteNode, SKELETON_NODE_TYPE_JOINT, SKELETON_NODE_TYPE_END_SITE
-from . import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER
+from constants import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER
 try:
     from mgrd import Skeleton as MGRDSkeleton
     from mgrd import SkeletonNode as MGRDSkeletonNode

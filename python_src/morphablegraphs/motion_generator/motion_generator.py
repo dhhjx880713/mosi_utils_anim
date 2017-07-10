@@ -11,7 +11,7 @@ from graph_walk_planner import GraphWalkPlanner
 from ..motion_model.motion_state_group import NODE_TYPE_END
 from ..constraints import OPTIMIZATION_MODE_ALL
 from graph_walk_optimizer import GraphWalkOptimizer
-from motion_editing import MotionEditing, MotionGrounding, FootplantConstraintGenerator, SKELETON_DEFINITIONS, add_heels_to_skeleton
+from ..animation_data.motion_editing import MotionEditing, MotionGrounding, FootplantConstraintGenerator, SKELETON_DEFINITIONS, add_heels_to_skeleton
 from ..utilities import load_json_file, write_log, clear_log, save_log, write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO, LOG_MODE_ERROR, set_log_mode
 
 

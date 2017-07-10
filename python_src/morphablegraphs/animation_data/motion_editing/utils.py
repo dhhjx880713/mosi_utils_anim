@@ -3,9 +3,9 @@ import math
 from matplotlib import pyplot as plt
 import json
 from scipy.interpolate import UnivariateSpline
-from ...animation_data.utils import euler_to_quaternion
+from ..utils import euler_to_quaternion
 from ...external.transformations import quaternion_multiply, quaternion_inverse, quaternion_matrix, quaternion_from_matrix, euler_from_quaternion
-from ...animation_data.skeleton_node import SkeletonEndSiteNode
+from ..skeleton_node import SkeletonEndSiteNode
 
 LEN_QUATERNION = 4
 LEN_TRANSLATION = 3

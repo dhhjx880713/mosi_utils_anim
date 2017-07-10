@@ -1,11 +1,10 @@
-import numpy as np
 import collections
-from motion_grounding import MotionGroundingConstraint
-from utils import get_average_joint_position, get_average_joint_direction, plot_joint_heights, \
-                        add_heels_to_skeleton, get_joint_height, normalize, get_average_direction_from_target, \
-                    get_angular_velocities, quaternion_from_vector_to_vector
 from constants import *
+from motion_grounding import MotionGroundingConstraint
+from utils import get_average_joint_position, get_average_joint_direction, get_joint_height, normalize, get_average_direction_from_target, \
+    quaternion_from_vector_to_vector
 from ...external.transformations import quaternion_from_matrix, quaternion_multiply, quaternion_matrix, quaternion_slerp
+
 
 def merge_constraints(a,b):
     for key, item in b.items():
@@ -14,6 +13,12 @@ def merge_constraints(a,b):
         else:
             a[key] = b[key]
     return a
+
+def align_quaternion(q, ref_q):
+    if np.dot(ref_q, q) < 0:
+        return -q
+    else:
+        return q
 
 
 def create_ankle_constraint(skeleton, frames, ankle_joint_name, heel_joint_name, toe_joint, frame_idx, end_frame, ground_height):
@@ -423,9 +428,11 @@ class FootplantConstraintGenerator(object):
                             new_constraints[frame_idx] = []
                             new_constraints[frame_idx].append(c)
                         constraints = merge_constraints(constraints, new_constraints)
-                        frame_range = start_frame, end_frame-1
+                        frame_range = start_frame, end_frame-2
                         blend_ranges[foot_joints["ankle"]].append(frame_range)
+        #print "b", constraints.keys()
         constraints = collections.OrderedDict(sorted(constraints.items()))
+        #print "a", constraints.keys()
         return constraints, blend_ranges
 
     def get_plant_frame_range(self, step):
@@ -492,3 +499,87 @@ class FootplantConstraintGenerator(object):
             constraints[frame_idx] = []
             constraints[frame_idx].append(c)
         return constraints
+
+    def generate_from_graph_walk_(self, motion_vector):
+        # the interpolation range must start at end_frame-1 because this is the last modified frame
+        constraints = dict()
+        blend_ranges = dict()
+        blend_ranges[self.right_foot] = []
+        blend_ranges[self.left_foot] = []
+
+        frames = motion_vector.frames
+        graph_walk = motion_vector.graph_walk
+        for step in graph_walk.steps:
+            #158 -  103 = 55
+            end_offset = -5
+            if step.node_key[0] in LOCOMOTION_ACTIONS:
+                if step.node_key[1] == "beginLeftStance":
+                    plant_start_frame = 0
+                    plant_end_frame = step.end_frame - self.window / 2 + end_offset
+                    new_constraints = self.create_ankle_constraints_from_heel_and_toe2(frames, self.right_foot,
+                                                                                       self.right_heel,
+                                                                                       plant_start_frame,
+                                                                                       plant_end_frame)
+                    constraints = merge_constraints(constraints, new_constraints)
+                elif step.node_key[1] == "beginRightStance":
+                    plant_start_frame = 0
+                    plant_end_frame = step.end_frame - self.window / 2 + end_offset
+                    new_constraints = self.create_ankle_constraints_from_heel_and_toe2(frames, self.left_foot,
+                                                                                       self.left_heel,
+                                                                                       plant_start_frame,
+                                                                                       plant_end_frame)
+                    constraints = merge_constraints(constraints, new_constraints)
+                    frame_range = plant_start_frame, plant_end_frame - 1
+                    blend_ranges[self.right_foot].append(frame_range)
+
+                elif step.node_key[1] == "endLeftStance":
+                    plant_start_frame = step.start_frame + self.window / 2
+                    plant_end_frame = step.end_frame
+                    new_constraints = self.create_ankle_constraints_from_heel_and_toe2(frames, self.right_foot,
+                                                                                       self.right_heel,
+                                                                                       plant_start_frame,
+                                                                                       plant_end_frame)
+                    constraints = merge_constraints(constraints, new_constraints)
+                elif step.node_key[1] == "endRightStance":
+                    plant_start_frame = step.start_frame + self.window / 2
+                    plant_end_frame = step.end_frame
+                    new_constraints = self.create_ankle_constraints_from_heel_and_toe2(frames, self.left_foot,
+                                                                                       self.left_heel,
+                                                                                       plant_start_frame,
+                                                                                       plant_end_frame)
+                    constraints = merge_constraints(constraints, new_constraints)
+                    frame_range = plant_start_frame, plant_end_frame - 1
+                    blend_ranges[self.right_foot].append(frame_range)
+                elif step.node_key[1] == "leftStance":
+
+                    plant_start_frame = step.start_frame + self.window / 2
+                    plant_end_frame = step.end_frame - self.window / 2 + end_offset
+                    #new_constraints = self.create_ankle_constraints_from_heel(frames, self.right_foot, start_frame, end_frame)
+                    #constraints = merge_constraints(constraints, new_constraints)
+
+                    new_constraints = self.create_ankle_constraints_from_heel_and_toe2(frames, self.right_foot, self.right_heel,plant_start_frame, plant_end_frame)
+                    constraints = merge_constraints(constraints, new_constraints)
+
+                    #new_constraints = self.create_ankle_constraints_from_toe(frames, self.right_foot, self.right_toe, start_frame, end_frame)
+                    #constraints = merge_constraints(constraints, new_constraints)
+
+                    frame_range = plant_start_frame, plant_end_frame - 1
+                    blend_ranges[self.right_foot].append(frame_range)
+
+                elif step.node_key[1] == "rightStance":
+
+                    plant_start_frame = step.start_frame + self.window / 2
+                    plant_end_frame = step.end_frame - self.window / 2  + end_offset
+
+                    #new_constraints = self.create_ankle_constraints_from_heel(frames, self.left_foot, start_frame, end_frame)
+                    #constraints = merge_constraints(constraints, new_constraints)
+
+                    new_constraints = self.create_ankle_constraints_from_heel_and_toe2(frames, self.left_foot, self.left_heel, plant_start_frame, plant_end_frame)
+                    constraints = merge_constraints(constraints, new_constraints)
+
+                    #new_constraints = self.create_ankle_constraints_from_toe(frames, self.left_foot, self.left_toe, start_frame,end_frame)
+                    #constraints = merge_constraints(constraints, new_constraints)
+
+                    frame_range = plant_start_frame, plant_end_frame - 1
+                    blend_ranges[self.left_foot].append(frame_range)
+        return constraints, blend_ranges

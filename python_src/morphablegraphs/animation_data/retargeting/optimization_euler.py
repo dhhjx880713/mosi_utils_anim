@@ -5,7 +5,7 @@ from scipy.optimize import minimize
 from constants import ROCKETBOX_TO_GAME_ENGINE_MAP, GAME_ENGINE_ROOT_JOINT, GAME_ENGINE_REFERENCE_POSE_EULER, EXTRA_ROOT_NAME, OPENGL_UP_AXIS, ROCKETBOX_ROOT_OFFSET
 from ...external.transformations import quaternion_from_matrix, euler_matrix, quaternion_matrix, quaternion_multiply, euler_from_quaternion, quaternion_from_euler, quaternion_inverse, euler_from_matrix
 from ..utils import LEN_QUAT, LEN_ROOT_POS, LEN_EULER
-from ..import ROTATION_TYPE_EULER, ROTATION_TYPE_QUATERNION
+from ..constants import ROTATION_TYPE_EULER, ROTATION_TYPE_QUATERNION
 
 
 
