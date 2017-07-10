@@ -95,6 +95,7 @@ class Skeleton(object):
         self.max_level = -1
         self.parent_dict = dict()
         self._chain_names = []
+        self.annotation = None
 
     def load_from_bvh(self, bvh_reader, animated_joints=None, add_tool_joints=True):
         if animated_joints is None:
