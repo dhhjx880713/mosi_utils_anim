@@ -11,7 +11,7 @@ from graph_walk_planner import GraphWalkPlanner
 from ..motion_model.motion_state_group import NODE_TYPE_END
 from ..constraints import OPTIMIZATION_MODE_ALL
 from graph_walk_optimizer import GraphWalkOptimizer
-from ..animation_data.motion_editing import MotionEditing, MotionGrounding, FootplantConstraintGenerator, SKELETON_DEFINITIONS, add_heels_to_skeleton
+from ..animation_data.motion_editing import MotionEditing, MotionGrounding, FootplantConstraintGenerator, SKELETON_ANNOTATIONS, add_heels_to_skeleton
 from ..utilities import load_json_file, write_log, clear_log, save_log, write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO, LOG_MODE_ERROR, set_log_mode
 
 
@@ -41,9 +41,9 @@ class MotionGenerator(object):
         self.step_look_ahead_distance = 100
         self.activate_global_optimization = False
         self.graph_walk_optimizer = GraphWalkOptimizer(self._motion_state_graph, algorithm_config)
-        footplant_settings = {"window": 20, "tolerance": 1, "constraint_range": 10, "smoothing_constraints_window": 15}
+        footplant_settings = {"window": 4, "tolerance": 1, "constraint_range": 10, "smoothing_constraints_window": 15}
         self.skeleton_type = "game_engine"
-        self.skeleton_def = SKELETON_DEFINITIONS[self.skeleton_type]
+        self.skeleton_def = SKELETON_ANNOTATIONS[self.skeleton_type]
         self.footplant_constraint_generator = FootplantConstraintGenerator(self._motion_state_graph.skeleton, self.skeleton_def, footplant_settings)
 
         self._motion_state_graph.skeleton = add_heels_to_skeleton(self._motion_state_graph.skeleton,
@@ -52,8 +52,6 @@ class MotionGenerator(object):
                                                                   self.skeleton_def["left_heel"],
                                                                   self.skeleton_def["right_heel"],
                                                                   self.skeleton_def["heel_offset"])
-        footplant_settings = {"left_foot":"LeftFoot", "right_foot": "RightFoot", "left_toe": "Bip01_L_Toe0", "right_toe": "Bip01_R_Toe0", "window":20,"tolerance":0.001 }
-        self.footplant_constraint_generator = FootplantConstraintGenerator(self._motion_state_graph.skeleton, footplant_settings)
         self.set_algorithm_config(algorithm_config)
 
     def generate_motion(self, mg_input, activate_joint_map, activate_coordinate_transform,
