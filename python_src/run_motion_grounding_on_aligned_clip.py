@@ -168,6 +168,25 @@ def smooth_root_translation_at_end(frames, d, window):
         t = float(i) / (window)
         frames[start_idx + i, :3] = start * (1 - t) + end * t
 
+
+def ground_both_feet(skeleton, frames, target_height, frame_idx):
+    constraints = []
+    stance_foot = skeleton.annotation["right_foot"]
+    heel_joint = skeleton.annotation["right_heel"]
+    toe_joint = skeleton.annotation["right_toe"]
+    heel_offset = skeleton.annotation["heel_offset"]
+    c1 = create_constraint(skeleton, frames, frame_idx, stance_foot, heel_joint, toe_joint, heel_offset,
+                           target_height)
+    constraints.append(c1)
+
+    stance_foot = skeleton.annotation["left_foot"]
+    toe_joint = skeleton.annotation["left_toe"]
+    heel_joint = skeleton.annotation["left_heel"]
+    c2 = create_constraint(skeleton, frames, frame_idx, stance_foot, heel_joint, toe_joint, heel_offset, target_height)
+    constraints.append(c2)
+    return constraints
+
+
 def ground_right_stance(skeleton, frames, target_height, frame_idx):
     constraints = []
     stance_foot = skeleton.annotation["right_foot"]
@@ -202,7 +221,9 @@ def ground_left_stance(skeleton, frames, target_height, frame_idx):
 
 def ground_first_frame(skeleton, frames, target_height, window_size, stance_foot="right"):
     first_frame = 0
-    if stance_foot == "right":
+    if stance_foot == "both":
+        constraints = ground_both_feet(skeleton, frames, target_height, first_frame)
+    elif stance_foot == "right":
         constraints = ground_right_stance(skeleton, frames, target_height, first_frame)
     else:
         constraints = ground_left_stance(skeleton, frames, target_height, first_frame)
@@ -220,7 +241,9 @@ def ground_first_frame(skeleton, frames, target_height, window_size, stance_foot
 
 def ground_last_frame(skeleton, frames, target_height, window_size, stance_foot="left"):
     last_frame = len(frames) - 1
-    if stance_foot == "left":
+    if stance_foot == "both":
+        constraints = ground_both_feet(skeleton, frames, target_height, last_frame)
+    elif stance_foot == "left":
         constraints = ground_left_stance(skeleton, frames, target_height, last_frame)
     else:
         constraints = ground_right_stance(skeleton, frames, target_height, last_frame)
@@ -261,7 +284,7 @@ def get_files(path, max_number, suffix="bvh"):
                     return
 
 
-def run_grounding_on_bvh_file(bvh_file, out_path, skeleton_type, start_stance_foot="right", end_stance_foot="left"):
+def run_grounding_on_bvh_file(bvh_file, out_path, skeleton_type, start_stance_foot="right", stance_foot="right", end_stance_foot="left"):
     print "apply on", bvh_file
     annotation = SKELETON_ANNOTATIONS[skeleton_type]
     bvh = BVHReader(bvh_file)
@@ -284,18 +307,43 @@ def run_grounding_on_bvh_file(bvh_file, out_path, skeleton_type, start_stance_fo
     window_size = 5
     move_to_ground(skeleton, mv.frames, foot_joints, target_height, search_window_start, window_size)  #20 45
     ground_first_frame(skeleton, mv.frames, target_height, window_size, start_stance_foot)
-    ground_initial_stance_foot(skeleton, mv.frames, target_height, start_stance_foot)
+    ground_initial_stance_foot(skeleton, mv.frames, target_height, stance_foot)
     ground_last_frame(skeleton, mv.frames, target_height, window_size, end_stance_foot)
     file_name = bvh_file.split("\\")[-1][:-4]
     out_filename = file_name + "_grounded"
     mv.export(skeleton, out_path, out_filename, add_time_stamp=False)
 
 
-def run_motion_grounding(in_path, out_path, skeleton_type, start_stance_foot, end_stance_foot, max_number=100):
+def run_motion_grounding(in_path, out_path, skeleton_type, start_stance_foot, stance_foot, end_stance_foot, max_number=100):
     bvh_files = list(get_files(in_path, max_number, "bvh"))
     for bvh_file in bvh_files:
-        run_grounding_on_bvh_file(bvh_file, out_path, skeleton_type, start_stance_foot, end_stance_foot)
+        run_grounding_on_bvh_file(bvh_file, out_path, skeleton_type, start_stance_foot, stance_foot, end_stance_foot)
 
+configuration = dict()
+configuration["leftStance"] = dict()
+configuration["leftStance"]["start_stance_foot"] = "right"
+configuration["leftStance"]["stance_foot"] = "right"
+configuration["leftStance"]["end_stance_foot"] = "left"
+configuration["rightStance"] = dict()
+configuration["rightStance"]["start_stance_foot"] = "left"
+configuration["rightStance"]["stance_foot"] = "left"
+configuration["rightStance"]["end_stance_foot"] = "right"
+configuration["beginLeftStance"] = dict()
+configuration["beginLeftStance"]["start_stance_foot"] = "both"
+configuration["beginLeftStance"]["stance_foot"] = "right"
+configuration["beginLeftStance"]["end_stance_foot"] = "left"
+configuration["beginRightStance"] = dict()
+configuration["beginRightStance"]["start_stance_foot"] = "both"
+configuration["beginRightStance"]["stance_foot"] = "left"
+configuration["beginRightStance"]["end_stance_foot"] = "right"
+configuration["endRightStance"] = dict()
+configuration["endRightStance"]["start_stance_foot"] = "left"
+configuration["endRightStance"]["stance_foot"] = "left"
+configuration["endRightStance"]["end_stance_foot"] = "both"
+configuration["endLeftStance"] = dict()
+configuration["endLeftStance"]["start_stance_foot"] = "right"
+configuration["endLeftStance"]["stance_foot"] = "right"
+configuration["endLeftStance"]["end_stance_foot"] = "both"
 
 if __name__ == "__main__":
     bvh_file = "skeleton.bvh"
@@ -303,13 +351,15 @@ if __name__ == "__main__":
     #bvh_file = "walk_014_2.bvh"
     bvh_file = "game_engine_left_stance.bvh"
     skeleton_type = "game_engine"
-    in_path = r"E:\projects\INTERACT\data\1 - MoCap\4 - Alignment\elementary_action_walk\leftStance_game_engine_skeleton_new"
-    out_path =  "out\\foot_sliding"
-    start_stance_foot = "right"
-    end_stance_foot = "left"
-    #run_grounding_on_bvh_file(bvh_file, out_path skeleton_type, start_stance_foot, end_stance_foot)
+    step_type = "beginLeftStance"
+    ea_path = "E:\\projects\\INTERACT\\data\\1 - MoCap\\4 - Alignment\\elementary_action_walk"
+    in_path = ea_path+"\\"+step_type+"_game_engine_skeleton_new"
+    out_path = ea_path+"\\" +step_type+"_game_engine_skeleton_new_grounded"#"out\\foot_sliding"
+    configuration = configuration[step_type]
+    start_stance_foot = configuration["start_stance_foot"]
+    stance_foot = configuration["stance_foot"]
+    end_stance_foot = configuration["end_stance_foot"]
+    #run_grounding_on_bvh_file(bvh_file, "out//foot_sliding", skeleton_type, start_stance_foot, stance_foot, end_stance_foot)
 
-    #start_stance_foot = "left"
-    #end_stance_foot = "right"
-    max_number = 1
-    run_motion_grounding(in_path, out_path, skeleton_type, start_stance_foot, end_stance_foot, max_number)
+    max_number = 10
+    run_motion_grounding(in_path, out_path, skeleton_type, start_stance_foot, stance_foot, end_stance_foot, max_number)
