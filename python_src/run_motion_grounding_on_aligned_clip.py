@@ -20,12 +20,18 @@ LEFT_HEEL = "LeftHeel"
 RIGHT_HEEL = "RightHeel"
 
 
-def create_constraint(skeleton, frames, frame_idx, ankle_joint, heel_joint, toe_joint,heel_offset, target_ground_height):
-    ct = skeleton.nodes[toe_joint].get_global_position(frames[frame_idx])
-    ch = skeleton.nodes[heel_joint].get_global_position(frames[frame_idx])
-    ct[1] = target_ground_height
+def create_constraint(skeleton, frames, frame_idx, ankle_joint, heel_joint, toe_joint,heel_offset, target_ground_height, heel_pos=None, toe_pos=None):
+    if toe_pos is None:
+        ct = skeleton.nodes[toe_joint].get_global_position(frames[frame_idx])
+        ct[1] = target_ground_height
+    else:
+        ct = toe_pos
+    if heel_pos is None:
+        ch = skeleton.nodes[heel_joint].get_global_position(frames[frame_idx])
+        ch[1] = target_ground_height
+    else:
+        ch = heel_pos
 
-    ch[1] = target_ground_height
 
     target_direction = normalize(ct - ch)
 
@@ -193,15 +199,24 @@ def ground_last_frame(skeleton, frames, target_height, window_size, stance_foot=
         apply_constraint(skeleton, frames, last_frame, c, last_frame - window_size, last_frame, window_size)
 
 
-def ground_initial_stance_foot(skeleton, frames, target_height, stance_foot="right"):
+def ground_initial_stance_foot(skeleton, frames, target_height, stance_foot="right", mode="toe"):
     foot_joint = skeleton.annotation[stance_foot+"_foot"]
     toe_joint = skeleton.annotation[stance_foot+"_toe"]
+    heel_joint = skeleton.annotation[stance_foot+"_heel"]
+    heel_offset = skeleton.annotation["heel_offset"]
+
     toe_pos = None
+    heel_pos = None
     for frame_idx in xrange(0, len(frames)):
         if toe_pos is None:
             toe_pos = skeleton.nodes[toe_joint].get_global_position(frames[frame_idx])
             toe_pos[1] = target_height
-        c = generate_ankle_constraint_from_toe(skeleton, frames, frame_idx, foot_joint, toe_joint, target_height, toe_pos)
+            heel_pos = skeleton.nodes[heel_joint].get_global_position(frames[frame_idx])
+            heel_pos[1] = target_height
+        if mode == "toe":
+            c = generate_ankle_constraint_from_toe(skeleton, frames, frame_idx, foot_joint, toe_joint, target_height, toe_pos)
+        else:
+            c = create_constraint(skeleton, frames, frame_idx, foot_joint, heel_joint, toe_joint, heel_offset, target_height, heel_pos, toe_pos)
         root_pos = generate_root_constraint_for_one_foot(skeleton, frames[frame_idx], c)
         if root_pos is not None:
             frames[frame_idx][:3] = root_pos
