@@ -234,6 +234,14 @@ def get_files(path, max_number, suffix="bvh"):
                     return
 
 
+def align_xz_to_origin(skeleton, frames):
+    root = skeleton.aligning_root_node
+    tframe = frames[0]
+    offset = np.array([0, 0, 0]) - skeleton.nodes[root].get_global_position(tframe)
+    for frame_idx in xrange(0, len(frames)):
+        frames[frame_idx, 0] += offset[0]
+        frames[frame_idx, 2] += offset[2]
+
 def run_grounding_on_bvh_file(bvh_file, out_path, skeleton_type, configuration):
     print "apply on", bvh_file
     annotation = SKELETON_ANNOTATIONS[skeleton_type]
@@ -265,6 +273,7 @@ def run_grounding_on_bvh_file(bvh_file, out_path, skeleton_type, configuration):
     if stance_mode is not "none":
         ground_initial_stance_foot(skeleton, mv.frames, target_height, stance_foot, stance_mode)
     ground_last_frame(skeleton, mv.frames, target_height, end_window_size, end_stance_foot)
+    align_xz_to_origin(skeleton, mv.frames)
     file_name = bvh_file.split("\\")[-1][:-4]
     out_filename = file_name + "_grounded"
     mv.export(skeleton, out_path, out_filename, add_time_stamp=False)
