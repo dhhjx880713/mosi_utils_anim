@@ -215,6 +215,7 @@ def ground_right_stance(skeleton, frames, target_height, frame_idx):
     constraints.append(c2)
     return constraints
 
+
 def ground_left_stance(skeleton, frames, target_height, frame_idx):
     constraints = []
     stance_foot = skeleton.annotation["left_foot"]
@@ -270,6 +271,7 @@ def ground_last_frame(skeleton, frames, target_height, window_size, stance_foot=
     for c in constraints:
         apply_constraint(skeleton, frames, last_frame, c, last_frame - window_size, last_frame, window_size)
 
+
 def ground_initial_stance_foot(skeleton, frames, target_height, stance_foot="right"):
     foot_joint = skeleton.annotation[stance_foot+"_foot"]
     toe_joint = skeleton.annotation[stance_foot+"_toe"]
@@ -316,7 +318,7 @@ def run_grounding_on_bvh_file(bvh_file, out_path, skeleton_type, configuration):
     target_height = 0
     foot_joints = skeleton.annotation["foot_joints"]
     search_window_start = int(len(mv.frames)/2)
-    window_size = 5
+    window_size = 10
     start_stance_foot = configuration["start_stance_foot"]
     stance_foot = configuration["stance_foot"]
     end_stance_foot = configuration["end_stance_foot"]
