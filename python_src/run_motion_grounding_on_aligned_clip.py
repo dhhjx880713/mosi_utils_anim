@@ -55,11 +55,14 @@ def create_constraint(skeleton, frames, frame_idx, ankle_joint, heel_joint, toe_
     return MotionGroundingConstraint(frame_idx, ankle_joint, ca, None, orientation)
 
 
-def generate_ankle_constraint_from_toe(skeleton, frames, frame_idx, ankle_joint_name, toe_joint_name, target_ground_height):
+def generate_ankle_constraint_from_toe(skeleton, frames, frame_idx, ankle_joint_name, toe_joint_name, target_ground_height, toe_pos = None):
     """ create a constraint on the ankle position based on the toe constraint position"""
     #print "add toe constraint"
-    ct = skeleton.nodes[toe_joint_name].get_global_position(frames[frame_idx])
-    ct[1] = target_ground_height  # set toe constraint on the ground
+    if toe_pos is None:
+        ct = skeleton.nodes[toe_joint_name].get_global_position(frames[frame_idx])
+        ct[1] = target_ground_height  # set toe constraint on the ground
+    else:
+        ct = toe_pos
     a = skeleton.nodes[ankle_joint_name].get_global_position(frames[frame_idx])
     t = skeleton.nodes[toe_joint_name].get_global_position(frames[frame_idx])
 
@@ -82,11 +85,21 @@ def global_position_to_root_translation(skeleton, frame, joint_name, p):
     parent_joint = skeleton.nodes[joint_name].parent.node_name
     parent_m = skeleton.nodes[parent_joint].get_global_matrix(tframe, use_cache=False)
     old_global = np.dot(parent_m, skeleton.nodes[joint_name].get_local_matrix(tframe))
-    #new_global = np.array(old_global)#np.dot(delta_m, old_global)
-    #new_global[:3, 3] = p
-    #new_local = np.dot(np.linalg.inv(parent_m), new_global)
-    #new_local[:3, 3]  # use the translation
     return p - old_global[:3,3]
+
+
+def generate_root_constraint_for_one_foot(skeleton, frame, c):
+    root = skeleton.aligning_root_node
+    root_pos = skeleton.nodes[root].get_global_position(frame)
+    target_length = np.linalg.norm(c.position - root_pos)
+    limb_length = get_limb_length(skeleton, c.joint_name)
+    if target_length >= limb_length:
+        new_root_pos = (c.position + normalize(root_pos - c.position) * limb_length)
+        print "one constraint on ", c.joint_name, "- before", root_pos, "after", new_root_pos
+        return global_position_to_root_translation(skeleton, frame, root, new_root_pos)
+
+    else:
+        print "no change"
 
 
 def generate_root_constraint_for_two_feet(skeleton, frame, constraint1, constraint2):
@@ -127,7 +140,8 @@ def apply_constraint(skeleton, frames, frame_idx, c, blend_start, blend_end, ble
     frames[frame_idx] = ik.apply2(frames[frame_idx], c.position, c.orientation)
     print "a",c.joint_name,frame_idx,skeleton.nodes[c.joint_name].get_global_position(frames[frame_idx])
     joint_list = [ik_chain["root"], ik_chain["joint"], c.joint_name]
-    blend_between_frames(skeleton, frames, blend_start, blend_end, joint_list, blend_window)
+    if blend_start < blend_end:
+        blend_between_frames(skeleton, frames, blend_start, blend_end, joint_list, blend_window)
 
 
 def move_to_ground(skeleton,frames, foot_joints, target_ground_height,start_frame=0, n_frames=5):
@@ -221,6 +235,19 @@ def ground_last_frame(skeleton, frames, target_height, window_size, stance_foot=
     for c in constraints:
         apply_constraint(skeleton, frames, last_frame, c, last_frame - window_size, last_frame)
 
+def ground_initial_stance_foot(skeleton, frames, target_height, stance_foot="right"):
+    foot_joint = skeleton.annotation[stance_foot+"_foot"]
+    toe_joint = skeleton.annotation[stance_foot+"_toe"]
+    toe_pos = None
+    for frame_idx in xrange(0, len(frames)):
+        if toe_pos is None:
+            toe_pos = skeleton.nodes[toe_joint].get_global_position(frames[frame_idx])
+            toe_pos[1] = target_height
+        c = generate_ankle_constraint_from_toe(skeleton, frames, frame_idx, foot_joint, toe_joint, target_height, toe_pos)
+        root_pos = generate_root_constraint_for_one_foot(skeleton, frames[frame_idx], c)
+        if root_pos is not None:
+            frames[frame_idx][:3] = root_pos
+        apply_constraint(skeleton, frames, frame_idx, c, frame_idx, frame_idx)
 
 
 def get_files(path, max_number, suffix="bvh"):
@@ -229,11 +256,13 @@ def get_files(path, max_number, suffix="bvh"):
         for file_name in files:
             if file_name.endswith(suffix):
                 yield path + os.sep + file_name
-                count +=1
-                if count>= max_number:
+                count += 1
+                if count >= max_number:
                     return
 
+
 def run_grounding_on_bvh_file(bvh_file, skeleton_type, start_stance_foot="right", end_stance_foot="left"):
+    print "apply on", bvh_file
     annotation = SKELETON_ANNOTATIONS[skeleton_type]
     bvh = BVHReader(bvh_file)
     animated_joints = list(bvh.get_animated_joints())
@@ -254,11 +283,13 @@ def run_grounding_on_bvh_file(bvh_file, skeleton_type, start_stance_foot="right"
     move_to_ground(skeleton, mv.frames, foot_joints, target_height, 20, 5)  # 45
     window_size = 5
     ground_first_frame(skeleton, mv.frames, target_height, window_size, start_stance_foot)
+    ground_initial_stance_foot(skeleton, mv.frames, target_height, start_stance_foot)
     ground_last_frame(skeleton, mv.frames, target_height, window_size, end_stance_foot)
     mv.export(skeleton, "out\\foot_sliding", "out")
 
+
 def run_motion_grounding(path, skeleton_type, start_stance_foot, end_stance_foot, max_number=100):
-    bvh_files = list(get_files(path,max_number, "bvh"))
+    bvh_files = list(get_files(path, max_number, "bvh"))
     for bvh_file in bvh_files:
         run_grounding_on_bvh_file(bvh_file, skeleton_type, start_stance_foot, end_stance_foot)
 
@@ -270,8 +301,11 @@ if __name__ == "__main__":
     bvh_file = "game_engine_left_stance.bvh"
     skeleton_type = "game_engine"
     path = r"E:\projects\INTERACT\data\1 - MoCap\4 - Alignment\elementary_action_walk\rightStance_game_engine_skeleton_new"
-    max_number = 10
     start_stance_foot = "right"
     end_stance_foot = "left"
-    run_grounding_on_bvh_file(bvh_file, skeleton_type, start_stance_foot, end_stance_foot)
-    #run_motion_grounding(path, skeleton_type, start_stance_foot, end_stance_foot , max_number  )
+    #run_grounding_on_bvh_file(bvh_file, skeleton_type, start_stance_foot, end_stance_foot)
+
+    start_stance_foot = "left"
+    end_stance_foot = "right"
+    max_number = 1
+    run_motion_grounding(path, skeleton_type, start_stance_foot, end_stance_foot, max_number)
