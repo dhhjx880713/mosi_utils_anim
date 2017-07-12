@@ -261,7 +261,7 @@ def get_files(path, max_number, suffix="bvh"):
                     return
 
 
-def run_grounding_on_bvh_file(bvh_file, skeleton_type, start_stance_foot="right", end_stance_foot="left"):
+def run_grounding_on_bvh_file(bvh_file, out_path, skeleton_type, start_stance_foot="right", end_stance_foot="left"):
     print "apply on", bvh_file
     annotation = SKELETON_ANNOTATIONS[skeleton_type]
     bvh = BVHReader(bvh_file)
@@ -280,18 +280,21 @@ def run_grounding_on_bvh_file(bvh_file, skeleton_type, start_stance_foot="right"
 
     target_height = 0
     foot_joints = skeleton.annotation["foot_joints"]
-    move_to_ground(skeleton, mv.frames, foot_joints, target_height, 20, 5)  # 45
+    search_window_start = int(len(mv.frames)/2)
     window_size = 5
+    move_to_ground(skeleton, mv.frames, foot_joints, target_height, search_window_start, window_size)  #20 45
     ground_first_frame(skeleton, mv.frames, target_height, window_size, start_stance_foot)
     ground_initial_stance_foot(skeleton, mv.frames, target_height, start_stance_foot)
     ground_last_frame(skeleton, mv.frames, target_height, window_size, end_stance_foot)
-    mv.export(skeleton, "out\\foot_sliding", "out")
+    file_name = bvh_file.split("\\")[-1][:-4]
+    out_filename = file_name + "_grounded"
+    mv.export(skeleton, out_path, out_filename, add_time_stamp=False)
 
 
-def run_motion_grounding(path, skeleton_type, start_stance_foot, end_stance_foot, max_number=100):
-    bvh_files = list(get_files(path, max_number, "bvh"))
+def run_motion_grounding(in_path, out_path, skeleton_type, start_stance_foot, end_stance_foot, max_number=100):
+    bvh_files = list(get_files(in_path, max_number, "bvh"))
     for bvh_file in bvh_files:
-        run_grounding_on_bvh_file(bvh_file, skeleton_type, start_stance_foot, end_stance_foot)
+        run_grounding_on_bvh_file(bvh_file, out_path, skeleton_type, start_stance_foot, end_stance_foot)
 
 
 if __name__ == "__main__":
@@ -300,12 +303,13 @@ if __name__ == "__main__":
     #bvh_file = "walk_014_2.bvh"
     bvh_file = "game_engine_left_stance.bvh"
     skeleton_type = "game_engine"
-    path = r"E:\projects\INTERACT\data\1 - MoCap\4 - Alignment\elementary_action_walk\rightStance_game_engine_skeleton_new"
+    in_path = r"E:\projects\INTERACT\data\1 - MoCap\4 - Alignment\elementary_action_walk\leftStance_game_engine_skeleton_new"
+    out_path =  "out\\foot_sliding"
     start_stance_foot = "right"
     end_stance_foot = "left"
-    #run_grounding_on_bvh_file(bvh_file, skeleton_type, start_stance_foot, end_stance_foot)
+    #run_grounding_on_bvh_file(bvh_file, out_path skeleton_type, start_stance_foot, end_stance_foot)
 
-    start_stance_foot = "left"
-    end_stance_foot = "right"
+    #start_stance_foot = "left"
+    #end_stance_foot = "right"
     max_number = 1
-    run_motion_grounding(path, skeleton_type, start_stance_foot, end_stance_foot, max_number)
+    run_motion_grounding(in_path, out_path, skeleton_type, start_stance_foot, end_stance_foot, max_number)
