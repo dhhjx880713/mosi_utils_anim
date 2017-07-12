@@ -11,7 +11,6 @@ from morphablegraphs.animation_data.motion_editing.motion_grounding import creat
 from morphablegraphs.animation_data.motion_editing.utils import guess_ground_height, normalize, quaternion_from_vector_to_vector, project_on_intersection_circle
 from morphablegraphs.animation_data.motion_editing.analytical_inverse_kinematics import AnalyticalLimbIK
 from morphablegraphs.external.transformations import quaternion_from_matrix, quaternion_multiply, quaternion_matrix, quaternion_slerp
-from morphablegraphs.animation_data.motion_concatenation import blend_between_frames
 
 LEFT_FOOT = "LeftFoot"
 RIGHT_FOOT = "RightFoot"
@@ -133,6 +132,19 @@ def generate_root_constraint_for_two_feet(skeleton, frame, constraint1, constrai
     return p#p_c - offset
 
 
+def blend_between_frames(skeleton, frames, start, end, joint_list, window):
+    for joint in joint_list:
+        idx = skeleton.animated_joints.index(joint) * 4 + 3
+        j_indices = [idx, idx + 1, idx + 2, idx + 3]
+        start_q = frames[start][j_indices]
+        end_q = frames[end][j_indices]
+        print joint, window
+        for i in xrange(window):
+            t = float(i) / window
+            slerp_q = quaternion_slerp(start_q, end_q, t, spin=0, shortestpath=True)
+            frames[start + i][j_indices] = slerp_q
+            print "blend at frame", start + i, slerp_q
+
 def apply_constraint(skeleton, frames, frame_idx, c, blend_start, blend_end, blend_window=5):
     ik_chain = skeleton.annotation["ik_chains"][c.joint_name]
     ik = AnalyticalLimbIK.init_from_dict(skeleton, c.joint_name, ik_chain)
@@ -234,9 +246,9 @@ def ground_first_frame(skeleton, frames, target_height, window_size, stance_foot
     if root_pos is not None:
         frames[first_frame][:3] = root_pos
         print "change root at frame", first_frame
-        smooth_root_translation_at_start(frames, first_frame, 5)
+        smooth_root_translation_at_start(frames, first_frame, window_size)
     for c in constraints:
-        apply_constraint(skeleton, frames, first_frame, c, first_frame, first_frame + window_size)
+        apply_constraint(skeleton, frames, first_frame, c, first_frame, first_frame + window_size, window_size)
 
 
 def ground_last_frame(skeleton, frames, target_height, window_size, stance_foot="left"):
@@ -254,9 +266,9 @@ def ground_last_frame(skeleton, frames, target_height, window_size, stance_foot=
     if root_pos is not None:
         frames[last_frame][:3] = root_pos
         print "change root at frame", last_frame
-        smooth_root_translation_at_end(frames, last_frame, 5)
+        smooth_root_translation_at_end(frames, last_frame, window_size)
     for c in constraints:
-        apply_constraint(skeleton, frames, last_frame, c, last_frame - window_size, last_frame)
+        apply_constraint(skeleton, frames, last_frame, c, last_frame - window_size, last_frame, window_size)
 
 def ground_initial_stance_foot(skeleton, frames, target_height, stance_foot="right"):
     foot_joint = skeleton.annotation[stance_foot+"_foot"]
