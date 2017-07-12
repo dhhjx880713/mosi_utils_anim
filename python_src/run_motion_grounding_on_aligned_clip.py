@@ -70,10 +70,10 @@ def generate_ankle_constraint_from_toe(skeleton, frames, frame_idx, ankle_joint_
     return MotionGroundingConstraint(frame_idx, ankle_joint_name, ca, None, None)
 
 
-def get_limb_length(skeleton, joint_name):
+def get_limb_length(skeleton, joint_name, offset=1):
     limb_length = np.linalg.norm(skeleton.nodes[joint_name].offset)
     limb_length += np.linalg.norm(skeleton.nodes[joint_name].parent.offset)
-    return limb_length
+    return limb_length + offset
 
 
 def global_position_to_root_translation(skeleton, frame, joint_name, p):
