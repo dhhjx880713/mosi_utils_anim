@@ -1,3 +1,4 @@
+import os
 from morphablegraphs.animation_data import BVHReader, Skeleton, MotionVector
 from morphablegraphs.motion_generator.algorithm_configuration import AlgorithmConfigurationBuilder
 from morphablegraphs.animation_data.motion_editing import FootplantConstraintGenerator
@@ -129,65 +130,115 @@ def apply_constraint(skeleton, frames, frame_idx, c, blend_start, blend_end, ble
     blend_between_frames(skeleton, frames, blend_start, blend_end, joint_list, blend_window)
 
 
-def move_to_ground(skeleton,frames, foot_joints, target_ground_height):
-    source_ground_height = guess_ground_height(skeleton, frames, 5, foot_joints)
+def move_to_ground(skeleton,frames, foot_joints, target_ground_height,start_frame=0, n_frames=5):
+    source_ground_height = guess_ground_height(skeleton, frames,start_frame, n_frames, foot_joints)
     for f in frames:
         f[1] += target_ground_height - source_ground_height
 
 
+def smooth_root_translation_at_start(frames, d, window):
+    start = frames[d, :3]
+    start_idx = d+window
+    end = frames[start_idx, :3]
+    for i in xrange(window):
+        t = float(i) / (window)
+        frames[d + i, :3] = start * (1 - t) + end * t
 
 
-def ground_first_frame(skeleton, frames, target_height, window_size):
-    first_frame = 0
+def smooth_root_translation_at_end(frames, d, window):
+    root_pos = frames[d, :3]
+    start_idx = d-window
+    start = frames[start_idx, :3]
+    end = root_pos
+    for i in xrange(window):
+        t = float(i) / (window)
+        frames[start_idx + i, :3] = start * (1 - t) + end * t
+
+def ground_right_stance(skeleton, frames, target_height, frame_idx):
     constraints = []
     stance_foot = skeleton.annotation["right_foot"]
     heel_joint = skeleton.annotation["right_heel"]
     toe_joint = skeleton.annotation["right_toe"]
     heel_offset = skeleton.annotation["heel_offset"]
-    c1 = create_constraint(skeleton, frames, first_frame, stance_foot, heel_joint, toe_joint, heel_offset, target_height)
+    c1 = create_constraint(skeleton, frames, frame_idx, stance_foot, heel_joint, toe_joint, heel_offset,
+                           target_height)
     constraints.append(c1)
 
     swing_foot = skeleton.annotation["left_foot"]
     toe_joint = skeleton.annotation["left_toe"]
-    c2 = generate_ankle_constraint_from_toe(skeleton, frames, first_frame, swing_foot, toe_joint, target_height)
+    c2 = generate_ankle_constraint_from_toe(skeleton, frames, frame_idx, swing_foot, toe_joint, target_height)
     constraints.append(c2)
+    return constraints
+
+def ground_left_stance(skeleton, frames, target_height, frame_idx):
+    constraints = []
+    stance_foot = skeleton.annotation["left_foot"]
+    heel_joint = skeleton.annotation["left_heel"]
+    toe_joint = skeleton.annotation["left_toe"]
+    heel_offset = skeleton.annotation["heel_offset"]
+    c1 = create_constraint(skeleton, frames, frame_idx, stance_foot, heel_joint, toe_joint, heel_offset, target_height)
+    constraints.append(c1)
+
+    swing_foot = skeleton.annotation["right_foot"]
+    toe_joint = skeleton.annotation["right_toe"]
+    c2 = generate_ankle_constraint_from_toe(skeleton, frames, frame_idx, swing_foot, toe_joint, target_height)
+    constraints.append(c2)
+    return constraints
+
+
+def ground_first_frame(skeleton, frames, target_height, window_size, stance_foot="right"):
+    first_frame = 0
+    if stance_foot == "right":
+        constraints = ground_right_stance(skeleton, frames, target_height, first_frame)
+    else:
+        constraints = ground_left_stance(skeleton, frames, target_height, first_frame)
+
+    c1 = constraints[0]
+    c2 = constraints[1]
     root_pos = generate_root_constraint_for_two_feet(skeleton, frames[first_frame], c1, c2)
     if root_pos is not None:
         frames[first_frame][:3] = root_pos
         print "change root at frame", first_frame
+        smooth_root_translation_at_start(frames, first_frame, 5)
     for c in constraints:
         apply_constraint(skeleton, frames, first_frame, c, first_frame, first_frame + window_size)
 
 
-def ground_last_frame(skeleton, frames, target_height, window_size):
+def ground_last_frame(skeleton, frames, target_height, window_size, stance_foot="left"):
     last_frame = len(frames) - 1
-    constraints = []
-    swing_foot = skeleton.annotation["left_foot"]
-    heel_joint = skeleton.annotation["left_heel"]
-    toe_joint = skeleton.annotation["left_toe"]
-    heel_offset = skeleton.annotation["heel_offset"]
-    c1 = create_constraint(skeleton, frames, last_frame, swing_foot, heel_joint, toe_joint, heel_offset, target_height)
-    constraints.append(c1)
+    if stance_foot == "left":
+        constraints = ground_left_stance(skeleton, frames, target_height, last_frame)
+    else:
+        constraints = ground_right_stance(skeleton, frames, target_height, last_frame)
 
-    stance_foot = skeleton.annotation["right_foot"]
-    toe_joint = skeleton.annotation["right_toe"]
-    c2 = generate_ankle_constraint_from_toe(skeleton, frames, last_frame, stance_foot, toe_joint, target_height)
-    constraints.append(c2)
+    c1 = constraints[0]
+    c2 = constraints[1]
     root_pos = generate_root_constraint_for_two_feet(skeleton, frames[last_frame], c1, c2)
     if root_pos is not None:
         frames[last_frame][:3] = root_pos
         print "change root at frame", last_frame
-
+        smooth_root_translation_at_end(frames, last_frame, 5)
     for c in constraints:
         apply_constraint(skeleton, frames, last_frame, c, last_frame - window_size, last_frame)
 
 
-def run_motion_grounding(bvh_file, skeleton_type):
+
+def get_files(path, max_number, suffix="bvh"):
+    count = 0
+    for root, dirs, files in os.walk(path):
+        for file_name in files:
+            if file_name.endswith(suffix):
+                yield path + os.sep + file_name
+                count +=1
+                if count>= max_number:
+                    return
+
+def run_grounding_on_bvh_file(bvh_file, skeleton_type, start_stance_foot="right", end_stance_foot="left"):
     annotation = SKELETON_ANNOTATIONS[skeleton_type]
     bvh = BVHReader(bvh_file)
     animated_joints = list(bvh.get_animated_joints())
     skeleton = Skeleton()
-    skeleton.load_from_bvh(bvh, animated_joints) # filter here
+    skeleton.load_from_bvh(bvh, animated_joints)  # filter here
     skeleton.aligning_root_node = "pelvis"
     skeleton.annotation = annotation
     mv = MotionVector()
@@ -200,18 +251,27 @@ def run_motion_grounding(bvh_file, skeleton_type):
 
     target_height = 0
     foot_joints = skeleton.annotation["foot_joints"]
-    move_to_ground(skeleton, mv.frames, foot_joints, target_height)
+    move_to_ground(skeleton, mv.frames, foot_joints, target_height, 20, 5)  # 45
     window_size = 5
-    ground_first_frame(skeleton, mv.frames, target_height, window_size)
-    ground_last_frame(skeleton, mv.frames, target_height, window_size)
-
-
+    ground_first_frame(skeleton, mv.frames, target_height, window_size, start_stance_foot)
+    ground_last_frame(skeleton, mv.frames, target_height, window_size, end_stance_foot)
     mv.export(skeleton, "out\\foot_sliding", "out")
+
+def run_motion_grounding(path, skeleton_type, start_stance_foot, end_stance_foot, max_number=100):
+    bvh_files = list(get_files(path,max_number, "bvh"))
+    for bvh_file in bvh_files:
+        run_grounding_on_bvh_file(bvh_file, skeleton_type, start_stance_foot, end_stance_foot)
+
 
 if __name__ == "__main__":
     bvh_file = "skeleton.bvh"
     bvh_file = "walk_001_1.bvh"
     #bvh_file = "walk_014_2.bvh"
-    bvh_file = "game_engine_left_stance_2.bvh"
+    bvh_file = "game_engine_left_stance.bvh"
     skeleton_type = "game_engine"
-    run_motion_grounding(bvh_file, skeleton_type)
+    path = r"E:\projects\INTERACT\data\1 - MoCap\4 - Alignment\elementary_action_walk\rightStance_game_engine_skeleton_new"
+    max_number = 10
+    start_stance_foot = "right"
+    end_stance_foot = "left"
+    run_grounding_on_bvh_file(bvh_file, skeleton_type, start_stance_foot, end_stance_foot)
+    #run_motion_grounding(path, skeleton_type, start_stance_foot, end_stance_foot , max_number  )
