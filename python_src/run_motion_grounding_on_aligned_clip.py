@@ -254,14 +254,17 @@ def run_grounding_on_bvh_file(bvh_file, out_path, skeleton_type, configuration):
     target_height = 0
     foot_joints = skeleton.annotation["foot_joints"]
     search_window_start = int(len(mv.frames)/2)
-    window_size = 10
     start_stance_foot = configuration["start_stance_foot"]
     stance_foot = configuration["stance_foot"]
     end_stance_foot = configuration["end_stance_foot"]
-    move_to_ground(skeleton, mv.frames, foot_joints, target_height, search_window_start, window_size)  #20 45
-    ground_first_frame(skeleton, mv.frames, target_height, window_size, start_stance_foot)
-    ground_initial_stance_foot(skeleton, mv.frames, target_height, stance_foot)
-    ground_last_frame(skeleton, mv.frames, target_height, window_size, end_stance_foot)
+    stance_mode = configuration["stance_mode"]
+    start_window_size = configuration["start_window_size"]
+    end_window_size = configuration["end_window_size"]
+    move_to_ground(skeleton, mv.frames, foot_joints, target_height, search_window_start, start_window_size)  #20 45
+    ground_first_frame(skeleton, mv.frames, target_height, start_window_size, start_stance_foot)
+    if stance_mode is not "none":
+        ground_initial_stance_foot(skeleton, mv.frames, target_height, stance_foot, stance_mode)
+    ground_last_frame(skeleton, mv.frames, target_height, end_window_size, end_stance_foot)
     file_name = bvh_file.split("\\")[-1][:-4]
     out_filename = file_name + "_grounded"
     mv.export(skeleton, out_path, out_filename, add_time_stamp=False)
@@ -272,31 +275,72 @@ def run_motion_grounding(in_path, out_path, skeleton_type, configuration, max_nu
     for bvh_file in bvh_files:
         run_grounding_on_bvh_file(bvh_file, out_path, skeleton_type, configuration)
 
-configuration = dict()
-configuration["leftStance"] = dict()
-configuration["leftStance"]["start_stance_foot"] = "right"
-configuration["leftStance"]["stance_foot"] = "right"
-configuration["leftStance"]["end_stance_foot"] = "left"
-configuration["rightStance"] = dict()
-configuration["rightStance"]["start_stance_foot"] = "left"
-configuration["rightStance"]["stance_foot"] = "left"
-configuration["rightStance"]["end_stance_foot"] = "right"
-configuration["beginLeftStance"] = dict()
-configuration["beginLeftStance"]["start_stance_foot"] = "both"
-configuration["beginLeftStance"]["stance_foot"] = "right"
-configuration["beginLeftStance"]["end_stance_foot"] = "left"
-configuration["beginRightStance"] = dict()
-configuration["beginRightStance"]["start_stance_foot"] = "both"
-configuration["beginRightStance"]["stance_foot"] = "left"
-configuration["beginRightStance"]["end_stance_foot"] = "right"
-configuration["endRightStance"] = dict()
-configuration["endRightStance"]["start_stance_foot"] = "left"
-configuration["endRightStance"]["stance_foot"] = "left"
-configuration["endRightStance"]["end_stance_foot"] = "both"
-configuration["endLeftStance"] = dict()
-configuration["endLeftStance"]["start_stance_foot"] = "right"
-configuration["endLeftStance"]["stance_foot"] = "right"
-configuration["endLeftStance"]["end_stance_foot"] = "both"
+configurations = collections.OrderedDict()
+
+configurations["leftStance"] = dict()
+configurations["leftStance"]["start_stance_foot"] = "right"
+configurations["leftStance"]["stance_foot"] = "right"
+configurations["leftStance"]["end_stance_foot"] = "left"
+configurations["leftStance"]["stance_mode"] = "toe"
+configurations["leftStance"]["start_window_size"] = 10
+configurations["leftStance"]["end_window_size"] = 10
+
+configurations["rightStance"] = dict()
+configurations["rightStance"]["start_stance_foot"] = "left"
+configurations["rightStance"]["stance_foot"] = "left"
+configurations["rightStance"]["end_stance_foot"] = "right"
+configurations["rightStance"]["stance_mode"] = "toe"
+configurations["rightStance"]["start_window_size"] = 10
+configurations["rightStance"]["end_window_size"] = 10
+
+configurations["beginLeftStance"] = dict()
+configurations["beginLeftStance"]["start_stance_foot"] = "both"
+configurations["beginLeftStance"]["stance_foot"] = "right"
+configurations["beginLeftStance"]["end_stance_foot"] = "left"
+configurations["beginLeftStance"]["stance_mode"] = "toe"
+configurations["beginLeftStance"]["start_window_size"] = 10
+configurations["beginLeftStance"]["end_window_size"] = 10
+
+configurations["beginRightStance"] = dict()
+configurations["beginRightStance"]["start_stance_foot"] = "both"
+configurations["beginRightStance"]["stance_foot"] = "left"
+configurations["beginRightStance"]["end_stance_foot"] = "right"
+configurations["beginRightStance"]["stance_mode"] = "toe"
+configurations["beginRightStance"]["start_window_size"] = 10
+configurations["beginRightStance"]["end_window_size"] = 10
+
+configurations["endRightStance"] = dict()
+configurations["endRightStance"]["start_stance_foot"] = "left"
+configurations["endRightStance"]["stance_foot"] = "left"
+configurations["endRightStance"]["end_stance_foot"] = "both"
+configurations["endRightStance"]["stance_mode"] = "full"
+configurations["endRightStance"]["start_window_size"] = 10
+configurations["endRightStance"]["end_window_size"] = 10
+
+configurations["endLeftStance"] = dict()
+configurations["endLeftStance"]["start_stance_foot"] = "right"
+configurations["endLeftStance"]["stance_foot"] = "right"
+configurations["endLeftStance"]["end_stance_foot"] = "both"
+configurations["endLeftStance"]["stance_mode"] = "full"
+configurations["endLeftStance"]["start_window_size"] = 10
+configurations["endLeftStance"]["end_window_size"] = 10
+
+
+configurations["turnLeftRightStance"] = dict()
+configurations["turnLeftRightStance"]["start_stance_foot"] = "both"
+configurations["turnLeftRightStance"]["stance_foot"] = "none"
+configurations["turnLeftRightStance"]["end_stance_foot"] = "right"
+configurations["turnLeftRightStance"]["stance_mode"] = "none"
+configurations["turnLeftRightStance"]["start_window_size"] = 20
+configurations["turnLeftRightStance"]["end_window_size"] = 20
+
+configurations["turnRightLeftStance"] = dict()
+configurations["turnRightLeftStance"]["start_stance_foot"] = "both"
+configurations["turnRightLeftStance"]["stance_foot"] = "none"
+configurations["turnRightLeftStance"]["end_stance_foot"] = "left"
+configurations["turnRightLeftStance"]["stance_mode"] = "none"
+configurations["turnRightLeftStance"]["start_window_size"] = 20
+configurations["turnRightLeftStance"]["end_window_size"] = 20
 
 if __name__ == "__main__":
     bvh_file = "skeleton.bvh"
@@ -304,11 +348,11 @@ if __name__ == "__main__":
     #bvh_file = "walk_014_2.bvh"
     bvh_file = "game_engine_left_stance.bvh"
     skeleton_type = "game_engine"
-    step_type = "beginLeftStance"
-    ea_path = "E:\\projects\\INTERACT\\data\\1 - MoCap\\4 - Alignment\\elementary_action_walk"
-    in_path = ea_path+"\\"+step_type+"_game_engine_skeleton_new"
-    out_path = ea_path+"\\" +step_type+"_game_engine_skeleton_new_grounded"#"out\\foot_sliding"
-    configuration = configuration[step_type]
-    #run_grounding_on_bvh_file(bvh_file, "out//foot_sliding", skeleton_type, configuration)
-    max_number = 10
-    run_motion_grounding(in_path, out_path, skeleton_type, configuration, max_number)
+    for step_type in configurations.keys():
+        ea_path = "E:\\projects\\INTERACT\\data\\1 - MoCap\\4 - Alignment\\elementary_action_walk"
+        in_path = ea_path + "\\" + step_type + "_game_engine_skeleton_new"
+        out_path = ea_path + "\\" + step_type + "_game_engine_skeleton_new_grounded"#"out\\foot_sliding"
+        config = configurations[step_type]
+        #run_grounding_on_bvh_file(bvh_file, "out//foot_sliding", skeleton_type, configuration)
+        max_number = 1000
+        run_motion_grounding(in_path, out_path, skeleton_type, config, max_number)
