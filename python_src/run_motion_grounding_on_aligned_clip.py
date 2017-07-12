@@ -296,7 +296,7 @@ def get_files(path, max_number, suffix="bvh"):
                     return
 
 
-def run_grounding_on_bvh_file(bvh_file, out_path, skeleton_type, start_stance_foot="right", stance_foot="right", end_stance_foot="left"):
+def run_grounding_on_bvh_file(bvh_file, out_path, skeleton_type, configuration):
     print "apply on", bvh_file
     annotation = SKELETON_ANNOTATIONS[skeleton_type]
     bvh = BVHReader(bvh_file)
@@ -317,6 +317,9 @@ def run_grounding_on_bvh_file(bvh_file, out_path, skeleton_type, start_stance_fo
     foot_joints = skeleton.annotation["foot_joints"]
     search_window_start = int(len(mv.frames)/2)
     window_size = 5
+    start_stance_foot = configuration["start_stance_foot"]
+    stance_foot = configuration["stance_foot"]
+    end_stance_foot = configuration["end_stance_foot"]
     move_to_ground(skeleton, mv.frames, foot_joints, target_height, search_window_start, window_size)  #20 45
     ground_first_frame(skeleton, mv.frames, target_height, window_size, start_stance_foot)
     ground_initial_stance_foot(skeleton, mv.frames, target_height, stance_foot)
@@ -326,10 +329,10 @@ def run_grounding_on_bvh_file(bvh_file, out_path, skeleton_type, start_stance_fo
     mv.export(skeleton, out_path, out_filename, add_time_stamp=False)
 
 
-def run_motion_grounding(in_path, out_path, skeleton_type, start_stance_foot, stance_foot, end_stance_foot, max_number=100):
+def run_motion_grounding(in_path, out_path, skeleton_type, configuration, max_number=100):
     bvh_files = list(get_files(in_path, max_number, "bvh"))
     for bvh_file in bvh_files:
-        run_grounding_on_bvh_file(bvh_file, out_path, skeleton_type, start_stance_foot, stance_foot, end_stance_foot)
+        run_grounding_on_bvh_file(bvh_file, out_path, skeleton_type, configuration)
 
 configuration = dict()
 configuration["leftStance"] = dict()
@@ -368,10 +371,6 @@ if __name__ == "__main__":
     in_path = ea_path+"\\"+step_type+"_game_engine_skeleton_new"
     out_path = ea_path+"\\" +step_type+"_game_engine_skeleton_new_grounded"#"out\\foot_sliding"
     configuration = configuration[step_type]
-    start_stance_foot = configuration["start_stance_foot"]
-    stance_foot = configuration["stance_foot"]
-    end_stance_foot = configuration["end_stance_foot"]
-    #run_grounding_on_bvh_file(bvh_file, "out//foot_sliding", skeleton_type, start_stance_foot, stance_foot, end_stance_foot)
-
+    #run_grounding_on_bvh_file(bvh_file, "out//foot_sliding", skeleton_type, configuration)
     max_number = 10
-    run_motion_grounding(in_path, out_path, skeleton_type, start_stance_foot, stance_foot, end_stance_foot, max_number)
+    run_motion_grounding(in_path, out_path, skeleton_type, configuration, max_number)
