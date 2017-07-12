@@ -1,14 +1,10 @@
 import os
+import collections
 from morphablegraphs.animation_data import BVHReader, Skeleton, MotionVector
-from morphablegraphs.motion_generator.algorithm_configuration import AlgorithmConfigurationBuilder
-from morphablegraphs.animation_data.motion_editing import FootplantConstraintGenerator
-from morphablegraphs.animation_data.motion_editing import MotionGrounding
 from morphablegraphs.animation_data.motion_editing.constants import *
-from morphablegraphs.animation_data.motion_editing.motion_grounding import IKConstraintSet
-from morphablegraphs.animation_data.motion_editing.utils import get_average_joint_position, get_average_joint_direction, plot_joint_heights, add_heels_to_skeleton, get_joint_height, \
-    save_ground_contact_annotation
-from morphablegraphs.animation_data.motion_editing.motion_grounding import create_grounding_constraint_from_frame, MotionGroundingConstraint
-from morphablegraphs.animation_data.motion_editing.utils import guess_ground_height, normalize, quaternion_from_vector_to_vector, project_on_intersection_circle
+from morphablegraphs.animation_data.motion_editing.utils import add_heels_to_skeleton, generate_root_constraint_for_one_foot, generate_root_constraint_for_two_feet, \
+    guess_ground_height, normalize, quaternion_from_vector_to_vector, smooth_root_translation_at_end, smooth_root_translation_at_start
+from morphablegraphs.animation_data.motion_editing.motion_grounding import MotionGroundingConstraint
 from morphablegraphs.animation_data.motion_editing.analytical_inverse_kinematics import AnalyticalLimbIK
 from morphablegraphs.external.transformations import quaternion_from_matrix, quaternion_multiply, quaternion_matrix, quaternion_slerp
 
@@ -70,66 +66,8 @@ def generate_ankle_constraint_from_toe(skeleton, frames, frame_idx, ankle_joint_
     return MotionGroundingConstraint(frame_idx, ankle_joint_name, ca, None, None)
 
 
-def get_limb_length(skeleton, joint_name, offset=1):
-    limb_length = np.linalg.norm(skeleton.nodes[joint_name].offset)
-    limb_length += np.linalg.norm(skeleton.nodes[joint_name].parent.offset)
-    return limb_length + offset
 
 
-def global_position_to_root_translation(skeleton, frame, joint_name, p):
-    """ determine necessary root translation to achieve a global position"""
-
-    tframe = np.array(frame)
-    tframe[:3] = [0,0,0]
-    parent_joint = skeleton.nodes[joint_name].parent.node_name
-    parent_m = skeleton.nodes[parent_joint].get_global_matrix(tframe, use_cache=False)
-    old_global = np.dot(parent_m, skeleton.nodes[joint_name].get_local_matrix(tframe))
-    return p - old_global[:3,3]
-
-
-def generate_root_constraint_for_one_foot(skeleton, frame, c):
-    root = skeleton.aligning_root_node
-    root_pos = skeleton.nodes[root].get_global_position(frame)
-    target_length = np.linalg.norm(c.position - root_pos)
-    limb_length = get_limb_length(skeleton, c.joint_name)
-    if target_length >= limb_length:
-        new_root_pos = (c.position + normalize(root_pos - c.position) * limb_length)
-        print "one constraint on ", c.joint_name, "- before", root_pos, "after", new_root_pos
-        return global_position_to_root_translation(skeleton, frame, root, new_root_pos)
-
-    else:
-        print "no change"
-
-
-def generate_root_constraint_for_two_feet(skeleton, frame, constraint1, constraint2):
-    """ Set the root position to the projection on the intersection of two spheres """
-    root = skeleton.aligning_root_node
-    # root = self.skeleton.root
-    p = skeleton.nodes[root].get_global_position(frame)
-    offset = skeleton.nodes[root].get_global_position(skeleton.identity_frame)#[0, skeleton.nodes[root].offset[0], -skeleton.nodes[root].offset[1]]
-    print p, offset
-
-    t1 = np.linalg.norm(constraint1.position - p)
-    t2 = np.linalg.norm(constraint2.position - p)
-
-    c1 = constraint1.position
-    r1 = get_limb_length(skeleton, constraint1.joint_name)
-    # p1 = c1 + r1 * normalize(p-c1)
-    c2 = constraint2.position
-    r2 = get_limb_length(skeleton, constraint2.joint_name)
-    # p2 = c2 + r2 * normalize(p-c2)
-    if r1 > t1 and r2 > t2:
-        print "no root constraint", t1,t2, r1, r2
-        return None
-    print "adapt root for two constraints", t1, t2,  r1, r2
-
-    p_c = project_on_intersection_circle(p, c1, r1, c2, r2)
-    p = global_position_to_root_translation(skeleton, frame, root, p_c)
-    tframe = np.array(frame)
-    tframe[:3] = p
-    new_p = skeleton.nodes[root].get_global_position(tframe)
-    print "compare",p_c, new_p
-    return p#p_c - offset
 
 
 def blend_between_frames(skeleton, frames, start, end, joint_list, window):
@@ -162,23 +100,6 @@ def move_to_ground(skeleton,frames, foot_joints, target_ground_height,start_fram
         f[1] += target_ground_height - source_ground_height
 
 
-def smooth_root_translation_at_start(frames, d, window):
-    start = frames[d, :3]
-    start_idx = d+window
-    end = frames[start_idx, :3]
-    for i in xrange(window):
-        t = float(i) / (window)
-        frames[d + i, :3] = start * (1 - t) + end * t
-
-
-def smooth_root_translation_at_end(frames, d, window):
-    root_pos = frames[d, :3]
-    start_idx = d-window
-    start = frames[start_idx, :3]
-    end = root_pos
-    for i in xrange(window):
-        t = float(i) / (window)
-        frames[start_idx + i, :3] = start * (1 - t) + end * t
 
 
 def ground_both_feet(skeleton, frames, target_height, frame_idx):
