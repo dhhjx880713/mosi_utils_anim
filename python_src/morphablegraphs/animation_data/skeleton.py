@@ -282,14 +282,17 @@ class Skeleton(object):
                 point = np.dot(global_matrix, point)
                 return point[:3].tolist()
 
-    def convert_quaternion_frame_to_cartesian_frame(self, quat_frame):
+    def convert_quaternion_frame_to_cartesian_frame(self, quat_frame, node_names=None):
         """
         Converts quaternion frames to cartesian frames by calling get_cartesian_coordinates_from_quaternion for each joint
         """
+        if node_names is None:
+            node_names = self.node_name_frame_map.keys()
         cartesian_frame = []
-        for node_name in self.node_name_frame_map.keys():
-            position = self.nodes[node_name].get_global_position(quat_frame)
-            cartesian_frame.append(position)
+        for node_name in node_names:
+            if node_name in self.node_name_frame_map.keys():
+                position = self.nodes[node_name].get_global_position(quat_frame)
+                cartesian_frame.append(position)
         return cartesian_frame
 
     def clear_cached_global_matrices(self):

@@ -21,7 +21,8 @@ class PoseConstraint(KeyframeConstraintBase):
         self.skeleton = skeleton
         self.pose_constraint = constraint_desc["frame_constraint"]
         self.constraint_type = SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE
-        return
+        self.node_names = constraint_desc["node_names"]
+        self.weights = constraint_desc["weights"]
 
     def evaluate_motion_spline(self, aligned_spline):
         return self.evaluate_frame(aligned_spline.evaluate(self.canonical_keyframe))
@@ -48,11 +49,12 @@ class PoseConstraint(KeyframeConstraintBase):
 
     def evaluate_frame(self, frame):
         # get point cloud of first frame
-        point_cloud = self.skeleton.convert_quaternion_frame_to_cartesian_frame(frame)
-        #print len(self.pose_constraint), len(point_cloud)
+        point_cloud = self.skeleton.convert_quaternion_frame_to_cartesian_frame(frame, self.node_names)
+
+        print "evaluate pose constraint", len(self.pose_constraint), len(point_cloud)
         theta, offset_x, offset_z = align_point_clouds_2D(self.pose_constraint,
                                                           point_cloud,
-                                                          self.skeleton.joint_weights)
+                                                          self.weights)
         t_point_cloud = transform_point_cloud(
             point_cloud, theta, offset_x, offset_z)
 
@@ -69,11 +71,11 @@ class PoseConstraint(KeyframeConstraintBase):
 
     def get_residual_vector_frame(self, frame):
         # get point cloud of first frame
-        point_cloud = self.skeleton.convert_quaternion_frame_to_cartesian_frame(frame)
+        point_cloud = self.skeleton.convert_quaternion_frame_to_cartesian_frame(frame, self.node_names)
 
         theta, offset_x, offset_z = align_point_clouds_2D(self.pose_constraint,
                                                           point_cloud,
-                                                          self.skeleton.joint_weights)
+                                                          self.weights)
         t_point_cloud = transform_point_cloud(point_cloud, theta, offset_x, offset_z)
         residual_vector = []
         for i in xrange(len(t_point_cloud)):

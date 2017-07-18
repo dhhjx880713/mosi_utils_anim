@@ -5,7 +5,7 @@ import numpy as np
 import collections
 GAME_ENGINE_SKELETON_MODEL = collections.OrderedDict()
 GAME_ENGINE_SKELETON_MODEL["Root"] = "Game_engine"
-GAME_ENGINE_SKELETON_MODEL["Hips"] = "pelvis"
+GAME_ENGINE_SKELETON_MODEL["Pelvis"] = "pelvis"
 GAME_ENGINE_SKELETON_MODEL["Spine"] = "spine_01"
 GAME_ENGINE_SKELETON_MODEL["Spine_1"] = "spine_02"
 GAME_ENGINE_SKELETON_MODEL["LeftShoulder"] = "clavicle_l"
@@ -27,7 +27,7 @@ GAME_ENGINE_SKELETON_MODEL["Head"] = "head"
 
 ROCKETBOX_SKELETON_MODEL = collections.OrderedDict()
 ROCKETBOX_SKELETON_MODEL["Root"] = "Hips"
-ROCKETBOX_SKELETON_MODEL["Hips"] = "Hips"
+ROCKETBOX_SKELETON_MODEL["Pelvis"] = "Hips"
 ROCKETBOX_SKELETON_MODEL["Spine"] = "Spine"
 ROCKETBOX_SKELETON_MODEL["Spine_1"] = "Spine_1"
 ROCKETBOX_SKELETON_MODEL["LeftShoulder"] = "LeftShoulder"
