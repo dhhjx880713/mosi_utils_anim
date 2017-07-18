@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from ..animation_data import MotionVector, ROTATION_TYPE_QUATERNION, Skeleton, BVHReader
+from ..animation_data import MotionVector, ROTATION_TYPE_QUATERNION, SkeletonBuilder, BVHReader
 from ..utilities import write_to_json_file
 from ..utilities.io_helper_functions import get_bvh_writer
 
@@ -30,8 +30,7 @@ class AnnotatedMotionVector(MotionVector):
 
     def load_from_file(self, file_name, filter_joints=True):
         bvh = BVHReader(file_name)
-        self.skeleton = Skeleton()
-        self.from_bvh_reader(bvh, filter_joints=filter_joints)
+        self.skeleton = SkeletonBuilder().from_bvh_reader(bvh, filter_joints=filter_joints)
 
     def generate_bvh_string(self):
         bvh_writer = get_bvh_writer(self.skeleton, self.frames)

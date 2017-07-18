@@ -1,4 +1,4 @@
-from morphablegraphs.animation_data import BVHReader, Skeleton, MotionVector
+from morphablegraphs.animation_data import BVHReader, SkeletonBuilder, MotionVector
 from morphablegraphs.motion_generator.algorithm_configuration import AlgorithmConfigurationBuilder
 from morphablegraphs.animation_data.motion_editing import FootplantConstraintGenerator
 from morphablegraphs.animation_data.motion_editing import MotionGrounding
@@ -65,8 +65,7 @@ def run_motion_grounding(bvh_file, skeleton_type):
     target_ground_height = 0.0
     bvh = BVHReader(bvh_file)
     animated_joints = list(bvh.get_animated_joints())
-    skeleton = Skeleton()
-    skeleton.load_from_bvh(bvh, animated_joints) # filter here
+    skeleton = SkeletonBuilder().load_from_bvh(bvh, animated_joints) # filter here
     mv = MotionVector()
     mv.from_bvh_reader(bvh) # filter here
     config = AlgorithmConfigurationBuilder().build()

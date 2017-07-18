@@ -7,7 +7,7 @@ Created on Thu Jul 16 15:57:51 2015
 
 import os
 from ..animation_data.bvh import BVHReader
-from ..animation_data.skeleton import Skeleton
+from ..animation_data.skeleton_builder import SkeletonBuilder
 from ..animation_data.utils import euler_to_quaternion
 from ..utilities.io_helper_functions import load_json_file
 from gp_mixture import GPMixture
@@ -65,12 +65,11 @@ class MotionStateGraphLoader(object):
         zip_path = self.motion_state_graph_path+".zip"
         zip_reader = ZipReader(zip_path, pickle_objects=True)
         graph_data = zip_reader.get_graph_data()
-        motion_state_graph.skeleton = Skeleton()
         if SKELETON_BVH_STRING_KEY in graph_data.keys():
             bvh_reader = BVHReader("").init_from_string(graph_data[SKELETON_BVH_STRING_KEY])
-            motion_state_graph.skeleton.load_from_bvh(bvh_reader)
+            motion_state_graph.skeleton = SkeletonBuilder().load_from_bvh(bvh_reader)
         elif SKELETON_JSON_KEY in graph_data.keys():
-            motion_state_graph.skeleton.load_from_json_data(graph_data[SKELETON_JSON_KEY])
+            motion_state_graph.skeleton = SkeletonBuilder().load_from_json_data(graph_data[SKELETON_JSON_KEY])
         else:
             raise Exception("There is no skeleton defined in the graph file")
             return
@@ -102,12 +101,11 @@ class MotionStateGraphLoader(object):
         # add transitions between subgraphs and load transition models
         if os.path.isfile(graph_definition_file):
             graph_definition = load_json_file(graph_definition_file)
-            motion_state_graph.skeleton = Skeleton()
             skeleton_path = self.motion_state_graph_path + os.sep + SKELETON_FILE
             if SKELETON_JSON_KEY in graph_definition.keys():
-                motion_state_graph.skeleton.load_from_json_data(graph_definition[SKELETON_JSON_KEY])
+                motion_state_graph.skeleton = SkeletonBuilder().load_from_json_data(graph_definition[SKELETON_JSON_KEY])
             elif os.path.isfile(skeleton_path+"bvh"):
-                motion_state_graph.skeleton.load_from_bvh(BVHReader(skeleton_path+"bvh"))
+                motion_state_graph.skeleton = SkeletonBuilder().load_from_bvh(BVHReader(skeleton_path+"bvh"))
             else:
                 raise Exception("There is no skeleton defined in the graph directory")
                 return

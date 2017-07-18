@@ -11,10 +11,10 @@ import json
 import numpy as np
 from ..external.transformations import quaternion_matrix
 from quaternion_frame import QuaternionFrame
-from ..animation_data.utils import euler_to_quaternion
 from itertools import izip
 from skeleton_node import SkeletonRootNode, SkeletonJointNode, SkeletonEndSiteNode, SKELETON_NODE_TYPE_JOINT, SKELETON_NODE_TYPE_END_SITE
 from constants import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER
+from skeleton_models import ROCKETBOX_ANIMATED_JOINT_LIST, ROCKETBOX_FREE_JOINTS_MAP, ROCKETBOX_REDUCED_FREE_JOINTS_MAP, ROCKETBOX_SKELETON_MODEL, ROCKETBOX_BOUNDS, ROCKETBOX_TOOL_BONES, ROCKETBOX_ROOT_DIR
 try:
     from mgrd import Skeleton as MGRDSkeleton
     from mgrd import SkeletonNode as MGRDSkeletonNode
@@ -23,69 +23,21 @@ except ImportError:
     has_mgrd = False
     pass
 
-DEFAULT_TOOL_BONES = [{
-            "new_node_name": 'LeftToolEndSite',
-            "parent_node_name": 'LeftHand',
-            "new_node_offset": [6.1522069, -0.09354633,  3.33790343]
-        },{
-            "new_node_name": 'RightToolEndSite',
-            "parent_node_name": 'RightHand',
-            "new_node_offset": [6.1522069, 0.09354633,  3.33790343]
-            },{
-            "new_node_name": 'RightScrewDriverEndSite',
-            "parent_node_name": 'RightHand',
-            "new_node_offset": [22.1522069, -9.19354633, 3.33790343]
-            }, {
-                "new_node_name": 'LeftScrewDriverEndSite',
-                "parent_node_name": 'LeftHand',
-                "new_node_offset": [22.1522069,  9.19354633,  3.33790343]
-            }
-]
-DEFAULT_FREE_JOINTS_MAP = {"LeftHand":["Spine","LeftArm", "LeftForeArm"],
-                           "RightHand":["Spine","RightArm","RightForeArm"],
-                           "LeftToolEndSite":["Spine","LeftArm","LeftForeArm"],
-                           "RightToolEndSite":["Spine","RightArm", "RightForeArm"],#, "RightHand"
-                            "Head":[],
-                           "RightScrewDriverEndSite":["Spine","RightArm","RightForeArm"],
-                           "LeftScrewDriverEndSite": ["Spine","LeftArm", "LeftForeArm"]
-                           }
-DEFAULT_REDUCED_FREE_JOINTS_MAP = {"LeftHand":["LeftArm", "LeftForeArm"],
-                                       "RightHand":["RightArm","RightForeArm"],
-                                       "LeftToolEndSite":["LeftArm","LeftForeArm"],
-                                       "RightToolEndSite":["RightArm", "RightForeArm"],
-                                        "Head":[],
-                                        "RightScrewDriverEndSite":["RightArm","RightForeArm"],
-                                       "LeftScrewDriverEndSite": ["LeftArm", "LeftForeArm"]
-                                       }
-DEG2RAD = np.pi / 180
-hand_bounds = [{"dim": 0, "min":30*DEG2RAD, "max": 180*DEG2RAD}, {"dim": 1, "min": -15*DEG2RAD, "max":120*DEG2RAD}, {"dim": 1, "min": -40*DEG2RAD, "max":40*DEG2RAD}]
-DEFAULT_HEAD_JOINT = "Head"
-DEFAULT_NECK_JOINT = "Neck"
-DEFAULT_ROOT_DIR = [0,0,1]
-DEFAULT_BOUNDS = {"LeftArm":[],#{"dim": 1, "min": 0, "max": 90}
-                       "RightArm":[]#{"dim": 1, "min": 0, "max": 90},{"dim": 0, "min": 0, "max": 90}
-                 ,"RightHand":hand_bounds,#[[-90, 90],[0, 0],[-90,90]]
-                  "LeftHand": hand_bounds#[[-90, 90],[0, 0],[-90,90]]
-                  }
-
-DEFAULT_ANIMATED_JOINT_LIST = ["Hips", "Spine", "Spine_1", "Neck", "Head", "LeftShoulder", "LeftArm", "LeftForeArm", "LeftHand", "RightShoulder", "RightArm", "RightForeArm", "RightHand", "LeftUpLeg", "LeftLeg", "LeftFoot", "RightUpLeg", "RightLeg", "RightFoot"]
-
 
 class Skeleton(object):
     """ Data structure that stores the skeleton hierarchy information
         extracted from a BVH file with additional meta information.
     """
     def __init__(self):
-        self.animated_joints = DEFAULT_ANIMATED_JOINT_LIST
-        self.free_joints_map = DEFAULT_FREE_JOINTS_MAP
-        self.reduced_free_joints_map = DEFAULT_REDUCED_FREE_JOINTS_MAP
-        self.head_joint = DEFAULT_HEAD_JOINT
-        self.neck_joint = DEFAULT_NECK_JOINT
-        self.bounds = DEFAULT_BOUNDS
+        self.animated_joints = ROCKETBOX_ANIMATED_JOINT_LIST
+        self.free_joints_map = ROCKETBOX_FREE_JOINTS_MAP
+        self.reduced_free_joints_map = ROCKETBOX_REDUCED_FREE_JOINTS_MAP
+        self.skeleton_model = ROCKETBOX_SKELETON_MODEL
+        self.bounds = ROCKETBOX_BOUNDS
         self.frame_time = None
         self.root = None
         self.aligning_root_node = None  # Node that defines body orientation. Can be different from the root node.
-        self.aligning_root_dir = DEFAULT_ROOT_DIR
+        self.aligning_root_dir = None
         self.node_names = None
         self.reference_frame = None
         self.reference_frame_length = None
@@ -95,191 +47,21 @@ class Skeleton(object):
         self.max_level = -1
         self.parent_dict = dict()
         self._chain_names = []
+        self.identity_frame = None
         self.annotation = None
 
-    def load_from_bvh(self, bvh_reader, animated_joints=None, add_tool_joints=True):
-        if animated_joints is None:
-            animated_joints = DEFAULT_ANIMATED_JOINT_LIST
-        self.animated_joints = animated_joints
-        self.frame_time = deepcopy(bvh_reader.frame_time)
-        self.root = deepcopy(bvh_reader.root)
-        self.node_names = deepcopy(bvh_reader.node_names)
-        self.reference_frame = self._extract_reference_frame(bvh_reader)
-        self.reference_frame_length = len(self.reference_frame)
-        self.node_channels = collections.OrderedDict()
-        self.extract_channels()
-        self.nodes = collections.OrderedDict()
-        self._create_filtered_node_name_frame_map()
-        self.tool_nodes = []
-        if add_tool_joints:
-            self._add_tool_nodes(DEFAULT_TOOL_BONES)
-        self.max_level = self._get_max_level()
-        self._set_joint_weights()
-        self.nodes = collections.OrderedDict()
-        joint_list = [k for k in bvh_reader.node_names if "children" in bvh_reader.node_names[k].keys() and len(bvh_reader.node_names[k]["children"]) > 0]
-        self.construct_hierarchy_from_bvh(joint_list, bvh_reader.node_names, self.node_channels, self.root)
+    def create_identity_frame(self):
+        self.identity_frame = np.zeros(self.reference_frame_length)
+        offset = 3
+        for j in self.nodes.keys():
+            if len(self.nodes[j].channels) > 0:
+                self.identity_frame[offset:offset + 4] = [1, 0, 0, 0]
+                offset += 4
 
-        self.parent_dict = self._get_parent_dict()
-        self._chain_names = self._generate_chain_names()
-        self.create_euler_frame_indice()
-
-    def create_euler_frame_indice(self):
+    def create_euler_frame_indices(self):
         nodes_without_endsite = [node for node in self.nodes.values() if node.node_type != SKELETON_NODE_TYPE_END_SITE]
         for node in nodes_without_endsite:
             node.euler_frame_index = nodes_without_endsite.index(node)
-
-    def construct_hierarchy_from_bvh(self, joints, node_info, node_channels, node_name):
-        if node_name in joints:
-            joint_index = joints.index(node_name)
-        else:
-            joint_index = -1
-        if node_name == self.root:
-            node = SkeletonRootNode(node_name, node_channels[node_name], None)
-            if node_name in self.animated_joints:
-                node.fixed = False
-                node.quaternion_frame_index = self.animated_joints.index(node_name)
-            else:
-                node.fixed = True
-            node.index = joint_index
-        elif "children" in node_info[node_name].keys() and len(node_info[node_name]["children"]) > 0:
-            node = SkeletonJointNode(node_name, node_channels[node_name], None)
-            if node_name in self.animated_joints:
-                node.fixed = False
-                node.quaternion_frame_index = self.animated_joints.index(node_name)
-                offset = node.quaternion_frame_index * 4 + 3
-                node.rotation = self.reference_frame[offset: offset + 4]
-            else:
-                node.fixed = True
-            node.index = joint_index
-        else:
-            node = SkeletonEndSiteNode(node_name, [], None)
-
-        node.index = joint_index
-
-        print "node", node_name, node.quaternion_frame_index, node.index
-
-        node.offset = self.node_names[node_name]["offset"]
-        self.nodes[node_name] = node
-        if "children" in node_info[node_name].keys():
-            for c in node_info[node_name]["children"]:
-                c_node = self.construct_hierarchy_from_bvh(joints, node_info, node_channels, c)
-                c_node.parent = node
-                node.children.append(c_node)
-        return node
-
-    def load_from_json_file(self, filename):
-        with open(filename) as infile:
-            data = json.load(infile)
-            self.load_from_json_data(data)
-
-    def load_from_json_data(self, data):
-        self.animated_joints = data["animated_joints"]
-        if "free_joints_map" in data.keys():
-            self.free_joints_map = data["free_joints_map"]
-        self.reduced_free_joints_map = DEFAULT_REDUCED_FREE_JOINTS_MAP#data["reduced_free_joints_map"]
-        self.bounds = DEFAULT_BOUNDS#data["bounds"]
-        if "head_joint" in data.keys():
-            self.head_joint = data["head_joint"]
-        if "neck_joint" in data.keys():
-            self.neck_joint = data["neck_joint"]
-        self.frame_time = data["frame_time"]
-        self.nodes = collections.OrderedDict()
-        root = self._create_node_from_desc(data["root"], None)
-        self.root = root.node_name
-        self.reference_frame = np.array(data["reference_frame"])
-        self.reference_frame_length = len(self.reference_frame)
-        self.node_channels = data["node_channels"]
-        if "tool_nodes" in data.keys():
-            self.tool_nodes = data["tool_nodes"]
-        self.node_name_frame_map = data["node_name_frame_map"]
-        self.node_names = data["node_names"]
-        self.max_level = self._get_max_level()
-        self._set_joint_weights()
-        self.parent_dict = self._get_parent_dict()
-        self._chain_names = self._generate_chain_names()
-        if "aligning_root_node" in data.keys():
-            self.aligning_root_node = data["aligning_root_node"]
-
-        else:
-            self.aligning_root_node = self.root
-
-        if "aligning_root_dir" in data.keys():
-            self.aligning_root_dir = data["aligning_root_dir"]
-        else:
-            self.aligning_root_dir = DEFAULT_ROOT_DIR
-
-    def load_from_fbx_data(self, data):
-        self.nodes = collections.OrderedDict()
-
-        self.animated_joints = data["animated_joints"]
-        #self.inv_bind_poses = [self._create_node_from_desc(node, None) for node in data["nodes"].values()]
-        self.root = data["root"]
-        self._create_node_from_desc2(data, self.root, None)
-        self.frame_time = data["frame_time"]
-        self.parent_dict = self._get_parent_dict()
-        self._chain_names = self._generate_chain_names()
-
-        n_params = len(self.animated_joints) * 4 + 3
-        self.reference_frame = np.zeros(n_params)
-        offset = 3
-        for node_name in self.animated_joints:
-            self.reference_frame[offset:offset + 4] = data["nodes"][node_name]["rotation"]
-            offset += 4
-        self.reference_frame_length = len(self.reference_frame)
-
-    def _create_node_from_desc(self, data, parent):
-        node_name = data["name"]
-        channels = data["channels"]
-        if parent is None:
-            node = SkeletonRootNode( node_name, channels, parent)
-        elif data["node_type"] == SKELETON_NODE_TYPE_JOINT:
-            node = SkeletonJointNode(node_name, channels, parent)
-        else:
-            node = SkeletonEndSiteNode(node_name, channels, parent)
-        #node.fixed = data["fixed"]
-        node.index = data["index"]
-        node.offset = np.array(data["offset"])
-        node.rotation = np.array(data["rotation"])
-        if node_name in self.animated_joints:
-            node.quaternion_frame_index = self.animated_joints.index(node_name)
-            node.fixed = False
-        else:
-            node.quaternion_frame_index = -1
-            node.fixed = True
-        self.nodes[node_name] = node
-        self.nodes[node_name].children = []
-        for c_desc in data["children"]:
-            self.nodes[node_name].children.append(self._create_node_from_desc(c_desc, node))
-        return node
-
-    def _create_node_from_desc2(self, data, node_name, parent):
-        node_data = data["nodes"][node_name]
-
-
-        channels = node_data["channels"]
-        if parent is None:
-            node = SkeletonRootNode(node_name, channels, parent)
-        elif node_data["node_type"] == SKELETON_NODE_TYPE_JOINT:
-            node = SkeletonJointNode(node_name, channels, parent)
-        else:
-            node = SkeletonEndSiteNode(node_name, channels, parent)
-        #node.fixed = node_data["fixed"]
-        node.index = node_data["index"]
-        node.offset = np.array(node_data["offset"])
-        node.rotation = np.array(node_data["rotation"])
-        if node_name in self.animated_joints:
-            node.quaternion_frame_index = self.animated_joints.index(node_name)
-            node.fixed = False
-        else:
-            node.quaternion_frame_index = -1
-            node.fixed = True
-        node.children = []
-        self.nodes[node_name] = node
-        for c_name in node_data["children"]:
-            c_node = self._create_node_from_desc2(data, c_name, node)
-            node.children.append(c_node)
-
-        return node
 
     def _get_node_desc(self, name):
         node_desc = dict()
@@ -289,7 +71,6 @@ class Skeleton(object):
             node_desc["parent"] = node.parent.node_name
         else:
             node_desc["parent"] = None
-
         node_desc["quaternion_frame_index"] = node.quaternion_frame_index
         node_desc["index"] = node.index
         node_desc["offset"] = node.offset
@@ -310,8 +91,7 @@ class Skeleton(object):
         data["free_joints_map"] = self.free_joints_map
         data["reduced_free_joints_map"] = self.reduced_free_joints_map
         data["bounds"] = self.bounds
-        data["head_joint"] = self.head_joint
-        data["neck_joint"] = self.neck_joint
+        data["skeleton_model"] = self.skeleton_model
         data["frame_time"] = self.frame_time
         data["root"] = self._get_node_desc(self.root)
         data["reference_frame"] = self.reference_frame.tolist()
@@ -373,6 +153,7 @@ class Skeleton(object):
                     else:
                         src_start = self.nodes[joint_name].quaternion_frame_index * 4 + 3
                         new_frame[dest_start: dest_start+4] = reduced_frame[src_start: src_start + 4]
+
                 joint_index += 1
         return new_frame
 

@@ -15,7 +15,7 @@ from ..space_partitioning.clustering import CLUSTERING_METHOD_KMEANS
 from ..space_partitioning.features import map_motions_to_euclidean_pca, END_EFFECTORS2
 from ..motion_model.motion_primitive_wrapper import MotionPrimitiveModelWrapper
 from ..animation_data.bvh import BVHReader
-from ..animation_data.skeleton import Skeleton, DEFAULT_ANIMATED_JOINT_LIST
+from ..animation_data.skeleton_builder import SkeletonBuilder, ROCKETBOX_ANIMATED_JOINT_LIST
 from ..animation_data.utils import euler_to_quaternion
 import cPickle as pickle
 
@@ -111,7 +111,7 @@ class ClusterTreeBuilder(object):
         self.tree_type = settings["tree_type"]
         self.feature_type = settings["feature_type"]
         self.output_mode = settings["output_mode"]
-        self.animated_joints = DEFAULT_ANIMATED_JOINT_LIST
+        self.animated_joints = ROCKETBOX_ANIMATED_JOINT_LIST
 
     def set_config(self, config_file_path):
         config_file = open(config_file_path)
@@ -129,8 +129,7 @@ class ClusterTreeBuilder(object):
         bvh = BVHReader(skeleton_path)
         self.animated_joints = list(bvh.get_animated_joints())
         self.mgrd_skeleton = MGRDSkeletonBVHLoader(skeleton_path).load()
-        self.skeleton = Skeleton()
-        self.skeleton.load_from_bvh(BVHReader(skeleton_path), self.animated_joints)
+        self.skeleton = SkeletonBuilder().load_from_bvh(BVHReader(skeleton_path), self.animated_joints)
 
     def _get_samples_using_threshold(self, motion_primitive, threshold=0, max_iter_count=5):
         data = []

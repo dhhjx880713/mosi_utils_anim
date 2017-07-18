@@ -9,8 +9,7 @@ import numpy as np
 from copy import deepcopy
 import os
 from operator import itemgetter
-from ...animation_data.skeleton import Skeleton
-from ...animation_data.bvh import BVHReader, BVHWriter
+from ...animation_data import BVHReader, BVHWriter, SkeletonBuilder
 from ...animation_data.utils import \
     get_cartesian_coordinates_from_euler_full_skeleton as get_cartesian_coords
 
@@ -376,7 +375,7 @@ def splitt_motion(frames, keyframes, mname, skeleton_file='skeleton.bvh',
     lastframe = max(tmpmax)
 
     reader = BVHReader(skeleton_file)
-    skel = Skeleton(reader)
+    skel = SkeletonBuilder().load_from_bvh(reader)
     for feature in keyframes:
         # save first step:
         if firstframe in keyframes[feature][0]:
@@ -406,8 +405,7 @@ def splitt_motion(frames, keyframes, mname, skeleton_file='skeleton.bvh',
 
 
 def get_joint_speed(bvhreader, feature_joints):
-    skeleton = Skeleton()
-    skeleton.load_from_bvh(bvhreader)
+    skeleton = SkeletonBuilder().load_from_bvh(bvhreader)
     left_toe_pos = []
     right_toe_pos = []
     left_toe_speed = [0]

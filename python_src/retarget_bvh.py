@@ -1,5 +1,5 @@
 import numpy as np
-from morphablegraphs.animation_data import Skeleton, MotionVector, BVHReader, BVHWriter
+from morphablegraphs.animation_data import SkeletonBuilder, MotionVector, BVHReader, BVHWriter
 from morphablegraphs.external.transformations import quaternion_from_euler
 from morphablegraphs.animation_data.retargeting import get_targets_from_motion, ROCKETBOX_TO_GAME_ENGINE_MAP, ADDITIONAL_ROTATION_MAP,GAME_ENGINE_TO_ROCKETBOX_MAP
 from morphablegraphs.animation_data.retargeting import get_new_frames_from_direction_constraints as get_new_frames_using_quaternion, retarget_from_src_to_target
@@ -60,8 +60,7 @@ def load_target_skeleton(file_path):
     elif file_path.lower().endswith("bvh"):
         target_bvh = BVHReader(file_path)
         animated_joints = list(target_bvh.get_animated_joints())
-        skeleton = Skeleton()
-        skeleton.load_from_bvh(target_bvh, animated_joints, add_tool_joints=False)
+        skeleton = SkeletonBuilder().load_from_bvh(target_bvh, animated_joints, add_tool_joints=False)
     return skeleton
 
 
@@ -95,8 +94,7 @@ if __name__ == "__main__":
     skeleton_scale = 8.815605958679036
 
     src_bvh = BVHReader(src_file)
-    src_skeleton = Skeleton()
-    src_skeleton.load_from_bvh(src_bvh, add_tool_joints=False)
+    src_skeleton = SkeletonBuilder().load_from_bvh(src_bvh, add_tool_joints=False)
     src_motion = MotionVector()
     src_motion.from_bvh_reader(src_bvh)
     target_skeleton = load_target_skeleton(target_file)

@@ -2,15 +2,13 @@ import os
 import numpy as np
 from morphablegraphs.construction.segmentation import Segmentation
 from morphablegraphs.animation_data.bvh import BVHReader
-from morphablegraphs.animation_data.motion_vector import MotionVector
-from morphablegraphs.animation_data.skeleton import Skeleton
+from morphablegraphs.animation_data import MotionVector, SkeletonBuilder
 
 
 def load_skeleton(file_path):
     target_bvh = BVHReader(file_path)
     animated_joints = None
-    skeleton = Skeleton()
-    skeleton.load_from_bvh(target_bvh,animated_joints, add_tool_joints=False)
+    skeleton = SkeletonBuilder().load_from_bvh(target_bvh,animated_joints, add_tool_joints=False)
     return skeleton
 
 

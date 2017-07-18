@@ -5,10 +5,9 @@ Created on Thu Jul 23 10:06:37 2015
 @author: du, MAUERMA
 """
 
-from ...animation_data.bvh import BVHReader, BVHWriter
+from ...animation_data import BVHReader, BVHWriter, SkeletonBuilder
 from motion_normalization import MotionNormalization
 from ...animation_data.utils import calculate_frame_distance
-from ...animation_data.skeleton import Skeleton
 import numpy as np
 import rpy2.robjects.numpy2ri as numpy2ri
 import rpy2.robjects as robjects
@@ -128,8 +127,7 @@ class MotionDynamicTimeWarping(MotionNormalization):
         return warped_frames
 
     def get_distgrid(self, ref_motion, test_motion):
-        skeleton = Skeleton()
-        skeleton.load_from_bvh(self.ref_bvhreader)
+        skeleton = SkeletonBuilder().load_from_bvh(self.ref_bvhreader)
         n_ref_frames = len(ref_motion['frames'])
         n_test_frames = len(test_motion['frames'])
         distgrid = np.zeros([n_test_frames, n_ref_frames])
