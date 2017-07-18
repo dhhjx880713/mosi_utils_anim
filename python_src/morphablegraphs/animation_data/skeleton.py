@@ -6,13 +6,12 @@ Created on Tue Jul 14 14:18:37 2015
 """
 
 import collections
-from copy import copy, deepcopy
+from copy import copy
 import json
 import numpy as np
 from ..external.transformations import quaternion_matrix
-from quaternion_frame import QuaternionFrame
 from itertools import izip
-from skeleton_node import SkeletonRootNode, SkeletonJointNode, SkeletonEndSiteNode, SKELETON_NODE_TYPE_JOINT, SKELETON_NODE_TYPE_END_SITE
+from skeleton_node import SKELETON_NODE_TYPE_END_SITE
 from constants import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER
 from skeleton_models import ROCKETBOX_ANIMATED_JOINT_LIST, ROCKETBOX_FREE_JOINTS_MAP, ROCKETBOX_REDUCED_FREE_JOINTS_MAP, ROCKETBOX_SKELETON_MODEL, ROCKETBOX_BOUNDS, ROCKETBOX_TOOL_BONES, ROCKETBOX_ROOT_DIR
 try:
@@ -43,25 +42,13 @@ class Skeleton(object):
         self.reference_frame_length = None
         self.node_channels = collections.OrderedDict()
         self.nodes = collections.OrderedDict()
+        self.node_name_frame_map = collections.OrderedDict()
         self.tool_nodes = []
         self.max_level = -1
         self.parent_dict = dict()
         self._chain_names = []
         self.identity_frame = None
         self.annotation = None
-
-    def create_identity_frame(self):
-        self.identity_frame = np.zeros(self.reference_frame_length)
-        offset = 3
-        for j in self.nodes.keys():
-            if len(self.nodes[j].channels) > 0:
-                self.identity_frame[offset:offset + 4] = [1, 0, 0, 0]
-                offset += 4
-
-    def create_euler_frame_indices(self):
-        nodes_without_endsite = [node for node in self.nodes.values() if node.node_type != SKELETON_NODE_TYPE_END_SITE]
-        for node in nodes_without_endsite:
-            node.euler_frame_index = nodes_without_endsite.index(node)
 
     def _get_node_desc(self, name):
         node_desc = dict()
@@ -109,10 +96,6 @@ class Skeleton(object):
                 channels = self.node_names[node_name]["channels"]
                 self.node_channels[node_name] = channels
 
-    def _extract_reference_frame(self, bvh_reader, frame_index=0):
-        quaternion_frame = np.array((QuaternionFrame(bvh_reader, bvh_reader.frames[frame_index], False, False).values())).flatten()
-        return np.array(bvh_reader.frames[0][:3].tolist() + quaternion_frame.tolist())
-
     def is_motion_vector_complete(self, frames, is_quaternion):
         if is_quaternion:
             rotation_type = ROTATION_TYPE_QUATERNION
@@ -158,7 +141,11 @@ class Skeleton(object):
         return new_frame
 
     def _get_max_level(self):
-        return max([node["level"] for node in self.node_names.values() if "level" in node.keys()])
+        levels = [node["level"] for node in self.node_names.values() if "level" in node.keys()]
+        if len(levels)> 0:
+            return max(levels)
+        else:
+            return 0
 
     def _get_parent_dict(self):
         """Returns a dict of node names to their parent node's name"""
@@ -195,36 +182,8 @@ class Skeleton(object):
         self.joint_weight_map["LeftHand"] = 2.0
         self.joint_weights = self.joint_weight_map.values()
 
-    def _create_filtered_node_name_frame_map(self):
-        """
-        creates dictionary that maps node names to indices in a frame vector
-        without "Bip" joints
-        """
-        self.node_name_frame_map = collections.OrderedDict()
-        j = 0
-        for node_name in self.node_names:
-            if not node_name.startswith("Bip") and \
-                    "children" in self.node_names[node_name].keys():
-                self.node_name_frame_map[node_name] = j
-                j += 1
-
     def get_joint_weights(self):
         return self.joint_weight_map.values()
-
-    def _add_tool_nodes(self, new_tool_bones):
-        for b in new_tool_bones:
-            self._add_new_end_site(b["new_node_name"], b["parent_node_name"], b["new_node_offset"])
-            self.tool_nodes.append(b["new_node_name"])
-
-    def _add_new_end_site(self, new_node_name, parent_node_name, offset):
-        if parent_node_name in self.node_names.keys():
-            level = self.node_names[parent_node_name]["level"] + 1
-            node_desc = dict()
-            node_desc["level"] = level
-            node_desc["offset"] = offset
-            self.node_names[parent_node_name]["children"].append(new_node_name)
-            self.node_names[new_node_name] = node_desc
-            self.node_name_frame_map[new_node_name] = -1 #the node needs an entry but the index is only important if it has children
 
     def _generate_chain_names(self):
         chain_names = dict()

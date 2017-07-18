@@ -1,17 +1,61 @@
 import collections
-from copy import copy, deepcopy
+from copy import deepcopy
 import json
 import numpy as np
-from skeleton import  Skeleton
+from skeleton import Skeleton
 from skeleton_node import SkeletonRootNode, SkeletonJointNode, SkeletonEndSiteNode, SKELETON_NODE_TYPE_JOINT, SKELETON_NODE_TYPE_END_SITE
 from skeleton_models import ROCKETBOX_ANIMATED_JOINT_LIST, ROCKETBOX_FREE_JOINTS_MAP, ROCKETBOX_REDUCED_FREE_JOINTS_MAP, ROCKETBOX_SKELETON_MODEL, ROCKETBOX_BOUNDS, ROCKETBOX_TOOL_BONES, ROCKETBOX_ROOT_DIR
-try:
-    from mgrd import Skeleton as MGRDSkeleton
-    from mgrd import SkeletonNode as MGRDSkeletonNode
-    has_mgrd = True
-except ImportError:
-    has_mgrd = False
-    pass
+from quaternion_frame import QuaternionFrame
+
+
+def create_identity_frame(skeleton):
+    skeleton.identity_frame = np.zeros(skeleton.reference_frame_length)
+    offset = 3
+    for j in skeleton.nodes.keys():
+        if len(skeleton.nodes[j].channels) > 0:
+            skeleton.identity_frame[offset:offset + 4] = [1, 0, 0, 0]
+            offset += 4
+
+
+def create_euler_frame_indices(skeleton):
+    nodes_without_endsite = [node for node in skeleton.nodes.values() if node.node_type != SKELETON_NODE_TYPE_END_SITE]
+    for node in nodes_without_endsite:
+        node.euler_frame_index = nodes_without_endsite.index(node)
+
+
+def read_reference_frame_from_bvh_reader(bvh_reader, frame_index=0):
+    quaternion_frame = np.array((QuaternionFrame(bvh_reader, bvh_reader.frames[frame_index], False, False).values())).flatten()
+    return np.array(bvh_reader.frames[0][:3].tolist() + quaternion_frame.tolist())
+
+def add_tool_nodes(skeleton, new_tool_bones):
+    for b in new_tool_bones:
+        add_new_end_site(skeleton, b["new_node_name"], b["parent_node_name"], b["new_node_offset"])
+        skeleton.tool_nodes.append(b["new_node_name"])
+
+
+def add_new_end_site(skeleton, new_node_name, parent_node_name, offset):
+    if parent_node_name in skeleton.node_names.keys():
+        level = skeleton.node_names[parent_node_name]["level"] + 1
+        node_desc = dict()
+        node_desc["level"] = level
+        node_desc["offset"] = offset
+        skeleton.node_names[parent_node_name]["children"].append(new_node_name)
+        skeleton.node_names[new_node_name] = node_desc
+        skeleton.node_name_frame_map[new_node_name] = -1  # the node needs an entry but the index is only important if it has children
+
+
+def create_filtered_node_name_frame_map(skeleton):
+    """
+    creates dictionary that maps node names to indices in a frame vector
+    without "Bip" joints
+    """
+    skeleton.node_name_frame_map = collections.OrderedDict()
+    j = 0
+    for node_name in skeleton.node_names:
+        if not node_name.startswith("Bip") and \
+                        "children" in skeleton.node_names[node_name].keys():
+            skeleton.node_name_frame_map[node_name] = j
+            j += 1
 
 
 class SkeletonBuilder(object):
@@ -24,15 +68,15 @@ class SkeletonBuilder(object):
         skeleton.frame_time = deepcopy(bvh_reader.frame_time)
         skeleton.root = deepcopy(bvh_reader.root)
         skeleton.node_names = deepcopy(bvh_reader.node_names)
-        skeleton.reference_frame = skeleton._extract_reference_frame(bvh_reader)
+        skeleton.reference_frame = read_reference_frame_from_bvh_reader(bvh_reader)
         skeleton.reference_frame_length = len(skeleton.reference_frame)
         skeleton.node_channels = collections.OrderedDict()
         skeleton.extract_channels()
         skeleton.nodes = collections.OrderedDict()
-        skeleton._create_filtered_node_name_frame_map()
+        create_filtered_node_name_frame_map(skeleton)
         skeleton.tool_nodes = []
         if add_tool_joints:
-            skeleton._add_tool_nodes(ROCKETBOX_TOOL_BONES)
+            add_tool_nodes(skeleton, ROCKETBOX_TOOL_BONES)
         skeleton.max_level = skeleton._get_max_level()
         skeleton._set_joint_weights()
         skeleton.nodes = collections.OrderedDict()
@@ -42,8 +86,8 @@ class SkeletonBuilder(object):
 
         skeleton.parent_dict = skeleton._get_parent_dict()
         skeleton._chain_names = skeleton._generate_chain_names()
-        skeleton.create_euler_frame_indices()
-        skeleton.create_identity_frame()
+        create_euler_frame_indices(skeleton)
+        create_identity_frame(skeleton)
         return skeleton
 
     def construct_hierarchy_from_bvh(self, skeleton, joints, node_info, node_channels, node_name):
@@ -158,7 +202,7 @@ class SkeletonBuilder(object):
         skeleton._set_joint_weights()
         skeleton.parent_dict = skeleton._get_parent_dict()
         skeleton._chain_names = skeleton._generate_chain_names()
-        skeleton.create_euler_frame_indices()
+        create_euler_frame_indices(skeleton)
         if "aligning_root_node" in data.keys():
             skeleton.aligning_root_node = data["aligning_root_node"]
         else:
@@ -167,7 +211,7 @@ class SkeletonBuilder(object):
             skeleton.aligning_root_dir = data["aligning_root_dir"]
         else:
             skeleton.aligning_root_dir = ROCKETBOX_ROOT_DIR
-        skeleton.create_identity_frame()
+        create_identity_frame(skeleton)
         return skeleton
 
     def load_from_fbx_data(self, data):
@@ -189,7 +233,7 @@ class SkeletonBuilder(object):
             skeleton.reference_frame[offset:offset + 4] = data["nodes"][node_name]["rotation"]
             offset += 4
         skeleton.reference_frame_length = len(skeleton.reference_frame)
-        skeleton.create_identity_frame()
+        create_identity_frame(skeleton)
         return skeleton
 
     def _create_node_from_desc(self, skeleton, data, parent):
@@ -243,3 +287,6 @@ class SkeletonBuilder(object):
             c_node = self._create_node_from_desc2(skeleton, data, c_name, node)
             node.children.append(c_node)
         return node
+
+
+
