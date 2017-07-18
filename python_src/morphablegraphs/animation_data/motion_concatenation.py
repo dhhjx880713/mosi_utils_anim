@@ -487,19 +487,36 @@ def blend_between_frames(skeleton, frames, transition_start, transition_end, joi
             frames[transition_start + i][j_indices] = slerp_q
 
 
-def align_feet_to_prev_step(skeleton, frames, frame_idx, plant_foot, swing_foot, ik_chains, window, target_ground_height=0):
+def generate_feet_constraints(skeleton, frames, frame_idx, plant_foot, swing_foot, target_ground_height):
     plant_foot_joint = skeleton.annotation[plant_foot + "_foot"]
     plant_toe_joint = skeleton.annotation[plant_foot + "_toe"]
     plant_heel_joint = skeleton.annotation[plant_foot + "_heel"]
     swing_foot_joint = skeleton.annotation[swing_foot + "_foot"]
     swing_toe_joint = skeleton.annotation[swing_foot + "_toe"]
     swing_heel_joint = skeleton.annotation[swing_foot + "_heel"]
+    plant_constraint = generate_ankle_constraint_from_toe(skeleton, frames, frame_idx, plant_foot_joint,
+                                                          plant_heel_joint, plant_toe_joint, target_ground_height)
+    swing_constraint = generate_ankle_constraint_from_toe(skeleton, frames, frame_idx, swing_foot_joint,
+                                                          swing_heel_joint, swing_toe_joint, target_ground_height)
+    return plant_constraint, swing_constraint
+
+
+def generate_feet_constraints2(skeleton, frames, frame_idx, plant_foot, swing_foot):
+    plant_foot_joint = skeleton.annotation[plant_foot + "_foot"]
+    swing_foot_joint = skeleton.annotation[swing_foot + "_foot"]
+    plant_constraint = create_grounding_constraint_from_frame(skeleton, frames, frame_idx - 1, plant_foot_joint)
+    swing_constraint = create_grounding_constraint_from_frame(skeleton, frames, frame_idx - 1, swing_foot_joint)
+    return plant_constraint, swing_constraint
+
+
+def align_feet_to_prev_step(skeleton, frames, frame_idx, plant_foot, swing_foot, ik_chains, window, target_ground_height=0):
+
     smooth_root_translation_around_transition(frames, frame_idx, 2 * window)
 
     start = frame_idx  # modified frame
     end = frame_idx + window  # end of blending range
-    plant_constraint = create_grounding_constraint_from_frame(skeleton, frames, frame_idx - 1, plant_foot_joint)
-    swing_constraint = create_grounding_constraint_from_frame(skeleton, frames, frame_idx - 1, swing_foot_joint)
+
+    plant_constraint, swing_constraint = generate_feet_constraints2(skeleton, frames, frame_idx, plant_foot, swing_foot)
 
     print "align to prev window", window
     root_pos = generate_root_constraint_for_two_feet(skeleton, frames[frame_idx], plant_constraint, swing_constraint)
@@ -519,38 +536,35 @@ def align_feet_to_prev_step(skeleton, frames, frame_idx, plant_foot, swing_foot,
     print "apply constraint2", frame_idx, swing_constraint.joint_name, swing_constraint.position, skeleton.nodes[swing_constraint.joint_name].get_global_position(frames[frame_idx])
 
 
-def align_feet_to_next_step(skeleton, frames, frame_idx, plant_foot, swing_foot, ik_chains, window, target_ground_height=0):
-    plant_foot_joint = skeleton.annotation[plant_foot + "_foot"]
-    plant_toe_joint = skeleton.annotation[plant_foot + "_toe"]
-    plant_heel_joint = skeleton.annotation[plant_foot + "_heel"]
-    swing_foot_joint = skeleton.annotation[swing_foot + "_foot"]
-    swing_toe_joint = skeleton.annotation[swing_foot + "_toe"]
-    swing_heel_joint = skeleton.annotation[swing_foot + "_heel"]
-    smooth_root_translation_around_transition(frames, frame_idx, 2 * window)
 
-    start = frame_idx - window  # end of blending range
+
+
+def align_feet_to_next_step(skeleton, frames, frame_idx, plant_foot, swing_foot, ik_chains, plant_window, swing_window, target_ground_height=0):
+    smooth_root_translation_around_transition(frames, frame_idx, 2 * swing_window)
+
+    start = frame_idx - swing_window  # end of blending range
     end = frame_idx - 1  # modified frame
-    plant_constraint = generate_ankle_constraint_from_toe(skeleton, frames, frame_idx, plant_foot_joint, plant_heel_joint, plant_toe_joint, target_ground_height)
-    swing_constraint = generate_ankle_constraint_from_toe(skeleton, frames, frame_idx, swing_foot_joint, swing_heel_joint, swing_toe_joint, target_ground_height)
+    plant_constraint, swing_constraint = generate_feet_constraints(skeleton, frames, frame_idx, plant_foot, swing_foot,target_ground_height)
 
     root_pos = generate_root_constraint_for_two_feet(skeleton, frames[frame_idx-1], plant_constraint, swing_constraint)
     if root_pos is not None:
         frames[frame_idx-1][:3] = root_pos
-        smooth_root_translation_at_start(frames, frame_idx-1, window)
+        smooth_root_translation_at_start(frames, frame_idx-1, swing_window)
 
-
-    apply_constraint_on_window_next(skeleton, frames, plant_constraint, ik_chains[plant_constraint.joint_name], start,
-                               end, window+10)
+    apply_constraint_on_window_next(skeleton, frames, plant_constraint,
+                                    ik_chains[plant_constraint.joint_name], start, end, plant_window)
 
     apply_constraint(skeleton, frames, swing_constraint, ik_chains[swing_constraint.joint_name], frame_idx-1, start,
-                     end, window)
+                     end, swing_window)
 
 
 def align_frames_and_fix_feet(skeleton, aligning_joint, new_frames, prev_frames, start_pose, plant_foot, swing_foot, ik_chains, ik_window=7, smoothing_window=0):
     """ applies foot ik constraint to fit the prev motion primitive to the next motion primitive
     """
-
+    plant_foot_joint = skeleton.annotation[plant_foot + "_foot"]
     plant_heel_joint = skeleton.annotation[plant_foot + "_heel"]
+    swing_foot_joint = skeleton.annotation[swing_foot + "_foot"]
+    mode = "prev"
     new_frames = align_quaternion_frames(skeleton, aligning_joint, new_frames, prev_frames, start_pose)
     if prev_frames is not None:
         d = len(prev_frames)
@@ -558,11 +572,21 @@ def align_frames_and_fix_feet(skeleton, aligning_joint, new_frames, prev_frames,
         for f in new_frames:
             frames.append(f)
         frames = np.array(frames)
-        ik_window = 5
+        swing_window = 5
+        plant_window = 15
         translate_root(skeleton, frames, d, plant_heel_joint)
+        print "reloaded2", d, plant_foot, swing_foot, d-ik_window, d+ik_window
         target_ground_height = 0
-        align_feet_to_next_step(skeleton, frames, d, plant_foot, swing_foot, ik_chains, ik_window, target_ground_height)
-        align_feet_to_prev_step(skeleton, frames, d-1, plant_foot, swing_foot, ik_chains, ik_window, target_ground_height)
+        if mode == "prev": # in general
+
+            # generate constraint as interpolation between d and d-1
+            align_feet_to_next_step(skeleton, frames, d, plant_foot, swing_foot, ik_chains, plant_window, swing_window, target_ground_height)
+            # ground feet
+            align_feet_to_prev_step(skeleton, frames, d-1, plant_foot, swing_foot, ik_chains, swing_window, target_ground_height)
+
+        else:  # in case of walking
+            align_foot_to_prev_step(skeleton, frames, swing_foot_joint, ik_chains[swing_foot_joint], d, ik_window)
+            align_foot_to_prev_step(skeleton, frames, plant_foot_joint, ik_chains[plant_foot_joint], d, ik_window)
 
         if smoothing_window > 0:
             frames = smooth_quaternion_frames(frames, d, smoothing_window)
