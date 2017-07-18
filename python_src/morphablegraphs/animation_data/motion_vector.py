@@ -4,10 +4,11 @@ from datetime import datetime
 import os
 import numpy as np
 from utils import align_frames,transform_euler_frames, convert_euler_frames_to_quaternion_frames
-from motion_concatenation import align_and_concatenate_frames, align_frames_and_fix_foot
+from motion_concatenation import align_and_concatenate_frames#, align_frames_and_fix_feet
 from motion_editing.constants import SKELETON_ANNOTATIONS
 from constants import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER
 from bvh import BVHWriter
+
 
 class MotionVector(object):
     """
@@ -64,11 +65,16 @@ class MotionVector(object):
         else:
             smoothing_window = 0
         if plant_foot == self.skeleton.annotation["left_foot"]:
-            swing_foot = self.skeleton.annotation["right_foot"]
+            swing_foot = "right"
+            plant_foot = "left"
+
         else:
-            swing_foot = self.skeleton.annotation["left_foot"]
-        self.frames = align_frames_and_fix_foot(self.skeleton, self.skeleton.aligning_root_node, new_frames,
-                                                self.frames, self.start_pose, plant_foot, swing_foot, ik_chains, 10,
+            swing_foot = "left"
+            plant_foot = "right"
+        import motion_concatenation
+        reload(motion_concatenation)
+        self.frames = motion_concatenation.align_frames_and_fix_feet(self.skeleton, self.skeleton.aligning_root_node, new_frames,
+                                                self.frames, self.start_pose, plant_foot, swing_foot, ik_chains, 15,
                                                 smoothing_window)
         self.n_frames = len(self.frames)
 
