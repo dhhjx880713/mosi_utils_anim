@@ -487,13 +487,13 @@ def blend_between_frames(skeleton, frames, transition_start, transition_end, joi
             frames[transition_start + i][j_indices] = slerp_q
 
 
-def generate_feet_constraints(skeleton, frames, frame_idx, plant_foot, swing_foot, target_ground_height):
-    plant_foot_joint = skeleton.skeleton_model[plant_foot + "_foot"]
-    plant_toe_joint = skeleton.skeleton_model[plant_foot + "_toe"]
-    plant_heel_joint = skeleton.skeleton_model[plant_foot + "_heel"]
-    swing_foot_joint = skeleton.skeleton_model[swing_foot + "_foot"]
-    swing_toe_joint = skeleton.skeleton_model[swing_foot + "_toe"]
-    swing_heel_joint = skeleton.skeleton_model[swing_foot + "_heel"]
+def generate_feet_constraints(skeleton, frames, frame_idx, plant_side, swing_side, target_ground_height):
+    plant_foot_joint = skeleton.skeleton_model[plant_side + "_foot"]
+    plant_toe_joint = skeleton.skeleton_model[plant_side + "_toe"]
+    plant_heel_joint = skeleton.skeleton_model[plant_side + "_heel"]
+    swing_foot_joint = skeleton.skeleton_model[swing_side + "_foot"]
+    swing_toe_joint = skeleton.skeleton_model[swing_side + "_toe"]
+    swing_heel_joint = skeleton.skeleton_model[swing_side + "_heel"]
     plant_constraint = generate_ankle_constraint_from_toe(skeleton, frames, frame_idx, plant_foot_joint,
                                                           plant_heel_joint, plant_toe_joint, target_ground_height)
     swing_constraint = generate_ankle_constraint_from_toe(skeleton, frames, frame_idx, swing_foot_joint,
@@ -501,9 +501,9 @@ def generate_feet_constraints(skeleton, frames, frame_idx, plant_foot, swing_foo
     return plant_constraint, swing_constraint
 
 
-def generate_feet_constraints2(skeleton, frames, frame_idx, plant_foot, swing_foot):
-    plant_foot_joint = skeleton.skeleton_model[plant_foot + "_foot"]
-    swing_foot_joint = skeleton.skeleton_model[swing_foot + "_foot"]
+def generate_feet_constraints2(skeleton, frames, frame_idx, plant_side, swing_side):
+    plant_foot_joint = skeleton.skeleton_model[plant_side + "_foot"]
+    swing_foot_joint = skeleton.skeleton_model[swing_side + "_foot"]
     plant_constraint = create_grounding_constraint_from_frame(skeleton, frames, frame_idx - 1, plant_foot_joint)
     swing_constraint = create_grounding_constraint_from_frame(skeleton, frames, frame_idx - 1, swing_foot_joint)
     return plant_constraint, swing_constraint
@@ -518,31 +518,37 @@ def align_feet_to_prev_step(skeleton, frames, frame_idx, plant_constraint, swing
 
 def align_feet_to_next_step(skeleton, frames, frame_idx, plant_constraint, swing_constraint, ik_chains, plant_window, swing_window):
     start = frame_idx - swing_window  # end of blending range
-    end = frame_idx - 1  # modified frame
+    end = frame_idx  # modified frame
     apply_constraint_on_window_next(skeleton, frames, plant_constraint, ik_chains[plant_constraint.joint_name], start, end, plant_window)
     apply_constraint(skeleton, frames, swing_constraint, ik_chains[swing_constraint.joint_name], frame_idx-1, start, end, swing_window)
 
 
-def fix_feet_at_transition(skeleton, frames, d,  plant_foot, swing_foot, ik_chains, ik_window=8, plant_window=15):
+def fix_feet_at_transition(skeleton, frames, d,  plant_side, swing_side, ik_chains, ik_window=8, plant_window=20):
     target_ground_height = 0
     smooth_root_translation_around_transition(frames, d, 2 * ik_window)
 
     # TODO generate constraint as interpolation between d and d-1
-    plant_constraint, swing_constraint = generate_feet_constraints(skeleton, frames, d, plant_foot, swing_foot, target_ground_height)
-
-    root_pos = generate_root_constraint_for_two_feet(skeleton, frames[d - 1], plant_constraint, swing_constraint)
+    #plant_constraint1, swing_constraint1 = generate_feet_constraints(skeleton, frames, d-1, plant_side, swing_side, target_ground_height)
+    plant_constraint, swing_constraint = generate_feet_constraints(skeleton, frames, d, plant_side, swing_side, target_ground_height)
+    #plant_constraint = interpolate_constraints(plant_constraint1, plant_constraint2)
+    #swing_constraint = interpolate_constraints(swing_constraint1, swing_constraint2)
+    root_pos = generate_root_constraint_for_two_feet(skeleton, frames[d], plant_constraint, swing_constraint)
     if root_pos is not None:
         frames[d - 1][:3] = root_pos
         smooth_root_translation_at_end(frames, d - 1, ik_window)
         smooth_root_translation_at_start(frames, d, ik_window)
 
-    align_feet_to_next_step(skeleton, frames, d, plant_constraint, swing_constraint, ik_chains, plant_window, ik_window)
-    align_feet_to_prev_step(skeleton, frames, d - 1, plant_constraint, swing_constraint, ik_chains, ik_window)
+    align_feet_to_next_step(skeleton, frames, d-1, plant_constraint, swing_constraint, ik_chains, plant_window, ik_window)
+
+    #align_feet_to_prev_step(skeleton, frames, d - 1, plant_constraint, swing_constraint, ik_chains, ik_window)
+    swing_foot = skeleton.skeleton_model[swing_side + "_foot"]
+    align_foot_to_prev_step(skeleton, frames, swing_foot, ik_chains[swing_foot], d, ik_window)
 
 
-def align_frames_and_fix_feet(skeleton, aligning_joint, new_frames, prev_frames, start_pose, plant_foot, swing_foot, ik_chains, ik_window=8, smoothing_window=0):
+def align_frames_and_fix_feet(skeleton, aligning_joint, new_frames, prev_frames, start_pose, plant_side, swing_side, ik_chains, ik_window=8, smoothing_window=0):
     """ applies foot ik constraint to fit the prev motion primitive to the next motion primitive
     """
+    print "reloaded2"
     new_frames = align_quaternion_frames(skeleton, aligning_joint, new_frames, prev_frames, start_pose)
     if prev_frames is not None:
         d = len(prev_frames)
@@ -550,7 +556,8 @@ def align_frames_and_fix_feet(skeleton, aligning_joint, new_frames, prev_frames,
         for f in new_frames:
             frames.append(f)
         frames = np.array(frames)
-        fix_feet_at_transition(skeleton, frames, d, plant_foot, swing_foot, ik_chains, ik_window)
+        #plant_window = len(new_frames)
+        fix_feet_at_transition(skeleton, frames, d, plant_side, swing_side, ik_chains, ik_window)
         if smoothing_window > 0:
             frames = smooth_quaternion_frames(frames, d, smoothing_window)
         return frames
