@@ -80,7 +80,6 @@ class MotionVector(object):
     def append_frames(self, new_frames, plant_foot=None):
         if self.skeleton.skeleton_model is not None:
             ik_chains = self.skeleton.skeleton_model["ik_chains"]
-            print "ich will teil der gesellschaft bleiben", plant_foot, ik_chains.keys()
             if plant_foot in ik_chains:
                 self.append_frames_with_foot_ik(new_frames, plant_foot)
                 return

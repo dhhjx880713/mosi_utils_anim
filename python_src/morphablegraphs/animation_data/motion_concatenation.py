@@ -512,40 +512,18 @@ def generate_feet_constraints2(skeleton, frames, frame_idx, plant_foot, swing_fo
 def align_feet_to_prev_step(skeleton, frames, frame_idx, plant_constraint, swing_constraint, ik_chains, window):
     start = frame_idx  # modified frame
     end = frame_idx + window  # end of blending range
-
-    #plant_constraint, swing_constraint = generate_feet_constraints2(skeleton, frames, frame_idx, plant_foot, swing_foot)
-
-    #root_pos = generate_root_constraint_for_two_feet(skeleton, frames[frame_idx], plant_constraint, swing_constraint)
-    #if root_pos is not None:
-    #    frames[frame_idx][:3] = root_pos
-    #    smooth_root_translation_at_start(frames, frame_idx, window)
-
-
-    #print "b1", frame_idx, plant_constraint.joint_name, skeleton.nodes[plant_constraint.joint_name].get_global_position(frames[frame_idx])
     apply_constraint_on_window_prev(skeleton, frames, plant_constraint, ik_chains[plant_constraint.joint_name], start, end, window)
-    #print "apply constraint1", frame_idx, plant_constraint.joint_name, plant_constraint.position, skeleton.nodes[plant_constraint.joint_name].get_global_position(frames[frame_idx])
-
-    #print "b2", frame_idx, swing_constraint.joint_name, skeleton.nodes[swing_constraint.joint_name].get_global_position(frames[frame_idx])
     apply_constraint(skeleton, frames, swing_constraint, ik_chains[swing_constraint.joint_name], frame_idx, start, end, window)
-    #print "apply constraint2", frame_idx, swing_constraint.joint_name, swing_constraint.position, skeleton.nodes[swing_constraint.joint_name].get_global_position(frames[frame_idx])
 
 
 def align_feet_to_next_step(skeleton, frames, frame_idx, plant_constraint, swing_constraint, ik_chains, plant_window, swing_window):
     start = frame_idx - swing_window  # end of blending range
     end = frame_idx - 1  # modified frame
-    #plant_constraint, swing_constraint = generate_feet_constraints(skeleton, frames, frame_idx, plant_foot, swing_foot, target_ground_height=0)
-
-    #root_pos = generate_root_constraint_for_two_feet(skeleton, frames[frame_idx-1], plant_constraint, swing_constraint)
-    #if root_pos is not None:
-    #    frames[frame_idx-1][:3] = root_pos
-    #    smooth_root_translation_at_start(frames, frame_idx-1, swing_window)
-
     apply_constraint_on_window_next(skeleton, frames, plant_constraint, ik_chains[plant_constraint.joint_name], start, end, plant_window)
     apply_constraint(skeleton, frames, swing_constraint, ik_chains[swing_constraint.joint_name], frame_idx-1, start, end, swing_window)
 
 
 def fix_feet_at_transition(skeleton, frames, d,  plant_foot, swing_foot, ik_chains, ik_window=8, plant_window=15):
-    print "reloaded 33", d, plant_foot, swing_foot, d - ik_window, d + ik_window
     target_ground_height = 0
     smooth_root_translation_around_transition(frames, d, 2 * ik_window)
 
