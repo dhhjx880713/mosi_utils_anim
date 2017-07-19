@@ -297,3 +297,4 @@ class MotionGenerator(object):
             self.end_step_length_factor = trajectory_following_settings["end_step_length_factor"]
             self.step_look_ahead_distance = trajectory_following_settings["look_ahead_distance"]
         self.activate_global_optimization = algorithm_config["global_spatial_optimization_mode"] == OPTIMIZATION_MODE_ALL
+        self.mp_constraints_builder.set_algorithm_config(self._algorithm_config)
