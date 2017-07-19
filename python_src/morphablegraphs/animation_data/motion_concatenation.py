@@ -545,10 +545,8 @@ def align_feet_to_next_step(skeleton, frames, frame_idx, plant_constraint, swing
 
 
 def fix_feet_at_transition(skeleton, frames, d,  plant_foot, swing_foot, ik_chains, ik_window=7):
-    plant_heel_joint = skeleton.skeleton_model[plant_foot + "_heel"]
     window = 8
     plant_window = 15
-    translate_root(skeleton, frames, d, plant_heel_joint)
     print "reloaded 31", d, plant_foot, swing_foot, d - ik_window, d + ik_window
     target_ground_height = 0
     smooth_root_translation_around_transition(frames, d, 2 * window)
