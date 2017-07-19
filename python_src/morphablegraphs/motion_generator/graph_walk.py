@@ -136,7 +136,13 @@ class GraphWalk(object):
             step.start_frame = start_frame
             #write_log(step.node_key, len(step.parameters))
             quat_frames = self.motion_state_graph.nodes[step.node_key].back_project(step.parameters, use_time_parameters).get_motion_vector(step_size)
-            self.motion_vector.append_frames(quat_frames)
+            if step.node_key[1].lower().endswith("leftstance"):
+                foot_joint = "foot_r"
+            elif step.node_key[1].lower().endswith("rightstance"):
+                foot_joint = "foot_l"
+            else:
+                foot_joint = None
+            self.motion_vector.append_frames(quat_frames, foot_joint)
             step.end_frame = self.get_num_of_frames()-1
             start_frame = step.end_frame + 1
 
