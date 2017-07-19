@@ -540,9 +540,9 @@ def smooth_root_positions(positions, window):
     return smoothed_positions
 
 
-def guess_ground_height(skeleton, frames, n_frames, foot_joints):
+def guess_ground_height(skeleton, frames, start_frame, n_frames, foot_joints):
     minimum_height = np.inf
-    joint_heights = get_joint_height(skeleton, frames[:n_frames], foot_joints)
+    joint_heights = get_joint_height(skeleton, frames[start_frame:start_frame+n_frames], foot_joints)
     for joint in joint_heights.keys():
         p, v, a = joint_heights[joint]
         pT = np.array(p).T
@@ -552,8 +552,8 @@ def guess_ground_height(skeleton, frames, n_frames, foot_joints):
     return minimum_height
 
 
-def move_to_ground(skeleton, frames, ground_height, foot_joints):
-    minimum_height = guess_ground_height(skeleton, frames, 5, foot_joints)
+def move_to_ground(skeleton, frames, ground_height, foot_joints, start_frame=0, n_frames=5):
+    minimum_height = guess_ground_height(skeleton, frames, start_frame, n_frames, foot_joints)
     for f in frames:
         f[:3] += [0, ground_height-minimum_height, 0]
     return frames
