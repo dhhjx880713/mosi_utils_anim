@@ -284,7 +284,9 @@ class MotionPrimitiveConstraints(object):
                     position = np.dot(inv_aligning_transform, [p[0], p[1], p[2], 1])[:3]
                     pose_constraint.append(position)
                 pose_constraint_desc = {"keyframeLabel": "start","canonical_keyframe": c.canonical_keyframe, "frame_constraint": pose_constraint,
-                                        "semanticAnnotation": c.semantic_annotation}
+                                        "semanticAnnotation": c.semantic_annotation,
+                                        "node_names": c.node_names,
+                                        "weights": c.weights}
                 pose_constraint = PoseConstraint(self.skeleton, pose_constraint_desc, c.precision, c.weight_factor)
                 mp_constraints.constraints.append(pose_constraint)
 

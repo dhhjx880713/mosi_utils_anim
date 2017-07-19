@@ -48,11 +48,9 @@ class MotionPrimitiveConstraintsBuilder(object):
 
         if "Pelvis" in self.skeleton.skeleton_model:
             important_joints = []
-            important_joints.append(self.skeleton.skeleton_model["RightHand"])
-            important_joints.append(self.skeleton.skeleton_model["LeftHand"])
-            important_joints.append(self.skeleton.skeleton_model["RightFoot"])
-            important_joints.append(self.skeleton.skeleton_model["LeftFoot"])
-            important_joints.append(self.skeleton.skeleton_model["Pelvis"])
+            skeleton_model = self.skeleton.skeleton_model
+            for j in ["RightHand", "LeftHand", "RightFoot", "LeftFoot", "Pelvis"]:
+                important_joints.append(skeleton_model[j])
             self.pose_constraint_node_names = important_joints
         else:
             self.pose_constraint_node_names = self.skeleton.joint_weight_map.keys()
