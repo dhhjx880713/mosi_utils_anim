@@ -9,6 +9,113 @@ import logging
 from ..utilities.io_helper_functions import load_json_file
 from ..animation_data.utils import DEFAULT_SMOOTHING_WINDOW_SIZE
 
+DEFAULT_ALGORITHM_CONFIG = {
+    "smoothing_settings": {
+        "spatial_smoothing" : True,
+        "time_smoothing" : False,
+        "spatial_smoothing_method": "smoothing",
+        "spatial_smoothing_window" : 20,
+        "time_smoothing_window" : 15
+    },
+    "trajectory_following_settings": {
+        "spline_type": 0,
+        "control_point_filter_threshold": 0,
+        "dir_constraint_factor": 0.1,# 1.0
+        "heuristic_step_length_factor": 1.0,
+        "position_constraint_factor": 1.0,
+        "step_length_approx_method": "arc_length",
+        "transition_pose_constraint_factor": 0.6,
+        "closest_point_search_accuracy": 0.001,
+        "closest_point_search_max_iterations": 5000,
+        "look_ahead_distance": 100,
+        "end_step_length_factor": 1.0,
+        "max_distance_to_path": 500,
+        "arc_length_granularity": 1000,
+        "use_transition_constraint" : False,
+        "spline_super_sampling_factor": 20,
+        "constrain_start_orientation": True,
+        "constrain_transition_orientation": True,
+        "generate_half_step_constraint": True
+    },
+    "local_optimization_settings": {
+        "start_error_threshold": 0.0,
+        "error_scale_factor": 1.0,
+        "spatial_epsilon": 0.0,
+        "quality_scale_factor": 1.0,
+        "tolerance": 0.05,
+        "method": "leastsq",
+        "max_iterations": 500,
+        "verbose": False
+    },
+    "global_spatial_optimization_settings": {
+        "max_steps":  3,
+        "start_error_threshold": 4.0,
+        "error_scale_factor": 1.0,
+        "quality_scale_factor": 100.0,
+        "tolerance": 0.05,
+        "method": "leastsq",
+        "max_iterations": 500,
+        "position_weight": 1000.0,
+        "orientation_weight": 1000.0,
+        "verbose": False
+    },
+    "global_time_optimization_settings": {
+        "error_scale_factor": 1.0,
+        "quality_scale_factor": 0.0001,
+        "tolerance": 0.05,
+        "method": "L-BFGS-B",
+        "max_iterations": 500,
+        "optimized_actions": 2,
+        "verbose": False
+    },
+    "inverse_kinematics_settings":{
+        "tolerance": 0.05,
+        "optimization_method": "L-BFGS-B",
+        "max_iterations": 1000,
+        "interpolation_window": 120,
+        "transition_window": 60,
+        "use_euler_representation": False,
+        "solving_method": "unconstrained",
+        "activate_look_at": True,
+        "max_retries": 5,
+        "success_threshold": 5.0,
+        "optimize_orientation": True,
+        "elementary_action_max_iterations": 5,
+        "elementary_action_optimization_eps": 1.0,
+        "adapt_hands_during_carry_both": True,
+        "constrain_place_orientation": False,
+        "motion_grounding": True
+    },
+    "constrained_gmm_settings": {
+        "precision": {
+            "smooth": 5,
+            "rot": 0.15,
+            "pos": 1
+        },
+        "max_bad_samples": 1000,
+        "strict": False
+    },
+    "n_random_samples": 100,
+    "average_elementary_action_error_threshold": 500,
+    "constrained_sampling_mode": "cluster_tree_search",
+    "activate_inverse_kinematics": True,
+    "n_cluster_search_candidates": 4,
+    "use_transition_model": False,
+    "local_optimization_mode": "all",#
+    "activate_parameter_check": False,
+    "use_global_time_optimization": True,
+    "global_spatial_optimization_mode": "trajectory_end",
+    "collision_avoidance_constraints_mode": "direct_connection",
+    "optimize_collision_avoidance_constraints_extra": False,
+    "use_constrained_gmm": False,
+    "use_constraints": True,
+    "use_local_coordinates": True,
+    "use_semantic_annotation_with_mgrd": False,
+    "activate_time_variation": True,
+    "debug_max_step": -1,
+    "verbose": False
+}
+
 
 class AlgorithmConfigurationBuilder(object):
     """Generates a dict containing all settings for the algorithm
@@ -131,6 +238,7 @@ class AlgorithmConfigurationBuilder(object):
         self.inverse_kinematics_settings["adapt_hands_during_carry_both"] = True
         self.inverse_kinematics_settings["constrain_place_orientation"] = False
         self.inverse_kinematics_settings["motion_grounding"] = True
+        self.inverse_kinematics_settings["activate_blending"] = False
 
     def from_json(self, filename):
         temp_algorithm_config = load_json_file(filename)

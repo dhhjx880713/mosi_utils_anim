@@ -37,8 +37,8 @@ class MotionGenerator(object):
         self.action_constraints_builder = ElementaryActionConstraintsBuilder(self._motion_state_graph, algorithm_config)
         self.mp_constraints_builder = MotionPrimitiveConstraintsBuilder()
         self.mp_constraints_builder.set_algorithm_config(self._algorithm_config)
-        self.end_step_length_factor = 1.0
-        self.step_look_ahead_distance = 100
+        self.end_step_length_factor = DEFAULT_ALGORITHM_CONFIG["trajectory_following_settings"]["end_step_length_factor"]
+        self.step_look_ahead_distance = DEFAULT_ALGORITHM_CONFIG["trajectory_following_settings"]["look_ahead_distance"]
         self.activate_global_optimization = False
         self.graph_walk_optimizer = GraphWalkOptimizer(self._motion_state_graph, algorithm_config)
         footplant_settings = {"window": 4, "tolerance": 1, "constraint_range": 10, "smoothing_constraints_window": 15}
