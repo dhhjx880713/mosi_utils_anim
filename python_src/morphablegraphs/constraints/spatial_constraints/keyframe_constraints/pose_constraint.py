@@ -28,17 +28,12 @@ class PoseConstraint(KeyframeConstraintBase):
         return self.evaluate_frame(aligned_spline.evaluate(self.canonical_keyframe))
 
     def evaluate_motion_sample(self, aligned_quat_frames):
-        """ Evaluates the difference between the first frame of the motion
-        and the frame constraint.
+        """ Evaluates the difference between the pose of at the canonical frame of the motion and the pose constraint.
 
         Parameters
         ----------
         * aligned_quat_frames: np.ndarray
             Motion aligned to previous motion in quaternion format
-        * frame_constraint: dict of np.ndarray
-            Dict containing a position for each joint
-        * skeleton: Skeleton
-            Used for hierarchy information
 
         Returns
         -------

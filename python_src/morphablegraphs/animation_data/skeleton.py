@@ -11,7 +11,6 @@ import json
 import numpy as np
 from ..external.transformations import quaternion_matrix
 from itertools import izip
-from skeleton_node import SKELETON_NODE_TYPE_END_SITE
 from constants import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER
 from skeleton_models import ROCKETBOX_ANIMATED_JOINT_LIST, ROCKETBOX_FREE_JOINTS_MAP, ROCKETBOX_REDUCED_FREE_JOINTS_MAP, ROCKETBOX_SKELETON_MODEL, ROCKETBOX_BOUNDS, ROCKETBOX_TOOL_BONES, ROCKETBOX_ROOT_DIR
 try:

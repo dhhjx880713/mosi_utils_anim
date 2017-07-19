@@ -27,6 +27,7 @@ def read_reference_frame_from_bvh_reader(bvh_reader, frame_index=0):
     quaternion_frame = np.array((QuaternionFrame(bvh_reader, bvh_reader.frames[frame_index], False, False).values())).flatten()
     return np.array(bvh_reader.frames[0][:3].tolist() + quaternion_frame.tolist())
 
+
 def add_tool_nodes(skeleton, new_tool_bones):
     for b in new_tool_bones:
         add_new_end_site(skeleton, b["new_node_name"], b["parent_node_name"], b["new_node_offset"])
