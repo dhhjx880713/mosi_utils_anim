@@ -11,7 +11,8 @@ class AnnotatedMotionVector(MotionVector):
         self.keyframe_event_list = None
         self.mg_input = None
         self.graph_walk = None
-        self.ik_constraints = {}
+        self.grounding_constraints = None
+        self.ik_constraints = dict()
 
     def export(self, output_dir, output_filename, add_time_stamp=False, export_details=False):
         """ Saves the resulting animation frames, the annotation and actions to files.
