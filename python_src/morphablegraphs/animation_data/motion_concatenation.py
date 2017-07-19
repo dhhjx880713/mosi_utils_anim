@@ -540,9 +540,9 @@ def fix_feet_at_transition(skeleton, frames, d,  plant_side, swing_side, ik_chai
 
     align_feet_to_next_step(skeleton, frames, d-1, plant_constraint, swing_constraint, ik_chains, plant_window, ik_window)
 
-    #align_feet_to_prev_step(skeleton, frames, d - 1, plant_constraint, swing_constraint, ik_chains, ik_window)
-    swing_foot = skeleton.skeleton_model[swing_side + "_foot"]
-    align_foot_to_prev_step(skeleton, frames, swing_foot, ik_chains[swing_foot], d, ik_window)
+    align_feet_to_prev_step(skeleton, frames, d, plant_constraint, swing_constraint, ik_chains, ik_window)
+    #swing_foot = skeleton.skeleton_model[swing_side + "_foot"]
+    #align_foot_to_prev_step(skeleton, frames, swing_foot, ik_chains[swing_foot], d, ik_window)
 
 
 def align_frames_and_fix_feet(skeleton, aligning_joint, new_frames, prev_frames, start_pose, plant_side, swing_side, ik_chains, ik_window=8, smoothing_window=0):
