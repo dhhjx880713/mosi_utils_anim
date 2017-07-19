@@ -93,6 +93,8 @@ class MotionPrimitive(object):
             self.has_time_parameters = True
         else:
             self.has_time_parameters = False
+            self.t_pca = dict()
+            self.t_pca["n_components"] = 0
 
     def _init_gmm_from_json(self, data):
         """ Initialize the Gaussian Mixture model.
