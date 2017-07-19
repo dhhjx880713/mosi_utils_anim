@@ -532,7 +532,7 @@ def fix_feet_at_transition(skeleton, frames, d,  plant_side, swing_side, ik_chai
     plant_constraint, swing_constraint = generate_feet_constraints(skeleton, frames, d, plant_side, swing_side, target_ground_height)
     #plant_constraint = interpolate_constraints(plant_constraint1, plant_constraint2)
     #swing_constraint = interpolate_constraints(swing_constraint1, swing_constraint2)
-    root_pos = generate_root_constraint_for_two_feet(skeleton, frames[d], plant_constraint, swing_constraint)
+    root_pos = generate_root_constraint_for_two_feet(skeleton, frames[d-1], plant_constraint, swing_constraint)
     if root_pos is not None:
         frames[d - 1][:3] = root_pos
         smooth_root_translation_at_end(frames, d - 1, ik_window)
