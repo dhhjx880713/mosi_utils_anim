@@ -4,8 +4,74 @@ import numpy as np
 from numerical_ik_exp import NumericalInverseKinematicsExp
 from ..motion_blending import apply_slerp2, BLEND_DIRECTION_FORWARD, BLEND_DIRECTION_BACKWARD, smooth_translation_in_quat_frames
 from analytical_inverse_kinematics import AnalyticalLimbIK
-from utils import normalize, project_on_intersection_circle, smooth_root_positions
-#from python_src.morphablegraphs.motion_generator.motion_editing.skeleton_pose_model import SkeletonPoseModel
+from utils import normalize, project_on_intersection_circle, smooth_root_positions, quaternion_from_vector_to_vector
+from ...external.transformations import quaternion_from_matrix, quaternion_matrix, quaternion_multiply
+
+
+def create_grounding_constraint_from_frame(skeleton, frames, frame_idx, joint_name):
+    position = skeleton.nodes[joint_name].get_global_position(frames[frame_idx])
+    m = skeleton.nodes[joint_name].get_global_matrix(frames[frame_idx])
+    m[:3, 3] = [0, 0, 0]
+    orientation = normalize(quaternion_from_matrix(m))
+    return MotionGroundingConstraint(frame_idx, joint_name, position, None, orientation)
+
+
+def generate_ankle_constraint_from_toe(skeleton, frames, frame_idx, ankle_joint_name, heel_joint, toe_joint_name, target_ground_height, toe_pos=None):
+    """ create a constraint on the ankle position based on the toe constraint position"""
+    #print "add toe constraint"
+    if toe_pos is None:
+        ct = skeleton.nodes[toe_joint_name].get_global_position(frames[frame_idx])
+        ct[1] = target_ground_height  # set toe constraint on the ground
+    else:
+        ct = toe_pos
+
+    a = skeleton.nodes[ankle_joint_name].get_global_position(frames[frame_idx])
+    t = skeleton.nodes[toe_joint_name].get_global_position(frames[frame_idx])
+
+    target_toe_offset = a - t  # difference between unmodified toe and ankle at the frame
+    ca = ct + target_toe_offset  # move ankle so toe is on the ground
+
+    m = skeleton.nodes[heel_joint].get_global_matrix(frames[frame_idx])
+    m[:3, 3] = [0, 0, 0]
+    oq = quaternion_from_matrix(m)
+    oq = normalize(oq)
+
+    return MotionGroundingConstraint(frame_idx, ankle_joint_name, ca, None, oq)
+
+
+def create_ankle_constraint_from_toe_and_heel(skeleton, frames, frame_idx, ankle_joint, heel_joint, toe_joint,heel_offset, target_ground_height, heel_pos=None, toe_pos=None):
+    if toe_pos is None:
+        ct = skeleton.nodes[toe_joint].get_global_position(frames[frame_idx])
+        ct[1] = target_ground_height
+    else:
+        ct = toe_pos
+    if heel_pos is None:
+        ch = skeleton.nodes[heel_joint].get_global_position(frames[frame_idx])
+        ch[1] = target_ground_height
+    else:
+        ch = heel_pos
+
+
+    target_direction = normalize(ct - ch)
+    t = skeleton.nodes[toe_joint].get_global_position(frames[frame_idx])
+    h = skeleton.nodes[heel_joint].get_global_position(frames[frame_idx])
+    original_direction = normalize(t - h)
+
+    global_delta_q = quaternion_from_vector_to_vector(original_direction, target_direction)
+    global_delta_q = normalize(global_delta_q)
+
+    m = skeleton.nodes[heel_joint].get_global_matrix(frames[frame_idx])
+    m[:3, 3] = [0, 0, 0]
+    oq = quaternion_from_matrix(m)
+    oq = normalize(oq)
+    orientation = normalize(quaternion_multiply(global_delta_q, oq))
+
+    # set target ankle position based on the  grounded heel and the global target orientation of the ankle
+    m = quaternion_matrix(orientation)[:3, :3]
+    target_heel_offset = np.dot(m, heel_offset)
+    ca = ch - target_heel_offset
+    print "set ankle constraint both", ch, ca, target_heel_offset
+    return MotionGroundingConstraint(frame_idx, ankle_joint, ca, None, orientation)
 
 
 class MotionGroundingConstraint(object):
