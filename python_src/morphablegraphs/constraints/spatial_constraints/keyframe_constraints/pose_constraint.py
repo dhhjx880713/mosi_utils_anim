@@ -46,7 +46,6 @@ class PoseConstraint(KeyframeConstraintBase):
         # get point cloud of first frame
         point_cloud = self.skeleton.convert_quaternion_frame_to_cartesian_frame(frame, self.node_names)
 
-        print "evaluate pose constraint", len(self.pose_constraint), len(point_cloud)
         theta, offset_x, offset_z = align_point_clouds_2D(self.pose_constraint,
                                                           point_cloud,
                                                           self.weights)

@@ -1,5 +1,4 @@
 from copy import copy
-
 import numpy as np
 from numerical_ik_quat import NumericalInverseKinematicsQuat
 from skeleton_pose_model import SkeletonPoseModel
