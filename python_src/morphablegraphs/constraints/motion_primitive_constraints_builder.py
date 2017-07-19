@@ -46,10 +46,10 @@ class MotionPrimitiveConstraintsBuilder(object):
         self.node_group = self.action_constraints.get_node_group()
         self.skeleton = action_constraints.motion_state_graph.skeleton
 
-        if "Pelvis" in self.skeleton.skeleton_model:
+        if "pelvis" in self.skeleton.skeleton_model:
             important_joints = []
             skeleton_model = self.skeleton.skeleton_model
-            for j in ["RightHand", "LeftHand", "RightFoot", "LeftFoot", "Pelvis"]:
+            for j in ["right_hand", "left_hand", "right_foot", "left_foot", "pelvis"]:
                 important_joints.append(skeleton_model[j])
             self.pose_constraint_node_names = important_joints
         else:

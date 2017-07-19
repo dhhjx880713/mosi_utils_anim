@@ -5,7 +5,6 @@ import os
 import numpy as np
 from utils import align_frames,transform_euler_frames, convert_euler_frames_to_quaternion_frames
 from motion_concatenation import align_and_concatenate_frames#, align_frames_and_fix_feet
-from motion_editing.constants import SKELETON_ANNOTATIONS
 from constants import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER
 from bvh import BVHWriter
 
@@ -59,12 +58,12 @@ class MotionVector(object):
 
     def append_frames_with_foot_ik(self, new_frames, plant_foot):
 
-        ik_chains = self.skeleton.annotation["ik_chains"]
+        ik_chains = self.skeleton.skeleton_model["ik_chains"]
         if self.apply_spatial_smoothing:
             smoothing_window = self.smoothing_window
         else:
             smoothing_window = 0
-        if plant_foot == self.skeleton.annotation["left_foot"]:
+        if plant_foot == self.skeleton.skeleton_model["left_foot"]:
             swing_foot = "right"
             plant_foot = "left"
 
@@ -79,13 +78,14 @@ class MotionVector(object):
         self.n_frames = len(self.frames)
 
     def append_frames(self, new_frames, plant_foot=None):
-        if self.skeleton.annotation is not None:
-            ik_chains = self.skeleton.annotation["ik_chains"]
+        if self.skeleton.skeleton_model is not None:
+            ik_chains = self.skeleton.skeleton_model["ik_chains"]
             print "ich will teil der gesellschaft bleiben", plant_foot, ik_chains.keys()
             if plant_foot in ik_chains:
                 self.append_frames_with_foot_ik(new_frames, plant_foot)
                 return
         self.append_frames_generic(new_frames)
+
     def export(self, skeleton, output_dir, output_filename, add_time_stamp=True):
         bvh_writer = BVHWriter(None, skeleton, self.frames, skeleton.frame_time, True)
         if add_time_stamp:

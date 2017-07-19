@@ -184,9 +184,9 @@ class SkeletonBuilder(object):
         else:
             skeleton.skeleton_model = collections.OrderedDict()
             if "head_joint" in data.keys():
-                skeleton.skeleton_model["Head"] = data["head_joint"]
+                skeleton.skeleton_model["head"] = data["head_joint"]
             if "neck_joint" in data.keys():
-                skeleton.skeleton_model["Neck"] = data["neck_joint"]
+                skeleton.skeleton_model["neck"] = data["neck_joint"]
 
         skeleton.frame_time = data["frame_time"]
         skeleton.nodes = collections.OrderedDict()

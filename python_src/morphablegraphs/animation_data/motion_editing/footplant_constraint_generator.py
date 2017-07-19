@@ -1,5 +1,6 @@
 import collections
-from constants import *
+import numpy as np
+from ..skeleton_models import *
 from motion_grounding import MotionGroundingConstraint
 from utils import get_average_joint_position, get_average_joint_direction, get_joint_height, normalize, get_average_direction_from_target, \
     quaternion_from_vector_to_vector

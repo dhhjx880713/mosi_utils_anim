@@ -11,7 +11,7 @@ from graph_walk_planner import GraphWalkPlanner
 from ..motion_model.motion_state_group import NODE_TYPE_END
 from ..constraints import OPTIMIZATION_MODE_ALL
 from graph_walk_optimizer import GraphWalkOptimizer
-from ..animation_data.motion_editing import MotionEditing, MotionGrounding, FootplantConstraintGenerator, SKELETON_ANNOTATIONS, add_heels_to_skeleton
+from ..animation_data.motion_editing import MotionEditing, MotionGrounding, FootplantConstraintGenerator, add_heels_to_skeleton
 from ..utilities import load_json_file, write_log, clear_log, save_log, write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO, LOG_MODE_ERROR, set_log_mode
 
 
@@ -42,16 +42,18 @@ class MotionGenerator(object):
         self.activate_global_optimization = False
         self.graph_walk_optimizer = GraphWalkOptimizer(self._motion_state_graph, algorithm_config)
         footplant_settings = {"window": 4, "tolerance": 1, "constraint_range": 10, "smoothing_constraints_window": 15}
-        self.skeleton_type = "game_engine"
-        self.skeleton_def = SKELETON_ANNOTATIONS[self.skeleton_type]
-        self.footplant_constraint_generator = FootplantConstraintGenerator(self._motion_state_graph.skeleton, self.skeleton_def, footplant_settings)
+        skeleton_model = self._motion_state_graph.skeleton.skeleton_model
+        if skeleton_model is not None:
+            self.footplant_constraint_generator = FootplantConstraintGenerator(self._motion_state_graph.skeleton, skeleton_model, footplant_settings)
 
-        self._motion_state_graph.skeleton = add_heels_to_skeleton(self._motion_state_graph.skeleton,
-                                                                  self.skeleton_def["left_foot"],
-                                                                  self.skeleton_def["right_foot"],
-                                                                  self.skeleton_def["left_heel"],
-                                                                  self.skeleton_def["right_heel"],
-                                                                  self.skeleton_def["heel_offset"])
+            self._motion_state_graph.skeleton = add_heels_to_skeleton(self._motion_state_graph.skeleton,
+                                                                      skeleton_model["left_foot"],
+                                                                      skeleton_model["right_foot"],
+                                                                      skeleton_model["left_heel"],
+                                                                      skeleton_model["right_heel"],
+                                                                      skeleton_model["heel_offset"])
+        else:
+            self.footplant_constraint_generator = None
         self.set_algorithm_config(algorithm_config)
 
     def generate_motion(self, mg_input, activate_joint_map, activate_coordinate_transform,
@@ -227,15 +229,16 @@ class MotionGenerator(object):
            Contains a list of quaternion frames and their annotation based on actions.
         """
         ik_settings = self._algorithm_config["inverse_kinematics_settings"]
-        if "motion_grounding" in ik_settings and ik_settings["motion_grounding"]:
+        has_model = self.footplant_constraint_generator is not None and self._motion_state_graph.skeleton.skeleton_model is not None
+        if "motion_grounding" in ik_settings and ik_settings["motion_grounding"] and has_model:
             constraints, blend_ranges = self.footplant_constraint_generator.generate_from_graph_walk(motion_vector)
             motion_vector.grounding_constraints = constraints
-
-            grounding = MotionGrounding(self._motion_state_graph.skeleton, ik_settings, self.skeleton_def, use_analytical_ik=True)
+            skeleton_model = self._motion_state_graph.skeleton.skeleton_model
+            grounding = MotionGrounding(self._motion_state_graph.skeleton, ik_settings, skeleton_model, use_analytical_ik=True)
             grounding.set_constraints(constraints)
             if ik_settings["activate_blending"]:
                 for target_joint in blend_ranges:
-                    joint_list = [self.skeleton_def["ik_chains"][target_joint]["root"], self.skeleton_def["ik_chains"][target_joint]["joint"], target_joint]
+                    joint_list = [skeleton_model["ik_chains"][target_joint]["root"], skeleton_model["ik_chains"][target_joint]["joint"], target_joint]
                     for frame_range in blend_ranges[target_joint]:
                         grounding.add_blend_range(joint_list, frame_range)
             grounding.run(motion_vector, target_ground_height=0)

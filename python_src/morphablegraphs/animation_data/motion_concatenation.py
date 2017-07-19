@@ -488,12 +488,12 @@ def blend_between_frames(skeleton, frames, transition_start, transition_end, joi
 
 
 def generate_feet_constraints(skeleton, frames, frame_idx, plant_foot, swing_foot, target_ground_height):
-    plant_foot_joint = skeleton.annotation[plant_foot + "_foot"]
-    plant_toe_joint = skeleton.annotation[plant_foot + "_toe"]
-    plant_heel_joint = skeleton.annotation[plant_foot + "_heel"]
-    swing_foot_joint = skeleton.annotation[swing_foot + "_foot"]
-    swing_toe_joint = skeleton.annotation[swing_foot + "_toe"]
-    swing_heel_joint = skeleton.annotation[swing_foot + "_heel"]
+    plant_foot_joint = skeleton.skeleton_model[plant_foot + "_foot"]
+    plant_toe_joint = skeleton.skeleton_model[plant_foot + "_toe"]
+    plant_heel_joint = skeleton.skeleton_model[plant_foot + "_heel"]
+    swing_foot_joint = skeleton.skeleton_model[swing_foot + "_foot"]
+    swing_toe_joint = skeleton.skeleton_model[swing_foot + "_toe"]
+    swing_heel_joint = skeleton.skeleton_model[swing_foot + "_heel"]
     plant_constraint = generate_ankle_constraint_from_toe(skeleton, frames, frame_idx, plant_foot_joint,
                                                           plant_heel_joint, plant_toe_joint, target_ground_height)
     swing_constraint = generate_ankle_constraint_from_toe(skeleton, frames, frame_idx, swing_foot_joint,
@@ -502,14 +502,14 @@ def generate_feet_constraints(skeleton, frames, frame_idx, plant_foot, swing_foo
 
 
 def generate_feet_constraints2(skeleton, frames, frame_idx, plant_foot, swing_foot):
-    plant_foot_joint = skeleton.annotation[plant_foot + "_foot"]
-    swing_foot_joint = skeleton.annotation[swing_foot + "_foot"]
+    plant_foot_joint = skeleton.skeleton_model[plant_foot + "_foot"]
+    swing_foot_joint = skeleton.skeleton_model[swing_foot + "_foot"]
     plant_constraint = create_grounding_constraint_from_frame(skeleton, frames, frame_idx - 1, plant_foot_joint)
     swing_constraint = create_grounding_constraint_from_frame(skeleton, frames, frame_idx - 1, swing_foot_joint)
     return plant_constraint, swing_constraint
 
 
-def align_feet_to_prev_step(skeleton, frames, frame_idx, plant_foot, swing_foot, ik_chains, window, target_ground_height=0):
+def align_feet_to_prev_step(skeleton, frames, frame_idx, plant_foot, swing_foot, ik_chains, window):
     start = frame_idx  # modified frame
     end = frame_idx + window  # end of blending range
 
@@ -536,7 +536,7 @@ def align_feet_to_prev_step(skeleton, frames, frame_idx, plant_foot, swing_foot,
 def align_feet_to_next_step(skeleton, frames, frame_idx, plant_foot, swing_foot, ik_chains, plant_window, swing_window, target_ground_height=0):
     start = frame_idx - swing_window  # end of blending range
     end = frame_idx - 1  # modified frame
-    plant_constraint, swing_constraint = generate_feet_constraints(skeleton, frames, frame_idx, plant_foot, swing_foot,target_ground_height)
+    plant_constraint, swing_constraint = generate_feet_constraints(skeleton, frames, frame_idx, plant_foot, swing_foot, target_ground_height)
 
     root_pos = generate_root_constraint_for_two_feet(skeleton, frames[frame_idx-1], plant_constraint, swing_constraint)
     if root_pos is not None:
@@ -553,9 +553,9 @@ def align_feet_to_next_step(skeleton, frames, frame_idx, plant_foot, swing_foot,
 def align_frames_and_fix_feet(skeleton, aligning_joint, new_frames, prev_frames, start_pose, plant_foot, swing_foot, ik_chains, ik_window=7, smoothing_window=0):
     """ applies foot ik constraint to fit the prev motion primitive to the next motion primitive
     """
-    plant_foot_joint = skeleton.annotation[plant_foot + "_foot"]
-    plant_heel_joint = skeleton.annotation[plant_foot + "_heel"]
-    swing_foot_joint = skeleton.annotation[swing_foot + "_foot"]
+    plant_foot_joint = skeleton.skeleton_model[plant_foot + "_foot"]
+    plant_heel_joint = skeleton.skeleton_model[plant_foot + "_heel"]
+    swing_foot_joint = skeleton.skeleton_model[swing_foot + "_foot"]
     mode = "prev"
     new_frames = align_quaternion_frames(skeleton, aligning_joint, new_frames, prev_frames, start_pose)
     if prev_frames is not None:
