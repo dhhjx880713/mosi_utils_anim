@@ -5,7 +5,7 @@ from motion_blending import smooth_quaternion_frames_with_slerp, smooth_quaterni
 from motion_editing.motion_grounding import create_grounding_constraint_from_frame, generate_ankle_constraint_from_toe
 from motion_editing.analytical_inverse_kinematics import AnalyticalLimbIK
 from motion_editing.utils import normalize, generate_root_constraint_for_two_feet, smooth_root_translation_at_start, smooth_root_translation_at_end
-from motion_blending import apply_slerp2, BLEND_DIRECTION_FORWARD, BLEND_DIRECTION_BACKWARD, smooth_translation_in_quat_frames, smooth_quaternion_frames_using_slerp_
+from motion_blending import apply_slerp2, BLEND_DIRECTION_FORWARD, BLEND_DIRECTION_BACKWARD, smooth_translation_in_quat_frames
 
 ALIGNMENT_MODE_FAST = 0
 ALIGNMENT_MODE_PCL = 1
