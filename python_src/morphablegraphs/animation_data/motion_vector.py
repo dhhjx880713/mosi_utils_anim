@@ -73,7 +73,7 @@ class MotionVector(object):
         import motion_concatenation
         reload(motion_concatenation)
         self.frames = motion_concatenation.align_frames_and_fix_feet(self.skeleton, self.skeleton.aligning_root_node, new_frames,
-                                                self.frames, self.start_pose, plant_foot, swing_foot, ik_chains, 15,
+                                                self.frames, self.start_pose, plant_foot, swing_foot, ik_chains, 8,
                                                 smoothing_window)
         self.n_frames = len(self.frames)
 

@@ -544,12 +544,10 @@ def align_feet_to_next_step(skeleton, frames, frame_idx, plant_constraint, swing
     apply_constraint(skeleton, frames, swing_constraint, ik_chains[swing_constraint.joint_name], frame_idx-1, start, end, swing_window)
 
 
-def fix_feet_at_transition(skeleton, frames, d,  plant_foot, swing_foot, ik_chains, ik_window=7):
-    window = 8
-    plant_window = 15
-    print "reloaded 31", d, plant_foot, swing_foot, d - ik_window, d + ik_window
+def fix_feet_at_transition(skeleton, frames, d,  plant_foot, swing_foot, ik_chains, ik_window=8, plant_window=15):
+    print "reloaded 33", d, plant_foot, swing_foot, d - ik_window, d + ik_window
     target_ground_height = 0
-    smooth_root_translation_around_transition(frames, d, 2 * window)
+    smooth_root_translation_around_transition(frames, d, 2 * ik_window)
 
     # TODO generate constraint as interpolation between d and d-1
     plant_constraint, swing_constraint = generate_feet_constraints(skeleton, frames, d, plant_foot, swing_foot, target_ground_height)
@@ -557,14 +555,14 @@ def fix_feet_at_transition(skeleton, frames, d,  plant_foot, swing_foot, ik_chai
     root_pos = generate_root_constraint_for_two_feet(skeleton, frames[d - 1], plant_constraint, swing_constraint)
     if root_pos is not None:
         frames[d - 1][:3] = root_pos
-        smooth_root_translation_at_end(frames, d - 1, window)
-        smooth_root_translation_at_start(frames, d, window)
+        smooth_root_translation_at_end(frames, d - 1, ik_window)
+        smooth_root_translation_at_start(frames, d, ik_window)
 
-    align_feet_to_next_step(skeleton, frames, d, plant_constraint, swing_constraint, ik_chains, plant_window, window)
-    align_feet_to_prev_step(skeleton, frames, d - 1, plant_constraint, swing_constraint, ik_chains, window)
+    align_feet_to_next_step(skeleton, frames, d, plant_constraint, swing_constraint, ik_chains, plant_window, ik_window)
+    align_feet_to_prev_step(skeleton, frames, d - 1, plant_constraint, swing_constraint, ik_chains, ik_window)
 
 
-def align_frames_and_fix_feet(skeleton, aligning_joint, new_frames, prev_frames, start_pose, plant_foot, swing_foot, ik_chains, ik_window=7, smoothing_window=0):
+def align_frames_and_fix_feet(skeleton, aligning_joint, new_frames, prev_frames, start_pose, plant_foot, swing_foot, ik_chains, ik_window=8, smoothing_window=0):
     """ applies foot ik constraint to fit the prev motion primitive to the next motion primitive
     """
     new_frames = align_quaternion_frames(skeleton, aligning_joint, new_frames, prev_frames, start_pose)
