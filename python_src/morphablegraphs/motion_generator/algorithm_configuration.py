@@ -11,16 +11,18 @@ from ..animation_data.utils import DEFAULT_SMOOTHING_WINDOW_SIZE
 
 DEFAULT_ALGORITHM_CONFIG = {
     "smoothing_settings": {
-        "spatial_smoothing" : True,
-        "time_smoothing" : False,
+        "spatial_smoothing": True,
+        "time_smoothing": False,
         "spatial_smoothing_method": "smoothing",
-        "spatial_smoothing_window" : 20,
-        "time_smoothing_window" : 15
+        "spatial_smoothing_window": 20,
+        "time_smoothing_window": 15,
+        "apply_foot_alignment": True
+
     },
     "trajectory_following_settings": {
         "spline_type": 0,
         "control_point_filter_threshold": 0,
-        "dir_constraint_factor": 0.1,# 1.0
+        "dir_constraint_factor": 0.1,
         "heuristic_step_length_factor": 1.0,
         "position_constraint_factor": 1.0,
         "step_length_approx_method": "arc_length",
@@ -219,6 +221,7 @@ class AlgorithmConfigurationBuilder(object):
         self.smoothing_settings["time_smoothing"] = True
         self.smoothing_settings["spatial_smoothing_window"] = DEFAULT_SMOOTHING_WINDOW_SIZE
         self.smoothing_settings["time_smoothing_window"] = 15
+        self.smoothing_settings["apply_foot_alignment"] = True
 
     def set_default_inverse_kinematics_settings(self):
         self.inverse_kinematics_settings = dict()

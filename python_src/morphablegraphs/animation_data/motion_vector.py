@@ -20,6 +20,7 @@ class MotionVector(object):
         self.start_pose = None
         self.rotation_type = rotation_type
         self.apply_spatial_smoothing = False
+        self.apply_foot_alignment = False
         self.smoothing_window = 0
         self.spatial_smoothing_method = "smoothing"
         self.frame_time = 1.0/30.0
@@ -29,8 +30,11 @@ class MotionVector(object):
             settings = algorithm_config["smoothing_settings"]
             self.apply_spatial_smoothing = settings["spatial_smoothing"]
             self.smoothing_window = settings["spatial_smoothing_window"]
+
             if "spatial_smoothing_method" in settings:
                 self.spatial_smoothing_method = settings["spatial_smoothing_method"]
+            if "apply_foot_alignment" in settings:
+                self.apply_foot_alignment = settings["apply_foot_alignment"]
 
     def from_bvh_reader(self, bvh_reader, filter_joints=True):
         if self.rotation_type == ROTATION_TYPE_QUATERNION:
@@ -82,7 +86,7 @@ class MotionVector(object):
         self.n_frames = len(self.frames)
 
     def append_frames(self, new_frames, plant_foot=None):
-        if self.skeleton.skeleton_model is not None:
+        if self.apply_foot_alignment and self.skeleton.skeleton_model is not None:
             ik_chains = self.skeleton.skeleton_model["ik_chains"]
             if plant_foot in ik_chains:
                 self.append_frames_with_foot_ik(new_frames, plant_foot)
