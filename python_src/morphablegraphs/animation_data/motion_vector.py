@@ -15,6 +15,7 @@ class MotionVector(object):
     """
     def __init__(self, skeleton=None, algorithm_config=None, rotation_type=ROTATION_TYPE_QUATERNION):
         self.n_frames = 0
+        self._prev_n_frames = 0
         self.frames = None
         self.start_pose = None
         self.rotation_type = rotation_type
@@ -37,6 +38,7 @@ class MotionVector(object):
         elif self.rotation_type == ROTATION_TYPE_EULER:
             self.frames = bvh_reader.frames
         self.n_frames = len(self.frames)
+        self._prev_n_frames = 0
         self.frame_time = bvh_reader.frame_time
 
     def append_frames_generic(self, new_frames):
@@ -54,6 +56,7 @@ class MotionVector(object):
         self.frames = align_and_concatenate_frames(self.skeleton, self.skeleton.aligning_root_node, new_frames, self.frames, self.start_pose,
                                                    smoothing_window=smoothing_window, blending_method=self.spatial_smoothing_method)
 
+        self._prev_n_frames = self.n_frames
         self.n_frames = len(self.frames)
 
     def append_frames_with_foot_ik(self, new_frames, plant_foot):
@@ -73,8 +76,9 @@ class MotionVector(object):
         import motion_concatenation
         reload(motion_concatenation)
         self.frames = motion_concatenation.align_frames_and_fix_feet(self.skeleton, self.skeleton.aligning_root_node, new_frames,
-                                                self.frames, self.start_pose, plant_foot, swing_foot, ik_chains, 8,
-                                                smoothing_window)
+                                                self.frames, self._prev_n_frames, self.start_pose, plant_foot, swing_foot,
+                                                 ik_chains, 8, smoothing_window)
+        self._prev_n_frames = self.n_frames
         self.n_frames = len(self.frames)
 
     def append_frames(self, new_frames, plant_foot=None):
@@ -100,9 +104,11 @@ class MotionVector(object):
         if n_frames == 0:
             self.frames = None
             self.n_frames = 0
+            self._prev_n_frames = self.n_frames
         else:
             self.frames = self.frames[:n_frames]
             self.n_frames = len(self.frames)
+            self._prev_n_frames = 0
 
     def has_frames(self):
         return self.frames is not None
@@ -110,8 +116,12 @@ class MotionVector(object):
     def clear(self, end_frame=0):
         if end_frame == 0:
             self.frames = None
+            self.n_frames = 0
+            self._prev_n_frames = 0
         else:
             self.frames = self.frames[:end_frame]
+            self.n_frames = len(self.frames)
+            self._prev_n_frames = 0
 
     def translate_root(self, offset):
         for idx in xrange(self.n_frames):
