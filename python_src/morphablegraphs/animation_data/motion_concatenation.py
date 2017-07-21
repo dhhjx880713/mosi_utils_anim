@@ -610,9 +610,6 @@ def interpolate_frames(skeleton, frames_a, frames_b, joint_list, start, end):
         idx = skeleton.animated_joints.index(joint) * 4 + 3
         j_indices = [idx, idx + 1, idx + 2, idx + 3]
         for f in xrange(window):
-            t = float(f) / window
-            #t = 1.0
-            #t = 0.0
             print "f",start+f,"t", t
             q_a = frames_a[start + f][j_indices]
             q_b = frames_b[start + f][j_indices]
@@ -627,12 +624,25 @@ def blend_towards_next_step2(skeleton, frames, start, end, plant_side, swing_sid
     swing_ik_chain = ik_chains[swing_joint]
     joint_list = [skeleton.root, "pelvis", plant_ik_chain["root"], plant_ik_chain["joint"], plant_joint,
                   swing_ik_chain["root"], swing_ik_chain["joint"], swing_joint]
-    print "blend again2", start, end
+    print "blend again3", start, end
     #orig_frames = frames[start:end]
     new_frames = generate_blended_frames(skeleton, frames, start, end, joint_list, end-start)
     frames = interpolate_frames(skeleton, frames, new_frames, joint_list, start, end)
     return frames
 
+def blend_towards_next_step3(skeleton, frames, start, end, plant_side, swing_side, ik_chains, window=8):
+    plant_joint = skeleton.skeleton_model[plant_side + "_foot"]
+    swing_joint = skeleton.skeleton_model[swing_side + "_foot"]
+    plant_ik_chain = ik_chains[plant_joint]
+    swing_ik_chain = ik_chains[swing_joint]
+    joint_list = [skeleton.root, "pelvis", plant_ik_chain["root"], plant_ik_chain["joint"], plant_joint,
+                  swing_ik_chain["root"], swing_ik_chain["joint"], swing_joint]
+    print "blend again3", start, end
+    #orig_frames = frames[start:end]
+    middle = start + (end-start)/2
+    new_frames = generate_blended_frames(skeleton, frames, middle, end, joint_list, end-middle)
+    frames = interpolate_frames(skeleton, frames, new_frames, joint_list, middle, end)
+    return frames
 
 
 def align_frames_and_fix_feet(skeleton, aligning_joint, new_frames, prev_frames, prev_start, start_pose, plant_side, swing_side, ik_chains, ik_window=8, smoothing_window=0):
@@ -642,14 +652,14 @@ def align_frames_and_fix_feet(skeleton, aligning_joint, new_frames, prev_frames,
     new_frames = align_quaternion_frames(skeleton, aligning_joint, new_frames, prev_frames, start_pose)
     if prev_frames is not None:
         d = len(prev_frames)
-        print "reloaded5",prev_start, d
+        print "reloaded9",prev_start, d
         frames = prev_frames.tolist()
         for f in new_frames:
             frames.append(f)
         frames = np.array(frames)
         #fix_feet_at_transition(skeleton, frames, d, plant_side, swing_side, ik_chains, ik_window)
         #blend_towards_next_step(skeleton, frames, d, plant_side, swing_side, ik_chains, window=ik_window)
-        frames = blend_towards_next_step2(skeleton, frames, prev_start, d, plant_side, swing_side, ik_chains, window=ik_window)
+        frames = blend_towards_next_step3(skeleton, frames, prev_start, d, plant_side, swing_side, ik_chains, window=ik_window)
 
         if smoothing_window > 0:
             frames = smooth_quaternion_frames(frames, d, smoothing_window)
