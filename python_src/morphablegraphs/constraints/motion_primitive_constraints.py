@@ -279,11 +279,14 @@ class MotionPrimitiveConstraints(object):
                 mp_constraints.constraints.append(TwoHandConstraintSet(self.skeleton, keyframe_constraint_desc, c.precision, c.weight_factor))
 
             elif c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE:
-                pose_constraint = []
+                local_pose_constraint = []
                 for p in c.pose_constraint:
                     position = np.dot(inv_aligning_transform, [p[0], p[1], p[2], 1])[:3]
-                    pose_constraint.append(position)
-                pose_constraint_desc = {"keyframeLabel": "start","canonical_keyframe": c.canonical_keyframe, "frame_constraint": pose_constraint,
+                    local_pose_constraint.append(position)
+                pose_constraint_desc = {"keyframeLabel": "start",
+                                        "canonical_keyframe": c.canonical_keyframe,
+                                        "frame_constraint": local_pose_constraint,
+                                        "velocity_constraint": c.velocity_constraint,
                                         "semanticAnnotation": c.semantic_annotation,
                                         "node_names": c.node_names,
                                         "weights": c.weights}

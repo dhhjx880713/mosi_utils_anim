@@ -169,7 +169,7 @@ class MotionPrimitiveConstraintsBuilder(object):
 
     def _add_pose_constraint(self, mp_constraints):
         if mp_constraints.settings["transition_pose_constraint_factor"] > 0.0 and self.status["prev_frames"] is not None:
-            pose_constraint_desc = self.create_pose_constraint(self.status["prev_frames"][-1], self.pose_constraint_node_names)
+            pose_constraint_desc = self.create_pose_constraint(self.status["prev_frames"], self.pose_constraint_node_names)
             #pose_constraint_desc = self._create_pose_constraint_angular_from_preceding_motion()
             pose_constraint_desc = self._map_label_to_canonical_keyframe(pose_constraint_desc)
             pose_constraint = PoseConstraint(self.skeleton, pose_constraint_desc, self.precision["smooth"],
@@ -325,8 +325,7 @@ class MotionPrimitiveConstraintsBuilder(object):
     def _create_pose_constraint_angular_from_preceding_motion(self):
         return MotionPrimitiveConstraintsBuilder.create_pose_constraint_angular(self.status["prev_frames"][-1])
 
-
-    def create_pose_constraint(self, frame, node_names=None):
+    def create_pose_constraint(self, frames, node_names=None):
         if node_names is not None:
             weights_map = collections.OrderedDict()
             for node_name in node_names:
@@ -336,8 +335,12 @@ class MotionPrimitiveConstraintsBuilder(object):
         else:
             node_names = self.skeleton.joint_weight_map.keys()
             weights = self.skeleton.joint_weight_map.values()
+        pre_last_pose = np.array(self.skeleton.convert_quaternion_frame_to_cartesian_frame(frames[-2], node_names))
+        last_pose = np.array(self.skeleton.convert_quaternion_frame_to_cartesian_frame(frames[-1], node_names))
+        v = last_pose.flatten()-pre_last_pose.flatten()
         frame_constraint = {"keyframeLabel": "start",
-                            "frame_constraint": self.skeleton.convert_quaternion_frame_to_cartesian_frame(frame, node_names),
+                            "frame_constraint": last_pose,
+                            "velocity_constraint": v,
                             "semanticAnnotation": {"keyframeLabel": "start"},
                             "node_names": node_names,
                             "weights": weights}
