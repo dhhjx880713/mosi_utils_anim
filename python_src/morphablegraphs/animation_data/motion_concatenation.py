@@ -604,17 +604,20 @@ def blend_towards_next_step(skeleton, frames, d,  plant_side, swing_side, ik_cha
 
 
 def interpolate_frames(skeleton, frames_a, frames_b, joint_list, start, end):
+    blended_frames = deepcopy(frames_a[:])
     window = end - start
-    for c_joint in joint_list:
-        idx = skeleton.animated_joints.index(c_joint) * 4 + 3
+    for joint in joint_list:
+        idx = skeleton.animated_joints.index(joint) * 4 + 3
         j_indices = [idx, idx + 1, idx + 2, idx + 3]
-        for idx in xrange(start, end):
-            t = float(idx) / window
+        for f in xrange(window):
+            t = float(f) / window
             #t = 1.0
-            q_a = frames_a[idx][j_indices]
-            q_b = frames_b[idx][j_indices]
-            frames_b[idx][j_indices] = quaternion_slerp(q_a, q_b, t)
-    return frames_b
+            #t = 0.0
+            print "f",start+f,"t", t
+            q_a = frames_a[start + f][j_indices]
+            q_b = frames_b[start + f][j_indices]
+            blended_frames[start + f][j_indices] = quaternion_slerp(q_a, q_b, t, spin=0, shortestpath=True)
+    return blended_frames
 
 
 def blend_towards_next_step2(skeleton, frames, start, end, plant_side, swing_side, ik_chains, window=8):
@@ -628,6 +631,7 @@ def blend_towards_next_step2(skeleton, frames, start, end, plant_side, swing_sid
     #orig_frames = frames[start:end]
     new_frames = generate_blended_frames(skeleton, frames, start, end, joint_list, end-start)
     frames = interpolate_frames(skeleton, frames, new_frames, joint_list, start, end)
+    return frames
 
 
 
@@ -645,7 +649,7 @@ def align_frames_and_fix_feet(skeleton, aligning_joint, new_frames, prev_frames,
         frames = np.array(frames)
         #fix_feet_at_transition(skeleton, frames, d, plant_side, swing_side, ik_chains, ik_window)
         #blend_towards_next_step(skeleton, frames, d, plant_side, swing_side, ik_chains, window=ik_window)
-        blend_towards_next_step2(skeleton, frames, prev_start, d, plant_side, swing_side, ik_chains, window=ik_window)
+        frames = blend_towards_next_step2(skeleton, frames, prev_start, d, plant_side, swing_side, ik_chains, window=ik_window)
 
         if smoothing_window > 0:
             frames = smooth_quaternion_frames(frames, d, smoothing_window)
