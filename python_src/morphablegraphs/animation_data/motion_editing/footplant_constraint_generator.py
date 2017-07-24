@@ -42,24 +42,24 @@ def create_ankle_constraint(skeleton, frames, ankle_joint_name, heel_joint_name,
 
 
 class FootplantConstraintGenerator(object):
-    def __init__(self, skeleton, skeleton_def, settings, source_ground_height=0, target_ground_height=0):
+    def __init__(self, skeleton, skeleton_model, settings, scene_interface, source_ground_height=0):
         #left_foot = LEFT_FOOT, right_foot = RIGHT_FOOT, ground_height = 0, tolerance = 0.001
         self.skeleton = skeleton
-        self.left_foot = skeleton_def["left_foot"]
-        self.right_foot = skeleton_def["right_foot"]
-        self.right_heel = skeleton_def["right_heel"]
-        self.left_heel = skeleton_def["left_heel"]
-        self.right_toe = skeleton_def["right_toe"]
-        self.left_toe = skeleton_def["left_toe"]
-        self.foot_joints = skeleton_def["foot_joints"]
-        self.heel_offset = skeleton_def["heel_offset"]
+        self.left_foot = skeleton_model["left_foot"]
+        self.right_foot = skeleton_model["right_foot"]
+        self.right_heel = skeleton_model["right_heel"]
+        self.left_heel = skeleton_model["left_heel"]
+        self.right_toe = skeleton_model["right_toe"]
+        self.left_toe = skeleton_model["left_toe"]
+        self.foot_joints = skeleton_model["foot_joints"]
+        self.heel_offset = skeleton_model["heel_offset"]
 
         self.foot_definitions = {"right": {"heel": self.right_heel, "toe": self.right_toe, "ankle": self.right_foot},
                                  "left": {"heel": self.left_heel, "toe": self.left_toe, "ankle": self.left_foot}}
 
         self.window = settings["window"]
         self.source_ground_height = source_ground_height
-        self.target_ground_height = target_ground_height
+        self.scene_interface = scene_interface
 
         self.tolerance = settings["tolerance"]
         self.constraint_generation_range = settings["constraint_range"]
@@ -195,9 +195,9 @@ class FootplantConstraintGenerator(object):
         """ create constraint on ankle position and orientation """
         # get target global ankle orientation based on the direction between grounded heel and toe
         ct = self.get_previous_joint_position_from_buffer(frames, frame_idx, end_frame, toe_joint)
-        ct[1] = self.target_ground_height
+        ct[1] = self.scene_interface.get_height(ct[0], ct[2])
         ch = self.get_previous_joint_position_from_buffer(frames, frame_idx, end_frame, heel_joint_name)
-        ch[1] = self.target_ground_height
+        ch[1] = self.scene_interface.get_height(ct[0], ct[2])
         target_direction = normalize(ct - ch)
         t = self.skeleton.nodes[toe_joint].get_global_position(frames[frame_idx])
         h = self.skeleton.nodes[heel_joint_name].get_global_position(frames[frame_idx])
@@ -227,7 +227,7 @@ class FootplantConstraintGenerator(object):
         ch = self.get_previous_joint_position_from_buffer(frames, frame_idx, end_frame, heel_joint_name)
         a = self.skeleton.nodes[ankle_joint_name].get_global_position(frames[frame_idx])
         h = self.skeleton.nodes[heel_joint_name].get_global_position(frames[frame_idx])
-        ch[1] = self.target_ground_height  # set heel constraint on the ground
+        ch[1] = self.scene_interface.get_height(ch[0], ch[2])  # set heel constraint on the ground
         target_heel_offset = a - h  # difference between unmodified heel and ankle
         ca = ch + target_heel_offset  # move ankle so heel is on the ground
         print "set ankle constraint single", ch, ca, target_heel_offset
@@ -241,7 +241,7 @@ class FootplantConstraintGenerator(object):
         a = self.skeleton.nodes[ankle_joint_name].get_global_position(frames[frame_idx])
         t = self.skeleton.nodes[toe_joint_name].get_global_position(frames[frame_idx])
 
-        c[1] = self.target_ground_height  # set toe constraint on the ground
+        c[1] = self.scene_interface.get_height(c[0], c[2])  # set toe constraint on the ground
         target_toe_offset = a - t  # difference between unmodified toe and ankle at the frame
         ca = c + target_toe_offset  # move ankle so toe is on the ground
         return MotionGroundingConstraint(frame_idx, ankle_joint_name, ca, None, None)
@@ -323,8 +323,8 @@ class FootplantConstraintGenerator(object):
         else:
             self.update_joint_position_in_buffer(frames, frame_idx, end_frame, joint_name)
             p = self.position_constraint_buffer[frame_idx][joint_name]
-            p[1] = self.target_ground_height
-            print "joint constraint",joint_name, p, self.target_ground_height
+            p[1] = self.scene_interface.get_height(p[0], p[2])
+            print "joint constraint",joint_name, p
             return p
 
     def get_joint_position_from_buffer(self, frame_idx, joint_name):
@@ -340,6 +340,7 @@ class FootplantConstraintGenerator(object):
             self.position_constraint_buffer[frame_idx] = dict()
         if joint_name not in self.position_constraint_buffer[frame_idx].keys():
             p = get_average_joint_position(self.skeleton, frames, joint_name, frame_idx, end_frame)
+            print "add", joint_name, p, frame_idx, end_frame
             self.position_constraint_buffer[frame_idx][joint_name] = p
 
     def generate_ankle_constraints_legacy(self, frames, frame_idx, joint_names, prev_constraints, prev_joint_names):
@@ -379,7 +380,7 @@ class FootplantConstraintGenerator(object):
         """ create constraint on ankle position and orientation """
         constraints = dict()
         ct = get_average_joint_position(self.skeleton, frames, heel_joint_name, start_frame, end_frame)
-        ct[1] = self.target_ground_height
+        ct[1] = self.scene_interface.get_height(ct[0], ct[2])
         pa = get_average_joint_position(self.skeleton, frames, ankle_joint_name, start_frame, end_frame)
         ph = get_average_joint_position(self.skeleton, frames, heel_joint_name, start_frame, end_frame)
         delta = ct - ph

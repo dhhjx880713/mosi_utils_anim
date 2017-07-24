@@ -5,7 +5,8 @@ from numerical_ik_exp import NumericalInverseKinematicsExp
 from ..motion_blending import apply_slerp2, BLEND_DIRECTION_FORWARD, BLEND_DIRECTION_BACKWARD, smooth_translation_in_quat_frames
 from analytical_inverse_kinematics import AnalyticalLimbIK
 from utils import normalize, project_on_intersection_circle, smooth_root_positions, quaternion_from_vector_to_vector
-from ...external.transformations import quaternion_from_matrix, quaternion_matrix, quaternion_multiply
+from ...external.transformations import quaternion_from_matrix, quaternion_matrix, quaternion_multiply, quaternion_slerp
+from ..scene_interface import SceneInterface
 
 
 def create_grounding_constraint_from_frame(skeleton, frames, frame_idx, joint_name):
@@ -164,13 +165,9 @@ class MotionGrounding(object):
         self.clear_constraints()
         self.clear_blend_ranges()
 
-    def run(self, motion_vector, target_ground_height):
+    def run(self, motion_vector, scene_interface=None):
         new_frames = motion_vector.frames[:]
-        #offset = 10
-        #for step in motion_vector.graph_walk.steps:
-        #    new_frames[step.start_frame:step.end_frame, 1] += offset
-        #    offset += 10
-        self._shift_root_using_static_offset(new_frames, target_ground_height)
+        self._shift_root_using_static_offset(new_frames, scene_interface)
         #return new_frames
         self.shift_root_to_reach_constraints(new_frames)
         self.blend_at_transitions(new_frames)
@@ -302,15 +299,11 @@ class MotionGrounding(object):
             self._blend_around_frame_range(frames, start, end, joint_names)
         return frames
 
-    def _shift_root_using_static_offset(self, frames, target_ground_height):
-        # TODO change skeleton to include static offset
-        root_pos = self.skeleton.nodes[self.skeleton.root].get_global_position(frames[0])
-        heel_pos = self.skeleton.nodes[self._skeleton_def["right_heel"]].get_global_position(frames[0])
-
-        static_offset = root_pos[1]-heel_pos[1]
-        #static_offset = self.skeleton.nodes["pelvis"].offset[0]
-        static_offset = 0
+    def _shift_root_using_static_offset(self, frames, scene_interface):
         for idx, frame in enumerate(frames):
-            shift = target_ground_height + static_offset - frames[idx][1]
+            x = frames[idx][0]
+            z = frames[idx][2]
+            target_ground_height = scene_interface.get_height(x, z)
+            shift = target_ground_height - frames[idx][1]
             print "root shift",idx, shift,frames[idx][1]
             frames[idx][1] += shift
