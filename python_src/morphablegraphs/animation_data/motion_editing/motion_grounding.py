@@ -1,12 +1,10 @@
 import collections
-
 import numpy as np
-from numerical_ik_exp import NumericalInverseKinematicsExp
-from ..motion_blending import apply_slerp2, BLEND_DIRECTION_FORWARD, BLEND_DIRECTION_BACKWARD, smooth_translation_in_quat_frames
 from analytical_inverse_kinematics import AnalyticalLimbIK
+from numerical_ik_exp import NumericalInverseKinematicsExp
 from utils import normalize, project_on_intersection_circle, smooth_root_positions, quaternion_from_vector_to_vector
+from ..motion_blending import apply_slerp2, BLEND_DIRECTION_FORWARD, BLEND_DIRECTION_BACKWARD, smooth_translation_in_quat_frames
 from ...external.transformations import quaternion_from_matrix, quaternion_matrix, quaternion_multiply, quaternion_slerp
-from ..scene_interface import SceneInterface
 
 
 def create_grounding_constraint_from_frame(skeleton, frames, frame_idx, joint_name):
