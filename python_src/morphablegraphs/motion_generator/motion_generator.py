@@ -247,7 +247,7 @@ class MotionGenerator(object):
                 for target_joint in blend_ranges:
                     joint_list = [skeleton_model["ik_chains"][target_joint]["root"], skeleton_model["ik_chains"][target_joint]["joint"], target_joint]
                     for frame_range in blend_ranges[target_joint]:
-                        grounding.add_blend_range(joint_list, frame_range)
+                        grounding.add_blend_range(joint_list, tuple(frame_range))
             grounding.run(motion_vector, self.scene_interface)
 
         if self._algorithm_config["activate_inverse_kinematics"]:
