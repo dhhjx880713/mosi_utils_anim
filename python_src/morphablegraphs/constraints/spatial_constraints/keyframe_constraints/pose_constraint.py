@@ -27,7 +27,22 @@ class PoseConstraint(KeyframeConstraintBase):
         self.weights = constraint_desc["weights"]
 
     def evaluate_motion_spline(self, aligned_spline):
-        return self.evaluate_frame(aligned_spline.evaluate(self.canonical_keyframe))
+        frame1 = aligned_spline.evaluate(self.canonical_keyframe)
+        # get point cloud of first two frames
+        point_cloud1 = np.array(self.skeleton.convert_quaternion_frame_to_cartesian_frame(frame1, self.node_names))
+        frame2 = aligned_spline.evaluate(self.canonical_keyframe+1)
+        point_cloud2 = np.array(self.skeleton.convert_quaternion_frame_to_cartesian_frame(frame2, self.node_names))
+        velocity = point_cloud2[0] - point_cloud1[0]  # measure only the velocity of the root
+        vel_error = np.linalg.norm(self.velocity_constraint - velocity)
+        theta, offset_x, offset_z = align_point_clouds_2D(self.pose_constraint,
+                                                          point_cloud1,
+                                                          self.weights)
+        t_point_cloud = transform_point_cloud(point_cloud1, theta, offset_x, offset_z)
+
+        error = calculate_point_cloud_distance(self.pose_constraint, t_point_cloud)
+        print "evaluate pose constraint", error, vel_error
+
+        return error + vel_error
 
     def evaluate_motion_sample(self, aligned_quat_frames):
         """ Evaluates the difference between the pose of at the canonical frame of the motion and the pose constraint.
@@ -42,21 +57,23 @@ class PoseConstraint(KeyframeConstraintBase):
         * error: float
             Difference to the desired constraint value.
         """
-        return self.evaluate_frame(aligned_quat_frames[self.canonical_keyframe])
 
-    def evaluate_frame(self, frame):
+        frame1 = aligned_quat_frames[self.canonical_keyframe]
         # get point cloud of first two frames
-        point_cloud1 = np.array(self.skeleton.convert_quaternion_frame_to_cartesian_frame(frame, self.node_names))
-        point_cloud2 = np.array(self.skeleton.convert_quaternion_frame_to_cartesian_frame(frame+1, self.node_names))
-        velocity = point_cloud2.flatten()-point_cloud1.flatten()
-
+        point_cloud1 = np.array(self.skeleton.convert_quaternion_frame_to_cartesian_frame(frame1, self.node_names))
+        vel_error = 0
+        if self.canonical_keyframe + 1 < len(aligned_quat_frames):
+            frame2 = aligned_quat_frames[self.canonical_keyframe + 1]
+            point_cloud2 = np.array(self.skeleton.convert_quaternion_frame_to_cartesian_frame(frame2, self.node_names))
+            velocity = point_cloud2[0]-point_cloud1[0]  # measure only the velocity of the root
+            vel_error = np.linalg.norm(self.velocity_constraint - velocity)
         theta, offset_x, offset_z = align_point_clouds_2D(self.pose_constraint,
                                                           point_cloud1,
                                                           self.weights)
         t_point_cloud = transform_point_cloud(point_cloud1, theta, offset_x, offset_z)
 
         error = calculate_point_cloud_distance(self.pose_constraint, t_point_cloud)
-        vel_error = np.linalg.norm(self.velocity_constraint - velocity)
+        print "evaluate pose constraint", error, vel_error
         return error + vel_error
 
     def get_residual_vector_spline(self, aligned_spline):

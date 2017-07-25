@@ -46,10 +46,10 @@ class MotionPrimitiveConstraintsBuilder(object):
         self.node_group = self.action_constraints.get_node_group()
         self.skeleton = action_constraints.motion_state_graph.skeleton
 
-        if "pelvis" in self.skeleton.skeleton_model:
+        if self.skeleton.skeleton_model is not None:
             important_joints = []
             skeleton_model = self.skeleton.skeleton_model
-            for j in ["right_hand", "left_hand", "right_foot", "left_foot", "pelvis"]:
+            for j in ["pelvis", "right_hand", "left_hand", "right_foot", "left_foot"]:
                 important_joints.append(skeleton_model[j])
             self.pose_constraint_node_names = important_joints
         else:
@@ -124,6 +124,8 @@ class MotionPrimitiveConstraintsBuilder(object):
         mp_constraints.skeleton = self.skeleton
         mp_constraints.precision = self.action_constraints.precision
         mp_constraints.verbose = self.algorithm_config["verbose"]
+        print "add constraints", self.use_transition_constraint
+
         if self.action_constraints.root_trajectory is not None:
             self._add_path_following_constraints(mp_constraints)
             if self.use_transition_constraint:
@@ -337,7 +339,7 @@ class MotionPrimitiveConstraintsBuilder(object):
             weights = self.skeleton.joint_weight_map.values()
         pre_last_pose = np.array(self.skeleton.convert_quaternion_frame_to_cartesian_frame(frames[-2], node_names))
         last_pose = np.array(self.skeleton.convert_quaternion_frame_to_cartesian_frame(frames[-1], node_names))
-        v = last_pose.flatten()-pre_last_pose.flatten()
+        v = last_pose[0]-pre_last_pose[0]  # measure only the velocity of the root
         frame_constraint = {"keyframeLabel": "start",
                             "frame_constraint": last_pose,
                             "velocity_constraint": v,
