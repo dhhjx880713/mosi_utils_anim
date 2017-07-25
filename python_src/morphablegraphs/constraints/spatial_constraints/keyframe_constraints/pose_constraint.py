@@ -21,7 +21,6 @@ class PoseConstraint(KeyframeConstraintBase):
         self.skeleton = skeleton
         self.pose_constraint = constraint_desc["frame_constraint"]
         self.velocity_constraint = constraint_desc["velocity_constraint"]
-        print self.velocity_constraint.shape
         self.constraint_type = SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE
         self.node_names = constraint_desc["node_names"]
         self.weights = constraint_desc["weights"]
@@ -31,8 +30,8 @@ class PoseConstraint(KeyframeConstraintBase):
         # get point cloud of first two frames
         point_cloud1 = np.array(self.skeleton.convert_quaternion_frame_to_cartesian_frame(frame1, self.node_names))
         frame2 = aligned_spline.evaluate(self.canonical_keyframe+1)
-        point_cloud2 = np.array(self.skeleton.convert_quaternion_frame_to_cartesian_frame(frame2, self.node_names))
-        velocity = point_cloud2[0] - point_cloud1[0]  # measure only the velocity of the root
+        root_pos2 = self.skeleton.nodes[self.node_names[0]].get_global_position(frame2)
+        velocity = root_pos2 - point_cloud1[0]  # measure only the velocity of the root
         vel_error = np.linalg.norm(self.velocity_constraint - velocity)
         theta, offset_x, offset_z = align_point_clouds_2D(self.pose_constraint,
                                                           point_cloud1,
@@ -64,8 +63,8 @@ class PoseConstraint(KeyframeConstraintBase):
         vel_error = 0
         if self.canonical_keyframe + 1 < len(aligned_quat_frames):
             frame2 = aligned_quat_frames[self.canonical_keyframe + 1]
-            point_cloud2 = np.array(self.skeleton.convert_quaternion_frame_to_cartesian_frame(frame2, self.node_names))
-            velocity = point_cloud2[0]-point_cloud1[0]  # measure only the velocity of the root
+            root_pos2 = self.skeleton.nodes[self.node_names[0]].get_global_position(frame2)
+            velocity = root_pos2-point_cloud1[0]  # measure only the velocity of the root
             vel_error = np.linalg.norm(self.velocity_constraint - velocity)
         theta, offset_x, offset_z = align_point_clouds_2D(self.pose_constraint,
                                                           point_cloud1,

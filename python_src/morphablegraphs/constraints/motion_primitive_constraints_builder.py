@@ -337,9 +337,10 @@ class MotionPrimitiveConstraintsBuilder(object):
         else:
             node_names = self.skeleton.joint_weight_map.keys()
             weights = self.skeleton.joint_weight_map.values()
-        pre_last_pose = np.array(self.skeleton.convert_quaternion_frame_to_cartesian_frame(frames[-2], node_names))
+
         last_pose = np.array(self.skeleton.convert_quaternion_frame_to_cartesian_frame(frames[-1], node_names))
-        v = last_pose[0]-pre_last_pose[0]  # measure only the velocity of the root
+        pre_root_pos = self.skeleton.nodes[node_names[0]].get_global_position(frames[-2])
+        v = last_pose[0]-pre_root_pos  # measure only the velocity of the root
         frame_constraint = {"keyframeLabel": "start",
                             "frame_constraint": last_pose,
                             "velocity_constraint": v,
