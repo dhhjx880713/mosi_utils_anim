@@ -96,6 +96,10 @@ class MotionGenerator(object):
 
         start_time = time.clock()
 
+        start_pose = mg_input_reader.get_start_pose()
+        x_offset = start_pose["position"][0]
+        z_offset = start_pose["position"][2]
+        self.scene_interface.set_offset(x_offset, z_offset)
         offset = mg_input_reader.center_constraints()
 
         action_constraint_list = self.action_constraints_builder.build_list_from_input_file(mg_input_reader)
