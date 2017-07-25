@@ -523,47 +523,36 @@ class FootplantConstraintGenerator(object):
         R = "right"
         plant_range[L] = dict()
         plant_range[R] = dict()
+        for side in plant_range.keys():
+            plant_range[side]["start"] = None
+            plant_range[side]["end"] = None
+            ankle = self.foot_definitions[side]["heel"]
 
-        plant_range[L]["start"] = None
-        plant_range[L]["end"] = None
-        plant_range[R]["start"] = None
-        plant_range[R]["end"] = None
-        left_ankle = self.foot_definitions[L]["heel"]
-        right_ankle = self.foot_definitions[R]["heel"]
+            if step.node_key[1] == "beginLeftStance":
+                plant_range[side]["start"] = start_frame
+                plant_range[side]["end"] = find_last_frame(self.skeleton, frames, ankle, start_frame, w)
 
-        if step.node_key[1] == "beginLeftStance":
-            plant_range[R]["start"] = start_frame
-            plant_range[R]["end"] = find_last_frame(self.skeleton, frames, right_ankle, start_frame, w)
-            plant_range[L]["start"] = start_frame
-            plant_range[L]["end"] = find_last_frame(self.skeleton, frames, left_ankle, start_frame, w)
+            elif step.node_key[1] == "beginRightStance":
+                plant_range[side]["start"] = start_frame
+                plant_range[side]["end"] = find_last_frame(self.skeleton, frames, ankle, start_frame, w)
 
-        elif step.node_key[1] == "beginRightStance":
-            plant_range[L]["start"] = start_frame
-            plant_range[L]["end"] = find_last_frame(self.skeleton, frames, left_ankle, start_frame, w)
-            plant_range[R]["start"] = start_frame
-            plant_range[R]["end"] = find_last_frame(self.skeleton, frames, right_ankle, start_frame, w)
+            elif step.node_key[1] == "endLeftStance":
+                plant_range[side]["start"] = find_first_frame(self.skeleton, frames,  ankle, end_frame, w)
+                plant_range[side]["end"] = end_frame
 
-        elif step.node_key[1] == "endLeftStance":
-            plant_range[R]["start"] = find_first_frame(self.skeleton,frames,  right_ankle, end_frame, w)
-            plant_range[R]["end"] = end_frame
-            plant_range[L]["start"] = find_first_frame(self.skeleton, frames, left_ankle, end_frame, w)
-            plant_range[L]["end"] = end_frame
+            elif step.node_key[1] == "endRightStance":
+                plant_range[side]["start"] = find_first_frame(self.skeleton, frames, ankle, end_frame, w)
+                plant_range[side]["end"] = end_frame
 
-        elif step.node_key[1] == "endRightStance":
-            plant_range[L]["start"] = find_first_frame(self.skeleton, frames, left_ankle, end_frame, w)
-            plant_range[L]["end"] = end_frame
-            plant_range[R]["start"] = find_first_frame(self.skeleton, frames, right_ankle, end_frame, w)
-            plant_range[R]["end"] = end_frame
+            elif step.node_key[1] == "leftStance" and side == R:
+                middle_frame = int((end_frame-start_frame)/2) + start_frame
+                plant_range[side]["start"] = find_first_frame(self.skeleton, frames, ankle, middle_frame, w)
+                plant_range[side]["end"] = find_last_frame(self.skeleton, frames, ankle, middle_frame+1, w)
 
-        elif step.node_key[1] == "leftStance":
-            middle_frame = int((end_frame-start_frame)/2) + start_frame
-            plant_range[R]["start"] = find_first_frame(self.skeleton, frames, right_ankle, middle_frame, w)
-            plant_range[R]["end"] = find_last_frame(self.skeleton, frames, right_ankle, middle_frame+1, w)
-
-        elif step.node_key[1] == "rightStance":
-            middle_frame = int((end_frame - start_frame) / 2) + start_frame
-            plant_range[L]["start"] = find_first_frame(self.skeleton, frames, left_ankle, middle_frame, w)
-            plant_range[L]["end"] = find_last_frame(self.skeleton, frames, left_ankle, middle_frame+1, w)
+            elif step.node_key[1] == "rightStance" and side == L:
+                middle_frame = int((end_frame - start_frame) / 2) + start_frame
+                plant_range[side]["start"] = find_first_frame(self.skeleton, frames, ankle, middle_frame, w)
+                plant_range[side]["end"] = find_last_frame(self.skeleton, frames, ankle, middle_frame+1, w)
         print plant_range
         return plant_range
 
