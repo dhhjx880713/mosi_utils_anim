@@ -47,7 +47,7 @@ class MotionGenerator(object):
                               "graph_walk_grounding_window": 4,
                               "contact_tolerance": 1.0,
                               "constraint_range": 10,
-                              "smoothing_constraints_window": 15}
+                              "smoothing_constraints_window": 8}
         skeleton_model = self._motion_state_graph.skeleton.skeleton_model
         self.scene_interface = SceneInterface()
         if skeleton_model is not None:
