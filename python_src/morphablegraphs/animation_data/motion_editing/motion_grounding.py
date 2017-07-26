@@ -80,6 +80,8 @@ class MotionGroundingConstraint(object):
         self.position = position
         self.direction = direction
         self.orientation = orientation
+        self.toe_position = None
+        self.heel_position = None
 
     def evaluate(self, skeleton, q_frame):
         d = self.position - skeleton.nodes[self.joint_name].get_global_position(q_frame)
