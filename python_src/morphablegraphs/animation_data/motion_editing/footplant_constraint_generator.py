@@ -319,7 +319,7 @@ class FootplantConstraintGenerator(object):
         m = quaternion_matrix(orientation)[:3,:3]
         target_heel_offset = np.dot(m, self.heel_offset)
         ca = ch - target_heel_offset
-        print "set ankle constraint both", ch, ca, target_heel_offset
+        #print "set ankle constraint both", ch, ca, target_heel_offset
         constraint = MotionGroundingConstraint(frame_idx, ankle_joint_name, ca, None, orientation)
         constraint.toe_position = ct
         constraint.heel_position = ch
@@ -334,7 +334,7 @@ class FootplantConstraintGenerator(object):
         ch[1] = self.scene_interface.get_height(ch[0], ch[2])  # set heel constraint on the ground
         target_heel_offset = a - h  # difference between unmodified heel and ankle
         ca = ch + target_heel_offset  # move ankle so heel is on the ground
-        print "set ankle constraint single", ch, ca, target_heel_offset
+        #print "set ankle constraint single", ch, ca, target_heel_offset
         constraint = MotionGroundingConstraint(frame_idx, ankle_joint_name, ca, None, None)
         constraint.heel_position = ch
         return constraint
@@ -419,7 +419,7 @@ class FootplantConstraintGenerator(object):
             self.update_joint_position_in_buffer(frames, frame_idx, end_frame, joint_name)
             p = self.position_constraint_buffer[frame_idx][joint_name]
             p[1] = self.scene_interface.get_height(p[0], p[2])
-            print "joint constraint",joint_name, p
+            #print "joint constraint",joint_name, p
             return p
 
     def get_joint_position_from_buffer(self, frame_idx, joint_name):
@@ -486,7 +486,7 @@ class FootplantConstraintGenerator(object):
             child_joint_name = self.skeleton.nodes[ankle_joint_name].children[0].node_name
             avg_direction = get_average_joint_direction(self.skeleton, frames, ankle_joint_name, child_joint_name,
                                                         start_frame, end_frame)
-        print "constraint ankle at",pa, ct,ca, start_frame, end_frame, avg_direction
+        #print "constraint ankle at",pa, ct,ca, start_frame, end_frame, avg_direction
         for frame_idx in xrange(start_frame, end_frame):
             c = MotionGroundingConstraint(frame_idx, ankle_joint_name, ca, avg_direction)
             constraints[frame_idx] = []
