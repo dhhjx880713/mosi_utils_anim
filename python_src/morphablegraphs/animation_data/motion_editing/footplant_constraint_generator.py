@@ -360,6 +360,7 @@ class FootplantConstraintGenerator(object):
         prev_frame_idx = frame_idx - 1
         prev_p = self.get_joint_position_from_buffer(prev_frame_idx, joint_name)
         if prev_p is not None:
+            self.position_constraint_buffer[frame_idx][joint_name] = prev_p
             return prev_p
         else:
             self.update_joint_position_in_buffer(frames, frame_idx, end_frame, joint_name)
