@@ -47,7 +47,7 @@ def calculate_angle2(upper_limb,lower_limb,target_length):
 
 
 class AnalyticalLimbIK(object):
-    def __init__(self, skeleton, limb_root, limb_joint, end_effector, joint_axis, local_end_effector_dir):
+    def __init__(self, skeleton, limb_root, limb_joint, end_effector, joint_axis, local_end_effector_dir, min_angle=0.1):
         self.skeleton = skeleton
         self.limb_root = limb_root
         self.limb_joint = limb_joint
@@ -60,6 +60,7 @@ class AnalyticalLimbIK(object):
         self.root_indices = [root_idx, root_idx + 1, root_idx + 2, root_idx + 3]
         end_effector_idx = self.skeleton.animated_joints.index(self.end_effector) * 4 + 3
         self.end_effector_indices = [end_effector_idx, end_effector_idx + 1, end_effector_idx + 2, end_effector_idx + 3]
+        self.min_angle = min_angle
 
     @classmethod
     def init_from_dict(cls, skeleton, joint_name, data):
@@ -83,7 +84,10 @@ class AnalyticalLimbIK(object):
         #initial_length = np.linalg.norm(root_pos - end_effector_pos)
 
         target_length = np.linalg.norm(root_pos - target_position)
-        joint_delta_angle = np.pi - calculate_angle2(upper_limb, lower_limb, target_length)
+        angle = calculate_angle2(upper_limb, lower_limb, target_length)
+        if abs(angle - np.pi) < self.min_angle:
+            angle -= self.min_angle
+        joint_delta_angle = np.pi - angle
         joint_delta_q = quaternion_about_axis(joint_delta_angle, self.local_joint_axis)
         joint_delta_q = normalize(joint_delta_q)
         frame[self.joint_indices] = joint_delta_q
