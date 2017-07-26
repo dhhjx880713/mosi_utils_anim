@@ -42,7 +42,12 @@ class MotionGenerator(object):
         self.step_look_ahead_distance = DEFAULT_ALGORITHM_CONFIG["trajectory_following_settings"]["look_ahead_distance"]
         self.activate_global_optimization = False
         self.graph_walk_optimizer = GraphWalkOptimizer(self._motion_state_graph, algorithm_config)
-        footplant_settings = {"window": 4, "tolerance": 1, "constraint_range": 10, "smoothing_constraints_window": 15}
+        footplant_settings = {"foot_lift_search_window": 40,
+                              "foot_lift_tolerance": 2.0,
+                              "graph_walk_grounding_window": 4,
+                              "contact_tolerance": 1.0,
+                              "constraint_range": 10,
+                              "smoothing_constraints_window": 15}
         skeleton_model = self._motion_state_graph.skeleton.skeleton_model
         self.scene_interface = SceneInterface()
         if skeleton_model is not None:
