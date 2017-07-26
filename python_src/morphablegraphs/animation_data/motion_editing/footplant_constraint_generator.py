@@ -80,46 +80,7 @@ def blend(x):
     return 2 * x * x * x - 3 * x * x + 1
 
 
-def set_smoothing_constraint(skeleton, frames, constraint, frame_idx, window, orientation_constraint_buffer, heel_offset, left_toe_offset, right_toe_offset):
-    backward_hit = None
-    forward_hit = None
 
-    start_window = max(frame_idx - window, 0)
-    end_window = min(frame_idx + window, len(frames))
-
-    # look backward
-    search_window = list(range(start_window, frame_idx))
-    for f in reversed(search_window):
-        if constraint.joint_name in orientation_constraint_buffer[f]:
-            backward_hit = f
-            break
-    # look forward
-    for f in xrange(frame_idx, end_window):
-        if constraint.joint_name in orientation_constraint_buffer[f]:
-            forward_hit = f
-            break
-
-    # update q
-    print "update q", frame_idx, forward_hit, backward_hit
-    oq = get_global_orientation(skeleton, constraint.joint_name, frames[frame_idx])
-    if backward_hit is not None and constraint.toe_position is not None:
-        bq = orientation_constraint_buffer[backward_hit][constraint.joint_name]
-        j = frame_idx - backward_hit
-        t = float(j + 1) / (window + 1)
-        global_q = normalize(quaternion_slerp(bq, oq, t, spin=0, shortestpath=True))
-        constraint.orientation = normalize(global_q)
-        if constraint.joint_name == "foot_l":
-            constraint.position = regenerate_ankle_constraint_with_new_orientation(constraint.toe_position, left_toe_offset, constraint.orientation)
-        else:
-            constraint.position = regenerate_ankle_constraint_with_new_orientation(constraint.toe_position, right_toe_offset, constraint.orientation)
-
-    elif forward_hit is not None and constraint.heel_position is not None:
-        k = forward_hit - frame_idx
-        t = float(k + 1) / (window + 1)
-        fq = orientation_constraint_buffer[forward_hit][constraint.joint_name]
-        global_q = normalize(quaternion_slerp(oq, fq, t, spin=0, shortestpath=True))
-        constraint.orientation = normalize(global_q)
-        constraint.position = regenerate_ankle_constraint_with_new_orientation(constraint.heel_position, heel_offset, constraint.orientation)
 
 
 def create_ankle_constraint(skeleton, frames, ankle_joint_name, heel_joint_name, toe_joint, frame_idx, end_frame, ground_height):
@@ -398,9 +359,52 @@ class FootplantConstraintGenerator(object):
         for frame_idx in constraints.keys():
             for constraint in constraints[frame_idx]:
                 if constraint.joint_name not in self.orientation_constraint_buffer[frame_idx]:  # singly constrained
-                    set_smoothing_constraint(self.skeleton, frames, constraint, frame_idx,
-                                             self.smoothing_constraints_window,
-                                             self.orientation_constraint_buffer, self.heel_offset, self.left_toe_offset, self.right_toe_offset)
+                    self.set_smoothing_constraint(frames, constraint, frame_idx, self.smoothing_constraints_window)
+
+    def set_smoothing_constraint(self, frames, constraint, frame_idx, window):
+        backward_hit = None
+        forward_hit = None
+
+        start_window = max(frame_idx - window, 0)
+        end_window = min(frame_idx + window, len(frames))
+
+        # look backward
+        search_window = list(range(start_window, frame_idx))
+        for f in reversed(search_window):
+            if constraint.joint_name in self.orientation_constraint_buffer[f]:
+                backward_hit = f
+                break
+        # look forward
+        for f in xrange(frame_idx, end_window):
+            if constraint.joint_name in self.orientation_constraint_buffer[f]:
+                forward_hit = f
+                break
+
+        # update q
+        oq = get_global_orientation(self.skeleton, constraint.joint_name, frames[frame_idx])
+        if backward_hit is not None and constraint.toe_position is not None:
+            bq = self.orientation_constraint_buffer[backward_hit][constraint.joint_name]
+            j = frame_idx - backward_hit
+            t = float(j + 1) / (window + 1)
+            global_q = normalize(quaternion_slerp(bq, oq, t, spin=0, shortestpath=True))
+            constraint.orientation = normalize(global_q)
+            if constraint.joint_name == self.left_foot:
+                constraint.position = regenerate_ankle_constraint_with_new_orientation(constraint.toe_position,
+                                                                                       self.left_toe_offset,
+                                                                                       constraint.orientation)
+            else:
+                constraint.position = regenerate_ankle_constraint_with_new_orientation(constraint.toe_position,
+                                                                                       self.right_toe_offset,
+                                                                                       constraint.orientation)
+
+        elif forward_hit is not None and constraint.heel_position is not None:
+            k = forward_hit - frame_idx
+            t = float(k + 1) / (window + 1)
+            fq = self.orientation_constraint_buffer[forward_hit][constraint.joint_name]
+            global_q = normalize(quaternion_slerp(oq, fq, t, spin=0, shortestpath=True))
+            constraint.orientation = normalize(global_q)
+            constraint.position = regenerate_ankle_constraint_with_new_orientation(constraint.heel_position,
+                                                                                   self.heel_offset, constraint.orientation)
 
     def get_previous_joint_position_from_buffer(self, frames, frame_idx, end_frame, joint_name):
         """ Gets the joint position of the previous frame from the buffer if it exists.
