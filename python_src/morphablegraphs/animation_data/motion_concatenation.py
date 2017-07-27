@@ -430,16 +430,17 @@ def translate_root(skeleton, frames, target_frame_idx, plant_heel, ground_height
     for f in xrange(target_frame_idx, n_frames):
         frames[f][1] += delta
     print "after", skeleton.nodes[plant_heel].get_global_position(frames[target_frame_idx])
-
-
     for f in xrange(target_frame_idx, n_frames):
         frames[f,:3] += delta/2
 
+
 def apply_constraint(skeleton, frames, c, ik_chain, frame_idx, start, end, window):
+    print "apply swing foot constraint on frame", frame_idx, start, end
     ik = AnalyticalLimbIK.init_from_dict(skeleton, c.joint_name, ik_chain)
     frames[frame_idx] = ik.apply2(frames[frame_idx], c.position, c.orientation)
     joint_list = [ik_chain["root"], ik_chain["joint"], c.joint_name]
     blend_between_frames(skeleton, frames, start, end, joint_list, window)
+
 
 def apply_constraint_on_window_prev(skeleton, frames, c, ik_chain, start, end, window):
     ik = AnalyticalLimbIK.init_from_dict(skeleton, c.joint_name, ik_chain)
@@ -449,6 +450,7 @@ def apply_constraint_on_window_prev(skeleton, frames, c, ik_chain, start, end, w
         frames[f] = ik.apply2(frames[f], c.position, c.orientation)
     joint_list = [ik_chain["root"], ik_chain["joint"], c.joint_name]
     blend_between_frames(skeleton, frames, end, end+window, joint_list, window)
+
 
 def apply_constraint_on_window_next(skeleton, frames, c, ik_chain, start, end, window):
     ik = AnalyticalLimbIK.init_from_dict(skeleton, c.joint_name, ik_chain)
@@ -494,7 +496,6 @@ def generated_blend(start_q, end_q, window):
         t = float(i) / window
         slerp_q = quaternion_slerp(start_q, end_q, t, spin=0, shortestpath=True)
         blend[i] = slerp_q
-    print blend.shape
     return blend
 
 
@@ -562,11 +563,7 @@ def fix_feet_at_transition(skeleton, frames, d,  plant_side, swing_side, ik_chai
     target_ground_height = 0
     smooth_root_translation_around_transition(frames, d, 2 * ik_window)
 
-    # TODO generate constraint as interpolation between d and d-1
-    #plant_constraint1, swing_constraint1 = generate_feet_constraints(skeleton, frames, d-1, plant_side, swing_side, target_ground_height)
     plant_constraint, swing_constraint = generate_feet_constraints(skeleton, frames, d, plant_side, swing_side, target_ground_height)
-    #plant_constraint = interpolate_constraints(plant_constraint1, plant_constraint2)
-    #swing_constraint = interpolate_constraints(swing_constraint1, swing_constraint2)
     root_pos = generate_root_constraint_for_two_feet(skeleton, frames[d-1], plant_constraint, swing_constraint)
     if root_pos is not None:
         frames[d - 1][:3] = root_pos
@@ -574,7 +571,6 @@ def fix_feet_at_transition(skeleton, frames, d,  plant_side, swing_side, ik_chai
         smooth_root_translation_at_start(frames, d, ik_window)
 
     align_feet_to_next_step(skeleton, frames, d-1, plant_constraint, swing_constraint, ik_chains, plant_window, ik_window)
-
     align_feet_to_prev_step(skeleton, frames, d, plant_constraint, swing_constraint, ik_chains, ik_window)
     #swing_foot = skeleton.skeleton_model[swing_side + "_foot"]
     #align_foot_to_prev_step(skeleton, frames, swing_foot, ik_chains[swing_foot], d, ik_window)
@@ -586,11 +582,24 @@ def blend_quaternions_to_next_step(skeleton, frames, frame_idx, plant_joint, swi
     plant_ik_chain = ik_chains[plant_joint]
     swing_ik_chain = ik_chains[swing_joint]
     joint_list = [skeleton.root, "pelvis", plant_ik_chain["root"], plant_ik_chain["joint"], plant_joint, swing_ik_chain["root"], swing_ik_chain["joint"], swing_joint]
-    print "blend", start, end
     blend_between_frames(skeleton, frames, start, end, joint_list, window)
 
 
-def blend_towards_next_step(skeleton, frames, d,  plant_side, swing_side, ik_chains, window=8):
+def interpolate_frames(skeleton, frames_a, frames_b, joint_list, start, end):
+    blended_frames = deepcopy(frames_a[:])
+    window = end - start
+    for joint in joint_list:
+        idx = skeleton.animated_joints.index(joint) * 4 + 3
+        j_indices = [idx, idx + 1, idx + 2, idx + 3]
+        for f in xrange(window):
+            t = (float(f) / window)
+            q_a = frames_a[start + f][j_indices]
+            q_b = frames_b[start + f][j_indices]
+            blended_frames[start + f][j_indices] = quaternion_slerp(q_a, q_b, t, spin=0, shortestpath=True)
+    return blended_frames
+
+
+def blend_towards_next_step_linear(skeleton, frames, d,  plant_side, swing_side, ik_chains, window=8):
     target_ground_height = 0
     smooth_root_translation_around_transition(frames, d, 2 * window)
     plant_constraint, swing_constraint = generate_feet_constraints(skeleton, frames, d, plant_side, swing_side, target_ground_height)
@@ -602,33 +611,17 @@ def blend_towards_next_step(skeleton, frames, d,  plant_side, swing_side, ik_cha
     blend_quaternions_to_next_step(skeleton, frames, d, plant_constraint.joint_name, swing_constraint.joint_name, ik_chains, window)
 
 
-
-def interpolate_frames(skeleton, frames_a, frames_b, joint_list, start, end):
-    blended_frames = deepcopy(frames_a[:])
-    window = end - start
-    for joint in joint_list:
-        idx = skeleton.animated_joints.index(joint) * 4 + 3
-        j_indices = [idx, idx + 1, idx + 2, idx + 3]
-        for f in xrange(window):
-            print "f",start+f,"t", t
-            q_a = frames_a[start + f][j_indices]
-            q_b = frames_b[start + f][j_indices]
-            blended_frames[start + f][j_indices] = quaternion_slerp(q_a, q_b, t, spin=0, shortestpath=True)
-    return blended_frames
-
-
-def blend_towards_next_step2(skeleton, frames, start, end, plant_side, swing_side, ik_chains, window=8):
+def blend_towards_next_step_linear_with_original(skeleton, frames, start, end, plant_side, swing_side, ik_chains, window=8):
     plant_joint = skeleton.skeleton_model[plant_side + "_foot"]
     swing_joint = skeleton.skeleton_model[swing_side + "_foot"]
     plant_ik_chain = ik_chains[plant_joint]
     swing_ik_chain = ik_chains[swing_joint]
     joint_list = [skeleton.root, "pelvis", plant_ik_chain["root"], plant_ik_chain["joint"], plant_joint,
                   swing_ik_chain["root"], swing_ik_chain["joint"], swing_joint]
-    print "blend again3", start, end
-    #orig_frames = frames[start:end]
     new_frames = generate_blended_frames(skeleton, frames, start, end, joint_list, end-start)
     frames = interpolate_frames(skeleton, frames, new_frames, joint_list, start, end)
     return frames
+
 
 def blend_towards_next_step3(skeleton, frames, start, end, plant_side, swing_side, ik_chains, window=8):
     plant_joint = skeleton.skeleton_model[plant_side + "_foot"]
@@ -637,8 +630,6 @@ def blend_towards_next_step3(skeleton, frames, start, end, plant_side, swing_sid
     swing_ik_chain = ik_chains[swing_joint]
     joint_list = [skeleton.root, "pelvis", plant_ik_chain["root"], plant_ik_chain["joint"], plant_joint,
                   swing_ik_chain["root"], swing_ik_chain["joint"], swing_joint]
-    print "blend again3", start, end
-    #orig_frames = frames[start:end]
     middle = start + (end-start)/2
     new_frames = generate_blended_frames(skeleton, frames, middle, end, joint_list, end-middle)
     frames = interpolate_frames(skeleton, frames, new_frames, joint_list, middle, end)
@@ -652,14 +643,14 @@ def align_frames_and_fix_feet(skeleton, aligning_joint, new_frames, prev_frames,
     new_frames = align_quaternion_frames(skeleton, aligning_joint, new_frames, prev_frames, start_pose)
     if prev_frames is not None:
         d = len(prev_frames)
-        print "reloaded9",prev_start, d
         frames = prev_frames.tolist()
         for f in new_frames:
             frames.append(f)
         frames = np.array(frames)
-        #fix_feet_at_transition(skeleton, frames, d, plant_side, swing_side, ik_chains, ik_window)
-        #blend_towards_next_step(skeleton, frames, d, plant_side, swing_side, ik_chains, window=ik_window)
-        frames = blend_towards_next_step3(skeleton, frames, prev_start, d, plant_side, swing_side, ik_chains, window=ik_window)
+
+        blend_end = d
+        blend_start = prev_start + (blend_end-prev_start)/2  # start blending from the middle of the step
+        frames = blend_towards_next_step_linear_with_original(skeleton, frames, blend_start, blend_end, plant_side, swing_side, ik_chains, window=ik_window)
 
         if smoothing_window > 0:
             frames = smooth_quaternion_frames(frames, d, smoothing_window)
