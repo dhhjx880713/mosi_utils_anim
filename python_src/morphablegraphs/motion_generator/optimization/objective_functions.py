@@ -8,9 +8,9 @@ Created on Fri Jul 31 13:21:08 2015
 import numpy as np
 from sklearn.mixture.gmm import _log_multivariate_normal_density_full
 from scipy.optimize.optimize import approx_fprime
-from ..animation_data.utils import  align_quaternion_frames_only_last_frame
-from ..animation_data.motion_concatenation import align_quaternion_frames
-from ..constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_TRAJECTORY_SET
+from ...animation_data.utils import align_quaternion_frames_only_last_frame
+from ...animation_data.motion_concatenation import align_quaternion_frames
+from ...constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_TRAJECTORY_SET
 
 
 def obj_frame_error(s, data):
@@ -145,10 +145,10 @@ def obj_spatial_error_residual_vector_and_naturalness(s, data):
     -------
     * residual_vector: list
     """
-    motion_primitive, motion_primitive_constraints, prev_frames, error_scale_factor, quality_scale_factor, init_error_sum = data
+    mp, mp_constraints, prev_frames, error_scale_factor, quality_scale_factor, init_error_sum = data
     negative_log_likelihood = float(-data[0].get_gaussian_mixture_model().score(s.reshape((1, len(s)))) * quality_scale_factor)
-    residual_vector = motion_primitive_constraints.get_residual_vector(motion_primitive, s, prev_frames, use_time_parameters=False)
-    motion_primitive_constraints.min_error = np.sum(residual_vector)
+    residual_vector = mp_constraints.get_residual_vector(mp, s, prev_frames, use_time_parameters=False)
+    mp_constraints.min_error = np.sum(residual_vector)
     n_error_values = len(residual_vector)
     for i in xrange(n_error_values):
         residual_vector[i] *= error_scale_factor

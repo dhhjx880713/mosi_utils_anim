@@ -11,8 +11,8 @@ from ..animation_data.evaluation_methods import check_sample_validity
 from statistics import ConstrainedGMMBuilder
 from ..utilities.exceptions import ConstraintError, SynthesisError
 from optimization import OptimizerBuilder
-from objective_functions import obj_spatial_error_sum, obj_spatial_error_sum_and_naturalness
 from ..constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE
+from optimization.objective_functions import obj_spatial_error_sum
 try:
     from mgrd import motion_primitive_get_random_samples
 except ImportError:
