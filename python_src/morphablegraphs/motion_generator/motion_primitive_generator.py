@@ -5,20 +5,19 @@ Created on Wed Mar 10 17:15:22 2015
 @author: erhe01,mamauer,hadu01,FARUPP
 """
 
-import numpy as np
 import time
-from ..animation_data.evaluation_methods import check_sample_validity
-from statistics import ConstrainedGMMBuilder
-from ..utilities.exceptions import ConstraintError, SynthesisError
+import numpy as np
 from optimization import OptimizerBuilder
 from ..constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE
 from optimization.objective_functions import obj_spatial_error_sum
+from statistics import ConstrainedGMMBuilder
+from ..utilities.exceptions import ConstraintError, SynthesisError
 try:
     from mgrd import motion_primitive_get_random_samples
 except ImportError:
     pass
 from mgrd_motion_primitive_sample_filter import MGRDMotionPrimitiveSampleFilter as MGRDFilter
-from ..utilities import write_log, write_message_to_log, LOG_MODE_INFO, LOG_MODE_DEBUG, LOG_MODE_ERROR
+from ..utilities import write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_ERROR
 SAMPLING_MODE_RANDOM = "random_discrete"
 SAMPLING_MODE_CLUSTER_TREE_SEARCH = "cluster_tree_search"
 SAMPLING_MODE_RANDOM_SPLINE = "random_spline"
@@ -35,25 +34,11 @@ class MotionPrimitiveGenerator(object):
     """
     def __init__(self, action_constraints, algorithm_config):
         self._action_constraints = action_constraints
-        self._algorithm_config = algorithm_config
+        self.set_algorithm_config(algorithm_config)
         self.action_name = action_constraints.action_name
         self.prev_action_name = action_constraints.prev_action_name
         self._motion_state_graph = self._action_constraints.motion_state_graph
         self.skeleton = self._action_constraints.get_skeleton()
-        self._constrained_gmm_config = self._algorithm_config["constrained_gmm_settings"]
-        self.n_random_samples = self._algorithm_config["n_random_samples"]
-        self.verbose = self._algorithm_config["verbose"]
-        self.precision = self._constrained_gmm_config["precision"]
-        self.max_bad_samples = self._constrained_gmm_config["max_bad_samples"]
-        self.use_constraints = self._algorithm_config["use_constraints"]
-        self.local_optimization_mode = self._algorithm_config["local_optimization_mode"]
-        self._optimization_settings = self._algorithm_config["local_optimization_settings"]
-        self.optimization_start_error_threshold = self._optimization_settings["start_error_threshold"]
-        self.use_constrained_gmm = self._algorithm_config["use_constrained_gmm"]
-        self.use_transition_model = self._algorithm_config["use_transition_model"]
-        self.constrained_sampling_mode = self._algorithm_config["constrained_sampling_mode"]
-        self.activate_parameter_check = self._algorithm_config["activate_parameter_check"]
-        self.n_cluster_search_candidates = self._algorithm_config["n_cluster_search_candidates"]
         if self.use_constrained_gmm:
             self._constrained_gmm_builder = ConstrainedGMMBuilder(self._motion_state_graph, self._algorithm_config,
                                                                   self._action_constraints.start_pose, self.skeleton)
@@ -61,6 +46,23 @@ class MotionPrimitiveGenerator(object):
             self._constrained_gmm_builder = None
         self.numerical_minimizer = OptimizerBuilder(self._algorithm_config).build_spatial_and_naturalness_error_minimizer()
         self.mgrd_filter = MGRDFilter()
+
+    def set_algorithm_config(self, algorithm_config):
+        self._algorithm_config = algorithm_config
+        self._constrained_gmm_config = self._algorithm_config["constrained_gmm_settings"]
+        self.n_random_samples = self._algorithm_config["n_random_samples"]
+        self.verbose = self._algorithm_config["verbose"]
+        self.precision = self._constrained_gmm_config["precision"]
+        self.max_bad_samples = self._constrained_gmm_config["max_bad_samples"]
+        self.use_constraints = self._algorithm_config["use_constraints"]
+        self.local_optimization_mode = self._algorithm_config["local_optimization_mode"]
+        self._settings = self._algorithm_config["local_optimization_settings"]
+        self.optimization_start_error_threshold = self._settings["start_error_threshold"]
+        self.use_constrained_gmm = self._algorithm_config["use_constrained_gmm"]
+        self.use_transition_model = self._algorithm_config["use_transition_model"]
+        self.constrained_sampling_mode = self._algorithm_config["constrained_sampling_mode"]
+        self.activate_parameter_check = self._algorithm_config["activate_parameter_check"]
+        self.n_cluster_search_candidates = self._algorithm_config["n_cluster_search_candidates"]
         self.use_local_coordinates = self._algorithm_config["use_local_coordinates"]
         self.use_semantic_annotation_with_mgrd = self._algorithm_config["use_semantic_annotation_with_mgrd"]
 
