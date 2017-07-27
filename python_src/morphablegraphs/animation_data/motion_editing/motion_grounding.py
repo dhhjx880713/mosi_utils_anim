@@ -73,6 +73,13 @@ def create_ankle_constraint_from_toe_and_heel(skeleton, frames, frame_idx, ankle
     return MotionGroundingConstraint(frame_idx, ankle_joint, ca, None, orientation)
 
 
+def interpolate_constraints(c1, c2):
+    p = (c1.position + c2.position)/2
+    o = quaternion_slerp(c1.orientation, c2.orientation, 0.5)
+    o = normalize(o)
+    return MotionGroundingConstraint(c1.frame_idx, c1.joint_name, p, None, o)
+
+
 class MotionGroundingConstraint(object):
     def __init__(self, frame_idx, joint_name, position, direction=None, orientation=None):
         self.frame_idx = frame_idx
