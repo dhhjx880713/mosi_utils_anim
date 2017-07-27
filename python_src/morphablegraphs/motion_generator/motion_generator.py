@@ -242,8 +242,9 @@ class MotionGenerator(object):
         ik_settings = self._algorithm_config["inverse_kinematics_settings"]
         has_model = self.footplant_constraint_generator is not None and self._motion_state_graph.skeleton.skeleton_model is not None
         if "motion_grounding" in ik_settings and ik_settings["motion_grounding"] and has_model and self.scene_interface is not None:
-            constraints, blend_ranges = self.footplant_constraint_generator.generate_from_graph_walk(motion_vector)
+            constraints, blend_ranges, ground_contacts = self.footplant_constraint_generator.generate_from_graph_walk(motion_vector)
             motion_vector.grounding_constraints = constraints
+            motion_vector.ground_contacts = ground_contacts
 
             skeleton_model = self._motion_state_graph.skeleton.skeleton_model
             grounding = MotionGrounding(self._motion_state_graph.skeleton, ik_settings, skeleton_model, use_analytical_ik=True)
