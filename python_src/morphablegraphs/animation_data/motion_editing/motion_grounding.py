@@ -198,7 +198,7 @@ class MotionGrounding(object):
 
     def apply_ik_constraints(self, frames):
         for frame_idx, constraints in self._constraints.items():
-            print "process frame", frame_idx
+            #print "process frame", frame_idx
             if 0 <= frame_idx < len(frames):
                 frames[frame_idx] = self._ik.modify_frame(frames[frame_idx], constraints)
 
@@ -235,7 +235,7 @@ class MotionGrounding(object):
         limb_length = self.get_limb_length(c.joint_name)
         if target_length >= limb_length:
             new_root_pos = (c.position + normalize(root_pos - c.position) * limb_length)
-            print "one constraint on ", c.joint_name, "- before", root_pos, "after", new_root_pos
+            #print "one constraint on ", c.joint_name, "- before", root_pos, "after", new_root_pos
             return new_root_pos - offset
             #frame[:3] = new_root_pos
 
@@ -258,9 +258,9 @@ class MotionGrounding(object):
         r2 = self.get_limb_length(constraint2.joint_name)
         #p2 = c2 + r2 * normalize(p-c2)
         if r1 < t1 and r2 < t2:
-            print "no root constraint"
+            #print "no root constraint"
             return None
-        print "adapt root for two constraints", constraint1.position, r1, constraint2.position, r2
+        #print "adapt root for two constraints", constraint1.position, r1, constraint2.position, r2
 
         p_c = project_on_intersection_circle(p, c1, r1, c2, r2)
         return p_c - offset
@@ -305,5 +305,5 @@ class MotionGrounding(object):
             z = frames[idx][2]
             target_ground_height = scene_interface.get_height(x, z)
             shift = target_ground_height - frames[idx][1]
-            print "root shift",idx, shift,frames[idx][1]
+            #print "root shift",idx, shift,frames[idx][1]
             frames[idx][1] += shift
