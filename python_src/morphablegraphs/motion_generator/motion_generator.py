@@ -242,19 +242,23 @@ class MotionGenerator(object):
         """
         ik_settings = self._algorithm_config["inverse_kinematics_settings"]
         has_model = self.footplant_constraint_generator is not None and self._motion_state_graph.skeleton.skeleton_model is not None
-        if "motion_grounding" in ik_settings and ik_settings["motion_grounding"] and has_model and self.scene_interface is not None:
-            constraints, blend_ranges, ground_contacts = self.footplant_constraint_generator.generate_from_graph_walk(motion_vector)
-            motion_vector.grounding_constraints = constraints
-            motion_vector.ground_contacts = ground_contacts
-
+        if self._algorithm_config["activate_motion_grounding"] and has_model and self.scene_interface is not None and "motion_grounding_settings" in self._algorithm_config:
+            grounding_settings = self._algorithm_config["motion_grounding_settings"]
             skeleton_model = self._motion_state_graph.skeleton.skeleton_model
-            grounding = MotionGrounding(self._motion_state_graph.skeleton, ik_settings, skeleton_model, use_analytical_ik=True)
-            grounding.set_constraints(constraints)
-            if ik_settings["activate_blending"]:
-                for target_joint in blend_ranges:
-                    joint_list = [skeleton_model["ik_chains"][target_joint]["root"], skeleton_model["ik_chains"][target_joint]["joint"], target_joint]
-                    for frame_range in blend_ranges[target_joint]:
-                        grounding.add_blend_range(joint_list, tuple(frame_range))
+            grounding = MotionGrounding(self._motion_state_graph.skeleton, ik_settings, skeleton_model,
+                                        use_analytical_ik=True)
+            if grounding_settings["generate_foot_plant_constraints"]:
+                constraints, blend_ranges, ground_contacts = self.footplant_constraint_generator.generate_from_graph_walk(
+                    motion_vector)
+                motion_vector.grounding_constraints = constraints
+                motion_vector.ground_contacts = ground_contacts
+                grounding.set_constraints(constraints)
+                if grounding_settings["activate_blending"]:
+                    for target_joint in blend_ranges:
+                        joint_list = [skeleton_model["ik_chains"][target_joint]["root"],
+                                      skeleton_model["ik_chains"][target_joint]["joint"], target_joint]
+                        for frame_range in blend_ranges[target_joint]:
+                            grounding.add_blend_range(joint_list, tuple(frame_range))
             grounding.run(motion_vector, self.scene_interface)
 
         if self._algorithm_config["activate_inverse_kinematics"]:

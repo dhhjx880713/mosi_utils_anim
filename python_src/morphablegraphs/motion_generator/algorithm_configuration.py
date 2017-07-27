@@ -88,6 +88,7 @@ DEFAULT_ALGORITHM_CONFIG = {
     },
     "motion_grounding_settings":{
          "activate_blending": True,
+         "generate_foot_plant_constraints": True,
          "foot_lift_search_window": 40,
          "foot_lift_tolerance": 3.0,
          "graph_walk_grounding_window": 4,
@@ -256,6 +257,7 @@ class AlgorithmConfigurationBuilder(object):
     def set_default_motion_grounding_settings(self):
         self.motion_grounding_settings = dict()
         self.motion_grounding_settings["activate_blending"] = True
+        self.motion_grounding_settings["generate_foot_plant_constraints"] = True
         self.motion_grounding_settings["foot_lift_search_window"] = 40
         self.motion_grounding_settings["foot_lift_tolerance"] = 3.0
         self.motion_grounding_settings["graph_walk_grounding_window"] = 4
