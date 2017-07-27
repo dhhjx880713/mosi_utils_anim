@@ -38,21 +38,22 @@ class MotionGenerator(object):
         self.action_constraints_builder = ElementaryActionConstraintsBuilder(self._motion_state_graph, algorithm_config)
         self.mp_constraints_builder = MotionPrimitiveConstraintsBuilder()
         self.mp_constraints_builder.set_algorithm_config(self._algorithm_config)
-        self.end_step_length_factor = DEFAULT_ALGORITHM_CONFIG["trajectory_following_settings"]["end_step_length_factor"]
-        self.step_look_ahead_distance = DEFAULT_ALGORITHM_CONFIG["trajectory_following_settings"]["look_ahead_distance"]
+        self.end_step_length_factor = self._algorithm_config["trajectory_following_settings"]["end_step_length_factor"]
+        self.step_look_ahead_distance = self._algorithm_config["trajectory_following_settings"]["look_ahead_distance"]
         self.activate_global_optimization = False
         self.graph_walk_optimizer = GraphWalkOptimizer(self._motion_state_graph, algorithm_config)
-        footplant_settings = {"foot_lift_search_window": 40,
-                              "foot_lift_tolerance": 2.0,
-                              "graph_walk_grounding_window": 4,
-                              "contact_tolerance": 1.0,
-                              "constraint_range": 10,
-                              "smoothing_constraints_window": 8}
+        if "motion_grounding_settings" in algorithm_config.keys():
+            motion_grounding_settings = algorithm_config["motion_grounding_settings"]
+        else:
+            motion_grounding_settings = DEFAULT_ALGORITHM_CONFIG["motion_grounding_settings"]
         skeleton_model = self._motion_state_graph.skeleton.skeleton_model
         self.scene_interface = SceneInterface()
         if skeleton_model is not None:
-            self.footplant_constraint_generator = FootplantConstraintGenerator(self._motion_state_graph.skeleton, skeleton_model, footplant_settings, self.scene_interface)
-            if skeleton_model["left_heel"] not in self._motion_state_graph.skeleton.nodes.keys():
+            self.footplant_constraint_generator = FootplantConstraintGenerator(self._motion_state_graph.skeleton,
+                                                                               skeleton_model,
+                                                                               motion_grounding_settings,
+                                                                               self.scene_interface)
+            if skeleton_model["left_heel"] not in list(self._motion_state_graph.skeleton.nodes.keys()):
                 self._motion_state_graph.skeleton = add_heels_to_skeleton(self._motion_state_graph.skeleton,
                                                                           skeleton_model["left_foot"],
                                                                           skeleton_model["right_foot"],

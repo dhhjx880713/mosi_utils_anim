@@ -5,7 +5,6 @@ Created on Thu Jul 16 17:19:46 2015
 @author: erhe01
 """
 
-import logging
 from ..utilities.io_helper_functions import load_json_file
 from ..animation_data.utils import DEFAULT_SMOOTHING_WINDOW_SIZE
 
@@ -85,8 +84,16 @@ DEFAULT_ALGORITHM_CONFIG = {
         "elementary_action_max_iterations": 5,
         "elementary_action_optimization_eps": 1.0,
         "adapt_hands_during_carry_both": True,
-        "constrain_place_orientation": False,
-        "motion_grounding": True
+        "constrain_place_orientation": False
+    },
+    "motion_grounding_settings":{
+         "activate_blending": True,
+         "foot_lift_search_window": 40,
+         "foot_lift_tolerance": 3.0,
+         "graph_walk_grounding_window": 4,
+         "contact_tolerance": 1.0,
+         "constraint_range": 10,
+         "smoothing_constraints_window": 8
     },
     "constrained_gmm_settings": {
         "precision": {
@@ -101,9 +108,10 @@ DEFAULT_ALGORITHM_CONFIG = {
     "average_elementary_action_error_threshold": 500,
     "constrained_sampling_mode": "cluster_tree_search",
     "activate_inverse_kinematics": True,
+    "activate_motion_grounding": True,
     "n_cluster_search_candidates": 4,
     "use_transition_model": False,
-    "local_optimization_mode": "all",#
+    "local_optimization_mode": "all",
     "activate_parameter_check": False,
     "use_global_time_optimization": True,
     "global_spatial_optimization_mode": "trajectory_end",
@@ -142,6 +150,7 @@ class AlgorithmConfigurationBuilder(object):
         self.n_cluster_search_candidates = 2
         self.debug_max_step = -1
         self.activate_inverse_kinematics = False
+        self.activate_motion_grounding = False
         self.verbose = False
         self.use_local_coordinates = False
         self.average_elementary_action_error_threshold = 500
@@ -154,6 +163,7 @@ class AlgorithmConfigurationBuilder(object):
         self.set_default_optimization_settings()
         self.set_default_smoothing_settings()
         self.set_default_inverse_kinematics_settings()
+        self.set_default_motion_grounding_settings()
 
     def set_default_constrained_gmm_settings(self):
         self.constrained_gmm_settings = dict()
@@ -243,6 +253,16 @@ class AlgorithmConfigurationBuilder(object):
         self.inverse_kinematics_settings["motion_grounding"] = True
         self.inverse_kinematics_settings["activate_blending"] = False
 
+    def set_default_motion_grounding_settings(self):
+        self.motion_grounding_settings = dict()
+        self.motion_grounding_settings["activate_blending"] = True
+        self.motion_grounding_settings["foot_lift_search_window"] = 40
+        self.motion_grounding_settings["foot_lift_tolerance"] = 3.0
+        self.motion_grounding_settings["graph_walk_grounding_window"] = 4
+        self.motion_grounding_settings["contact_tolerance"] = 1.0
+        self.motion_grounding_settings["constraint_range"] = 10
+        self.motion_grounding_settings["smoothing_constraints_window"] = 8
+
     def from_json(self, filename):
         temp_algorithm_config = load_json_file(filename)
         for name in temp_algorithm_config.keys():
@@ -265,9 +285,11 @@ class AlgorithmConfigurationBuilder(object):
                 "constrained_gmm_settings": self.constrained_gmm_settings,
                 "trajectory_following_settings": self.trajectory_following_settings,
                 "inverse_kinematics_settings": self.inverse_kinematics_settings,
+                "motion_grounding_settings": self.motion_grounding_settings,
                 "constrained_sampling_mode": self.constrained_sampling_mode,
                 "n_cluster_search_candidates": self.n_cluster_search_candidates,
                 "activate_inverse_kinematics": self.activate_inverse_kinematics,
+                "activate_motion_grounding": self.activate_motion_grounding,
                 "verbose": self.verbose,
                 "average_elementary_action_error_threshold": self.average_elementary_action_error_threshold,
                 "collision_avoidance_constraints_mode": self.collision_avoidance_constraints_mode,
