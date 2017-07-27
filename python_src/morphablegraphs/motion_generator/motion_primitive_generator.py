@@ -163,11 +163,11 @@ class MotionPrimitiveGenerator(object):
 
     def _optimize_parameters_numerically(self, initial_guess, graph_node, mp_constraints, prev_frames):
         #print "condition", not self.use_transition_model, mp_constraints.use_local_optimization#, not close_to_optimum, self.optimization_start_error_threshold
-        mp_constraints.constraints = [c for c in mp_constraints.constraints if c.constraint_type != SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE]
+        #mp_constraints.constraints = [c for c in mp_constraints.constraints if c.constraint_type != SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE]
         if len(mp_constraints.constraints) > 0:
-            data = (graph_node, mp_constraints, prev_frames, self._optimization_settings["error_scale_factor"], self._optimization_settings["quality_scale_factor"], 1.0)
+            data = (graph_node, mp_constraints, prev_frames, self._settings["error_scale_factor"], self._settings["quality_scale_factor"], 1.0)
             error_sum = max(abs(np.sum(self.numerical_minimizer._objective_function(initial_guess, data))), 1.0)
-            data = graph_node, mp_constraints, prev_frames, self._optimization_settings["error_scale_factor"], self._optimization_settings["quality_scale_factor"], error_sum
+            data = graph_node, mp_constraints, prev_frames, self._settings["error_scale_factor"], self._settings["quality_scale_factor"], error_sum
             self.numerical_minimizer.set_objective_function_parameters(data)
             return self.numerical_minimizer.run(initial_guess=initial_guess)
         else:
