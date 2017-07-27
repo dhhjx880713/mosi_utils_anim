@@ -12,6 +12,7 @@ class AnnotatedMotionVector(MotionVector):
         self.mg_input = None
         self.graph_walk = None
         self.grounding_constraints = None
+        self.ground_contacts = None
         self.ik_constraints = dict()
 
     def export(self, output_dir, output_filename, add_time_stamp=False, export_details=False):
