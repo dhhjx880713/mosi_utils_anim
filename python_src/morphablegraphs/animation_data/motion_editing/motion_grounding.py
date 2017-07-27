@@ -135,10 +135,8 @@ class MotionGrounding(object):
         self.skeleton = skeleton
         self._ik = NumericalInverseKinematicsExp(skeleton, ik_settings)
         self._constraints = collections.OrderedDict()
-        #self.pose = SkeletonPoseModel(skeleton, False)
-        self.transition_window = 10#ik_settings["transition_window"]
+        self.transition_window = 10
         self.root_smoothing_window = 20
-
         self.translation_blend_window = 40
         self._blend_ranges = collections.OrderedDict()
         self.use_analytical_ik = use_analytical_ik
@@ -147,7 +145,6 @@ class MotionGrounding(object):
 
     def set_constraints(self, constraints):
         self._constraints = constraints
-        print self._constraints
 
     def add_constraint(self, joint_name, frame_range, position, direction=None):
         for frame_idx in xrange(*frame_range):
@@ -175,7 +172,6 @@ class MotionGrounding(object):
     def run(self, motion_vector, scene_interface=None):
         new_frames = motion_vector.frames[:]
         self._shift_root_using_static_offset(new_frames, scene_interface)
-        #return new_frames
         self.shift_root_to_reach_constraints(new_frames)
         self.blend_at_transitions(new_frames)
         if self.use_analytical_ik:
