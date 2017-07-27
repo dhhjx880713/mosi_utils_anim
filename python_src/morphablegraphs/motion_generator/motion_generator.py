@@ -52,13 +52,13 @@ class MotionGenerator(object):
         self.scene_interface = SceneInterface()
         if skeleton_model is not None:
             self.footplant_constraint_generator = FootplantConstraintGenerator(self._motion_state_graph.skeleton, skeleton_model, footplant_settings, self.scene_interface)
-
-            self._motion_state_graph.skeleton = add_heels_to_skeleton(self._motion_state_graph.skeleton,
-                                                                      skeleton_model["left_foot"],
-                                                                      skeleton_model["right_foot"],
-                                                                      skeleton_model["left_heel"],
-                                                                      skeleton_model["right_heel"],
-                                                                      skeleton_model["heel_offset"])
+            if skeleton_model["left_heel"] not in self._motion_state_graph.skeleton.nodes.keys():
+                self._motion_state_graph.skeleton = add_heels_to_skeleton(self._motion_state_graph.skeleton,
+                                                                          skeleton_model["left_foot"],
+                                                                          skeleton_model["right_foot"],
+                                                                          skeleton_model["left_heel"],
+                                                                          skeleton_model["right_heel"],
+                                                                          skeleton_model["heel_offset"])
         else:
             self.footplant_constraint_generator = None
         self.set_algorithm_config(algorithm_config)
