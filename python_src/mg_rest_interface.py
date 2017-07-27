@@ -22,7 +22,7 @@ from datetime import datetime
 from morphablegraphs import MotionGenerator, AlgorithmConfigurationBuilder, load_json_file, write_to_json_file
 from morphablegraphs.motion_model import MotionStateGraphLoader
 from morphablegraphs.animation_data.retargeting import retarget_from_src_to_target, GAME_ENGINE_TO_ROCKETBOX_MAP, ROCKETBOX_ROOT_OFFSET
-from morphablegraphs.animation_data import Skeleton, MotionVector, BVHReader, BVHWriter
+from morphablegraphs.animation_data import SkeletonBuilder, MotionVector, BVHReader, BVHWriter
 from morphablegraphs.motion_generator import AnnotatedMotionVector
 from morphablegraphs.animation_data.fbx_io import load_skeleton_and_animations_from_fbx, export_motion_vector_to_fbx_file
 from morphablegraphs.utilities.io_helper_functions import get_bvh_writer
@@ -75,8 +75,7 @@ def load_target_skeleton(file_path, scale_factor=1.0):
     elif file_path.lower().endswith("bvh"):
         target_bvh = BVHReader(file_path)
         animated_joints = list(target_bvh.get_animated_joints())
-        skeleton = Skeleton()
-        skeleton.load_from_bvh(target_bvh, animated_joints, add_tool_joints=False)
+        skeleton = SkeletonBuilder().load_from_bvh(target_bvh, animated_joints, add_tool_joints=False)
     for node in skeleton.nodes.values():
         node.offset[0] *= scale_factor
         node.offset[1] *= scale_factor
