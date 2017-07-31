@@ -599,7 +599,7 @@ class FootplantConstraintGenerator(object):
         plant_range = dict()
         L = "left"
         R = "right"
-        joint_types = ["toe", "heel"]
+        joint_types = ["heel", "toe"] # first check heel then toe
         plant_range[L] = dict()
         plant_range[R] = dict()
         for side in plant_range.keys():
@@ -619,11 +619,21 @@ class FootplantConstraintGenerator(object):
                     plant_range[side][joint]["end"] = find_last_frame(self.skeleton, frames, joint, start_frame, search_end, self.foot_lift_tolerance)
 
                 elif step.node_key[1] == "endLeftStance":
-                    plant_range[side][joint]["start"] = find_first_frame(self.skeleton, frames, joint, search_start, end_frame, self.foot_lift_tolerance)
+                    heel = self.foot_definitions[side]["heel"]
+                    if plant_range[side][heel]["start"] is not None:
+                        local_search_start = plant_range[side][heel]["start"]
+                    else:
+                        local_search_start = start_frame
+                    plant_range[side][joint]["start"] = find_first_frame(self.skeleton, frames, joint, local_search_start, end_frame, self.foot_lift_tolerance)
                     plant_range[side][joint]["end"] = end_frame
 
                 elif step.node_key[1] == "endRightStance":
-                    plant_range[side][joint]["start"] = find_first_frame(self.skeleton, frames, joint, search_start, end_frame, self.foot_lift_tolerance)
+                    heel = self.foot_definitions[side]["heel"]
+                    if plant_range[side][heel]["start"] is not None:
+                        local_search_start = plant_range[side][heel]["start"]
+                    else:
+                        local_search_start = start_frame
+                    plant_range[side][joint]["start"] = find_first_frame(self.skeleton, frames, joint, local_search_start, end_frame, self.foot_lift_tolerance)
                     plant_range[side][joint]["end"] = end_frame
 
                 elif step.node_key[1] == "leftStance" and side == R:
