@@ -197,15 +197,14 @@ class MotionGenerator(object):
                                                self.graph_walk,
                                                is_last_step)
         mp_constraints = self.mp_constraints_builder.build()
-
-        mp_name = mp_constraints.motion_primitive_name
+        graph_node = self._motion_state_graph.nodes[node_key]
         prev_mp_name = ""
         prev_parameters = None
         if len(self.graph_walk.steps) > 0:
             prev_mp_name = self.graph_walk.steps[-1].node_key[1]
             prev_parameters = self.graph_walk.steps[-1].parameters
 
-        new_parameters = self.mp_generator.generate_constrained_sample(mp_name, mp_constraints, prev_mp_name,
+        new_parameters = self.mp_generator.generate_constrained_sample(graph_node, mp_constraints, prev_mp_name,
                                                   self.graph_walk.get_quat_frames(), prev_parameters)
         motion_spline = self._motion_state_graph.nodes[node_key].back_project(new_parameters, use_time_parameters=False)
 

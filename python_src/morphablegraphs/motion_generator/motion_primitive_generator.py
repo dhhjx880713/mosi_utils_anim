@@ -83,7 +83,7 @@ class MotionPrimitiveGenerator(object):
         * parameters:
             low dimensional motion primitive sample vector
         """
-        mp_name = mp_constraints.motion_primitive_name
+        node_key = (self.action_name, mp_constraints.motion_primitive_name)
         if len(prev_graph_walk.steps) > 0:
             prev_mp_name = prev_graph_walk.steps[-1].node_key[1]
             prev_parameters = prev_graph_walk.steps[-1].parameters
@@ -94,21 +94,22 @@ class MotionPrimitiveGenerator(object):
         start = time.clock()
         if self.use_constraints and len(mp_constraints.constraints) > 0:
             try:
-                parameters = self.generate_constrained_sample(mp_name, mp_constraints,prev_mp_name,
+                graph_node = self._motion_state_graph.nodes[node_key]
+                parameters = self.generate_constrained_sample(graph_node, mp_constraints, prev_mp_name,
                                                               prev_graph_walk.get_quat_frames(), prev_parameters)
             except ConstraintError as exception:
                 write_message_to_log("Exception " + exception.message, mode=LOG_MODE_ERROR)
                 raise SynthesisError(prev_graph_walk.get_quat_frames(), exception.bad_samples)
         else:  # no constraints were given
             write_message_to_log("No constraints specified pick random sample instead", mode=LOG_MODE_DEBUG)
-            parameters = self.generate_random_sample(mp_name, prev_mp_name, prev_parameters)
+            parameters = self.generate_random_sample(node_key, prev_mp_name, prev_parameters)
         mp_constraints.time = time.clock() - start
         write_message_to_log("Found best fit motion primitive sample in " + str(mp_constraints.time) + " seconds", mode=LOG_MODE_DEBUG)
 
-        motion_spline = self._motion_state_graph.nodes[(self.action_name, mp_name)].back_project(parameters, use_time_parameters=False)
+        motion_spline = self._motion_state_graph.nodes[node_key].back_project(parameters, use_time_parameters=False)
         return motion_spline, parameters
 
-    def generate_constrained_sample(self, mp_name, in_mp_constraints, prev_mp_name="", prev_frames=None, prev_parameters=None):
+    def generate_constrained_sample(self, graph_node, in_mp_constraints, prev_mp_name="", prev_frames=None, prev_parameters=None):
         """Uses the constraints to find the optimal parameters for a motion primitive.
         Parameters
         ----------
@@ -123,7 +124,7 @@ class MotionPrimitiveGenerator(object):
         * sample : np.ndarray
             Low dimensional parameters for the morphable model
         """
-        graph_node = self._motion_state_graph.nodes[(self.action_name, mp_name)]
+
         if self.use_local_coordinates:
             prev_frames_copy = None
             mp_constraints = in_mp_constraints.transform_constraints_to_local_cos()
@@ -136,7 +137,7 @@ class MotionPrimitiveGenerator(object):
         elif self.constrained_sampling_mode == SAMPLING_MODE_CLUSTER_TREE_SEARCH and graph_node.cluster_tree is not None:
             sample = self._get_best_fit_sample_using_cluster_tree(graph_node, mp_constraints, prev_frames_copy)
         else:
-            sample = self._get_best_fit_sample_using_gmm(graph_node, mp_name, mp_constraints, prev_mp_name,
+            sample = self._get_best_fit_sample_using_gmm(graph_node, mp_constraints, prev_mp_name,
                                                          prev_frames_copy, prev_parameters)
         #write_log("start optimization", self._is_optimization_required(mp_constraints),mp_constraints.use_local_optimization,mp_constraints.min_error,self.optimization_start_error_threshold)
         if self._is_optimization_required(mp_constraints):
@@ -159,7 +160,7 @@ class MotionPrimitiveGenerator(object):
             return samples[best_idx]
         else:
             write_message_to_log("Error: MGRD returned None. Use random sample instead.", LOG_MODE_ERROR)
-            return self.generate_random_sample(graph_node.name)
+            return graph_node.sample_low_dimensional_vector()
 
     def _optimize_parameters_numerically(self, initial_guess, graph_node, mp_constraints, prev_frames):
         #print "condition", not self.use_transition_model, mp_constraints.use_local_optimization#, not close_to_optimum, self.optimization_start_error_threshold
@@ -173,33 +174,29 @@ class MotionPrimitiveGenerator(object):
         else:
             return initial_guess
 
-    def _get_best_fit_sample_using_gmm(self, graph_node, mp_name, mp_constraints, prev_mp_name, prev_frames, prev_parameters):
+    def _get_best_fit_sample_using_gmm(self, graph_node, mp_constraints, prev_mp_name, prev_frames, prev_parameters):
         #  1) get gaussian_mixture_model and modify it based on the current state and settings
         if self._constrained_gmm_builder is not None:
-            gmm = self._constrained_gmm_builder.build(self.action_name, mp_name, mp_constraints,
+            gmm = self._constrained_gmm_builder.build(self.action_name, mp_constraints.motion_primitive_name, mp_constraints,
                                                       self.prev_action_name, prev_mp_name,
                                                       prev_frames, prev_parameters)
 
         elif self.use_transition_model and prev_parameters is not None:
-            gmm = self._predict_gmm(mp_name, prev_mp_name, prev_parameters)
+            gmm = self._predict_gmm(mp_constraints.motion_primitive_name, prev_mp_name, prev_parameters)
         else:
             gmm = graph_node.get_gaussian_mixture_model()
         #  2) sample parameters  from the Gaussian Mixture Model based on constraints and make sure
         #     the resulting motion is valid
-        if not self.activate_parameter_check:
-            parameters, min_error = self._sample_from_gmm_using_constraints(graph_node, gmm, mp_constraints, prev_frames, self.n_random_samples)
-        else:
-            parameters, min_error = self._sample_from_gmm_using_constraints_and_validity_check(graph_node, gmm,
-                                                                                               mp_constraints,
-                                                                                               prev_frames, self.n_random_samples)
+        parameters, min_error = self._sample_from_gmm_using_constraints(graph_node, gmm, mp_constraints, prev_frames, self.n_random_samples)
+
         write_message_to_log("Found best sample with distance: "+ str(min_error), LOG_MODE_DEBUG)
         return parameters
 
-    def generate_random_sample(self, mp_name, prev_mp_name="", prev_parameters=None):
-        if self.use_transition_model and prev_parameters is not None and self._motion_state_graph.nodes[(self.prev_action_name, prev_mp_name)].has_transition_model((self.action_name, mp_name)):
-            parameters = self._motion_state_graph.nodes[(self.prev_action_name, prev_mp_name)].predict_parameters((self.action_name, mp_name), prev_parameters)
+    def generate_random_sample(self, node_key, prev_mp_name="", prev_parameters=None):
+        if self.use_transition_model and prev_parameters is not None and self._motion_state_graph.nodes[(self.prev_action_name, prev_mp_name)].has_transition_model(node_key):
+            parameters = self._motion_state_graph.nodes[(self.prev_action_name, prev_mp_name)].predict_parameters(node_key, prev_parameters)
         else:
-            parameters = self._motion_state_graph.nodes[(self.action_name, mp_name)].sample_low_dimensional_vector()
+            parameters = self._motion_state_graph.nodes[node_key].sample_low_dimensional_vector()
         return parameters
 
     def _predict_gmm(self, mp_name, prev_mp_name, prev_parameters):
@@ -251,52 +248,3 @@ class MotionPrimitiveGenerator(object):
         constraints.min_error = min_error
         return best_sample, min_error
 
-    def _sample_from_gmm_using_constraints_and_validity_check(self, mp_node, gmm, constraints, prev_frames, n_samples):
-        """samples and picks the best samples out of a given set, quality measure
-        is naturalness
-
-        Parameters
-        ----------
-        * mp_node : MotionState
-            contains a motion primitive and meta information
-        * gmm : sklearn.mixture.gmm
-            The gmm to sample
-        * constraints: MotionPrimitiveConstraints
-        contains a list of dict with constraints for joints
-        * prev_frames: list
-            A list of quaternion frames
-        Returns
-        -------
-        * sample : numpy.ndarray
-            The best sample out of those which have been created
-        * error : bool
-            the error of the best sample
-        """
-        best_sample = None
-        min_error = np.inf
-        reached_max_bad_samples = False
-        tmp_bad_samples = 0
-        idx = 0
-        samples = np.ravel(gmm.sample(n_samples))[0]
-        while idx < self.n_random_samples:
-            if tmp_bad_samples > self.max_bad_samples:
-                    reached_max_bad_samples = True
-            # using bounding box to check sample is good or bad
-            valid = check_sample_validity(mp_node, samples[idx], self.skeleton)
-
-            if valid:
-                object_function_params = mp_node, constraints, prev_frames
-                error = obj_spatial_error_sum(samples[idx], object_function_params)
-                if min_error > error:
-                    min_error = error
-                    best_sample = samples[idx]
-            else:
-                if self.verbose:
-                    write_message_to_log("Sample " +str(idx) + " failed validity check", LOG_MODE_DEBUG)
-                tmp_bad_samples += 1
-            idx += 1
-        if reached_max_bad_samples:
-            write_message_to_log("Warning: Failed to pick a valid sample from GMM", LOG_MODE_DEBUG)
-            return best_sample, min_error
-        constraints.min_error = min_error
-        return best_sample, min_error
