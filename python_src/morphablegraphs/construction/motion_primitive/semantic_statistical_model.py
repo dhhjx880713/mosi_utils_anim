@@ -1,6 +1,6 @@
 # encoding: UTF-8
-from statistical_model_trainer import StatisticalModelTrainer
-from gmm_trainer import GMMTrainer
+from .statistical_model_trainer import StatisticalModelTrainer
+from .gmm_trainer import GMMTrainer
 from sklearn import mixture
 import numpy as np
 import os
@@ -23,7 +23,7 @@ class SemanticStatisticalModel(StatisticalModelTrainer):
 
     def semantic_classification(self):
 
-        for key in self.semantic_label.keys():
+        for key in list(self.semantic_label.keys()):
             indices = [idx for idx, item in enumerate(self._file_order) if key in item]
             self.classified_data[key] = self._motion_parameters[indices]
             if len(self.classified_data[key]) == 0:
@@ -34,7 +34,7 @@ class SemanticStatisticalModel(StatisticalModelTrainer):
         semantic_labels = []
         class_weights = []
         n_gaussians = 0
-        for key in self.classified_data.keys():
+        for key in list(self.classified_data.keys()):
             gmm_trainer = GMMTrainer(self.classified_data[key])
             gmm_models.append(gmm_trainer.gmm)
             semantic_labels.append(self.semantic_label[key])

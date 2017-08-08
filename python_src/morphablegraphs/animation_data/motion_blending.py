@@ -1,7 +1,7 @@
 from ..external.transformations import quaternion_slerp
 import numpy as np
 import copy
-from constants import LEN_QUAT, LEN_ROOT_POS
+from .constants import LEN_QUAT, LEN_ROOT_POS
 
 BLEND_DIRECTION_FORWARD = 0
 BLEND_DIRECTION_BACKWARD = 1
@@ -12,7 +12,7 @@ def blend_quaternion(a, b, w):
 
 def create_transition(a, b, steps):
     transition = []
-    for i in xrange(steps):
+    for i in range(steps):
         t = float(i) / steps
         new_t = (1-t)*a + t*b
         transition.append(new_t)
@@ -56,7 +56,7 @@ def smooth_quaternion_frames_using_slerp_(quat_frames, joint_parameter_indices, 
     end_frame = event_frame+window/2
     start_q = quat_frames[start_frame, joint_parameter_indices]
     end_q = quat_frames[end_frame, joint_parameter_indices]
-    for i in xrange(window):
+    for i in range(window):
         t = float(i)/window
         #nlerp_q = self.nlerp(start_q, end_q, t)
         slerp_q = quaternion_slerp(start_q, end_q, t, spin=0, shortestpath=True)
@@ -116,7 +116,7 @@ def create_frames_using_slerp(quat_frames, start_frame, end_frame, steps, joint_
     start_q = quat_frames[start_frame, joint_parameter_indices]
     end_q = quat_frames[end_frame, joint_parameter_indices]
     frames = []
-    for i in xrange(steps):
+    for i in range(steps):
         t = float(i)/steps
         slerp_q = quaternion_slerp(start_q, end_q, t, spin=0, shortestpath=True)
         frames.append(slerp_q)
@@ -127,7 +127,7 @@ def apply_slerp(quat_frames, start_frame, end_frame, joint_parameter_indices):
     start_q = quat_frames[start_frame, joint_parameter_indices]
     end_q = quat_frames[end_frame, joint_parameter_indices]
     steps = end_frame-start_frame
-    for i in xrange(steps):
+    for i in range(steps):
         t = float(i)/steps
         slerp_q = quaternion_slerp(start_q, end_q, t, spin=0, shortestpath=True)
         quat_frames[start_frame+i, joint_parameter_indices] = slerp_q
@@ -156,7 +156,7 @@ def smooth_quaternion_frames_with_slerp(frames, discontinuity, window=20):
     ref_pose = slerp_quaternion_frame(frames[int(d)-1], frames[int(d)], 0.5)
     w = float(window)
     new_quaternion_frames = []
-    for f in xrange(n_frames):
+    for f in range(n_frames):
         if f < d - w:
             new_quaternion_frames.append(frames[f])
         elif d - w <= f < d:
@@ -188,11 +188,11 @@ def smooth_quaternion_frames(frames, discontinuity, window=20):
     -------
     None.
     """
-    n_joints = (len(frames[0]) - 3) / 4
+    n_joints = int((len(frames[0]) - 3) / 4)
     # smooth quaternion
     n_frames = len(frames)
-    for i in xrange(n_joints):
-        for j in xrange(n_frames - 1):
+    for i in range(n_joints):
+        for j in range(n_frames - 1):
             q1 = np.array(frames[j][3 + i * 4: 3 + (i + 1) * 4])
             q2 = np.array(frames[j + 1][3 + i * 4:3 + (i + 1) * 4])
             if np.dot(q1, q2) < 0:
@@ -201,7 +201,7 @@ def smooth_quaternion_frames(frames, discontinuity, window=20):
     d = float(discontinuity)
     w = float(window)
     smoothing_factors = []
-    for f in xrange(n_frames):
+    for f in range(n_frames):
         value = 0.0
         if d - w <= f < d:
             tmp = (f - d + w) / w
@@ -212,7 +212,7 @@ def smooth_quaternion_frames(frames, discontinuity, window=20):
         smoothing_factors.append(value)
     smoothing_factors = np.array(smoothing_factors)
     new_quaternion_frames = []
-    for i in xrange(len(frames[0])):
+    for i in range(len(frames[0])):
         current_value = frames[:, i]
         magnitude = current_value[int(d)] - current_value[int(d) - 1]
         new_value = current_value + (magnitude * smoothing_factors)
@@ -242,7 +242,7 @@ def smooth_translation_in_quat_frames(frames, discontinuity, window=20):
     d = float(discontinuity)
     w = float(window)
     smoothing_factors = []
-    for f in xrange(n_frames):
+    for f in range(n_frames):
         value = 0.0
         if d - w <= f < d:
             tmp = (f - d + w) / w
@@ -253,7 +253,7 @@ def smooth_translation_in_quat_frames(frames, discontinuity, window=20):
         smoothing_factors.append(value)
     smoothing_factors = np.array(smoothing_factors)
     new_quaternion_frames = []
-    for i in xrange(3):
+    for i in range(3):
         current_value = frames[:, i]
         magnitude = current_value[int(d)] - current_value[int(d) - 1]
         new_value = current_value + (magnitude * smoothing_factors)

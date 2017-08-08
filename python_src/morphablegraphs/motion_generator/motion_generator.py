@@ -1,12 +1,12 @@
 import time
 import numpy as np
-from algorithm_configuration import AlgorithmConfigurationBuilder, DEFAULT_ALGORITHM_CONFIG
-from graph_walk import GraphWalk, GraphWalkEntry
-from graph_walk_optimizer import GraphWalkOptimizer
-from graph_walk_planner import GraphWalkPlanner
-from motion_generator_state import MotionGeneratorState
-from motion_primitive_generator import MotionPrimitiveGenerator
-from scene_interface import SceneInterface
+from .algorithm_configuration import AlgorithmConfigurationBuilder, DEFAULT_ALGORITHM_CONFIG
+from .graph_walk import GraphWalk, GraphWalkEntry
+from .graph_walk_optimizer import GraphWalkOptimizer
+from .graph_walk_planner import GraphWalkPlanner
+from .motion_generator_state import MotionGeneratorState
+from .motion_primitive_generator import MotionPrimitiveGenerator
+from .scene_interface import SceneInterface
 from ..animation_data.motion_editing import MotionEditing, MotionGrounding, FootplantConstraintGenerator, add_heels_to_skeleton
 from ..constraints import OPTIMIZATION_MODE_ALL
 from ..constraints.elementary_action_constraints_builder import ElementaryActionConstraintsBuilder
@@ -42,7 +42,7 @@ class MotionGenerator(object):
         self.step_look_ahead_distance = self._algorithm_config["trajectory_following_settings"]["look_ahead_distance"]
         self.activate_global_optimization = False
         self.graph_walk_optimizer = GraphWalkOptimizer(self._motion_state_graph, algorithm_config)
-        if "motion_grounding_settings" in algorithm_config.keys():
+        if "motion_grounding_settings" in list(algorithm_config.keys()):
             motion_grounding_settings = algorithm_config["motion_grounding_settings"]
         else:
             motion_grounding_settings = DEFAULT_ALGORITHM_CONFIG["motion_grounding_settings"]
@@ -309,7 +309,7 @@ class MotionGenerator(object):
         else:
             self._algorithm_config = algorithm_config
         self.graph_walk_optimizer.set_algorithm_config(self._algorithm_config)
-        if "trajectory_following_settings" in algorithm_config.keys():
+        if "trajectory_following_settings" in list(algorithm_config.keys()):
             trajectory_following_settings = algorithm_config["trajectory_following_settings"]
             self.end_step_length_factor = trajectory_following_settings["end_step_length_factor"]
             self.step_look_ahead_distance = trajectory_following_settings["look_ahead_distance"]

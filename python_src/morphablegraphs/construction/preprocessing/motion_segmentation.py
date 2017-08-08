@@ -27,7 +27,7 @@ class MotionSegmentation(object):
         self.annotation_label = MotionSegmentation._convert_to_json(annotation_file,
                                                                     export=False)
         if self.verbose:
-            print "Load %d files." % len(self.annotation_label.keys())
+            print("Load %d files." % len(list(self.annotation_label.keys())))
 
     @classmethod
     def _check_motion_type(cls, elementary_action,
@@ -57,14 +57,14 @@ class MotionSegmentation(object):
         if not data_path.endswith(os.sep):
             data_path += os.sep
         if self.verbose:
-            print "search files in " + data_path
-        for filename, items in self.annotation_label.iteritems():
+            print("search files in " + data_path)
+        for filename, items in self.annotation_label.items():
             for primitive_data in items:
                 if MotionSegmentation._check_motion_type(elementary_action,
                                                          primitive_type,
                                                          primitive_data):
-                    print "find motion primitive " + elementary_action + '_' \
-                          + primitive_type + ' in ' + filename
+                    print("find motion primitive " + elementary_action + '_' \
+                          + primitive_type + ' in ' + filename)
                     start_frame, end_frame = \
                         MotionSegmentation._get_annotation_information(data_path,
                                                                        filename,
@@ -79,15 +79,15 @@ class MotionSegmentation(object):
                                                      end_frame)
                     self.aligned_motions[outfilename] = cutted_frames
                 else:
-                    print "cannot find motion primitive " + elementary_action + '_' \
-                          + primitive_type + ' in ' + filename
+                    print("cannot find motion primitive " + elementary_action + '_' \
+                          + primitive_type + ' in ' + filename)
 
     def save_segments(self, save_path=None):
         if save_path is None:
             raise ValueError('Please give saving path!')
         if not save_path.endswith(os.sep):
             save_path += os.sep
-        for outfilename, frames in self.aligned_motions.iteritems():
+        for outfilename, frames in self.aligned_motions.items():
             save_filename = save_path + outfilename
             BVHWriter(save_filename, self.bvhreader, frames,
                       frame_time=self.bvhreader.frame_time,

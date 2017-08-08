@@ -49,7 +49,7 @@ class TestQuaternionFrame(object):
         frame = QuaternionFrame(self.bvh_reader, 
                                 self.bvh_reader.frames[frame_number],
                                 True)
-        for i in xrange(len(expected)):
+        for i in range(len(expected)):
             assert round(frame[node_name][i], 3) == round(expected[i], 3)
             
     param_test_number_of_joints = [{"frame_number": 0,

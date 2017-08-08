@@ -34,26 +34,26 @@ class ElementaryActionMetaInfo(object):
             return
         self.meta_information = meta_information
         for key in ["annotations", "start_states", "end_states"]:
-            assert key in self.meta_information.keys()
+            assert key in list(self.meta_information.keys())
         self.start_states = self.meta_information["start_states"]
-        if "cycle_states" in self.meta_information.keys():
+        if "cycle_states" in list(self.meta_information.keys()):
             self.cycle_states = self.meta_information["cycle_states"]
         self.n_start_states = len(self.start_states)
         self.end_states = self.meta_information["end_states"]
         self.n_end_states = len(self.end_states)
         self.motion_primitive_annotations = self.meta_information["annotations"]
         self._create_annotation_label_to_motion_primitive_map()
-        if "annotation_regions" in self.meta_information.keys():
+        if "annotation_regions" in list(self.meta_information.keys()):
             self.motion_primitive_annotation_regions = self.meta_information["annotation_regions"]
 
     def _create_annotation_label_to_motion_primitive_map(self):
         """Create a map from semantic label to motion primitive
         """
-        for motion_primitive in self.motion_primitive_annotations.keys():
+        for motion_primitive in list(self.motion_primitive_annotations.keys()):
             if motion_primitive != "all_primitives":
                 annotations = self.motion_primitive_annotations[motion_primitive]
-                for label in annotations.keys():
-                    if label not in self.label_to_motion_primitive_map.keys():
+                for label in list(annotations.keys()):
+                    if label not in list(self.label_to_motion_primitive_map.keys()):
                         self.label_to_motion_primitive_map[label] = []
                     self.label_to_motion_primitive_map[label] += [motion_primitive]
 
@@ -78,12 +78,12 @@ class ElementaryActionMetaInfo(object):
 
     def _convert_tuples_to_strings(self, in_dict):
         copy_dict = {}
-        for key in in_dict.keys():
+        for key in list(in_dict.keys()):
             if isinstance(key, tuple):
                 try:
                     copy_dict[key[1]] = in_dict[key]
                 except Exception as exception:
-                    print exception.message
+                    print(exception.message)
                     continue
             else:
                 copy_dict[key] = in_dict[key]
@@ -98,7 +98,7 @@ class ElementaryActionMetaInfo(object):
         return
 
     def get_canonical_keyframe_labels(self, motion_primitive_name):
-        if motion_primitive_name in self.motion_primitive_annotations.keys():
+        if motion_primitive_name in list(self.motion_primitive_annotations.keys()):
             keyframe_labels = self.motion_primitive_annotations[motion_primitive_name]
         else:
             keyframe_labels = {}
@@ -114,15 +114,15 @@ class ElementaryActionMetaInfo(object):
         elif keyframe_label == KEYFRAME_LABEL_MIDDLE:#"middle"
             keyframe = n_canonical_frames/2
         else:
-            if motion_primitive_name in self.motion_primitive_annotations.keys() and \
-                   keyframe_label in self.motion_primitive_annotations[motion_primitive_name].keys():
+            if motion_primitive_name in list(self.motion_primitive_annotations.keys()) and \
+                   keyframe_label in list(self.motion_primitive_annotations[motion_primitive_name].keys()):
                     keyframe = self.motion_primitive_annotations[motion_primitive_name][keyframe_label]
                     if keyframe in [NEGATIVE_ONE, LAST_FRAME]:
                         keyframe = n_canonical_frames-1
                     elif keyframe == KEYFRAME_LABEL_MIDDLE:
                         keyframe = n_canonical_frames/2
             else:
-                print "Error: Could not map keyframe label", keyframe_label, self.motion_primitive_annotations.keys()
+                print("Error: Could not map keyframe label", keyframe_label, list(self.motion_primitive_annotations.keys()))
         if keyframe is not None:
             keyframe = int(keyframe)
         return keyframe

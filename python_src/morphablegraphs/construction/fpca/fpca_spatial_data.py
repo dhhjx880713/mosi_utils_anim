@@ -25,8 +25,8 @@ class FPCASpatialData(object):
         self.n_components = n_components
 
     def fit_motion_dictionary(self, motion_dic):
-        self.fileorder = motion_dic.keys()
-        self.fit(np.asarray(motion_dic.values()))
+        self.fileorder = list(motion_dic.keys())
+        self.fit(np.asarray(list(motion_dic.values())))
 
     def fit(self, motion_data):
         """

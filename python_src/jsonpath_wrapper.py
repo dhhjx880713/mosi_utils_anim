@@ -8,7 +8,7 @@
 """
 
 
-from morphablegraphs.utilities import write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_ERROR, set_log_mode
+from .morphablegraphs.utilities import write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_ERROR, set_log_mode
 import distutils
 import re
 
@@ -32,7 +32,7 @@ def update_json(data, path, value):
 
 def get_type_of_string(str_value):
     """ Identiy the type of a string value """
-    for type, test in TYPE_CONVERTER.items():
+    for type, test in list(TYPE_CONVERTER.items()):
         try:
             v = test(str_value)
             if str_value == str(v):

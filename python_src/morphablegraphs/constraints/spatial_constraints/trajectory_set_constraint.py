@@ -1,6 +1,6 @@
 from . import *
 import numpy as np
-from spatial_constraint_base import SpatialConstraintBase
+from .spatial_constraint_base import SpatialConstraintBase
 from copy import copy
 
 
@@ -62,7 +62,7 @@ class TrajectorySetConstraint(SpatialConstraintBase):
         residual_vector = np.zeros(self.n_canonical_frames)
         last_joint_positions = None
         joint_arc_lengths = copy(self.joint_arc_lengths)
-        for i in xrange(self.n_canonical_frames):
+        for i in range(self.n_canonical_frames):
             joint_positions = self._extract_joint_positions_from_frame(aligned_quat_frames[i])
             is_active = [traj.is_active(arc_length) for traj, arc_length in zip(self.joint_trajectories, joint_arc_lengths)]
             #print is_active
@@ -79,7 +79,7 @@ class TrajectorySetConstraint(SpatialConstraintBase):
                                     for joint_position, last_joint_position, arc_length
                                     in zip(joint_positions, last_joint_positions, joint_arc_lengths)]
             last_joint_positions = joint_positions
-        print "evaluated constraint set", sum(residual_vector)/len(aligned_quat_frames)
+        print("evaluated constraint set", sum(residual_vector)/len(aligned_quat_frames))
         return residual_vector
 
     def get_length_of_residual_vector(self):

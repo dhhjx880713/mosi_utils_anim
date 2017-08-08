@@ -1,7 +1,7 @@
 from copy import copy
 import numpy as np
-from numerical_ik_quat import NumericalInverseKinematicsQuat
-from skeleton_pose_model import SkeletonPoseModel
+from .numerical_ik_quat import NumericalInverseKinematicsQuat
+from .skeleton_pose_model import SkeletonPoseModel
 from ..motion_blending import smooth_quaternion_frames_using_slerp, apply_slerp
 from ...external.transformations import quaternion_matrix, euler_from_matrix
 from ...utilities.log import write_message_to_log, LOG_MODE_DEBUG
@@ -39,11 +39,11 @@ class MotionEditing(object):
         # modify individual keyframes based on constraints
         while keep_running:
             error = 0.0
-            if "trajectories" in action_ik_constraints.keys():
+            if "trajectories" in list(action_ik_constraints.keys()):
                 constraints = action_ik_constraints["trajectories"]
                 c_error = self._modify_motion_vector_using_trajectory_constraint_list(motion_vector, constraints)
                 error += c_error * trajectory_weights
-            if "keyframes" in action_ik_constraints.keys():
+            if "keyframes" in list(action_ik_constraints.keys()):
                 constraints = action_ik_constraints["keyframes"]
                 error += self._modify_motion_vector_using_keyframe_constraint_list(motion_vector, constraints)
             if last_error is not None:
@@ -58,8 +58,8 @@ class MotionEditing(object):
 
     def _modify_motion_vector_using_keyframe_constraint_list(self, motion_vector, constraints):
         error = 0.0
-        for keyframe, constraints in constraints.items():
-            if "single" in constraints.keys():
+        for keyframe, constraints in list(constraints.items()):
+            if "single" in list(constraints.keys()):
                 for c in constraints["single"]:
                     if c.optimize:
                         if c.frame_range is not None:
@@ -104,7 +104,7 @@ class MotionEditing(object):
     def _look_at_in_range(self, motion_vector, position, start, end):
         start = max(0, start)
         end = min(motion_vector.frames.shape[0], end)
-        for idx in xrange(start, end):
+        for idx in range(start, end):
             self.set_pose_from_frame(motion_vector.frames[idx])
             self.pose.lookat(position)
             motion_vector.frames[idx] = self.pose.get_vector()
@@ -162,7 +162,7 @@ class MotionEditing(object):
                 target_direction = None
 
         full_length = n_frames * d
-        for idx in xrange(n_frames):
+        for idx in range(n_frames):
             t = (idx * d) / full_length
             target_position = trajectory.query_point_by_parameter(t)
             keyframe = start_idx + idx
@@ -176,7 +176,7 @@ class MotionEditing(object):
             motion_vector.frames[keyframe] = self.pose.get_vector()
         parent_joint = self.pose.get_parent_joint(traj_constraint["joint_name"])
 
-        if traj_constraint["joint_name"] in self.pose.free_joints_map.keys():
+        if traj_constraint["joint_name"] in list(self.pose.free_joints_map.keys()):
             free_joints = self.pose.free_joints_map[traj_constraint["joint_name"]]
             free_joints = list(set(free_joints + [parent_joint]))
         else:
@@ -197,7 +197,7 @@ class MotionEditing(object):
         arc_length = 0.0
         self.set_pose_from_frame(motion_vector.frames[start_idx])
         prev_position = self.pose.evaluate_position(traj_constraint["joint_name"])
-        for idx in xrange(n_frames):
+        for idx in range(n_frames):
             keyframe = start_idx+idx
             self.set_pose_from_frame(motion_vector.frames[keyframe])
             current_position = self.pose.evaluate_position(traj_constraint["joint_name"])
@@ -222,7 +222,7 @@ class MotionEditing(object):
         closest_start_frame = copy(start_idx)
         min_error = np.inf
         n_frames = end_idx - start_idx
-        for idx in xrange(n_frames):
+        for idx in range(n_frames):
             keyframe = start_idx + idx
             self.set_pose_from_frame(motion_vector.frames[keyframe])
             position = self.pose.evaluate_position(target_joint)
@@ -233,7 +233,7 @@ class MotionEditing(object):
         return closest_start_frame
 
     def fill_rotate_events(self, motion_vector):
-        for keyframe in motion_vector.keyframe_event_list.keyframe_events_dict["events"].keys():
+        for keyframe in list(motion_vector.keyframe_event_list.keyframe_events_dict["events"].keys()):
             keyframe = int(keyframe)
             for event in motion_vector.keyframe_event_list.keyframe_events_dict["events"][keyframe]:
                 if event["event"] == "rotate":

@@ -1,7 +1,7 @@
 # encoding: UTF-8
 
-from motion_segmentation import MotionSegmentation
-from motion_normalization import MotionNormalization
+from .motion_segmentation import MotionSegmentation
+from .motion_normalization import MotionNormalization
 
 
 def motion_cutting():
@@ -36,7 +36,7 @@ def feature_dection():
         pos2 = motion2.nodes[target_node].get_global_position_from_euler(test_bvh2.frames[0])
         print(pos1)
         print(pos2)
-        raw_input()
+        input()
 
 
 if __name__ == "__main__":

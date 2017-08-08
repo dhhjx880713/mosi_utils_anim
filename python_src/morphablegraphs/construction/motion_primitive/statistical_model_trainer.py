@@ -42,7 +42,7 @@ class StatisticalModelTrainer(GMMTrainer):
             self._save_model_without_semantic(self.save_path)
         else:
             self._save_spatial_model(self.save_path)
-        print("Export motion primitive to " + self.save_path)
+        print(("Export motion primitive to " + self.save_path))
 
     def export_model_data(self, save_path):
         # save the intermediate data
@@ -50,7 +50,7 @@ class StatisticalModelTrainer(GMMTrainer):
         motion_data = {}
         assert len(self._file_order) == len(self._motion_parameters)
         harms = self._temporal_pca[self._temporal_pca.names.index('harmonics')]
-        for i in xrange(len(self._file_order)):
+        for i in range(len(self._file_order)):
             motion_data[self._file_order[i]] = self._motion_parameters[i].tolist()
         save_data['motion_data'] = motion_data
         save_data['motion_type'] = self._motion_primitive_name
@@ -151,8 +151,8 @@ class StatisticalModelTrainer(GMMTrainer):
     def combine_motion_and_temporal_semantic_data(self, motion_data, temproal_semantic_data, fileorder):
         self._motion_parameters = []
         for i in range(len(fileorder)):
-            if fileorder[i] not in motion_data.keys():
-                print(fileorder[i] + ' is not in motion data!')
+            if fileorder[i] not in list(motion_data.keys()):
+                print((fileorder[i] + ' is not in motion data!'))
                 continue
             tmp_spatial_data = motion_data[fileorder[i]][:-3]
             self._motion_parameters.append(np.concatenate((tmp_spatial_data, temproal_semantic_data[i])))
@@ -166,7 +166,7 @@ class StatisticalModelTrainer(GMMTrainer):
            parameters
         '''
         self.new_ld_vectors = self.gmm.sample(n)
-        for i in xrange(n):
+        for i in range(n):
             filename = 'generated_motions' + os.sep + str(i) + '.bvh'
             self._backprojection(self.new_ld_vectors[i], filename=filename)
 
@@ -191,7 +191,7 @@ class StatisticalModelTrainer(GMMTrainer):
         frames = np.reshape(backprojected_vector, (self._n_frames,
                                                    self._n_dim_spatial))
         # rescale root position for each frame
-        for i in xrange(self._n_frames):
+        for i in range(self._n_frames):
             frames[i, 0] = frames[i, 0] * self._scale_vec[0]
             frames[i, 1] = frames[i, 1] * self._scale_vec[1]
             frames[i, 2] = frames[i, 2] * self._scale_vec[2]

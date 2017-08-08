@@ -11,8 +11,8 @@ from ..animation_data.motion_concatenation import align_quaternion_frames
 from .spatial_constraints import GlobalTransformConstraint, TwoHandConstraintSet, PoseConstraint,  Direction2DConstraint, LookAtConstraint, FeetConstraint
 from .spatial_constraints.keyframe_constraints.global_transform_ca_constraint import GlobalTransformCAConstraint
 from .spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE,SPATIAL_CONSTRAINT_TYPE_KEYFRAME_DIR_2D, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_LOOK_AT, SPATIAL_CONSTRAINT_TYPE_CA_CONSTRAINT,SPATIAL_CONSTRAINT_TYPE_KEYFRAME_FEET
-from ik_constraints import JointIKConstraint, TwoJointIKConstraint
-from ik_constraints_builder import IKConstraintsBuilder
+from .ik_constraints import JointIKConstraint, TwoJointIKConstraint
+from .ik_constraints_builder import IKConstraintsBuilder
 from ..utilities.log import write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO
 try:
     from mgrd import CartesianConstraint as MGRDCartesianConstraint
@@ -142,7 +142,7 @@ class MotionPrimitiveConstraints(object):
                 desc = {"type": "dir", "value":orientation, "joint": "Hips"}
                 if "keyframeLabel" in c.semantic_annotation and use_semantic_annotation:
                     semantic_label = c.semantic_annotation["keyframeLabel"]
-                    if semantic_label not in temp_constraint_list.keys():
+                    if semantic_label not in list(temp_constraint_list.keys()):
                         temp_constraint_list[semantic_label] = []
                     temp_constraint_list[semantic_label].append(desc)
                 else:
@@ -156,16 +156,16 @@ class MotionPrimitiveConstraints(object):
                 desc = {"type":"pos","value":[c.position[0], y_coordinate, c.position[2]], "joint": c.joint_name, "weight_factor":c.weight_factor}
                 if "keyframeLabel" in c.semantic_annotation and use_semantic_annotation:
                     semantic_label = c.semantic_annotation["keyframeLabel"]
-                    if semantic_label not in temp_constraint_list.keys():
+                    if semantic_label not in list(temp_constraint_list.keys()):
                         temp_constraint_list[semantic_label] = []
                     temp_constraint_list[semantic_label].append(desc)
                 else:
                     temp_constraint_list[UNLABELED_KEY].append(desc)
             elif c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE:
                 semantic_label = UNLABELED_KEY#c.semantic_annotation["keyframeLabel"]#
-                if semantic_label not in temp_constraint_list.keys():
+                if semantic_label not in list(temp_constraint_list.keys()):
                     temp_constraint_list[semantic_label] = []
-                joints = self.skeleton.node_name_frame_map.keys()
+                joints = list(self.skeleton.node_name_frame_map.keys())
                 points = c.pose_constraint
                 for j, p in zip(joints,points):
                     desc = {"type":"pos","value":p, "joint": j, "weight_factor":c.weight_factor}
@@ -177,7 +177,7 @@ class MotionPrimitiveConstraints(object):
                     c_desc_list.append(desc)
                 if "keyframeLabel" in c.semantic_annotation and use_semantic_annotation:
                     semantic_label = c.semantic_annotation["keyframeLabel"]
-                    if semantic_label not in temp_constraint_list.keys():
+                    if semantic_label not in list(temp_constraint_list.keys()):
                         temp_constraint_list[semantic_label] = []
                     temp_constraint_list[semantic_label] += c_desc_list
                 else:
@@ -186,7 +186,7 @@ class MotionPrimitiveConstraints(object):
                 desc = {"type":"pos","value":[c.position[0], c.position[1], c.position[2]], "joint": c.joint_name, "weight_factor":c.weight_factor}
                 temp_constraint_list[UNLABELED_KEY].append(desc)
 
-        for key in temp_constraint_list.keys():
+        for key in list(temp_constraint_list.keys()):
             if key == UNLABELED_KEY:
                 for temp_c in temp_constraint_list[key]:
                     if temp_c["type"] == "pos":
@@ -202,7 +202,7 @@ class MotionPrimitiveConstraints(object):
                         semantic_pose_constraints.append(semantic_pose_constraint)
 
             else:
-                print "merge constraints",key
+                print("merge constraints",key)
                 orientation = [1,0,0,0]
                 position = None
                 joint_name = None
@@ -331,7 +331,7 @@ class MotionPrimitiveConstraints(object):
         ca_constraints = list()
         for c in self.constraints:
             if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_CA_CONSTRAINT and \
-               c.joint_name in self.skeleton.free_joints_map.keys():
+               c.joint_name in list(self.skeleton.free_joints_map.keys()):
                 free_joints = self.skeleton.free_joints_map[c.joint_name]
                 ca_constraints.append(JointIKConstraint(c.joint_name, c.position, None, -1, free_joints, c.step_idx))
         return ca_constraints

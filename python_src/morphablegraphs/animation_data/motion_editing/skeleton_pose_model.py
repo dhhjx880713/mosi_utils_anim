@@ -1,5 +1,5 @@
 import numpy as np
-from utils import LEN_QUATERNION, LEN_TRANSLATION, convert_euler_to_quat, quaternion_from_vector_to_vector
+from .utils import LEN_QUATERNION, LEN_TRANSLATION, convert_euler_to_quat, quaternion_from_vector_to_vector
 from ..utils import convert_quaternion_frames_to_euler_frames as convert_quat_to_euler, euler_to_quaternion, quaternion_to_euler
 from ...external.transformations import quaternion_matrix, quaternion_from_matrix
 
@@ -23,7 +23,7 @@ class SkeletonPoseModel(object):
         self.types = {}
         self.modelled_joints = []
         channel_idx = 0
-        for joint, ch in self.channels.items():
+        for joint, ch in list(self.channels.items()):
             self.channels_start[joint] = channel_idx
             self.n_channels[joint] = len(ch)
             if len(ch) == LEN_QUATERNION:
@@ -94,7 +94,7 @@ class SkeletonPoseModel(object):
         return self.skeleton.nodes[target_joint].get_global_orientation_quaternion(self.pose_parameters)
 
     def apply_bounds(self, free_joint):
-        if free_joint in self.bounds.keys():
+        if free_joint in list(self.bounds.keys()):
             euler_angles = self.get_euler_angles(free_joint)
             for bound in self.bounds[free_joint]:
                 self.apply_bound_on_joint(euler_angles, bound)
@@ -110,9 +110,9 @@ class SkeletonPoseModel(object):
     def apply_bound_on_joint(self, euler_angles, bound):
         #self.pose_parameters[start+bound["dim"]] =
         #print euler_angles
-        if "min" in bound.keys():
+        if "min" in list(bound.keys()):
             euler_angles[bound["dim"]] = max(euler_angles[bound["dim"]],bound["min"])
-        if "max" in bound.keys():
+        if "max" in list(bound.keys()):
             euler_angles[bound["dim"]] = min(euler_angles[bound["dim"]],bound["max"])
         #print "after",euler_angles
 
@@ -132,12 +132,12 @@ class SkeletonPoseModel(object):
         cons = []
         idx = 0
         for joint_name in free_joints:
-            if joint_name in self.bounds.keys():
+            if joint_name in list(self.bounds.keys()):
                 start = idx
                 for bound in self.bounds[joint_name]:
-                    if "min" in bound.keys():
+                    if "min" in list(bound.keys()):
                         cons.append(({"type": 'ineq', "fun": lambda x: x[start+bound["dim"]]-bound["min"]}))
-                    if "max" in bound.keys():
+                    if "max" in list(bound.keys()):
                         cons.append(({"type": 'ineq', "fun": lambda x: bound["max"]-x[start+bound["dim"]]}))
             idx += self.n_channels[joint_name]
         return tuple(cons)
@@ -248,7 +248,7 @@ class SkeletonPoseModel(object):
         return vec/np.linalg.norm(vec)
 
     def get_parent_joint(self, joint_name):
-        if joint_name not in self.skeleton.parent_dict.keys():
+        if joint_name not in list(self.skeleton.parent_dict.keys()):
             return None
         return self.skeleton.parent_dict[joint_name]
 

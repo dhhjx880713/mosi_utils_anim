@@ -1,6 +1,6 @@
 # encoding: UTF-8
 from ..fpca.fpca_time_semantic import FPCATimeSemantic
-from statistical_model_trainer import StatisticalModelTrainer
+from .statistical_model_trainer import StatisticalModelTrainer
 import os
 import json
 from ...utilities.io_helper_functions import get_aligned_data_folder, \
@@ -10,7 +10,7 @@ from ..preprocessing import gen_walk_annotation, \
                            gen_synthetic_semantic_annotation_pick_and_place, \
                            gen_synthetic_semantic_annotation_for_screw, \
                            gen_synthetic_semantic_annotation_for_transfer
-from motion_primitive_converter import covnert_motion_primitive_data_new_format
+from .motion_primitive_converter import covnert_motion_primitive_data_new_format
 from ...utilities.io_helper_functions import write_to_json_file
 
 
@@ -34,7 +34,7 @@ def create_semantic_motion_primitive(elementary_action,
     with open(spatial_temporal_file, 'r') as infile:
         spatial_temporal_data = json.load(infile)
 
-    if 'n_dim_spatial' not in spatial_temporal_data.keys():
+    if 'n_dim_spatial' not in list(spatial_temporal_data.keys()):
         with open(motion_primitive_file, 'r') as infile:
             motion_primitive_data = json.load(infile)
         spatial_temporal_data['n_dim_spatial'] = motion_primitive_data['n_dim_spatial']
@@ -50,19 +50,19 @@ def create_semantic_motion_primitive(elementary_action,
                                                                             'annotation.json'])
         if not os.path.exists(semantic_annotation_file) or update_semantic_annotation:
             if 'pick' in elementary_action.lower() or 'place' in elementary_action.lower():
-                print('create synthetic semantic annotation for ' + elementary_action)
+                print(('create synthetic semantic annotation for ' + elementary_action))
                 gen_synthetic_semantic_annotation_pick_and_place(elementary_action,
                                                                  motion_primitive)
             elif 'walk' in elementary_action.lower() or 'carry' in elementary_action.lower():
-                print('create synthetic semantic annotation for ' + elementary_action)
+                print(('create synthetic semantic annotation for ' + elementary_action))
                 gen_walk_annotation(elementary_action,
                                     motion_primitive)
             elif 'screw' in elementary_action.lower():
-                print('create synthetic semnatic annotation for ' + elementary_action)
+                print(('create synthetic semnatic annotation for ' + elementary_action))
                 gen_synthetic_semantic_annotation_for_screw(elementary_action,
                                                             motion_primitive)
             elif 'transfer' in elementary_action.lower():
-                print('create synthetic semnatic annotation for ' + elementary_action)
+                print(('create synthetic semnatic annotation for ' + elementary_action))
                 gen_synthetic_semantic_annotation_for_transfer(elementary_action,
                                                                motion_primitive)
             else:
@@ -108,8 +108,8 @@ def train_multiple_semantic_motion_primitives():
         if 'carry' in elementary_action.lower():
             for motion_primitive_folder in os.walk(os.path.join(aligned_data_folder,
                                                                 elementary_action_folder)).next()[1]:
-                print('_'.join([elementary_action,
-                                motion_primitive_folder]))
+                print(('_'.join([elementary_action,
+                                motion_primitive_folder])))
                 create_semantic_motion_primitive(elementary_action,
                                                  motion_primitive_folder,
                                                  update_semantic_annotation=True)

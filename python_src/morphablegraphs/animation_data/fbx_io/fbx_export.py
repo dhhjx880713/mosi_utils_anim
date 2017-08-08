@@ -54,7 +54,7 @@ def create_skeleton_nodes_recursively(sdk_manager, skeleton_name, skeleton, node
 
 def set_rest_pose_recursively(pose, fbx_node, skeleton):
     name = fbx_node.GetName()
-    if name in skeleton.nodes.keys():
+    if name in list(skeleton.nodes.keys()):
         node = skeleton.nodes[name]
         t = node.offset
 
@@ -67,7 +67,7 @@ def set_rest_pose_recursively(pose, fbx_node, skeleton):
         transform.SetTRS(l_t, l_r, l_s)
         pose.Add(fbx_node, transform, True)# maybe set this to false
     n_children = fbx_node.GetChildCount()
-    for idx in xrange(n_children):
+    for idx in range(n_children):
         c_node = fbx_node.GetChild(idx)
         set_rest_pose_recursively(pose, c_node, skeleton)
 
@@ -125,7 +125,7 @@ def add_rotation_curves_recursively(fbx_node, anim_layer, skeleton, euler_frames
     else:
         create_rotation_curves(fbx_node, anim_layer, skeleton, euler_frames, frame_time)
     n_children = fbx_node.GetChildCount()
-    for idx in xrange(n_children):
+    for idx in range(n_children):
         c_node = fbx_node.GetChild(idx)
         add_rotation_curves_recursively(c_node, anim_layer, skeleton, euler_frames, frame_time)
 
@@ -165,7 +165,7 @@ def export_motion_vector_to_fbx_file(skeleton, motion_vector, out_file_name):
 
     #sdk_manager.GetIOSettings().SetBoolProp(EXP_FBX_EMBEDDED, True)
     SaveScene(sdk_manager, scene, out_file_name, pEmbedMedia=False)
-    print "finished"
+    print("finished")
 
     sdk_manager.Destroy()
 

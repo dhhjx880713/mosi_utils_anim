@@ -58,21 +58,21 @@ class MocapDataStats(object):
         Calculate the maximum step length in mocap data
         :return max_len: maximum step length in mocap data
         """
-        return np.max(self.mocap_data_stepLen.values())
+        return np.max(list(self.mocap_data_stepLen.values()))
 
     def get_min_step_length(self):
         """
         Calculate the minimum step length in mocap data
         :return min_len: minimum step length in mocap data
         """
-        return np.min(self.mocap_data_stepLen.values())
+        return np.min(list(self.mocap_data_stepLen.values()))
 
     def get_average_step_length(self):
         """
         Calculate average step length in mocap data
         :return aver_len: average step length in mocap data
         """
-        return np.mean(self.mocap_data_stepLen.values())
+        return np.mean(list(self.mocap_data_stepLen.values()))
 
     def get_joint_position_for_all_motion(self, joint_name, frame_idx):
         joint_positions = []
@@ -92,11 +92,11 @@ class MotionPrimitiveStats(object):
     def evaluate_sample_orientation(self, N):
         orientation_vecs = []
         plt.figure()
-        for i in xrange(N):
+        for i in range(N):
             motion_sample = self.motion_primitive_model.sample()
             quat_frames = motion_sample.get_motion_vector()
             pose_orientation = pose_orientation_quat(quat_frames[0])
-            print pose_orientation
+            print(pose_orientation)
             plt.plot([0, pose_orientation[0]], [0, pose_orientation[1]], 'r')
             orientation_vecs.append(pose_orientation)
         orientation_vecs = np.asarray(orientation_vecs)

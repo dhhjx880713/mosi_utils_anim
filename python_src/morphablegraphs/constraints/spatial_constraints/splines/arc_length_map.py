@@ -44,7 +44,7 @@ class RelativeArcLengthMap(object):
 
         # normalize values
         if self.full_arc_length > 0:
-            for i in xrange(number_of_evaluations):
+            for i in range(number_of_evaluations):
                 self._relative_arc_length_map[i][1] /= self.full_arc_length
         return self.full_arc_length
 

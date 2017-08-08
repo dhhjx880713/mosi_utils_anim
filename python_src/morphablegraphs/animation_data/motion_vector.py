@@ -3,10 +3,11 @@ __author__ = 'erhe01'
 from datetime import datetime
 import os
 import numpy as np
-from utils import align_frames,transform_euler_frames, convert_euler_frames_to_quaternion_frames
-from motion_concatenation import align_and_concatenate_frames#, align_frames_and_fix_feet
-from constants import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER
-from bvh import BVHWriter
+from .utils import align_frames,transform_euler_frames, convert_euler_frames_to_quaternion_frames
+from .motion_concatenation import align_and_concatenate_frames#, align_frames_and_fix_feet
+from .constants import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER
+from .bvh import BVHWriter
+import imp
 
 
 class MotionVector(object):
@@ -77,8 +78,8 @@ class MotionVector(object):
         else:
             swing_foot = "left"
             plant_foot = "right"
-        import motion_concatenation
-        reload(motion_concatenation)
+        from . import motion_concatenation
+        imp.reload(motion_concatenation)
         self.frames = motion_concatenation.align_frames_and_fix_feet(self.skeleton, self.skeleton.aligning_root_node, new_frames,
                                                 self.frames, self._prev_n_frames, self.start_pose, plant_foot, swing_foot,
                                                  ik_chains, 8, smoothing_window)
@@ -97,7 +98,7 @@ class MotionVector(object):
         bvh_writer = BVHWriter(None, skeleton, self.frames, skeleton.frame_time, True)
         if add_time_stamp:
             filepath = output_dir + os.sep + output_filename + "_" + \
-                       unicode(datetime.now().strftime("%d%m%y_%H%M%S")) + ".bvh"
+                       str(datetime.now().strftime("%d%m%y_%H%M%S")) + ".bvh"
         elif output_filename != "":
             filepath = output_dir + os.sep + output_filename + ".bvh"
         else:
@@ -128,18 +129,18 @@ class MotionVector(object):
             self._prev_n_frames = 0
 
     def translate_root(self, offset):
-        for idx in xrange(self.n_frames):
+        for idx in range(self.n_frames):
             self.frames[idx][:3] += offset
 
     def from_fbx(self, animation, animated_joints=None):
         if animated_joints is None:
-            animated_joints = animation["curves"].keys()
+            animated_joints = list(animation["curves"].keys())
         self.frame_time = animation["frame_time"]
-        print "animated joints", animated_joints
+        print("animated joints", animated_joints)
         root_joint = animated_joints[0]
         self.n_frames = len(animation["curves"][root_joint])
         self.frames = []
-        for idx in xrange(self.n_frames):
+        for idx in range(self.n_frames):
             frame = self._create_frame_from_fbx(animation, animated_joints, idx)
             self.frames.append(frame)
 
@@ -149,9 +150,9 @@ class MotionVector(object):
         offset = 3
         root_name = animated_joints[0]
         frame[:3] = animation["curves"][root_name][idx]["local_translation"]
-        print "root translation", frame[:3]
+        print("root translation", frame[:3])
         for node_name in animated_joints:
-            if node_name in animation["curves"].keys():
+            if node_name in list(animation["curves"].keys()):
                 rotation = animation["curves"][node_name][idx]["local_rotation"]
                 frame[offset:offset+4] = rotation
             else:

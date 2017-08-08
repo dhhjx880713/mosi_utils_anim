@@ -1,6 +1,6 @@
 import os
 import time
-from morphablegraphs.construction.cluster_tree_builder import ClusterTreeBuilder, TREE_TYPE_CLUSTER_TREE, TREE_TYPE_FEATURE_CLUSTER_TREE, FEATURE_TYPE_S_VECTOR
+from .morphablegraphs.construction.cluster_tree_builder import ClusterTreeBuilder, TREE_TYPE_CLUSTER_TREE, TREE_TYPE_FEATURE_CLUSTER_TREE, FEATURE_TYPE_S_VECTOR
 
 dirname, filename = os.path.split(os.path.abspath(__file__))
 os.chdir(dirname)
@@ -22,9 +22,9 @@ def main():
 
     time_in_seconds = time.clock()-start
     if success:
-        print "Finished construction in", int(time_in_seconds/60), "minutes and", time_in_seconds % 60, "seconds"
+        print("Finished construction in", int(time_in_seconds/60), "minutes and", time_in_seconds % 60, "seconds")
     else:
-        print "Failed to read data from directory"
+        print("Failed to read data from directory")
 
 if __name__ == "__main__":
     main()

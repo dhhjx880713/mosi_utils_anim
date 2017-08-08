@@ -70,7 +70,7 @@ def _point_cloud_distance(a, b):
     assert len(a) == len(b)
     distance = 0
     n_points = len(a)
-    for i in xrange(n_points):
+    for i in range(n_points):
         d = [a[i][0] - b[i][0], a[i][1] - b[i][1], a[i][2] - b[i][2]]
         distance += sqrt(d[0] ** 2 + d[1] ** 2 + d[2] ** 2)
     return distance / n_points
@@ -79,7 +79,7 @@ def _point_cloud_distance(a, b):
 def convert_quat_frame_to_point_cloud(skeleton, frame, joints=None):
     points = []
     if joints is None:
-        joints = [k for k, n in skeleton.nodes.items() if len(n.children) > 0]
+        joints = [k for k, n in list(skeleton.nodes.items()) if len(n.children) > 0]
     for j in joints:
         p = skeleton.nodes[j].get_global_position(frame)
         points.append(p)

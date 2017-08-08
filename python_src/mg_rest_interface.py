@@ -10,7 +10,7 @@ import os
 # change working directory to the script file directory
 file_dir_name, file_name = os.path.split(os.path.abspath(__file__))
 os.chdir(file_dir_name)
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 import numpy as np
 import socket
 import tornado.escape
@@ -19,16 +19,16 @@ import tornado.web
 import json
 import time
 from datetime import datetime
-from morphablegraphs import MotionGenerator, AlgorithmConfigurationBuilder, load_json_file, write_to_json_file
-from morphablegraphs.motion_model import MotionStateGraphLoader
-from morphablegraphs.animation_data.retargeting import retarget_from_src_to_target, GAME_ENGINE_TO_ROCKETBOX_MAP, ROCKETBOX_ROOT_OFFSET
-from morphablegraphs.animation_data import SkeletonBuilder, MotionVector, BVHReader, BVHWriter
-from morphablegraphs.motion_generator import AnnotatedMotionVector
-from morphablegraphs.animation_data.fbx_io import load_skeleton_and_animations_from_fbx, export_motion_vector_to_fbx_file
-from morphablegraphs.utilities.io_helper_functions import get_bvh_writer
-from morphablegraphs.utilities import write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO, LOG_MODE_ERROR, set_log_mode
+from .morphablegraphs import MotionGenerator, AlgorithmConfigurationBuilder, load_json_file, write_to_json_file
+from .morphablegraphs.motion_model import MotionStateGraphLoader
+from .morphablegraphs.animation_data.retargeting import retarget_from_src_to_target, GAME_ENGINE_TO_ROCKETBOX_MAP, ROCKETBOX_ROOT_OFFSET
+from .morphablegraphs.animation_data import SkeletonBuilder, MotionVector, BVHReader, BVHWriter
+from .morphablegraphs.motion_generator import AnnotatedMotionVector
+from .morphablegraphs.animation_data.fbx_io import load_skeleton_and_animations_from_fbx, export_motion_vector_to_fbx_file
+from .morphablegraphs.utilities.io_helper_functions import get_bvh_writer
+from .morphablegraphs.utilities import write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO, LOG_MODE_ERROR, set_log_mode
 import argparse
-from jsonpath_wrapper import update_data_using_jsonpath
+from .jsonpath_wrapper import update_data_using_jsonpath
 
 SERVICE_CONFIG_FILE = "config" + os.sep + "service.config"
 TARGET_SKELETON = "game_engine_target.bvh"
@@ -76,7 +76,7 @@ def load_target_skeleton(file_path, scale_factor=1.0):
         target_bvh = BVHReader(file_path)
         animated_joints = list(target_bvh.get_animated_joints())
         skeleton = SkeletonBuilder().load_from_bvh(target_bvh, animated_joints, add_tool_joints=False)
-    for node in skeleton.nodes.values():
+    for node in list(skeleton.nodes.values()):
         node.offset[0] *= scale_factor
         node.offset[1] *= scale_factor
         node.offset[2] *= scale_factor
@@ -159,7 +159,7 @@ class GenerateMotionHandler(tornado.web.RequestHandler):
     def _export_motion_to_file(self, bvh_string, motion_vector):
         bvh_filename = self.application.service_config["output_dir"] + os.sep + self.application.service_config["output_filename"]
         if self.application.add_timestamp_to_filename:
-            bvh_filename += "_"+unicode(datetime.now().strftime("%d%m%y_%H%M%S"))
+            bvh_filename += "_"+str(datetime.now().strftime("%d%m%y_%H%M%S"))
         write_message_to_log("export motion to file " + bvh_filename, LOG_MODE_DEBUG)
         with open(bvh_filename+".bvh", "wb") as out_file:
             out_file.write(bvh_string)
@@ -218,9 +218,9 @@ class SetConfigurationHandler(tornado.web.RequestHandler):
             error_string = "Error: Could not decode request body as JSON."
             self.write(error_string)
             return
-        if "use_constraints" in algorithm_config.keys():
+        if "use_constraints" in list(algorithm_config.keys()):
             self.application.set_algorithm_config(algorithm_config)
-            print "Set algorithm config to", algorithm_config
+            print("Set algorithm config to", algorithm_config)
         else:
             error_string = "Error: Did not find expected keys in the input data.", algorithm_config
             self.write(error_string)
@@ -240,13 +240,13 @@ class MGRestApplication(tornado.web.Application):
         self.apply_coordinate_transform = True
         self.add_timestamp_to_filename = True
 
-        if "export_motion_to_file" in self.service_config.keys():
+        if "export_motion_to_file" in list(self.service_config.keys()):
             self.export_motion_to_file = service_config["export_motion_to_file"]
-        if "add_time_stamp" in self.service_config.keys():
+        if "add_time_stamp" in list(self.service_config.keys()):
             self.add_timestamp_to_filename = service_config["add_time_stamp"]
-        if "activate_joint_map" in self.service_config.keys():
+        if "activate_joint_map" in list(self.service_config.keys()):
             self.activate_joint_map = service_config["activate_joint_map"]
-        if "activate_coordinate_transform" in self.service_config.keys():
+        if "activate_coordinate_transform" in list(self.service_config.keys()):
             self.activate_coordinate_transform = service_config["activate_coordinate_transform"]
 
         if self.export_motion_to_file:
@@ -289,7 +289,7 @@ class MGRestApplication(tornado.web.Application):
         self.motion_generator.set_algorithm_config(algorithm_config)
 
     def _test_ca_interface(self, service_config):
-        if "collision_avoidance_service_url" in service_config.keys() and "collision_avoidance_service_port" in service_config.keys():
+        if "collision_avoidance_service_url" in list(service_config.keys()) and "collision_avoidance_service_port" in list(service_config.keys()):
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             address = (service_config["collision_avoidance_service_url"], service_config["collision_avoidance_service_port"])
             try:

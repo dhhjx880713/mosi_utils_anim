@@ -9,9 +9,9 @@ from datetime import datetime
 import json
 import numpy as np
 from ..animation_data import MotionVector, align_quaternion_frames
-from annotated_motion_vector import AnnotatedMotionVector
+from .annotated_motion_vector import AnnotatedMotionVector
 from ..constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION
-from keyframe_event_list import KeyframeEventList
+from .keyframe_event_list import KeyframeEventList
 from ..utilities import write_log, write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_ERROR, LOG_MODE_INFO
 from ..animation_data.motion_concatenation import align_and_concatenate_frames
 from ..constraints.spatial_constraints.splines.utils import plot_annotated_spline
@@ -230,7 +230,7 @@ class GraphWalk(object):
             traj_constraint["start_frame"] = frame_annotation["startFrame"]
             traj_constraint["end_frame"] = frame_annotation["endFrame"]
             #TODO find a better solution than this workaround that undoes the joint name mapping from hands to tool bones for ca constraints
-            if self.mg_input.activate_joint_mapping and ca_constraint.joint_name in self.mg_input.inverse_joint_name_map.keys():
+            if self.mg_input.activate_joint_mapping and ca_constraint.joint_name in list(self.mg_input.inverse_joint_name_map.keys()):
                 joint_name = self.mg_input.inverse_joint_name_map[ca_constraint.joint_name]
             else:
                 joint_name = ca_constraint.joint_name
@@ -247,8 +247,8 @@ class GraphWalk(object):
         trajectory_constraints = list()
         action = self.elementary_action_list[action_idx]
         for constraint in action.action_constraints.annotated_trajectory_constraints:
-            label = constraint.semantic_annotation.keys()[0]
-            write_message_to_log("trajectory constraint label " + str(constraint.semantic_annotation.keys()), LOG_MODE_DEBUG)
+            label = list(constraint.semantic_annotation.keys())[0]
+            write_message_to_log("trajectory constraint label " + str(list(constraint.semantic_annotation.keys())), LOG_MODE_DEBUG)
             action_name = action.action_name
             for step in self.steps[action.start_step: action.end_step+1]:
                 motion_primitive_name = step.node_key[1]
@@ -260,7 +260,7 @@ class GraphWalk(object):
                 write_message_to_log("action annotation" + str(annotations) +" "+  str(frame_annotation["startFrame"]) + " " + str(frame_annotation["endFrame"]),
                                      LOG_MODE_DEBUG)
 
-                if label not in annotations.keys():
+                if label not in list(annotations.keys()):
                     continue
                 annotation_range = annotations[label]
                 traj_constraint = dict()
@@ -278,7 +278,7 @@ class GraphWalk(object):
                     traj_constraint["start_frame"] = start_frame + int(time_function[annotation_range[0]]) + 1
                     traj_constraint["end_frame"] = start_frame + int(time_function[annotation_range[1]]) + 1
 
-                if self.mg_input.activate_joint_mapping and constraint.joint_name in self.mg_input.inverse_joint_name_map.keys():
+                if self.mg_input.activate_joint_mapping and constraint.joint_name in list(self.mg_input.inverse_joint_name_map.keys()):
                     joint_name = self.mg_input.inverse_joint_name_map[constraint.joint_name]
                 else:
                     joint_name = constraint.joint_name
@@ -300,7 +300,7 @@ class GraphWalk(object):
                                          self.motion_vector.start_pose, 0)
             for c_idx, constraint in enumerate(step.motion_primitive_constraints.constraints):
                 if constraint.constraint_type in [SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION] and\
-                   not "generated" in constraint.semantic_annotation.keys():
+                   not "generated" in list(constraint.semantic_annotation.keys()):
                     error = constraint.evaluate_motion_sample(aligned_frames)
                     write_message_to_log("Error of Keyframe constraint " +str(step_idx) + "-" + str(c_idx) +": " +str(error), LOG_MODE_DEBUG)
                     keyframe_constraint_errors.append(error)
@@ -338,7 +338,7 @@ class GraphWalk(object):
         return objective_evaluations
 
     def print_statistics(self):
-        print self.get_statistics_string()
+        print(self.get_statistics_string())
 
     def get_statistics_string(self):
         average_error = self.get_average_error()

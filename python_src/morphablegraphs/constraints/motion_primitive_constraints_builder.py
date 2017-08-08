@@ -15,7 +15,7 @@ from ..animation_data.motion_concatenation import align_and_concatenate_frames, 
 from . import CA_CONSTRAINTS_MODE_SET, OPTIMIZATION_MODE_ALL, OPTIMIZATION_MODE_KEYFRAMES, OPTIMIZATION_MODE_TWO_HANDS
 from .spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
 from ..motion_model.elementary_action_meta_info import KEYFRAME_LABEL_END, KEYFRAME_LABEL_START, KEYFRAME_LABEL_MIDDLE
-from keyframe_event import KeyframeEvent
+from .keyframe_event import KeyframeEvent
 
 
 class MotionPrimitiveConstraintsBuilder(object):
@@ -53,7 +53,7 @@ class MotionPrimitiveConstraintsBuilder(object):
                 important_joints.append(skeleton_model[j])
             self.pose_constraint_node_names = important_joints
         else:
-            self.pose_constraint_node_names = self.skeleton.joint_weight_map.keys()
+            self.pose_constraint_node_names = list(self.skeleton.joint_weight_map.keys())
 
     def set_algorithm_config(self, algorithm_config):
         self.algorithm_config = algorithm_config
@@ -64,7 +64,7 @@ class MotionPrimitiveConstraintsBuilder(object):
         self.use_local_coordinates = algorithm_config["use_local_coordinates"]
         self.use_mgrd = algorithm_config["constrained_sampling_mode"] == "random_spline"
         self.use_transition_constraint = self.trajectory_following_settings["use_transition_constraint"]
-        if "generate_half_step_constraint" in self.trajectory_following_settings.keys():
+        if "generate_half_step_constraint" in list(self.trajectory_following_settings.keys()):
             self.generate_half_step_constraint = self.trajectory_following_settings["generate_half_step_constraint"]
 
     def set_status(self, node_key, last_arc_length, graph_walk, is_last_step=False):
@@ -124,13 +124,13 @@ class MotionPrimitiveConstraintsBuilder(object):
         mp_constraints.skeleton = self.skeleton
         mp_constraints.precision = self.action_constraints.precision
         mp_constraints.verbose = self.algorithm_config["verbose"]
-        print "add constraints", self.use_transition_constraint
+        print("add constraints", self.use_transition_constraint)
 
         if self.action_constraints.root_trajectory is not None:
             self._add_path_following_constraints(mp_constraints)
             if self.use_transition_constraint:
                 self._add_pose_constraint(mp_constraints)
-        if len(self.action_constraints.keyframe_constraints.keys()) > 0:
+        if len(list(self.action_constraints.keyframe_constraints.keys())) > 0:
             self._add_keyframe_constraints(mp_constraints)
             # generate frame constraints for the last step based on the previous state
             # if not already done for the trajectory following
@@ -159,7 +159,7 @@ class MotionPrimitiveConstraintsBuilder(object):
             mp_constraints.constraints.append(ca_trajectory_set_constraint)
 
     def _add_feet_constraint(self, mp_constraints):
-        if "LeftFoot" in self.skeleton.nodes.keys() and "RightFoot" in self.skeleton.nodes.keys():
+        if "LeftFoot" in list(self.skeleton.nodes.keys()) and "RightFoot" in list(self.skeleton.nodes.keys()):
             left_position = self.skeleton.nodes["LeftFoot"].get_global_position(self.status["prev_frames"][-1])
             right_position = self.skeleton.nodes["RightFoot"].get_global_position(self.status["prev_frames"][-1])
             desc = {"left":left_position, "right": right_position}
@@ -254,19 +254,19 @@ class MotionPrimitiveConstraintsBuilder(object):
     def _add_keyframe_constraints(self, mp_constraints):
         """ Extract keyframe constraints of the motion primitive name.
         """
-        if self.status["motion_primitive_name"] in self.action_constraints.keyframe_constraints.keys():
+        if self.status["motion_primitive_name"] in list(self.action_constraints.keyframe_constraints.keys()):
             for c_desc in self.action_constraints.keyframe_constraints[self.status["motion_primitive_name"]]:
                 keyframe_constraint = self.create_keyframe_constraint(c_desc)
                 if keyframe_constraint is not None:
                     mp_constraints.constraints.append(keyframe_constraint)
 
     def create_keyframe_constraint(self, c_desc):
-        if "keyframeLabel" in c_desc["semanticAnnotation"].keys():
+        if "keyframeLabel" in list(c_desc["semanticAnnotation"].keys()):
             c_desc = self._map_label_to_canonical_keyframe(c_desc)
             constraint_factor = self.trajectory_following_settings["position_constraint_factor"]
-            if "merged" in c_desc.keys():
+            if "merged" in list(c_desc.keys()):
                 return TwoHandConstraintSet(self.skeleton, c_desc, self.precision["pos"], constraint_factor)
-            elif "look_at" in c_desc.keys():
+            elif "look_at" in list(c_desc.keys()):
                 return LookAtConstraint(self.skeleton, c_desc, self.precision["pos"], constraint_factor)
             else:
                 return GlobalTransformConstraint(self.skeleton, c_desc, self.precision["pos"], constraint_factor)
@@ -277,7 +277,7 @@ class MotionPrimitiveConstraintsBuilder(object):
         if self.local_optimization_mode == OPTIMIZATION_MODE_ALL:
             mp_constraints.use_local_optimization = True
         elif self.local_optimization_mode == OPTIMIZATION_MODE_KEYFRAMES:
-            mp_constraints.use_local_optimization = len(self.action_constraints.keyframe_constraints.keys()) > 0 \
+            mp_constraints.use_local_optimization = len(list(self.action_constraints.keyframe_constraints.keys())) > 0 \
                                                     or self.status["is_last_step"]
         elif self.local_optimization_mode == OPTIMIZATION_MODE_TWO_HANDS:
             mp_constraints.use_local_optimization = self.action_constraints.contains_two_hands_constraints and not self.status["is_last_step"]
@@ -285,9 +285,9 @@ class MotionPrimitiveConstraintsBuilder(object):
             mp_constraints.use_local_optimization = False
 
     def _add_events_to_event_list(self, mp_constraints):
-        for label in self.action_constraints.keyframe_annotations.keys():
-            print "try to set annotations for label ", label
-            if mp_constraints.motion_primitive_name in self.motion_state_graph.node_groups[self.action_constraints.action_name].motion_primitive_annotations.keys():
+        for label in list(self.action_constraints.keyframe_annotations.keys()):
+            print("try to set annotations for label ", label)
+            if mp_constraints.motion_primitive_name in list(self.motion_state_graph.node_groups[self.action_constraints.action_name].motion_primitive_annotations.keys()):
                 if label in self.motion_state_graph.node_groups[self.action_constraints.action_name].motion_primitive_annotations[mp_constraints.motion_primitive_name]:
                     event_list = self.action_constraints.keyframe_annotations[label]["annotations"]
 
@@ -333,10 +333,10 @@ class MotionPrimitiveConstraintsBuilder(object):
             for node_name in node_names:
                 if node_name in self.skeleton.joint_weight_map:
                     weights_map[node_name] = self.skeleton.joint_weight_map[node_name]
-            weights = weights_map.values()
+            weights = list(weights_map.values())
         else:
-            node_names = self.skeleton.joint_weight_map.keys()
-            weights = self.skeleton.joint_weight_map.values()
+            node_names = list(self.skeleton.joint_weight_map.keys())
+            weights = list(self.skeleton.joint_weight_map.values())
 
         last_pose = np.array(self.skeleton.convert_quaternion_frame_to_cartesian_frame(frames[-1], node_names))
         pre_root_pos = self.skeleton.nodes[node_names[0]].get_global_position(frames[-2])
@@ -406,5 +406,5 @@ class MotionPrimitiveConstraintsBuilder(object):
     def _raise_closest_point_search_exception(self, max_arc_length):
         parameters = {"last": self.status["last_arc_length"], "max": max_arc_length,
                        "full": self.action_constraints.root_trajectory.full_arc_length}
-        print "Error: Did not find closest point", str(parameters)
+        print("Error: Did not find closest point", str(parameters))
         raise PathSearchError(parameters)

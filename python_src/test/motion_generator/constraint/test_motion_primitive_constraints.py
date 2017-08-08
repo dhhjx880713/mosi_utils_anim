@@ -24,7 +24,7 @@ def get_motion_primitive_graph(skeleton, elementary_action_name, morphable_model
     walk_group = node_group_builder.build()
     motion_primitive_graph.nodes = walk_group.nodes
     motion_primitive_graph.node_groups = {elementary_action_name: walk_group}
-    for keys in motion_primitive_graph.node_groups.keys():
+    for keys in list(motion_primitive_graph.node_groups.keys()):
             motion_primitive_graph.node_groups[keys].update_attributes(update_stats=False)
     return motion_primitive_graph
 
@@ -58,5 +58,5 @@ def test_motion_primitive_constraints():
     error_sum = 0
     for c in motion_primitive_constraints.constraints:
         error_sum += c.weight_factor * c.evaluate_motion_sample(quat_frames)
-    print "error", error_sum, "expected error", expected_error
+    print("error", error_sum, "expected error", expected_error)
     assert np.isclose(error_sum, expected_error)

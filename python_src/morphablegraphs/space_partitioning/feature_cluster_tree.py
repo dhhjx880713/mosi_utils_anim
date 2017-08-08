@@ -1,8 +1,8 @@
 import numpy as np
 import heapq
 import json
-import cPickle as pickle
-from clustering import find_clusters, all_equal
+import pickle as pickle
+from .clustering import find_clusters, all_equal
 import scipy.stats.mstats
 from ..utilities import write_message_to_log, LOG_MODE_DEBUG
 
@@ -56,11 +56,11 @@ class FeatureClusterTree(object):
                     self._clusters = find_clusters(features, indices, options)
             else:
                 self._clusters = find_clusters(features, indices, options)
-            print "found clusters"
+            print("found clusters")
             for idx, c in enumerate(self._clusters):
-                print idx, len(c)
+                print(idx, len(c))
             for c in self._clusters:
-                print "create node",len(c)#,features[indices]
+                print("create node",len(c))#,features[indices]
                 if len(c) > 0:
                     if np.alltrue(c == indices):
                         for idx in c:
@@ -156,7 +156,7 @@ class FeatureClusterTree(object):
             write_message_to_log(str(len(self.data)), LOG_MODE_DEBUG)
             return value, self.data[node._indices[0]]
         else:
-            print "Error: failed to find a result"
+            print("Error: failed to find a result")
             return np.inf, self.data[self._indices[0]]
 
     def find_best_example_excluding_search_candidates2(self, obj, args, n_candidates=1):#2
@@ -166,7 +166,7 @@ class FeatureClusterTree(object):
             Multiple candidates are kept at each level in order to find the global
             optimum.
         """
-        print "search with ", n_candidates, "candidates in tree with ", self._n_subdivisions, " subdivisions "
+        print("search with ", n_candidates, "candidates in tree with ", self._n_subdivisions, " subdivisions ")
         results = list()
         candidates = list()
         candidates.append((np.inf, self))
@@ -184,14 +184,14 @@ class FeatureClusterTree(object):
                     heapq.heappush(results, (value, node))
             candidates = new_candidates[:n_candidates]
             level += 1
-        print "depth", level
+        print("depth", level)
         if len(results) > 0:
             value, node = heapq.heappop(results)
-            print len(node._indices)  # node._indices[0]
-            print len(self.data)
+            print(len(node._indices))  # node._indices[0]
+            print(len(self.data))
             return value, self.data[node._indices[0]]
         else:
-            print "Error: failed to find a result"
+            print("Error: failed to find a result")
             return np.inf, self.data[self._indices[0]]
 
     def find_best_example_excluding_search_candidates3(self, obj, args,
@@ -203,13 +203,13 @@ class FeatureClusterTree(object):
             Multiple candidates are kept at each level in order to find the global
             optimum.
         """
-        print "search with", n_candidates, "candidates in tree with ", self._n_subdivisions, " subdivisions "
+        print("search with", n_candidates, "candidates in tree with ", self._n_subdivisions, " subdivisions ")
         results = list()
         candidates = list()
         candidates.append((np.inf, self))
         level = 0
         while len(candidates) > 0:
-            print "search", level, n_candidates, len(candidates)
+            print("search", level, n_candidates, len(candidates))
             new_candidates = list()
             for value, node in candidates:
                 if len(node._children) > 0:
@@ -220,17 +220,17 @@ class FeatureClusterTree(object):
                     heapq.heappush(results, (value, node))
             candidates = new_candidates[:n_candidates]
             if len(new_candidates) > 0 and level >= filter_level:
-                candidates = _filter_outliers(*zip(*candidates))# #scipy.stats.mstats.mquantiles(wx.values(), prob)
+                candidates = _filter_outliers(*list(zip(*candidates)))# #scipy.stats.mstats.mquantiles(wx.values(), prob)
             level += 1
 
-        print "depth", level
+        print("depth", level)
         if len(results) > 0:
             value, node = heapq.heappop(results)
-            print len(node._indices)  # node._indices[0]
-            print len(self.data)
+            print(len(node._indices))  # node._indices[0]
+            print(len(self.data))
             return value, self.data[node._indices[0]]
         else:
-            print "Error: failed to find a result"
+            print("Error: failed to find a result")
             return np.inf, self.data[self._indices[0]]
 
     def get_number_of_leafs(self):
@@ -319,7 +319,7 @@ class FeatureClusterTree(object):
 
     def print_n_samples(self, level=0):
         if self._indices is not None:
-            print "level", level, len(self._indices)
+            print("level", level, len(self._indices))
         for child in self._children:
             child.print_n_samples(level)
 

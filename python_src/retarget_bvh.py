@@ -1,10 +1,10 @@
 import numpy as np
-from morphablegraphs.animation_data import SkeletonBuilder, MotionVector, BVHReader, BVHWriter
-from morphablegraphs.external.transformations import quaternion_from_euler
-from morphablegraphs.animation_data.retargeting import get_targets_from_motion, ROCKETBOX_TO_GAME_ENGINE_MAP, ADDITIONAL_ROTATION_MAP,GAME_ENGINE_TO_ROCKETBOX_MAP
-from morphablegraphs.animation_data.retargeting import get_new_frames_from_direction_constraints as get_new_frames_using_quaternion, retarget_from_src_to_target
-from morphablegraphs.animation_data.retargeting import get_new_euler_frames_from_direction_constraints as get_new_frames_using_euler
-from morphablegraphs.animation_data.fbx_io import load_skeleton_and_animations_from_fbx, export_motion_vector_to_fbx_file
+from .morphablegraphs.animation_data import SkeletonBuilder, MotionVector, BVHReader, BVHWriter
+from .morphablegraphs.external.transformations import quaternion_from_euler
+from .morphablegraphs.animation_data.retargeting import get_targets_from_motion, ROCKETBOX_TO_GAME_ENGINE_MAP, ADDITIONAL_ROTATION_MAP,GAME_ENGINE_TO_ROCKETBOX_MAP
+from .morphablegraphs.animation_data.retargeting import get_new_frames_from_direction_constraints as get_new_frames_using_quaternion, retarget_from_src_to_target
+from .morphablegraphs.animation_data.retargeting import get_new_euler_frames_from_direction_constraints as get_new_frames_using_euler
+from .morphablegraphs.animation_data.fbx_io import load_skeleton_and_animations_from_fbx, export_motion_vector_to_fbx_file
 
 
 def convert_euler_to_quat_frame(skeleton, frame):
@@ -78,7 +78,7 @@ def export(skeleton, frames, out_file, use_euler=False, format="bvh"):
         export_motion_vector_to_fbx_file(skeleton, mv, out_file+".fbx")
 
 def scale_skeleton(skeleton, scale_factor):
-    for node in skeleton.nodes.values():
+    for node in list(skeleton.nodes.values()):
         node.offset = np.array(node.offset) * scale_factor
 
 if __name__ == "__main__":
@@ -111,4 +111,4 @@ if __name__ == "__main__":
                               use_euler=use_euler)
         export(target_skeleton,new_frames,out_file, use_euler, export_format)
     else:
-        print "Error: could not read target skeleton", target_file
+        print("Error: could not read target skeleton", target_file)

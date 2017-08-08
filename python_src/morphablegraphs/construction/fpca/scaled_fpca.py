@@ -94,9 +94,9 @@ class ScaledFunctionalPCA(object):
                                    'maxfun': 1e3,
                                    'gtol': 1e-03})
         running_time = time.clock() - start_time
-        print('optimization time: ', running_time)
-        print('new weights: ', result.x)
-        print(type(result.x))
+        print(('optimization time: ', running_time))
+        print(('new weights: ', result.x))
+        print((type(result.x)))
         output_data = {'optimization time': running_time,
                        'optimal weights': result.x.tolist()}
         output_filename = '_'.join([self.elementary_action,

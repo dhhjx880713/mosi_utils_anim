@@ -5,13 +5,13 @@ Created on Wed Feb 18 11:53:40 2015
 @author: mamauer
 """
 import numpy as np
-from gp_multi import GPMulti
+#from .gp_multi import GPMulti
 import os
-from motion_primitive import MotionPrimitive
+from .motion_primitive import MotionPrimitive
 from sklearn import mixture
 import json
 import zipfile
-import cPickle as pickle
+import pickle as pickle
 
 
 class GPMixture(object):
@@ -78,13 +78,13 @@ class GPMixture(object):
         inputcluster = len(self.classifier_gmm.weights_)
         outputcluster = len(self.X)
         # a list for each input cluster containing the votes for each output cluster
-        input_to_output_cluster_votes_ = [[] for i in xrange(inputcluster)]
-        for output_cluster_index in xrange(outputcluster):
+        input_to_output_cluster_votes_ = [[] for i in range(inputcluster)]
+        for output_cluster_index in range(outputcluster):
             X_c = self.X[output_cluster_index]
             Y_c = self.Y[output_cluster_index]
             #predict the clusters of each input sample and count votes to estimate weights for the clusters from the gp
             xlabels = self.classifier_gmm.predict(X_c).tolist()
-            for i in xrange(inputcluster):
+            for i in range(inputcluster):
                 votes = xlabels.count(i)
                 input_to_output_cluster_votes_[i].append(votes)
 
@@ -101,7 +101,7 @@ class GPMixture(object):
             self.opt_kwargs['max_iters'] = self.max_iters
             self.gp_list.append(gp)
 
-        for input_cluster_index in xrange(inputcluster):
+        for input_cluster_index in range(inputcluster):
             if sum(input_to_output_cluster_votes_[input_cluster_index]) != 0:
                 self.cluster_to_gp_weights_.append(
                     [float(votes) / sum(input_to_output_cluster_votes_[input_cluster_index]) for votes in input_to_output_cluster_votes_[input_cluster_index]])
@@ -143,8 +143,8 @@ class GPMixture(object):
         gmm.means_ = np.array(means_)
         gmm.covars_ = np.array(covars_)
         gmm.converged_ = True
-        print "New GMM has %d clusters, the original has %d" % \
-            (len(weights_), len(self.classifier_gmm.weights_))
+        print("New GMM has %d clusters, the original has %d" % \
+            (len(weights_), len(self.classifier_gmm.weights_)))
 
         return gmm
 
@@ -239,13 +239,13 @@ def build_X_Y_pairs(action1, prim1, action2, prim2,
 
     num_c = max(data['output_class_identity']) + 1
 
-    X = [[] for i in xrange(num_c)]
-    Y = [[] for i in xrange(num_c)]
+    X = [[] for i in range(num_c)]
+    Y = [[] for i in range(num_c)]
     for i, c in enumerate(data['output_class_identity']):
         X[c].append(data['input_motion_data'][i])
         Y[c].append(data['output_motion_data'][i])
 
-    for i in xrange(len(X)):
+    for i in range(len(X)):
         X[i] = np.array(X[i])
         Y[i] = np.array(Y[i])
     return X, Y

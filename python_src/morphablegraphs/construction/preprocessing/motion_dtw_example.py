@@ -1,6 +1,6 @@
 # encoding: UTF-8
 
-from motion_dtw import MotionDynamicTimeWarping
+from .motion_dtw import MotionDynamicTimeWarping
 import os
 from ...animation_data import BVHReader, SkeletonBuilder
 from ...motion_analysis import BVHAnalyzer
@@ -23,10 +23,10 @@ def run_dtw_demo():
     distgrid = dtw_demo.get_distgrid(test_motion, ref_motion)
     n_test_frames, n_ref_frames = distgrid.shape
 
-    print(distgrid[0, 0])
+    print((distgrid[0, 0]))
 
-    print(distgrid[n_test_frames-1, 0])
-    print(distgrid[n_test_frames-1, n_ref_frames-1])
+    print((distgrid[n_test_frames-1, 0]))
+    print((distgrid[n_test_frames-1, n_ref_frames-1]))
 
 def test_frame_distance():
     from morphablegraphs.utilities import load_json_file
@@ -95,7 +95,7 @@ def test_frame_distance():
     point_cloud_a = []
     point_cloud_b = []
     joint_names = []
-    for key in point_cloud_dic_a.keys():
+    for key in list(point_cloud_dic_a.keys()):
         if not 'end' in key.lower() and not 'bip' in key.lower():
         # if 'end' in key.lower():
         #     key = key[:-3] + '_EndSite'
@@ -104,7 +104,7 @@ def test_frame_distance():
             point_cloud_b.append(test_analyzer.get_global_pos(key,0))
 
     point_cloud_a1 = convert_euler_frame_to_cartesian_frame(skeleton, ref_bvhreader.frames[0])
-    print(np.asarray(point_cloud_a1).shape)
+    print((np.asarray(point_cloud_a1).shape))
 
     # print(len(point_cloud_a1))
     # print(len(point_cloud_a))

@@ -58,7 +58,7 @@ class TestParameterizedSpline(object):
         # print "out",arc_length,eval_point
         #assert np.allclose(input_point, output_point)
 
-        for i in xrange(len(input_point)):
+        for i in range(len(input_point)):
             # print input_point[i],output_point[i],len(input_point)
             # print  round(input_point[i], 1), round(output_point[i], 1)
             assert round(input_point[i], 1) == round(output_point[i], 1)

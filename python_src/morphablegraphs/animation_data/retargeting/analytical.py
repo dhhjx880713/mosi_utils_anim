@@ -5,14 +5,14 @@ See: http://www.vis.uni-stuttgart.de/plain/vdl/vdl_upload/91_35_retargeting%20mo
 """
 import numpy as np
 import math
-from constants import OPENGL_UP_AXIS, GAME_ENGINE_SPINE_OFFSET_LIST
-from utils import normalize, align_axis, find_rotation_between_vectors, align_root_translation, to_local_cos, get_quaternion_rotation_by_name, apply_additional_rotation_on_frames
+from .constants import OPENGL_UP_AXIS, GAME_ENGINE_SPINE_OFFSET_LIST
+from .utils import normalize, align_axis, find_rotation_between_vectors, align_root_translation, to_local_cos, get_quaternion_rotation_by_name, apply_additional_rotation_on_frames
 from ...external.transformations import quaternion_matrix, quaternion_multiply
 
 
 def create_local_cos_map(skeleton, up_vector, x_vector, z_vector, child_map=None):
     joint_cos_map = dict()
-    for j in skeleton.nodes.keys():
+    for j in list(skeleton.nodes.keys()):
         joint_cos_map[j] = dict()
         joint_cos_map[j]["y"] = up_vector
         joint_cos_map[j]["x"] = x_vector
@@ -92,7 +92,7 @@ class Retargeting(object):
         self.src_skeleton = src_skeleton
         self.target_skeleton = target_skeleton
         self.target_to_src_joint_map = target_to_src_joint_map
-        self.src_to_target_joint_map = {v: k for k, v in self.target_to_src_joint_map.items()}
+        self.src_to_target_joint_map = {v: k for k, v in list(self.target_to_src_joint_map.items())}
         self.scale_factor = scale_factor
         self.n_params = len(self.target_skeleton.animated_joints) * 4 + 3
 
@@ -166,7 +166,7 @@ class Retargeting(object):
 
         for target_name in animated_joints:
             q = get_quaternion_rotation_by_name(target_name, self.target_skeleton.reference_frame, self.target_skeleton, root_offset=3)
-            if target_name in self.target_to_src_joint_map.keys() or target_name == "Game_engine":
+            if target_name in list(self.target_to_src_joint_map.keys()) or target_name == "Game_engine":
                 if target_name != "Game_engine":  # special case for splitting the rotation onto two joints
                     src_name = self.target_to_src_joint_map[target_name]
                 else:
@@ -197,7 +197,7 @@ class Retargeting(object):
         #    src_frames = apply_additional_rotation_on_frames(src_skeleton.animated_joints, src_frames, additional_rotation_map)
         target_frames = []
         ref_frame = None
-        print frame_range
+        print(frame_range)
         for idx, src_frame in enumerate(src_frames[frame_range[0]:frame_range[1]]):
             target_frame = self.retarget_frame(src_frame, ref_frame)
             if ref_frame is None:

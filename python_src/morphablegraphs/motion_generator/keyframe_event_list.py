@@ -61,10 +61,10 @@ class KeyframeEventList(object):
             if graph_walk.use_time_parameters:
                 time_function = graph_walk.motion_state_graph.nodes[step.node_key].back_project_time_function(step.parameters)
             if step.motion_primitive_constraints is not None:
-                for keyframe_event in step.motion_primitive_constraints.keyframe_event_list.values():
+                for keyframe_event in list(step.motion_primitive_constraints.keyframe_event_list.values()):
                     event_keyframe_index = keyframe_event.extract_keyframe_index(time_function, frame_offset)
                     existing_events = None
-                    if event_keyframe_index in self._keyframe_events_dict.keys():
+                    if event_keyframe_index in list(self._keyframe_events_dict.keys()):
                         existing_events = self._keyframe_events_dict[event_keyframe_index]
                     keyframe_event.merge_event_list(existing_events)
                     self._keyframe_events_dict[event_keyframe_index] = keyframe_event
@@ -72,7 +72,7 @@ class KeyframeEventList(object):
 
     def get_keyframe_events_dict(self):
         result = dict()
-        for key in self._keyframe_events_dict.keys():
+        for key in list(self._keyframe_events_dict.keys()):
             #print key, self._keyframe_events_dict[key]
             result[key] = self._keyframe_events_dict[key].event_list
         return result
@@ -84,7 +84,7 @@ class KeyframeEventList(object):
     def _add_empty_rotate_events_for_detach(self, graph_walk):
         """ create events with empty rotation that is later filled after IK"""
         #print "generate empty rotate events"
-        for keyframe in self._keyframe_events_dict.keys():
+        for keyframe in list(self._keyframe_events_dict.keys()):
             if self._keyframe_events_dict[keyframe].constraint is not None:
                 orientation = self._keyframe_events_dict[keyframe].constraint.orientation
                 if orientation is None or orientation == [None, None, None, None]:
@@ -110,7 +110,7 @@ class KeyframeEventList(object):
                             else:
                                 rotate_keyframe = keyframe - 1
                             if rotate_keyframe >= 0:
-                                if rotate_keyframe not in self._keyframe_events_dict.keys():
+                                if rotate_keyframe not in list(self._keyframe_events_dict.keys()):
                                     self._keyframe_events_dict[rotate_keyframe] = KeyframeEvent(None,-1,[])
                                 self._keyframe_events_dict[rotate_keyframe].event_list.append(rotate_event)
 
@@ -119,14 +119,14 @@ class KeyframeEventList(object):
         :return:
         """
         keyframe_event_list = []
-        for keyframe in self._keyframe_events_dict.keys():
+        for keyframe in list(self._keyframe_events_dict.keys()):
             for event_desc in self._keyframe_events_dict[keyframe].event_list:
                 event = dict()
                 if graph_walk.mg_input is not None and graph_walk.mg_input.activate_joint_mapping:
-                    if isinstance(event_desc["parameters"]["joint"], basestring):
+                    if isinstance(event_desc["parameters"]["joint"], str):
                         event["jointName"] = graph_walk.mg_input.inverse_map_joint(event_desc["parameters"]["joint"])
                     else:
-                        event["jointName"] = map(graph_walk.mg_input.inverse_map_joint, event_desc["parameters"]["joint"])
+                        event["jointName"] = list(map(graph_walk.mg_input.inverse_map_joint, event_desc["parameters"]["joint"]))
                 else:
                     event["jointName"] = event_desc["parameters"]["joint"]
                 event["jointName"] = self._map_both_hands_event(event, graph_walk.mg_input.activate_joint_mapping)
@@ -143,7 +143,7 @@ class KeyframeEventList(object):
         if graph_walk.mg_input is not None:
             for action_index, action_entry in enumerate(graph_walk.elementary_action_list):
                 keyframe_annotations = graph_walk.mg_input.keyframe_annotations[action_index]
-                for key in keyframe_annotations.keys():
+                for key in list(keyframe_annotations.keys()):
                     if key == UNCONSTRAINED_EVENTS_TRANSFER_POINT:
                         self._add_transition_event(graph_walk, keyframe_annotations, action_entry)
 
@@ -158,12 +158,12 @@ class KeyframeEventList(object):
                 if event_parameters["event"] == "attach":
                     attach_joint = event_parameters["parameters"]["joint"]
 
-            if isinstance(joint_name_a, basestring):
+            if isinstance(joint_name_a, str):
                 keyframe_range_start = graph_walk.steps[action_entry.start_step].start_frame
                 keyframe_range_end = min(graph_walk.steps[action_entry.end_step].end_frame+1, graph_walk.motion_vector.n_frames)
                 least_distance = np.inf
                 closest_keyframe = graph_walk.steps[action_entry.start_step].start_frame
-                for frame_index in xrange(keyframe_range_start, keyframe_range_end):
+                for frame_index in range(keyframe_range_start, keyframe_range_end):
                     position_a = graph_walk.motion_state_graph.skeleton.nodes[joint_name_a].get_global_position(graph_walk.motion_vector.frames[frame_index])
                     position_b = graph_walk.motion_state_graph.skeleton.nodes[joint_name_b].get_global_position(graph_walk.motion_vector.frames[frame_index])
                     distance = np.linalg.norm(position_a - position_b)
@@ -173,7 +173,7 @@ class KeyframeEventList(object):
                 target_object = keyframe_annotations[UNCONSTRAINED_EVENTS_TRANSFER_POINT]["annotations"][0]["parameters"]["target"]
                 event_list = [{"event":"transfer", "parameters": {"joint" : attach_joint, "target": target_object}}]
                 self._keyframe_events_dict[closest_keyframe] = KeyframeEvent(None,-1,event_list)
-                print "added transfer event", closest_keyframe
+                print("added transfer event", closest_keyframe)
 
     def _map_both_hands_event(self, event, activate_joint_mapping=False):
         if isinstance(event["jointName"], list):
@@ -201,13 +201,13 @@ class KeyframeEventList(object):
                     keyframe_range_end = min(step.end_frame+1, graph_walk.motion_vector.n_frames)
                     least_distance = np.inf
                     closest_keyframe = step.start_frame
-                    for frame_index in xrange(keyframe_range_start, keyframe_range_end):
+                    for frame_index in range(keyframe_range_start, keyframe_range_end):
                         position = graph_walk.motion_state_graph.skeleton.nodes[c.joint_name].get_global_position(graph_walk.motion_vector.frames[frame_index])
                         d = position - c.position
                         d = np.dot(d,d)
                         if d < least_distance:
                             closest_keyframe = frame_index
                             least_distance = d
-                    if closest_keyframe not in self.ca_constraints.keys():
+                    if closest_keyframe not in list(self.ca_constraints.keys()):
                         self.ca_constraints[closest_keyframe] = []
                     self.ca_constraints[closest_keyframe].append(c.joint_name)

@@ -5,8 +5,8 @@ See: http://www.vis.uni-stuttgart.de/plain/vdl/vdl_upload/91_35_retargeting%20mo
 """
 import numpy as np
 from ...external.transformations import quaternion_from_matrix, quaternion_matrix, quaternion_multiply, quaternion_from_euler
-from utils import normalize, find_rotation_between_vectors, to_local_cos, to_global_cos, rotate_axes, apply_additional_rotation_on_frames
-from constants import EXTRA_ROOT_NAME, GAME_ENGINE_ROOT_JOINT, ROCKETBOX_ROOT_OFFSET, OPENGL_UP_AXIS
+from .utils import normalize, find_rotation_between_vectors, to_local_cos, to_global_cos, rotate_axes, apply_additional_rotation_on_frames
+from .constants import EXTRA_ROOT_NAME, GAME_ENGINE_ROOT_JOINT, ROCKETBOX_ROOT_OFFSET, OPENGL_UP_AXIS
 from scipy.optimize import minimize
 import math
 import time
@@ -210,13 +210,13 @@ def get_twisting_angle_local(skeleton, node_name, frame,q, joint_cos_map, local_
 
     e = [0, angle, 0]
     lq = quaternion_from_euler(*e)
-    print node_name, np.rad2deg(angle)
+    print(node_name, np.rad2deg(angle))
     return to_global_cos(skeleton, node_name, frame, lq)
 
 def get_twisting_angle(axes, global_src_x_vec):
     angle = get_angle_for_y_axis(axes["x"], global_src_x_vec, axes)
     q = quaternion_from_axis_angle(axes["y"], angle)
-    print axes["y"], global_src_x_vec, np.degrees(angle)
+    print(axes["y"], global_src_x_vec, np.degrees(angle))
     return q
 
 def project_vector(v, x,y):
@@ -240,7 +240,7 @@ def get_targets_from_motion(src_skeleton, src_frames, src_to_target_joint_map, a
     for idx in range(0, len(src_frames)):
         frame_targets = dict()
         for src_name in src_skeleton.animated_joints:
-            if src_name not in src_to_target_joint_map.keys():
+            if src_name not in list(src_to_target_joint_map.keys()):
                 #print "skip1", src_name
                 continue
             target_name = src_to_target_joint_map[src_name]
@@ -252,7 +252,7 @@ def get_targets_from_motion(src_skeleton, src_frames, src_to_target_joint_map, a
                 for child_node in src_skeleton.nodes[src_name].children:
                     child_name = child_node.node_name
 
-                    if child_name not in src_to_target_joint_map.keys():
+                    if child_name not in list(src_to_target_joint_map.keys()):
                         #print "skip2", src_name
                         continue
                     target = {"dir_to_child": get_dir_to_child(src_skeleton, src_name, child_name,
@@ -328,7 +328,7 @@ def get_new_frames_from_direction_constraints(target_skeleton,
 
         for free_joint_name in animated_joints:
             q = [1, 0, 0, 0]
-            if free_joint_name in frame_targets.keys() and len(frame_targets[free_joint_name]["targets"]) > 0:
+            if free_joint_name in list(frame_targets.keys()) and len(frame_targets[free_joint_name]["targets"]) > 0:
                 q = find_rotation_of_joint(target_skeleton, free_joint_name,
                                            frame_targets[free_joint_name]["targets"],
                                            new_frame, offset, target_root, use_optimization)
@@ -337,7 +337,7 @@ def get_new_frames_from_direction_constraints(target_skeleton,
 
         # apply_ik_constraints(target_skeleton, new_frame, constraints[frame_idx])#TODO
         duration = time.clock()-start
-        print "processed frame", frame_range[0] + frame_idx, use_optimization, "in", duration, "seconds"
+        print("processed frame", frame_range[0] + frame_idx, use_optimization, "in", duration, "seconds")
         new_frames.append(new_frame)
     return new_frames
 

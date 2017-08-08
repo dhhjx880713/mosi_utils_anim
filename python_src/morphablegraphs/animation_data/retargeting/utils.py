@@ -49,7 +49,7 @@ def get_coordinate_system_axes(skeleton, joint_name, frame, axes):
 def rotate_axes(axes, q):
     m = quaternion_matrix(q)[:3, :3]
     aligned_axes = dict()
-    for key, a in axes.items():
+    for key, a in list(axes.items()):
         aligned_axes[key] = np.dot(m, a)
         aligned_axes[key] = normalize(aligned_axes[key])
     return aligned_axes

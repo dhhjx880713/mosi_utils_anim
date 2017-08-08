@@ -12,7 +12,7 @@ from ...animation_data.utils import euler_to_quaternion, \
                                     point_rotation_by_quaternion, quaternion_to_euler
 from ...external.transformations import quaternion_inverse, quaternion_multiply
 from ...animation_data import BVHReader, BVHWriter, SkeletonBuilder
-from motion_segmentation import MotionSegmentation
+from .motion_segmentation import MotionSegmentation
 import os
 import glob
 from copy import deepcopy
@@ -93,7 +93,7 @@ class MotionNormalization(MotionSegmentation):
             raise ValueError('No reference BVH file for skeleton information')
         self.ref_bvhreader.node_names['Hips']['offset'] = [0, 0, 0]
         skeleton = SkeletonBuilder().load_from_bvh(self.ref_bvhreader)
-        for filename, frames in self.aligned_motions.iteritems():
+        for filename, frames in self.aligned_motions.items():
             height_1 = get_cartesian_coordinates_from_euler_full_skeleton(self.ref_bvhreader,
                                                                           skeleton,
                                                                           'Bip01_R_Toe0',
@@ -118,7 +118,7 @@ class MotionNormalization(MotionSegmentation):
 
 
     def translate_motion_to_ground(self):
-        for filename, frames in self.aligned_motions.iteritems():
+        for filename, frames in self.aligned_motions.items():
             height_1 = get_cartesian_coordinates_from_euler_full_skeleton(self.ref_bvhreader,
                                                                           self.skeleton,
                                                                           'Bip01_R_Toe0',
@@ -146,9 +146,9 @@ class MotionNormalization(MotionSegmentation):
            transform frames by rotation angle
         """
         # ref_orientation = [ref_orientation['x'], ref_orientation['z']]
-        for filename, frames in self.aligned_motions.iteritems():
+        for filename, frames in self.aligned_motions.items():
             print(filename)
-            print(len(frames))
+            print((len(frames)))
             self.aligned_motions[filename] = align_euler_frames(frames,
                                                                 aligned_frame_idx,
                                                                 ref_orientation_euler)
@@ -159,7 +159,7 @@ class MotionNormalization(MotionSegmentation):
            transform frames by rotation angle
         """
         ref_orientation = [ref_orientation['x'], ref_orientation['z']]
-        for filename, frames in self.aligned_motions.iteritems():
+        for filename, frames in self.aligned_motions.items():
             self.aligned_motions[filename] = rotate_euler_frames(frames,
                                                                  aligned_frame_idx,
                                                                  ref_orientation)
@@ -167,7 +167,7 @@ class MotionNormalization(MotionSegmentation):
 
     def correct_up_axis(self, frame_idx, ref_up_vector):
         ref_up_vector = [ref_up_vector['y'], ref_up_vector['z']]
-        for filename, frames in self.aligned_motions.iteritems():
+        for filename, frames in self.aligned_motions.items():
             self.aligned_motions[filename] = rotate_euler_frames_about_x_axis(frames,
                                                                               frame_idx,
                                                                               ref_up_vector)
@@ -175,7 +175,7 @@ class MotionNormalization(MotionSegmentation):
     def save_motion(self, save_path):
         if not save_path.endswith(os.sep):
             save_path += os.sep
-        for filename, frames in self.aligned_motions.iteritems():
+        for filename, frames in self.aligned_motions.items():
             BVHWriter(save_path + filename, self.skeleton, frames,
                       frame_time=self.ref_bvhreader.frame_time,
                       is_quaternion=False)

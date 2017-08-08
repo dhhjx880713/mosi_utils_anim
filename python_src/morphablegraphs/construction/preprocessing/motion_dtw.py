@@ -6,7 +6,7 @@ Created on Thu Jul 23 10:06:37 2015
 """
 
 from ...animation_data import BVHReader, BVHWriter, SkeletonBuilder
-from motion_normalization import MotionNormalization
+from .motion_normalization import MotionNormalization
 from ...animation_data.utils import calculate_frame_distance
 import numpy as np
 import rpy2.robjects.numpy2ri as numpy2ri
@@ -32,9 +32,9 @@ class MotionDynamicTimeWarping(MotionNormalization):
     def load_motion_from_files_for_DTW(self, folder_path):
         if not folder_path.endswith(os.sep):
             folder_path += os.sep
-        print "search bvh files in " + folder_path
+        print("search bvh files in " + folder_path)
         motion_files = glob.glob(folder_path + '*.bvh')
-        print str(len(motion_files)) + " are found!"
+        print(str(len(motion_files)) + " are found!")
         for bvh_file_path in motion_files:
             bvhreader = BVHReader(bvh_file_path)
             filename = os.path.split(bvh_file_path)[-1]
@@ -43,7 +43,7 @@ class MotionDynamicTimeWarping(MotionNormalization):
 
     def dtw(self):
         if self.ref_motion == {}:
-            print "automatically search best reference motion"
+            print("automatically search best reference motion")
             self.find_ref_motion()
         self.warp_all_motions_to_ref_motion()
 
@@ -56,16 +56,16 @@ class MotionDynamicTimeWarping(MotionNormalization):
         # calculate motion distance from distgrid
         average_dists = {}
         counter = 0
-        for ref_filename in self.dic_distgrid.keys():
+        for ref_filename in list(self.dic_distgrid.keys()):
             average_dist = 0
-            for test_filename in self.dic_distgrid[ref_filename].keys():
+            for test_filename in list(self.dic_distgrid[ref_filename].keys()):
                 res = MotionDynamicTimeWarping.calculate_path(
                     self.dic_distgrid[ref_filename][test_filename])
                 average_dist += res[2]
             average_dist = average_dist / self.len_aligned_motions
             counter += 1
             average_dists[ref_filename] = average_dist
-            print counter, '/', self.len_aligned_motions
+            print(counter, '/', self.len_aligned_motions)
         self.ref_motion['filename'] = min(average_dists, key=lambda k: average_dists[k])
         self.ref_motion['frames'] = self.aligned_motions[self.ref_motion['filename']]
 
@@ -91,8 +91,8 @@ class MotionDynamicTimeWarping(MotionNormalization):
             raise ValueError('There is no reference motion for DTW')
         if self.aligned_motions == {}:
             raise ValueError('No motion for DTW')
-        for filename, frames in self.aligned_motions.iteritems():
-            print filename
+        for filename, frames in self.aligned_motions.items():
+            print(filename)
             test_motion = {}
             test_motion['filename'] = filename
             test_motion['frames'] = frames
@@ -107,7 +107,7 @@ class MotionDynamicTimeWarping(MotionNormalization):
             save_path += os.sep
         skeleton = Skeleton(self.ref_bvhreader)
         warping_index_dic = {}
-        for filename, motion_data in self.warped_motions.iteritems():
+        for filename, motion_data in self.warped_motions.items():
             BVHWriter(save_path + filename, skeleton,
                       motion_data['frames'],
                       frame_time=self.ref_bvhreader.frame_time,
@@ -131,8 +131,8 @@ class MotionDynamicTimeWarping(MotionNormalization):
         n_ref_frames = len(ref_motion['frames'])
         n_test_frames = len(test_motion['frames'])
         distgrid = np.zeros([n_test_frames, n_ref_frames])
-        for i in xrange(n_test_frames):
-            for j in xrange(n_ref_frames):
+        for i in range(n_test_frames):
+            for j in range(n_ref_frames):
                 distgrid[i, j] = calculate_frame_distance(skeleton,
                                                           ref_motion['frames'][j],
                                                           test_motion['frames'][i])
@@ -145,7 +145,7 @@ class MotionDynamicTimeWarping(MotionNormalization):
             distgrid = distgrid.T
             plt.figure()
             plt.imshow(distgrid)
-            plt.plot(range(len(path)), path, color='red')
+            plt.plot(list(range(len(path))), path, color='red')
             plt.ylabel(ref_motion['filename'])
             plt.ylim(0, n_ref_frames)
             plt.xlim(0, n_test_frames)
@@ -173,19 +173,19 @@ class MotionDynamicTimeWarping(MotionNormalization):
         """
         # create Pairs:
         path_pairs = [(int(ref_indices[i]) - 1, int(test_indices[i]) - 1)
-                      for i in xrange(len(ref_indices))]
+                      for i in range(len(ref_indices))]
         # create Pathmatirx:
         pathmatrix = np.zeros(shape)
         for pair in path_pairs:
             pathmatrix[pair] = 1
         warping_index = []
-        for i in xrange(shape[1]):
+        for i in range(shape[1]):
             index = np.nonzero(pathmatrix[:, i])[0][-1]
             warping_index.append(index)
 
         if self.verbose:
-            print "warping index from R is: "
-            print warping_index
+            print("warping index from R is: ")
+            print(warping_index)
         return warping_index
 
     @classmethod
@@ -253,16 +253,16 @@ class MotionDynamicTimeWarping(MotionNormalization):
         """calculate the distance matrix for each pair of motions in
            aligned_motions
         """
-        print "start to compute distance grid for all pairs pf motions"
+        print("start to compute distance grid for all pairs pf motions")
         total_calculation = self.len_aligned_motions * \
             (self.len_aligned_motions - 1) / 2
-        print "There are %d pairs in total" % total_calculation
+        print("There are %d pairs in total" % total_calculation)
         counter = 0
-        keys = self.aligned_motions.keys()
-        for i in xrange(self.len_aligned_motions):
-            for j in xrange(i + 1, self.len_aligned_motions):
+        keys = list(self.aligned_motions.keys())
+        for i in range(self.len_aligned_motions):
+            for j in range(i + 1, self.len_aligned_motions):
                 counter += 1
-                print counter, '/', total_calculation
+                print(counter, '/', total_calculation)
                 ref_motion = {'filename': keys[i],
                               'frames': self.aligned_motions[keys[i]]}
                 test_motion = {'filename': keys[j],

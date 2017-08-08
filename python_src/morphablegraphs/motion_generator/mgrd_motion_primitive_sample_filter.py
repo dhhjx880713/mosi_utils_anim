@@ -74,7 +74,7 @@ class MGRDMotionPrimitiveSampleFilter(object):
                     start = time.clock()
                     for qs in quat_splines:
                         MGRDMotionPrimitiveSampleFilter.transform_coeffs(qs, mp_constraints.aligning_transform)
-                    print "transformed splines in", time.clock()-start, "seconds"
+                    print("transformed splines in", time.clock()-start, "seconds")
                 return MGRDCartesianConstraint.score_splines(quat_splines, cartesian_constraints)
         else:
             print ("Error: MGRD was not correctly initialized")

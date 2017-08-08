@@ -9,8 +9,8 @@ def get_distgrid(x, y, distance_measure=_transform_invariant_point_cloud_distanc
     Ny = len(y)
     # Step 1: compute pairwise distances.
     S = np.zeros([Nx, Ny])
-    for i in xrange(Nx):
-        for j in xrange(Ny):
+    for i in range(Nx):
+        for j in range(Ny):
             S[i, j] = distance_measure(x[i], y[j])
 
     # Step 2: compute cumulative distances.
@@ -70,7 +70,7 @@ def get_warping_function(path):
 
     x, y = np.array(path).T
     #convert to coordinates
-    coordinates = [(int(x[i]), int(y[i])) for i in xrange(len(x))]
+    coordinates = [(int(x[i]), int(y[i])) for i in range(len(x))]
 
 
     #set coordinates to 1
@@ -80,7 +80,7 @@ def get_warping_function(path):
         pathmatrix[coord] = 1
 
     warping_function = []
-    for i in xrange(shape[1]):
+    for i in range(shape[1]):
         # find first non zero index along column i
         index = np.nonzero(pathmatrix[:, i])[0][-1]
         warping_function.append(index)

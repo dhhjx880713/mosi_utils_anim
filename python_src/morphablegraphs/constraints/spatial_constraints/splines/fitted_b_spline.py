@@ -6,7 +6,7 @@ B_SPLINE_DEGREE = 3
 class FittedBSpline(object):
     def __init__(self,  points, degree=B_SPLINE_DEGREE, domain=None):
         self.points = np.array(points)
-        if isinstance(points[0], (int, long, float, complex)):
+        if isinstance(points[0], (int, float, complex)):
             self.dimensions = 1
         else:
             self.dimensions = len(points[0])
@@ -20,7 +20,7 @@ class FittedBSpline(object):
         self.spline_def = []
         points_t = np.array(points).T
         t_func = np.linspace(self.domain[0], self.domain[1], len(points)).tolist()
-        for d in xrange(len(points_t)):
+        for d in range(len(points_t)):
             #print d, self.dimensions
             self.spline_def.append(si.splrep(t_func, points_t[d], w=None, k=3))
 
@@ -35,7 +35,7 @@ class FittedBSpline(object):
 
         """
         point = []
-        for d in xrange(self.dimensions):
+        for d in range(self.dimensions):
             point.append(si.splev(u, self.spline_def[d]))
         return np.array(point)
 

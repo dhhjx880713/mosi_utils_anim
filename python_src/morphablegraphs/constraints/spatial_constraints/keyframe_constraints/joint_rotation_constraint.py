@@ -1,6 +1,6 @@
 __author__ = 'hadu01'
 
-from keyframe_constraint_base import KeyframeConstraintBase
+from .keyframe_constraint_base import KeyframeConstraintBase
 import numpy as np
 from ....external.transformations import euler_matrix, \
                                           quaternion_matrix
@@ -19,7 +19,7 @@ class JointRotationConstraint(KeyframeConstraintBase):
         self.rotation_constraint = constraint_desc['rotation_constraint']
         self.frame_idx = constraint_desc['frame_index']
         if self.rotation_type == "euler":
-            rad_angles = map(np.deg2rad, self.rotation_constraint)
+            rad_angles = list(map(np.deg2rad, self.rotation_constraint))
             self.constraint_rotmat = euler_matrix(rad_angles[0],
                                                   rad_angles[1],
                                                   rad_angles[2],
@@ -43,7 +43,7 @@ class JointRotationConstraint(KeyframeConstraintBase):
         return self.evaluate_frame(aligned_spline.evaluate(self.frame_idx))
 
     def evaluate_frame(self, frame):
-        joint_idx = self.skeleton.node_name_frame_map.keys().index(self.joint_name)
+        joint_idx = list(self.skeleton.node_name_frame_map.keys()).index(self.joint_name)
         quat_value = frame[LEN_ROOT_POSITION + joint_idx*LEN_QUAT :
                      LEN_ROOT_POSITION + (joint_idx + 1) * LEN_QUAT]
         quat_value = np.asarray(quat_value)

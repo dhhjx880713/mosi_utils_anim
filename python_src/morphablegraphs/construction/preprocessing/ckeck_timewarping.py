@@ -10,26 +10,26 @@ import os
 
 def check_meta_data(elementary_action,
                     motion_primitive):
-    print(elementary_action, motion_primitive)
+    print((elementary_action, motion_primitive))
     aligned_folder = get_aligned_data_folder(elementary_action,
                                              motion_primitive)
     bvhfiles = glob.glob(os.path.join(aligned_folder, '*.bvh'))
     timewarping_data = load_json_file(os.path.join(aligned_folder, 'timewarping.json'))
-    n_frames = len(timewarping_data[timewarping_data.keys()[0]])
-    print('number of frames: ', n_frames)
-    print 'number of files is: ' + str(len(bvhfiles))
-    print 'number of indices is: ' + str(len(timewarping_data.keys()))
+    n_frames = len(timewarping_data[list(timewarping_data.keys())[0]])
+    print(('number of frames: ', n_frames))
+    print('number of files is: ' + str(len(bvhfiles)))
+    print('number of indices is: ' + str(len(list(timewarping_data.keys()))))
     filenames = []
     for item in bvhfiles:
         filename = os.path.split(item)[-1]
         filenames.append(filename)
         bvhreader = BVHReader(item)
         if len(bvhreader.frames) != n_frames:
-            print(filename + ' has different number of frames!')
+            print((filename + ' has different number of frames!'))
         # print filename
-        if not filename in timewarping_data.keys():
-            print filename + ' cannot be found!'
-    for filename in timewarping_data.keys():
+        if not filename in list(timewarping_data.keys()):
+            print(filename + ' cannot be found!')
+    for filename in list(timewarping_data.keys()):
         # delete key in timewarping_data if the corresponding file does not exist
         if filename not in filenames:
             del timewarping_data[filename]

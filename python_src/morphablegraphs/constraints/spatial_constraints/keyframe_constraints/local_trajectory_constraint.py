@@ -6,7 +6,7 @@ Created on Mon Aug 03 19:01:21 2015
 """
 
 import numpy as np
-from keyframe_constraint_base import KeyframeConstraintBase
+from .keyframe_constraint_base import KeyframeConstraintBase
 SPATIAL_CONSTRAINT_TYPE_LOCAL_TRAJECTORY = "local_trajectory"
 
 
@@ -23,7 +23,7 @@ class LocalTrajectoryConstraint(KeyframeConstraintBase):
 
     def get_positions_from_spline(self, aligned_spline):
         positions = []
-        for idx in xrange(self.n_canonical_frames):
+        for idx in range(self.n_canonical_frames):
             frame = aligned_spline.evaluate(idx)
             positions.append(self.skeleton.nodes[self.joint_name].get_global_position(frame))
         return positions

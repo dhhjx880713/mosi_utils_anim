@@ -107,7 +107,7 @@ class BVHReader(object):
                         # also the end sites need to be adde as children
                         self.node_names[parents[-1]]["children"].append(name)
 
-                    elif line_split[0] == "OFFSET" and name in self.node_names.keys():
+                    elif line_split[0] == "OFFSET" and name in list(self.node_names.keys()):
                         offset = [float(x) for x in line_split[1:]]
                         self.node_names[name]["offset"] = offset
                 line_index += 1
@@ -130,7 +130,7 @@ class BVHReader(object):
         while line_index < n_lines:
             #print lines[line_index]
             line_split = lines[line_index].strip().split()
-            frames.append(np.array(map(float, line_split)))
+            frames.append(np.array(list(map(float, line_split))))
             line_index += 1
 
         self.frames = np.array(frames)
@@ -173,8 +173,8 @@ class BVHReader(object):
 
     def get_animated_joints(self):
         """Returns an ordered list of joints which have animation channels"""
-        for name, node in self.node_names.iteritems():
-            if "channels" in node.keys() and len(node["channels"]) > 0:
+        for name, node in self.node_names.items():
+            if "channels" in list(node.keys()) and len(node["channels"]) > 0:
                 yield name
 
 
@@ -350,7 +350,7 @@ class BVHWriter(object):
     def _get_euler_frame_from_partial_euler_frame(self, frame, skip_joints):
         euler_frame = frame[:3]
         joint_idx = 0
-        for node_name in self.skeleton.nodes.keys():
+        for node_name in list(self.skeleton.nodes.keys()):
             if len(self.skeleton.nodes[node_name].channels) > 0:# ignore end sites
                 if not node_name.startswith("Bip") or not skip_joints:
                     if node_name in TOE_NODES:
@@ -371,7 +371,7 @@ class BVHWriter(object):
     def _get_euler_frame_from_partial_quaternion_frame(self, frame):
         euler_frame = frame[:3]     # copy root
         joint_idx = 0
-        for node_name in self.skeleton.nodes.keys():
+        for node_name in list(self.skeleton.nodes.keys()):
             if len(self.skeleton.nodes[node_name].channels) > 0:# ignore end sites completely
                 if not node_name.startswith("Bip"):
                     i = joint_idx * QUAT_LEN + TRANSLATION_LEN
@@ -393,7 +393,7 @@ class BVHWriter(object):
     def _get_euler_frame_from_quaternion_frame(self, frame):
         euler_frame = frame[:3]  # copy root
         joint_idx = 0
-        for node_name in self.skeleton.nodes.keys():
+        for node_name in list(self.skeleton.nodes.keys()):
             if len(self.skeleton.nodes[node_name].channels) > 0:  # ignore end sites completely
                 if node_name in TOE_NODES:
                     # special fix for unused toe parameters

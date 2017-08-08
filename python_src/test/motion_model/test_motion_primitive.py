@@ -31,8 +31,8 @@ class TestMotionPrimitive(object):
     def test_init(self):
         """ Test if MotionPrimitive has been correctly initialized """
 
-        assert "eigen_vectors" in self.mp.s_pca.keys() and "eigen_vectors" \
-                                                        in self.mp.t_pca.keys()
+        assert "eigen_vectors" in list(self.mp.s_pca.keys()) and "eigen_vectors" \
+                                                        in list(self.mp.t_pca.keys())
                                                         
         assert len(self.mp.gaussian_mixture_model.means_[0]) == len(self.mp.s_pca["eigen_vectors"])\
                                             +len(self.mp.t_pca["eigen_vectors"].T)
@@ -245,7 +245,7 @@ class TestMotionPrimitive(object):
         coefs = np.ravel(coefs)
         res = np.ravel(res)
         assert len(coefs) == len(res)
-        for i in xrange(len(coefs)):
+        for i in range(len(coefs)):
             assert  round(coefs[i], 5) == round(res[i], 5)
       
         
@@ -253,14 +253,14 @@ class TestMotionPrimitive(object):
         """ Test if the inverse temporal pca produces a strictly monotonously
             increasing vector using multiple samples
         """
-        for s in xrange(self.number_of_samples):
+        for s in range(self.number_of_samples):
             sample = np.ravel(self.mp.gaussian_mixture_model.sample())
             gamma = sample[len(self.mp.s_pca["eigen_vectors"]):]
             t = self.mp._inverse_temporal_pca(gamma)
-            if not np.all([t[i]>t[i-1] for i in xrange(len(t)) if i > 0]):
-                print s,t
+            if not np.all([t[i]>t[i-1] for i in range(len(t)) if i > 0]):
+                print(s,t)
             assert not np.isnan(t).any()
-            assert np.all([t[i]>t[i-1] for i in xrange(len(t)) if i > 0])
+            assert np.all([t[i]>t[i-1] for i in range(len(t)) if i > 0])
             assert t[-1] == self.mp.n_canonical_frames -1
             
             

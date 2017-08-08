@@ -177,12 +177,12 @@ def export_euler_frames_to_bvh(
             euler_frames, start_pose["orientation"], start_pose["position"])
     if time_stamp:
         filepath = output_dir + os.sep + prefix + "_" + \
-            unicode(datetime.now().strftime("%d%m%y_%H%M%S")) + ".bvh"
+            str(datetime.now().strftime("%d%m%y_%H%M%S")) + ".bvh"
     elif prefix != "":
         filepath = output_dir + os.sep + prefix + ".bvh"
     else:
         filepath = output_dir + os.sep + "output" + ".bvh"
-    print filepath
+    print(filepath)
     BVHWriter(
         filepath,
         skeleton,
@@ -224,12 +224,12 @@ def export_frames_to_bvh_file(output_dir, skeleton, frames, prefix="", time_stam
     bvh_writer = get_bvh_writer(skeleton, frames, is_quaternion=is_quaternion)
     if time_stamp:
         filepath = output_dir + os.sep + prefix + "_" + \
-            unicode(datetime.now().strftime("%d%m%y_%H%M%S")) + ".bvh"
+            str(datetime.now().strftime("%d%m%y_%H%M%S")) + ".bvh"
     elif prefix != "":
         filepath = output_dir + os.sep + prefix + ".bvh"
     else:
         filepath = output_dir + os.sep + "output" + ".bvh"
-    print filepath
+    print(filepath)
     bvh_writer.write(filepath)
 
 
@@ -248,7 +248,7 @@ def gen_spline_from_control_points(control_points, take=10):
             #print "append"
         count+=1
     dim = len(tmp[0])
-    print "number of points", len(tmp), len(control_points)
+    print("number of points", len(tmp), len(control_points))
     spline = ParameterizedSpline(tmp, dim)
     # print tmp
     return spline
@@ -264,7 +264,7 @@ def load_collision_free_constraints(json_file):
         with open(json_file, "rb") as infile:
             json_data = json.load(infile)
     except IOError:
-        print('cannot read data from ' + json_file)
+        print(('cannot read data from ' + json_file))
     collision_free_constraints = {}
     for action in json_data['modification']:
         collision_free_constraints[action["elementaryActionIndex"]] = {}

@@ -1,12 +1,12 @@
 import os
 import collections
-from morphablegraphs.animation_data import BVHReader, SkeletonBuilder, MotionVector
-from morphablegraphs.animation_data.skeleton_models import *
-from morphablegraphs.animation_data.motion_editing.utils import add_heels_to_skeleton, generate_root_constraint_for_one_foot, generate_root_constraint_for_two_feet, \
+from .morphablegraphs.animation_data import BVHReader, SkeletonBuilder, MotionVector
+from .morphablegraphs.animation_data.skeleton_models import *
+from .morphablegraphs.animation_data.motion_editing.utils import add_heels_to_skeleton, generate_root_constraint_for_one_foot, generate_root_constraint_for_two_feet, \
     guess_ground_height, smooth_root_translation_at_end, smooth_root_translation_at_start
-from morphablegraphs.animation_data.motion_editing.motion_grounding import MotionGroundingConstraint, generate_ankle_constraint_from_toe, create_ankle_constraint_from_toe_and_heel
-from morphablegraphs.animation_data.motion_editing.analytical_inverse_kinematics import AnalyticalLimbIK
-from morphablegraphs.external.transformations import quaternion_from_matrix, quaternion_multiply, quaternion_matrix, quaternion_slerp
+from .morphablegraphs.animation_data.motion_editing.motion_grounding import MotionGroundingConstraint, generate_ankle_constraint_from_toe, create_ankle_constraint_from_toe_and_heel
+from .morphablegraphs.animation_data.motion_editing.analytical_inverse_kinematics import AnalyticalLimbIK
+from .morphablegraphs.external.transformations import quaternion_from_matrix, quaternion_multiply, quaternion_matrix, quaternion_slerp
 
 LEFT_FOOT = "LeftFoot"
 RIGHT_FOOT = "RightFoot"
@@ -43,8 +43,8 @@ def blend_between_frames(skeleton, frames, start, end, joint_list, window):
         j_indices = [idx, idx + 1, idx + 2, idx + 3]
         start_q = frames[start][j_indices]
         end_q = frames[end][j_indices]
-        print joint, window
-        for i in xrange(window):
+        print(joint, window)
+        for i in range(window):
             t = float(i) / window
             slerp_q = quaternion_slerp(start_q, end_q, t, spin=0, shortestpath=True)
             frames[start + i][j_indices] = slerp_q
@@ -137,7 +137,7 @@ def ground_first_frame(skeleton, frames, target_height, window_size, stance_foot
     root_pos = generate_root_constraint_for_two_feet(skeleton, frames[first_frame], c1, c2)
     if root_pos is not None:
         frames[first_frame][:3] = root_pos
-        print "change root at frame", first_frame
+        print("change root at frame", first_frame)
         smooth_root_translation_at_start(frames, first_frame, window_size)
     for c in constraints:
         apply_constraint(skeleton, frames, first_frame, c, first_frame, first_frame + window_size, window_size)
@@ -157,7 +157,7 @@ def ground_last_frame(skeleton, frames, target_height, window_size, stance_foot=
     root_pos = generate_root_constraint_for_two_feet(skeleton, frames[last_frame], c1, c2)
     if root_pos is not None:
         frames[last_frame][:3] = root_pos
-        print "change root at frame", last_frame
+        print("change root at frame", last_frame)
         smooth_root_translation_at_end(frames, last_frame, window_size)
     for c in constraints:
         apply_constraint(skeleton, frames, last_frame, c, last_frame - window_size, last_frame, window_size)
@@ -171,7 +171,7 @@ def ground_initial_stance_foot_unconstrained(skeleton, frames, target_height, st
 
     toe_pos = None
     heel_pos = None
-    for frame_idx in xrange(0, len(frames)):
+    for frame_idx in range(0, len(frames)):
         if toe_pos is None:
             toe_pos = skeleton.nodes[toe_joint].get_global_position(frames[frame_idx])
             toe_pos[1] = target_height
@@ -197,7 +197,7 @@ def ground_initial_stance_foot(skeleton, frames, target_height, stance_foot="rig
 
     stance_toe_pos = None
     stance_heel_pos = None
-    for frame_idx in xrange(0, len(frames)):
+    for frame_idx in range(0, len(frames)):
         if stance_toe_pos is None:
             stance_toe_pos = skeleton.nodes[stance_toe_joint].get_global_position(frames[frame_idx])
             stance_toe_pos[1] = target_height
@@ -211,7 +211,7 @@ def ground_initial_stance_foot(skeleton, frames, target_height, stance_foot="rig
             #stance_c = create_ankle_constraint_from_toe_and_heel(skeleton, frames, frame_idx, stance_foot_joint, stance_heel_joint,
             #                             stance_toe_joint, heel_offset,
             #                             target_height, stance_heel_pos, stance_toe_pos)
-            print "toe",stance_toe_pos
+            print("toe",stance_toe_pos)
         else:
             stance_c = create_ankle_constraint_from_toe_and_heel(skeleton, frames, frame_idx, stance_foot_joint, stance_heel_joint, stance_toe_joint, heel_offset,
                                   target_height, stance_heel_pos, stance_toe_pos)
@@ -248,13 +248,13 @@ def align_xz_to_origin(skeleton, frames):
     root = skeleton.aligning_root_node
     tframe = frames[0]
     offset = np.array([0, 0, 0]) - skeleton.nodes[root].get_global_position(tframe)
-    for frame_idx in xrange(0, len(frames)):
+    for frame_idx in range(0, len(frames)):
         frames[frame_idx, 0] += offset[0]
         frames[frame_idx, 2] += offset[2]
 
 
 def run_grounding_on_bvh_file(bvh_file, out_path, skeleton_model, configuration):
-    print "apply on", bvh_file
+    print("apply on", bvh_file)
     bvh = BVHReader(bvh_file)
     animated_joints = list(bvh.get_animated_joints())
     skeleton = SkeletonBuilder().load_from_bvh(bvh, animated_joints)  # filter here
@@ -383,7 +383,7 @@ if __name__ == "__main__":
     skeleton_type = "game_engine"
     max_number = 10000
     skeleton_model = GAME_ENGINE_SKELETON_MODEL
-    for step_type in configurations.keys():
+    for step_type in list(configurations.keys()):
         ea_path = "E:\\projects\\INTERACT\\data\\1 - MoCap\\4 - Alignment\\elementary_action_walk"
         in_path = ea_path + "\\" + step_type + "_game_engine_skeleton_new"
         out_path = ea_path + "\\" + step_type + "_game_engine_skeleton_new_grounded"#"out\\foot_sliding"

@@ -8,7 +8,7 @@ from ..skeleton_node import SKELETON_NODE_TYPE_ROOT,SKELETON_NODE_TYPE_JOINT, SK
 has_image_library = True
 try:
     from PIL import Image
-except ImportError, e:
+except ImportError as e:
     has_image_library = False
     print("Warning: could not import PIL library")
     pass
@@ -56,7 +56,7 @@ class FBXSkinnedMeshImporter(object):
             if attribute.GetAttributeType() == FbxNodeAttribute.eMesh:
                 self.create_mesh_data(fbx_node, attribute, mesh_list)
 
-        for idx in xrange(fbx_node.GetChildCount()):
+        for idx in range(fbx_node.GetChildCount()):
             self.parseFBXNodeHierarchy(fbx_node.GetChild(idx), depth + 1, mesh_list)
 
     def create_mesh_data(self, fbx_node, attribute, mesh_list):
@@ -97,10 +97,10 @@ class FBXSkinnedMeshImporter(object):
         ni = 0
         ti = 0
         uv_layer = mesh.GetElementUV(uv_layer_idx)
-        for layer_idx in xrange(n_layers):
-            for f_idx in xrange(n_faces):
+        for layer_idx in range(n_layers):
+            for f_idx in range(n_faces):
                 face = []
-                for v_idx in xrange(n_poly_vertices):
+                for v_idx in range(n_poly_vertices):
 
                     control_point_idx = mesh.GetPolygonVertex(f_idx, v_idx)
                     vertex = control_points[control_point_idx]
@@ -121,7 +121,7 @@ class FBXSkinnedMeshImporter(object):
         if self.skeleton is not None and mesh.GetDeformerCount() > 0:
             mesh_data["skinning_data"] = self.extract_skinning_data_from_mesh_node(mesh)
         else:
-            print "Mesh has no deformers"
+            print("Mesh has no deformers")
         return mesh_data
 
     def create_skeleton(self, node, set_pose=False):
@@ -174,7 +174,7 @@ class FBXSkinnedMeshImporter(object):
             skeleton["animated_joints"].append(node_name)
 
             n_children = fbx_node.GetChildCount()
-            for idx in xrange(n_children):
+            for idx in range(n_children):
                 c_node = add_child_node_recursively(skeleton, fbx_node.GetChild(idx), transform, set_pose)
                 node["children"].append(c_node["name"])
 
@@ -226,7 +226,7 @@ class FBXSkinnedMeshImporter(object):
                     "node_type": SKELETON_NODE_TYPE_ROOT}
 
         skeleton["nodes"][root_name] = root_node
-        for idx in xrange(node.GetChildCount()):
+        for idx in range(node.GetChildCount()):
             c_node = add_child_node_recursively(skeleton, node.GetChild(idx), transform, set_pose)
             root_node["children"].append(c_node["name"])
 
@@ -235,7 +235,7 @@ class FBXSkinnedMeshImporter(object):
         return skeleton
 
     def extract_skinning_data_from_mesh_node(self, pMesh):
-        print "Try to extract skinning info"
+        print("Try to extract skinning info")
         pNode = pMesh.GetNode()
         lT = pNode.GetGeometricTranslation(0)
         lR = pNode.GetGeometricRotation(0)
@@ -248,18 +248,18 @@ class FBXSkinnedMeshImporter(object):
             return
 
         skinning_data = dict()
-        for idx in xrange(skin.GetClusterCount()):
+        for idx in range(skin.GetClusterCount()):
             cluster = skin.GetCluster(idx)
             node = cluster.GetLink()
 
             node_name = node.GetName()
-            if node_name not in self.skeleton["nodes"].keys():
+            if node_name not in list(self.skeleton["nodes"].keys()):
                 continue
 
             self.skeleton["nodes"][node_name]["inv_bind_pose"] = getInvBindPose(cluster, geometryTransform)
             weights = cluster.GetControlPointWeights()
             skinning_data[node_name] = []
-            for local_p_idx in xrange(cluster.GetControlPointIndicesCount()):
+            for local_p_idx in range(cluster.GetControlPointIndicesCount()):
                 global_p_idx = cluster.GetControlPointIndices()[local_p_idx]
                 skinning_data[node_name].append((global_p_idx, weights[local_p_idx])) # joint_name: vertex_idx, weight
 
@@ -270,7 +270,7 @@ class FBXSkinnedMeshImporter(object):
         """
         anims = dict()
         count = self.fbx_scene.GetSrcObjectCount(FbxCriteria.ObjectType(FbxAnimStack.ClassId))
-        for idx in xrange(count):
+        for idx in range(count):
             anim = dict()
             anim_stack = self.fbx_scene.GetSrcObject(FbxCriteria.ObjectType(FbxAnimStack.ClassId), idx)
             self.fbx_scene.SetCurrentAnimationStack(anim_stack)
@@ -283,7 +283,7 @@ class FBXSkinnedMeshImporter(object):
             anim["duration"] = end.GetSecondCount() - start.GetSecondCount()
             anim["frame_time"] = 0.013889
             anim["curves"] = collections.OrderedDict()
-            print "found animation", anim_name, anim["n_frames"], anim["duration"]
+            print("found animation", anim_name, anim["n_frames"], anim["duration"])
             temp_node = self.fbx_scene.GetRootNode()
 
             nodes = []
@@ -293,7 +293,7 @@ class FBXSkinnedMeshImporter(object):
                 if has_curve(anim_layer, temp_node):
                     anim["curves"][name] = []
                     current_t = FbxTime()
-                    for frame_idx in xrange(start.GetFrameCount(FbxTime.eFrames24), end.GetFrameCount(FbxTime.eFrames24)):
+                    for frame_idx in range(start.GetFrameCount(FbxTime.eFrames24), end.GetFrameCount(FbxTime.eFrames24)):
                         current_t.SetFrame(frame_idx, FbxTime.eFrames24)
                         local_transform = temp_node.EvaluateLocalTransform(current_t)
                         q = local_transform.GetQ()
@@ -303,7 +303,7 @@ class FBXSkinnedMeshImporter(object):
                                      "local_translation": [t[0], t[1], t[2]]}
                         anim["curves"][name].append(transform)
 
-                for i in xrange(temp_node.GetChildCount()):
+                for i in range(temp_node.GetChildCount()):
                     nodes.append(temp_node.GetChild(i))
                 if len(nodes) > 0:
                     temp_node = nodes.pop(0)
@@ -330,7 +330,7 @@ def FBXMatrixToNumpy(m):
 def create_material(texture_path):
     img_data = None
     material = None
-    print "load from texture path", texture_path
+    print("load from texture path", texture_path)
     if os.path.isfile(texture_path):
         img_data = Image.open(texture_path, "r")
     if img_data is not None:
@@ -374,7 +374,7 @@ def get_normal(mesh, layer_idx, control_idx, iPolygon, iPolygonVertex):
                 index = normals.GetIndexArray().GetAt(control_idx)
                 return normals.GetDirectArray().GetAt(index)
     else:
-        print "no normals"
+        print("no normals")
 
 
 def get_texture_coordinate(mesh, uv_layer, control_idx, iPolygon, iPolygonVertex):
@@ -398,12 +398,12 @@ def extract_texture_names_from_node(node):
     """source: http://stackoverflow.com/questions/19634369/read-texture-filename-from-fbx-with-fbx-sdk-c"""
     file_names = []
     materialCount = node.GetSrcObjectCount(FbxCriteria.ObjectType(FbxSurfaceMaterial.ClassId))
-    for i in xrange(materialCount):
+    for i in range(materialCount):
         material = node.GetSrcObject(FbxCriteria.ObjectType(FbxSurfaceMaterial.ClassId), i)
         if material is not None:
             prop = material.FindProperty(FbxSurfaceMaterial.sDiffuse)
             textureCount = prop.GetSrcObjectCount(FbxCriteria.ObjectType(FbxTexture.ClassId))
-            for j in xrange(textureCount):
+            for j in range(textureCount):
                 texture = prop.GetSrcObject(FbxCriteria.ObjectType(FbxTexture.ClassId), j)
                 file_names.append(texture.GetFileName())
     return file_names

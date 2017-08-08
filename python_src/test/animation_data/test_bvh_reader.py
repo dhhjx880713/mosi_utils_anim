@@ -67,7 +67,7 @@ class TestBVHReader(object):
                                       
     @params(param_read_skeleton)                                  
     def test_read_skeleton(self, res):
-        assert self.bvh_reader.node_names.keys() == res
+        assert list(self.bvh_reader.node_names.keys()) == res
     
     param_read_frames = [{  'frame_index': 0,
                             'res': [-1.15780000e+00,   9.00000000e+01,   4.68537285e+00,  -1.79901167e+02,
@@ -112,7 +112,7 @@ class TestBVHReader(object):
                                     
     @params(param_read_frames)
     def test_read_frames(self, frame_index, res):
-        for i in xrange(len(self.bvh_reader.frames[frame_index])):
+        for i in range(len(self.bvh_reader.frames[frame_index])):
             assert round(self.bvh_reader.frames[frame_index][i], 5) == round(res[i], 5)                               
 
     param_get_angles = [{'node_channel': ('RightShoulder', 'Xrotation'),

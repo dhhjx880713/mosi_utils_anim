@@ -47,7 +47,7 @@ class TestBVHWriter(object):
     @params(param_quaternion_to_euler)
     def test_quaternion_to_euler(self, quat, res):
         euler_angles = self.bvhwriter._quaternion_to_euler(quat)
-        for i in xrange(len(euler_angles)):
+        for i in range(len(euler_angles)):
             assert round(euler_angles[i], 3) == round(res[i], 3)
 
     def test_write(self):
@@ -56,6 +56,6 @@ class TestBVHWriter(object):
                                                                             self.skeleton,
                                                                             self.test_node_name,
                                                                             bvhreader.frames[0])
-        for i in xrange(len(joint_position)):
+        for i in range(len(joint_position)):
             assert round(self.target_point[i], 3) == round(joint_position[i], 3)    
             assert round(self.target_point[i], 3) == round(joint_position[i], 3)    

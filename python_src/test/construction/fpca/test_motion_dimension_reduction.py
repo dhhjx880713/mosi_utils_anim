@@ -31,9 +31,9 @@ def gen_test_data():
         bvh_data[filename] = bvhreader.frames.tolist()
     
     motion_data = {}
-    for filename, warping_index in timewarping_indices.iteritems():
-        if filename not in bvh_data.keys():
-            print filename
+    for filename, warping_index in timewarping_indices.items():
+        if filename not in list(bvh_data.keys()):
+            print(filename)
             raise ValueError('cannot find bvh file in the folder')
         motion_data[filename] = {'frames': bvh_data[filename],
                                  'warping_index': warping_index}
@@ -59,7 +59,7 @@ class TestMotionDimensionReduction(object):
     @params(param_check_quat)
     def test_check_quat(self, test_quat, ref_quat, res):
         res_quat = self.dimension_reduction.check_quat(test_quat, ref_quat)
-        for i in xrange(len(res_quat)):
+        for i in range(len(res_quat)):
             assert round(res_quat[i], 3) == round(res[i], 3)
     
     param_scale_rootchannels = [{'res': [12.6410959658, 101.367162709, 15.7177557248]}]
@@ -73,7 +73,7 @@ class TestMotionDimensionReduction(object):
 
     @params(param_get_quat_frames_from_euler)
     def test_get_quat_frames_from_euler(self, res):
-        test_filename = self.dimension_reduction.spatial_data.keys()[0]
+        test_filename = list(self.dimension_reduction.spatial_data.keys())[0]
         frames = self.dimension_reduction.spatial_data[test_filename]
         quat_frames = self.dimension_reduction.get_quat_frames_from_euler(frames)
         assert np.asarray(quat_frames).shape == res

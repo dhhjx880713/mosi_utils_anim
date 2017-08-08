@@ -1,5 +1,5 @@
 import numpy as np
-from global_transform_constraint import GlobalTransformConstraint
+from .global_transform_constraint import GlobalTransformConstraint
 from .. import SPATIAL_CONSTRAINT_TYPE_CA_CONSTRAINT
 
 
@@ -11,10 +11,10 @@ class GlobalTransformCAConstraint(GlobalTransformConstraint):
 
     def evaluate_motion_spline(self, aligned_spline):
         errors = np.zeros(self.n_canonical_frames)
-        for i in xrange(self.n_canonical_frames):
+        for i in range(self.n_canonical_frames):
             errors[i] = self._evaluate_joint_position(aligned_spline.evaluate(i))
         error = min(errors)
-        print "ca constraint", error
+        print("ca constraint", error)
         return error#min(errors)
 
     def evaluate_motion_sample(self, aligned_quat_frames):

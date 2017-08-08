@@ -1,8 +1,8 @@
 import collections
 import numpy as np
 from ..skeleton_models import *
-from motion_grounding import MotionGroundingConstraint
-from utils import get_average_joint_position, get_average_joint_direction, get_joint_height, normalize, get_average_direction_from_target, \
+from .motion_grounding import MotionGroundingConstraint
+from .utils import get_average_joint_position, get_average_joint_direction, get_joint_height, normalize, get_average_direction_from_target, \
     quaternion_from_vector_to_vector
 from ...external.transformations import quaternion_from_matrix, quaternion_multiply, quaternion_matrix, quaternion_slerp
 
@@ -24,17 +24,17 @@ def get_global_orientation(skeleton, joint_name, frame):
 
 
 def convert_plant_range_to_ground_contacts(start_frame, end_frame, plant_range):
-    print "convert plant range", start_frame, end_frame
+    print("convert plant range", start_frame, end_frame)
     ground_contacts = collections.OrderedDict()
-    for f in xrange(start_frame, end_frame+1):
+    for f in range(start_frame, end_frame+1):
         ground_contacts[f] = []
-    for side in plant_range.keys():
-        for joint in plant_range[side].keys():
+    for side in list(plant_range.keys()):
+        for joint in list(plant_range[side].keys()):
             if plant_range[side][joint]["start"] is not None:
                 start = plant_range[side][joint]["start"]
                 end = plant_range[side][joint]["end"]
-                print joint, start,end
-                for f in xrange(start, end):
+                print(joint, start,end)
+                for f in range(start, end):
                     ground_contacts[f].append(joint)
     return ground_contacts
 
@@ -42,7 +42,7 @@ def convert_plant_range_to_ground_contacts(start_frame, end_frame, plant_range):
 def find_first_frame(skeleton, frames, joint_name, start_frame, end_frame, tolerance=2.0):
     p = skeleton.nodes[joint_name].get_global_position(frames[end_frame-1])
     h = p[1]
-    search_window = list(xrange(start_frame, end_frame))
+    search_window = list(range(start_frame, end_frame))
     for f in reversed(search_window):
         tp = skeleton.nodes[joint_name].get_global_position(frames[f])
         if abs(tp[1]-h) > tolerance:
@@ -53,7 +53,7 @@ def find_first_frame(skeleton, frames, joint_name, start_frame, end_frame, toler
 def find_last_frame(skeleton, frames, joint_name, start_frame, end_frame, tolerance=2.0):
     p = skeleton.nodes[joint_name].get_global_position(frames[start_frame])
     h = p[1]
-    search_window = list(xrange(start_frame, end_frame))
+    search_window = list(range(start_frame, end_frame))
     for f in search_window:
         tp = skeleton.nodes[joint_name].get_global_position(frames[f])
         if abs(tp[1] - h) > tolerance:
@@ -62,7 +62,7 @@ def find_last_frame(skeleton, frames, joint_name, start_frame, end_frame, tolera
 
 
 def merge_constraints(a,b):
-    for key, item in b.items():
+    for key, item in list(b.items()):
         if key in a:
             a[key] += b[key]
         else:
@@ -145,7 +145,7 @@ class FootplantConstraintGenerator(object):
         ground_contacts = []
         for f in frames:
             ground_contacts.append([])
-        for side in self.foot_definitions.keys():
+        for side in list(self.foot_definitions.keys()):
             foot_joints = [self.foot_definitions[side]["heel"], self.foot_definitions[side]["toe"]]
             for joint in foot_joints:
                 ps, yv, ya = joint_heights[joint]
@@ -158,7 +158,7 @@ class FootplantConstraintGenerator(object):
                     #    knee = "LeftUpLeg"
                     #av = np.rad2deg(np.linalg.norm(angular_velocities[knee][frame_idx]))
                     #print joint, frame_idx, p[1], yv[frame_idx], av
-                    print joint, p[1], yv[frame_idx]
+                    print(joint, p[1], yv[frame_idx])
                     if p[1] - o - self.source_ground_height < self.contact_tolerance:# or velocity < self.velocity_tolerance and zero_crossings[frame_idx]
                         ground_contacts[frame_idx].append(joint)
         return self.filter_outliers(ground_contacts, joints)
@@ -166,11 +166,11 @@ class FootplantConstraintGenerator(object):
     def filter_outliers(self, ground_contacts, joints):
         n_frames = len(ground_contacts)
         #print n_frames
-        filtered_ground_contacts = [[] for idx in xrange(n_frames)]
+        filtered_ground_contacts = [[] for idx in range(n_frames)]
         #print len(filtered_ground_contacts)
         filtered_ground_contacts[0] = ground_contacts[0]
         filtered_ground_contacts[-1] = ground_contacts[-1]
-        frames_indices = xrange(1,n_frames-1)
+        frames_indices = range(1,n_frames-1)
         for frame_idx in frames_indices:
             filtered_ground_contacts[frame_idx] = []
             prev_frame = ground_contacts[frame_idx - 1]
@@ -192,7 +192,7 @@ class FootplantConstraintGenerator(object):
         self.orientation_constraint_buffer = dict()
 
         constraints = dict()
-        for frame_idx in xrange(motion_vector.n_frames):
+        for frame_idx in range(motion_vector.n_frames):
             self.position_constraint_buffer[frame_idx] = dict()
             self.orientation_constraint_buffer[frame_idx] = dict()
             constraints[frame_idx] = []
@@ -204,7 +204,7 @@ class FootplantConstraintGenerator(object):
         graph_walk = motion_vector.graph_walk
         for idx, step in enumerate(graph_walk.steps):
             if step.end_frame - step.start_frame <= 0:
-                print "small frame range ", idx, step.node_key, step.start_frame, step.end_frame
+                print("small frame range ", idx, step.node_key, step.start_frame, step.end_frame)
 
                 continue
             if step.node_key[0] in LOCOMOTION_ACTIONS:
@@ -212,7 +212,7 @@ class FootplantConstraintGenerator(object):
                 step_ground_contacts = convert_plant_range_to_ground_contacts(step.start_frame, step.end_frame,
                                                                               plant_range)
                 ground_contacts.update(step_ground_contacts)
-                for frame_idx, joint_names in step_ground_contacts.items():
+                for frame_idx, joint_names in list(step_ground_contacts.items()):
                     constraints[frame_idx] = self.generate_ankle_constraints(motion_vector.frames, frame_idx,
                                                                              joint_names)
 
@@ -252,8 +252,8 @@ class FootplantConstraintGenerator(object):
 
         joint_names = [self.right_foot, self.left_foot]
 
-        for frame_idx in xrange(n_frames):
-            if frame_idx in constraints.keys():
+        for frame_idx in range(n_frames):
+            if frame_idx in list(constraints.keys()):
                 for j in joint_names:
                     constrained_joints = [c.joint_name for c in constraints[frame_idx]]
                     if j in constrained_joints:
@@ -356,7 +356,7 @@ class FootplantConstraintGenerator(object):
     def set_smoothing_constraints(self, frames, constraints):
         """ Set orientation constraints to singly constrained frames to smooth the foot orientation (Section 4.2)
         """
-        for frame_idx in constraints.keys():
+        for frame_idx in list(constraints.keys()):
             for constraint in constraints[frame_idx]:
                 if constraint.joint_name not in self.orientation_constraint_buffer[frame_idx]:  # singly constrained
                     self.set_smoothing_constraint(frames, constraint, frame_idx, self.smoothing_constraints_window)
@@ -375,7 +375,7 @@ class FootplantConstraintGenerator(object):
                 backward_hit = f
                 break
         # look forward
-        for f in xrange(frame_idx, end_window):
+        for f in range(frame_idx, end_window):
             if constraint.joint_name in self.orientation_constraint_buffer[f]:
                 forward_hit = f
                 break
@@ -423,17 +423,17 @@ class FootplantConstraintGenerator(object):
             return p
 
     def get_joint_position_from_buffer(self, frame_idx, joint_name):
-        if frame_idx not in self.position_constraint_buffer.keys():
+        if frame_idx not in list(self.position_constraint_buffer.keys()):
             return None
-        if joint_name not in self.position_constraint_buffer[frame_idx].keys():
+        if joint_name not in list(self.position_constraint_buffer[frame_idx].keys()):
             return None
         return self.position_constraint_buffer[frame_idx][joint_name]
 
     def update_joint_position_in_buffer(self, frames, frame_idx, end_frame, joint_name):
         end_frame = min(end_frame, frames.shape[0])
-        if frame_idx not in self.position_constraint_buffer.keys():
+        if frame_idx not in list(self.position_constraint_buffer.keys()):
             self.position_constraint_buffer[frame_idx] = dict()
-        if joint_name not in self.position_constraint_buffer[frame_idx].keys():
+        if joint_name not in list(self.position_constraint_buffer[frame_idx].keys()):
             p = get_average_joint_position(self.skeleton, frames, joint_name, frame_idx, end_frame)
             #p[1] = self.scene_interface.get_height(p[0], p[2])
             #print "add", joint_name, p, frame_idx, end_frame
@@ -466,7 +466,7 @@ class FootplantConstraintGenerator(object):
             child_joint_name = self.skeleton.nodes[ankle_joint_name].children[0].node_name
             avg_direction = get_average_joint_direction(self.skeleton, frames, ankle_joint_name, child_joint_name,
                                                         start_frame, end_frame)
-        for frame_idx in xrange(start_frame, end_frame):
+        for frame_idx in range(start_frame, end_frame):
             c = MotionGroundingConstraint(frame_idx, ankle_joint_name, ca, avg_direction)
             constraints[frame_idx] = []
             constraints[frame_idx].append(c)
@@ -487,7 +487,7 @@ class FootplantConstraintGenerator(object):
             avg_direction = get_average_joint_direction(self.skeleton, frames, ankle_joint_name, child_joint_name,
                                                         start_frame, end_frame)
         #print "constraint ankle at",pa, ct,ca, start_frame, end_frame, avg_direction
-        for frame_idx in xrange(start_frame, end_frame):
+        for frame_idx in range(start_frame, end_frame):
             c = MotionGroundingConstraint(frame_idx, ankle_joint_name, ca, avg_direction)
             constraints[frame_idx] = []
             constraints[frame_idx].append(c)
@@ -498,7 +498,7 @@ class FootplantConstraintGenerator(object):
         self.position_constraint_buffer = dict()
         self.orientation_constraint_buffer = dict()
         constraints = dict()
-        for frame_idx in xrange(motion_vector.n_frames):
+        for frame_idx in range(motion_vector.n_frames):
             self.position_constraint_buffer[frame_idx] = dict()
             self.orientation_constraint_buffer[frame_idx] = dict()
             constraints[frame_idx] = []
@@ -510,21 +510,21 @@ class FootplantConstraintGenerator(object):
         graph_walk = motion_vector.graph_walk
         for idx, step in enumerate(graph_walk.steps):
             if step.end_frame - step.start_frame <= 0:
-                print "small frame range ", idx, step.node_key, step.start_frame, step.end_frame
+                print("small frame range ", idx, step.node_key, step.start_frame, step.end_frame)
 
                 continue
             if step.node_key[0] in LOCOMOTION_ACTIONS:
                 plant_range = self.get_plant_frame_range(motion_vector, step)
-                for side in plant_range.keys():
+                for side in list(plant_range.keys()):
                     if plant_range[side]["start"] is not None:
                         start_frame = plant_range[side]["start"]
                         end_frame = plant_range[side]["end"]
-                        print step.node_key, "range", start_frame, end_frame, step.start_frame, step.end_frame
+                        print(step.node_key, "range", start_frame, end_frame, step.start_frame, step.end_frame)
                         foot_joints = self.foot_definitions[side]
                         c = self.generate_ankle_constraint(frames, foot_joints["ankle"], foot_joints["heel"],
                                                            foot_joints["toe"], start_frame, end_frame)
                         new_constraints = dict()
-                        for frame_idx in xrange(start_frame, end_frame):
+                        for frame_idx in range(start_frame, end_frame):
                             new_constraints[frame_idx] = []
                             new_constraints[frame_idx].append(c)
                         constraints = merge_constraints(constraints, new_constraints)
@@ -602,7 +602,7 @@ class FootplantConstraintGenerator(object):
         joint_types = ["heel", "toe"] # first check heel then toe
         plant_range[L] = dict()
         plant_range[R] = dict()
-        for side in plant_range.keys():
+        for side in list(plant_range.keys()):
             plant_range[side] = dict()
             for joint_type in joint_types:
                 joint = self.foot_definitions[side][joint_type]
@@ -655,9 +655,9 @@ class FootplantConstraintGenerator(object):
         if len(self.skeleton.nodes[joint_name].children) > 0:
             child_joint_name = self.skeleton.nodes[joint_name].children[0].node_name
             avg_direction = get_average_joint_direction(self.skeleton, frames, joint_name, child_joint_name, start_frame, end_frame)
-        print joint_name, avg_p, avg_direction
+        print(joint_name, avg_p, avg_direction)
 
-        for frame_idx in xrange(start_frame, end_frame):
+        for frame_idx in range(start_frame, end_frame):
             c = MotionGroundingConstraint(frame_idx, joint_name, avg_p, avg_direction)
             constraints[frame_idx] = []
             constraints[frame_idx].append(c)

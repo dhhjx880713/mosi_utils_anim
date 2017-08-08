@@ -10,7 +10,7 @@ from ....animation_data.utils import convert_quaternion_frame_to_cartesian_frame
     align_point_clouds_2D,\
     transform_point_cloud,\
     calculate_point_cloud_distance
-from keyframe_constraint_base import KeyframeConstraintBase
+from .keyframe_constraint_base import KeyframeConstraintBase
 from .. import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE
 
 
@@ -39,7 +39,7 @@ class PoseConstraint(KeyframeConstraintBase):
         t_point_cloud = transform_point_cloud(point_cloud1, theta, offset_x, offset_z)
 
         error = calculate_point_cloud_distance(self.pose_constraint, t_point_cloud)
-        print "evaluate pose constraint", error, vel_error
+        print("evaluate pose constraint", error, vel_error)
 
         return error + vel_error
 
@@ -72,7 +72,7 @@ class PoseConstraint(KeyframeConstraintBase):
         t_point_cloud = transform_point_cloud(point_cloud1, theta, offset_x, offset_z)
 
         error = calculate_point_cloud_distance(self.pose_constraint, t_point_cloud)
-        print "evaluate pose constraint", error, vel_error
+        print("evaluate pose constraint", error, vel_error)
         return error + vel_error
 
     def get_residual_vector_spline(self, aligned_spline):
@@ -90,7 +90,7 @@ class PoseConstraint(KeyframeConstraintBase):
                                                           self.weights)
         t_point_cloud = transform_point_cloud(point_cloud, theta, offset_x, offset_z)
         residual_vector = []
-        for i in xrange(len(t_point_cloud)):
+        for i in range(len(t_point_cloud)):
             d = [self.pose_constraint[i][0] - t_point_cloud[i][0],
                  self.pose_constraint[i][1] - t_point_cloud[i][1],
                  self.pose_constraint[i][2] - t_point_cloud[i][2]]
@@ -98,4 +98,4 @@ class PoseConstraint(KeyframeConstraintBase):
         return residual_vector
 
     def get_length_of_residual_vector(self):
-        return len(self.skeleton.node_name_frame_map.keys())
+        return len(list(self.skeleton.node_name_frame_map.keys()))

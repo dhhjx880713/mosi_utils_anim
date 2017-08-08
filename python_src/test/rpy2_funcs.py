@@ -80,7 +80,7 @@ def rpy2_temporal(m, gamma):
     mean = np.array(fdeval(time_frame, meanfd))
     eigen = np.array(fdeval(time_frame, eigenfd))
     t = [0, ]
-    for i in xrange(numframes):
+    for i in range(numframes):
         t.append(t[-1] + np.exp(mean[i] + np.dot(eigen[i], gamma)))
 
     t = np.array(t[1:])
@@ -91,9 +91,9 @@ def rpy2_temporal(m, gamma):
     try:
         inverse_spline = si.splrep(t, x_sample, w=None, k=2)
     except ValueError as e:  # Exception
-        print "exception"
-        print e.message
-        print t, "#####"
+        print("exception")
+        print(e.message)
+        print(t, "#####")
 
     frames = np.linspace(1, t[-2], np.round(t[-2]))
     t = si.splev(frames, inverse_spline)

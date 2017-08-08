@@ -57,7 +57,7 @@ class GPMulti(GPy.models.GPRegression):
         ident = np.identity(Y.shape[1])
 
         for x_i, y_i in zip(X, Y):
-            for i in xrange(Y.shape[1]):
+            for i in range(Y.shape[1]):
                 _X_new.append(x_i.tolist() + ident[i].tolist())
                 _Y_new.append(y_i[i])
         return np.array(_X_new), np.array(_Y_new)

@@ -1,4 +1,4 @@
-from parameterized_spline import ParameterizedSpline
+from .parameterized_spline import ParameterizedSpline
 import numpy as np
 import math
 from ....external.transformations import quaternion_from_euler, euler_from_quaternion
@@ -70,7 +70,7 @@ def complete_orientations_from_tangents(translation, given_orientations, eval_ra
     for idx, u in enumerate(parameters):
         if orientations[idx] is None:
             tangent = get_tangent_at_parameter(spline, u, eval_range)
-            print "estimate tangent",idx, tangent
+            print("estimate tangent",idx, tangent)
             orientations[idx] = tangent_to_quaternion(tangent, ref_vector)
     return orientations
 

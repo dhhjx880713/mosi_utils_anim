@@ -36,13 +36,13 @@ class FPCATimeSemantic(object):
         if self.temporal_data is None or self.semantic_data is None:
             raise ValueError('Load semantic annotation or time warping data first!')
         temporal_semantic_data_dic = {}
-        for key, value in self.semantic_data.items():
-            if key in self.temporal_data.keys():
+        for key, value in list(self.semantic_data.items()):
+            if key in list(self.temporal_data.keys()):
                 temporal_semantic_data_dic[key] = [self.temporal_data[key]]
                 for feature in self.semantic_annotation_list:
                     temporal_semantic_data_dic[key].append(value[feature])
-        self.temporal_semantic_data = temporal_semantic_data_dic.values()
-        self.file_order = temporal_semantic_data_dic.keys()
+        self.temporal_semantic_data = list(temporal_semantic_data_dic.values())
+        self.file_order = list(temporal_semantic_data_dic.keys())
 
     def z_t_transform(self):
         for i in range(len(self.temporal_semantic_data)):
@@ -76,7 +76,7 @@ class FPCATimeSemantic(object):
         if shifted_indices[0] == shifted_indices[-1]:
             raise ValueError("First and Last element are equal")
 
-        for i in xrange(1, len(shifted_indices) - 1):
+        for i in range(1, len(shifted_indices) - 1):
             if shifted_indices[i] > shifted_indices[i - 1] + delta:
                 continue
 
@@ -84,7 +84,7 @@ class FPCATimeSemantic(object):
                     shifted_indices[i] <= shifted_indices[i - 1] + delta:
                 shifted_indices[i] = shifted_indices[i] + epsilon
 
-        for i in xrange(len(indices) - 2, 0, -1):
+        for i in range(len(indices) - 2, 0, -1):
             if shifted_indices[i] + delta < shifted_indices[i + 1]:
                 break
 
@@ -107,7 +107,7 @@ class FPCATimeSemantic(object):
         -------
         boolean
         """
-        for i in xrange(1, len(indices)):
+        for i in range(1, len(indices)):
             if np.allclose(indices[i], indices[i - 1]) or indices[i] < indices[i - 1]:
                 return False
         return True
@@ -134,7 +134,7 @@ class FPCATimeSemantic(object):
         n_basis_funcs = self.n_basis
         knots = self.get_b_spline_knots(n_basis_funcs, n_canonical_frame)
 
-        time_vec = range(n_canonical_frame)
+        time_vec = list(range(n_canonical_frame))
         coeff_vec = []
         warping_function_list = self.temporal_semantic_data
         for warping_function in warping_function_list:
@@ -155,10 +155,10 @@ class FPCATimeSemantic(object):
         pcaobj = PCA(self.fpca_data, fraction=self.precision_temporal)
         if self.n_components_temporal is not None:
             self.eigenvectors = pcaobj.Vt[:self.n_components_temporal]
-            print 'number of eigenvectors for temporal semantic data: ' + str(self.n_components_temporal)
+            print('number of eigenvectors for temporal semantic data: ' + str(self.n_components_temporal))
         else:
             self.eigenvectors = pcaobj.Vt[:pcaobj.npc]
-            print 'number of eigenvectors for temporal semantic data: ' + str(pcaobj.npc)
+            print('number of eigenvectors for temporal semantic data: ' + str(pcaobj.npc))
         self.lowVs = self.project_data(self.fpca_data)
         self.npc = pcaobj.npc
 

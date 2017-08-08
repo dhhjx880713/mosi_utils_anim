@@ -55,7 +55,7 @@ class MotionPrimitiveConstructor(object):
 
     def convert_euler_to_quaternion(self):
         motion_data_quaternion_dic = {}
-        for filename, frames in self.motion_data_dic.iteritems():
+        for filename, frames in self.motion_data_dic.items():
             motion_data_quaternion_dic[filename] = convert_euler_frames_to_quaternion_frames(self.skeleton_bvh,
                                                                                              frames)
         self.motion_data_quaternion_dic = MotionDimensionReduction.smooth_quat_frames(motion_data_quaternion_dic)
@@ -78,8 +78,8 @@ class MotionPrimitiveConstructor(object):
         self.fpca_temporal_semantic.load_semantic_annotation_from_dic(self.semantic_annotation)
         self.fpca_temporal_semantic.merge_temporal_semantic_data()
         self.fpca_temporal_semantic.functional_pca()
-        print(self.fpca_temporal_semantic.file_order)
-        print(self.fpca_temporal_semantic.lowVs.shape)
+        print((self.fpca_temporal_semantic.file_order))
+        print((self.fpca_temporal_semantic.lowVs.shape))
 
     def combine_spatial_temporal_semantic_low_dimensional_data(self):
         self.weight_temporal_semantic_data()
@@ -99,9 +99,9 @@ class MotionPrimitiveConstructor(object):
 
     def reduce_dimensionality_using_fpca(self):
         self.fpca_spatial = FPCASpatialData(n_basis=self.n_basis_spatial)
-        self.fpca_spatial.fit(np.asarray(self.motion_data_quaternion_dic.values()))
-        self.fpca_spatial.fileorder = self.motion_data_quaternion_dic.keys()
-        print(self.fpca_spatial.low_vecs.shape)
+        self.fpca_spatial.fit(np.asarray(list(self.motion_data_quaternion_dic.values())))
+        self.fpca_spatial.fileorder = list(self.motion_data_quaternion_dic.keys())
+        print((self.fpca_spatial.low_vecs.shape))
 
     def reduce_dimensionality_using_normalized_fpca(self):
         pass

@@ -9,7 +9,7 @@ Created on Mon Aug 03 19:01:21 2015
 import numpy as np
 from ....external.transformations import quaternion_matrix, rotation_from_matrix
 from ....animation_data.utils import quaternion_from_vector_to_vector
-from keyframe_constraint_base import KeyframeConstraintBase
+from .keyframe_constraint_base import KeyframeConstraintBase
 from .. import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_LOOK_AT
 
 

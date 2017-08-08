@@ -4,10 +4,10 @@ import numpy as np
 import json
 from copy import copy
 from ...utilities.log import write_log, write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_ERROR, LOG_MODE_INFO
-from utils import _transform_point_from_cad_to_opengl_cs
-from constants import *
-from trajectory_constraint_reader import TrajectoryConstraintReader
-from keyframe_constraint_reader import KeyframeConstraintReader
+from .utils import _transform_point_from_cad_to_opengl_cs
+from .constants import *
+from .trajectory_constraint_reader import TrajectoryConstraintReader
+from .keyframe_constraint_reader import KeyframeConstraintReader
 
 
 
@@ -44,19 +44,19 @@ class MGInputFormatReader(object):
         success = self._verify_input()
 
         if success:
-            if OUTPUT_MODE_KEY in mg_input.keys() and mg_input[OUTPUT_MODE_KEY] == "Unity":
+            if OUTPUT_MODE_KEY in list(mg_input.keys()) and mg_input[OUTPUT_MODE_KEY] == "Unity":
                 self._set_orientation_to_null()
 
             self._extract_elementary_actions()
         return success
 
     def _extract_elementary_actions(self):
-        if ACTIONS_KEY in self.mg_input_file.keys():
+        if ACTIONS_KEY in list(self.mg_input_file.keys()):
             self.elementary_action_list = self.mg_input_file[ACTIONS_KEY]
-        elif TASKS_KEY in self.mg_input_file.keys():
+        elif TASKS_KEY in list(self.mg_input_file.keys()):
             self.elementary_action_list = []
             for task in self.mg_input_file[TASKS_KEY]:
-                if ACTIONS_KEY in task.keys():
+                if ACTIONS_KEY in list(task.keys()):
                     self.elementary_action_list += task[ACTIONS_KEY]
         self.keyframe_annotations = self._extract_keyframe_annotations()
 
@@ -64,12 +64,12 @@ class MGInputFormatReader(object):
         return len(self.elementary_action_list)
 
     def get_session_id(self):
-        if SESSION_KEY not in self.mg_input_file.keys():
+        if SESSION_KEY not in list(self.mg_input_file.keys()):
             return ""
         return self.mg_input_file[SESSION_KEY]
 
     def get_group_id(self):
-        if GROUP_KEY not in self.mg_input_file.keys():
+        if GROUP_KEY not in list(self.mg_input_file.keys()):
             return ""
         return self.mg_input_file[GROUP_KEY]
 
@@ -93,12 +93,12 @@ class MGInputFormatReader(object):
         self.inverse_joint_name_map["LeftToolEndSite"] = "LeftHand"
 
     def _apply_joint_mapping_on_string(self, input_string):
-        for key in self.joint_name_map.keys():
+        for key in list(self.joint_name_map.keys()):
             input_string = input_string.replace(key, self.joint_name_map[key])
         return input_string
 
     def inverse_map_joint(self, joint_name):
-        if self.activate_joint_mapping and joint_name in self.inverse_joint_name_map.keys():
+        if self.activate_joint_mapping and joint_name in list(self.inverse_joint_name_map.keys()):
             return self.inverse_joint_name_map[joint_name]
         else:
             return joint_name
@@ -106,14 +106,14 @@ class MGInputFormatReader(object):
     def _verify_input(self):
         success = True
         error_string = ""
-        if ACTIONS_KEY not in self.mg_input_file.keys() and TASKS_KEY not in self.mg_input_file.keys():
+        if ACTIONS_KEY not in list(self.mg_input_file.keys()) and TASKS_KEY not in list(self.mg_input_file.keys()):
             error_string = "Error: Did not find expected keys in the input data."
             success = False
 
-        if ACTIONS_KEY in self.mg_input_file.keys():
+        if ACTIONS_KEY in list(self.mg_input_file.keys()):
             for action in self.mg_input_file[ACTIONS_KEY]:
                 action_name = action[ACTION_KEY]
-                if action_name not in self.motion_state_graph.node_groups.keys():
+                if action_name not in list(self.motion_state_graph.node_groups.keys()):
                     error_string = "Error: Unknown action " + action_name
                     success = False
 
@@ -126,14 +126,14 @@ class MGInputFormatReader(object):
         return success
 
     def _set_orientation_to_null(self):
-        if ESTIMATE_ORIENTATION_KEY in self.mg_input_file.keys() and \
+        if ESTIMATE_ORIENTATION_KEY in list(self.mg_input_file.keys()) and \
                 self.mg_input_file[ESTIMATE_ORIENTATION_KEY]:
             self.mg_input_file[START_KEY][O_KEY] = [None, None, None]
 
         for action in self.mg_input_file[ACTIONS_KEY]:
             for constraint in action[CONSTRAINTS_KEY]:
                 for p in constraint[TRAJECTORY_CONSTRAINTS_KEY]:
-                    if O_KEY not in p.keys() or len(p[O_KEY]) == 0:
+                    if O_KEY not in list(p.keys()) or len(p[O_KEY]) == 0:
                         p[O_KEY] = [None, None, None]
 
     def center_constraints(self):
@@ -152,12 +152,12 @@ class MGInputFormatReader(object):
 
     def translate_action_constraints(self, action, offset):
         for constraint in action[CONSTRAINTS_KEY]:
-            if KEYFRAME_CONSTRAINTS_KEY in constraint.keys():
+            if KEYFRAME_CONSTRAINTS_KEY in list(constraint.keys()):
                 for p in constraint[KEYFRAME_CONSTRAINTS_KEY]:
                     new_p = p[P_KEY] - offset
                     p[P_KEY] = new_p.tolist()
 
-            if TRAJECTORY_CONSTRAINTS_KEY in constraint.keys():
+            if TRAJECTORY_CONSTRAINTS_KEY in list(constraint.keys()):
                 for p in constraint[TRAJECTORY_CONSTRAINTS_KEY]:
                     new_p = copy(p[P_KEY])
                     for idx, v in enumerate(new_p):
@@ -197,7 +197,7 @@ class MGInputFormatReader(object):
           Contains for every elementary action a dict that associates of events/actions with certain keyframes
         """
         annotations = dict()
-        if ANNOTATIONS_KEY in self.elementary_action_list[action_index].keys():
+        if ANNOTATIONS_KEY in list(self.elementary_action_list[action_index].keys()):
             for annotation in self.elementary_action_list[action_index][ANNOTATIONS_KEY]:
                 keyframe_label = annotation[KEYFRAME_KEY]
                 annotations[keyframe_label] = annotation

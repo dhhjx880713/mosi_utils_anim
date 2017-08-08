@@ -1,7 +1,7 @@
 __author__ = 'erhe01'
 
 import time
-from optimizer_base import OptimizerBase
+from .optimizer_base import OptimizerBase
 from scipy.optimize import leastsq
 
 
@@ -22,7 +22,7 @@ class LeastSquares(OptimizerBase):
         if self._objective_function is not None and initial_guess is not None:
             if self.verbose:
                 start = time.clock()
-                print "Start optimization using LeastSquares"#, self.optimization_settings["method"]
+                print("Start optimization using LeastSquares")#, self.optimization_settings["method"]
             try:
                 result = leastsq(self._objective_function,
                                  initial_guess,
@@ -33,12 +33,12 @@ class LeastSquares(OptimizerBase):
                 #                       data=self._error_func_params)
 
             except ValueError as e:
-                print "Warning: error in LeastSquares.run", e.message
+                print("Warning: error in LeastSquares.run", e.message)
                 return initial_guess
 
             if self.verbose:
-                print "Finished optimization in ", time.clock()-start, "seconds"
+                print("Finished optimization in ", time.clock()-start, "seconds")
             return result[0]
         else:
-            print "Error: No objective function set. Return initial guess instead."
+            print("Error: No objective function set. Return initial guess instead.")
             return initial_guess

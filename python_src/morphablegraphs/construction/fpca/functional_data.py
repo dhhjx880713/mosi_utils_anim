@@ -21,7 +21,7 @@ class FunctionalData(object):
         n_frames, n_dims = motion_data.shape
         if self.knots is None:
             self.get_knots(n_basis, n_frames)
-        x = range(n_frames)
+        x = list(range(n_frames))
         coeffs =[si.splrep(x, motion_data[:, i], k=degree,
                             t=self.knots[degree+1: -(degree+1)])[1][:-4] for i in range(n_dims)]
         return np.asarray(coeffs).T
@@ -32,7 +32,7 @@ class FunctionalData(object):
         the functional data has the shape n_samples * n_basis * n_dims
         """
         motion_mat = np.asarray(motion_mat)
-        print('shape of motion_mat', motion_mat.shape)
+        print(('shape of motion_mat', motion_mat.shape))
         n_samples, n_frames, n_dims = motion_mat.shape
         functional_mat = np.zeros((n_samples, n_basis, n_dims))
         self.get_knots(n_basis, n_frames)

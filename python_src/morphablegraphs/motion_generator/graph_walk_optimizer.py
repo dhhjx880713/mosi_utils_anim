@@ -5,7 +5,7 @@ from copy import deepcopy
 import numpy as np
 from ..constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE, SPATIAL_CONSTRAINT_TYPE_TRAJECTORY, SPATIAL_CONSTRAINT_TYPE_TRAJECTORY_SET, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_DIR_2D, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPATIAL_CONSTRAINT_TYPE_CA_CONSTRAINT
 from ..constraints.time_constraints_builder import TimeConstraintsBuilder
-from optimization.optimizer_builder import OptimizerBuilder
+from .optimization.optimizer_builder import OptimizerBuilder
 from ..constraints.motion_primitive_constraints import MotionPrimitiveConstraints
 from ..utilities.log import write_log, write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO, LOG_MODE_ERROR
 
@@ -100,7 +100,7 @@ class GraphWalkOptimizer(object):
         if self.spatial_mode == GRAPH_WALK_OPTIMIZATION_ALL or self.spatial_mode == GRAPH_WALK_OPTIMIZATION_TWO_HANDS:
             for step in graph_walk.steps[start_step:]:
                 for constraint in step.motion_primitive_constraints.constraints:
-                    if not "generated" in constraint.semantic_annotation.keys():
+                    if not "generated" in list(constraint.semantic_annotation.keys()):
                         constraint.weight_factor = self._position_weight_factor
         else: # self.spatial_mode == GRAPH_WALK_OPTIMIZATION_END_POINT
              for constraint in graph_walk.steps[-1].motion_primitive_constraints.constraints:
@@ -139,10 +139,10 @@ class GraphWalkOptimizer(object):
         write_message_to_log("start frame " + str(graph_walk.steps[start_step].start_frame), LOG_MODE_DEBUG)
         step_index = start_step
         n_steps = len(graph_walk.steps)
-        print reduced_motion_vector.n_frames, graph_walk.get_num_of_frames(), reduced_motion_vector.n_frames - graph_walk.get_num_of_frames()
+        print(reduced_motion_vector.n_frames, graph_walk.get_num_of_frames(), reduced_motion_vector.n_frames - graph_walk.get_num_of_frames())
         while step_index < n_steps:
             node = self.motion_primitive_graph.nodes[graph_walk.steps[step_index].node_key]
-            print graph_walk.steps[step_index].node_key, node.n_canonical_frames, graph_walk.steps[step_index].start_frame
+            print(graph_walk.steps[step_index].node_key, node.n_canonical_frames, graph_walk.steps[step_index].start_frame)
             motion_primitive_constraints = MotionPrimitiveConstraints()
             active_constraint = False
             for trajectory in action_constraints.collision_avoidance_constraints:

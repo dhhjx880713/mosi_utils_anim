@@ -66,5 +66,5 @@ if __name__ == "__main__":
     quat_spline = quat_spline_constructor.create_quat_spline_from_bvhfile(test_file,
                                                                           7)
     cartesian_spline = quat_spline.to_cartesian()
-    print(cartesian_spline.coeffs.shape)
+    print((cartesian_spline.coeffs.shape))
 

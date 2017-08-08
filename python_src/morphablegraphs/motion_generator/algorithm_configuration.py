@@ -267,7 +267,7 @@ class AlgorithmConfigurationBuilder(object):
 
     def from_json(self, filename):
         temp_algorithm_config = load_json_file(filename)
-        for name in temp_algorithm_config.keys():
+        for name in list(temp_algorithm_config.keys()):
             if hasattr(self, name):
                 setattr(self, name, temp_algorithm_config[name])
 

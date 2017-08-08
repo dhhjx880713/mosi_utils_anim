@@ -40,11 +40,11 @@ class AnnotatedMotionVector(MotionVector):
 
     def to_unity_format(self, scale=1.0):
         """ Converts the frames into a custom json format for use in a Unity client"""
-        animated_joints = [j for j, n in self.skeleton.nodes.items() if
+        animated_joints = [j for j, n in list(self.skeleton.nodes.items()) if
                            "EndSite" not in j and len(n.children) > 0]  # self.animated_joints
         unity_frames = []
 
-        for node in self.skeleton.nodes.values():
+        for node in list(self.skeleton.nodes.values()):
             node.quaternion_index = node.index
 
         for frame in self.frames:
@@ -63,7 +63,7 @@ class AnnotatedMotionVector(MotionVector):
             src: http://answers.unity3d.com/questions/503407/need-to-convert-to-right-handed-coordinates.html
         """
         unity_frame = {"rotations": [], "rootTranslation": None}
-        for node_name in self.skeleton.nodes.keys():
+        for node_name in list(self.skeleton.nodes.keys()):
             if node_name in animated_joints:
                 node = self.skeleton.nodes[node_name]
                 if node_name == self.skeleton.root:

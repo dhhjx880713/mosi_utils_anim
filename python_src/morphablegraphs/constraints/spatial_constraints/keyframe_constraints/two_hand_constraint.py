@@ -1,6 +1,6 @@
 __author__ = 'erhe01'
 import numpy as np
-from keyframe_constraint_base import KeyframeConstraintBase
+from .keyframe_constraint_base import KeyframeConstraintBase
 from .. import SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION
 
 

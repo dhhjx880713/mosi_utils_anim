@@ -17,7 +17,7 @@ from ..motion_model.motion_primitive_wrapper import MotionPrimitiveModelWrapper
 from ..animation_data.bvh import BVHReader
 from ..animation_data.skeleton_builder import SkeletonBuilder, ROCKETBOX_ANIMATED_JOINT_LIST
 from ..animation_data.utils import euler_to_quaternion
-import cPickle as pickle
+import pickle as pickle
 
 try:
     from mgrd import Skeleton as MGRDSkeleton
@@ -85,7 +85,7 @@ def save_data_to_pickle(data, output_filename):
 
 
 def load_data_from_pickle(input_filename):
-    print "load", input_filename
+    print("load", input_filename)
     with file(input_filename, "rb") as in_file:
         return pickle.load(in_file)
 
@@ -157,7 +157,7 @@ class ClusterTreeBuilder(object):
             #print i, likelihood, new_sample
             heapq.heappush(likelihoods, (-likelihood, idx))
 
-        l, indices = zip(*likelihoods[:self.n_samples])
+        l, indices = list(zip(*likelihoods[:self.n_samples]))
         data = np.asarray(data)
         data = data[list(indices)]
         np.random.shuffle(data)
@@ -167,18 +167,18 @@ class ClusterTreeBuilder(object):
         return motion_primitive.sample_low_dimensional_vectors(self.n_samples)
 
     def _create_training_data(self, data_dir, cluster_file_name, mp, n_training_samples):
-        print "Create", self.n_samples, "good samples"
+        print("Create", self.n_samples, "good samples")
         data = None
         n_random_samples = n_training_samples
         file_name = data_dir + os.sep + cluster_file_name + "_" + "training_data" + str(n_random_samples) + ".pck"#
         if os.path.isfile(file_name):
             data = load_data_from_pickle(file_name)
         if data is None:
-            print "load file"
+            print("load file")
             data = self.sample_data(mp)
             save_data_to_pickle(data, file_name)
         else:
-            print "loaded file", file_name
+            print("loaded file", file_name)
         return data
 
     def _create_space_partitioning(self, elementary_action_dir, file_name, elementary_action):
@@ -191,10 +191,10 @@ class ClusterTreeBuilder(object):
         motion_primitive_file_name = elementary_action_dir + os.sep + file_name
 
         if os.path.isfile(cluster_tree_file_name) and False:
-            print "Space partitioning data structure", cluster_file_name, "already exists"
+            print("Space partitioning data structure", cluster_file_name, "already exists")
 
         elif os.path.isfile(motion_primitive_file_name):
-            print "construct space partitioning data structure", cluster_file_name, self.animated_joints
+            print("construct space partitioning data structure", cluster_file_name, self.animated_joints)
             motion_primitive = MotionPrimitiveModelWrapper()
             motion_primitive._load_from_file(self.mgrd_skeleton, motion_primitive_file_name, self.animated_joints)
 
@@ -205,12 +205,12 @@ class ClusterTreeBuilder(object):
                 self._build_tree(elementary_action, cluster_file_name, data, motion_primitive)
 
         else:
-            print "Could not read motion primitive", motion_primitive_file_name
+            print("Could not read motion primitive", motion_primitive_file_name)
 
     def _build_tree(self, elementary_action_dir, cluster_file_name, data, motion_primitive):
         if self.only_spatial_parameters:
             n_dims = motion_primitive.get_n_spatial_components()
-            print "maximum dimension set to", n_dims, "ignoring time parameters"
+            print("maximum dimension set to", n_dims, "ignoring time parameters")
         else:
             n_dims = len(data[0])
         cluster_tree = ClusterTree(self.n_subdivisions_per_level, self.n_levels, n_dims, self.store_indices,
@@ -219,7 +219,7 @@ class ClusterTreeBuilder(object):
         cluster_tree_file_name = elementary_action_dir + os.sep + cluster_file_name + CLUSTER_TREE_FILE_ENDING +".pck"
         cluster_tree.save_to_file_pickle(cluster_tree_file_name)
         n_leafs = cluster_tree.root.get_number_of_leafs()
-        print "number of leafs", n_leafs
+        print("number of leafs", n_leafs)
 
     def _build_feature_tree(self, action_name, model_name, data, motion_primitive):
         name = os.path.basename(model_name)[:-len("_quaternion")]
@@ -229,14 +229,14 @@ class ClusterTreeBuilder(object):
                    "use_feature_mean": False}
         cluster_tree = FeatureClusterTree(features, data, None, options, [])
         n_leafs = cluster_tree.get_number_of_leafs()
-        print "number of leafs", n_leafs
+        print("number of leafs", n_leafs)
         cluster_tree_file = self.morphable_model_directory + os.sep + action_name + os.sep +model_name + CLUSTER_TREE_FILE_ENDING
         if self.output_mode == "pck":
             cluster_tree.save_to_file_pickle(cluster_tree_file+".pck")
         else:
             cluster_tree.save_to_json_file(cluster_tree_file+".json")
 
-        print "save cluster tree", cluster_tree_file
+        print("save cluster tree", cluster_tree_file)
 
     def _extract_features(self, motion_primitive, action_name,  mp_name, data):
         if self.feature_type == FEATURE_TYPE_EUCLIDEAN_PCA:
@@ -244,19 +244,19 @@ class ClusterTreeBuilder(object):
                 self.n_samples)
             filename += ".pck"
 
-            print "try to load features from file", filename
+            print("try to load features from file", filename)
             features = None
             if os.path.isfile(filename):
                 features = load_data_from_pickle(filename)
                 if features is not None:
-                    print "loaded features from file", filename
+                    print("loaded features from file", filename)
                 else:
-                    print "file could not be loaded", filename
+                    print("file could not be loaded", filename)
             if features is None:
                 motions = self._back_project(motion_primitive, data)
                 features, feature_args = map_motions_to_euclidean_pca(motions, self.skeleton, END_EFFECTORS2, step=1)
 
-                print "save training data", filename
+                print("save training data", filename)
                 save_data_to_pickle(features, filename)
         else:
             features = data[:, :motion_primitive.get_n_spatial_components()]
@@ -264,7 +264,7 @@ class ClusterTreeBuilder(object):
         return features
 
     def _back_project(self, mp, data):
-        print "backproject data"
+        print("backproject data")
         splines = [mp.back_project(s) for s in data]
         motions = []
         canonical_frames = list(range(0, int(mp.get_n_canonical_frames())))
@@ -278,16 +278,16 @@ class ClusterTreeBuilder(object):
         for root, dirs, files in os.walk(elementary_action_dir):
             for file_name in files:
                 if file_name.endswith(MOTION_PRIMITIVE_FILE_ENDING) or file_name.endswith(MOTION_PRIMITIVE_FILE_ENDING2):
-                    print elementary_action_dir + os.sep + file_name
+                    print(elementary_action_dir + os.sep + file_name)
                     self._create_space_partitioning(elementary_action_dir, file_name,  elementary_action)
         return True
 
     def build(self):
         if self.random_seed is not None:
-            print "apply random seed", self.random_seed
+            print("apply random seed", self.random_seed)
             np.random.seed(self.random_seed)
         if self.morphable_model_directory is not None:
-            print "start construction in directory", self.morphable_model_directory
+            print("start construction in directory", self.morphable_model_directory)
             for elementary_action in next(os.walk(self.morphable_model_directory))[1]:
                 self._process_elementary_action(elementary_action)
             return True

@@ -1,8 +1,8 @@
-from morphablegraphs.animation_data import BVHReader, Skeleton, MotionVector
-from morphablegraphs.motion_generator.algorithm_configuration import AlgorithmConfigurationBuilder
+from .morphablegraphs.animation_data import BVHReader, Skeleton, MotionVector
+from .morphablegraphs.motion_generator.algorithm_configuration import AlgorithmConfigurationBuilder
 from python_src.morphablegraphs.animation_data.motion_editing.constants import SKELETON_ANNOTATIONS
 from python_src.morphablegraphs.animation_data.motion_editing.motion_grounding import MotionGrounding
-from morphablegraphs.animation_data.motion_editing.utils import add_heels_to_skeleton
+from .morphablegraphs.animation_data.motion_editing.utils import add_heels_to_skeleton
 
 LEFT_FOOT = "LeftFoot"
 RIGHT_FOOT = "RightFoot"
@@ -31,7 +31,7 @@ def run_motion_editing(bvh_file):
     direction = [1,0,0]
     me.add_constraint("RightHand", [0,100], position, direction)
     mv.frames = me.run(mv)
-    print "export motion"
+    print("export motion")
     mv.frames = skeleton.complete_motion_vector_from_reference(mv.frames)
     mv.export(skeleton, "out", "out")
 

@@ -56,7 +56,7 @@ def map_to_pca_on_3d_spline(data, model, joint_name):
 
 def map_to_pca_on_multi_joint_3d_spline(data, model, joint_names=END_EFFECTORS):
     motions = _back_project_data(data, model)
-    print "motions shape",motions.shape
+    print("motions shape",motions.shape)
     n_frames = len(motions[0])#16
     n_end_effectors = len(joint_names)#
     features = []
@@ -79,7 +79,7 @@ def map_to_pca_on_multi_joint_3d_spline(data, model, joint_names=END_EFFECTORS):
 
 
 def map_to_pca_on_multi_joint_3d_spline2(data, model, joint_names=END_EFFECTORS,n_components=16, step=4):
-    print "motions shape",data.shape,n_components
+    print("motions shape",data.shape,n_components)
     motions = _back_project_data(data, model)
     return map_motions_to_pca_on_multi_joint_3d_spline2(motions, model.sample_generator.skeleton, joint_names, n_components, step)
 
@@ -99,12 +99,12 @@ def map_motions_to_euclidean_pca(motions, skeleton, joint_names=END_EFFECTORS,st
     point_clouds = map_motions_to_euclidean_space(motions, skeleton, joint_names, step)
     pca = PCA(n_components=0.95)#svd_solver="full"
     features = pca.fit_transform(point_clouds)
-    print "projected features with shape",features.shape
+    print("projected features with shape",features.shape)
     return features, pca
 
 
 def map_motions_to_euclidean_space(motions, skeleton, joint_names, step=4):
-    print "project frames to euclidean space"
+    print("project frames to euclidean space")
     n_end_effectors = len(joint_names)
     point_clouds = []
     count = 0
@@ -122,7 +122,7 @@ def map_motions_to_euclidean_space(motions, skeleton, joint_names, step=4):
             sample.append(frame)
         point_clouds.append(np.array(sample).flatten())
         count += 1
-        print "back projected", count, "of", n_samples
+        print("back projected", count, "of", n_samples)
     return point_clouds
 
 
@@ -132,7 +132,7 @@ def map_to_pca_on_multi_joint_3d_spline_relative(data, model, joint_names=END_EF
 
 
 def map_motions_to_pca_on_multi_joint_3d_spline_relative(motions,skeleton, joint_names, n_components, step=4):
-    print "motions shape",motions.shape
+    print("motions shape",motions.shape)
     n_frames = len(motions[0])
     n_end_effectors = len(joint_names)
     features = []
@@ -144,7 +144,7 @@ def map_motions_to_pca_on_multi_joint_3d_spline_relative(motions,skeleton, joint
             p = skeleton.nodes[joint_name].get_global_position(m[0])
             initial_pose[offset:offset + LEN_END_EFFECTOR] = p
             offset += LEN_END_EFFECTOR
-        for idx in xrange(1, n_frames):
+        for idx in range(1, n_frames):
             if idx % step == 0:
                 offset = 0
                 frame = np.zeros(LEN_END_EFFECTOR * n_end_effectors)

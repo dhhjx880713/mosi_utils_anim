@@ -1,7 +1,7 @@
-from morphablegraphs.animation_data import BVHReader, SkeletonBuilder, MotionVector
-from morphablegraphs.motion_generator.algorithm_configuration import AlgorithmConfigurationBuilder
-from morphablegraphs.animation_data.motion_editing import FootplantConstraintGenerator
-from morphablegraphs.animation_data.motion_editing import MotionGrounding
+from .morphablegraphs.animation_data import BVHReader, SkeletonBuilder, MotionVector
+from .morphablegraphs.motion_generator.algorithm_configuration import AlgorithmConfigurationBuilder
+from .morphablegraphs.animation_data.motion_editing import FootplantConstraintGenerator
+from .morphablegraphs.animation_data.motion_editing import MotionGrounding
 from python_src.morphablegraphs.animation_data.skeleton_models import *
 from python_src.morphablegraphs.animation_data.motion_editing.motion_grounding import IKConstraintSet
 from python_src.morphablegraphs.animation_data.motion_editing.utils import get_average_joint_position, get_average_joint_direction, plot_joint_heights, add_heels_to_skeleton, get_joint_height, \
@@ -26,8 +26,8 @@ def create_foot_plant_constraints_orig(skeleton, mv, me, joint_names, frame_rang
         avg_p = get_average_joint_position(skeleton, mv.frames, joint_name, frame_range[0], frame_range[1])
         positions.append(avg_p)
     c = IKConstraintSet(frame_range, joint_names, positions)
-    for idx in xrange(frame_range[0], frame_range[1]):
-        if idx not in me._constraints.keys():
+    for idx in range(frame_range[0], frame_range[1]):
+        if idx not in list(me._constraints.keys()):
             me._constraints[idx] = []
         me._constraints[idx].append(c)
     return me
@@ -37,8 +37,8 @@ def create_foot_plant_constraints(skeleton, mv, me, joint_names, start_frame, en
     """ create a constraint based on the average position in the frame range"""
     for joint_name in joint_names:
         avg_p = get_average_joint_position(skeleton, mv.frames, joint_name, start_frame, end_frame)
-        print joint_name, avg_p
-        for idx in xrange(start_frame, end_frame):
+        print(joint_name, avg_p)
+        for idx in range(start_frame, end_frame):
             me.add_constraint(joint_name,(idx, idx + 1), avg_p)
     return me
 
@@ -51,9 +51,9 @@ def create_foot_plant_constraints2(skeleton, mv, me, joint_name, start_frame, en
     if len(skeleton.nodes[joint_name].children) > 0:
         child_joint_name = skeleton.nodes[joint_name].children[0].node_name
         avg_direction = get_average_joint_direction(skeleton, mv.frames, joint_name, child_joint_name, start_frame, end_frame)
-    print joint_name, avg_p, avg_direction
+    print(joint_name, avg_p, avg_direction)
     avg_direction = None
-    for idx in xrange(start_frame, end_frame):
+    for idx in range(start_frame, end_frame):
         me.add_constraint(joint_name,(idx, idx + 1), avg_p, avg_direction)
     return me
 
@@ -94,7 +94,7 @@ def run_motion_grounding(bvh_file, skeleton_model):
     #plot_constraints(constraints, ground_height)
     me.set_constraints(constraints)
 
-    for joint_name, frame_ranges in blend_ranges.items():
+    for joint_name, frame_ranges in list(blend_ranges.items()):
         ik_chain = skeleton_model["ik_chains"][joint_name]
         for frame_range in frame_ranges:
             joint_names = [skeleton.root] + [ik_chain["root"], ik_chain["joint"], joint_name]
@@ -103,7 +103,7 @@ def run_motion_grounding(bvh_file, skeleton_model):
 
     #mv.frames = move_to_ground(skeleton, mv.frames, target_ground_height, skeleton_model["foot_joints"])
     mv.frames = me.run(mv, target_ground_height)
-    print "export motion"
+    print("export motion")
 
     joint_heights = get_joint_height(skeleton, mv.frames, skeleton_model["foot_joints"])
     plot_joint_heights(joint_heights)

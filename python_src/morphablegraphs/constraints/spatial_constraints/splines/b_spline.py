@@ -24,7 +24,7 @@ class BSpline(object):
     """
     def __init__(self,  points, degree=3, domain=None):
         self.points = np.array(points)
-        if isinstance(points[0], (int, long, float, complex)):
+        if isinstance(points[0], (int, float, complex)):
             self.dimensions = 1
         else:
             self.dimensions = len(points[0])
@@ -63,24 +63,24 @@ class BSpline(object):
         how do find the knot points C(ui).
         """
         outer_knots = self.degree+1
-        print "multiplicity", outer_knots
+        print("multiplicity", outer_knots)
         n = len(self.points) - 1 
-        print "control points", len(self.points)
-        print "n", n
+        print("control points", len(self.points))
+        print("n", n)
         p = self.degree
         m = n + p + 1
         n_knots = m + 1
         inner_knots = n_knots-(outer_knots*2 - 2)
-        print "knots", n_knots
-        print "free knots", inner_knots
-        print "domain", self.domain
+        print("knots", n_knots)
+        print("free knots", inner_knots)
+        print("domain", self.domain)
         #print np.linspace(0.0, 1.0, 4)
         knots = np.linspace(self.domain[0], self.domain[1], inner_knots).tolist()
         #print self.knots
         self.knots = knots[:1] * (outer_knots-1) + knots +\
                     knots[-1:] * (outer_knots-1)
-        print self.knots
-        print len(self.knots)
+        print(self.knots)
+        print(len(self.knots))
         self.initiated = True
 
     def query_point_by_parameter(self, u):
@@ -96,7 +96,7 @@ class BSpline(object):
                 value = 0.0#np.zeros(self.dim)
                 n = len(self.points)
                 w_list = []
-                for i in xrange(n):
+                for i in range(n):
                     #i+=self.degree
                     #print "iteration",i, self.basis(u, i, self.degree)
                     #i = self.get_begin_of_knot_range(u)
@@ -167,7 +167,7 @@ class BSpline(object):
                 return np.zeros(self.dimensions)
 
     def draw(self, domain, algorithm="standard", granularity=1000):
-        print "draw"
+        print("draw")
         figure = plt.figure()
         ax = figure.add_subplot(111)
         u_values = []
@@ -175,7 +175,7 @@ class BSpline(object):
         for u in np.linspace(domain[0], domain[1], granularity):
             u_values.append(u)
             samples.append(self.evaluate(u, algorithm))
-            print u
+            print(u)
         #samples = np.array(samples)
         ax.plot(u_values, samples, alpha=0.3)
         plt.show()
@@ -197,7 +197,7 @@ def main():
     domain = (0.0, 1.0)
     points = np.array([(1,1), (2,2), (4,4), (6,6), (8,8), (10,11), (12,12), (15,15), (16,16), (20,20)])
     bspline = BSpline(points, degree, domain)
-    print bspline.evaluate(0.999)
+    print(bspline.evaluate(0.999))
     algorithm = "standard"
     #algorithm = "deboor"
     bspline.draw(domain, algorithm)

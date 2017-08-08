@@ -10,5 +10,5 @@ CA_CONSTRAINTS_MODE_SET = "create_constraint_set"
 CA_CONSTRAINTS_MODE_DIRECT_CONNECTION = "direct_connection"
 
 
-from mg_input_format_reader import MGInputFormatReader
-from elementary_action_constraints_builder import ElementaryActionConstraintsBuilder
+from .mg_input_format_reader import MGInputFormatReader
+from .elementary_action_constraints_builder import ElementaryActionConstraintsBuilder

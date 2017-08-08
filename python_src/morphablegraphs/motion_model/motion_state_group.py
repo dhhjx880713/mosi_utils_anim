@@ -6,7 +6,7 @@ Created on Thu Jul 16 15:57:42 2015
 """
 
 from . import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END, NODE_TYPE_SINGLE,  NODE_TYPE_CYCLE_END
-from elementary_action_meta_info import ElementaryActionMetaInfo
+from .elementary_action_meta_info import ElementaryActionMetaInfo
 from ..utilities import write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO, LOG_MODE_ERROR
 
 
@@ -28,7 +28,7 @@ class MotionStateGroup(ElementaryActionMetaInfo):
         write_message_to_log("elementary_action" + str(self.elementary_action_name), LOG_MODE_DEBUG)
         write_message_to_log("start states" + str(self.start_states), LOG_MODE_DEBUG)
         if len(self.nodes) == 1:
-            node_key = self.nodes.keys()[0]
+            node_key = list(self.nodes.keys())[0]
             self.nodes[node_key].node_type = NODE_TYPE_SINGLE
         else:
             for k in self.start_states:
@@ -41,7 +41,7 @@ class MotionStateGroup(ElementaryActionMetaInfo):
 
     def get_action_type(self):
         n_standard_nodes = 0
-        for node_key in self.nodes.keys():
+        for node_key in list(self.nodes.keys()):
             if self.nodes[node_key].node_type == NODE_TYPE_STANDARD:
                 n_standard_nodes += 1
         if n_standard_nodes > 0:
@@ -56,7 +56,7 @@ class MotionStateGroup(ElementaryActionMetaInfo):
         if recalculate:
             changed_meta_info = True
             self.meta_information["stats"] = {}
-            for node_key in self.nodes.keys():
+            for node_key in list(self.nodes.keys()):
                 self.nodes[node_key].update_motion_stats()
                 self.meta_information["stats"][node_key[1]] = {"average_step_length": self.nodes[node_key].average_step_length,
                                                                "n_standard_transitions": self.nodes[node_key].n_standard_transitions}
@@ -65,10 +65,10 @@ class MotionStateGroup(ElementaryActionMetaInfo):
         else:
             if self.meta_information is None:
                 self.meta_information = {}
-            if "stats" not in self.meta_information.keys():
+            if "stats" not in list(self.meta_information.keys()):
                 self.meta_information["stats"] = {}
-            for node_key in self.nodes.keys():
-                if node_key[1] in self.meta_information["stats"].keys():
+            for node_key in list(self.nodes.keys()):
+                if node_key[1] in list(self.meta_information["stats"].keys()):
                     self.nodes[node_key].n_standard_transitions = self.meta_information["stats"][node_key[1]]["n_standard_transitions"]
                     self.nodes[node_key].average_step_length = self.meta_information["stats"][node_key[1]]["average_step_length"]
                 else:
@@ -97,7 +97,7 @@ class MotionStateGroup(ElementaryActionMetaInfo):
         """
         assert to_node_key[0] == self.elementary_action_name
         if self.has_transition_models and use_transition_model:
-            print "use transition model", current_node_key, to_node_key
+            print("use transition model", current_node_key, to_node_key)
             next_parameters = self.nodes[current_node_key].predict_parameters(to_node_key, current_parameters)
         else:
             next_parameters = self.nodes[to_node_key].sample_low_dimensional_vector()
@@ -132,7 +132,7 @@ class MotionStateGroup(ElementaryActionMetaInfo):
         return next_node_type
 
     def get_n_standard_transitions(self, prev_node):
-        return [e for e in self.nodes[prev_node].outgoing_edges.keys()
+        return [e for e in list(self.nodes[prev_node].outgoing_edges.keys())
                 if self.nodes[prev_node].outgoing_edges[e].transition_type == NODE_TYPE_STANDARD]
 
     def get_random_transition(self, graph_walk, action_constraint, travelled_arc_length, arc_length_of_end):
@@ -163,7 +163,7 @@ class MotionStateGroup(ElementaryActionMetaInfo):
         \tSets whether or not the transition model should be used in parameter prediction
         """
         current_node = state_node
-        assert current_node in self.nodes.keys()
+        assert current_node in list(self.nodes.keys())
         graph_walk = []
         count = 0
         #print "start", current_node

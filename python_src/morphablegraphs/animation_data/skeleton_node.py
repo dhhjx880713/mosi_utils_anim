@@ -1,9 +1,9 @@
 __author__ = 'erhe01'
 
 import numpy as np
-from itertools import izip
+
 from ..external.transformations import quaternion_matrix, euler_matrix, euler_from_matrix, quaternion_from_matrix
-from constants import ROTATION_TYPE_EULER, ROTATION_TYPE_QUATERNION
+from .constants import ROTATION_TYPE_EULER, ROTATION_TYPE_QUATERNION
 
 SKELETON_NODE_TYPE_ROOT = 0
 SKELETON_NODE_TYPE_JOINT = 1
@@ -115,12 +115,12 @@ class SkeletonRootNode(SkeletonNodeBase):
 
     def get_local_matrix(self, quaternion_frame):
         local_matrix = quaternion_matrix(quaternion_frame[3:7])
-        local_matrix[:3, 3] = [t + o for t, o in izip(quaternion_frame[:3], self.offset)]
+        local_matrix[:3, 3] = [t + o for t, o in zip(quaternion_frame[:3], self.offset)]
         return local_matrix
 
     def get_local_matrix_from_euler(self, euler_frame):
         local_matrix = euler_matrix(*np.radians(euler_frame[3:6]), axes='rxyz')
-        local_matrix[:3, 3] = [t + o for t, o in izip(euler_frame[:3], self.offset)]
+        local_matrix[:3, 3] = [t + o for t, o in zip(euler_frame[:3], self.offset)]
         return local_matrix
 
     def get_frame_parameters(self, frame, rotation_type):

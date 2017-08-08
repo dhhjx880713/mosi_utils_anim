@@ -7,7 +7,7 @@ Proceedings of the 26th annual conference on Computer graphics and interactive t
 """
 import math
 import numpy as np
-from utils import normalize, to_local_cos, project_vec3
+from .utils import normalize, to_local_cos, project_vec3
 from ..retargeting.utils import find_rotation_between_vectors
 from ..utils import quaternion_from_vector_to_vector
 from ...external.transformations import quaternion_multiply, quaternion_about_axis, quaternion_matrix, quaternion_from_matrix, quaternion_inverse
@@ -26,7 +26,7 @@ def calculate_angle(upper_limb, lower_limb, ru, rl, target_length):
     temp += 2 * math.sqrt(lusq_rusq) * math.sqrt(llsq_rlsq)
     temp += - (target_length*target_length)
     temp /= 2 * ru * rl
-    print "temp",temp
+    print("temp",temp)
     temp = max(-1, temp)
     return math.acos(temp)
 

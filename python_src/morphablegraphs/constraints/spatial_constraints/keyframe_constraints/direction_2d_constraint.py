@@ -7,7 +7,7 @@ Created on Mon Aug 03 19:01:21 2015
 
 import numpy as np
 from ....animation_data.motion_concatenation import get_global_node_orientation_vector
-from keyframe_constraint_base import KeyframeConstraintBase
+from .keyframe_constraint_base import KeyframeConstraintBase
 from .. import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_DIR_2D
 from math import acos, degrees
 

@@ -1,8 +1,8 @@
 import os
 import numpy as np
-from morphablegraphs.construction.segmentation import Segmentation
-from morphablegraphs.animation_data.bvh import BVHReader
-from morphablegraphs.animation_data import MotionVector, SkeletonBuilder
+from .morphablegraphs.construction.segmentation import Segmentation
+from .morphablegraphs.animation_data.bvh import BVHReader
+from .morphablegraphs.animation_data import MotionVector, SkeletonBuilder
 
 
 def load_skeleton(file_path):
@@ -24,7 +24,7 @@ def load_motion_data(motion_folder, max_count=np.inf):
     for root, dirs, files in os.walk(motion_folder):
         for file_name in files:
             if file_name.endswith("bvh"):
-                print "read", file_name
+                print("read", file_name)
                 mv = load_motion_vector_from_bvh_file(motion_folder + os.sep + file_name)
                 motions.append(mv.frames)
                 if len(motions) > max_count:
@@ -35,7 +35,7 @@ def load_motion_data(motion_folder, max_count=np.inf):
 def export_frames_to_bvh(skeleton, frames, filename):
     mv = MotionVector()
     mv.frames = np.array([skeleton.generate_complete_frame_vector_from_reference(f) for f in frames])
-    print mv.frames.shape
+    print(mv.frames.shape)
     mv.export(skeleton, ".", filename, add_time_stamp=False)
 
 
@@ -50,7 +50,7 @@ def run_segmentation(skeleton, motions, start_keyframe_coord, end_keyframe_coord
     start_keyframe = motions[start_keyframe_coord[0]][start_keyframe_coord[1]]
     end_keyframe = motions[end_keyframe_coord[0]][end_keyframe_coord[1]]
     segments = seg.extract_segments(motions, start_keyframe, end_keyframe)
-    print "found",len(segments), "segments"
+    print("found",len(segments), "segments")
     export_motions(skeleton, segments, "out")
 
 if __name__ == "__main__":

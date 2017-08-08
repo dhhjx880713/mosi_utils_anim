@@ -10,7 +10,7 @@ import json
 from sklearn import mixture
 import scipy.interpolate as si
 from . import B_SPLINE_DEGREE
-from motion_spline import MotionSpline
+from .motion_spline import MotionSpline
 from scipy.ndimage.filters import gaussian_filter1d
 from scipy.signal import savgol_filter
 
@@ -77,9 +77,9 @@ class MotionPrimitive(object):
 
         """
         #load name data and canonical frames of the motion
-        if 'name' in data.keys():
+        if 'name' in list(data.keys()):
             self.name = data['name']
-        if 'semantic_label' in data.keys():
+        if 'semantic_label' in list(data.keys()):
             print('low dimensional vector has semantic information!')
             self.has_semantic_parameters = True
             self.semantic_labels = data['semantic_label']
@@ -88,7 +88,7 @@ class MotionPrimitive(object):
         # initialize parameters for the motion sampling and back projection
         self._init_gmm_from_json(data)
         self._init_spatial_parameters_from_json(data)
-        if 'eigen_vectors_time' in data.keys():
+        if 'eigen_vectors_time' in list(data.keys()):
             self._init_time_parameters_from_json(data)
             self.has_time_parameters = True
         else:
@@ -145,7 +145,7 @@ class MotionPrimitive(object):
         self.t_pca["n_dim"] = 1
         self.t_pca["n_components"] = len(self.t_pca["eigen_vectors"].T)
         self.t_pca["knots"] = np.asarray(data['b_spline_knots_time'])
-        self.t_pca["eigen_coefs"] = zip(* self.t_pca["eigen_vectors"])
+        self.t_pca["eigen_coefs"] = list(zip(* self.t_pca["eigen_vectors"]))
 
     def sample_low_dimensional_vector(self, n_samples=1):
         """ Sample the motion primitive and return a low dimensional vector
@@ -188,7 +188,7 @@ class MotionPrimitive(object):
         semantic_annotation = None
         if self.has_semantic_parameters:
             semantic_label = low_dimensional_vector[-1]
-            for key, value in self.semantic_labels.iteritems():
+            for key, value in self.semantic_labels.items():
                 if int(np.round(semantic_label)) == value:
                     semantic_annotation = key
             if semantic_annotation is None:
@@ -261,10 +261,10 @@ class MotionPrimitive(object):
         """
         mean_t = self._mean_temporal()
         n_latent_dim = len(self.t_pca["eigen_coefs"])
-        t_eigen_spline = [(self.t_pca["knots"], self.t_pca["eigen_coefs"][i], B_SPLINE_DEGREE) for i in xrange(n_latent_dim)]
+        t_eigen_spline = [(self.t_pca["knots"], self.t_pca["eigen_coefs"][i], B_SPLINE_DEGREE) for i in range(n_latent_dim)]
         t_eigen_discrete = np.array([si.splev(self.canonical_time_range, spline_definition) for spline_definition in t_eigen_spline]).T
         canonical_time_function = [0]
-        for i in xrange(self.n_canonical_frames):
+        for i in range(self.n_canonical_frames):
             canonical_time_function.append(canonical_time_function[-1] + np.exp(mean_t[i] + np.dot(t_eigen_discrete[i], gamma)))
         # undo step from timeVarinaces.transform_timefunction during alignment
         canonical_time_function = np.array(canonical_time_function[1:])

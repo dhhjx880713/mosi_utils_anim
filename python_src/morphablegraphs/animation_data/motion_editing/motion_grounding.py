@@ -1,8 +1,8 @@
 import collections
 import numpy as np
-from analytical_inverse_kinematics import AnalyticalLimbIK
-from numerical_ik_exp import NumericalInverseKinematicsExp
-from utils import normalize, project_on_intersection_circle, smooth_root_positions, quaternion_from_vector_to_vector
+from .analytical_inverse_kinematics import AnalyticalLimbIK
+from .numerical_ik_exp import NumericalInverseKinematicsExp
+from .utils import normalize, project_on_intersection_circle, smooth_root_positions, quaternion_from_vector_to_vector
 from ..motion_blending import apply_slerp2, BLEND_DIRECTION_FORWARD, BLEND_DIRECTION_BACKWARD, smooth_translation_in_quat_frames
 from ...external.transformations import quaternion_from_matrix, quaternion_matrix, quaternion_multiply, quaternion_slerp
 
@@ -69,7 +69,7 @@ def create_ankle_constraint_from_toe_and_heel(skeleton, frames, frame_idx, ankle
     m = quaternion_matrix(orientation)[:3, :3]
     target_heel_offset = np.dot(m, heel_offset)
     ca = ch - target_heel_offset
-    print "set ankle constraint both", ch, ca, target_heel_offset
+    print("set ankle constraint both", ch, ca, target_heel_offset)
     return MotionGroundingConstraint(frame_idx, ankle_joint, ca, None, orientation)
 
 
@@ -100,7 +100,7 @@ class IKConstraintSet(object):
         self.frame_range = frame_range
         self.joint_names = joint_names
         self.constraints = []
-        for idx in xrange(frame_range[0], frame_range[1]):
+        for idx in range(frame_range[0], frame_range[1]):
             for idx, joint_name in enumerate(joint_names):
                 c = MotionGroundingConstraint(idx, joint_name, positions[idx], None)
                 self.constraints.append(c)
@@ -119,7 +119,7 @@ class IKConstraintSet(object):
 def add_fixed_dofs_to_frame(skeleton, frame):
     o = 3
     full_frame = frame[:3].tolist()
-    for key, node in skeleton.nodes.items():
+    for key, node in list(skeleton.nodes.items()):
         if len(node.children) == 0:
             continue
         if not node.fixed:
@@ -147,14 +147,14 @@ class MotionGrounding(object):
         self._constraints = constraints
 
     def add_constraint(self, joint_name, frame_range, position, direction=None):
-        for frame_idx in xrange(*frame_range):
+        for frame_idx in range(*frame_range):
             c = MotionGroundingConstraint(frame_idx, joint_name, position, direction)
-            if frame_idx not in self._constraints.keys():
+            if frame_idx not in list(self._constraints.keys()):
                 self._constraints[frame_idx] = []
             self._constraints[frame_idx].append(c)
 
     def add_blend_range(self, joint_names, frame_range):
-        if frame_range not in self._constraints.keys():
+        if frame_range not in list(self._constraints.keys()):
             self._blend_ranges[frame_range] = []
         for j in joint_names:
             self._blend_ranges[frame_range].append(j)
@@ -200,7 +200,7 @@ class MotionGrounding(object):
             apply_slerp2(frames, joint_parameter_indices,  end, transition_end, backward_steps, BLEND_DIRECTION_BACKWARD)
 
     def apply_ik_constraints(self, frames):
-        for frame_idx, constraints in self._constraints.items():
+        for frame_idx, constraints in list(self._constraints.items()):
             #print "process frame", frame_idx
             if 0 <= frame_idx < len(frames):
                 frames[frame_idx] = self._ik.modify_frame(frames[frame_idx], constraints)
@@ -212,7 +212,7 @@ class MotionGrounding(object):
 
     def generate_root_positions_from_foot_constraints(self, frames):
         root_constraints = []
-        for frame_idx, constraints in self._constraints.items():
+        for frame_idx, constraints in list(self._constraints.items()):
             if 0 <= frame_idx < len(frames):
                 #print "adapt root", frame_idx, len(constraints)
                 p = None
@@ -243,7 +243,7 @@ class MotionGrounding(object):
             #frame[:3] = new_root_pos
 
         else:
-            print "no change"
+            print("no change")
 
     def generate_root_constraint_for_two_feet(self, frame, constraint1, constraint2):
         """ Set the root position to the projection on the intersection of two spheres """
@@ -277,11 +277,11 @@ class MotionGrounding(object):
 
 
     def apply_analytical_ik(self, frames):
-        for frame_idx, constraints in self._constraints.items():
+        for frame_idx, constraints in list(self._constraints.items()):
             #print "process frame", frame_idx
             if 0 <= frame_idx < len(frames):
                 for c in constraints:
-                    if c.joint_name in self._ik_chains.keys():
+                    if c.joint_name in list(self._ik_chains.keys()):
                         data = self._ik_chains[c.joint_name]
                         ik = AnalyticalLimbIK.init_from_dict(self.skeleton, c.joint_name, data)
                         frames[frame_idx] = ik.apply2(frames[frame_idx], c.position, c.orientation)
@@ -291,11 +291,11 @@ class MotionGrounding(object):
                         #    heel_joint = "LeftHeel"
                         #print "delta",frame_idx,c.joint_name,np.linalg.norm(delta), c.position, self.skeleton.nodes[heel_joint].get_global_position(frames[frame_idx])
                     else:
-                        print "could not find ik chain definition for ", c.joint_name
+                        print("could not find ik chain definition for ", c.joint_name)
                         frames[frame_idx] = self._ik.modify_frame(frames[frame_idx], constraints)
 
     def blend_at_transitions(self, frames):
-        for frame_range, joint_names in self._blend_ranges.items():
+        for frame_range, joint_names in list(self._blend_ranges.items()):
             start = frame_range[0]
             end = frame_range[1]
             #print "apply blending in range", frame_range, joint_names

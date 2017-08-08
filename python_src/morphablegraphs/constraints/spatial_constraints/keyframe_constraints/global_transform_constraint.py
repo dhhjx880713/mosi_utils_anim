@@ -9,7 +9,7 @@ from math import sqrt
 import numpy as np
 from ....animation_data.utils import quaternion_to_euler, quaternion_rotate_vector, euler_to_quaternion, get_cartesian_coordinates_from_quaternion
 from ....external.transformations import rotation_matrix, angle_between_vectors
-from keyframe_constraint_base import KeyframeConstraintBase
+from .keyframe_constraint_base import KeyframeConstraintBase
 from .. import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
 
 
@@ -27,11 +27,11 @@ class GlobalTransformConstraint(KeyframeConstraintBase):
         self.constraint_type = SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
         self.skeleton = skeleton
         self.joint_name = constraint_desc["joint"]
-        if "position" in constraint_desc.keys():
+        if "position" in list(constraint_desc.keys()):
             self.position = constraint_desc["position"]
         else:
             self.position = None
-        if "orientation" in constraint_desc.keys() and None not in constraint_desc["orientation"]:
+        if "orientation" in list(constraint_desc.keys()) and None not in constraint_desc["orientation"]:
             self.orientation = euler_to_quaternion(constraint_desc["orientation"])
         else:
             self.orientation = None
@@ -92,7 +92,7 @@ class GlobalTransformConstraint(KeyframeConstraintBase):
         joint_euler_angles = quaternion_to_euler(joint_orientation)
         rotmat_constraint = np.eye(4)
         rotmat_target = np.eye(4)
-        for i in xrange(3):
+        for i in range(3):
             if self.orientation[i] is not None:
                 tmp_constraint = rotation_matrix(np.deg2rad(self.orientation[i]), self.ROTATION_AXIS[i])
                 rotmat_constraint = np.dot(tmp_constraint, rotmat_constraint)
@@ -106,7 +106,7 @@ class GlobalTransformConstraint(KeyframeConstraintBase):
         """Returns the distance ignoring entries with None
         """
         d_sum = 0
-        for i in xrange(3):
+        for i in range(3):
             if target_p[i] is not None:
                 d_sum += (target_p[i]-sample_p[i])**2
         return sqrt(d_sum)
@@ -116,7 +116,7 @@ class GlobalTransformConstraint(KeyframeConstraintBase):
         """Returns the distance ignoring entries with None
         """
         d_sum = 0
-        for i in xrange(length):
+        for i in range(length):
             if a[i] is not None and b[i] is not None:
                 d_sum += (a[i]-b[i])**2
         return sqrt(d_sum)

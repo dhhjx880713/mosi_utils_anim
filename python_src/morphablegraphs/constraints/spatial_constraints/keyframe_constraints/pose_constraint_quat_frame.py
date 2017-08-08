@@ -4,7 +4,7 @@ __author__ = 'hadu01'
 from ....animation_data.utils import \
     calculate_weighted_frame_distance_quat, \
     quat_distance
-from keyframe_constraint_base import KeyframeConstraintBase
+from .keyframe_constraint_base import KeyframeConstraintBase
 from .. import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE
 LEN_QUAT = 4
 LEN_ROOT_POS = 3
@@ -45,7 +45,7 @@ class PoseConstraintQuatFrame(KeyframeConstraintBase):
         residual_vector = []
         quat_frame_a = self.pose_constraint
         quat_frame_b = frame
-        for i in xrange(len(weights) - 1):
+        for i in range(len(weights) - 1):
             quat1 = quat_frame_a[(i+1)*LEN_QUAT+LEN_ROOT_POS: (i+2)*LEN_QUAT+LEN_ROOT_POS]
             quat2 = quat_frame_b[(i+1)*LEN_QUAT+LEN_ROOT_POS: (i+2)*LEN_QUAT+LEN_ROOT_POS]
             tmp = quat_distance(quat1, quat2)*weights[i]

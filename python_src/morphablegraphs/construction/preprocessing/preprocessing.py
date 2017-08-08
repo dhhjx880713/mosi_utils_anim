@@ -5,7 +5,7 @@ Created on Fri Jul 31 14:38:45 2015
 @author: hadu01
 """
 
-from motion_dtw import MotionDynamicTimeWarping
+from .motion_dtw import MotionDynamicTimeWarping
 
 
 class Preprocessor(MotionDynamicTimeWarping):
