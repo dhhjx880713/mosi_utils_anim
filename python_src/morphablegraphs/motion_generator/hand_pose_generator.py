@@ -5,6 +5,7 @@ from ..animation_data.bvh import BVHReader
 from ..animation_data.motion_vector import MotionVector
 from ..animation_data.skeleton import Skeleton
 from ..external.transformations import quaternion_slerp
+from ..animation_data.motion_blending import smooth_quaternion_frames_using_slerp_
 import numpy as np
 
 
@@ -137,19 +138,8 @@ class HandPoseGenerator(object):
         for event_frame in events:
             for i in indices:
                 index = i*4+3
-                self.smooth_quaternion_frames_using_slerp(quat_frames, range(index, index+4), event_frame, window)
+                smooth_quaternion_frames_using_slerp_(quat_frames, range(index, index+4), event_frame, window)
 
-    def smooth_quaternion_frames_using_slerp(self, quat_frames, joint_parameter_indices, event_frame, window):
-        start_frame = event_frame-window/2
-        end_frame = event_frame+window/2
-        start_q = quat_frames[start_frame, joint_parameter_indices]
-        end_q = quat_frames[end_frame, joint_parameter_indices]
-        for i in xrange(window):
-            t = float(i)/window
-            #nlerp_q = self.nlerp(start_q, end_q, t)
-            slerp_q = quaternion_slerp(start_q, end_q, t, spin=0, shortestpath=True)
-            #print "slerp",start_q,  end_q, t, nlerp_q, slerp_q
-            quat_frames[start_frame+i, joint_parameter_indices] = slerp_q
 
     def nlerp(self, start, end, t):
         """http://physicsforgames.blogspot.de/2010/02/quaternions.html
