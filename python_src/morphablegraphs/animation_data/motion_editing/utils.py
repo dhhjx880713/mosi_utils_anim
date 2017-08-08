@@ -403,7 +403,7 @@ def get_random_color():
     return random_color.tolist()
 
 
-def save_ground_contact_annotation(ground_contacts, joints, n_frames, filename):
+def convert_ground_contacts_to_annotation(ground_contacts, joints, n_frames):
     data = dict()
     data["color_map"] = {j : get_random_color() for j in joints}
     data["semantic_annotation"] = dict()
@@ -412,6 +412,11 @@ def save_ground_contact_annotation(ground_contacts, joints, n_frames, filename):
             if label not in data["semantic_annotation"]:
                 data["semantic_annotation"][label] = []
             data["semantic_annotation"][label].append(idx)
+    return data
+
+
+def save_ground_contact_annotation(ground_contacts, joints, n_frames, filename):
+    data = convert_ground_contacts_to_annotation(ground_contacts, joints, n_frames)
     with open(filename, "wb") as out:
         json.dump(data, out)
 
