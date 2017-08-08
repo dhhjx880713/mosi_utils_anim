@@ -51,6 +51,17 @@ def smooth_quaternion_frames_using_slerp(quat_frames, joint_param_indices, event
     apply_slerp2(quat_frames, joint_param_indices, start_frame, event_frame, h_window, BLEND_DIRECTION_FORWARD)
     apply_slerp2(quat_frames, joint_param_indices, event_frame, end_frame, h_window, BLEND_DIRECTION_BACKWARD)
 
+def smooth_quaternion_frames_using_slerp_(quat_frames, joint_parameter_indices, event_frame, window):
+    start_frame = event_frame-window/2
+    end_frame = event_frame+window/2
+    start_q = quat_frames[start_frame, joint_parameter_indices]
+    end_q = quat_frames[end_frame, joint_parameter_indices]
+    for i in xrange(window):
+        t = float(i)/window
+        #nlerp_q = self.nlerp(start_q, end_q, t)
+        slerp_q = quaternion_slerp(start_q, end_q, t, spin=0, shortestpath=True)
+        #print "slerp",start_q,  end_q, t, nlerp_q, slerp_q
+        quat_frames[start_frame+i, joint_parameter_indices] = slerp_q
 
 def apply_slerp2(quat_frames, joint_param_indices, start_frame, end_frame, steps, direction=BLEND_DIRECTION_FORWARD):
     new_quats = create_frames_using_slerp(quat_frames, start_frame, end_frame, steps, joint_param_indices)
