@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from ..animation_data import MotionVector, ROTATION_TYPE_QUATERNION, Skeleton, BVHReader
+from ..animation_data import MotionVector, ROTATION_TYPE_QUATERNION, SkeletonBuilder, BVHReader
 from ..utilities import write_to_json_file
 from ..utilities.io_helper_functions import get_bvh_writer
 
@@ -11,7 +11,9 @@ class AnnotatedMotionVector(MotionVector):
         self.keyframe_event_list = None
         self.mg_input = None
         self.graph_walk = None
-        self.ik_constraints = {}
+        self.grounding_constraints = None
+        self.ground_contacts = None
+        self.ik_constraints = dict()
 
     def export(self, output_dir, output_filename, add_time_stamp=False, export_details=False):
         """ Saves the resulting animation frames, the annotation and actions to files.
@@ -30,8 +32,7 @@ class AnnotatedMotionVector(MotionVector):
 
     def load_from_file(self, file_name, filter_joints=True):
         bvh = BVHReader(file_name)
-        self.skeleton = Skeleton()
-        self.from_bvh_reader(bvh, filter_joints=filter_joints)
+        self.skeleton = SkeletonBuilder().from_bvh_reader(bvh, filter_joints=filter_joints)
 
     def generate_bvh_string(self):
         bvh_writer = get_bvh_writer(self.skeleton, self.frames)

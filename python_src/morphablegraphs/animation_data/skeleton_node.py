@@ -3,7 +3,7 @@ __author__ = 'erhe01'
 import numpy as np
 from itertools import izip
 from ..external.transformations import quaternion_matrix, euler_matrix, euler_from_matrix, quaternion_from_matrix
-from . import ROTATION_TYPE_EULER, ROTATION_TYPE_QUATERNION
+from constants import ROTATION_TYPE_EULER, ROTATION_TYPE_QUATERNION
 
 SKELETON_NODE_TYPE_ROOT = 0
 SKELETON_NODE_TYPE_JOINT = 1

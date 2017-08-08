@@ -4,9 +4,10 @@ from datetime import datetime
 import os
 import numpy as np
 from utils import align_frames,transform_euler_frames, convert_euler_frames_to_quaternion_frames
-from motion_concatenation import align_and_concatenate_frames
-from . import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER
+from motion_concatenation import align_and_concatenate_frames#, align_frames_and_fix_feet
+from constants import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER
 from bvh import BVHWriter
+
 
 class MotionVector(object):
     """
@@ -14,10 +15,12 @@ class MotionVector(object):
     """
     def __init__(self, skeleton=None, algorithm_config=None, rotation_type=ROTATION_TYPE_QUATERNION):
         self.n_frames = 0
+        self._prev_n_frames = 0
         self.frames = None
         self.start_pose = None
         self.rotation_type = rotation_type
         self.apply_spatial_smoothing = False
+        self.apply_foot_alignment = False
         self.smoothing_window = 0
         self.spatial_smoothing_method = "smoothing"
         self.frame_time = 1.0/30.0
@@ -27,8 +30,11 @@ class MotionVector(object):
             settings = algorithm_config["smoothing_settings"]
             self.apply_spatial_smoothing = settings["spatial_smoothing"]
             self.smoothing_window = settings["spatial_smoothing_window"]
+
             if "spatial_smoothing_method" in settings:
                 self.spatial_smoothing_method = settings["spatial_smoothing_method"]
+            if "apply_foot_alignment" in settings:
+                self.apply_foot_alignment = settings["apply_foot_alignment"]
 
     def from_bvh_reader(self, bvh_reader, filter_joints=True):
         if self.rotation_type == ROTATION_TYPE_QUATERNION:
@@ -36,9 +42,10 @@ class MotionVector(object):
         elif self.rotation_type == ROTATION_TYPE_EULER:
             self.frames = bvh_reader.frames
         self.n_frames = len(self.frames)
+        self._prev_n_frames = 0
         self.frame_time = bvh_reader.frame_time
 
-    def append_frames(self, new_frames):
+    def append_frames_generic(self, new_frames):
         """Align quaternion frames to previous frames
 
         Parameters
@@ -52,7 +59,39 @@ class MotionVector(object):
             smoothing_window = 0
         self.frames = align_and_concatenate_frames(self.skeleton, self.skeleton.aligning_root_node, new_frames, self.frames, self.start_pose,
                                                    smoothing_window=smoothing_window, blending_method=self.spatial_smoothing_method)
+
+        self._prev_n_frames = self.n_frames
         self.n_frames = len(self.frames)
+
+    def append_frames_with_foot_ik(self, new_frames, plant_foot):
+
+        ik_chains = self.skeleton.skeleton_model["ik_chains"]
+        if self.apply_spatial_smoothing:
+            smoothing_window = self.smoothing_window
+        else:
+            smoothing_window = 0
+        if plant_foot == self.skeleton.skeleton_model["left_foot"]:
+            swing_foot = "right"
+            plant_foot = "left"
+
+        else:
+            swing_foot = "left"
+            plant_foot = "right"
+        import motion_concatenation
+        reload(motion_concatenation)
+        self.frames = motion_concatenation.align_frames_and_fix_feet(self.skeleton, self.skeleton.aligning_root_node, new_frames,
+                                                self.frames, self._prev_n_frames, self.start_pose, plant_foot, swing_foot,
+                                                 ik_chains, 8, smoothing_window)
+        self._prev_n_frames = self.n_frames
+        self.n_frames = len(self.frames)
+
+    def append_frames(self, new_frames, plant_foot=None):
+        if self.apply_foot_alignment and self.skeleton.skeleton_model is not None:
+            ik_chains = self.skeleton.skeleton_model["ik_chains"]
+            if plant_foot in ik_chains:
+                self.append_frames_with_foot_ik(new_frames, plant_foot)
+                return
+        self.append_frames_generic(new_frames)
 
     def export(self, skeleton, output_dir, output_filename, add_time_stamp=True):
         bvh_writer = BVHWriter(None, skeleton, self.frames, skeleton.frame_time, True)
@@ -69,9 +108,11 @@ class MotionVector(object):
         if n_frames == 0:
             self.frames = None
             self.n_frames = 0
+            self._prev_n_frames = self.n_frames
         else:
             self.frames = self.frames[:n_frames]
             self.n_frames = len(self.frames)
+            self._prev_n_frames = 0
 
     def has_frames(self):
         return self.frames is not None
@@ -79,8 +120,12 @@ class MotionVector(object):
     def clear(self, end_frame=0):
         if end_frame == 0:
             self.frames = None
+            self.n_frames = 0
+            self._prev_n_frames = 0
         else:
             self.frames = self.frames[:end_frame]
+            self.n_frames = len(self.frames)
+            self._prev_n_frames = 0
 
     def translate_root(self, offset):
         for idx in xrange(self.n_frames):

@@ -3,7 +3,7 @@ import numpy as np
 from .objective_functions import sfpca_objective_func
 from . import LEN_QUAT, LEN_CARTESIAN
 from sklearn.decomposition import PCA
-from morphablegraphs.animation_data import Skeleton, BVHReader
+from morphablegraphs.animation_data import BVHReader, SkeletonBuilder
 import time
 import os
 from scipy.optimize import minimize
@@ -45,10 +45,9 @@ class ScaledFunctionalPCA(object):
                                                                                                knots)
         self.npc = npc
         self.knots = knots
-        self.skeleton = Skeleton()
         skeleton_bvh = os.path.join(os.path.dirname(__file__), r'../../../skeleton.bvh')
         bvhreader = BVHReader(skeleton_bvh)
-        self.skeleton.load_from_bvh(bvhreader)
+        self.skeleton = SkeletonBuilder().load_from_bvh(bvhreader)
         self.skeleton_json = skeleton_json
         self.data_repo = data_repo
         self.n_joints = n_joints

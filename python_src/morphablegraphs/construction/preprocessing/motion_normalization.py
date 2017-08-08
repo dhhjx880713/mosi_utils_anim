@@ -11,9 +11,8 @@ from ...animation_data.utils import euler_to_quaternion, \
                                      rotate_euler_frames, \
                                     point_rotation_by_quaternion, quaternion_to_euler
 from ...external.transformations import quaternion_inverse, quaternion_multiply
-from ...animation_data.bvh import BVHReader, BVHWriter
+from ...animation_data import BVHReader, BVHWriter, SkeletonBuilder
 from motion_segmentation import MotionSegmentation
-from ...animation_data.skeleton import Skeleton
 import os
 import glob
 from copy import deepcopy
@@ -57,8 +56,7 @@ class MotionNormalization(MotionSegmentation):
         bvh_files = glob.glob(data_folder + '*.bvh')
         self.ref_bvh = bvh_files[0]
         self.ref_bvhreader = BVHReader(self.ref_bvh)
-        self.skeleton = Skeleton()
-        self.skeleton.load_from_bvh(self.ref_bvhreader)
+        self.skeleton = SkeletonBuilder().load_from_bvh(self.ref_bvhreader)
         for bvh_file_path in bvh_files:
             bvhreader = BVHReader(bvh_file_path)
             filename = os.path.split(bvh_file_path)[-1]
@@ -94,8 +92,7 @@ class MotionNormalization(MotionSegmentation):
         else:
             raise ValueError('No reference BVH file for skeleton information')
         self.ref_bvhreader.node_names['Hips']['offset'] = [0, 0, 0]
-        skeleton = Skeleton()
-        skeleton.load_from_bvh(self.ref_bvhreader)
+        skeleton = SkeletonBuilder().load_from_bvh(self.ref_bvhreader)
         for filename, frames in self.aligned_motions.iteritems():
             height_1 = get_cartesian_coordinates_from_euler_full_skeleton(self.ref_bvhreader,
                                                                           skeleton,

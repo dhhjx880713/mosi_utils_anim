@@ -2,7 +2,7 @@
 
 from motion_dtw import MotionDynamicTimeWarping
 import os
-from ...animation_data import BVHReader, Skeleton
+from ...animation_data import BVHReader, SkeletonBuilder
 from ...motion_analysis import BVHAnalyzer
 
 
@@ -36,8 +36,7 @@ def test_frame_distance():
     # test_bvh = r'C:\repo\data\1 - MoCap\3 - Cutting\elementary_action_walk\leftStance\walk_033_3_leftStance_487_543.bvh'
     ref_bvhreader = BVHReader(ref_bvh)
     test_bvhreader = BVHReader(test_bvh)
-    skeleton = Skeleton()
-    skeleton.load_from_bvh(ref_bvhreader)
+    skeleton = SkeletonBuilder().load_from_bvh(ref_bvhreader)
 
     # error1, theta, offset_x, offset_z = calculate_frame_distance(skeleton, ref_bvhreader.frames[0],
     #                                                             test_bvhreader.frames[0], return_transform=True)
@@ -61,8 +60,7 @@ def test_frame_distance():
     # # test_bvh = r'C:\repo\data\1 - MoCap\3 - Cutting\elementary_action_walk\leftStance\walk_033_3_leftStance_487_543.bvh'
     # ref_bvhreader = BVHReader(ref_bvh)
     # test_bvhreader = BVHReader(test_bvh)
-    # skeleton = Skeleton()
-    # skeleton.load_from_bvh(ref_bvhreader)
+    # skeleton = SkeletonBuilder().load_from_bvh(ref_bvhreader)
     #
     # error1, theta, offset_x, offset_z = calculate_frame_distance(skeleton, ref_bvhreader.frames[0],
     #                                                             test_bvhreader.frames[0], return_transform=True)

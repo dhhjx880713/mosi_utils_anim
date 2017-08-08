@@ -1,46 +1,7 @@
 import numpy as np
-from ...animation_data.utils import convert_quaternion_frames_to_euler_frames as convert_quat_to_euler, euler_to_quaternion, quaternion_to_euler
-from ...external.transformations import quaternion_matrix, quaternion_from_matrix, quaternion_multiply, quaternion_inverse
-LEN_QUATERNION = 4
-LEN_TRANSLATION = 3
-
-
-def get_3d_rotation_between_vectors(a ,b):
-    v = np.cross(a, b)
-    s = np.linalg.norm(v)
-    if s ==0:
-        return np.eye(3)
-    c = np.dot(a,b)
-    v_x = np.array([[0, -v[2], v[1]],
-                    [v[2], 0, -v[0]],
-                    [-v[1], v[0], 0]])
-    v_x_2 = np.dot(v_x,v_x)
-    r = np.eye(3) + v_x + (v_x_2* (1-c/s**2))
-    return r
-
-def quaternion_from_vector_to_vector(a, b):
-    "src: http://stackoverflow.com/questions/1171849/finding-quaternion-representing-the-rotation-from-one-vector-to-another"
-    v = np.cross(a, b)
-    w = np.sqrt((np.linalg.norm(a) ** 2) * (np.linalg.norm(b) ** 2)) + np.dot(a, b)
-    q = np.array([w, v[0], v[1], v[2]])
-    return q/ np.linalg.norm(q)
-
-
-def convert_euler_to_quat(euler_frame, joints):
-    quat_frame = euler_frame[:3].tolist()
-    offset = 3
-    step = 3
-    for joint in joints:
-        e = euler_frame[offset:offset+step]
-        #print joint, e
-        q = euler_to_quaternion(e)
-        quat_frame += list(q)
-        offset += step
-    return np.array(quat_frame)
-
-
-def normalize_quaternion(q):
-    return quaternion_inverse(q) / np.dot(q, q)
+from utils import LEN_QUATERNION, LEN_TRANSLATION, convert_euler_to_quat, quaternion_from_vector_to_vector
+from ..utils import convert_quaternion_frames_to_euler_frames as convert_quat_to_euler, euler_to_quaternion, quaternion_to_euler
+from ...external.transformations import quaternion_matrix, quaternion_from_matrix
 
 
 class SkeletonPoseModel(object):
@@ -48,14 +9,15 @@ class SkeletonPoseModel(object):
     TODO wrap parameters to allow use with constrained euler, e.g. to rotate an arm using a single parameter
     then have a skeleton model with realistic degrees of freedom and also predefined ik-chains that is initialized using a frame
     """
-    def __init__(self, skeleton, pose_parameters, channels, use_euler=False):
+    def __init__(self, skeleton, use_euler=False):
+        self.channels = skeleton.get_channels()
+        pose_parameters = skeleton.reference_frame
         self.skeleton = skeleton
         self.use_euler = use_euler
         if self.use_euler:
             self.pose_parameters = convert_quat_to_euler([pose_parameters])[0]#change to euler
         else:
             self.pose_parameters = pose_parameters
-        self.channels = channels
         self.n_channels = {}
         self.channels_start = {}
         self.types = {}
@@ -73,12 +35,10 @@ class SkeletonPoseModel(object):
             channel_idx += self.n_channels[joint]
             if self.n_channels[joint] > 0:
                 self.modelled_joints.append(joint)
-        #print "modelled joints",self.modelled_joints
-        #print "maximum channel", channel_idx
         self.free_joints_map = skeleton.free_joints_map
         self.reduced_free_joints_map = skeleton.reduced_free_joints_map
-        self.head_joint = skeleton.head_joint
-        self.neck_joint = skeleton.neck_joint
+        self.head_joint = skeleton.skeleton_model["head"]
+        self.neck_joint = skeleton.skeleton_model["neck"]
         self.relative_hand_dir = np.array([1.0, 0.0, 0.0, 0.0])
         self.relative_hand_cross = np.array([0.0,1.0,0.0, 0.0])
         self.relative_hand_up = np.array([0.0, 0.0, 1.0, 0.0])
@@ -123,20 +83,14 @@ class SkeletonPoseModel(object):
             return self.pose_parameters
 
     def evaluate_position_with_cache(self, target_joint, free_joints):
-        """ run fk
-        """
         for joint in free_joints:
             self.skeleton.nodes[joint].get_global_position(self.pose_parameters, use_cache=True)
         return self.skeleton.nodes[target_joint].get_global_position(self.pose_parameters, use_cache=True)#get_vector()
 
     def evaluate_position(self, target_joint):
-        """ run fk
-        """
         return self.skeleton.nodes[target_joint].get_global_position(self.pose_parameters)#get_vector()
 
     def evaluate_orientation(self, target_joint):
-        """ run fk
-        """
         return self.skeleton.nodes[target_joint].get_global_orientation_quaternion(self.pose_parameters)
 
     def apply_bounds(self, free_joint):
@@ -275,7 +229,6 @@ class SkeletonPoseModel(object):
         new_local = np.dot(np.linalg.inv(parent_m), m)
         new_local_q = quaternion_from_matrix(new_local)
         self.set_channel_values(new_local_q, [joint_name])
-
 
     def set_joint_orientation(self, joint_name, target_q):
         global_q = self.skeleton.nodes[joint_name].get_global_orientation_quaternion(self.pose_parameters, use_cache=False)

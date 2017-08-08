@@ -38,7 +38,6 @@ def align_quaternion_frames(target_skeleton, frames):
 
 def get_coordinate_system_axes(skeleton, joint_name, frame, axes):
     global_m = skeleton.nodes[joint_name].get_global_matrix(frame)[:3,:3]
-    #global_m[:3, 3] = [0, 0, 0]
     dirs = []
     for axis in axes:
         direction = np.dot(global_m, axis)
@@ -57,8 +56,6 @@ def rotate_axes(axes, q):
 
 
 def align_axis(axes, key, new_vec):
-    #print "align axis",axes[key] new_vec
-    #q = find_rotation_between_vectors(axes[key], new_vec)
     q = quaternion_from_vector_to_vector(axes[key], new_vec)
     aligned_axes = rotate_axes(axes, q)
     return q, aligned_axes
@@ -81,6 +78,7 @@ def filter_dofs(q, fixed_dims):
     q = quaternion_from_euler(*e)
     return q
 
+
 def quaternion_from_axis_angle(axis, angle):
     q = [1,0,0,0]
     q[1] = axis[0] * math.sin(angle / 2)
@@ -90,28 +88,29 @@ def quaternion_from_axis_angle(axis, angle):
     return normalize(q)
 
 
-def find_rotation_between_vectors(a,b, guess=None):
+def find_rotation_between_vectors(a, b):
     """http://math.stackexchange.com/questions/293116/rotating-one-3d-vector-to-another"""
-    if np.array_equal(a, b):
+    if np.array_equiv(a, b):
         return [1, 0, 0, 0]
 
     axis = normalize(np.cross(a, b))
-    #magnitude = np.linalg.norm(a) * np.linalg.norm(b)
-    angle = math.acos(np.dot(a,b))#/magnitude
+    dot = np.dot(a, b)
+    if dot >= 1.0:
+        return [1, 0, 0, 0]
+    angle = math.acos(dot)
     q = quaternion_from_axis_angle(axis, angle)
     return q
-
 
 
 def to_local_cos(skeleton, node_name, frame, q):
     # bring into parent coordinate system
     pm = skeleton.nodes[node_name].get_global_matrix(frame)[:3,:3]
-    #pm[:3, 3] = [0, 0, 0]
     inv_pm = np.linalg.inv(pm)
     r = quaternion_matrix(q)[:3,:3]
     lr = np.dot(inv_pm, r)[:3,:3]
     q = quaternion_from_matrix(lr)
     return q
+
 
 def to_global_cos(skeleton, node_name, frame, q):
     pm = skeleton.nodes[node_name].get_global_matrix(frame)[:3,:3]
@@ -119,6 +118,7 @@ def to_global_cos(skeleton, node_name, frame, q):
     lr = np.dot(pm, r)[:3, :3]
     q = quaternion_from_matrix(lr)
     return q
+
 
 def apply_additional_rotation_on_frames(animated_joints, frames, additional_rotation_map):
     new_frames = []
@@ -128,7 +128,7 @@ def apply_additional_rotation_on_frames(animated_joints, frames, additional_rota
             if name in additional_rotation_map:
                 euler = np.radians(additional_rotation_map[name])
                 additional_q = quaternion_from_euler(*euler)
-                offset = idx *4+3
+                offset = idx * 4 + 3
                 q = new_frame[offset:offset + 4]
                 new_frame[offset:offset + 4] = quaternion_multiply(q, additional_q)
 

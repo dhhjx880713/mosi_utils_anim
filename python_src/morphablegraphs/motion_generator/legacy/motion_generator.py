@@ -5,7 +5,7 @@ from datetime import datetime
 from ...constraints import MGInputFormatReader
 from ..algorithm_configuration import AlgorithmConfigurationBuilder
 from ..graph_walk_optimizer import GraphWalkOptimizer
-from ..inverse_kinematics import InverseKinematics
+from ...animation_data.motion_editing import InverseKinematics
 from graph_walk_generator import GraphWalkGenerator
 from ...motion_model import MotionStateGraphLoader
 from ...utilities import clear_log, save_log, write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO, LOG_MODE_ERROR

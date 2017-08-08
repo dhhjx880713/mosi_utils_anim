@@ -4,6 +4,7 @@ from feature_point_model import FeaturePointModel
 import json
 import os
 
+
 class FeaturePointModelBuilder():
     def __init__(self):
         self.morphable_model_directory = None

@@ -30,6 +30,20 @@ class GraphWalkEntry(object):
         self.n_spatial_components = motion_state_graph.nodes[node_key].get_n_spatial_components()
         self.n_time_components = motion_state_graph.nodes[node_key].get_n_time_components()
 
+    @staticmethod
+    def from_json(motion_state_graph, data):
+        return GraphWalkEntry(motion_state_graph, tuple(data["node_key"]),
+                              np.array(data["parameters"]), data["arc_length"],
+                              data["start_frame"], data["end_frame"])
+
+    def to_json(self):
+        data = dict()
+        data["node_key"] =self.node_key
+        data["parameters"] = self.parameters.tolist()
+        data["arc_length"] = self.arc_length
+        data["start_frame"] = self.start_frame
+        data["end_frame"] = self.end_frame
+        return data
 
 class HighLevelGraphWalkEntry(object):
     def __init__(self, action_name, start_step, end_step, action_constraints):
@@ -122,7 +136,13 @@ class GraphWalk(object):
             step.start_frame = start_frame
             #write_log(step.node_key, len(step.parameters))
             quat_frames = self.motion_state_graph.nodes[step.node_key].back_project(step.parameters, use_time_parameters).get_motion_vector(step_size)
-            self.motion_vector.append_frames(quat_frames)
+            if step.node_key[1].lower().endswith("leftstance"):
+                foot_joint = "foot_r"
+            elif step.node_key[1].lower().endswith("rightstance"):
+                foot_joint = "foot_l"
+            else:
+                foot_joint = None
+            self.motion_vector.append_frames(quat_frames, foot_joint)
             step.end_frame = self.get_num_of_frames()-1
             start_frame = step.end_frame + 1
 
@@ -387,4 +407,23 @@ class GraphWalk(object):
                 traj_constraint = action.action_constraints.root_trajectory
                 plot_annotated_spline(traj_constraint,root_motion, file_name+str(idx)+".png")
 
+    def to_json(self):
+        data = dict()
+        data["algorithm_config"] = self._algorithm_config
+        data["start_pose"] = self.motion_vector.start_pose
+        data["steps"] = []
+        for step in self.steps:
+            data["steps"].append(step.to_json())
+        return data
 
+    @staticmethod
+    def from_json(graph, data):
+        graph_walk = GraphWalk(graph, None, data["algorithm_config"], data["start_pose"])
+        graph_walk.steps = []
+        for step_data in data["steps"]:
+            graph_walk.steps.append(GraphWalkEntry.from_json(graph, step_data))
+        return graph_walk
+
+    def save_to_file(self, file_path):
+        with open(file_path, "wb") as out:
+            json.dump(self.to_json(), out)

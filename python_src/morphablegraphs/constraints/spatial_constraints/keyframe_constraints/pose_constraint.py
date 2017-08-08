@@ -4,7 +4,7 @@ Created on Mon Aug 03 18:59:44 2015
 
 @author: erhe01
 """
-
+import numpy as np
 from math import sqrt
 from ....animation_data.utils import convert_quaternion_frame_to_cartesian_frame,\
     align_point_clouds_2D,\
@@ -20,46 +20,60 @@ class PoseConstraint(KeyframeConstraintBase):
         super(PoseConstraint, self).__init__(constraint_desc, precision, weight_factor)
         self.skeleton = skeleton
         self.pose_constraint = constraint_desc["frame_constraint"]
+        self.velocity_constraint = constraint_desc["velocity_constraint"]
         self.constraint_type = SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE
-        return
+        self.node_names = constraint_desc["node_names"]
+        self.weights = constraint_desc["weights"]
 
     def evaluate_motion_spline(self, aligned_spline):
-        return self.evaluate_frame(aligned_spline.evaluate(self.canonical_keyframe))
+        frame1 = aligned_spline.evaluate(self.canonical_keyframe)
+        # get point cloud of first two frames
+        point_cloud1 = np.array(self.skeleton.convert_quaternion_frame_to_cartesian_frame(frame1, self.node_names))
+        frame2 = aligned_spline.evaluate(self.canonical_keyframe+1)
+        root_pos2 = self.skeleton.nodes[self.node_names[0]].get_global_position(frame2)
+        velocity = root_pos2 - point_cloud1[0]  # measure only the velocity of the root
+        vel_error = np.linalg.norm(self.velocity_constraint - velocity)
+        theta, offset_x, offset_z = align_point_clouds_2D(self.pose_constraint,
+                                                          point_cloud1,
+                                                          self.weights)
+        t_point_cloud = transform_point_cloud(point_cloud1, theta, offset_x, offset_z)
+
+        error = calculate_point_cloud_distance(self.pose_constraint, t_point_cloud)
+        print "evaluate pose constraint", error, vel_error
+
+        return error + vel_error
 
     def evaluate_motion_sample(self, aligned_quat_frames):
-        """ Evaluates the difference between the first frame of the motion
-        and the frame constraint.
+        """ Evaluates the difference between the pose of at the canonical frame of the motion and the pose constraint.
 
         Parameters
         ----------
         * aligned_quat_frames: np.ndarray
             Motion aligned to previous motion in quaternion format
-        * frame_constraint: dict of np.ndarray
-            Dict containing a position for each joint
-        * skeleton: Skeleton
-            Used for hierarchy information
 
         Returns
         -------
         * error: float
             Difference to the desired constraint value.
         """
-        return self.evaluate_frame(aligned_quat_frames[self.canonical_keyframe])
 
-    def evaluate_frame(self, frame):
-        # get point cloud of first frame
-        point_cloud = self.skeleton.convert_quaternion_frame_to_cartesian_frame(frame)
-        #print len(self.pose_constraint), len(point_cloud)
+        frame1 = aligned_quat_frames[self.canonical_keyframe]
+        # get point cloud of first two frames
+        point_cloud1 = np.array(self.skeleton.convert_quaternion_frame_to_cartesian_frame(frame1, self.node_names))
+        vel_error = 0
+        if self.canonical_keyframe + 1 < len(aligned_quat_frames):
+            frame2 = aligned_quat_frames[self.canonical_keyframe + 1]
+            root_pos2 = self.skeleton.nodes[self.node_names[0]].get_global_position(frame2)
+            velocity = root_pos2-point_cloud1[0]  # measure only the velocity of the root
+            vel_error = np.linalg.norm(self.velocity_constraint - velocity)
         theta, offset_x, offset_z = align_point_clouds_2D(self.pose_constraint,
-                                                          point_cloud,
-                                                          self.skeleton.joint_weights)
-        t_point_cloud = transform_point_cloud(
-            point_cloud, theta, offset_x, offset_z)
+                                                          point_cloud1,
+                                                          self.weights)
+        t_point_cloud = transform_point_cloud(point_cloud1, theta, offset_x, offset_z)
 
-        error = calculate_point_cloud_distance(
-            self.pose_constraint, t_point_cloud)
-
-        return error
+        error = calculate_point_cloud_distance(self.pose_constraint, t_point_cloud)
+        print "evaluate pose constraint", error, vel_error
+        return error + vel_error
 
     def get_residual_vector_spline(self, aligned_spline):
         return self.get_residual_vector_frame(aligned_spline.evaluate(self.canonical_keyframe))
@@ -69,11 +83,11 @@ class PoseConstraint(KeyframeConstraintBase):
 
     def get_residual_vector_frame(self, frame):
         # get point cloud of first frame
-        point_cloud = self.skeleton.convert_quaternion_frame_to_cartesian_frame(frame)
+        point_cloud = self.skeleton.convert_quaternion_frame_to_cartesian_frame(frame, self.node_names)
 
         theta, offset_x, offset_z = align_point_clouds_2D(self.pose_constraint,
                                                           point_cloud,
-                                                          self.skeleton.joint_weights)
+                                                          self.weights)
         t_point_cloud = transform_point_cloud(point_cloud, theta, offset_x, offset_z)
         residual_vector = []
         for i in xrange(len(t_point_cloud)):

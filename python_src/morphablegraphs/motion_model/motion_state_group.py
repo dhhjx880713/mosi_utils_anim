@@ -182,9 +182,10 @@ class MotionStateGroup(ElementaryActionMetaInfo):
                 count += 1
         #add end node
         to_node_key = self.nodes[current_node].generate_random_transition(NODE_TYPE_END)
-        next_parameters = self.generate_next_parameters(current_node, current_parameters, to_node_key, use_transition_model)
-        entry = {"node_key": to_node_key, "parameters": next_parameters}
-        graph_walk.append(entry)
+        if to_node_key is not None:
+            next_parameters = self.generate_next_parameters(current_node, current_parameters, to_node_key, use_transition_model)
+            entry = {"node_key": to_node_key, "parameters": next_parameters}
+            graph_walk.append(entry)
         return graph_walk
 
     def has_cycle_states(self):

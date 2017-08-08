@@ -7,6 +7,7 @@ Created on Mon Jul 27 18:38:15 2015
 
 from copy import copy
 import numpy as np
+import collections
 from ..utilities.exceptions import PathSearchError
 from .motion_primitive_constraints import MotionPrimitiveConstraints
 from .spatial_constraints import PoseConstraint, Direction2DConstraint, GlobalTransformConstraint, PoseConstraintQuatFrame, TwoHandConstraintSet, LookAtConstraint, FeetConstraint
@@ -37,12 +38,22 @@ class MotionPrimitiveConstraintsBuilder(object):
         self.use_local_coordinates = False
         self.use_transition_constraint = False
         self.generate_half_step_constraint = False
+        self.pose_constraint_node_names = None
 
     def set_action_constraints(self, action_constraints):
         self.action_constraints = action_constraints
         self.motion_state_graph = action_constraints.motion_state_graph
         self.node_group = self.action_constraints.get_node_group()
         self.skeleton = action_constraints.motion_state_graph.skeleton
+
+        if self.skeleton.skeleton_model is not None:
+            important_joints = []
+            skeleton_model = self.skeleton.skeleton_model
+            for j in ["pelvis", "right_hand", "left_hand", "right_foot", "left_foot"]:
+                important_joints.append(skeleton_model[j])
+            self.pose_constraint_node_names = important_joints
+        else:
+            self.pose_constraint_node_names = self.skeleton.joint_weight_map.keys()
 
     def set_algorithm_config(self, algorithm_config):
         self.algorithm_config = algorithm_config
@@ -113,6 +124,8 @@ class MotionPrimitiveConstraintsBuilder(object):
         mp_constraints.skeleton = self.skeleton
         mp_constraints.precision = self.action_constraints.precision
         mp_constraints.verbose = self.algorithm_config["verbose"]
+        print "add constraints", self.use_transition_constraint
+
         if self.action_constraints.root_trajectory is not None:
             self._add_path_following_constraints(mp_constraints)
             if self.use_transition_constraint:
@@ -158,7 +171,7 @@ class MotionPrimitiveConstraintsBuilder(object):
 
     def _add_pose_constraint(self, mp_constraints):
         if mp_constraints.settings["transition_pose_constraint_factor"] > 0.0 and self.status["prev_frames"] is not None:
-            pose_constraint_desc = self._create_pose_constraint_from_preceding_motion()
+            pose_constraint_desc = self.create_pose_constraint(self.status["prev_frames"], self.pose_constraint_node_names)
             #pose_constraint_desc = self._create_pose_constraint_angular_from_preceding_motion()
             pose_constraint_desc = self._map_label_to_canonical_keyframe(pose_constraint_desc)
             pose_constraint = PoseConstraint(self.skeleton, pose_constraint_desc, self.precision["smooth"],
@@ -311,19 +324,29 @@ class MotionPrimitiveConstraintsBuilder(object):
             get_keyframe_from_annotation(self.status["motion_primitive_name"], keyframe_label,
                                          self.status["n_canonical_frames"])
 
-    def _create_pose_constraint_from_preceding_motion(self):
-        """ Create frame a constraint from the preceding motion.
-        """
-        return MotionPrimitiveConstraintsBuilder.create_pose_constraint(self.skeleton, self.status["prev_frames"][-1])
-
     def _create_pose_constraint_angular_from_preceding_motion(self):
         return MotionPrimitiveConstraintsBuilder.create_pose_constraint_angular(self.status["prev_frames"][-1])
 
-    @classmethod
-    def create_pose_constraint(cls, skeleton, frame):
+    def create_pose_constraint(self, frames, node_names=None):
+        if node_names is not None:
+            weights_map = collections.OrderedDict()
+            for node_name in node_names:
+                if node_name in self.skeleton.joint_weight_map:
+                    weights_map[node_name] = self.skeleton.joint_weight_map[node_name]
+            weights = weights_map.values()
+        else:
+            node_names = self.skeleton.joint_weight_map.keys()
+            weights = self.skeleton.joint_weight_map.values()
+
+        last_pose = np.array(self.skeleton.convert_quaternion_frame_to_cartesian_frame(frames[-1], node_names))
+        pre_root_pos = self.skeleton.nodes[node_names[0]].get_global_position(frames[-2])
+        v = last_pose[0]-pre_root_pos  # measure only the velocity of the root
         frame_constraint = {"keyframeLabel": "start",
-                            "frame_constraint": skeleton.convert_quaternion_frame_to_cartesian_frame(frame),
-                            "semanticAnnotation": {"keyframeLabel": "start"}}
+                            "frame_constraint": last_pose,
+                            "velocity_constraint": v,
+                            "semanticAnnotation": {"keyframeLabel": "start"},
+                            "node_names": node_names,
+                            "weights": weights}
         return frame_constraint
 
     @classmethod

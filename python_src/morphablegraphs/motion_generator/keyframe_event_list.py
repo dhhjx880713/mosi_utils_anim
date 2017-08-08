@@ -60,13 +60,14 @@ class KeyframeEventList(object):
             time_function = None
             if graph_walk.use_time_parameters:
                 time_function = graph_walk.motion_state_graph.nodes[step.node_key].back_project_time_function(step.parameters)
-            for keyframe_event in step.motion_primitive_constraints.keyframe_event_list.values():
-                event_keyframe_index = keyframe_event.extract_keyframe_index(time_function, frame_offset)
-                existing_events = None
-                if event_keyframe_index in self._keyframe_events_dict.keys():
-                    existing_events = self._keyframe_events_dict[event_keyframe_index]
-                keyframe_event.merge_event_list(existing_events)
-                self._keyframe_events_dict[event_keyframe_index] = keyframe_event
+            if step.motion_primitive_constraints is not None:
+                for keyframe_event in step.motion_primitive_constraints.keyframe_event_list.values():
+                    event_keyframe_index = keyframe_event.extract_keyframe_index(time_function, frame_offset)
+                    existing_events = None
+                    if event_keyframe_index in self._keyframe_events_dict.keys():
+                        existing_events = self._keyframe_events_dict[event_keyframe_index]
+                    keyframe_event.merge_event_list(existing_events)
+                    self._keyframe_events_dict[event_keyframe_index] = keyframe_event
             frame_offset += step.end_frame - step.start_frame + 1
 
     def get_keyframe_events_dict(self):

@@ -7,7 +7,7 @@ from motion_primitive.statistical_model_trainer import GMMTrainer
 from ..animation_data.utils import pose_orientation_quat, get_rotation_angle
 from ..external.transformations import quaternion_from_euler
 from dtw import run_dtw, get_warping_function, find_reference_motion, warp_motion
-from ..animation_data.skeleton import Skeleton
+from ..animation_data import SkeletonBuilder
 from ..utilities.io_helper_functions import export_frames_to_bvh_file
 from ..motion_model.motion_spline import MotionSpline
 from utils import convert_poses_to_point_clouds, rotate_frames, align_quaternion_frames, get_cubic_b_spline_knots,\
@@ -16,8 +16,7 @@ from utils import convert_poses_to_point_clouds, rotate_frames, align_quaternion
 
 class MotionModel(object):
     def __init__(self, bvh_reader, animated_joints=None):
-        self._skeleton = Skeleton()
-        self._skeleton.load_from_bvh(bvh_reader, animated_joints, add_tool_joints=False)
+        self._skeleton = SkeletonBuilder().load_from_bvh(bvh_reader, animated_joints, add_tool_joints=False)
         self._input_motions = []
         self._aligned_frames = []
         self._temporal_data = []

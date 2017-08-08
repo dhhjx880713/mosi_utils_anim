@@ -9,7 +9,7 @@ import tornado.ioloop
 import tornado.web
 import json
 from morphablegraphs.motion_generator.annotated_motion_vector import AnnotatedMotionVector
-from morphablegraphs.animation_data import BVHReader, Skeleton
+from morphablegraphs.animation_data import BVHReader, SkeletonBuilder
 SERVICE_CONFIG_FILE = "config" + os.sep + "service.config"
 ALGORITHM_CONFIG_FILE = "config" + os.sep + "accuracy_algorithm.config"
 
@@ -86,8 +86,7 @@ class UnityRESTApplication(tornado.web.Application):
         bvh_reader = BVHReader(bvh_path)
         animated_joints = list(bvh_reader.get_animated_joints())
         print animated_joints
-        self.skeleton = Skeleton()
-        self.skeleton.load_from_bvh(bvh_reader, animated_joints=animated_joints, add_tool_joints=False)
+        self.skeleton = SkeletonBuilder().load_from_bvh(bvh_reader, animated_joints=animated_joints, add_tool_joints=False)
         self.algorithm_config = None
         self.motion_vector = AnnotatedMotionVector(self.algorithm_config)
         self.motion_vector.skeleton = self.skeleton
