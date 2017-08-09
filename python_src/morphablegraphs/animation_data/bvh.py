@@ -42,7 +42,7 @@ class BVHReader(object):
         self.frames = None
         self.root = ""  # needed for the bvh writer
         if infilename != "":
-            infile = open(infilename, "rb")
+            infile = open(infilename, "r")
             lines = infile.readlines()
             self.process_lines(lines)
             infile.close()
