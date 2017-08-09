@@ -214,7 +214,7 @@ class BVHWriter(object):
             filename = filename
         else:
             filename = filename + '.bvh'
-        outfile = open(filename, 'wb')
+        outfile = open(filename, 'w')
         outfile.write(bvh_string)
         outfile.close()
 
