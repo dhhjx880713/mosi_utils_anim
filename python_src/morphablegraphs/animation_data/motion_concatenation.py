@@ -196,8 +196,8 @@ def transform_quaternion_frames(frames, m,
 def concatenate_frames(new_frames, prev_frames, smoothing_window=0):
     d = len(prev_frames)
     frames = prev_frames.tolist()
-    for f in new_frames:
-        frames.append(f)
+    for idx in xrange(1, len(new_frames)):# skip first frame
+        frames.append(new_frames[idx])
     frames = np.array(frames)
     if smoothing_window > 0:
         frames = smooth_quaternion_frames(frames, d, smoothing_window)
@@ -214,8 +214,8 @@ def concatenate_frames_with_slerp(new_frames, prev_frames, smoothing_window=0):
     '''
     d = len(prev_frames)
     frames = prev_frames.tolist()
-    for f in new_frames:
-        frames.append(f)
+    for idx in xrange(1, len(new_frames)):# skip first frame
+        frames.append(new_frames[idx])
     frames = np.array(frames)
     if smoothing_window > 0:
         frames = smooth_quaternion_frames_with_slerp(frames, d, smoothing_window)
@@ -232,8 +232,8 @@ def concatenate_frames_with_slerp2(skeleton, new_frames, prev_frames, smoothing_
     '''
     d = len(prev_frames)
     frames = prev_frames.tolist()
-    for f in new_frames:
-        frames.append(f)
+    for idx in xrange(1, len(new_frames)):# skip first frame
+        frames.append(new_frames[idx])
     frames = np.array(frames)
     if smoothing_window > 0:
         smooth_translation_in_quat_frames(frames, d, smoothing_window)
@@ -320,9 +320,8 @@ def align_frames_and_fix_foot_to_prev(skeleton, aligning_joint, new_frames, prev
 
         d = len(prev_frames)
         frames = prev_frames.tolist()
-        for f in new_frames:
-            #f[:3] -= offset
-            frames.append(f)
+        for idx in xrange(1, len(new_frames)):  # skip first frame
+            frames.append(new_frames[idx])
         frames = np.array(frames)
 
         transition_start = d
@@ -644,8 +643,8 @@ def align_frames_and_fix_feet(skeleton, aligning_joint, new_frames, prev_frames,
     if prev_frames is not None:
         d = len(prev_frames)
         frames = prev_frames.tolist()
-        for f in new_frames:
-            frames.append(f)
+        for idx in xrange(1, len(new_frames)):# skip first frame
+            frames.append(new_frames[idx])
         frames = np.array(frames)
 
         blend_end = d
