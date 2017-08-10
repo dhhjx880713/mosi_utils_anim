@@ -49,7 +49,7 @@ class MotionPrimitiveConstraintsBuilder(object):
         if self.skeleton.skeleton_model is not None:
             important_joints = []
             skeleton_model = self.skeleton.skeleton_model
-            for j in ["pelvis", "right_hand", "left_hand", "right_foot", "left_foot"]:
+            for j in ["pelvis", "right_wrist", "left_wrist", "right_ankle", "left_ankle"]:
                 important_joints.append(skeleton_model[j])
             self.pose_constraint_node_names = important_joints
         else:

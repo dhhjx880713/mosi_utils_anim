@@ -74,8 +74,8 @@ def run_motion_grounding(bvh_file, skeleton_model):
 
     #filename = "corrected_grounding2.json"
     #ground_contacts = load_ground_contact_annotation(filename, mv.n_frames)
-    skeleton = add_heels_to_skeleton(skeleton, skeleton_model["left_foot"],
-                                                 skeleton_model["right_foot"],
+    skeleton = add_heels_to_skeleton(skeleton, skeleton_model["left_ankle"],
+                                                 skeleton_model["right_ankle"],
                                                  skeleton_model["left_heel"],
                                                  skeleton_model["right_heel"],
                                                  skeleton_model["heel_offset"])

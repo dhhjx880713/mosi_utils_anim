@@ -72,7 +72,7 @@ def move_to_ground(skeleton,frames, foot_joints, target_ground_height,start_fram
 
 def ground_both_feet(skeleton, frames, target_height, frame_idx):
     constraints = []
-    stance_foot = skeleton.skeleton_model["right_foot"]
+    stance_foot = skeleton.skeleton_model["right_ankle"]
     heel_joint = skeleton.skeleton_model["right_heel"]
     toe_joint = skeleton.skeleton_model["right_toe"]
     heel_offset = skeleton.skeleton_model["heel_offset"]
@@ -80,7 +80,7 @@ def ground_both_feet(skeleton, frames, target_height, frame_idx):
                            target_height)
     constraints.append(c1)
 
-    stance_foot = skeleton.skeleton_model["left_foot"]
+    stance_foot = skeleton.skeleton_model["left_ankle"]
     toe_joint = skeleton.skeleton_model["left_toe"]
     heel_joint = skeleton.skeleton_model["left_heel"]
     c2 = create_ankle_constraint_from_toe_and_heel(skeleton, frames, frame_idx, stance_foot, heel_joint, toe_joint, heel_offset, target_height)
@@ -90,7 +90,7 @@ def ground_both_feet(skeleton, frames, target_height, frame_idx):
 
 def ground_right_stance(skeleton, frames, target_height, frame_idx):
     constraints = []
-    stance_foot = skeleton.skeleton_model["right_foot"]
+    stance_foot = skeleton.skeleton_model["right_ankle"]
     heel_joint = skeleton.skeleton_model["right_heel"]
     toe_joint = skeleton.skeleton_model["right_toe"]
     heel_offset = skeleton.skeleton_model["heel_offset"]
@@ -98,7 +98,7 @@ def ground_right_stance(skeleton, frames, target_height, frame_idx):
                            target_height)
     constraints.append(c1)
 
-    swing_foot = skeleton.skeleton_model["left_foot"]
+    swing_foot = skeleton.skeleton_model["left_ankle"]
     toe_joint = skeleton.skeleton_model["left_toe"]
     heel_joint = skeleton.skeleton_model["left_heel"]
     c2 = generate_ankle_constraint_from_toe(skeleton, frames, frame_idx, swing_foot, heel_joint, toe_joint, target_height)
@@ -262,7 +262,7 @@ def run_grounding_on_bvh_file(bvh_file, out_path, skeleton_model, configuration)
     skeleton.skeleton_model = skeleton_model
     mv = MotionVector()
     mv.from_bvh_reader(bvh)
-    skeleton = add_heels_to_skeleton(skeleton, skeleton_model["left_foot"],
+    skeleton = add_heels_to_skeleton(skeleton, skeleton_model["left_ankle"],
                                      skeleton_model["right_foot"],
                                      skeleton_model["left_heel"],
                                      skeleton_model["right_heel"],

@@ -74,8 +74,8 @@ def run_motion_grounding(motion_graph_file, graph_walk_file, skeleton_model):
         return
     graph_walk = GraphWalk.from_json(graph, graph_walk_data)
     graph.skeleton.skeleton_model = skeleton_model
-    graph.skeleton = add_heels_to_skeleton(graph.skeleton, skeleton_model["left_foot"],
-                                           skeleton_model["right_foot"],
+    graph.skeleton = add_heels_to_skeleton(graph.skeleton, skeleton_model["left_ankle"],
+                                           skeleton_model["right_ankle"],
                                            skeleton_model["left_heel"],
                                            skeleton_model["right_heel"],
                                            skeleton_model["heel_offset"])

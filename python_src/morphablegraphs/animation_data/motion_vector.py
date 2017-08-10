@@ -71,7 +71,7 @@ class MotionVector(object):
             smoothing_window = self.smoothing_window
         else:
             smoothing_window = 0
-        if plant_foot == self.skeleton.skeleton_model["left_foot"]:
+        if plant_foot == self.skeleton.skeleton_model["left_ankle"]:
             swing_foot = "right"
             plant_foot = "left"
 

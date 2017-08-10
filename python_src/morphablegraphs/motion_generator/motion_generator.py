@@ -55,8 +55,8 @@ class MotionGenerator(object):
                                                                                self.scene_interface)
             if skeleton_model["left_heel"] not in list(self._motion_state_graph.skeleton.nodes.keys()):
                 self._motion_state_graph.skeleton = add_heels_to_skeleton(self._motion_state_graph.skeleton,
-                                                                          skeleton_model["left_foot"],
-                                                                          skeleton_model["right_foot"],
+                                                                          skeleton_model["left_ankle"],
+                                                                          skeleton_model["right_ankle"],
                                                                           skeleton_model["left_heel"],
                                                                           skeleton_model["right_heel"],
                                                                           skeleton_model["heel_offset"])
