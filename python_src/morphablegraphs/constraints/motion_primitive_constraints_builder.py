@@ -48,9 +48,9 @@ class MotionPrimitiveConstraintsBuilder(object):
 
         if self.skeleton.skeleton_model is not None:
             important_joints = []
-            skeleton_model = self.skeleton.skeleton_model["joints"]
+            joint_map = self.skeleton.skeleton_model["joints"]
             for j in ["pelvis", "right_wrist", "left_wrist", "right_ankle", "left_ankle"]:
-                important_joints.append(skeleton_model["joints"][j])
+                important_joints.append(joint_map[j])
             self.pose_constraint_node_names = important_joints
         else:
             self.pose_constraint_node_names = list(self.skeleton.joint_weight_map.keys())
