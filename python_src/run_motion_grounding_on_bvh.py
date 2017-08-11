@@ -74,10 +74,10 @@ def run_motion_grounding(bvh_file, skeleton_model):
 
     #filename = "corrected_grounding2.json"
     #ground_contacts = load_ground_contact_annotation(filename, mv.n_frames)
-    skeleton = add_heels_to_skeleton(skeleton, skeleton_model["left_ankle"],
-                                                 skeleton_model["right_ankle"],
-                                                 skeleton_model["left_heel"],
-                                                 skeleton_model["right_heel"],
+    skeleton = add_heels_to_skeleton(skeleton, skeleton_model["joints"]["left_ankle"],
+                                                 skeleton_model["joints"]["right_ankle"],
+                                                 skeleton_model["joints"]["left_heel"],
+                                                 skeleton_model["joints"]["right_heel"],
                                                  skeleton_model["heel_offset"])
     #joint_heights = get_joint_height(skeleton, mv.frames, skeleton_model["foot_joints"])
     #plot_joint_heights(joint_heights)

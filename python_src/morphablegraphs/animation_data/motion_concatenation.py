@@ -512,12 +512,12 @@ def generate_blended_frames(skeleton, frames, start, end, joint_list, window):
 
 
 def generate_feet_constraints(skeleton, frames, frame_idx, plant_side, swing_side, target_ground_height):
-    plant_foot_joint = skeleton.skeleton_model[plant_side + "_ankle"]
-    plant_toe_joint = skeleton.skeleton_model[plant_side + "_toe"]
-    plant_heel_joint = skeleton.skeleton_model[plant_side + "_heel"]
-    swing_foot_joint = skeleton.skeleton_model[swing_side + "_ankle"]
-    swing_toe_joint = skeleton.skeleton_model[swing_side + "_toe"]
-    swing_heel_joint = skeleton.skeleton_model[swing_side + "_heel"]
+    plant_foot_joint = skeleton.skeleton_model["joints"][plant_side + "_ankle"]
+    plant_toe_joint = skeleton.skeleton_model["joints"][plant_side + "_toe"]
+    plant_heel_joint = skeleton.skeleton_model["joints"][plant_side + "_heel"]
+    swing_foot_joint = skeleton.skeleton_model["joints"][swing_side + "_ankle"]
+    swing_toe_joint = skeleton.skeleton_model["joints"][swing_side + "_toe"]
+    swing_heel_joint = skeleton.skeleton_model["joints"][swing_side + "_heel"]
     plant_constraint = generate_ankle_constraint_from_toe(skeleton, frames, frame_idx, plant_foot_joint,
                                                           plant_heel_joint, plant_toe_joint, target_ground_height)
     swing_constraint = generate_ankle_constraint_from_toe(skeleton, frames, frame_idx, swing_foot_joint,
@@ -526,8 +526,8 @@ def generate_feet_constraints(skeleton, frames, frame_idx, plant_side, swing_sid
 
 
 def generate_feet_constraints2(skeleton, frames, frame_idx, plant_side, swing_side):
-    plant_foot_joint = skeleton.skeleton_model[plant_side + "_ankle"]
-    swing_foot_joint = skeleton.skeleton_model[swing_side + "_ankle"]
+    plant_foot_joint = skeleton.skeleton_model["joints"][plant_side + "_ankle"]
+    swing_foot_joint = skeleton.skeleton_model["joints"][swing_side + "_ankle"]
     plant_constraint = create_grounding_constraint_from_frame(skeleton, frames, frame_idx - 1, plant_foot_joint)
     swing_constraint = create_grounding_constraint_from_frame(skeleton, frames, frame_idx - 1, swing_foot_joint)
     return plant_constraint, swing_constraint
@@ -571,7 +571,7 @@ def fix_feet_at_transition(skeleton, frames, d,  plant_side, swing_side, ik_chai
 
     align_feet_to_next_step(skeleton, frames, d-1, plant_constraint, swing_constraint, ik_chains, plant_window, ik_window)
     align_feet_to_prev_step(skeleton, frames, d, plant_constraint, swing_constraint, ik_chains, ik_window)
-    #swing_foot = skeleton.skeleton_model[swing_side + "_ankle"]
+    #swing_foot = skeleton.skeleton_model["joints"][swing_side + "_ankle"]
     #align_foot_to_prev_step(skeleton, frames, swing_foot, ik_chains[swing_foot], d, ik_window)
 
 
@@ -611,8 +611,8 @@ def blend_towards_next_step_linear(skeleton, frames, d,  plant_side, swing_side,
 
 
 def blend_towards_next_step_linear_with_original(skeleton, frames, start, end, plant_side, swing_side, ik_chains, window=8):
-    plant_joint = skeleton.skeleton_model[plant_side + "_ankle"]
-    swing_joint = skeleton.skeleton_model[swing_side + "_ankle"]
+    plant_joint = skeleton.skeleton_model["joints"][plant_side + "_ankle"]
+    swing_joint = skeleton.skeleton_model["joints"][swing_side + "_ankle"]
     plant_ik_chain = ik_chains[plant_joint]
     swing_ik_chain = ik_chains[swing_joint]
     joint_list = [skeleton.root, "pelvis", plant_ik_chain["root"], plant_ik_chain["joint"], plant_joint,
@@ -623,8 +623,8 @@ def blend_towards_next_step_linear_with_original(skeleton, frames, start, end, p
 
 
 def blend_towards_next_step3(skeleton, frames, start, end, plant_side, swing_side, ik_chains, window=8):
-    plant_joint = skeleton.skeleton_model[plant_side + "_ankle"]
-    swing_joint = skeleton.skeleton_model[swing_side + "_ankle"]
+    plant_joint = skeleton.skeleton_model["joints"][plant_side + "_ankle"]
+    swing_joint = skeleton.skeleton_model["joints"][swing_side + "_ankle"]
     plant_ik_chain = ik_chains[plant_joint]
     swing_ik_chain = ik_chains[swing_joint]
     joint_list = [skeleton.root, "pelvis", plant_ik_chain["root"], plant_ik_chain["joint"], plant_joint,

@@ -37,8 +37,8 @@ class SkeletonPoseModel(object):
                 self.modelled_joints.append(joint)
         self.free_joints_map = skeleton.free_joints_map
         self.reduced_free_joints_map = skeleton.reduced_free_joints_map
-        self.head_joint = skeleton.skeleton_model["head"]
-        self.neck_joint = skeleton.skeleton_model["neck"]
+        self.head_joint = skeleton.skeleton_model["joints"]["head"]
+        self.neck_joint = skeleton.skeleton_model["joints"]["neck"]
         self.relative_hand_dir = np.array([1.0, 0.0, 0.0, 0.0])
         self.relative_hand_cross = np.array([0.0,1.0,0.0, 0.0])
         self.relative_hand_up = np.array([0.0, 0.0, 1.0, 0.0])

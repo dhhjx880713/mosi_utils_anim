@@ -105,12 +105,12 @@ def create_ankle_constraint(skeleton, frames, ankle_joint_name, heel_joint_name,
 class FootplantConstraintGenerator(object):
     def __init__(self, skeleton, skeleton_model, settings, scene_interface, source_ground_height=0):
         self.skeleton = skeleton
-        self.left_foot = skeleton_model["left_ankle"]
-        self.right_foot = skeleton_model["right_ankle"]
-        self.right_heel = skeleton_model["right_heel"]
-        self.left_heel = skeleton_model["left_heel"]
-        self.right_toe = skeleton_model["right_toe"]
-        self.left_toe = skeleton_model["left_toe"]
+        self.left_foot = skeleton_model["joints"]["left_ankle"]
+        self.right_foot = skeleton_model["joints"]["right_ankle"]
+        self.right_heel = skeleton_model["joints"]["right_heel"]
+        self.left_heel = skeleton_model["joints"]["left_heel"]
+        self.right_toe = skeleton_model["joints"]["right_toe"]
+        self.left_toe = skeleton_model["joints"]["left_toe"]
         self.foot_joints = skeleton_model["foot_joints"]
         self.heel_offset = skeleton_model["heel_offset"]
         self.right_toe_offset = skeleton.nodes[self.right_toe].offset
