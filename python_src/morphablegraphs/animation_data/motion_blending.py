@@ -262,7 +262,6 @@ def smooth_quaternion_frames_joint_filter(skeleton, frames, discontinuity, joint
         q_start_idx = 3 + j_idx * 4
         q_end_idx = 3 + (j_idx + 1) * 4
         dof_filter_list += [q_start_idx, q_start_idx + 1, q_start_idx + 2, q_start_idx + 3]
-        print(j, j_idx, dof_filter_list)
         for f in range(n_frames - 1):
             q1 = np.array(frames[f][q_start_idx: q_end_idx])
             q2 = np.array(frames[f + 1][q_start_idx:q_end_idx])
