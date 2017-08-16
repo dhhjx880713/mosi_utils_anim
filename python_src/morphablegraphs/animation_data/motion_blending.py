@@ -200,7 +200,21 @@ def smooth_quaternion_frames(frames, discontinuity, window=20):
             q2 = np.array(frames[j + 1][3 + i * 4:3 + (i + 1) * 4])
             if np.dot(q1, q2) < 0:
                 frames[j + 1][3 + i * 4:3 + (i + 1) * 4] = -frames[j + 1][3 + i * 4:3 + (i + 1) * 4]
-    # generate curve of smoothing factors
+
+    smoothing_factors = generate_smoothing_factors(discontinuity, window, n_frames)
+    d = int(discontinuity)
+    new_quaternion_frames = []
+    for i in range(len(frames[0])):
+        current_value = frames[:, i]
+        magnitude = current_value[d] - current_value[d - 1]
+        new_value = current_value + (magnitude * smoothing_factors)
+        new_quaternion_frames.append(new_value)
+    new_quaternion_frames = np.array(new_quaternion_frames).T
+    return new_quaternion_frames
+
+def generate_smoothing_factors(discontinuity, window, n_frames):
+    """ Generate curve of smoothing factors
+    """
     d = float(discontinuity)
     w = float(window)
     smoothing_factors = []
@@ -213,17 +227,7 @@ def smooth_quaternion_frames(frames, discontinuity, window=20):
             tmp = (f - d + w) / w
             value = -0.5 * tmp ** 2 + 2 * tmp - 2
         smoothing_factors.append(value)
-    smoothing_factors = np.array(smoothing_factors)
-    new_quaternion_frames = []
-    for i in range(len(frames[0])):
-        current_value = frames[:, i]
-        magnitude = current_value[int(d)] - current_value[int(d) - 1]
-        new_value = current_value + (magnitude * smoothing_factors)
-        new_quaternion_frames.append(new_value)
-    new_quaternion_frames = np.array(new_quaternion_frames).T
-    return new_quaternion_frames
-
-
+    return np.array(smoothing_factors)
 
 def smooth_quaternion_frames_joint_filter(skeleton, frames, discontinuity, joints, window=20):
     """ Smooth quaternion frames given discontinuity frame
@@ -247,35 +251,25 @@ def smooth_quaternion_frames_joint_filter(skeleton, frames, discontinuity, joint
 
     n_frames = len(frames)
     # generate curve of smoothing factors
-    d = float(discontinuity)
-    w = float(window)
-    smoothing_factors = []
-    for f in range(n_frames):
-        value = 0.0
-        if d - w <= f < d:
-            tmp = (f - d + w) / w
-            value = 0.5 * tmp ** 2
-        elif d <= f <= d + w:
-            tmp = (f - d + w) / w
-            value = -0.5 * tmp ** 2 + 2 * tmp - 2
-        smoothing_factors.append(value)
-    smoothing_factors = np.array(smoothing_factors)
+    smoothing_factors = generate_smoothing_factors(discontinuity, window, n_frames)
 
     # align quaternions and extract dofs
     dof_filter_list = []
     if skeleton.root in joints:
-        dof_filter_list += [0,1,3]
+        dof_filter_list += [0,1,2]
     for idx, j in enumerate(joints):
         j_idx = skeleton.animated_joints.index(j)
+        q_start_idx = 3 + j_idx * 4
+        q_end_idx = 3 + (j_idx + 1) * 4
+        dof_filter_list += [q_start_idx, q_start_idx + 1, q_start_idx + 2, q_start_idx + 3]
+        print(j, j_idx, dof_filter_list)
         for f in range(n_frames - 1):
-            q_start_idx = 3 + j_idx * 4
-            q_end_idx = 3 + (j_idx + 1) * 4
-            dof_filter_list += list(range(q_start_idx, q_end_idx))
             q1 = np.array(frames[f][q_start_idx: q_end_idx])
             q2 = np.array(frames[f + 1][q_start_idx:q_end_idx])
             if np.dot(q1, q2) < 0:
                 frames[f + 1][q_start_idx:q_end_idx] = -q2
-    d = int(d)
+
+    d = int(discontinuity)
     new_frames = np.array(frames)
     for dof_idx in dof_filter_list:
         current_curve = np.array(frames[:, dof_idx])  # extract dof curve
