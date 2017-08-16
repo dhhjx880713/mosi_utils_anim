@@ -224,6 +224,67 @@ def smooth_quaternion_frames(frames, discontinuity, window=20):
     return new_quaternion_frames
 
 
+
+def smooth_quaternion_frames_joint_filter(skeleton, frames, discontinuity, joints, window=20):
+    """ Smooth quaternion frames given discontinuity frame
+
+    Parameters
+    ----------
+    skeleton: Skeleton
+    \t A skeleton, duh...
+    frames: list
+    \tA list of quaternion frames
+    discontinuity : int
+    The frame where the discontinuity is. (e.g. the transitionframe)
+    joints: list
+    \tA list of strings
+    window : (optional) int, default is 20
+    The smoothing window
+    Returns
+    -------
+    None.
+    """
+
+    n_frames = len(frames)
+    # generate curve of smoothing factors
+    d = float(discontinuity)
+    w = float(window)
+    smoothing_factors = []
+    for f in range(n_frames):
+        value = 0.0
+        if d - w <= f < d:
+            tmp = (f - d + w) / w
+            value = 0.5 * tmp ** 2
+        elif d <= f <= d + w:
+            tmp = (f - d + w) / w
+            value = -0.5 * tmp ** 2 + 2 * tmp - 2
+        smoothing_factors.append(value)
+    smoothing_factors = np.array(smoothing_factors)
+
+    # align quaternions and extract dofs
+    dof_filter_list = []
+    if skeleton.root in joints:
+        dof_filter_list += [0,1,3]
+    for idx, j in enumerate(joints):
+        j_idx = skeleton.animated_joints.index(j)
+        for f in range(n_frames - 1):
+            q_start_idx = 3 + j_idx * 4
+            q_end_idx = 3 + (j_idx + 1) * 4
+            dof_filter_list += list(range(q_start_idx, q_end_idx))
+            q1 = np.array(frames[f][q_start_idx: q_end_idx])
+            q2 = np.array(frames[f + 1][q_start_idx:q_end_idx])
+            if np.dot(q1, q2) < 0:
+                frames[f + 1][q_start_idx:q_end_idx] = -q2
+    d = int(d)
+    new_frames = np.array(frames)
+    for dof_idx in dof_filter_list:
+        current_curve = np.array(frames[:, dof_idx])  # extract dof curve
+        magnitude = current_curve[d] - current_curve[d - 1]
+        new_curve = current_curve + (magnitude * smoothing_factors)
+        new_frames[:, dof_idx] = new_curve
+    return new_frames
+
+
 def smooth_translation_in_quat_frames(frames, discontinuity, window=20):
     """ Smooth quaternion frames given discontinuity frame
 
