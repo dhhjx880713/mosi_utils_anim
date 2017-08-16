@@ -175,7 +175,7 @@ def smooth_quaternion_frames_with_slerp(frames, discontinuity, window=20):
     return np.asarray(new_quaternion_frames)
 
 
-def smooth_quaternion_frames(frames, discontinuity, window=20):
+def smooth_quaternion_frames(frames, discontinuity, window=20, include_root=False):
     """ Smooth quaternion frames given discontinuity frame
 
     Parameters
@@ -186,6 +186,8 @@ def smooth_quaternion_frames(frames, discontinuity, window=20):
     The frame where the discontinuity is. (e.g. the transitionframe)
     window : (optional) int, default is 20
     The smoothing window
+    include_root:  (optional) bool, default is False
+    \tSets whether or not smoothing is applied on the x and z dimensions of the root translation
     Returns
     -------
     None.
@@ -202,14 +204,19 @@ def smooth_quaternion_frames(frames, discontinuity, window=20):
 
     smoothing_factors = generate_smoothing_factors(discontinuity, window, n_frames)
     d = int(discontinuity)
-    new_quaternion_frames = []
-    for i in range(len(frames[0])):
-        current_value = frames[:, i]
-        magnitude = current_value[d] - current_value[d - 1]
-        new_value = current_value + (magnitude * smoothing_factors)
-        new_quaternion_frames.append(new_value)
-    new_quaternion_frames = np.array(new_quaternion_frames).T
-    return new_quaternion_frames
+    dofs = list(range(len(frames[0])))[3:]
+    if include_root:
+        dofs = [0,1,2] + dofs
+    else:
+        dofs = [1] + dofs
+    print dofs
+    new_frames = np.array(frames)
+    for dof_idx in dofs:
+        current_curve = np.array(frames[:, dof_idx])  # extract dof curve
+        magnitude = current_curve[d] - current_curve[d - 1]
+        new_curve = current_curve + (magnitude * smoothing_factors)
+        new_frames[:, dof_idx] = new_curve
+    return new_frames
 
 
 def generate_smoothing_factors(discontinuity, window, n_frames):
