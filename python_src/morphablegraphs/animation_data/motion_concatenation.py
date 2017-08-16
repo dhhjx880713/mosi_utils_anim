@@ -5,7 +5,7 @@ from .motion_blending import smooth_quaternion_frames_with_slerp, smooth_quatern
 from .motion_editing.motion_grounding import create_grounding_constraint_from_frame, generate_ankle_constraint_from_toe, interpolate_constraints
 from .motion_editing.analytical_inverse_kinematics import AnalyticalLimbIK
 from .motion_editing.utils import normalize, generate_root_constraint_for_two_feet, smooth_root_translation_at_start, smooth_root_translation_at_end
-from .motion_blending import blend_between_frames, smooth_translation_in_quat_frames, generate_blended_frames, interpolate_frames, smooth_root_translation_around_transition, blend_quaternions_to_next_step
+from .motion_blending import blend_between_frames, smooth_translation_in_quat_frames, generate_blended_frames, interpolate_frames, smooth_root_translation_around_transition, blend_quaternions_to_next_step, smooth_quaternion_frames_joint_filter
 
 ALIGNMENT_MODE_FAST = 0
 ALIGNMENT_MODE_PCL = 1
@@ -521,10 +521,22 @@ def align_frames_using_forward_blending(skeleton, aligning_joint, new_frames, pr
 
         blend_end = d
         blend_start = int(prev_start + (blend_end-prev_start)/2)  # start blending from the middle of the step
-        frames = blend_towards_next_step_linear_with_original(skeleton, frames, blend_start, blend_end, ik_chains, window=ik_window)
 
+        left_joint = skeleton.skeleton_model["joints"]["left_ankle"]
+        right_joint = skeleton.skeleton_model["joints"]["right_ankle"]
+        pelvis = skeleton.skeleton_model["joints"]["pelvis"]
+        left_ik_chain = ik_chains[left_joint]
+        right_ik_chain = ik_chains[right_joint]
+        leg_joint_list = [skeleton.root, left_ik_chain["root"], left_ik_chain["joint"], left_joint,
+                      right_ik_chain["root"], right_ik_chain["joint"], right_joint]
+        if pelvis != skeleton.root:
+            leg_joint_list.append(pelvis)
+
+        frames = blend_towards_next_step_linear_with_original(skeleton, frames, blend_start, blend_end, leg_joint_list, window=ik_window)
+        joint_list = [j for j in skeleton.animated_joints if j not in leg_joint_list]
         if smoothing_window > 0:
-            frames = smooth_quaternion_frames(frames, d, smoothing_window)
+            frames = smooth_quaternion_frames_joint_filter(skeleton, frames, d, joint_list, smoothing_window)
+            #frames = smooth_quaternion_frames(frames, d, smoothing_window)
         return frames
     else:
         return new_frames
@@ -541,16 +553,8 @@ def blend_towards_next_step_linear(skeleton, frames, d,  plant_side, swing_side,
     blend_quaternions_to_next_step(skeleton, frames, d, plant_constraint.joint_name, swing_constraint.joint_name, ik_chains, window)
 
 
-def blend_towards_next_step_linear_with_original(skeleton, frames, start, end,  ik_chains, window=8):
-    left_joint = skeleton.skeleton_model["joints"]["left_ankle"]
-    right_joint = skeleton.skeleton_model["joints"]["right_ankle"]
-    pelvis = skeleton.skeleton_model["joints"]["pelvis"]
-    left_ik_chain = ik_chains[left_joint]
-    right_ik_chain = ik_chains[right_joint]
-    joint_list = [skeleton.root, left_ik_chain["root"], left_ik_chain["joint"], left_joint,
-                  right_ik_chain["root"], right_ik_chain["joint"], right_joint]
-    if pelvis != skeleton.root:
-        joint_list.append(pelvis)
+def blend_towards_next_step_linear_with_original(skeleton, frames, start, end,  joint_list, window=8):
+
     new_frames = generate_blended_frames(skeleton, frames, start, end, joint_list, end-start)
     frames = interpolate_frames(skeleton, frames, new_frames, joint_list, start, end)
     print("blend forward")
