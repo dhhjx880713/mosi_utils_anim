@@ -64,35 +64,26 @@ class MotionVector(object):
         self._prev_n_frames = self.n_frames
         self.n_frames = len(self.frames)
 
-    def append_frames_with_foot_ik(self, new_frames, plant_foot):
+    def append_frames_using_forward_blending(self, new_frames):
 
-        ik_chains = self.skeleton.skeleton_model["ik_chains"]
         if self.apply_spatial_smoothing:
             smoothing_window = self.smoothing_window
         else:
             smoothing_window = 0
-        if plant_foot == self.skeleton.skeleton_model["joints"]["left_ankle"]:
-            swing_foot = "right"
-            plant_foot = "left"
-
-        else:
-            swing_foot = "left"
-            plant_foot = "right"
         from . import motion_concatenation
         imp.reload(motion_concatenation)
-        self.frames = motion_concatenation.align_frames_and_fix_feet(self.skeleton, self.skeleton.aligning_root_node, new_frames,
-                                                self.frames, self._prev_n_frames, self.start_pose, plant_foot, swing_foot,
-                                                 ik_chains, 8, smoothing_window)
+        ik_chains = self.skeleton.skeleton_model["ik_chains"]
+        self.frames = motion_concatenation.align_frames_using_forward_blending(self.skeleton, self.skeleton.aligning_root_node, new_frames,
+                                                                               self.frames, self._prev_n_frames, self.start_pose,
+                                                                               ik_chains, 8, smoothing_window)
         self._prev_n_frames = self.n_frames
         self.n_frames = len(self.frames)
 
     def append_frames(self, new_frames, plant_foot=None):
         if self.apply_foot_alignment and self.skeleton.skeleton_model is not None:
-            ik_chains = self.skeleton.skeleton_model["ik_chains"]
-            if plant_foot in ik_chains:
-                self.append_frames_with_foot_ik(new_frames, plant_foot)
-                return
-        self.append_frames_generic(new_frames)
+            self.append_frames_using_forward_blending(new_frames)
+        else:
+            self.append_frames_generic(new_frames)
 
     def export(self, skeleton, output_dir, output_filename, add_time_stamp=True):
         bvh_writer = BVHWriter(None, skeleton, self.frames, skeleton.frame_time, True)

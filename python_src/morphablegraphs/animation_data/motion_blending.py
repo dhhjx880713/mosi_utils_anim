@@ -1,10 +1,13 @@
 from ..external.transformations import quaternion_slerp
 import numpy as np
 import copy
+from copy import deepcopy
 from .constants import LEN_QUAT, LEN_ROOT_POS
+
 
 BLEND_DIRECTION_FORWARD = 0
 BLEND_DIRECTION_BACKWARD = 1
+
 
 def blend_quaternion(a, b, w):
     return quaternion_slerp(a, b, w, spin=0, shortestpath=True)
@@ -262,6 +265,43 @@ def smooth_translation_in_quat_frames(frames, discontinuity, window=20):
     return new_quaternion_frames
 
 
+
+
+def smooth_root_translation(frames, target_frame_idx, transition_start,transition_end, window):
+    root_pos = frames[target_frame_idx, :3]
+    frames[transition_end, :3] = root_pos
+    #print "root after", frames[transition_end, :3]
+    start = frames[transition_start, :3]
+    end = frames[target_frame_idx, :3]
+    for i in range(window - 1):
+        t = float(i) / (window - 1)
+        frames[transition_start + i, :3] = start * (1 - t) + end * t
+
+
+def smooth_root_translation_around_transition(frames, d, window):
+    hwindow = int(window/2.0)
+    root_pos1 = frames[d-1, :3]
+    root_pos2 = frames[d, :3]
+    root_pos = (root_pos1 + root_pos2)/2
+    #frames[d, :3] = root_pos
+    #print "root after", frames[transition_end, :3]
+    start_idx = d-hwindow
+    end_idx = d + hwindow
+    #print start_idx, end_idx,hwindow,d
+    start = frames[start_idx, :3]
+    end = root_pos
+    for i in range(hwindow):
+        t = float(i) / hwindow
+        frames[start_idx + i, :3] = start * (1 - t) + end * t
+        #print start_idx +i, frames[start_idx + i,1]
+    start = root_pos
+    end = frames[end_idx, :3]
+    for i in range(hwindow):
+        t = float(i) / hwindow
+        frames[d + i, :3] = start * (1 - t) + end * t
+        #print d + i, frames[d + i, 1]
+
+
 def linear_blending(ref_pose, quat_frames, skeleton, weights, joint_list=None):
     '''
     Apply linear blending on quaternion motion data
@@ -301,3 +341,66 @@ def blend_quaternion_frames(new_frames, prev_frames, skeleton, smoothing_window=
         slerp_weights = np.linspace(0, 1, len(new_frames))
 
     return linear_blending(prev_frames[-1], new_frames, skeleton, slerp_weights)
+
+
+def blend_between_frames(skeleton, frames, transition_start, transition_end, joint_list, ik_window):
+    for c_joint in joint_list:
+        idx = skeleton.animated_joints.index(c_joint) * 4 + 3
+        j_indices = [idx, idx + 1, idx + 2, idx + 3]
+        start_q = frames[transition_start][j_indices]
+        end_q = frames[transition_end][j_indices]
+        for i in range(ik_window):
+            t = float(i) / ik_window
+            slerp_q = quaternion_slerp(start_q, end_q, t, spin=0, shortestpath=True)
+            frames[transition_start + i][j_indices] = slerp_q
+
+
+def generated_blend(start_q, end_q, window):
+    blend = np.zeros((window, 4))
+    for i in range(window):
+        t = float(i) / window
+        slerp_q = quaternion_slerp(start_q, end_q, t, spin=0, shortestpath=True)
+        blend[i] = slerp_q
+    return blend
+
+
+def generate_blended_frames(skeleton, frames, start, end, joint_list, window):
+    blended_frames = deepcopy(frames[:])
+    for c_joint in joint_list:
+        idx = skeleton.animated_joints.index(c_joint) * 4 + 3
+        j_indices = [idx, idx + 1, idx + 2, idx + 3]
+        start_q = frames[start][j_indices]
+        end_q = frames[end][j_indices]
+        blended_qs = generated_blend(start_q, end_q, window)
+        for fi, q in enumerate(blended_qs):
+            blended_frames[start+fi][j_indices] = q
+    return blended_frames
+
+
+
+def blend_quaternions_to_next_step(skeleton, frames, frame_idx, plant_joint, swing_joint, ik_chains,  window):
+    start = frame_idx - window  # end of blending range
+    end = frame_idx  # modified frame
+    plant_ik_chain = ik_chains[plant_joint]
+    swing_ik_chain = ik_chains[swing_joint]
+    joint_list = [skeleton.root, "pelvis", plant_ik_chain["root"], plant_ik_chain["joint"], plant_joint, swing_ik_chain["root"], swing_ik_chain["joint"], swing_joint]
+    blend_between_frames(skeleton, frames, start, end, joint_list, window)
+
+
+def interpolate_frames(skeleton, frames_a, frames_b, joint_list, start, end):
+    blended_frames = deepcopy(frames_a[:])
+    window = end - start
+    for joint in joint_list:
+        idx = skeleton.animated_joints.index(joint) * 4 + 3
+        j_indices = [idx, idx + 1, idx + 2, idx + 3]
+        for f in range(window):
+            t = (float(f) / window)
+            q_a = frames_a[start + f][j_indices]
+            q_b = frames_b[start + f][j_indices]
+            blended_frames[start + f][j_indices] = quaternion_slerp(q_a, q_b, t, spin=0, shortestpath=True)
+    return blended_frames
+
+
+
+
+
