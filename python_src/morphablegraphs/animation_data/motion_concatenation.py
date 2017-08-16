@@ -5,7 +5,7 @@ from .motion_blending import smooth_quaternion_frames_with_slerp, smooth_quatern
 from .motion_editing.motion_grounding import create_grounding_constraint_from_frame, generate_ankle_constraint_from_toe, interpolate_constraints
 from .motion_editing.analytical_inverse_kinematics import AnalyticalLimbIK
 from .motion_editing.utils import normalize, generate_root_constraint_for_two_feet, smooth_root_translation_at_start, smooth_root_translation_at_end
-from .motion_blending import blend_between_frames, smooth_translation_in_quat_frames, generate_blended_frames, interpolate_frames, smooth_root_translation_around_transition, blend_quaternions_to_next_step, smooth_quaternion_frames_joint_filter
+from .motion_blending import blend_between_frames, smooth_translation_in_quat_frames, generate_blended_frames, interpolate_frames, smooth_root_translation_around_transition, blend_quaternions_to_next_step, smooth_quaternion_frames_joint_filter, blend_towards_next_step_linear_with_original
 
 ALIGNMENT_MODE_FAST = 0
 ALIGNMENT_MODE_PCL = 1
@@ -507,7 +507,7 @@ def fix_feet_at_transition(skeleton, frames, d,  plant_side, swing_side, ik_chai
     #align_foot_to_prev_step(skeleton, frames, swing_foot, ik_chains[swing_foot], d, ik_window)
 
 
-def align_frames_using_forward_blending(skeleton, aligning_joint, new_frames, prev_frames, prev_start, start_pose, ik_chains, ik_window=8, smoothing_window=0):
+def align_frames_using_forward_blending(skeleton, aligning_joint, new_frames, prev_frames, prev_start, start_pose, ik_chains, smoothing_window=0):
     """ applies foot ik constraint to fit the prev motion primitive to the next motion primitive
     """
 
@@ -532,11 +532,11 @@ def align_frames_using_forward_blending(skeleton, aligning_joint, new_frames, pr
         if pelvis != skeleton.root:
             leg_joint_list.append(pelvis)
 
-        frames = blend_towards_next_step_linear_with_original(skeleton, frames, blend_start, blend_end, leg_joint_list, window=ik_window)
+        frames = blend_towards_next_step_linear_with_original(skeleton, frames, blend_start, blend_end, leg_joint_list)
         joint_list = [j for j in skeleton.animated_joints if j not in leg_joint_list]
+
         if smoothing_window > 0:
             frames = smooth_quaternion_frames_joint_filter(skeleton, frames, d, joint_list, smoothing_window)
-            #frames = smooth_quaternion_frames(frames, d, smoothing_window)
         return frames
     else:
         return new_frames
@@ -552,13 +552,6 @@ def blend_towards_next_step_linear(skeleton, frames, d,  plant_side, swing_side,
         smooth_root_translation_at_start(frames, d, window)
     blend_quaternions_to_next_step(skeleton, frames, d, plant_constraint.joint_name, swing_constraint.joint_name, ik_chains, window)
 
-
-def blend_towards_next_step_linear_with_original(skeleton, frames, start, end,  joint_list, window=8):
-
-    new_frames = generate_blended_frames(skeleton, frames, start, end, joint_list, end-start)
-    frames = interpolate_frames(skeleton, frames, new_frames, joint_list, start, end)
-    print("blend forward")
-    return frames
 
 
 def blend_towards_next_step3(skeleton, frames, start, end, plant_side, swing_side, ik_chains, window=8):

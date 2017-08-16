@@ -397,14 +397,15 @@ def blend_quaternion_frames(new_frames, prev_frames, skeleton, smoothing_window=
     return linear_blending(prev_frames[-1], new_frames, skeleton, slerp_weights)
 
 
-def blend_between_frames(skeleton, frames, transition_start, transition_end, joint_list, ik_window):
+def blend_between_frames(skeleton, frames, transition_start, transition_end, joint_list, window):
     for c_joint in joint_list:
         idx = skeleton.animated_joints.index(c_joint) * 4 + 3
         j_indices = [idx, idx + 1, idx + 2, idx + 3]
         start_q = frames[transition_start][j_indices]
         end_q = frames[transition_end][j_indices]
-        for i in range(ik_window):
-            t = float(i) / ik_window
+        for i in range(window):
+            t = float(i) / window
+            t = (float(t) / window)
             slerp_q = quaternion_slerp(start_q, end_q, t, spin=0, shortestpath=True)
             frames[transition_start + i][j_indices] = slerp_q
 
@@ -455,6 +456,10 @@ def interpolate_frames(skeleton, frames_a, frames_b, joint_list, start, end):
     return blended_frames
 
 
+def blend_towards_next_step_linear_with_original(skeleton, frames, start, end,  joint_list):
+    new_frames = generate_blended_frames(skeleton, frames, start, end, joint_list, end-start)
+    new_frames2 = interpolate_frames(skeleton, frames, new_frames, joint_list, start, end)
+    return new_frames2
 
 
 

@@ -75,7 +75,7 @@ class MotionVector(object):
         ik_chains = self.skeleton.skeleton_model["ik_chains"]
         self.frames = motion_concatenation.align_frames_using_forward_blending(self.skeleton, self.skeleton.aligning_root_node, new_frames,
                                                                                self.frames, self._prev_n_frames, self.start_pose,
-                                                                               ik_chains, 8, smoothing_window)
+                                                                               ik_chains, smoothing_window)
         self._prev_n_frames = self.n_frames
         self.n_frames = len(self.frames)
 
