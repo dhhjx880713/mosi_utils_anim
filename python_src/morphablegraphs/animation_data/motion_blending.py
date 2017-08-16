@@ -175,7 +175,6 @@ def smooth_quaternion_frames_with_slerp(frames, discontinuity, window=20):
     return np.asarray(new_quaternion_frames)
 
 
-
 def smooth_quaternion_frames(frames, discontinuity, window=20):
     """ Smooth quaternion frames given discontinuity frame
 
@@ -212,6 +211,7 @@ def smooth_quaternion_frames(frames, discontinuity, window=20):
     new_quaternion_frames = np.array(new_quaternion_frames).T
     return new_quaternion_frames
 
+
 def generate_smoothing_factors(discontinuity, window, n_frames):
     """ Generate curve of smoothing factors
     """
@@ -229,13 +229,13 @@ def generate_smoothing_factors(discontinuity, window, n_frames):
         smoothing_factors.append(value)
     return np.array(smoothing_factors)
 
+
 def smooth_quaternion_frames_joint_filter(skeleton, frames, discontinuity, joints, window=20):
     """ Smooth quaternion frames given discontinuity frame
 
     Parameters
     ----------
     skeleton: Skeleton
-    \t A skeleton, duh...
     frames: list
     \tA list of quaternion frames
     discontinuity : int
@@ -337,23 +337,18 @@ def smooth_root_translation_around_transition(frames, d, window):
     root_pos1 = frames[d-1, :3]
     root_pos2 = frames[d, :3]
     root_pos = (root_pos1 + root_pos2)/2
-    #frames[d, :3] = root_pos
-    #print "root after", frames[transition_end, :3]
     start_idx = d-hwindow
     end_idx = d + hwindow
-    #print start_idx, end_idx,hwindow,d
     start = frames[start_idx, :3]
     end = root_pos
     for i in range(hwindow):
         t = float(i) / hwindow
         frames[start_idx + i, :3] = start * (1 - t) + end * t
-        #print start_idx +i, frames[start_idx + i,1]
     start = root_pos
     end = frames[end_idx, :3]
     for i in range(hwindow):
         t = float(i) / hwindow
         frames[d + i, :3] = start * (1 - t) + end * t
-        #print d + i, frames[d + i, 1]
 
 
 def linear_blending(ref_pose, quat_frames, skeleton, weights, joint_list=None):
@@ -430,7 +425,6 @@ def generate_blended_frames(skeleton, frames, start, end, joint_list, window):
         for fi, q in enumerate(blended_qs):
             blended_frames[start+fi][j_indices] = q
     return blended_frames
-
 
 
 def blend_quaternions_to_next_step(skeleton, frames, frame_idx, plant_joint, swing_joint, ik_chains,  window):
