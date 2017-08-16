@@ -256,8 +256,7 @@ class SkeletonBuilder(object):
         else:
             node.quaternion_frame_index = -1
             node.fixed = True
-        print("load from json", node_name, node.quaternion_frame_index, data["index"], data[
-            "fixed"], node.fixed, node.rotation)
+        #print("load from json", node_name, node.quaternion_frame_index, data["index"], data["fixed"], node.fixed, node.rotation)
 
         skeleton.nodes[node_name] = node
         skeleton.nodes[node_name].children = []
