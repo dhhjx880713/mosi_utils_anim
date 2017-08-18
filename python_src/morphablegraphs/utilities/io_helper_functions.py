@@ -26,7 +26,7 @@ def write_to_logfile(path, time_string, data):
     data_string = json.dumps(data, indent=4)
     line = time_string + ": \n" + data_string + "\n-------\n\n"
     if not os.path.isfile(path):
-        file_handle = open(path, "wb")
+        file_handle = open(path, "w")
         file_handle.write(line)
         file_handle.close()
     else:
@@ -45,7 +45,7 @@ def load_json_file(filename, use_ordered_dict=False):
     \tIf set to True dicts are read as OrderedDicts.
     """
     tmp = None
-    with open(filename, 'rb') as infile:
+    with open(filename, 'r') as infile:
         if use_ordered_dict:
             tmp = json.JSONDecoder(
                 object_pairs_hook=collections.OrderedDict).decode(
