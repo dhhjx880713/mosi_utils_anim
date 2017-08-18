@@ -164,11 +164,11 @@ def smooth_quaternion_frames_with_slerp(frames, discontinuity, window=20):
             new_quaternion_frames.append(frames[f])
         elif d - w <= f < d:
             tmp = (f - d + w) / w
-            weight =2 * ( 0.5 * tmp ** 2)
+            weight = 2 * (0.5 * tmp ** 2)
             new_quaternion_frames.append(slerp_quaternion_frame(frames[f], ref_pose, weight))
         elif d <= f <= d + w:
             tmp = (f - d + w) / w
-            weight =2 * ( 0.5 * tmp ** 2 - 2 * tmp + 2)
+            weight = 2 * (0.5 * tmp ** 2 - 2 * tmp + 2)
             new_quaternion_frames.append(slerp_quaternion_frame(frames[f], ref_pose, weight))
         else:
             new_quaternion_frames.append(frames[f])
@@ -209,7 +209,6 @@ def smooth_quaternion_frames(frames, discontinuity, window=20, include_root=Fals
         dofs = [0,1,2] + dofs
     else:
         dofs = [1] + dofs
-    print dofs
     new_frames = np.array(frames)
     for dof_idx in dofs:
         current_curve = np.array(frames[:, dof_idx])  # extract dof curve
