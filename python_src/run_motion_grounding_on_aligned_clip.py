@@ -289,7 +289,7 @@ def run_grounding_on_bvh_file(bvh_file, out_path, skeleton_model, configuration)
     align_xz_to_origin(skeleton, mv.frames)
     file_name = bvh_file.split("\\")[-1][:-4]
     out_filename = file_name + "_grounded"
-    mv.export(skeleton, out_path, out_filename, add_time_stamp=False)
+    mv.export(skeleton, out_path + os.sep + out_filename, add_time_stamp=False)
 
 
 def run_motion_grounding(in_path, out_path, skeleton_type, configuration, max_number=100):

@@ -1,3 +1,4 @@
+import os
 from .morphablegraphs.animation_data import BVHReader, SkeletonBuilder, MotionVector
 from .morphablegraphs.motion_generator.algorithm_configuration import AlgorithmConfigurationBuilder
 from .morphablegraphs.animation_data.motion_editing import FootplantConstraintGenerator
@@ -107,7 +108,7 @@ def run_motion_grounding(bvh_file, skeleton_model):
 
     joint_heights = get_joint_height(skeleton, mv.frames, skeleton_model["foot_joints"])
     plot_joint_heights(joint_heights)
-    mv.export(skeleton, "out\\foot_sliding", "out")
+    mv.export(skeleton, "out"+os.sep+"oot_sliding" + os.sep + "out")
 
 if __name__ == "__main__":
     bvh_file = "skeleton.bvh"

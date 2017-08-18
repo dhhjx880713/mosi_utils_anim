@@ -21,7 +21,7 @@ class AnnotatedMotionVector(MotionVector):
         used as input for the constraints visualization by the animation server.
         """
 
-        MotionVector.export(self, self.skeleton, output_dir, output_filename, add_time_stamp)
+        MotionVector.export(self, self.skeleton, output_dir + os.sep + output_filename, add_time_stamp)
         self.export_annotation(output_dir, output_filename)
 
     def export_annotation(self,output_dir, output_filename):

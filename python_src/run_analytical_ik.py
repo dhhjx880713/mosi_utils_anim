@@ -1,3 +1,4 @@
+import os
 from .morphablegraphs.animation_data import BVHReader, Skeleton, MotionVector
 from .morphablegraphs.motion_generator.algorithm_configuration import AlgorithmConfigurationBuilder
 from python_src.morphablegraphs.animation_data.motion_editing.constants import SKELETON_ANNOTATIONS
@@ -33,7 +34,7 @@ def run_motion_editing(bvh_file):
     mv.frames = me.run(mv)
     print("export motion")
     mv.frames = skeleton.complete_motion_vector_from_reference(mv.frames)
-    mv.export(skeleton, "out", "out")
+    mv.export(skeleton, "out" + os.sep + "out")
 
 if __name__ == "__main__":
     bvh_file = "foot_sliding_example.bvh"

@@ -36,7 +36,7 @@ def export_frames_to_bvh(skeleton, frames, filename):
     mv = MotionVector()
     mv.frames = np.array([skeleton.generate_complete_frame_vector_from_reference(f) for f in frames])
     print(mv.frames.shape)
-    mv.export(skeleton, ".", filename, add_time_stamp=False)
+    mv.export(skeleton, filename, add_time_stamp=False)
 
 
 def export_motions(skeleton, motions, name):
