@@ -34,7 +34,7 @@ def load_motion_data(motion_folder, max_count=np.inf):
 
 def export_frames_to_bvh(skeleton, frames, filename):
     mv = MotionVector()
-    mv.frames = np.array([skeleton.generate_complete_frame_vector_from_reference(f) for f in frames])
+    mv.frames = np.array([skeleton.add_fixed_joint_parameters_to_frame(f) for f in frames])
     print(mv.frames.shape)
     mv.export(skeleton, filename, add_time_stamp=False)
 

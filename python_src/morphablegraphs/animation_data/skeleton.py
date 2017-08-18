@@ -109,13 +109,13 @@ class Skeleton(object):
             n_parameters += local_parameters
         return n_parameters
 
-    def complete_motion_vector_from_reference(self, reduced_quat_frames):
+    def add_fixed_joint_parameters_to_motion(self, reduced_quat_frames):
         new_quat_frames = np.zeros((len(reduced_quat_frames), self.reference_frame_length))
         for idx, reduced_frame in enumerate(reduced_quat_frames):
-            new_quat_frames[idx] = self.generate_complete_frame_vector_from_reference(reduced_frame)
+            new_quat_frames[idx] = self.add_fixed_joint_parameters_to_frame(reduced_frame)
         return new_quat_frames
 
-    def generate_complete_frame_vector_from_reference(self, reduced_frame):
+    def add_fixed_joint_parameters_to_frame(self, reduced_frame):
         """
         Takes parameters from the reduced frame for each joint of the complete skeleton found in the reduced skeleton
         otherwise it takes parameters from the reference frame

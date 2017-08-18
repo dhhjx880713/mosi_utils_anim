@@ -33,7 +33,7 @@ def run_motion_editing(bvh_file):
     me.add_constraint("RightHand", [0,100], position, direction)
     mv.frames = me.run(mv)
     print("export motion")
-    mv.frames = skeleton.complete_motion_vector_from_reference(mv.frames)
+    mv.frames = skeleton.add_fixed_joint_parameters_to_motion(mv.frames)
     mv.export(skeleton, "out" + os.sep + "out")
 
 if __name__ == "__main__":

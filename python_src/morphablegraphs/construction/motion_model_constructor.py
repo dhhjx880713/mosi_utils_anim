@@ -49,7 +49,7 @@ class MotionModel(object):
         self._export_frames(name, frames)
 
     def _export_frames(self, name, frames):
-        frames = np.array([self._skeleton.generate_complete_frame_vector_from_reference(f) for f in frames])
+        frames = np.array([self._skeleton.add_fixed_joint_parameters_to_frame(f) for f in frames])
         export_frames_to_bvh_file(".", self._skeleton, frames, name, time_stamp=False)
 
 

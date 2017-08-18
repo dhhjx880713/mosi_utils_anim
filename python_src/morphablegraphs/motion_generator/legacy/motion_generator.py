@@ -125,7 +125,7 @@ class MotionGenerator(object):
             self.inverse_kinematics.fill_rotate_events(motion_vector)
         self._print_time("synthesis", start_time)
         if complete_motion_vector:
-            motion_vector.frames = self.motion_state_graph.skeleton.complete_motion_vector_from_reference(
+            motion_vector.frames = self.motion_state_graph.skeleton.add_fixed_joint_parameters_to_motion(
                 motion_vector.frames)
             if motion_vector.frames is not None:
                 if self.motion_state_graph.hand_pose_generator is not None:

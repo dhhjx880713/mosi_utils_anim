@@ -267,7 +267,7 @@ class MotionGenerator(object):
             me.fill_rotate_events(motion_vector)
 
         if complete_motion_vector:
-            motion_vector.frames = self._motion_state_graph.skeleton.complete_motion_vector_from_reference(
+            motion_vector.frames = self._motion_state_graph.skeleton.add_fixed_joint_parameters_to_motion(
                 motion_vector.frames)
 
     def get_end_step_arc_length(self, action_constraints):
