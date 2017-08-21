@@ -5,7 +5,7 @@ from copy import copy
 import numpy as np
 from scipy.optimize import minimize
 
-from ..motion_blending import smooth_quaternion_frames_using_slerp, apply_slerp
+from ..motion_blending import smooth_quaternion_frames_using_slerp, create_transition_using_slerp
 from .skeleton_pose_model import SkeletonPoseModel
 from ..constants import ROTATION_TYPE_EULER
 from ...external.transformations import quaternion_matrix, euler_from_matrix
@@ -266,8 +266,8 @@ class InverseKinematics(object):
             joint_parameter_indices = list(range(*self.pose.extract_parameters_indices(target_joint)))
             transition_start = max(start - self.transition_window, 0)
             transition_end = min(end + self.transition_window, frames.shape[0]) - 1
-            apply_slerp(frames, transition_start, start, joint_parameter_indices)
-            apply_slerp(frames, end, transition_end, joint_parameter_indices)
+            create_transition_using_slerp(frames, transition_start, start, joint_parameter_indices)
+            create_transition_using_slerp(frames, end, transition_end, joint_parameter_indices)
 
     def _modify_motion_vector_using_trajectory_constraint_list(self, motion_vector, constraints):
         error = 0.0

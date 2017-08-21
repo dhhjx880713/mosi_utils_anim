@@ -2,7 +2,7 @@ from copy import copy
 import numpy as np
 from .numerical_ik_quat import NumericalInverseKinematicsQuat
 from .skeleton_pose_model import SkeletonPoseModel
-from ..motion_blending import smooth_quaternion_frames_using_slerp, apply_slerp
+from ..motion_blending import smooth_quaternion_frames_using_slerp, create_transition_using_slerp
 from ...external.transformations import quaternion_matrix, euler_from_matrix
 from ...utilities.log import write_message_to_log, LOG_MODE_DEBUG
 
@@ -115,8 +115,8 @@ class MotionEditing(object):
             joint_parameter_indices = list(range(*self.pose.extract_parameters_indices(target_joint)))
             transition_start = max(start - self.transition_window, 0)
             transition_end = min(end + self.transition_window, frames.shape[0]) - 1
-            apply_slerp(frames, transition_start, start, joint_parameter_indices)
-            apply_slerp(frames, end, transition_end, joint_parameter_indices)
+            create_transition_using_slerp(frames, transition_start, start, joint_parameter_indices)
+            create_transition_using_slerp(frames, end, transition_end, joint_parameter_indices)
 
     def _set_hand_orientation(self, motion_vector, orientation, joint_name, keyframe, start, end):
         parent_joint_name = self.pose.get_parent_joint(joint_name)
