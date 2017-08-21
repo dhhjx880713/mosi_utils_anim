@@ -137,7 +137,9 @@ def apply_constraint(skeleton, frames, frame_idx, c, blend_start, blend_end, ble
 
 
 def move_to_ground(skeleton,frames, foot_joints, target_ground_height,start_frame=0, n_frames=5):
-    source_ground_height = guess_ground_height(skeleton, frames,start_frame, n_frames, foot_joints)
+    print("n_frames",len(frames),start_frame, n_frames)
+    source_ground_height = guess_ground_height(skeleton, frames, start_frame, n_frames, foot_joints)
+    print("ground height", source_ground_height)
     for f in frames:
         f[1] += target_ground_height - source_ground_height
 
@@ -259,7 +261,9 @@ def ground_initial_stance_foot_unconstrained(skeleton, frames, target_height, st
         apply_constraint(skeleton, frames, frame_idx, c, frame_idx, frame_idx)
 
 
-def ground_initial_stance_foot(skeleton, frames, target_height, stance_foot="right", swing_foot="left", stance_mode="toe"):
+def ground_initial_stance_foot(skeleton, frames, target_height, stance_foot="right", swing_foot="left", stance_mode="toe", start_frame=0, end_frame=None):
+    if end_frame is None:
+        end_frame = len(frames)
     stance_foot_joint = skeleton.skeleton_model["joints"][stance_foot + "_ankle"]
     stance_toe_joint = skeleton.skeleton_model["joints"][stance_foot + "_toe"]
     stance_heel_joint = skeleton.skeleton_model["joints"][stance_foot + "_heel"]
@@ -270,7 +274,7 @@ def ground_initial_stance_foot(skeleton, frames, target_height, stance_foot="rig
 
     stance_toe_pos = None
     stance_heel_pos = None
-    for frame_idx in range(0, len(frames)):
+    for frame_idx in range(start_frame, end_frame):
         if stance_toe_pos is None:
             stance_toe_pos = skeleton.nodes[stance_toe_joint].get_global_position(frames[frame_idx])
             stance_toe_pos[1] = target_height
@@ -324,7 +328,6 @@ class MotionPrimitiveGrounding(object):
         self.foot_joints = self.skeleton.skeleton_model["foot_joints"]
 
     def run_grounding_on_motion_vector(self, mv, mp_type, step_offset, step_length):
-
         config = self.mp_configs[mp_type]
 
         search_window_start = step_offset+int(step_length / 2)
@@ -335,12 +338,11 @@ class MotionPrimitiveGrounding(object):
         stance_mode = config["stance_mode"]
         start_window_size = config["start_window_size"]
         end_window_size = config["end_window_size"]
-        move_to_ground(self.skeleton, mv.frames, self.foot_joints, self.target_height, search_window_start, step_offset+step_length - search_window_start)
+        move_to_ground(self.skeleton, mv.frames, self.foot_joints, self.target_height, start_frame=search_window_start, n_frames=search_window_start+step_length-search_window_start)
         ground_first_frame(self.skeleton, mv.frames, self.target_height, start_window_size, start_stance_foot, first_frame=step_offset)
-
         ground_last_frame(self.skeleton, mv.frames, self.target_height, end_window_size, end_stance_foot, last_frame=step_offset+step_length-1)
         if stance_mode is not "none":
-            ground_initial_stance_foot(self.skeleton, mv.frames, self.target_height, stance_foot, swing_foot, stance_mode)
+            ground_initial_stance_foot(self.skeleton, mv.frames, self.target_height, stance_foot, swing_foot, stance_mode, start_frame=step_offset, end_frame=step_offset+step_length)
             # ground_initial_stance_foot_unconstrained(skeleton, mv.frames, target_height, stance_foot, stance_mode)
         align_xz_to_origin(self.skeleton, mv.frames)
         return mv
