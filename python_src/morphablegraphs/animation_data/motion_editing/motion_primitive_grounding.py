@@ -335,7 +335,7 @@ class MotionPrimitiveGrounding(object):
         stance_mode = config["stance_mode"]
         start_window_size = config["start_window_size"]
         end_window_size = config["end_window_size"]
-        move_to_ground(self.skeleton, mv.frames, self.foot_joints, self.target_height, search_window_start, step_length - search_window_start)
+        move_to_ground(self.skeleton, mv.frames, self.foot_joints, self.target_height, search_window_start, step_offset+step_length - search_window_start)
         ground_first_frame(self.skeleton, mv.frames, self.target_height, start_window_size, start_stance_foot, first_frame=step_offset)
 
         ground_last_frame(self.skeleton, mv.frames, self.target_height, end_window_size, end_stance_foot, last_frame=step_offset+step_length-1)
