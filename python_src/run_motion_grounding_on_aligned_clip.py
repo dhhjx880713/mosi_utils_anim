@@ -21,7 +21,7 @@ def run_grounding_on_bvh_file(bvh_file, out_path, mg, step_type):
     bvh = BVHReader(bvh_file)
     mv = MotionVector()
     mv.from_bvh_reader(bvh)
-    mv = mg.run_grounding_on_motion_vector(mv, step_type)
+    mv = mg.run_grounding_on_motion_vector(mv, step_type, step_offset=0, step_length=len(mv.frames))
     file_name = bvh_file.split("\\")[-1][:-4]
     out_filename = file_name + "_grounded"
     mv.export(mg.skeleton, out_path + os.sep + out_filename, add_time_stamp=False)

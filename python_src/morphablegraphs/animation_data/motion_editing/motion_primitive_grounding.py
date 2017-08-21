@@ -195,8 +195,7 @@ def ground_left_stance(skeleton, frames, target_height, frame_idx):
     return constraints
 
 
-def ground_first_frame(skeleton, frames, target_height, window_size, stance_foot="right"):
-    first_frame = 0
+def ground_first_frame(skeleton, frames, target_height, window_size, stance_foot="right", first_frame=0):
     if stance_foot == "both":
         constraints = ground_both_feet(skeleton, frames, target_height, first_frame)
     elif stance_foot == "right":
@@ -215,8 +214,9 @@ def ground_first_frame(skeleton, frames, target_height, window_size, stance_foot
         apply_constraint(skeleton, frames, first_frame, c, first_frame, first_frame + window_size, window_size)
 
 
-def ground_last_frame(skeleton, frames, target_height, window_size, stance_foot="left"):
-    last_frame = len(frames) - 1
+def ground_last_frame(skeleton, frames, target_height, window_size, stance_foot="left", last_frame=None):
+    if last_frame is None:
+        last_frame = len(frames) - 1
     if stance_foot == "both":
         constraints = ground_both_feet(skeleton, frames, target_height, last_frame)
     elif stance_foot == "left":
@@ -323,11 +323,11 @@ class MotionPrimitiveGrounding(object):
         self.target_height = target_height
         self.foot_joints = self.skeleton.skeleton_model["foot_joints"]
 
-    def run_grounding_on_motion_vector(self, mv, mp_type):
+    def run_grounding_on_motion_vector(self, mv, mp_type, step_offset, step_length):
 
         config = self.mp_configs[mp_type]
 
-        search_window_start = int(len(mv.frames) / 2)
+        search_window_start = step_offset+int(step_length / 2)
         start_stance_foot = config["start_stance_foot"]
         stance_foot = config["stance_foot"]
         swing_foot = config["swing_foot"]
@@ -335,11 +335,10 @@ class MotionPrimitiveGrounding(object):
         stance_mode = config["stance_mode"]
         start_window_size = config["start_window_size"]
         end_window_size = config["end_window_size"]
-        move_to_ground(self.skeleton, mv.frames, self.foot_joints, self.target_height, search_window_start,
-                       len(mv.frames) - search_window_start)  # 20 45
-        ground_first_frame(self.skeleton, mv.frames, self.target_height, start_window_size, start_stance_foot)
+        move_to_ground(self.skeleton, mv.frames, self.foot_joints, self.target_height, search_window_start, step_length - search_window_start)
+        ground_first_frame(self.skeleton, mv.frames, self.target_height, start_window_size, start_stance_foot, first_frame=step_offset)
 
-        ground_last_frame(self.skeleton, mv.frames, self.target_height, end_window_size, end_stance_foot)
+        ground_last_frame(self.skeleton, mv.frames, self.target_height, end_window_size, end_stance_foot, last_frame=step_offset+step_length-1)
         if stance_mode is not "none":
             ground_initial_stance_foot(self.skeleton, mv.frames, self.target_height, stance_foot, swing_foot, stance_mode)
             # ground_initial_stance_foot_unconstrained(skeleton, mv.frames, target_height, stance_foot, stance_mode)
