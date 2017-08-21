@@ -1,12 +1,12 @@
 import os
 import collections
-from .morphablegraphs.animation_data import BVHReader, SkeletonBuilder, MotionVector
-from .morphablegraphs.animation_data.skeleton_models import *
-from .morphablegraphs.animation_data.motion_editing.utils import add_heels_to_skeleton, generate_root_constraint_for_one_foot, generate_root_constraint_for_two_feet, \
+from python_src.morphablegraphs.animation_data import BVHReader, SkeletonBuilder, MotionVector
+from python_src.morphablegraphs.animation_data.skeleton_models import *
+from python_src.morphablegraphs.animation_data.motion_editing.utils import add_heels_to_skeleton, generate_root_constraint_for_one_foot, generate_root_constraint_for_two_feet, \
     guess_ground_height, smooth_root_translation_at_end, smooth_root_translation_at_start
-from .morphablegraphs.animation_data.motion_editing.motion_grounding import MotionGroundingConstraint, generate_ankle_constraint_from_toe, create_ankle_constraint_from_toe_and_heel
-from .morphablegraphs.animation_data.motion_editing.analytical_inverse_kinematics import AnalyticalLimbIK
-from .morphablegraphs.external.transformations import quaternion_from_matrix, quaternion_multiply, quaternion_matrix, quaternion_slerp
+from python_src.morphablegraphs.animation_data.motion_editing.motion_grounding import MotionGroundingConstraint, generate_ankle_constraint_from_toe, create_ankle_constraint_from_toe_and_heel
+from python_src.morphablegraphs.animation_data.motion_editing.analytical_inverse_kinematics import AnalyticalLimbIK
+from python_src.morphablegraphs.external.transformations import quaternion_from_matrix, quaternion_multiply, quaternion_matrix, quaternion_slerp
 
 LEFT_FOOT = "LeftFoot"
 RIGHT_FOOT = "RightFoot"
@@ -108,14 +108,14 @@ def ground_right_stance(skeleton, frames, target_height, frame_idx):
 
 def ground_left_stance(skeleton, frames, target_height, frame_idx):
     constraints = []
-    stance_foot = skeleton.skeleton_model["joints"]["left_foot"]
+    stance_foot = skeleton.skeleton_model["joints"]["left_ankle"]
     heel_joint = skeleton.skeleton_model["joints"]["left_heel"]
     toe_joint = skeleton.skeleton_model["joints"]["left_toe"]
     heel_offset = skeleton.skeleton_model["heel_offset"]
     c1 = create_ankle_constraint_from_toe_and_heel(skeleton, frames, frame_idx, stance_foot, heel_joint, toe_joint, heel_offset, target_height)
     constraints.append(c1)
 
-    swing_foot = skeleton.skeleton_model["joints"]["right_foot"]
+    swing_foot = skeleton.skeleton_model["joints"]["right_ankle"]
     toe_joint = skeleton.skeleton_model["joints"]["right_toe"]
     heel_joint = skeleton.skeleton_model["joints"]["right_heel"]
     c2 = generate_ankle_constraint_from_toe(skeleton, frames, frame_idx, swing_foot,heel_joint, toe_joint, target_height)
@@ -186,11 +186,12 @@ def ground_initial_stance_foot_unconstrained(skeleton, frames, target_height, st
             frames[frame_idx][:3] = root_pos
         apply_constraint(skeleton, frames, frame_idx, c, frame_idx, frame_idx)
 
+
 def ground_initial_stance_foot(skeleton, frames, target_height, stance_foot="right", swing_foot="left", stance_mode="toe"):
-    stance_foot_joint = skeleton.skeleton_model["joints"][stance_foot + "_foot"]
+    stance_foot_joint = skeleton.skeleton_model["joints"][stance_foot + "_ankle"]
     stance_toe_joint = skeleton.skeleton_model["joints"][stance_foot + "_toe"]
     stance_heel_joint = skeleton.skeleton_model["joints"][stance_foot + "_heel"]
-    swing_foot_joint = skeleton.skeleton_model["joints"][swing_foot + "_foot"]
+    swing_foot_joint = skeleton.skeleton_model["joints"][swing_foot + "_ankle"]
     swing_toe_joint = skeleton.skeleton_model["joints"][swing_foot + "_toe"]
     swing_heel_joint = skeleton.skeleton_model["joints"][swing_foot + "_heel"]
     heel_offset = skeleton.skeleton_model["heel_offset"]
@@ -253,49 +254,52 @@ def align_xz_to_origin(skeleton, frames):
         frames[frame_idx, 2] += offset[2]
 
 
-def run_grounding_on_bvh_file(bvh_file, out_path, skeleton_model, configuration):
+class MotionGrounding(object):
+    def __init__(self, skeleton, configurations, target_height=0):
+        self.skeleton = skeleton
+        self.configurations = configurations
+        self.target_height = target_height
+        self.foot_joints = self.skeleton.skeleton_model["foot_joints"]
+
+    def run_grounding_on_motion_vector(self, mv, mp_type):
+
+        config = self.configurations[mp_type]
+
+        search_window_start = int(len(mv.frames) / 2)
+        start_stance_foot = config["start_stance_foot"]
+        stance_foot = config["stance_foot"]
+        swing_foot = config["swing_foot"]
+        end_stance_foot = config["end_stance_foot"]
+        stance_mode = config["stance_mode"]
+        start_window_size = config["start_window_size"]
+        end_window_size = config["end_window_size"]
+        move_to_ground(self.skeleton, mv.frames, self.foot_joints, self.target_height, search_window_start,
+                       len(mv.frames) - search_window_start)  # 20 45
+        ground_first_frame(self.skeleton, mv.frames, self.target_height, start_window_size, start_stance_foot)
+
+        ground_last_frame(self.skeleton, mv.frames, self.target_height, end_window_size, end_stance_foot)
+        if stance_mode is not "none":
+            ground_initial_stance_foot(self.skeleton, mv.frames, self.target_height, stance_foot, swing_foot, stance_mode)
+            # ground_initial_stance_foot_unconstrained(skeleton, mv.frames, target_height, stance_foot, stance_mode)
+        align_xz_to_origin(self.skeleton, mv.frames)
+        return mv
+
+
+def run_grounding_on_bvh_file(bvh_file, out_path, mg, step_type):
     print("apply on", bvh_file)
     bvh = BVHReader(bvh_file)
-    animated_joints = list(bvh.get_animated_joints())
-    skeleton = SkeletonBuilder().load_from_bvh(bvh, animated_joints)  # filter here
-    skeleton.aligning_root_node = "pelvis"
-    skeleton.skeleton_model = skeleton_model
     mv = MotionVector()
     mv.from_bvh_reader(bvh)
-    skeleton = add_heels_to_skeleton(skeleton, skeleton_model["joints"]["left_ankle"],
-                                     skeleton_model["joints"]["right_foot"],
-                                     skeleton_model["joints"]["left_heel"],
-                                     skeleton_model["joints"]["right_heel"],
-                                     skeleton_model["heel_offset"])
-
-    target_height = 0
-    foot_joints = skeleton.skeleton_model["foot_joints"]
-    search_window_start = int(len(mv.frames)/2)
-    start_stance_foot = configuration["start_stance_foot"]
-    stance_foot = configuration["stance_foot"]
-    swing_foot = configuration["swing_foot"]
-    end_stance_foot = configuration["end_stance_foot"]
-    stance_mode = configuration["stance_mode"]
-    start_window_size = configuration["start_window_size"]
-    end_window_size = configuration["end_window_size"]
-    move_to_ground(skeleton, mv.frames, foot_joints, target_height, search_window_start, len(mv.frames)-search_window_start)  #20 45
-    ground_first_frame(skeleton, mv.frames, target_height, start_window_size, start_stance_foot)
-
-    ground_last_frame(skeleton, mv.frames, target_height, end_window_size, end_stance_foot)
-    if stance_mode is not "none":
-        ground_initial_stance_foot(skeleton, mv.frames, target_height, stance_foot, swing_foot, stance_mode)
-        # ground_initial_stance_foot_unconstrained(skeleton, mv.frames, target_height, stance_foot, stance_mode)
-
-    align_xz_to_origin(skeleton, mv.frames)
+    mv = mg.run_grounding_on_motion_vector(mv, step_type)
     file_name = bvh_file.split("\\")[-1][:-4]
     out_filename = file_name + "_grounded"
-    mv.export(skeleton, out_path + os.sep + out_filename, add_time_stamp=False)
+    mv.export(mg.skeleton, out_path + os.sep + out_filename, add_time_stamp=False)
 
 
-def run_motion_grounding(in_path, out_path, skeleton_type, configuration, max_number=100):
+def run_motion_grounding(in_path, out_path, mg, step_type, max_number=100):
     bvh_files = list(get_files(in_path, max_number, "bvh"))
     for bvh_file in bvh_files:
-        run_grounding_on_bvh_file(bvh_file, out_path, skeleton_type, configuration)
+        run_grounding_on_bvh_file(bvh_file, out_path, mg, step_type)
 
 configurations = collections.OrderedDict()
 
@@ -374,19 +378,32 @@ configurations["turnRightLeftStance"]["stance_mode"] = "none"
 configurations["turnRightLeftStance"]["start_window_size"] = 20
 configurations["turnRightLeftStance"]["end_window_size"] = 20
 
+def init_motion_grounding(skeleton_path, skeleton_model):
+    bvh = BVHReader(skeleton_path)
+    animated_joints = list(bvh.get_animated_joints())
+    skeleton = SkeletonBuilder().load_from_bvh(bvh, animated_joints)  # filter here
+    skeleton.aligning_root_node = "pelvis"
+    skeleton.skeleton_model = skeleton_model
+    skeleton = add_heels_to_skeleton(skeleton, skeleton_model["joints"]["left_ankle"],
+                                     skeleton_model["joints"]["right_ankle"],
+                                     skeleton_model["joints"]["left_heel"],
+                                     skeleton_model["joints"]["right_heel"],
+                                     skeleton_model["heel_offset"])
+    return MotionGrounding(skeleton, configurations, target_height=0)
 
 if __name__ == "__main__":
     bvh_file = "skeleton.bvh"
     bvh_file = "walk_001_1.bvh"
     #bvh_file = "walk_014_2.bvh"
     bvh_file = "game_engine_left_stance.bvh"
-    skeleton_type = "game_engine"
     max_number = 10000
+
     skeleton_model = GAME_ENGINE_SKELETON_MODEL
+    skeleton_file = "game_engine_skeleton.bvh"
+    mg = init_motion_grounding(skeleton_file, skeleton_model)
     for step_type in list(configurations.keys()):
         ea_path = "E:\\projects\\INTERACT\\data\\1 - MoCap\\4 - Alignment\\elementary_action_walk"
-        in_path = ea_path + "\\" + step_type + "_game_engine_skeleton_new"
-        out_path = ea_path + "\\" + step_type + "_game_engine_skeleton_new_grounded"#"out\\foot_sliding"
-        config = configurations[step_type]
+        in_path = ea_path + os.sep + step_type + "_game_engine_skeleton_new"
+        out_path = ea_path +os.sep +"grounding"+ os.sep + step_type + "_game_engine_skeleton_new_grounded"#"out\\foot_sliding"
         #run_grounding_on_bvh_file(bvh_file, "out//foot_sliding", skeleton_type, configuration)
-        run_motion_grounding(in_path, out_path, skeleton_model, config, max_number)
+        run_motion_grounding(in_path, out_path, mg, step_type, max_number)
