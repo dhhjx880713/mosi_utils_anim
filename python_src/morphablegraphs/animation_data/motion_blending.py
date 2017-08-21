@@ -1,6 +1,5 @@
 from ..external.transformations import quaternion_slerp
 import numpy as np
-import copy
 from copy import deepcopy
 from .constants import LEN_QUAT, LEN_ROOT_POS
 
@@ -13,58 +12,25 @@ def blend_quaternion(a, b, w):
     return quaternion_slerp(a, b, w, spin=0, shortestpath=True)
 
 
-def create_transition(a, b, steps):
-    transition = []
-    for i in range(steps):
-        t = float(i) / steps
-        new_t = (1-t)*a + t*b
-        transition.append(new_t)
-    return transition
-
-
-def smooth_translation(quat_frames, event_frame, window):
-    h_window = window / 2
-    start_frame = max(event_frame - h_window, 0)
-    end_frame = min(event_frame + h_window, quat_frames.shape[0] - 1)
-
-    start_t = quat_frames[start_frame, :3]
-    event_t = quat_frames[event_frame, :3]
-    end_t = quat_frames[end_frame, :3]
-    from_start_to_event = create_transition(start_t, event_t, h_window)
-    from_event_to_end = create_transition(event_t, end_t, h_window)
-
-    # blend transition frames with original frames
-    steps = event_frame - start_frame
-    for i in range(steps):
-        t = float(i) / steps
-        orig = quat_frames[start_frame+i, :3]
-        quat_frames[start_frame + i, :3] = (1-t)*orig + t*from_start_to_event[i]
-
-    steps = end_frame - event_frame
-    for i in range(steps):
-        t = float(i) / steps
-        orig = quat_frames[event_frame + i, :3]
-        quat_frames[start_frame + i, :3] = (1 - t) * orig + t * from_event_to_end[i]
-
-
-def smooth_quaternion_frames_using_slerp(quat_frames, joint_param_indices, discontinuity, window):
+def smooth_joints_around_transition_using_slerp(quat_frames, joint_param_indices, discontinuity, window):
     h_window = int(window/2)
     start_frame = max(discontinuity-h_window, 0)
     end_frame = min(discontinuity+h_window, quat_frames.shape[0]-1)
-    create_transition_using_slerp2(quat_frames, joint_param_indices, start_frame, discontinuity, h_window, BLEND_DIRECTION_FORWARD)
-    create_transition_using_slerp2(quat_frames, joint_param_indices, discontinuity, end_frame, h_window, BLEND_DIRECTION_BACKWARD)
+    create_transition_for_joints_using_slerp(quat_frames, joint_param_indices, start_frame, discontinuity, h_window, BLEND_DIRECTION_FORWARD)
+    create_transition_for_joints_using_slerp(quat_frames, joint_param_indices, discontinuity, end_frame, h_window, BLEND_DIRECTION_BACKWARD)
 
 
-def create_transition_using_slerp2(quat_frames, joint_param_indices, start_frame, end_frame, steps, direction=BLEND_DIRECTION_FORWARD):
+def create_transition_for_joints_using_slerp(quat_frames, joint_param_indices, start_frame, end_frame, steps, direction=BLEND_DIRECTION_FORWARD):
     new_quats = create_frames_using_slerp(quat_frames, start_frame, end_frame, steps, joint_param_indices)
     for i in range(steps):
-        if direction==BLEND_DIRECTION_FORWARD:
+        if direction == BLEND_DIRECTION_FORWARD:
             t = float(i)/steps
         else:
             t = 1.0 - (i / steps)
         old_quat = quat_frames[start_frame+i, joint_param_indices]
         blended_quat = blend_quaternion(old_quat, new_quats[i], t)
         quat_frames[start_frame + i, joint_param_indices] = blended_quat
+
 
 def smooth_quaternion_frames_using_slerp_(quat_frames, joint_parameter_indices, event_frame, window):
     start_frame = event_frame-window/2
@@ -77,6 +43,7 @@ def smooth_quaternion_frames_using_slerp_(quat_frames, joint_parameter_indices, 
         slerp_q = quaternion_slerp(start_q, end_q, t, spin=0, shortestpath=True)
         #print "slerp",start_q,  end_q, t, nlerp_q, slerp_q
         quat_frames[start_frame+i, joint_parameter_indices] = slerp_q
+
 
 def smooth_quaternion_frames_using_slerp_old(quat_frames, joint_param_indices, event_frame, window):
     h_window = window/2
@@ -96,7 +63,6 @@ def smooth_quaternion_frames_using_slerp_old(quat_frames, joint_param_indices, e
     for i in range(steps):
         t = 1.0-(i/steps)
         quat_frames[event_frame+i, joint_param_indices] = blend_quaternion(quat_frames[start_frame+i, joint_param_indices], from_event_to_end[i], t)
-
 
 
 def smooth_quaternion_frames_using_slerp_overwrite_frames(quat_frames, joint_param_indices, event_frame, window):
@@ -133,45 +99,6 @@ def create_transition_using_slerp(quat_frames, start_frame, end_frame, joint_par
         t = float(i)/steps
         slerp_q = quaternion_slerp(start_q, end_q, t, spin=0, shortestpath=True)
         quat_frames[start_frame+i, joint_parameter_indices] = slerp_q
-
-###################################
-#from motion_concatenation
-
-def slerp_quaternion_frame(frame_a, frame_b, weight):
-    frame_a = np.asarray(frame_a)
-    frame_b = np.asarray(frame_b)
-    assert len(frame_a) == len(frame_b)
-    n_joints = int((len(frame_a) - 3) / 4)
-    new_frame = np.zeros(len(frame_a))
-    # linear interpolate root translation
-    new_frame[:3] = (1 - weight) * frame_a[:3] + weight * frame_b[:3]
-    for i in range(n_joints):
-        new_frame[3+ i*4 : 3 + (i+1) * 4] = quaternion_slerp(frame_a[3 + i*4 : 3 + (i+1) * 4],
-                                                             frame_b[3 + i*4 : 3 + (i+1) * 4],
-                                                             weight)
-    return new_frame
-
-
-def smooth_quaternion_frames_with_slerp(frames, discontinuity, window=20):
-    n_frames = len(frames)
-    d = float(discontinuity)
-    ref_pose = slerp_quaternion_frame(frames[int(d)-1], frames[int(d)], 0.5)
-    w = float(window)
-    new_quaternion_frames = []
-    for f in range(n_frames):
-        if f < d - w:
-            new_quaternion_frames.append(frames[f])
-        elif d - w <= f < d:
-            tmp = (f - d + w) / w
-            weight = 2 * (0.5 * tmp ** 2)
-            new_quaternion_frames.append(slerp_quaternion_frame(frames[f], ref_pose, weight))
-        elif d <= f <= d + w:
-            tmp = (f - d + w) / w
-            weight = 2 * (0.5 * tmp ** 2 - 2 * tmp + 2)
-            new_quaternion_frames.append(slerp_quaternion_frame(frames[f], ref_pose, weight))
-        else:
-            new_quaternion_frames.append(frames[f])
-    return np.asarray(new_quaternion_frames)
 
 
 def smooth_quaternion_frames(frames, discontinuity, window=20, include_root=False):
@@ -215,6 +142,60 @@ def smooth_quaternion_frames(frames, discontinuity, window=20, include_root=Fals
         new_curve = current_curve + (magnitude * smoothing_factors)
         new_frames[:, dof_idx] = new_curve
     return new_frames
+
+
+
+def slerp_quaternion_frame(frame_a, frame_b, weight):
+    frame_a = np.asarray(frame_a)
+    frame_b = np.asarray(frame_b)
+    assert len(frame_a) == len(frame_b)
+    n_joints = int((len(frame_a) - 3) / 4)
+    new_frame = np.zeros(len(frame_a))
+    # linear interpolate root translation
+    new_frame[:3] = (1 - weight) * frame_a[:3] + weight * frame_b[:3]
+    for i in range(n_joints):
+        new_frame[3+ i*4 : 3 + (i+1) * 4] = quaternion_slerp(frame_a[3 + i*4 : 3 + (i+1) * 4],
+                                                             frame_b[3 + i*4 : 3 + (i+1) * 4],
+                                                             weight)
+    return new_frame
+
+
+def smooth_quaternion_frames_with_slerp(frames, discontinuity, window=20):
+    n_frames = len(frames)
+    d = float(discontinuity)
+    ref_pose = slerp_quaternion_frame(frames[int(d)-1], frames[int(d)], 0.5)
+    w = float(window)
+    new_quaternion_frames = []
+    for f in range(n_frames):
+        if f < d - w:
+            new_quaternion_frames.append(frames[f])
+        elif d - w <= f < d:
+            tmp = (f - d + w) / w
+            weight = 2 * (0.5 * tmp ** 2)
+            new_quaternion_frames.append(slerp_quaternion_frame(frames[f], ref_pose, weight))
+        elif d <= f <= d + w:
+            tmp = (f - d + w) / w
+            weight = 2 * (0.5 * tmp ** 2 - 2 * tmp + 2)
+            new_quaternion_frames.append(slerp_quaternion_frame(frames[f], ref_pose, weight))
+        else:
+            new_quaternion_frames.append(frames[f])
+    return np.asarray(new_quaternion_frames)
+
+
+def smooth_quaternion_frames_with_slerp2(skeleton, frames,d, smoothing_window=0):
+    '''
+
+    :param new_frames (numpy.array): n_frames * n_dims
+    :param prev_frames (numpy.array): n_frames * n_dims
+    :param smoothing_window:
+    :return:
+    '''
+    smooth_translation_in_quat_frames(frames, d, smoothing_window)
+    for joint_idx, joint_name in enumerate(skeleton.animated_joints):
+        start = joint_idx*4+3
+        joint_indices = list(range(start, start+4))
+        smooth_joints_around_transition_using_slerp(frames, joint_indices, d, smoothing_window)
+    return frames
 
 
 def generate_smoothing_factors(discontinuity, window, n_frames):
@@ -283,8 +264,8 @@ def smooth_quaternion_frames_joint_filter(skeleton, frames, discontinuity, joint
     return new_frames
 
 
-def smooth_translation_in_quat_frames(frames, discontinuity, window=20, include_root=True):
-    """ Smooth quaternion frames given discontinuity frame
+def smooth_translation_in_quat_frames(frames, discontinuity, window=20, only_height=False):
+    """ Smooth translation in quaternion frames given discontinuity frame
 
     Parameters
     ----------
@@ -303,12 +284,11 @@ def smooth_translation_in_quat_frames(frames, discontinuity, window=20, include_
     # generate curve of smoothing factors
     d = discontinuity
     smoothing_factors = generate_smoothing_factors(d, window, n_frames)
-
-    dofs = list(range(len(frames[0])))[3:]
-    if include_root:
-        dofs = [0, 1, 2] + dofs
+    if only_height:
+        dofs = [1]
     else:
-        dofs = [1] + dofs
+        dofs = [0, 1, 2]
+
     new_frames = np.array(frames)
     for dof_idx in dofs:
         current_curve = np.array(frames[:, dof_idx])  # extract dof curve
@@ -316,19 +296,6 @@ def smooth_translation_in_quat_frames(frames, discontinuity, window=20, include_
         new_curve = current_curve + (magnitude * smoothing_factors)
         new_frames[:, dof_idx] = new_curve
     return new_frames
-
-
-
-
-def smooth_root_translation(frames, target_frame_idx, transition_start,transition_end, window):
-    root_pos = frames[target_frame_idx, :3]
-    frames[transition_end, :3] = root_pos
-    #print "root after", frames[transition_end, :3]
-    start = frames[transition_start, :3]
-    end = frames[target_frame_idx, :3]
-    for i in range(window - 1):
-        t = float(i) / (window - 1)
-        frames[transition_start + i, :3] = start * (1 - t) + end * t
 
 
 def smooth_root_translation_around_transition(frames, d, window):
@@ -362,7 +329,7 @@ def linear_blending(ref_pose, quat_frames, skeleton, weights, joint_list=None):
     '''
     if joint_list is None:
         joint_list = skeleton.animated_joints
-    new_frames = copy.deepcopy(quat_frames)
+    new_frames = deepcopy(quat_frames)
     for i in range(len(quat_frames)):
         for joint in joint_list:
             joint_index = skeleton.nodes[joint].quaternion_frame_index
@@ -374,7 +341,7 @@ def linear_blending(ref_pose, quat_frames, skeleton, weights, joint_list=None):
     return new_frames
 
 
-def blend_quaternion_frames(new_frames, prev_frames, skeleton, smoothing_window=None):
+def blend_quaternion_frames_linearly(new_frames, prev_frames, skeleton, smoothing_window=None):
     '''
     Blend new frames linearly based on the last pose of previous frames
     :param new_frames (Quaternion Frames):
@@ -453,5 +420,62 @@ def blend_towards_next_step_linear_with_original(skeleton, frames, start, end,  
     new_frames = generate_blended_frames(skeleton, frames, start, end, joint_list, end-start)
     new_frames2 = interpolate_frames(skeleton, frames, new_frames, joint_list, start, end)
     return new_frames2
+
+
+def generate_frame_using_iterative_slerp(skeleton, motions, frame_idx, weights):
+    """src: https://gamedev.stackexchange.com/questions/62354/method-for-interpolation-between-3-quaternions
+    """
+    frame = None
+    w_sum = 0.0
+    for n, w in weights.items():
+        if frame is None:
+            frame = np.zeros(len(motions[n][0]))
+            frame[:] = motions[n][frame_idx][:]
+            w_sum += w
+        else:
+            new_w_sum = w_sum + w
+            if new_w_sum > 0:
+                w_a = w_sum / new_w_sum
+                w_b = w / new_w_sum
+                frame_b = motions[n][frame_idx]
+                frame[:3] = w_a * frame[:3] + w_b * frame_b[:3]
+                for idx, j in enumerate(skeleton.animated_joints):
+                    q_start_idx = (idx * 4) + 3
+                    q_end_idx = q_start_idx + 4
+                    q_a = np.array(frame[q_start_idx:q_end_idx])
+                    q_b = frame_b[q_start_idx:q_end_idx]
+                    new_q = quaternion_slerp(q_a, q_b, w_b)
+                    new_q /= np.linalg.norm(new_q)
+                    frame[q_start_idx:q_end_idx] = new_q
+            w_sum = new_w_sum
+    return frame
+
+
+def generate_frame_using_iterative_slerp2(skeleton, frames, weights):
+    """src: https://gamedev.stackexchange.com/questions/62354/method-for-interpolation-between-3-quaternions
+    """
+    frame = None
+    w_sum = 0.0
+    for frame_idx, w in enumerate(weights):
+        if frame is None:
+            frame = frames[frame_idx][:]
+            w_sum += w
+        else:
+            new_w_sum = w_sum + w
+            if new_w_sum > 0:
+                w_a = w_sum / new_w_sum
+                w_b = w / new_w_sum
+                frame_b = frames[frame_idx][:]
+                frame[:3] = w_a * frame[:3] + w_b * frame_b[:3]
+                for idx, j in enumerate(skeleton.animated_joints):
+                    q_start_idx = (idx * 4) + 3
+                    q_end_idx = q_start_idx + 4
+                    q_a = np.array(frame[q_start_idx:q_end_idx])
+                    q_b = frame_b[q_start_idx:q_end_idx]
+                    new_q = quaternion_slerp(q_a, q_b, w_b)
+                    new_q /= np.linalg.norm(new_q)
+                    frame[q_start_idx:q_end_idx] = new_q
+            w_sum = new_w_sum
+    return frame
 
 

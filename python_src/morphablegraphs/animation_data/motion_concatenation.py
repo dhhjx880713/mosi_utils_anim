@@ -1,7 +1,7 @@
 import numpy as np
 from .utils import euler_substraction, point_to_euler_angle, euler_to_quaternion, euler_angles_to_rotation_matrix, get_rotation_angle, DEFAULT_ROTATION_ORDER, LEN_QUAT, LEN_EULER, LEN_ROOT_POS
 from ..external.transformations import quaternion_matrix, quaternion_about_axis, quaternion_multiply, quaternion_from_matrix, quaternion_from_euler, quaternion_slerp, euler_matrix
-from .motion_blending import smooth_quaternion_frames_with_slerp, smooth_quaternion_frames, blend_quaternion_frames, smooth_quaternion_frames_using_slerp, smooth_translation_in_quat_frames
+from .motion_blending import smooth_quaternion_frames_with_slerp, smooth_quaternion_frames, blend_quaternion_frames_linearly, smooth_quaternion_frames_with_slerp2
 from .motion_editing.motion_grounding import create_grounding_constraint_from_frame, generate_ankle_constraint_from_toe, interpolate_constraints
 from .motion_editing.analytical_inverse_kinematics import AnalyticalLimbIK
 from .motion_editing.utils import normalize, generate_root_constraint_for_two_feet, smooth_root_translation_at_start, smooth_root_translation_at_end
@@ -10,6 +10,13 @@ from .motion_blending import blend_between_frames, smooth_translation_in_quat_fr
 ALIGNMENT_MODE_FAST = 0
 ALIGNMENT_MODE_PCL = 1
 
+
+def concatenate_frames(prev_frames, new_frames):
+    frames = prev_frames.tolist()
+    for idx in range(1, len(new_frames)):  # skip first frame
+        frames.append(new_frames[idx])
+    frames = np.array(frames)
+    return frames
 
 
 def convert_quat_frame_to_point_cloud(skeleton, frame, joints=None):
@@ -192,12 +199,9 @@ def transform_quaternion_frames(frames, m,
     return frames
 
 
-def concatenate_frames(new_frames, prev_frames, smoothing_window=0):
+def concatenate_frames_smoothly(new_frames, prev_frames, smoothing_window=0):
     d = len(prev_frames)
-    frames = prev_frames.tolist()
-    for idx in range(1, len(new_frames)):  # skip first frame
-        frames.append(new_frames[idx])
-    frames = np.array(frames)
+    frames = concatenate_frames(prev_frames, new_frames)
     if smoothing_window > 0:
         frames = smooth_quaternion_frames(frames, d, smoothing_window)
     return frames
@@ -212,34 +216,9 @@ def concatenate_frames_with_slerp(new_frames, prev_frames, smoothing_window=0):
     :return:
     '''
     d = len(prev_frames)
-    frames = prev_frames.tolist()
-    for idx in range(1, len(new_frames)):  # skip first frame
-        frames.append(new_frames[idx])
-    frames = np.array(frames)
+    frames = concatenate_frames(prev_frames, new_frames)
     if smoothing_window > 0:
         frames = smooth_quaternion_frames_with_slerp(frames, d, smoothing_window)
-    return frames
-
-
-def concatenate_frames_with_slerp2(skeleton, new_frames, prev_frames, smoothing_window=0):
-    '''
-
-    :param new_frames (numpy.array): n_frames * n_dims
-    :param prev_frames (numpy.array): n_frames * n_dims
-    :param smoothing_window:
-    :return:
-    '''
-    d = len(prev_frames)
-    frames = prev_frames.tolist()
-    for idx in range(1, len(new_frames)):  # skip first frame
-        frames.append(new_frames[idx])
-    frames = np.array(frames)
-    if smoothing_window > 0:
-        smooth_translation_in_quat_frames(frames, d, smoothing_window)
-        for joint_idx, joint_name in enumerate(skeleton.animated_joints):
-            start = joint_idx*4+3
-            joint_indices = list(range(start, start+4))
-            smooth_quaternion_frames_using_slerp(frames, joint_indices, d, smoothing_window)
     return frames
 
 
@@ -292,22 +271,24 @@ def get_transform_from_start_pose(start_pose):
 
 
 def align_and_concatenate_frames(skeleton, joint_name, new_frames, prev_frames=None, start_pose=None, smoothing_window=0,
-                                 blending_method='slerp_smoothing2'):
+                                 blending_method='smoothing'):
     new_frames = align_quaternion_frames(skeleton, joint_name, new_frames, prev_frames, start_pose)
 
     if prev_frames is not None:
-        if blending_method == 'smoothing':
-            return concatenate_frames(new_frames, prev_frames, smoothing_window)
-        elif blending_method == 'blending':
-            return blend_quaternion_frames(new_frames, prev_frames, skeleton, smoothing_window)
-        elif blending_method == 'slerp_smoothing':
-            return concatenate_frames_with_slerp(new_frames, prev_frames, smoothing_window)
-        elif blending_method == 'slerp_smoothing2':
-            return concatenate_frames_with_slerp2(skeleton, new_frames, prev_frames, smoothing_window)
-        else:
-            raise KeyError('Unknown method!')
-    else:
-        return new_frames
+        d = len(prev_frames)
+        new_frames = concatenate_frames(prev_frames, new_frames)
+        if smoothing_window > 0:
+            if blending_method == 'smoothing':
+                new_frames = smooth_quaternion_frames(new_frames, d, smoothing_window)
+            elif blending_method == 'slerp':
+                new_frames = smooth_quaternion_frames_with_slerp(new_frames, d, smoothing_window)
+            elif blending_method == 'slerp2':
+                new_frames = smooth_quaternion_frames_with_slerp2(skeleton, new_frames, smoothing_window)
+            elif blending_method == 'linear':
+                new_frames = blend_quaternion_frames_linearly(new_frames, prev_frames, skeleton, smoothing_window)
+            else:
+                raise KeyError('Unknown method!')
+    return new_frames
 
 
 blend = lambda x: 2 * x * x * x - 3 * x * x + 1

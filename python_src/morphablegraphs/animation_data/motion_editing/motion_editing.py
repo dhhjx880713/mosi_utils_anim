@@ -2,7 +2,7 @@ from copy import copy
 import numpy as np
 from .numerical_ik_quat import NumericalInverseKinematicsQuat
 from .skeleton_pose_model import SkeletonPoseModel
-from ..motion_blending import smooth_quaternion_frames_using_slerp, create_transition_using_slerp
+from ..motion_blending import smooth_joints_around_transition_using_slerp, create_transition_using_slerp
 from ...external.transformations import quaternion_matrix, euler_from_matrix
 from ...utilities.log import write_message_to_log, LOG_MODE_DEBUG
 
@@ -99,7 +99,7 @@ class MotionEditing(object):
         for target_joint_name in joint_names:
             joint_parameter_indices = self._extract_free_parameter_indices(self.pose.free_joints_map[target_joint_name])
             for joint_name in self.pose.free_joints_map[target_joint_name]:
-                smooth_quaternion_frames_using_slerp(frames, joint_parameter_indices[joint_name], keyframe, window)
+                smooth_joints_around_transition_using_slerp(frames, joint_parameter_indices[joint_name], keyframe, window)
 
     def _look_at_in_range(self, motion_vector, position, start, end):
         start = max(0, start)

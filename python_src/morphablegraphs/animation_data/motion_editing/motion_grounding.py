@@ -3,7 +3,7 @@ import numpy as np
 from .analytical_inverse_kinematics import AnalyticalLimbIK
 from .numerical_ik_exp import NumericalInverseKinematicsExp
 from .utils import normalize, project_on_intersection_circle, smooth_root_positions, quaternion_from_vector_to_vector
-from ..motion_blending import create_transition_using_slerp2, BLEND_DIRECTION_FORWARD, BLEND_DIRECTION_BACKWARD, smooth_translation_in_quat_frames
+from ..motion_blending import create_transition_for_joints_using_slerp, BLEND_DIRECTION_FORWARD, BLEND_DIRECTION_BACKWARD, smooth_translation_in_quat_frames
 from ...external.transformations import quaternion_from_matrix, quaternion_matrix, quaternion_multiply, quaternion_slerp
 
 
@@ -196,8 +196,8 @@ class MotionGrounding(object):
             idx = self._ik.skeleton.animated_joints.index(joint_name)*4+3
             joint_parameter_indices = [idx, idx+1, idx+2, idx+3]
             if start > 0:
-                create_transition_using_slerp2(frames, joint_parameter_indices, transition_start, start, forward_steps, BLEND_DIRECTION_FORWARD)
-            create_transition_using_slerp2(frames, joint_parameter_indices, end, transition_end, backward_steps, BLEND_DIRECTION_BACKWARD)
+                create_transition_for_joints_using_slerp(frames, joint_parameter_indices, transition_start, start, forward_steps, BLEND_DIRECTION_FORWARD)
+            create_transition_for_joints_using_slerp(frames, joint_parameter_indices, end, transition_end, backward_steps, BLEND_DIRECTION_BACKWARD)
 
     def apply_ik_constraints(self, frames):
         for frame_idx, constraints in list(self._constraints.items()):
