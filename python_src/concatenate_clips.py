@@ -116,8 +116,8 @@ def main_loop(n_steps=2, method="smoothing", window = 10):
     prev_start = 0
     for i in range(n_steps):
         motion = concatenate(skeleton, motion, steps[current_step], method, prev_start=prev_start, window=window)
-        mg.run_grounding_on_motion_vector(motion, step_types[current_step], step_offset=prev_start, step_length=step_lengths[current_step])
-        prev_start += len(steps[current_step].frames)-1
+        mg.ground_feet(motion, step_types[current_step], step_offset=prev_start, step_length=step_lengths[current_step])
+        prev_start += len(steps[current_step].frames)
         print(current_step, motion.n_frames)
         current_step = (current_step + 1) % 2
     motion.export(skeleton, out_dir+os.sep+"concatenate"+method, False)
