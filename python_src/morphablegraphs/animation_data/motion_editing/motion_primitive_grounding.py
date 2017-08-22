@@ -277,20 +277,25 @@ def ground_initial_stance_foot(skeleton, frames, target_height, stance_foot="rig
     stance_toe_pos = None
     stance_heel_pos = None
     for frame_idx in range(start_frame, end_frame):
+        temp_stance_heel_pos = skeleton.nodes[stance_heel_joint].get_global_position(frames[frame_idx])
+
         if stance_toe_pos is None:
             stance_toe_pos = skeleton.nodes[stance_toe_joint].get_global_position(frames[frame_idx])
             stance_toe_pos[1] = target_height
             stance_heel_pos = skeleton.nodes[stance_heel_joint].get_global_position(frames[frame_idx])
             stance_heel_pos[1] = target_height
-        if stance_mode == "toe":
-            stance_c = generate_ankle_constraint_from_toe(skeleton, frames, frame_idx, stance_foot_joint, stance_heel_joint, stance_toe_joint,
-                                                   target_height, stance_toe_pos)
+        if stance_mode == "toe" and temp_stance_heel_pos[1] >= target_height:
+                #stance_c = generate_ankle_constraint_from_toe(skeleton, frames, frame_idx, stance_foot_joint, stance_heel_joint, stance_toe_joint,
+                #                                       target_height, stance_toe_pos)
 
-            #stance_heel_pos = skeleton.nodes[stance_heel_joint].get_global_position(frames[frame_idx])
-            #stance_c = create_ankle_constraint_from_toe_and_heel(skeleton, frames, frame_idx, stance_foot_joint, stance_heel_joint,
-            #                             stance_toe_joint, heel_offset,
-            #                             target_height, stance_heel_pos, stance_toe_pos)
-            print("toe",stance_toe_pos)
+                stance_heel_pos[1] = temp_stance_heel_pos[1]
+                stance_c = create_ankle_constraint_from_toe_and_heel(skeleton, frames, frame_idx, stance_foot_joint, stance_heel_joint, stance_toe_joint, heel_offset, target_height, stance_heel_pos, stance_toe_pos)
+                #stance_heel_pos = skeleton.nodes[stance_heel_joint].get_global_position(frames[frame_idx])
+                #stance_c = create_ankle_constraint_from_toe_and_heel(skeleton, frames, frame_idx, stance_foot_joint, stance_heel_joint,
+                #                             stance_toe_joint, heel_offset,
+                #                             target_height, stance_heel_pos, stance_toe_pos)
+                #print("toe",stance_toe_pos)
+
         else:
             stance_c = create_ankle_constraint_from_toe_and_heel(skeleton, frames, frame_idx, stance_foot_joint, stance_heel_joint, stance_toe_joint, heel_offset,
                                   target_height, stance_heel_pos, stance_toe_pos)
