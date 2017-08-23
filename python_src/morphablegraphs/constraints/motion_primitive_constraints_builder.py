@@ -31,7 +31,7 @@ class MotionPrimitiveConstraintsBuilder(object):
         self.motion_state_graph = None
         self.node_group = None
         self.skeleton = None
-        self.precision = 1.0
+        self.precision = {"pos": 1.0, "rot": 1.0}
         self.trajectory_following_settings = None
         self.local_optimization_mode = "None"
         self.ca_constraint_mode = "None"
@@ -57,7 +57,6 @@ class MotionPrimitiveConstraintsBuilder(object):
 
     def set_algorithm_config(self, algorithm_config):
         self.algorithm_config = algorithm_config
-        self.precision = algorithm_config["constrained_gmm_settings"]["precision"]
         self.trajectory_following_settings = algorithm_config["trajectory_following_settings"]
         self.local_optimization_mode = algorithm_config["local_optimization_mode"]
         self.ca_constraint_mode = algorithm_config["collision_avoidance_constraints_mode"]

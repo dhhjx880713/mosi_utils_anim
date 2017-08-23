@@ -49,11 +49,8 @@ class MotionPrimitiveGenerator(object):
 
     def set_algorithm_config(self, algorithm_config):
         self._algorithm_config = algorithm_config
-        self._constrained_gmm_config = self._algorithm_config["constrained_gmm_settings"]
         self.n_random_samples = self._algorithm_config["n_random_samples"]
         self.verbose = self._algorithm_config["verbose"]
-        self.precision = self._constrained_gmm_config["precision"]
-        self.max_bad_samples = self._constrained_gmm_config["max_bad_samples"]
         self.use_constraints = self._algorithm_config["use_constraints"]
         self.local_optimization_mode = self._algorithm_config["local_optimization_mode"]
         self._settings = self._algorithm_config["local_optimization_settings"]
