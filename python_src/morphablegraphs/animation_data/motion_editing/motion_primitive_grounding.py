@@ -3,7 +3,7 @@ import collections
 from python_src.morphablegraphs.animation_data.skeleton_models import *
 from python_src.morphablegraphs.animation_data.motion_editing.utils import generate_root_constraint_for_one_foot, generate_root_constraint_for_two_feet, \
     guess_ground_height, smooth_root_translation_at_end, smooth_root_translation_at_start
-from python_src.morphablegraphs.animation_data.motion_editing.motion_grounding import MotionGroundingConstraint, generate_ankle_constraint_from_toe, create_ankle_constraint_from_toe_and_heel
+from python_src.morphablegraphs.animation_data.motion_editing.motion_grounding import MotionGroundingConstraint, generate_ankle_constraint_from_toe, create_ankle_constraint_from_toe_and_heel, create_ankle_constraint_from_toe_and_temp_heel
 from python_src.morphablegraphs.animation_data.motion_editing.analytical_inverse_kinematics import AnalyticalLimbIK
 from python_src.morphablegraphs.external.transformations import quaternion_slerp
 
@@ -149,9 +149,8 @@ def ground_both_feet(skeleton, frames, target_height, frame_idx):
     stance_foot = skeleton.skeleton_model["joints"]["right_ankle"]
     heel_joint = skeleton.skeleton_model["joints"]["right_heel"]
     toe_joint = skeleton.skeleton_model["joints"]["right_toe"]
-    heel_offset = skeleton.skeleton_model["joints"]["heel_offset"]
-    c1 = create_ankle_constraint_from_toe_and_heel(skeleton, frames, frame_idx, stance_foot, heel_joint, toe_joint, heel_offset,
-                           target_height)
+    heel_offset = skeleton.skeleton_model["heel_offset"]
+    c1 = create_ankle_constraint_from_toe_and_heel(skeleton, frames, frame_idx, stance_foot, heel_joint, toe_joint, heel_offset, target_height)
     constraints.append(c1)
 
     stance_foot = skeleton.skeleton_model["joints"]["left_ankle"]
@@ -221,14 +220,17 @@ def ground_last_frame(skeleton, frames, target_height, window_size, stance_foot=
         last_frame = len(frames) - 1
     if stance_foot == "both":
         constraints = ground_both_feet(skeleton, frames, target_height, last_frame)
+        c1 = constraints[0]
+        c2 = constraints[1]
+        root_pos = generate_root_constraint_for_two_feet(skeleton, frames[last_frame], c1, c2)
     elif stance_foot == "left":
         constraints = ground_left_stance(skeleton, frames, target_height, last_frame)
+        c1 = constraints[0]
+        root_pos = generate_root_constraint_for_one_foot(skeleton, frames[last_frame], c1)
     else:
         constraints = ground_right_stance(skeleton, frames, target_height, last_frame)
-
-    c1 = constraints[0]
-    c2 = constraints[1]
-    root_pos = generate_root_constraint_for_two_feet(skeleton, frames[last_frame], c1, c2)
+        c1 = constraints[0]
+        root_pos = generate_root_constraint_for_one_foot(skeleton, frames[last_frame], c1)
     if root_pos is not None:
         frames[last_frame][:3] = root_pos
         print("change root at frame", last_frame)
@@ -277,6 +279,7 @@ def ground_initial_stance_foot(skeleton, frames, target_height, stance_foot="rig
     stance_toe_pos = None
     stance_heel_pos = None
     for frame_idx in range(start_frame, end_frame):
+        temp_stance_toe_pos = skeleton.nodes[stance_toe_joint].get_global_position(frames[frame_idx])
         temp_stance_heel_pos = skeleton.nodes[stance_heel_joint].get_global_position(frames[frame_idx])
 
         if stance_toe_pos is None:
@@ -289,7 +292,7 @@ def ground_initial_stance_foot(skeleton, frames, target_height, stance_foot="rig
                 #                                       target_height, stance_toe_pos)
 
                 stance_heel_pos[1] = temp_stance_heel_pos[1]
-                stance_c = create_ankle_constraint_from_toe_and_heel(skeleton, frames, frame_idx, stance_foot_joint, stance_heel_joint, stance_toe_joint, heel_offset, target_height, stance_heel_pos, stance_toe_pos)
+                stance_c = create_ankle_constraint_from_toe_and_heel(skeleton, frames, frame_idx, stance_foot_joint, stance_heel_joint, stance_toe_joint, heel_offset, target_height, stance_heel_pos, stance_toe_pos, is_swinging=True)
                 #stance_heel_pos = skeleton.nodes[stance_heel_joint].get_global_position(frames[frame_idx])
                 #stance_c = create_ankle_constraint_from_toe_and_heel(skeleton, frames, frame_idx, stance_foot_joint, stance_heel_joint,
                 #                             stance_toe_joint, heel_offset,

@@ -146,14 +146,16 @@ GAME_ENGINE_JOINTS["left_elbow"] = "lowerarm_l"
 GAME_ENGINE_JOINTS["right_elbow"] = "lowerarm_r"
 GAME_ENGINE_JOINTS["left_wrist"] = "hand_l"
 GAME_ENGINE_JOINTS["right_wrist"] = "hand_r"
+GAME_ENGINE_JOINTS["left_finger"] = "middle_03_l"
+GAME_ENGINE_JOINTS["right_finger"] = "middle_03_r"
 GAME_ENGINE_JOINTS["left_hip"] = "thigh_l"
 GAME_ENGINE_JOINTS["right_hip"] = "thigh_r"
 GAME_ENGINE_JOINTS["left_knee"] = "calf_l"
 GAME_ENGINE_JOINTS["right_knee"] = "calf_r"
 GAME_ENGINE_JOINTS["left_ankle"] = "foot_l"
 GAME_ENGINE_JOINTS["right_ankle"] = "foot_r"
-GAME_ENGINE_JOINTS["left_toe"] = "ball_l"
-GAME_ENGINE_JOINTS["right_toe"] = "ball_r"
+GAME_ENGINE_JOINTS["left_toe"] = "ball_l_EndSite"
+GAME_ENGINE_JOINTS["right_toe"] = "ball_r_EndSite"
 GAME_ENGINE_JOINTS["left_heel"] = "heel_l"
 GAME_ENGINE_JOINTS["right_heel"] = "heel_r"
 GAME_ENGINE_JOINTS["neck"] = "neck_01"
@@ -161,7 +163,7 @@ GAME_ENGINE_JOINTS["head"] = "head"
 GAME_ENGINE_SKELETON_MODEL = collections.OrderedDict()
 GAME_ENGINE_SKELETON_MODEL["joints"] = GAME_ENGINE_JOINTS
 GAME_ENGINE_SKELETON_MODEL["foot_joints"] = ["foot_l", "foot_r", "ball_r", "ball_l", "heel_r", "heel_l"]
-GAME_ENGINE_SKELETON_MODEL["heel_offset"] = (np.array([0, 2.45, 3.480602]) * 1.75).tolist()
+GAME_ENGINE_SKELETON_MODEL["heel_offset"] = (np.array([0, 2.45, 3.480602]) * 2.5).tolist()
 GAME_ENGINE_SKELETON_MODEL["ik_chains"] = IK_CHAINS_GAME_ENGINE_SKELETON
 
 

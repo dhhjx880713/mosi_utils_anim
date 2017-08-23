@@ -6,6 +6,8 @@ from .utils import normalize, project_on_intersection_circle, smooth_root_positi
 from ..motion_blending import create_transition_for_joints_using_slerp, BLEND_DIRECTION_FORWARD, BLEND_DIRECTION_BACKWARD, smooth_translation_in_quat_frames
 from ...external.transformations import quaternion_from_matrix, quaternion_matrix, quaternion_multiply, quaternion_slerp
 
+FOOT_STATE_GROUNDED = 0
+FOOT_STATE_SWINGING = 1
 
 def create_grounding_constraint_from_frame(skeleton, frames, frame_idx, joint_name):
     position = skeleton.nodes[joint_name].get_global_position(frames[frame_idx])
@@ -38,7 +40,7 @@ def generate_ankle_constraint_from_toe(skeleton, frames, frame_idx, ankle_joint_
     return MotionGroundingConstraint(frame_idx, ankle_joint_name, ca, None, oq)
 
 
-def create_ankle_constraint_from_toe_and_heel(skeleton, frames, frame_idx, ankle_joint, heel_joint, toe_joint,heel_offset, target_ground_height, heel_pos=None, toe_pos=None):
+def create_ankle_constraint_from_toe_and_heel(skeleton, frames, frame_idx, ankle_joint, heel_joint, toe_joint,heel_offset, target_ground_height, heel_pos=None, toe_pos=None, is_swinging=False):
     if toe_pos is None:
         ct = skeleton.nodes[toe_joint].get_global_position(frames[frame_idx])
         ct[1] = target_ground_height
@@ -69,8 +71,11 @@ def create_ankle_constraint_from_toe_and_heel(skeleton, frames, frame_idx, ankle
     m = quaternion_matrix(orientation)[:3, :3]
     target_heel_offset = np.dot(m, heel_offset)
     ca = ch - target_heel_offset
-    print("set ankle constraint both", ch, ca, target_heel_offset)
-    return MotionGroundingConstraint(frame_idx, ankle_joint, ca, None, orientation)
+    print("set ankle constraint both", ch, ca, target_heel_offset, target_ground_height)
+    foot_state = FOOT_STATE_GROUNDED
+    if is_swinging:
+        foot_state = FOOT_STATE_SWINGING
+    return MotionGroundingConstraint(frame_idx, ankle_joint, ca, None, orientation, foot_state)
 
 
 def interpolate_constraints(c1, c2):

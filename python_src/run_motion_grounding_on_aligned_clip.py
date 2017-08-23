@@ -21,8 +21,9 @@ def run_grounding_on_bvh_file(bvh_file, out_path, mg, step_type):
     bvh = BVHReader(bvh_file)
     mv = MotionVector()
     mv.from_bvh_reader(bvh)
-    mv = mg.move_motion_to_ground(mv, step_offset=0, step_length=len(mv.frames))
-    mv = mg.ground_feet(mv, step_type, step_offset=0, step_length=len(mv.frames))
+    n_frames = len(mv.frames)
+    mv = mg.move_motion_to_ground(mv, step_offset=0, step_length=n_frames)
+    mv = mg.ground_feet(mv, step_type, step_offset=0, step_length=n_frames)
     mv = mg.align_to_origin(mv)
     file_name = bvh_file.split("\\")[-1][:-4]
     out_filename = file_name + "_grounded"
@@ -46,10 +47,13 @@ def init_motion_primitive_grounding(skeleton_path, skeleton_model):
                                      skeleton_model["joints"]["left_heel"],
                                      skeleton_model["joints"]["right_heel"],
                                      skeleton_model["heel_offset"])
+    toe_offset = np.array([0.0, 8.9142797414, 0.0])
+    skeleton.nodes[skeleton_model["joints"]["right_toe"]].offset = toe_offset
+    skeleton.nodes[skeleton_model["joints"]["left_toe"]].offset = toe_offset
     return MotionPrimitiveGrounding(skeleton, MP_CONFIGURATIONS, target_height=0)
 
 if __name__ == "__main__":
-    max_number = 10000
+    max_number = np.inf
     skeleton_model = GAME_ENGINE_SKELETON_MODEL
     skeleton_file = "game_engine_skeleton.bvh"
     mg = init_motion_primitive_grounding(skeleton_file, skeleton_model)
