@@ -54,6 +54,22 @@ class MotionPrimitiveConstraints(object):
         self.is_last_step = False
         self.time = 0.0
 
+    @classmethod
+    def from_dict(cls, skeleton, data, trajectory_following_settings, precision, start_pose=None, verbose=False):
+        mp_constraints = MotionPrimitiveConstraints()
+        mp_constraints.action_name = data["action_name"]
+        mp_constraints.motion_primitive_name = data["motion_primitive_name"]
+        mp_constraints.aligning_transform = data["aligning_transform"]
+        mp_constraints.is_last_step = data["is_last_step"]
+        mp_constraints.settings = trajectory_following_settings
+        mp_constraints.constraints = list()
+        mp_constraints.goal_arc_length = 0.0
+        mp_constraints.step_start = data["last_pos"]
+        mp_constraints.skeleton = skeleton
+        mp_constraints.precision = precision
+        mp_constraints.verbose = verbose
+        return mp_constraints
+
     def print_status(self, mode=LOG_MODE_DEBUG):
         write_message_to_log("starting from:" + str(self.step_start), mode)
         write_message_to_log("the new goal for " + self.motion_primitive_name + "is" + str(self.step_goal), mode)

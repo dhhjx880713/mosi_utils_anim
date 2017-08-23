@@ -8,9 +8,8 @@ Created on Mon Jul 27 18:38:15 2015
 from copy import copy
 import numpy as np
 import collections
-from ..utilities.exceptions import PathSearchError
 from .motion_primitive_constraints import MotionPrimitiveConstraints
-from .spatial_constraints import PoseConstraint, Direction2DConstraint, GlobalTransformConstraint, PoseConstraintQuatFrame, TwoHandConstraintSet, LookAtConstraint, FeetConstraint
+from .spatial_constraints import PoseConstraint, GlobalTransformConstraint, PoseConstraintQuatFrame, TwoHandConstraintSet, LookAtConstraint, FeetConstraint
 from ..animation_data.motion_concatenation import align_and_concatenate_frames, get_transform_from_start_pose, get_node_aligning_2d_transform
 from . import CA_CONSTRAINTS_MODE_SET, OPTIMIZATION_MODE_ALL, OPTIMIZATION_MODE_KEYFRAMES, OPTIMIZATION_MODE_TWO_HANDS
 from .spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
@@ -25,6 +24,7 @@ class MotionPrimitiveConstraintsBuilder(object):
     """
 
     mp_constraint_types = ["position", "orientation", "time"]
+
     def __init__(self):
         self.action_constraints = None
         self.algorithm_config = None
@@ -107,7 +107,6 @@ class MotionPrimitiveConstraintsBuilder(object):
 
     def _set_aligning_transform(self, node_key, prev_frames):
         if prev_frames is None:
-            #print "create aligning transform from start pose",self.action_constraints.start_pose
             self.status["aligning_transform"] = get_transform_from_start_pose(self.action_constraints.start_pose)
         else:
             sample = self.motion_state_graph.nodes[node_key].sample(False)
@@ -115,24 +114,14 @@ class MotionPrimitiveConstraintsBuilder(object):
             self.status["aligning_transform"] = get_node_aligning_2d_transform(self.skeleton, self.skeleton.aligning_root_node, prev_frames, frames)
 
     def build(self):
-        mp_constraints = MotionPrimitiveConstraints()
-        mp_constraints.action_name = self.status["action_name"]
-        mp_constraints.motion_primitive_name = self.status["motion_primitive_name"]
-        mp_constraints.aligning_transform = self.status["aligning_transform"]
-        mp_constraints.is_last_step = self.status["is_last_step"]
-        mp_constraints.settings = self.trajectory_following_settings
-        mp_constraints.constraints = list()
-        mp_constraints.goal_arc_length = 0.0
-        mp_constraints.step_start = self.status["last_pos"]
         if self.use_local_coordinates:
-            mp_constraints.start_pose = None
+            start_pose = None
         else:
-            mp_constraints.start_pose = self.action_constraints.start_pose
-        mp_constraints.skeleton = self.skeleton
-        mp_constraints.precision = self.action_constraints.precision
-        mp_constraints.verbose = self.algorithm_config["verbose"]
-        print("add constraints", self.use_transition_constraint)
-
+            start_pose = self.action_constraints.start_pose
+        mp_constraints = MotionPrimitiveConstraints.from_dict(self.skeleton, self.status,
+                                                              self.trajectory_following_settings,
+                                                              self.precision,
+                                                              start_pose)
         if self.action_constraints.root_trajectory is not None:
             node_key = (self.action_constraints.action_name, self.status["motion_primitive_name"])
             self.trajectory_constraint_builder.add_constraints(mp_constraints, node_key,
@@ -147,10 +136,8 @@ class MotionPrimitiveConstraintsBuilder(object):
             # if not already done for the trajectory following
             if self.status["is_last_step"] and not mp_constraints.pose_constraint_set:
                 self._add_pose_constraint(mp_constraints)
-
         if mp_constraints.action_name in ["pickBoth","placeBoth"] and mp_constraints.motion_primitive_name == "reach":
             self._add_feet_constraint(mp_constraints)
-
         self._add_trajectory_constraints(mp_constraints)
         self._add_events_to_event_list(mp_constraints)
         self._decide_on_optimization(mp_constraints)
@@ -198,7 +185,6 @@ class MotionPrimitiveConstraintsBuilder(object):
         mp_constraints.constraints.append(pose_constraint_quat_frame)
         mp_constraints.pose_constraint_set = True
 
-
     def _add_keyframe_constraints(self, mp_constraints):
         """ Extract keyframe constraints of the motion primitive name.
         """
@@ -241,7 +227,8 @@ class MotionPrimitiveConstraintsBuilder(object):
 
                     # add keyframe constraint based on joint and label
                     constraint = None
-                    if len(event_list) == 1:#only if there is only one constraint on one joint otherwise correspondence is not clear
+                    if len(event_list) == 1:
+                        #only if there is only one constraint on one joint otherwise correspondence is not clear
                         joint_name = event_list[0]["parameters"]["joint"]
                         for c in mp_constraints.constraints:
                             if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION and c.joint_name == joint_name and c.keyframe_label == label :
