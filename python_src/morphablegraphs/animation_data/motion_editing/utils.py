@@ -595,7 +595,7 @@ def generate_root_constraint_for_one_foot(skeleton, frame, c):
         print("no change")
 
 
-def generate_root_constraint_for_two_feet(skeleton, frame, constraint1, constraint2):
+def generate_root_constraint_for_two_feet(skeleton, frame, constraint1, constraint2, length_offset=1.0):
     """ Set the root position to the projection on the intersection of two spheres """
     root = skeleton.aligning_root_node
     # root = self.skeleton.root
@@ -607,10 +607,10 @@ def generate_root_constraint_for_two_feet(skeleton, frame, constraint1, constrai
     t2 = np.linalg.norm(constraint2.position - p)
 
     c1 = constraint1.position
-    r1 = get_limb_length(skeleton, constraint1.joint_name)
+    r1 = get_limb_length(skeleton, constraint1.joint_name)- length_offset
     # p1 = c1 + r1 * normalize(p-c1)
     c2 = constraint2.position
-    r2 = get_limb_length(skeleton, constraint2.joint_name)
+    r2 = get_limb_length(skeleton, constraint2.joint_name) - length_offset
     # p2 = c2 + r2 * normalize(p-c2)
     if r1 > t1 and r2 > t2:
         #print "no root constraint", t1,t2, r1, r2
