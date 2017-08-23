@@ -8,7 +8,7 @@ class TrajectoryFollowingConstraintsBuilder(object):
         self.skeleton = skeleton
         self.mp_constraint_builder = mp_constraint_builder
         self.settings = settings
-        self.precision = {"pos": 1.0, "rot": 1.0}
+        self.precision = {"pos": 1.0, "rot": 1.0, "smooth": 1.0}
         self.use_transition_constraint = self.settings["use_transition_constraint"]
         if "generate_half_step_constraint" in list(self.settings.keys()):
             self.generate_half_step_constraint = self.settings["generate_half_step_constraint"]

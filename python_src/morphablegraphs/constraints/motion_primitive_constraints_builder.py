@@ -32,7 +32,7 @@ class MotionPrimitiveConstraintsBuilder(object):
         self.motion_state_graph = None
         self.node_group = None
         self.skeleton = None
-        self.precision = {"pos": 1.0, "rot": 1.0}
+        self.precision = {"pos": 1.0, "rot": 1.0, "smooth": 1.0}
         self.trajectory_following_settings = dict()
         self.local_optimization_mode = "None"
         self.ca_constraint_mode = "None"
