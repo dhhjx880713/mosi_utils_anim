@@ -58,7 +58,7 @@ def damp_angle(orig_angle, target_angle, p=0.1*np.pi, a=0.01):
 
 
 class AnalyticalLimbIK(object):
-    def __init__(self, skeleton, limb_root, limb_joint, end_effector, joint_axis, local_end_effector_dir, min_angle=0.1):
+    def __init__(self, skeleton, limb_root, limb_joint, end_effector, joint_axis, local_end_effector_dir, dample_angle=None, damp_factor=0.01):
         self.skeleton = skeleton
         self.limb_root = limb_root
         self.limb_joint = limb_joint
@@ -71,15 +71,16 @@ class AnalyticalLimbIK(object):
         self.root_indices = [root_idx, root_idx + 1, root_idx + 2, root_idx + 3]
         end_effector_idx = self.skeleton.animated_joints.index(self.end_effector) * 4 + 3
         self.end_effector_indices = [end_effector_idx, end_effector_idx + 1, end_effector_idx + 2, end_effector_idx + 3]
-        self.min_angle = min_angle
+        self.dample_angle = dample_angle
+        self.damp_factor = damp_factor
 
     @classmethod
-    def init_from_dict(cls, skeleton, joint_name, data):
+    def init_from_dict(cls, skeleton, joint_name, data, damp_angle=None):
         limb_root = data["root"]
         limb_joint = data["joint"]
         joint_axis = data["joint_axis"]
         end_effector_dir = data["end_effector_dir"]
-        return AnalyticalLimbIK(skeleton, limb_root, limb_joint, joint_name, joint_axis, end_effector_dir)
+        return AnalyticalLimbIK(skeleton, limb_root, limb_joint, joint_name, joint_axis, end_effector_dir, damp_angle)
 
     def calculate_limb_joint_rotation(self, frame, target_position):
         """ find angle so the distance from root to end effector is equal to the distance from the root to the target"""
@@ -95,7 +96,8 @@ class AnalyticalLimbIK(object):
         current_length = np.linalg.norm(root_pos - end_effector_pos)
         current_angle = calculate_angle2(upper_limb, lower_limb, current_length)
         target_angle = calculate_angle2(upper_limb, lower_limb, target_length)
-        target_angle = damp_angle(current_angle, target_angle)
+        if self.dample_angle is not None:
+            target_angle = damp_angle(current_angle, target_angle, self.damp_angle, self.damp_factor)
         #if abs(target_angle - np.pi) < self.min_angle:
         #    target_angle -= self.min_angle
         joint_delta_angle = np.pi - target_angle

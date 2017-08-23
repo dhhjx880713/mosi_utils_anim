@@ -244,8 +244,9 @@ class MotionGenerator(object):
         if self._algorithm_config["activate_motion_grounding"] and has_model and self.scene_interface is not None and "motion_grounding_settings" in self._algorithm_config:
             grounding_settings = self._algorithm_config["motion_grounding_settings"]
             skeleton_model = self._motion_state_graph.skeleton.skeleton_model
+            damp_angle = 0.1 * np.pi # TODO move to settings
             grounding = MotionGrounding(self._motion_state_graph.skeleton, ik_settings, skeleton_model,
-                                        use_analytical_ik=True)
+                                        use_analytical_ik=True, damp_angle=damp_angle)
             if grounding_settings["generate_foot_plant_constraints"]:
                 constraints, blend_ranges, ground_contacts = self.footplant_constraint_generator.generate_from_graph_walk(
                     motion_vector)

@@ -136,7 +136,7 @@ def add_fixed_dofs_to_frame(skeleton, frame):
 
 
 class MotionGrounding(object):
-    def __init__(self, skeleton, ik_settings, skeleton_def, use_analytical_ik=True):
+    def __init__(self, skeleton, ik_settings, skeleton_def, use_analytical_ik=True, damp_angle=None):
         self.skeleton = skeleton
         self._ik = NumericalInverseKinematicsExp(skeleton, ik_settings)
         self._constraints = collections.OrderedDict()
@@ -147,6 +147,7 @@ class MotionGrounding(object):
         self.use_analytical_ik = use_analytical_ik
         self._ik_chains = skeleton_def["ik_chains"]
         self._skeleton_def = skeleton_def
+        self.damp_angle = damp_angle
 
     def set_constraints(self, constraints):
         self._constraints = constraints
@@ -220,11 +221,13 @@ class MotionGrounding(object):
         for frame_idx, constraints in list(self._constraints.items()):
             if 0 <= frame_idx < len(frames):
                 #print "adapt root", frame_idx, len(constraints)
+                grounding_constraints = [c for c in constraints if c.foot_state==FOOT_STATE_GROUNDED]
+                n_constraints = len(grounding_constraints)
                 p = None
-                if len(constraints) == 1:
-                    p = self.generate_root_constraint_for_one_foot(frames[frame_idx], constraints[0])
-                elif len(constraints) > 1:
-                    p = self.generate_root_constraint_for_two_feet(frames[frame_idx], constraints[0], constraints[1])
+                if n_constraints == 1:
+                    p = self.generate_root_constraint_for_one_foot(frames[frame_idx], grounding_constraints[0])
+                elif n_constraints > 1:
+                    p = self.generate_root_constraint_for_two_feet(frames[frame_idx], grounding_constraints[0], grounding_constraints[1])
                 if p is None:
                     p = frames[frame_idx, :3]
                 root_constraints.append(p)
@@ -288,7 +291,7 @@ class MotionGrounding(object):
                 for c in constraints:
                     if c.joint_name in list(self._ik_chains.keys()):
                         data = self._ik_chains[c.joint_name]
-                        ik = AnalyticalLimbIK.init_from_dict(self.skeleton, c.joint_name, data)
+                        ik = AnalyticalLimbIK.init_from_dict(self.skeleton, c.joint_name, data, damp_angle=self.damp_angle)
                         frames[frame_idx] = ik.apply2(frames[frame_idx], c.position, c.orientation)
                         #delta = c.position -self.skeleton.nodes[c.joint_name].get_global_position(frames[frame_idx])
                         #heel_joint = "RightHeel"

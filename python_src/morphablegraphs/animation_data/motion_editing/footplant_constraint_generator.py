@@ -1,7 +1,7 @@
 import collections
 import numpy as np
 from ..skeleton_models import *
-from .motion_grounding import MotionGroundingConstraint
+from .motion_grounding import MotionGroundingConstraint, FOOT_STATE_SWINGING
 from .utils import get_average_joint_position, get_average_joint_direction, get_joint_height, normalize, get_average_direction_from_target, \
     quaternion_from_vector_to_vector
 from ...external.transformations import quaternion_from_matrix, quaternion_multiply, quaternion_matrix, quaternion_slerp
@@ -103,7 +103,7 @@ def create_ankle_constraint(skeleton, frames, ankle_joint_name, heel_joint_name,
 
 
 class FootplantConstraintGenerator(object):
-    def __init__(self, skeleton, skeleton_model, settings, scene_interface, source_ground_height=0):
+    def __init__(self, skeleton, skeleton_model, settings, scene_interface=None, source_ground_height=0):
         self.skeleton = skeleton
         self.left_foot = skeleton_model["joints"]["left_ankle"]
         self.right_foot = skeleton_model["joints"]["right_ankle"]
@@ -122,7 +122,10 @@ class FootplantConstraintGenerator(object):
         self.graph_walk_grounding_window = settings["graph_walk_grounding_window"]
         self.foot_lift_search_window = settings["foot_lift_search_window"]
         self.source_ground_height = source_ground_height
-        self.scene_interface = scene_interface
+        if scene_interface is None:
+            self.scene_interface = SceneInterface(source_ground_height)
+        else:
+            self.scene_interface = scene_interface
 
         self.contact_tolerance = settings["contact_tolerance"]
         self.foot_lift_tolerance = settings["foot_lift_tolerance"]
