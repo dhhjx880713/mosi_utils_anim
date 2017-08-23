@@ -58,7 +58,7 @@ def damp_angle(orig_angle, target_angle, p=0.1*np.pi, a=0.01):
 
 
 class AnalyticalLimbIK(object):
-    def __init__(self, skeleton, limb_root, limb_joint, end_effector, joint_axis, local_end_effector_dir, dample_angle=None, damp_factor=0.01):
+    def __init__(self, skeleton, limb_root, limb_joint, end_effector, joint_axis, local_end_effector_dir, damp_angle=None, damp_factor=0.01):
         self.skeleton = skeleton
         self.limb_root = limb_root
         self.limb_joint = limb_joint
@@ -71,7 +71,7 @@ class AnalyticalLimbIK(object):
         self.root_indices = [root_idx, root_idx + 1, root_idx + 2, root_idx + 3]
         end_effector_idx = self.skeleton.animated_joints.index(self.end_effector) * 4 + 3
         self.end_effector_indices = [end_effector_idx, end_effector_idx + 1, end_effector_idx + 2, end_effector_idx + 3]
-        self.dample_angle = dample_angle
+        self.damp_angle = damp_angle
         self.damp_factor = damp_factor
 
     @classmethod
