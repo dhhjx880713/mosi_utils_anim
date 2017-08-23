@@ -96,7 +96,7 @@ class AnalyticalLimbIK(object):
         current_length = np.linalg.norm(root_pos - end_effector_pos)
         current_angle = calculate_angle2(upper_limb, lower_limb, current_length)
         target_angle = calculate_angle2(upper_limb, lower_limb, target_length)
-        if self.dample_angle is not None:
+        if self.damp_angle is not None:
             target_angle = damp_angle(current_angle, target_angle, self.damp_angle, self.damp_factor)
         #if abs(target_angle - np.pi) < self.min_angle:
         #    target_angle -= self.min_angle
