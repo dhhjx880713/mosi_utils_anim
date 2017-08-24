@@ -48,11 +48,11 @@ def damp_angle(orig_angle, target_angle, p=0.1*np.pi, a=0.01):
     """ src: Kovar et al. [2] Section 4.4. eq. 10 and 11"""
     def func(x):
         if x < p:
-            return 1
+            return 1.0
         elif p <= x <= np.pi:
             return a * ((x-p)/(np.pi-p))
         else:
-            return 0
+            return 0.0
     res = integrate.quad(func, orig_angle, target_angle)
     return orig_angle + res[0]
 
@@ -75,12 +75,12 @@ class AnalyticalLimbIK(object):
         self.damp_factor = damp_factor
 
     @classmethod
-    def init_from_dict(cls, skeleton, joint_name, data, damp_angle=None):
+    def init_from_dict(cls, skeleton, joint_name, data, damp_angle=None, damp_factor=None):
         limb_root = data["root"]
         limb_joint = data["joint"]
         joint_axis = data["joint_axis"]
         end_effector_dir = data["end_effector_dir"]
-        return AnalyticalLimbIK(skeleton, limb_root, limb_joint, joint_name, joint_axis, end_effector_dir, damp_angle)
+        return AnalyticalLimbIK(skeleton, limb_root, limb_joint, joint_name, joint_axis, end_effector_dir, damp_angle, damp_factor)
 
     def calculate_limb_joint_rotation(self, frame, target_position):
         """ find angle so the distance from root to end effector is equal to the distance from the root to the target"""

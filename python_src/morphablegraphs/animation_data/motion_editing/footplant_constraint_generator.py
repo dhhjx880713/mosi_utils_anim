@@ -87,7 +87,12 @@ def blend(x):
 
 
 
+class SceneInterface(object):
+    def __init__(self, height):
+        self.h = height
 
+    def get_height(self,x, z):
+        return self.h
 
 def create_ankle_constraint(skeleton, frames, ankle_joint_name, heel_joint_name, toe_joint, frame_idx, end_frame, ground_height):
     """ create constraint on ankle position and orientation """

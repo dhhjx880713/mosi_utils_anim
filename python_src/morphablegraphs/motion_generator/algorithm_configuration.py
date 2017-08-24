@@ -200,18 +200,19 @@ DEFAULT_ALGORITHM_CONFIG = {
         "elementary_action_optimization_eps": 1.0,
         "adapt_hands_during_carry_both": True,
         "constrain_place_orientation": False,
-        "motion_grounding": True,
         "activate_blending": True
     },
     "motion_grounding_settings":{
-                                   "activate_blending": True,
-                                   "generate_foot_plant_constraints": False,
-                                   "foot_lift_search_window": 40,
-                                   "foot_lift_tolerance": 3.0,
-                                   "graph_walk_grounding_window": 4,
-                                   "contact_tolerance": 1.0,
-                                   "constraint_range": 10,
-                                   "smoothing_constraints_window": 8
+           "activate_blending": True,
+           "generate_foot_plant_constraints": True,
+           "foot_lift_search_window": 40,
+           "foot_lift_tolerance": 3.0,
+           "graph_walk_grounding_window": 4,
+           "contact_tolerance": 1.0,
+           "constraint_range": 10,
+           "smoothing_constraints_window": 8,
+           "damp_angle": 0.01,
+           "damp_factor": 0.01
      },
     "n_random_samples": 100,
     "average_elementary_action_error_threshold": 500,

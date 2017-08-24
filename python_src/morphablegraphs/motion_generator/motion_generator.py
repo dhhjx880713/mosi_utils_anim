@@ -242,24 +242,8 @@ class MotionGenerator(object):
         ik_settings = self._algorithm_config["inverse_kinematics_settings"]
         has_model = self.footplant_constraint_generator is not None and self._motion_state_graph.skeleton.skeleton_model is not None
         if self._algorithm_config["activate_motion_grounding"] and has_model and self.scene_interface is not None and "motion_grounding_settings" in self._algorithm_config:
-            grounding_settings = self._algorithm_config["motion_grounding_settings"]
-            skeleton_model = self._motion_state_graph.skeleton.skeleton_model
-            damp_angle = 0.1 * np.pi # TODO move to settings
-            grounding = MotionGrounding(self._motion_state_graph.skeleton, ik_settings, skeleton_model,
-                                        use_analytical_ik=True, damp_angle=damp_angle)
-            if grounding_settings["generate_foot_plant_constraints"]:
-                constraints, blend_ranges, ground_contacts = self.footplant_constraint_generator.generate_from_graph_walk(
-                    motion_vector)
-                motion_vector.grounding_constraints = constraints
-                motion_vector.ground_contacts = ground_contacts
-                grounding.set_constraints(constraints)
-                if grounding_settings["activate_blending"]:
-                    for target_joint in blend_ranges:
-                        joint_list = [skeleton_model["ik_chains"][target_joint]["root"],
-                                      skeleton_model["ik_chains"][target_joint]["joint"], target_joint]
-                        for frame_range in blend_ranges[target_joint]:
-                            grounding.add_blend_range(joint_list, tuple(frame_range))
-            grounding.run(motion_vector, self.scene_interface)
+            self.run_motion_grounding(motion_vector, ik_settings)
+            #self.run_motion_grounding(motion_vector, ik_settings)
 
         if self._algorithm_config["activate_inverse_kinematics"]:
             write_message_to_log("Modify using inverse kinematics", LOG_MODE_INFO)
@@ -270,6 +254,27 @@ class MotionGenerator(object):
         if complete_motion_vector:
             motion_vector.frames = self._motion_state_graph.skeleton.add_fixed_joint_parameters_to_motion(
                 motion_vector.frames)
+
+    def run_motion_grounding(self, motion_vector, ik_settings):
+        grounding_settings = self._algorithm_config["motion_grounding_settings"]
+        skeleton_model = self._motion_state_graph.skeleton.skeleton_model
+        damp_angle = grounding_settings["damp_angle"] * np.pi
+        damp_factor = grounding_settings["damp_factor"]
+        grounding = MotionGrounding(self._motion_state_graph.skeleton, ik_settings, skeleton_model,
+                                    use_analytical_ik=True, damp_angle=damp_angle, damp_factor=damp_factor)
+        if grounding_settings["generate_foot_plant_constraints"]:
+            constraints, blend_ranges, ground_contacts = self.footplant_constraint_generator.generate_from_graph_walk(
+                motion_vector)
+            motion_vector.grounding_constraints = constraints
+            motion_vector.ground_contacts = ground_contacts
+            grounding.set_constraints(constraints)
+            if grounding_settings["activate_blending"]:
+                for target_joint in blend_ranges:
+                    joint_list = [skeleton_model["ik_chains"][target_joint]["root"],
+                                  skeleton_model["ik_chains"][target_joint]["joint"], target_joint]
+                    for frame_range in blend_ranges[target_joint]:
+                        grounding.add_blend_range(joint_list, tuple(frame_range))
+        grounding.run(motion_vector, self.scene_interface)
 
     def get_end_step_arc_length(self, action_constraints):
         node_group = action_constraints.get_node_group()
