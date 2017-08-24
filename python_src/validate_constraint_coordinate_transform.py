@@ -7,10 +7,24 @@ from python_src.morphablegraphs.motion_generator.motion_primitive_generator impo
 from python_src.morphablegraphs.utilities import load_json_file, write_to_json_file, set_log_mode, LOG_MODE_DEBUG
 from python_src.morphablegraphs.constraints.elementary_action_constraints import ElementaryActionConstraints
 from python_src.morphablegraphs.constraints.motion_primitive_constraints import MotionPrimitiveConstraints
-from python_src.morphablegraphs.constraints.spatial_constraints import GlobalTransformConstraint
+from python_src.morphablegraphs.constraints.spatial_constraints import GlobalTransformConstraint, Direction2DConstraint
 from python_src.morphablegraphs.constraints.spatial_constraints.splines import ParameterizedSpline
 from python_src.morphablegraphs.animation_data.motion_concatenation import get_node_aligning_2d_transform
-from python_src.morphablegraphs.external.transformations import euler_matrix
+from python_src.morphablegraphs.external.transformations import euler_matrix, quaternion_matrix
+
+
+FOOT_OFFSETS = dict()
+FOOT_OFFSETS["foot_l"] = np.array([-18,0,0])
+FOOT_OFFSETS["foot_r"] = np.array([18,0,0])
+
+
+def quaternion_from_vector_to_vector(a, b):
+    "src: http://stackoverflow.com/questions/1171849/finding-quaternion-representing-the-rotation-from-one-vector-to-another"
+    v = np.cross(a, b)
+    w = np.sqrt((np.linalg.norm(a) ** 2) * (np.linalg.norm(b) ** 2)) + np.dot(a, b)
+    q = np.array([w, v[0], v[1], v[2]])
+    return q / np.linalg.norm(q)
+
 
 class MockGraph(object):
     def __init__(self, skeleton):
@@ -39,6 +53,15 @@ def generate_constraints(skeleton, joint_name, frame_idx, position, n_frames):
     mp_constraints.constraints.append(c)
     return mp_constraints
 
+def generate_dir_constraint(skeleton, joint_name, frame_idx, dir_vector, n_frames):
+    mp_constraints = MotionPrimitiveConstraints()
+    mp_constraints.skeleton = skeleton
+    c_desc = {"joint": joint_name, "canonical_keyframe": frame_idx, "dir_vector": dir_vector,
+              "n_canonical_frames": n_frames, "semanticAnnotation": {"keyframeLabel": "none"}}
+    c = Direction2DConstraint(skeleton, c_desc, 1.0, 1.0)
+    mp_constraints.constraints.append(c)
+    return mp_constraints
+
 
 def get_random_position_from_mp(motion_primitive, skeleton, joint_name, frame_idx):
     spline = motion_primitive.sample(use_time=False)
@@ -62,10 +85,20 @@ def generate_random_constraint(motion_primitive, skeleton, joint_name, frame_idx
     return generate_constraints(skeleton, joint_name, frame_idx, position, motion_primitive.get_n_canonical_frames())
 
 
-def generate_constraint_from_trajectory(motion_primitive, skeleton, joint_name, frame_idx, trajectory, arc_length):
-    position = trajectory.query_point_by_absolute_arc_length(arc_length)
+
+def generate_constraint_from_trajectory(motion_primitive, skeleton, joint_name, frame_idx, trajectory, arc_length, generate_foot_step_constraints=False):
+    REF_VECTOR = [0.0, 0.0, -1.0]
+    offset = FOOT_OFFSETS[joint_name]
+    goal, dir_vector = trajectory.get_tangent_at_arc_length(arc_length)
+    q = quaternion_from_vector_to_vector(REF_VECTOR, dir_vector)
+    m = quaternion_matrix(q)[:3,:3]
+    offset = np.dot(m, offset)[:3]
+    position = goal + offset
     print("global_position from trajectory", position)
-    return generate_constraints(skeleton, joint_name, frame_idx, position, motion_primitive.get_n_canonical_frames())
+    mp_constraints1 = generate_constraints(skeleton, joint_name, frame_idx, position, motion_primitive.get_n_canonical_frames())
+    mp_constraints2 = generate_dir_constraint(skeleton, "Root", frame_idx, goal, motion_primitive.get_n_canonical_frames())
+    mp_constraints1.constraints += mp_constraints2.constraints
+    return mp_constraints1
 
 
 def get_aligning_transform(motion_primitive, skeleton, prev_frames=None):
@@ -132,7 +165,7 @@ def generate_motion_from_random_constraints(skeleton_filename, mp_filenames, joi
     return mv, positions
 
 
-def generate_motion_from_random_trajectory(skeleton_filename, mp_filenames, joint_names, n_steps=2, use_local_coordinates=False, step_length=50.0):
+def generate_motion_from_random_trajectory(skeleton_filename, mp_filenames, joint_names, n_steps=2, use_local_coordinates=False, step_length=50.0, generate_foot_step_constraints=False):
     algorithm_config = DEFAULT_ALGORITHM_CONFIG
     start_position = [0,0,0]
     algorithm_config["use_local_coordinates"] = use_local_coordinates
@@ -161,7 +194,7 @@ def generate_motion_from_random_trajectory(skeleton_filename, mp_filenames, join
         n_mp_frames = int(mp.get_n_canonical_frames())
         frame_idx = n_mp_frames-1
         aligning_transform = get_aligning_transform(mp, skeleton, mv.frames)
-        mp_constraints = generate_constraint_from_trajectory(mp, skeleton, joint_name, frame_idx, trajectory, arc_length+step_length)
+        mp_constraints = generate_constraint_from_trajectory(mp, skeleton, joint_name, frame_idx, trajectory, arc_length+step_length, generate_foot_step_constraints)
         p = mp_constraints.constraints[0].position
         positions.append(list(p))
         mp_constraints.aligning_transform = aligning_transform
@@ -181,14 +214,15 @@ def main():
     skeleton_filename = in_dir + os.sep + "skeleton_model.json"
     mp_filenames = [in_dir + os.sep + "walk_leftStance_quaternion_mm.mp",
                     in_dir + os.sep + "walk_rightStance_quaternion_mm.mp"]
-    joint_names = ["Root", "Root"]
-    n_steps = 2
+    joint_names = ["foot_l", "foot_r"]
+    n_steps = 5
     np.random.seed(100)
-    step_length = 50.0
+    step_length = 40.0
     use_trajectory = True
     use_local_coordinates = True
+    generate_foot_step_constraints = True
     if use_trajectory:
-        mv, positions = generate_motion_from_random_trajectory(skeleton_filename, mp_filenames, joint_names, n_steps, use_local_coordinates, step_length)
+        mv, positions = generate_motion_from_random_trajectory(skeleton_filename, mp_filenames, joint_names, n_steps, use_local_coordinates,step_length, generate_foot_step_constraints)
     else:
         mv, positions = generate_motion_from_random_constraints(skeleton_filename, mp_filenames, joint_names, n_steps, use_local_coordinates)
     mv.export(in_dir + os.sep + "out")

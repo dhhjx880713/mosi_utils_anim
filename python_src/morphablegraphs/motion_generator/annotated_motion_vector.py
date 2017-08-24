@@ -15,20 +15,20 @@ class AnnotatedMotionVector(MotionVector):
         self.ground_contacts = None
         self.ik_constraints = dict()
 
-    def export(self, output_dir, output_filename, add_time_stamp=False, export_details=False):
+    def export(self, output_filename, add_time_stamp=False, export_details=False):
         """ Saves the resulting animation frames, the annotation and actions to files.
         Also exports the input file again to the output directory, where it is
         used as input for the constraints visualization by the animation server.
         """
 
-        MotionVector.export(self, self.skeleton, output_dir + os.sep + output_filename, add_time_stamp)
-        self.export_annotation(output_dir, output_filename)
+        MotionVector.export(self, self.skeleton, output_filename, add_time_stamp)
+        self.export_annotation(output_filename)
 
-    def export_annotation(self,output_dir, output_filename):
+    def export_annotation(self, output_filename):
         if self.mg_input is not None:
-            write_to_json_file(output_dir + os.sep + output_filename + ".json", self.mg_input.mg_input_file)
+            write_to_json_file(output_filename + ".json", self.mg_input.mg_input_file)
         if self.keyframe_event_list is not None:
-            self.keyframe_event_list.export_to_file(output_dir + os.sep + output_filename)
+            self.keyframe_event_list.export_to_file(output_filename)
 
     def load_from_file(self, file_name, filter_joints=True):
         bvh = BVHReader(file_name)
