@@ -4,7 +4,7 @@ from ..skeleton_models import *
 from .motion_grounding import MotionGroundingConstraint, FOOT_STATE_SWINGING
 from .utils import get_average_joint_position, get_average_joint_direction, get_joint_height, normalize, get_average_direction_from_target, \
     quaternion_from_vector_to_vector
-from ...external.transformations import quaternion_from_matrix, quaternion_multiply, quaternion_matrix, quaternion_slerp
+from ...external.transformations import quaternion_from_matrix, quaternion_multiply, quaternion_matrix, quaternion_slerp, quaternion_inverse
 
 
 
@@ -16,6 +16,12 @@ def regenerate_ankle_constraint_with_new_orientation(position, joint_offset, new
     ca = position - target_offset
     return ca
 
+def regenerate_ankle_constraint_with_new_orientation2(position, joint_offset, delta):
+    """ move ankle so joint is on the ground using the new orientation"""
+    m = quaternion_matrix(delta)[:3, :3]
+    target_offset = np.dot(m, joint_offset)
+    ca = position + target_offset
+    return ca
 
 def get_global_orientation(skeleton, joint_name, frame):
     m = skeleton.nodes[joint_name].get_global_matrix(frame)
@@ -295,15 +301,15 @@ class FootplantConstraintGenerator(object):
                 new_constraints.append(c)
         return new_constraints
 
-    def generate_grounding_constraint_from_heel_and_toe(self, frames, ankle_joint_name, heel_joint_name, toe_joint, frame_idx, end_frame):
+    def generate_grounding_constraint_from_heel_and_toe(self, frames, ankle_joint_name, heel_joint_name, toe_joint_name, frame_idx, end_frame):
         """ create constraint on ankle position and orientation """
         # get target global ankle orientation based on the direction between grounded heel and toe
-        ct = self.get_previous_joint_position_from_buffer(frames, frame_idx, end_frame, toe_joint)
+        ct = self.get_previous_joint_position_from_buffer(frames, frame_idx, end_frame, toe_joint_name)
         ct[1] = self.scene_interface.get_height(ct[0], ct[2])
         ch = self.get_previous_joint_position_from_buffer(frames, frame_idx, end_frame, heel_joint_name)
         ch[1] = self.scene_interface.get_height(ct[0], ct[2])
         target_direction = normalize(ct - ch)
-        t = self.skeleton.nodes[toe_joint].get_global_position(frames[frame_idx])
+        t = self.skeleton.nodes[toe_joint_name].get_global_position(frames[frame_idx])
         h = self.skeleton.nodes[heel_joint_name].get_global_position(frames[frame_idx])
         original_direction = normalize(t-h)
 
@@ -354,6 +360,10 @@ class FootplantConstraintGenerator(object):
         ca = ct + target_toe_offset  # move ankle so toe is on the ground
         constraint = MotionGroundingConstraint(frame_idx, ankle_joint_name, ca, None, None)
         constraint.toe_position = ct
+        #m = self.skeleton.nodes[ankle_joint_name].get_global_matrix(frames[frame_idx])
+        #m[:3, 3] = [0, 0, 0]
+        #inv_global_m = np.linalg.inv(m)[:3,:3]
+        constraint.global_toe_offset = target_toe_offset#normalize(np.dot(inv_global_m, target_toe_offset))
         return constraint
 
     def set_smoothing_constraints(self, frames, constraints):
@@ -391,14 +401,23 @@ class FootplantConstraintGenerator(object):
             t = float(j + 1) / (window + 1)
             global_q = normalize(quaternion_slerp(bq, oq, t, spin=0, shortestpath=True))
             constraint.orientation = normalize(global_q)
+            new = quaternion_matrix(global_q)
+            old = quaternion_matrix(oq)
+            inv_old = np.linalg.inv(old)
+            delta1 = quaternion_from_matrix(np.dot(inv_old,new))
+            delta1 = normalize(delta1)
+
+            delta = get_quat_delta(oq,global_q)
+            delta = normalize(delta)
+            print("deltaq", delta1, delta)
+
             if constraint.joint_name == self.left_foot:
-                constraint.position = regenerate_ankle_constraint_with_new_orientation(constraint.toe_position,
-                                                                                       self.left_toe_offset,
-                                                                                       constraint.orientation)
+                # rotate stored vector by global delta
+                constraint.position = regenerate_ankle_constraint_with_new_orientation2(constraint.toe_position,
+                                                                                       constraint.global_toe_offset,
+                                                                                        delta)
             else:
-                constraint.position = regenerate_ankle_constraint_with_new_orientation(constraint.toe_position,
-                                                                                       self.right_toe_offset,
-                                                                                       constraint.orientation)
+                constraint.position = regenerate_ankle_constraint_with_new_orientation2(constraint.toe_position,
 
         elif forward_hit is not None and constraint.heel_position is not None:
             k = forward_hit - frame_idx

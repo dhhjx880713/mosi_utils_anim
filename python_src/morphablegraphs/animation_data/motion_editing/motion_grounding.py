@@ -86,7 +86,7 @@ def interpolate_constraints(c1, c2):
 
 
 class MotionGroundingConstraint(object):
-    def __init__(self, frame_idx, joint_name, position, direction=None, orientation=None):
+    def __init__(self, frame_idx, joint_name, position, direction=None, orientation=None, foot_state=FOOT_STATE_GROUNDED):
         self.frame_idx = frame_idx
         self.joint_name = joint_name
         self.position = position
@@ -94,6 +94,8 @@ class MotionGroundingConstraint(object):
         self.orientation = orientation
         self.toe_position = None
         self.heel_position = None
+        self.global_toe_offset = None
+        self.foot_state = foot_state
 
     def evaluate(self, skeleton, q_frame):
         d = self.position - skeleton.nodes[self.joint_name].get_global_position(q_frame)
