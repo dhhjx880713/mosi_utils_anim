@@ -1,6 +1,6 @@
 import json
 
-from .morphablegraphs.motion_generator.algorithm_configuration import AlgorithmConfigurationBuilder
+from .morphablegraphs.motion_generator.algorithm_configuration import DEFAULT_ALGORITHM_CONFIG
 from .morphablegraphs.motion_generator.graph_walk import GraphWalk
 from .morphablegraphs.animation_data.skeleton_models import GAME_ENGINE_SKELETON_MODEL
 from .morphablegraphs.animation_data.motion_editing import FootplantConstraintGenerator
@@ -82,7 +82,7 @@ def run_motion_grounding(motion_graph_file, graph_walk_file, skeleton_model):
     skeleton = graph.skeleton
     mv = graph_walk.convert_to_annotated_motion()
 
-    config = AlgorithmConfigurationBuilder().build()
+    config = DEFAULT_ALGORITHM_CONFIG
     me = MotionGrounding(skeleton, config["inverse_kinematics_settings"], skeleton_model, use_analytical_ik=True)
     footplant_settings = {"window": 20, "tolerance": 1, "constraint_range": 10, "smoothing_constraints_window": 15}
 

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from .algorithm_configuration import AlgorithmConfigurationBuilder
+from .algorithm_configuration import DEFAULT_ALGORITHM_CONFIG
 from .annotated_motion_vector import AnnotatedMotionVector
 from .graph_walk_optimizer import GraphWalkOptimizer
 #from .legacy.graph_walk_generator import GraphWalkGenerator as LegacyGraphWalkGenerator

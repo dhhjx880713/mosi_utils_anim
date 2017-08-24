@@ -19,7 +19,7 @@ import tornado.web
 import json
 import time
 from datetime import datetime
-from .morphablegraphs import MotionGenerator, AlgorithmConfigurationBuilder, load_json_file, write_to_json_file
+from .morphablegraphs import MotionGenerator, DEFAULT_ALGORITHM_CONFIG, load_json_file, write_to_json_file
 from .morphablegraphs.motion_model import MotionStateGraphLoader
 from .morphablegraphs.animation_data.retargeting import retarget_from_src_to_target, GAME_ENGINE_TO_ROCKETBOX_MAP, ROCKETBOX_ROOT_OFFSET
 from .morphablegraphs.animation_data import SkeletonBuilder, MotionVector, BVHReader, BVHWriter
@@ -336,7 +336,7 @@ class MGRESTInterface(object):
         #  Load configuration files
         service_config = load_json_file(service_config_file)
         update_data_using_jsonpath(service_config, json_path_expressions)
-        algorithm_config_builder = AlgorithmConfigurationBuilder()
+        algorithm_config_builder = DEFAULT_ALGORITHM_CONFIG
         algorithm_config_file = "config" + os.sep + service_config["algorithm_settings"] + "_algorithm.config"
         if os.path.isfile(algorithm_config_file):
             write_message_to_log("Load algorithm configuration from " + algorithm_config_file, LOG_MODE_INFO)

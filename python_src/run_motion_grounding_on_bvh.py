@@ -1,11 +1,11 @@
 import os
 from .morphablegraphs.animation_data import BVHReader, SkeletonBuilder, MotionVector
-from .morphablegraphs.motion_generator.algorithm_configuration import AlgorithmConfigurationBuilder
+from .morphablegraphs.motion_generator.algorithm_configuration import DEFAULT_ALGORITHM_CONFIG
 from .morphablegraphs.animation_data.motion_editing import FootplantConstraintGenerator
 from .morphablegraphs.animation_data.motion_editing import MotionGrounding
-from python_src.morphablegraphs.animation_data.skeleton_models import *
-from python_src.morphablegraphs.animation_data.motion_editing.motion_grounding import IKConstraintSet
-from python_src.morphablegraphs.animation_data.motion_editing.utils import get_average_joint_position, get_average_joint_direction, plot_joint_heights, add_heels_to_skeleton, get_joint_height, \
+from .morphablegraphs.animation_data.skeleton_models import *
+from .morphablegraphs.animation_data.motion_editing.motion_grounding import IKConstraintSet
+from .morphablegraphs.animation_data.motion_editing.utils import get_average_joint_position, get_average_joint_direction, plot_joint_heights, add_heels_to_skeleton, get_joint_height, \
     save_ground_contact_annotation
 
 LEFT_FOOT = "LeftFoot"
@@ -68,7 +68,7 @@ def run_motion_grounding(bvh_file, skeleton_model):
     skeleton = SkeletonBuilder().load_from_bvh(bvh, animated_joints) # filter here
     mv = MotionVector()
     mv.from_bvh_reader(bvh) # filter here
-    config = AlgorithmConfigurationBuilder().build()
+    config = DEFAULT_ALGORITHM_CONFIG
     me = MotionGrounding(skeleton, config["inverse_kinematics_settings"], skeleton_model, use_analytical_ik=True)
     footplant_settings = {"window": 20, "tolerance": 1, "constraint_range": 10, "smoothing_constraints_window": 15}
 
@@ -85,8 +85,7 @@ def run_motion_grounding(bvh_file, skeleton_model):
 
 
     constraint_generator = FootplantConstraintGenerator(skeleton, skeleton_model, footplant_settings,
-                                                        source_ground_height=source_ground_height,
-                                                        target_ground_height=target_ground_height)
+                                                        source_ground_height=source_ground_height)
     constraints, blend_ranges = constraint_generator.generate(mv)
 
     ground_contacts = constraint_generator.detect_ground_contacts(mv.frames, constraint_generator.foot_joints)

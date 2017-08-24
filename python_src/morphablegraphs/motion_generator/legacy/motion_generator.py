@@ -3,7 +3,7 @@ import os
 import time
 from datetime import datetime
 from ...constraints import MGInputFormatReader
-from ..algorithm_configuration import AlgorithmConfigurationBuilder
+from ..algorithm_configuration import DEFAULT_ALGORITHM_CONFIG
 from ..graph_walk_optimizer import GraphWalkOptimizer
 from ...animation_data.motion_editing import InverseKinematics
 from .graph_walk_generator import GraphWalkGenerator
@@ -40,8 +40,7 @@ class MotionGenerator(object):
             Contains options for the algorithm.
         """
         if algorithm_config is None:
-            algorithm_config_builder = AlgorithmConfigurationBuilder()
-            self._algorithm_config = algorithm_config_builder.build()
+            self._algorithm_config = DEFAULT_ALGORITHM_CONFIG
         else:
             self._algorithm_config = algorithm_config
         self.graph_walk_generator.set_algorithm_config(self._algorithm_config)

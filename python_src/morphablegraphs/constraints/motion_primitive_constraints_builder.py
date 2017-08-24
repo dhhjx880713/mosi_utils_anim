@@ -90,9 +90,11 @@ class MotionPrimitiveConstraintsBuilder(object):
         self.status["motion_primitive_name"] = node_key[1]
         self.status["n_canonical_frames"] = n_canonical_frames
         self.status["last_arc_length"] = last_arc_length # defined in actionstate.transition() based on the closest point on the path
+        self.status["n_prev_frames"] = n_prev_frames
 
         if prev_frames is None:
             last_pos = self.action_constraints.start_pose["position"]
+
         else:
             last_pos = prev_frames[-1][:3]
         last_pos = copy(last_pos)
@@ -170,7 +172,6 @@ class MotionPrimitiveConstraintsBuilder(object):
     def _add_pose_constraint(self, mp_constraints):
         if mp_constraints.settings["transition_pose_constraint_factor"] > 0.0 and self.status["prev_frames"] is not None:
             pose_constraint_desc = self.create_pose_constraint(self.status["prev_frames"], self.pose_constraint_node_names)
-            #pose_constraint_desc = self._create_pose_constraint_angular_from_preceding_motion()
             pose_constraint_desc = self._map_label_to_canonical_keyframe(pose_constraint_desc)
             pose_constraint = PoseConstraint(self.skeleton, pose_constraint_desc, self.precision["smooth"],
                                               mp_constraints.settings["transition_pose_constraint_factor"])

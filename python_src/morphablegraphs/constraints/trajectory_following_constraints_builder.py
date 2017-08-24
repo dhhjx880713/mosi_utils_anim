@@ -1,6 +1,9 @@
 import numpy as np
 from .spatial_constraints.keyframe_constraints import GlobalTransformConstraint, Direction2DConstraint
+from .foot_step_constraints_builder import FootStepConstraintsBuilder
 from ..utilities.exceptions import PathSearchError
+from ..animation_data.motion_editing.motion_primitive_grounding import MP_CONFIGURATIONS
+
 
 
 class TrajectoryFollowingConstraintsBuilder(object):
@@ -10,8 +13,14 @@ class TrajectoryFollowingConstraintsBuilder(object):
         self.settings = settings
         self.precision = {"pos": 1.0, "rot": 1.0, "smooth": 1.0}
         self.use_transition_constraint = self.settings["use_transition_constraint"]
+        self.step_model = MP_CONFIGURATIONS
+        self.foot_step_constraint_generator = FootStepConstraintsBuilder(self.skeleton, self.step_model, self.precision, self.settings)
+        self.generate_half_step_constraint = False
+        self.generate_foot_plant_constraints = False
         if "generate_half_step_constraint" in list(self.settings.keys()):
             self.generate_half_step_constraint = self.settings["generate_half_step_constraint"]
+        if "generate_foot_plant_constraints" in list(self.settings.keys()):
+            self.generate_foot_plant_constraints = self.settings["generate_foot_plant_constraints"]
 
     def set_algorithm_settings(self, settings):
         self.settings = settings
@@ -29,6 +38,10 @@ class TrajectoryFollowingConstraintsBuilder(object):
             goal_arc_length = trajectory.full_arc_length
 
         mp_constraints.goal_arc_length = goal_arc_length
+
+        if self.generate_foot_plant_constraints:
+            self._add_foot_step_constraints(mp_constraints, node_key, trajectory, prev_arc_length, goal_arc_length)
+            
         mp_constraints.step_goal, goal_dir_vector = self._get_point_and_orientation_from_arc_length(trajectory, goal_arc_length)
         mp_constraints.print_status()
         if self.generate_half_step_constraint:
@@ -132,4 +145,15 @@ class TrajectoryFollowingConstraintsBuilder(object):
                        "full": trajectory.full_arc_length}
         print("Error: Did not find closest point", str(parameters))
         raise PathSearchError(parameters)
+
+
+    def _add_foot_step_constraints(self, mp_constraints, node_key, trajectory, prev_arc_length, goal_arc_length):
+        n_prev_frames = self.mp_constraint_builder.status["n_prev_frames"]
+        n_canonical_frames = self.mp_constraint_builder.status["n_canonical_frames"]
+        constraints = self.foot_step_constraint_generator.generate_step_constraints(trajectory, node_key[1],
+                                                                                             prev_arc_length,
+                                                                                             goal_arc_length,
+                                                                                             n_prev_frames,
+                                                                                             n_canonical_frames)
+        mp_constraints.constraints += constraints
 

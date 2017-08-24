@@ -15,7 +15,7 @@ os.chdir(dirname)
 import json
 import glob
 import time
-from .morphablegraphs import MotionGenerator, AlgorithmConfigurationBuilder, load_json_file
+from .morphablegraphs import MotionGenerator, DEFAULT_ALGORITHM_CONFIG, load_json_file
 SERVICE_CONFIG_FILE = "config" + os.sep + "service.config"
 
 
@@ -41,15 +41,13 @@ def run_pipeline(service_config):
 
     input_file = get_newest_file_from_input_dir(service_config)
 
-    algorithm_config_builder = AlgorithmConfigurationBuilder()
-
     algorithm_config_file = "config" + os.sep + service_config["algorithm_settings"] + "_algorithm.config"
     if os.path.isfile(algorithm_config_file):
         print("Load algorithm configuration from", algorithm_config_file)
-        algorithm_config_builder.from_json(algorithm_config_file)
+        algorithm_config = load_json_file(algorithm_config_file)
     else:
         print("Did not find algorithm configuration file", algorithm_config_file)
-    algorithm_config = algorithm_config_builder.build()
+        algorithm_config = DEFAULT_ALGORITHM_CONFIG
     service_config["collision_avoidance_service_url"] = None  # disable collision avoidance
 
     start = time.clock()
