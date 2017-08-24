@@ -39,19 +39,21 @@ class TrajectoryFollowingConstraintsBuilder(object):
 
         mp_constraints.goal_arc_length = goal_arc_length
 
-        if self.generate_foot_plant_constraints:
-            self._add_foot_step_constraints(mp_constraints, node_key, trajectory, prev_arc_length, goal_arc_length)
-            
         mp_constraints.step_goal, goal_dir_vector = self._get_point_and_orientation_from_arc_length(trajectory, goal_arc_length)
         mp_constraints.print_status()
+        if self.generate_foot_plant_constraints:
+            self._add_foot_step_constraints(mp_constraints, node_key, trajectory, prev_arc_length, goal_arc_length)
+        else:
+            self._add_path_following_goal_constraint(self.skeleton.aligning_root_node, mp_constraints, mp_constraints.step_goal)
+
+        self._add_path_following_direction_constraint(self.skeleton.aligning_root_node, mp_constraints, goal_dir_vector)
+
         if self.generate_half_step_constraint:
             prev_goal_arc_length = prev_arc_length
             half_step_arc_length = prev_goal_arc_length * 0.5 + mp_constraints.goal_arc_length * 0.5
             half_step_goal, half_step_dir_vector = self._get_point_and_orientation_from_arc_length(trajectory, half_step_arc_length)
             self._add_path_following_half_step_constraint(self.skeleton.aligning_root_node, mp_constraints, half_step_goal)
-        self._add_path_following_goal_constraint(self.skeleton.aligning_root_node, mp_constraints, mp_constraints.step_goal)
 
-        self._add_path_following_direction_constraint(self.skeleton.aligning_root_node, mp_constraints, goal_dir_vector)
 
     def _get_approximate_step_length(self, node_key):
         return self.mp_constraint_builder.motion_state_graph.nodes[node_key].average_step_length * self.settings["heuristic_step_length_factor"]
