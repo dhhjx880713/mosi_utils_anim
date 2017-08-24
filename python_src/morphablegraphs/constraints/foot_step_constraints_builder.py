@@ -1,11 +1,11 @@
 import numpy as np
 from ..external.transformations import quaternion_matrix
 from .spatial_constraints.keyframe_constraints import GlobalTransformConstraint
-REF_VECTOR = [0,0,1]
+REF_VECTOR = [0,0,-1]
 
 FOOT_OFFSETS = dict()
-FOOT_OFFSETS["left"] = np.array([20,0,0])
-FOOT_OFFSETS["right"] = np.array([-20,0,0])
+FOOT_OFFSETS["left"] = np.array([-20,0,0])
+FOOT_OFFSETS["right"] = np.array([20,0,0])
 
 def quaternion_from_vector_to_vector(a, b):
     "src: http://stackoverflow.com/questions/1171849/finding-quaternion-representing-the-rotation-from-one-vector-to-another"
