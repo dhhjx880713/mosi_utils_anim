@@ -1,11 +1,11 @@
 import os
 import collections
-from python_src.morphablegraphs.animation_data.skeleton_models import *
-from python_src.morphablegraphs.animation_data.motion_editing.utils import generate_root_constraint_for_one_foot, generate_root_constraint_for_two_feet, \
+from ..skeleton_models import *
+from .utils import generate_root_constraint_for_one_foot, generate_root_constraint_for_two_feet, \
     guess_ground_height, smooth_root_translation_at_end, smooth_root_translation_at_start
-from python_src.morphablegraphs.animation_data.motion_editing.motion_grounding import MotionGroundingConstraint, generate_ankle_constraint_from_toe, create_ankle_constraint_from_toe_and_heel, create_ankle_constraint_from_toe_and_temp_heel
-from python_src.morphablegraphs.animation_data.motion_editing.analytical_inverse_kinematics import AnalyticalLimbIK
-from python_src.morphablegraphs.external.transformations import quaternion_slerp
+from .motion_grounding import MotionGroundingConstraint, generate_ankle_constraint_from_toe, create_ankle_constraint_from_toe_and_heel, create_ankle_constraint_from_toe_and_temp_heel
+from .analytical_inverse_kinematics import AnalyticalLimbIK
+from ...external.transformations import quaternion_slerp
 
 LEFT_FOOT = "LeftFoot"
 RIGHT_FOOT = "RightFoot"
