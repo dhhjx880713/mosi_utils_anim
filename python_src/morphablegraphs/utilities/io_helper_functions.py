@@ -57,7 +57,7 @@ def load_json_file(filename, use_ordered_dict=False):
 
 
 def write_to_json_file(filename, serializable, indent=4):
-    with open(filename, 'wb') as outfile:
+    with open(filename, 'w') as outfile:
         tmp = json.dumps(serializable, indent=4)
         outfile.write(tmp)
         outfile.close()
