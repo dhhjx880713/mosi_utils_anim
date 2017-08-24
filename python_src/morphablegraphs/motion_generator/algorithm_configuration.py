@@ -135,7 +135,7 @@ DEFAULT_ALGORITHM_CONFIG = {
     "trajectory_following_settings": {
         "spline_type": 0,
         "control_point_filter_threshold": 0,
-        "dir_constraint_factor": 0.1,#0.1,# 1.0
+        "dir_constraint_factor": 0.8,
         "heuristic_step_length_factor": 1.0,
         "position_constraint_factor": 1.0,
         "step_length_approx_method": "arc_length",
