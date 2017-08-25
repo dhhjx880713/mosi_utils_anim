@@ -89,6 +89,119 @@ def blend(x):
     return 2 * x * x * x - 3 * x * x + 1
 
 
+def get_plant_frame_range(step, search_window):
+    start_frame = step.start_frame
+    end_frame = step.end_frame + 1
+    half_window = search_window / 2
+    end_offset = -5
+    plant_range = dict()
+    L = "left"
+    R = "right"
+    plant_range[L] = dict()
+    plant_range[R] = dict()
+
+    plant_range[L]["start"] = None
+    plant_range[L]["end"] = None
+    plant_range[R]["start"] = None
+    plant_range[R]["end"] = None
+
+    if step.node_key[1] == "beginLeftStance":
+        plant_range[R]["start"] = start_frame
+        plant_range[R]["end"] = end_frame - half_window + end_offset
+        plant_range[L]["start"] = start_frame
+        plant_range[L]["end"] = start_frame + 20
+
+    elif step.node_key[1] == "beginRightStance":
+        plant_range[L]["start"] = start_frame
+        plant_range[L]["end"] = end_frame - half_window + end_offset
+        plant_range[R]["start"] = start_frame
+        plant_range[R]["end"] = start_frame + 20
+
+    elif step.node_key[1] == "endLeftStance":
+        plant_range[R]["start"] = start_frame + half_window
+        plant_range[R]["end"] = end_frame
+        plant_range[L]["start"] = end_frame - 20
+        plant_range[L]["end"] = end_frame
+
+    elif step.node_key[1] == "endRightStance":
+        plant_range[L]["start"] = start_frame + half_window
+        plant_range[L]["end"] = end_frame
+        plant_range[R]["start"] = end_frame - 20
+        plant_range[R]["end"] = end_frame
+
+    elif step.node_key[1] == "leftStance":
+        plant_range[R]["start"] = start_frame + half_window
+        plant_range[R]["end"] = end_frame - half_window + end_offset
+
+    elif step.node_key[1] == "rightStance":
+        plant_range[L]["start"] = start_frame + half_window
+        plant_range[L]["end"] = end_frame - half_window + end_offset
+    return plant_range
+
+
+def get_plant_frame_range_using_search(skeleton, motion_vector, step, foot_definitions, search_window, lift_tolerance):
+    """ Use the assumption that depending on the motion primitive different
+        feet are grounded at the beginning, middle and end of the step to find the plant range for each joint.
+        Starting from those frames search forward and backward until the foot is lifted.
+    """
+    start_frame = step.start_frame
+    end_frame = step.end_frame + 1
+    frames = motion_vector.frames
+    w = search_window
+    search_start = max(end_frame - w, start_frame)  # start of search range for the grounding range
+    search_end = min(start_frame + w, end_frame)  # end of search range for the grounding range
+    plant_range = dict()
+    L = "left"
+    R = "right"
+    joint_types = ["heel", "toe"] # first check heel then toe
+    plant_range[L] = dict()
+    plant_range[R] = dict()
+    for side in list(plant_range.keys()):
+        plant_range[side] = dict()
+        for joint_type in joint_types:
+            joint = foot_definitions[side][joint_type]
+            plant_range[side][joint] = dict()
+            plant_range[side][joint]["start"] = None
+            plant_range[side][joint]["end"] = None
+
+            if step.node_key[1] == "beginLeftStance":
+                plant_range[side][joint]["start"] = start_frame
+                plant_range[side][joint]["end"] = find_last_frame(skeleton, frames, joint, start_frame, search_end, lift_tolerance)
+
+            elif step.node_key[1] == "beginRightStance":
+                plant_range[side][joint]["start"] = start_frame
+                plant_range[side][joint]["end"] = find_last_frame(skeleton, frames, joint, start_frame, search_end, lift_tolerance)
+
+            elif step.node_key[1] == "endLeftStance":
+                heel = foot_definitions[side]["heel"]
+                if plant_range[side][heel]["start"] is not None:
+                    local_search_start = plant_range[side][heel]["start"]
+                else:
+                    local_search_start = start_frame
+                plant_range[side][joint]["start"] = find_first_frame(skeleton, frames, joint, local_search_start, end_frame, lift_tolerance+3.0)
+                plant_range[side][joint]["end"] = end_frame
+
+            elif step.node_key[1] == "endRightStance":
+                heel = foot_definitions[side]["heel"]
+                if plant_range[side][heel]["start"] is not None:
+                    local_search_start = plant_range[side][heel]["start"]
+                else:
+                    local_search_start = start_frame
+                plant_range[side][joint]["start"] = find_first_frame(skeleton, frames, joint, local_search_start, end_frame, lift_tolerance+3.0)
+                plant_range[side][joint]["end"] = end_frame
+
+            elif step.node_key[1] == "leftStance" and side == R:
+                middle_frame = int((end_frame-start_frame)/2) + start_frame
+                plant_range[side][joint]["start"] = find_first_frame(skeleton, frames, joint, search_start, middle_frame, lift_tolerance)
+                plant_range[side][joint]["end"] = find_last_frame(skeleton, frames, joint, middle_frame + 1, search_end, lift_tolerance)
+
+            elif step.node_key[1] == "rightStance" and side == L:
+                middle_frame = int((end_frame - start_frame) / 2) + start_frame
+                plant_range[side][joint]["start"] = find_first_frame(skeleton, frames, joint, search_start, middle_frame, lift_tolerance)
+                plant_range[side][joint]["end"] = find_last_frame(skeleton, frames, joint, middle_frame + 1, search_end, lift_tolerance)
+    return plant_range
+
+
 
 class SceneInterface(object):
     def __init__(self, height):
@@ -226,7 +339,9 @@ class FootplantConstraintGenerator(object):
 
                 continue
             if step.node_key[0] in LOCOMOTION_ACTIONS:
-                step_plant_range = self.get_plant_frame_range_using_search(motion_vector, step)
+                step_plant_range = get_plant_frame_range_using_search(self.skeleton, motion_vector, step, self.foot_definitions,
+                                                                           self.foot_lift_search_window, self.foot_lift_tolerance)
+                leg_state_model = create_leg_state_model(step_plant_range, step.start_frame, step.end_frame, self.foot_definitions)
                 step_ground_contacts = convert_plant_range_to_ground_contacts(step.start_frame, step.end_frame, step_plant_range)
                 ground_contacts.update(step_ground_contacts)
                 for frame_idx, joint_names in list(step_ground_contacts.items()):
@@ -537,7 +652,7 @@ class FootplantConstraintGenerator(object):
 
                 continue
             if step.node_key[0] in LOCOMOTION_ACTIONS:
-                plant_range = self.get_plant_frame_range(motion_vector, step)
+                plant_range = get_plant_frame_range(step, self.graph_walk_grounding_window)
                 for side in list(plant_range.keys()):
                     if plant_range[side]["start"] is not None:
                         start_frame = plant_range[side]["start"]
@@ -557,118 +672,6 @@ class FootplantConstraintGenerator(object):
         constraints = collections.OrderedDict(sorted(constraints.items()))
         # print "a", constraints.keys()
         return constraints, blend_ranges
-
-
-    def get_plant_frame_range(self, motion_vector, step):
-        start_frame = step.start_frame
-        end_frame = step.end_frame + 1
-        half_window = self.graph_walk_grounding_window / 2
-        end_offset = -5
-        plant_range = dict()
-        L = "left"
-        R = "right"
-        plant_range[L] = dict()
-        plant_range[R] = dict()
-
-        plant_range[L]["start"] = None
-        plant_range[L]["end"] = None
-        plant_range[R]["start"] = None
-        plant_range[R]["end"] = None
-
-        if step.node_key[1] == "beginLeftStance":
-            plant_range[R]["start"] = start_frame
-            plant_range[R]["end"] = end_frame - half_window + end_offset
-            plant_range[L]["start"] = start_frame
-            plant_range[L]["end"] = start_frame + 20
-
-        elif step.node_key[1] == "beginRightStance":
-            plant_range[L]["start"] = start_frame
-            plant_range[L]["end"] = end_frame - half_window + end_offset
-            plant_range[R]["start"] = start_frame
-            plant_range[R]["end"] = start_frame + 20
-
-        elif step.node_key[1] == "endLeftStance":
-            plant_range[R]["start"] = start_frame + half_window
-            plant_range[R]["end"] = end_frame
-            plant_range[L]["start"] = end_frame - 20
-            plant_range[L]["end"] = end_frame
-
-        elif step.node_key[1] == "endRightStance":
-            plant_range[L]["start"] = start_frame + half_window
-            plant_range[L]["end"] = end_frame
-            plant_range[R]["start"] = end_frame - 20
-            plant_range[R]["end"] = end_frame
-
-        elif step.node_key[1] == "leftStance":
-            plant_range[R]["start"] = start_frame + half_window
-            plant_range[R]["end"] = end_frame - half_window + end_offset
-
-        elif step.node_key[1] == "rightStance":
-            plant_range[L]["start"] = start_frame + half_window
-            plant_range[L]["end"] = end_frame - half_window + end_offset
-        return plant_range
-
-    def get_plant_frame_range_using_search(self, motion_vector, step):
-        """ Use the assumption that depending on the motion primitive different
-            feet are grounded at the beginning, middle and end of the step to find the plant range for each joint.
-            Starting from those frames search forward and backward until the foot is lifted.
-        """
-        start_frame = step.start_frame
-        end_frame = step.end_frame + 1
-        frames = motion_vector.frames
-        w = self.foot_lift_search_window
-        search_start = max(end_frame - w, start_frame)  # start of search range for the grounding range
-        search_end = min(start_frame + w, end_frame)  # end of search range for the grounding range
-        plant_range = dict()
-        L = "left"
-        R = "right"
-        joint_types = ["heel", "toe"] # first check heel then toe
-        plant_range[L] = dict()
-        plant_range[R] = dict()
-        for side in list(plant_range.keys()):
-            plant_range[side] = dict()
-            for joint_type in joint_types:
-                joint = self.foot_definitions[side][joint_type]
-                plant_range[side][joint] = dict()
-                plant_range[side][joint]["start"] = None
-                plant_range[side][joint]["end"] = None
-
-                if step.node_key[1] == "beginLeftStance":
-                    plant_range[side][joint]["start"] = start_frame
-                    plant_range[side][joint]["end"] = find_last_frame(self.skeleton, frames, joint, start_frame, search_end, self.foot_lift_tolerance)
-
-                elif step.node_key[1] == "beginRightStance":
-                    plant_range[side][joint]["start"] = start_frame
-                    plant_range[side][joint]["end"] = find_last_frame(self.skeleton, frames, joint, start_frame, search_end, self.foot_lift_tolerance)
-
-                elif step.node_key[1] == "endLeftStance":
-                    heel = self.foot_definitions[side]["heel"]
-                    if plant_range[side][heel]["start"] is not None:
-                        local_search_start = plant_range[side][heel]["start"]
-                    else:
-                        local_search_start = start_frame
-                    plant_range[side][joint]["start"] = find_first_frame(self.skeleton, frames, joint, local_search_start, end_frame, self.foot_lift_tolerance)
-                    plant_range[side][joint]["end"] = end_frame
-
-                elif step.node_key[1] == "endRightStance":
-                    heel = self.foot_definitions[side]["heel"]
-                    if plant_range[side][heel]["start"] is not None:
-                        local_search_start = plant_range[side][heel]["start"]
-                    else:
-                        local_search_start = start_frame
-                    plant_range[side][joint]["start"] = find_first_frame(self.skeleton, frames, joint, local_search_start, end_frame, self.foot_lift_tolerance)
-                    plant_range[side][joint]["end"] = end_frame
-
-                elif step.node_key[1] == "leftStance" and side == R:
-                    middle_frame = int((end_frame-start_frame)/2) + start_frame
-                    plant_range[side][joint]["start"] = find_first_frame(self.skeleton, frames, joint, search_start, middle_frame, self.foot_lift_tolerance)
-                    plant_range[side][joint]["end"] = find_last_frame(self.skeleton, frames, joint, middle_frame + 1, search_end, self.foot_lift_tolerance)
-
-                elif step.node_key[1] == "rightStance" and side == L:
-                    middle_frame = int((end_frame - start_frame) / 2) + start_frame
-                    plant_range[side][joint]["start"] = find_first_frame(self.skeleton, frames, joint, search_start, middle_frame, self.foot_lift_tolerance)
-                    plant_range[side][joint]["end"] = find_last_frame(self.skeleton, frames, joint, middle_frame + 1, search_end, self.foot_lift_tolerance)
-        return plant_range
 
     def create_foot_plant_constraints_old(self, frames, joint_name, start_frame, end_frame):
         """ create a constraint based on the average position in the frame range"""
