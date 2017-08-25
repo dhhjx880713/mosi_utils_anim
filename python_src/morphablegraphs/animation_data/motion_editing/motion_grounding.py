@@ -288,19 +288,15 @@ class MotionGrounding(object):
 
 
     def apply_analytical_ik(self, frames):
+        n_frames = len(frames)
         for frame_idx, constraints in list(self._constraints.items()):
-            #print "process frame", frame_idx
-            if 0 <= frame_idx < len(frames):
+            print("process frame", frame_idx, len(constraints))
+            if 0 <= frame_idx < n_frames:
                 for c in constraints:
                     if c.joint_name in list(self._ik_chains.keys()):
                         data = self._ik_chains[c.joint_name]
-                        ik = AnalyticalLimbIK.init_from_dict(self.skeleton, c.joint_name, data, damp_angle=self.damp_angle)
+                        ik = AnalyticalLimbIK.init_from_dict(self.skeleton, c.joint_name, data, damp_angle=self.damp_angle, damp_factor=self.damp_factor)
                         frames[frame_idx] = ik.apply2(frames[frame_idx], c.position, c.orientation)
-                        #delta = c.position -self.skeleton.nodes[c.joint_name].get_global_position(frames[frame_idx])
-                        #heel_joint = "RightHeel"
-                        #if c.joint_name == "LeftFoot":
-                        #    heel_joint = "LeftHeel"
-                        #print "delta",frame_idx,c.joint_name,np.linalg.norm(delta), c.position, self.skeleton.nodes[heel_joint].get_global_position(frames[frame_idx])
                     else:
                         print("could not find ik chain definition for ", c.joint_name)
                         frames[frame_idx] = self._ik.modify_frame(frames[frame_idx], constraints)
