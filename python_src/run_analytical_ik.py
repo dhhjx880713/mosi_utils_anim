@@ -1,8 +1,8 @@
 import os
-from .morphablegraphs.animation_data import BVHReader, Skeleton, MotionVector
-from .morphablegraphs.motion_generator.algorithm_configuration import AlgorithmConfigurationBuilder
-from python_src.morphablegraphs.animation_data.motion_editing.constants import SKELETON_ANNOTATIONS
+from .morphablegraphs.animation_data import BVHReader, SkeletonBuilder, MotionVector
+from .morphablegraphs.animation_data.skeleton_models import RAW_SKELETON_MODEL
 from python_src.morphablegraphs.animation_data.motion_editing.motion_grounding import MotionGrounding
+from python_src.morphablegraphs.motion_generator.algorithm_configuration import DEFAULT_ALGORITHM_CONFIG
 from .morphablegraphs.animation_data.motion_editing.utils import add_heels_to_skeleton
 
 LEFT_FOOT = "LeftFoot"
@@ -16,16 +16,15 @@ LEFT_HIP = "LeftUpLeg"
 
 
 def run_motion_editing(bvh_file):
-    ik_chains = IK_CHAINS_RAW_SKELETON
+    ik_chains = RAW_SKELETON_MODEL["ik_chains"]
     #right foot 98-152
     # , 167, 249, 330, 389
     bvh = BVHReader(bvh_file)
     #animated_joints = list(bvh.get_animated_joints())
-    skeleton = Skeleton()
-    skeleton.load_from_bvh(bvh) # filter here
+    skeleton = SkeletonBuilder().load_from_bvh(bvh)# filter here
     mv = MotionVector()
     mv.from_bvh_reader(bvh, True) # filter here
-    config = AlgorithmConfigurationBuilder().build()
+    config = DEFAULT_ALGORITHM_CONFIG
     me = MotionGrounding(skeleton, config["inverse_kinematics_settings"], ik_chains)
     position = [10, 130, -40]
     #position = [10, 20, -40]
