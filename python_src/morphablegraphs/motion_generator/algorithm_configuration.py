@@ -1,12 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Thu Jul 16 17:19:46 2015
-
-@author: erhe01
-"""
-
-from ..utilities.io_helper_functions import load_json_file
-from ..animation_data.utils import DEFAULT_SMOOTHING_WINDOW_SIZE
+import collections
 
 OLD_ALGORITHM_CONFIG = {
     "smoothing_settings": {
@@ -122,7 +115,7 @@ OLD_ALGORITHM_CONFIG = {
 
 
 
-DEFAULT_ALGORITHM_CONFIG = {
+DEFAULT_ALGORITHM_CONFIG = collections.OrderedDict({
     "smoothing_settings": {
         "spatial_smoothing" : True,
         "time_smoothing" : False,
@@ -212,13 +205,13 @@ DEFAULT_ALGORITHM_CONFIG = {
            "constraint_range": 10,
            "smoothing_constraints_window": 8,
            "damp_angle": 0.01,
-           "damp_factor": 0.01
+           "damp_factor": 1.0
      },
     "n_random_samples": 100,
     "average_elementary_action_error_threshold": 500,
     "constrained_sampling_mode": "cluster_tree_search",
     "activate_inverse_kinematics": True,
-    "activate_motion_grounding" : True,
+    "activate_motion_grounding": True,
     "n_cluster_search_candidates": 4,
     "use_transition_model": False,
     "local_optimization_mode": "all",
@@ -234,4 +227,4 @@ DEFAULT_ALGORITHM_CONFIG = {
     "activate_time_variation": True,
     "debug_max_step": -1,
     "verbose": False
-}
+})
