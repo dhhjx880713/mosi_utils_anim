@@ -154,7 +154,8 @@ DEFAULT_ALGORITHM_CONFIG = collections.OrderedDict({
         "tolerance": 0.05,
         "method": "leastsq",#"L-BFGS-B",#
         "max_iterations": 500,
-        "verbose": False
+        "verbose": False,
+        "diff_eps": 1.0
     },
     "global_spatial_optimization_settings": {
         "max_steps":  3,
@@ -166,7 +167,8 @@ DEFAULT_ALGORITHM_CONFIG = collections.OrderedDict({
         "max_iterations": 500,
         "position_weight": 1000.0,
         "orientation_weight": 1000.0,
-        "verbose": False
+        "verbose": False,
+        "diff_eps": 2.0
     },
     "global_time_optimization_settings": {
         "error_scale_factor": 1.0,
@@ -175,7 +177,8 @@ DEFAULT_ALGORITHM_CONFIG = collections.OrderedDict({
         "method": "L-BFGS-B",
         "max_iterations": 500,
         "optimized_actions": 2,
-        "verbose": False
+        "verbose": False,
+        "diff_eps": 1.0
     },
     "inverse_kinematics_settings":{
         "tolerance": 0.05,
