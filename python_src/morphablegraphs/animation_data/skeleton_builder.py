@@ -273,7 +273,7 @@ class SkeletonBuilder(object):
             node = SkeletonJointNode(node_name, channels, parent)
         else:
             node = SkeletonEndSiteNode(node_name, channels, parent)
-        # node.fixed = node_data["fixed"]
+        node.fixed = node_data["fixed"]
         node.index = node_data["index"]
         node.offset = np.array(node_data["offset"])
         node.rotation = np.array(node_data["rotation"])
