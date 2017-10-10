@@ -22,6 +22,7 @@ QUAT_LEN = 4
 TRANSLATION_LEN = 3
 TOE_NODES = ["Bip01_R_Toe0", "Bip01_L_Toe0"]
 
+
 class BVHReader(object):
 
     """Biovision file format class
@@ -194,6 +195,7 @@ class BVHReader(object):
                 ch_indices = self.get_channel_indices(ch)
                 scaled_params = [scale * o for o in self.frames[:, ch_indices]]
                 self.frames[:, ch_indices] = scaled_params
+
 
 class BVHWriter(object):
 
