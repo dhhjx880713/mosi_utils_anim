@@ -69,7 +69,6 @@ class BVHReader(object):
                 break
 
             else:
-                #print lines[line_index]
                 if "{" in lines[line_index]:
                     parents.append(name)
                     level += 1
@@ -108,8 +107,7 @@ class BVHReader(object):
                         self.node_names[parents[-1]]["children"].append(name)
 
                     elif line_split[0] == "OFFSET" and name in list(self.node_names.keys()):
-                        offset = [float(x) for x in line_split[1:]]
-                        self.node_names[name]["offset"] = offset
+                        self.node_names[name]["offset"] = list(map(float, line_split[1:]))
                 line_index += 1
         return line_index
 
@@ -128,7 +126,6 @@ class BVHReader(object):
             n_lines = len(lines)
         frames = []
         while line_index < n_lines:
-            #print lines[line_index]
             line_split = lines[line_index].strip().split()
             frames.append(np.array(list(map(float, line_split))))
             line_index += 1
@@ -156,8 +153,19 @@ class BVHReader(object):
             else:
                 line_index += 1
 
+    def get_channel_indices(self, node_channels):
+        """Returns indices for specified channels
 
-    def get_angles(self, *node_channels):
+        Parameters
+        ----------
+         * node_channels: 2-tuples of strings
+        \tEach tuple contains joint name and channel name
+        \te.g. ("hip", "Xposition")
+
+        """
+        return [self.node_channels.index(nc) for nc in node_channels]
+
+    def get_angles(self, node_channels):
         """Returns numpy array of angles in all frames for specified channels
 
         Parameters
@@ -167,8 +175,7 @@ class BVHReader(object):
         \te.g. ("hip", "Xposition")
 
         """
-
-        indices = [self.node_channels.index(nc) for nc in node_channels]
+        indices = self.get_channel_indices(node_channels)
         return self.frames[:, indices]
 
     def get_animated_joints(self):
@@ -177,6 +184,16 @@ class BVHReader(object):
             if "channels" in list(node.keys()) and len(node["channels"]) > 0:
                 yield name
 
+    def scale(self, scale):
+        for node in self.node_names:
+            self.node_names[node]["offset"] = [scale * o for o in self.node_names[node]["offset"]]
+            if "channels" not in self.node_names[node]:
+                continue
+            ch = [(node, c) for c in self.node_names[node]["channels"] if "position" in c]
+            if len(ch) > 0:
+                ch_indices = self.get_channel_indices(ch)
+                scaled_params = [scale * o for o in self.frames[:, ch_indices]]
+                self.frames[:, ch_indices] = scaled_params
 
 class BVHWriter(object):
 
