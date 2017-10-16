@@ -12,10 +12,11 @@ SKELETON_NODE_TYPE_END_SITE = 2
 
 class SkeletonNodeBase(object):
     ORIGIN = point = np.array([0, 0, 0, 1])
-    def __init__(self, node_name, channels, parent=None):
+    def __init__(self, node_name, channels, parent=None, level=0):
         self.parent = parent
         self.node_name = node_name
         self.channels = channels
+        self.level = level
         self.children = []
         self.index = -1
         self.quaternion_frame_index = -1
@@ -109,8 +110,8 @@ class SkeletonNodeBase(object):
 
 
 class SkeletonRootNode(SkeletonNodeBase):
-    def __init__(self, node_name, channels, parent=None):
-        super(SkeletonRootNode, self).__init__(node_name, channels, parent)
+    def __init__(self, node_name, channels, parent=None, level=0):
+        super(SkeletonRootNode, self).__init__(node_name, channels, parent, level)
         self.node_type = SKELETON_NODE_TYPE_ROOT
 
     def get_local_matrix(self, quaternion_frame):
@@ -143,8 +144,8 @@ class SkeletonRootNode(SkeletonNodeBase):
 
 
 class SkeletonJointNode(SkeletonNodeBase):
-    def __init__(self, node_name, channels, parent=None):
-        super(SkeletonJointNode, self).__init__(node_name, channels, parent)
+    def __init__(self, node_name, channels, parent=None, level=0):
+        super(SkeletonJointNode, self).__init__(node_name, channels, parent, level)
         self.node_type = SKELETON_NODE_TYPE_JOINT
 
     def get_local_matrix(self, quaternion_frame):
@@ -188,8 +189,8 @@ class SkeletonJointNode(SkeletonNodeBase):
 
 
 class SkeletonEndSiteNode(SkeletonNodeBase):
-    def __init__(self, node_name, channels, parent=None):
-        super(SkeletonEndSiteNode, self).__init__(node_name, channels, parent)
+    def __init__(self, node_name, channels, parent=None, level=0):
+        super(SkeletonEndSiteNode, self).__init__(node_name, channels, parent, level)
         self.node_type = SKELETON_NODE_TYPE_END_SITE
 
     def get_local_matrix(self, quaternion_frame):

@@ -28,35 +28,18 @@ def read_reference_frame_from_bvh_reader(bvh_reader, frame_index=0):
     return np.array(bvh_reader.frames[0][:3].tolist() + quaternion_frame.tolist())
 
 
-def add_tool_nodes(skeleton, new_tool_bones):
+def add_tool_nodes(skeleton, node_names, new_tool_bones):
     for b in new_tool_bones:
-        add_new_end_site(skeleton, b["new_node_name"], b["parent_node_name"], b["new_node_offset"])
+        add_new_end_site(skeleton, node_names, b["parent_node_name"], b["new_node_offset"])
         skeleton.tool_nodes.append(b["new_node_name"])
 
 
-def add_new_end_site(skeleton, new_node_name, parent_node_name, offset):
-    if parent_node_name in list(skeleton.node_names.keys()):
-        level = skeleton.node_names[parent_node_name]["level"] + 1
+def add_new_end_site(skeleton, node_names, parent_node_name, offset):
+    if parent_node_name in list(node_names.keys()):
+        level = node_names[parent_node_name]["level"] + 1
         node_desc = dict()
         node_desc["level"] = level
         node_desc["offset"] = offset
-        skeleton.node_names[parent_node_name]["children"].append(new_node_name)
-        skeleton.node_names[new_node_name] = node_desc
-        skeleton.node_name_frame_map[new_node_name] = -1  # the node needs an entry but the index is only important if it has children
-
-
-def create_filtered_node_name_frame_map(skeleton):
-    """
-    creates dictionary that maps node names to indices in a frame vector
-    without "Bip" joints
-    """
-    skeleton.node_name_frame_map = collections.OrderedDict()
-    j = 0
-    for node_name in skeleton.node_names:
-        if not node_name.startswith("Bip") and \
-                        "children" in list(skeleton.node_names[node_name].keys()):
-            skeleton.node_name_frame_map[node_name] = j
-            j += 1
 
 
 class SkeletonBuilder(object):
@@ -68,22 +51,20 @@ class SkeletonBuilder(object):
         skeleton.animated_joints = animated_joints
         skeleton.frame_time = deepcopy(bvh_reader.frame_time)
         skeleton.root = deepcopy(bvh_reader.root)
-        skeleton.node_names = deepcopy(bvh_reader.node_names)
         skeleton.reference_frame = read_reference_frame_from_bvh_reader(bvh_reader)
         skeleton.reference_frame_length = len(skeleton.reference_frame)
         skeleton.node_channels = collections.OrderedDict()
-        skeleton.extract_channels()
         skeleton.nodes = collections.OrderedDict()
-        create_filtered_node_name_frame_map(skeleton)
         skeleton.tool_nodes = []
         if add_tool_joints:
-            add_tool_nodes(skeleton, ROCKETBOX_TOOL_BONES)
+            add_tool_nodes(skeleton, bvh_reader.node_names, ROCKETBOX_TOOL_BONES)
         skeleton.max_level = skeleton._get_max_level()
         skeleton._set_joint_weights()
         skeleton.nodes = collections.OrderedDict()
         joint_list = [k for k in bvh_reader.node_names if
-                      "children" in list(bvh_reader.node_names[k].keys()) and len(bvh_reader.node_names[k]["children"]) > 0]
-        self.construct_hierarchy_from_bvh(skeleton, joint_list, bvh_reader.node_names, skeleton.node_channels, skeleton.root)
+                      "children" in list(bvh_reader.node_names[k].keys()) and
+                      len(bvh_reader.node_names[k]["children"]) > 0]
+        self.construct_hierarchy_from_bvh(skeleton, joint_list, bvh_reader.node_names, skeleton.root, 0)
 
         skeleton.parent_dict = skeleton._get_parent_dict()
         skeleton._chain_names = skeleton._generate_chain_names()
@@ -91,13 +72,17 @@ class SkeletonBuilder(object):
         create_identity_frame(skeleton)
         return skeleton
 
-    def construct_hierarchy_from_bvh(self, skeleton, joints, node_info, node_channels, node_name):
-        if node_name in joints:
-            joint_index = joints.index(node_name)
+    def construct_hierarchy_from_bvh(self, skeleton, joint_list, node_info, node_name, level):
+        if "channels" in node_info[node_name]:
+            channels = node_info[node_name]["channels"]
+        else:
+            channels = []
+        if node_name in joint_list:
+            joint_index = joint_list.index(node_name)
         else:
             joint_index = -1
         if node_name == skeleton.root:
-            node = SkeletonRootNode(node_name, node_channels[node_name], None)
+            node = SkeletonRootNode(node_name, channels, None, level)
             if node_name in skeleton.animated_joints:
                 node.fixed = False
                 node.quaternion_frame_index = skeleton.animated_joints.index(node_name)
@@ -105,7 +90,7 @@ class SkeletonBuilder(object):
                 node.fixed = True
             node.index = joint_index
         elif "children" in list(node_info[node_name].keys()) and len(node_info[node_name]["children"]) > 0:
-            node = SkeletonJointNode(node_name, node_channels[node_name], None)
+            node = SkeletonJointNode(node_name, channels, None, level)
             if node_name in skeleton.animated_joints:
                 node.fixed = False
                 node.quaternion_frame_index = skeleton.animated_joints.index(node_name)
@@ -115,52 +100,14 @@ class SkeletonBuilder(object):
                 node.fixed = True
             node.index = joint_index
         else:
-            node = SkeletonEndSiteNode(node_name, [], None)
+            node = SkeletonEndSiteNode(node_name, channels, None, level)
 
         node.index = joint_index
-        node.offset = skeleton.node_names[node_name]["offset"]
+        node.offset = node_info[node_name]["offset"]
         skeleton.nodes[node_name] = node
         if "children" in list(node_info[node_name].keys()):
             for c in node_info[node_name]["children"]:
-                c_node = self.construct_hierarchy_from_bvh(skeleton, joints, node_info, node_channels, c)
-                c_node.parent = node
-                node.children.append(c_node)
-        return node
-
-    def construct_hierarchy_from_bvh2(self, skeleton, node_names, node_channels, node_name):
-        joint_index = list(node_names.keys()).index(node_name)
-        if node_name == skeleton.root:
-            node = SkeletonRootNode(node_name, node_channels[node_name], None)
-            if node_name in skeleton.animated_joints:
-                node.fixed = False
-                node.quaternion_frame_index = skeleton.animated_joints.index(node_name)
-                offset = node.quaternion_frame_index + 3
-                node.rotation = skeleton.reference_frame[offset: offset + 4]
-            else:
-                node.fixed = True
-            node.index = joint_index
-        elif "children" in list(node_names[node_name].keys()) and len(node_names[node_name]["children"]) > 0:
-            node = SkeletonJointNode(node_name, node_channels[node_name], None)
-            offset = skeleton.animated_joints.index(node_name) * 4 + 3  # TODO fix
-            node.rotation = skeleton.reference_frame[offset: offset + 4]
-            if node_name in skeleton.animated_joints:
-                node.fixed = False
-                node.quaternion_frame_index = skeleton.animated_joints.index(node_name)
-            else:
-                node.fixed = True
-            node.index = joint_index
-        else:
-            node = SkeletonEndSiteNode(node_name, [], None)
-
-        node.index = joint_index
-
-        # print "node", node_name, node.quaternion_frame_index, node.index
-
-        node.offset = skeleton.node_names[node_name]["offset"]
-        skeleton.nodes[node_name] = node
-        if "children" in list(node_names[node_name].keys()):
-            for c in node_names[node_name]["children"]:
-                c_node = self.construct_hierarchy_from_bvh(skeleton, node_names, node_channels, c)
+                c_node = self.construct_hierarchy_from_bvh(skeleton, joint_list, node_info, c, level+1)
                 c_node.parent = node
                 node.children.append(c_node)
         return node
@@ -190,15 +137,12 @@ class SkeletonBuilder(object):
 
         skeleton.frame_time = data["frame_time"]
         skeleton.nodes = collections.OrderedDict()
-        root = self._create_node_from_desc(skeleton, data["root"], None)
+        root = self._create_node_from_desc(skeleton, data["root"], None, 0)
         skeleton.root = root.node_name
         skeleton.reference_frame = np.array(data["reference_frame"])
         skeleton.reference_frame_length = len(skeleton.reference_frame)
-        skeleton.node_channels = data["node_channels"]
         if "tool_nodes" in list(data.keys()):
             skeleton.tool_nodes = data["tool_nodes"]
-        skeleton.node_name_frame_map = data["node_name_frame_map"]
-        skeleton.node_names = data["node_names"]
         skeleton.max_level = skeleton._get_max_level()
         skeleton._set_joint_weights()
         skeleton.parent_dict = skeleton._get_parent_dict()
@@ -222,7 +166,7 @@ class SkeletonBuilder(object):
         skeleton.animated_joints = data["animated_joints"]
         # self.inv_bind_poses = [self._create_node_from_desc(node, None) for node in data["nodes"].values()]
         skeleton.root = data["root"]
-        self._create_node_from_desc2(skeleton, data, skeleton.root, None)
+        self._create_node_from_desc2(skeleton, data, skeleton.root, None, 0)
         skeleton.frame_time = data["frame_time"]
         skeleton.parent_dict = skeleton._get_parent_dict()
         skeleton._chain_names = skeleton._generate_chain_names()
@@ -237,15 +181,15 @@ class SkeletonBuilder(object):
         create_identity_frame(skeleton)
         return skeleton
 
-    def _create_node_from_desc(self, skeleton, data, parent):
+    def _create_node_from_desc(self, skeleton, data, parent, level):
         node_name = data["name"]
         channels = data["channels"]
         if parent is None:
-            node = SkeletonRootNode(node_name, channels, parent)
+            node = SkeletonRootNode(node_name, channels, parent, level)
         elif data["node_type"] == SKELETON_NODE_TYPE_JOINT:
-            node = SkeletonJointNode(node_name, channels, parent)
+            node = SkeletonJointNode(node_name, channels, parent, level)
         else:
-            node = SkeletonEndSiteNode(node_name, channels, parent)
+            node = SkeletonEndSiteNode(node_name, channels, parent, level)
         # node.fixed = data["fixed"]
         node.index = data["index"]
         node.offset = np.array(data["offset"])
@@ -256,23 +200,22 @@ class SkeletonBuilder(object):
         else:
             node.quaternion_frame_index = -1
             node.fixed = True
-        #print("load from json", node_name, node.quaternion_frame_index, data["index"], data["fixed"], node.fixed, node.rotation)
 
         skeleton.nodes[node_name] = node
         skeleton.nodes[node_name].children = []
         for c_desc in data["children"]:
-            skeleton.nodes[node_name].children.append(self._create_node_from_desc(skeleton, c_desc, node))
+            skeleton.nodes[node_name].children.append(self._create_node_from_desc(skeleton, c_desc, node, level+1))
         return node
 
-    def _create_node_from_desc2(self, skeleton, data, node_name, parent):
+    def _create_node_from_desc2(self, skeleton, data, node_name, parent, level=0):
         node_data = data["nodes"][node_name]
         channels = node_data["channels"]
         if parent is None:
-            node = SkeletonRootNode(node_name, channels, parent)
+            node = SkeletonRootNode(node_name, channels, parent, level)
         elif node_data["node_type"] == SKELETON_NODE_TYPE_JOINT:
-            node = SkeletonJointNode(node_name, channels, parent)
+            node = SkeletonJointNode(node_name, channels, parent, level)
         else:
-            node = SkeletonEndSiteNode(node_name, channels, parent)
+            node = SkeletonEndSiteNode(node_name, channels, parent, level)
         node.fixed = node_data["fixed"]
         node.index = node_data["index"]
         node.offset = np.array(node_data["offset"])
@@ -284,7 +227,7 @@ class SkeletonBuilder(object):
         node.children = []
         skeleton.nodes[node_name] = node
         for c_name in node_data["children"]:
-            c_node = self._create_node_from_desc2(skeleton, data, c_name, node)
+            c_node = self._create_node_from_desc2(skeleton, data, c_name, node, level+1)
             node.children.append(c_node)
         return node
 

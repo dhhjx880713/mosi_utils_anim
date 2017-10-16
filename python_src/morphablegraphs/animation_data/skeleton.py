@@ -36,12 +36,9 @@ class Skeleton(object):
         self.root = None
         self.aligning_root_node = None  # Node that defines body orientation. Can be different from the root node.
         self.aligning_root_dir = None
-        self.node_names = None
         self.reference_frame = None
         self.reference_frame_length = None
-        self.node_channels = collections.OrderedDict()
         self.nodes = collections.OrderedDict()
-        self.node_name_frame_map = collections.OrderedDict()
         self.tool_nodes = []
         self.max_level = -1
         self.parent_dict = dict()
@@ -63,6 +60,7 @@ class Skeleton(object):
         node_desc["channels"] = node.channels
         node_desc["rotation"] = node.rotation.tolist()
         node_desc["fixed"] = node.fixed
+        node_desc["level"] = node.level
         node_desc["node_type"] = node.node_type
         node_desc["children"] = []
         for c in node.children:
@@ -73,7 +71,6 @@ class Skeleton(object):
     def save_to_json(self, file_name):
         data = dict()
         data["animated_joints"] = self.animated_joints
-        data["node_names"] = self.node_names
         data["free_joints_map"] = self.free_joints_map
         data["reduced_free_joints_map"] = self.reduced_free_joints_map
         data["bounds"] = self.bounds
@@ -81,19 +78,11 @@ class Skeleton(object):
         data["frame_time"] = self.frame_time
         data["root"] = self._get_node_desc(self.root)
         data["reference_frame"] = self.reference_frame.tolist()
-        data["node_channels"] = self.node_channels
         data["tool_nodes"] = self.tool_nodes
-        data["node_name_frame_map"] = self.node_name_frame_map
-        with open(file_name, 'wb') as outfile:
+        with open(file_name, 'w') as outfile:
             tmp = json.dumps(data, indent=4)
             outfile.write(tmp)
             outfile.close()
-
-    def extract_channels(self):
-        for node_idx, node_name in enumerate(self.node_names):
-            if "channels" in list(self.node_names[node_name].keys()):
-                channels = self.node_names[node_name]["channels"]
-                self.node_channels[node_name] = channels
 
     def is_motion_vector_complete(self, frames, is_quaternion):
         if is_quaternion:
@@ -140,8 +129,8 @@ class Skeleton(object):
         return new_frame
 
     def _get_max_level(self):
-        levels = [node["level"] for node in list(self.node_names.values()) if "level" in list(node.keys())]
-        if len(levels)> 0:
+        levels = [node.level for node in list(self.nodes.values())]
+        if len(levels) > 0:
             return max(levels)
         else:
             return 0
@@ -168,13 +157,10 @@ class Skeleton(object):
         """ Gives joints weights according to their distance in the joint hierarchy
            to the root joint. The further away the smaller the weight.
         """
-
-        # self.joint_weights = [np.exp(-self.node_names[node_name]["level"])
-        #                       for node_name in self.node_name_frame_map.keys()]
-        self.joint_weights = [1.0/(self.node_names[node_name]["level"] + 1.0) for node_name in list(self.node_name_frame_map.keys())]
+        self.joint_weights = [1.0/(self.nodes[n].level + 1.0) for n in list(self.nodes.keys())]
         self.joint_weight_map = collections.OrderedDict()
         weight_index = 0
-        for node_name in list(self.node_name_frame_map.keys()):
+        for node_name in list(self.nodes.keys()):
             self.joint_weight_map[node_name] = self.joint_weights[weight_index]
             weight_index += 1
         self.joint_weight_map["RightHand"] = 2.0
@@ -206,25 +192,24 @@ class Skeleton(object):
         \tBVH data structure read from a file
 
         """
-        if self.node_names[target_node_name]["level"] == 0:
+        if self.nodes[target_node_name].level == 0:
             root_frame_position = quaternion_frame[:3]
-            root_node_offset = self.node_names[target_node_name]["offset"]
+            root_node_offset = self.nodes[target_node_name].offset
             return [t + o for t, o in
                     zip(root_frame_position, root_node_offset)]
         else:
-            offsets = [self.node_names[node_name]["offset"]
+            offsets = [self.nodes[node_name].offset
                        for node_name in self._chain_names[target_node_name]]
             root_position = quaternion_frame[:3].flatten()
             offsets[0] = [r + o for r, o in zip(root_position, offsets[0])]
             j_matrices = []
             count = 0
             for node_name in self._chain_names[target_node_name]:
-                if "children" in list(self.node_names[node_name].keys()):  # check if it is a joint or an end site
-                    index = self.node_name_frame_map[node_name] * 4 + 3
+                if len(self.nodes[target_node_name].children) > 0:  # check if it is a joint or an end site
+                    index = self.animated_joints.index(node_name) * 4 + 3
                     j_matrix = quaternion_matrix(quaternion_frame[index: index + 4])
                     j_matrix[:, 3] = offsets[count] + [1]
                 else:
-                    #print node_name, self._chain_names[target_node_name][count-1], offsets[count]
                     j_matrix = np.identity(4)
                     j_matrix[:, 3] = offsets[count] + [1]
                 j_matrices.append(j_matrix)
@@ -245,10 +230,10 @@ class Skeleton(object):
         Converts quaternion frames to cartesian frames by calling get_cartesian_coordinates_from_quaternion for each joint
         """
         if node_names is None:
-            node_names = list(self.node_name_frame_map.keys())
+            node_names = self.nodes.keys()
         cartesian_frame = []
         for node_name in node_names:
-            if node_name in list(self.node_name_frame_map.keys()):
+            if node_name in self.nodes:
                 position = self.nodes[node_name].get_global_position(quat_frame)
                 cartesian_frame.append(position)
         return cartesian_frame
