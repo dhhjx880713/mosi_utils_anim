@@ -12,7 +12,7 @@ from ..animation_data.utils import euler_to_quaternion
 from ..utilities.io_helper_functions import load_json_file
 from .gp_mixture import GPMixture
 from .motion_state_group_loader import MotionStateGroupLoader
-from ..utilities.zip_io import ZipReader
+from ..utilities.zip_io import ZipReader, SKELETON_BVH_STRING_KEY, SKELETON_JSON_KEY
 from .motion_state_transition import MotionStateTransition
 from .motion_state_graph import MotionStateGraph
 from ..motion_generator.hand_pose_generator import HandPoseGenerator
@@ -20,8 +20,6 @@ from . import ELEMENTARY_ACTION_DIRECTORY_NAME, TRANSITION_MODEL_DIRECTORY_NAME,
 from ..utilities import write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_ERROR, LOG_MODE_INFO
 
 SKELETON_FILE = "skeleton"  # TODO replace with standard skeleton in data directory
-SKELETON_BVH_STRING_KEY = "skeletonString"
-SKELETON_JSON_KEY = "skeleton"
 
 
 class MotionStateGraphLoader(object):
@@ -69,7 +67,9 @@ class MotionStateGraphLoader(object):
             bvh_reader = BVHReader("").init_from_string(graph_data[SKELETON_BVH_STRING_KEY])
             motion_state_graph.skeleton = SkeletonBuilder().load_from_bvh(bvh_reader)
         elif SKELETON_JSON_KEY in list(graph_data.keys()):
-            motion_state_graph.skeleton = SkeletonBuilder().load_from_json_data(graph_data[SKELETON_JSON_KEY])
+            skeleton = SkeletonBuilder().load_from_json_data(graph_data[SKELETON_JSON_KEY])
+
+            motion_state_graph.skeleton = skeleton
         else:
             raise Exception("There is no skeleton defined in the graph file")
             return

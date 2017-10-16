@@ -15,6 +15,10 @@ MM_TYPE = "quaternion"
 ELEMENTARY_ACTION_DIRECTORY_NAME = "elementary_action_models"
 TRANSITION_MODEL_DIRECTORY_NAME = "transition_models"
 GRAPH_DEFINITION_FILE = "graph_definition.json"
+SKELETON_JSON_FILE = "skeleton.json"
+SKELETON_BVH_FILE = "skeleton.bvh"
+SKELETON_BVH_STRING_KEY = "bvh_skeleton_string"
+SKELETON_JSON_KEY = "skeleton"
 
 
 class ZipReader(object):
@@ -37,20 +41,24 @@ class ZipReader(object):
         """
         write_message_to_log("Loading model data from file " + self.zip_file_path + " ...", LOG_MODE_INFO)
         self.zip_file = zipfile.ZipFile(self.zip_file_path, "r", zipfile.ZIP_DEFLATED)
-        data = json.loads(self.zip_file.read(GRAPH_DEFINITION_FILE).decode("utf-8"))
+        graph_data_str = self.zip_file.read(GRAPH_DEFINITION_FILE).decode("utf-8")
+        data = json.loads(graph_data_str)
         if "formatVersion" in list(data.keys()):
             self.format_version = float(data["formatVersion"])
         else:
             self.format_version = 1.0
 
-        write_message_to_log("Format version " +str(self.format_version), LOG_MODE_DEBUG)
+        write_message_to_log("Format version " + str(self.format_version), LOG_MODE_DEBUG)
         if self.format_version >= 2.0:
             structure_desc = self._read_elementary_action_file_structure_from_zip_v2()
             data["handPoseInfo"] = self._read_hand_pose_data()
         else:
             structure_desc = self._read_elementary_action_file_structure_from_zip_v1()
         if self.format_version <= 2.0:
-            data["skeletonString"] = self.zip_file.read("skeleton.bvh")
+            data[SKELETON_BVH_STRING_KEY] = self.zip_file.read(SKELETON_BVH_FILE).decode("utf-8")
+        elif self.format_version >= 4.0:
+            skeleton_data_str = self.zip_file.read(SKELETON_JSON_FILE).decode("utf-8")
+            data[SKELETON_JSON_KEY] = json.loads(skeleton_data_str)
         self._construct_graph_data(structure_desc)
         data["subgraphs"] = self.graph_data
         self.zip_file.close()
