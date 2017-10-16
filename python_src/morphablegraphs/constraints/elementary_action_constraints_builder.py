@@ -215,7 +215,7 @@ class ElementaryActionConstraintsBuilder(object):
         self._add_joint_trajectory_constraints(action_constraints, action_index)
 
     def _add_joint_trajectory_constraints(self, action_constraints, action_index):
-        for joint_name in list(self.motion_state_graph.skeleton.node_name_frame_map.keys()):
+        for joint_name in list(self.motion_state_graph.skeleton.nodes.keys()):
             if joint_name != self.motion_state_graph.skeleton.root:
                 self._add_trajectory_constraint(action_constraints, action_index, joint_name)
         if self.collision_avoidance_constraints_mode == CA_CONSTRAINTS_MODE_SET and len(
