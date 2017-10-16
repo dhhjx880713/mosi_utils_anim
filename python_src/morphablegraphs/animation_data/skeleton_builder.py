@@ -42,6 +42,28 @@ def add_new_end_site(skeleton, node_names, parent_node_name, offset):
         node_desc["offset"] = offset
 
 
+def generate_reference_frame(skeleton, animated_joints):
+    identity_frame = [0,0,0]
+    frame = [0, 0, 0]
+    joint_idx = 0
+    node_list = [(skeleton.nodes[n].index, n) for n in skeleton.nodes.keys() if skeleton.nodes[n].index >= 0]
+    node_list.sort()
+    for idx, node in node_list:
+        print("add", idx, node, skeleton.nodes[node].rotation)
+        if node in animated_joints:
+            frame += skeleton.nodes[node].rotation.tolist()
+            identity_frame += [1,0,0,0]
+            print("before", skeleton.nodes[node].quaternion_frame_index)
+            skeleton.nodes[node].quaternion_frame_index = joint_idx
+            joint_idx += 1
+            print("after", skeleton.nodes[node].quaternion_frame_index)
+        else:
+            skeleton.nodes[node].quaternion_frame_index = -1
+    skeleton.reference_frame = np.array(frame)
+    skeleton.reference_frame_length = len(frame)
+    skeleton.identity_frame = np.array(identity_frame)
+
+
 class SkeletonBuilder(object):
 
     def load_from_bvh(self, bvh_reader, animated_joints=None, add_tool_joints=True):
@@ -139,8 +161,6 @@ class SkeletonBuilder(object):
         skeleton.nodes = collections.OrderedDict()
         root = self._create_node_from_desc(skeleton, data["root"], None, 0)
         skeleton.root = root.node_name
-        skeleton.reference_frame = np.array(data["reference_frame"])
-        skeleton.reference_frame_length = len(skeleton.reference_frame)
         if "tool_nodes" in list(data.keys()):
             skeleton.tool_nodes = data["tool_nodes"]
         skeleton.max_level = skeleton._get_max_level()
@@ -156,7 +176,8 @@ class SkeletonBuilder(object):
             skeleton.aligning_root_dir = data["aligning_root_dir"]
         else:
             skeleton.aligning_root_dir = ROCKETBOX_ROOT_DIR
-        create_identity_frame(skeleton)
+
+        generate_reference_frame(skeleton, skeleton.animated_joints)
         return skeleton
 
     def load_from_fbx_data(self, data):
