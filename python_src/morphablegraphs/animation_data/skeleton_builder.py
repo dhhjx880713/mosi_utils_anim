@@ -49,14 +49,11 @@ def generate_reference_frame(skeleton, animated_joints):
     node_list = [(skeleton.nodes[n].index, n) for n in skeleton.nodes.keys() if skeleton.nodes[n].index >= 0]
     node_list.sort()
     for idx, node in node_list:
-        print("add", idx, node, skeleton.nodes[node].rotation)
         if node in animated_joints:
             frame += skeleton.nodes[node].rotation.tolist()
             identity_frame += [1,0,0,0]
-            print("before", skeleton.nodes[node].quaternion_frame_index)
             skeleton.nodes[node].quaternion_frame_index = joint_idx
             joint_idx += 1
-            print("after", skeleton.nodes[node].quaternion_frame_index)
         else:
             skeleton.nodes[node].quaternion_frame_index = -1
     skeleton.reference_frame = np.array(frame)
