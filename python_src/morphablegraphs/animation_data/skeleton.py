@@ -56,7 +56,7 @@ class Skeleton(object):
             node_desc["parent"] = None
         node_desc["quaternion_frame_index"] = node.quaternion_frame_index
         node_desc["index"] = node.index
-        node_desc["offset"] = node.offset
+        node_desc["offset"] = list(node.offset)
         node_desc["channels"] = node.channels
         node_desc["rotation"] = node.rotation.tolist()
         node_desc["fixed"] = node.fixed
@@ -198,7 +198,7 @@ class Skeleton(object):
             return [t + o for t, o in
                     zip(root_frame_position, root_node_offset)]
         else:
-            offsets = [self.nodes[node_name].offset
+            offsets = [list(self.nodes[node_name].offset)
                        for node_name in self._chain_names[target_node_name]]
             root_position = quaternion_frame[:3].flatten()
             offsets[0] = [r + o for r, o in zip(root_position, offsets[0])]
