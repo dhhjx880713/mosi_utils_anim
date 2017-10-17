@@ -99,16 +99,15 @@ RIGHT_HEEL = "RightHeel"
 OFFSET = 0
 RAW_SKELETON_FOOT_JOINTS = [RIGHT_TOE, LEFT_TOE, RIGHT_HEEL,LEFT_HEEL]
 HEEL_OFFSET = [0, -6.480602, 0]
-
 RAW_SKELETON_JOINTS = collections.OrderedDict()
 RAW_SKELETON_JOINTS["root"] = "Hips"
 RAW_SKELETON_JOINTS["pelvis"] = "Hips"
 RAW_SKELETON_JOINTS["spine"] = "Spine"
-RAW_SKELETON_JOINTS["spine_1"] = "Spine_1"
-RAW_SKELETON_JOINTS["left_clavicle"] = None
-RAW_SKELETON_JOINTS["right_clavicle"] = None
-RAW_SKELETON_JOINTS["left_shoulder"] = "LeftShoulder"
-RAW_SKELETON_JOINTS["right_shoulder"] = "RightShoulder"
+RAW_SKELETON_JOINTS["spine_1"] = "Spine1"
+RAW_SKELETON_JOINTS["left_clavicle"] = "LeftShoulder"
+RAW_SKELETON_JOINTS["right_clavicle"] = "RightShoulder"
+RAW_SKELETON_JOINTS["left_shoulder"] = "LeftArm"
+RAW_SKELETON_JOINTS["right_shoulder"] = "RightArm"
 RAW_SKELETON_JOINTS["left_elbow"] = "LeftForeArm"
 RAW_SKELETON_JOINTS["right_elbow"] = "RightForeArm"
 RAW_SKELETON_JOINTS["left_wrist"] = "LeftHand"
@@ -126,6 +125,7 @@ RAW_SKELETON_JOINTS["right_heel"] = "RightHeel"
 RAW_SKELETON_JOINTS["neck"] = "Neck"
 RAW_SKELETON_JOINTS["head"] = "Head"
 RAW_SKELETON_MODEL = collections.OrderedDict()
+RAW_SKELETON_MODEL["joints"] = RAW_SKELETON_JOINTS
 RAW_SKELETON_MODEL["foot_joints"] = RAW_SKELETON_FOOT_JOINTS
 RAW_SKELETON_MODEL["heel_offset"] = [0, -6.480602, 0]
 RAW_SKELETON_MODEL["ik_chains"] = IK_CHAINS_RAW_SKELETON
@@ -177,7 +177,7 @@ ROCKETBOX_JOINTS["right_clavicle"] = "RightShoulder"
 ROCKETBOX_JOINTS["left_shoulder"] = "LeftArm"
 ROCKETBOX_JOINTS["right_shoulder"] = "RightArm"
 ROCKETBOX_JOINTS["left_elbow"] = "LeftForeArm"
-ROCKETBOX_JOINTS["right_elbow"] = "lowerarm_r"
+ROCKETBOX_JOINTS["right_elbow"] = "RightForeArm"
 ROCKETBOX_JOINTS["left_wrist"] = "LeftHand"
 ROCKETBOX_JOINTS["right_wrist"] = "RightHand"
 ROCKETBOX_JOINTS["left_hip"] = "LeftUpLeg"
@@ -192,8 +192,42 @@ ROCKETBOX_JOINTS["left_heel"] = "LeftHeel"
 ROCKETBOX_JOINTS["right_heel"] = "RightHeel"
 ROCKETBOX_JOINTS["neck"] = "Neck"
 ROCKETBOX_JOINTS["head"] = "Head"
+
 ROCKETBOX_SKELETON_MODEL = collections.OrderedDict()
 ROCKETBOX_SKELETON_MODEL["joints"] = ROCKETBOX_JOINTS
 ROCKETBOX_SKELETON_MODEL["heel_offset"] = [0, -6.480602, 0]
 ROCKETBOX_SKELETON_MODEL["foot_joints"] = RAW_SKELETON_FOOT_JOINTS
 ROCKETBOX_SKELETON_MODEL["ik_chains"] = IK_CHAINS_RAW_SKELETON
+
+
+
+CMU_SKELETON_JOINTS = collections.OrderedDict()
+CMU_SKELETON_JOINTS["root"] = "hip"
+CMU_SKELETON_JOINTS["pelvis"] = "hip"
+CMU_SKELETON_JOINTS["spine"] = "abdomen"
+CMU_SKELETON_JOINTS["spine_1"] = "chest"
+CMU_SKELETON_JOINTS["left_clavicle"] = "lCollar"
+CMU_SKELETON_JOINTS["right_clavicle"] = "rCollar"
+CMU_SKELETON_JOINTS["left_shoulder"] = "lShldr"
+CMU_SKELETON_JOINTS["right_shoulder"] = "rShldr"
+CMU_SKELETON_JOINTS["left_elbow"] = "lForeArm"
+CMU_SKELETON_JOINTS["right_elbow"] = "rForeArm"
+CMU_SKELETON_JOINTS["left_wrist"] = "lHand"
+CMU_SKELETON_JOINTS["right_wrist"] = "rHand"
+CMU_SKELETON_JOINTS["left_hip"] = "lThigh"
+CMU_SKELETON_JOINTS["right_hip"] = "rThigh"
+CMU_SKELETON_JOINTS["left_knee"] = "lShin"
+CMU_SKELETON_JOINTS["right_knee"] = "rShin"
+CMU_SKELETON_JOINTS["left_ankle"] = "lFoot"
+CMU_SKELETON_JOINTS["right_ankle"] = "rFoot"
+CMU_SKELETON_JOINTS["left_toe"] = "lFoot_EndSite"
+CMU_SKELETON_JOINTS["right_toe"] = "rFoot_EndSite"
+CMU_SKELETON_JOINTS["left_heel"] = None
+CMU_SKELETON_JOINTS["right_heel"] = None
+CMU_SKELETON_JOINTS["neck"] = "neck"
+CMU_SKELETON_JOINTS["head"] = "head"
+CMU_SKELETON_MODEL = collections.OrderedDict()
+CMU_SKELETON_MODEL["joints"] = CMU_SKELETON_JOINTS
+
+import json
+print (json.dumps(GAME_ENGINE_SKELETON_MODEL))
