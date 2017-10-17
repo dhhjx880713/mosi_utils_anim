@@ -6,13 +6,11 @@ from ..utils import quaternion_from_vector_to_vector
 AXES = [[1,0,0],[0,1,0],[0,0,1], [-1,0,0],[0,-1,0],[0,0,-1]]
 
 
-def get_angle(v1, v2):
+def get_angle_between_vectors(v1, v2):
     q = quaternion_from_vector_to_vector(v1, v2)
     v = q[1:]
     sin_theta = np.linalg.norm(v)
-    #if sin_theta >= 1:
-    #    return 0
-    #else:
+    sin_theta = min(sin_theta, 1.0)
     abs_angle = 2 * math.asin(sin_theta)
     return abs_angle
 
@@ -21,7 +19,7 @@ def project_vector_on_axis(v):
     min_idx = -1
     min_angle = np.inf
     for idx, a in enumerate(AXES):
-        angle = get_angle(v,a)
+        angle = get_angle_between_vectors(v, a)
         if angle < min_angle:
             min_angle = angle
             min_idx = idx
