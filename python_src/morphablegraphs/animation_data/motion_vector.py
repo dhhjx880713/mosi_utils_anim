@@ -93,7 +93,7 @@ class MotionVector(object):
         elif output_filename != "":
             filepath = output_filename + ".bvh"
         else:
-            filepath = "output" + ".bvh"
+            filepath = "output.bvh"
         bvh_writer.write(filepath)
 
     def reduce_frames(self, n_frames):
@@ -123,6 +123,10 @@ class MotionVector(object):
         for idx in range(self.n_frames):
             self.frames[idx][:3] += offset
 
+    def scale_root(self, scale_factor):
+        for idx in range(self.n_frames):
+            self.frames[idx][:3] *= scale_factor
+
     def from_fbx(self, animation, animated_joints=None):
         if animated_joints is None:
             animated_joints = list(animation["curves"].keys())
@@ -151,4 +155,3 @@ class MotionVector(object):
             offset += 4
 
         return frame
-
