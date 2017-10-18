@@ -121,31 +121,19 @@ def create_local_cos_map_from_skeleton2(skeleton):
 
 
 def create_local_cos_map_from_skeleton_rocketbox(skeleton):
-    body_x_axis = -get_body_x_axis(skeleton)
-    print("body x axis", body_x_axis)
-    body_y_axis = get_body_y_axis(skeleton)
-    print("body y axis", body_y_axis)
-    joint_cos_map = dict()
-    for j in list(skeleton.nodes.keys()):
-        joint_cos_map[j] = dict()
-        joint_cos_map[j]["y"] = body_y_axis
-        joint_cos_map[j]["x"] = body_x_axis
-        if j == skeleton.root:
-            joint_cos_map[j]["x"] = (-np.array(body_x_axis)).tolist()
-        #joint_cos_map[j]["z"] = np.cross(body_y_axis, body_x_axis)
+    joint_cos_map = create_local_cos_map_from_skeleton2(skeleton, -1.0)
+    joint_cos_map["Hips"]["x"] = [0, -1, 0]
+    joint_cos_map["Spine"]["x"] = [0, -1, 0]
+    joint_cos_map["Spine_1"]["x"] = [0, -1, 0]
+    joint_cos_map["Neck"]["x"] = [0, -1, 0]
+    return joint_cos_map
 
-        node = skeleton.nodes[j]
-        if len(node.children) > 0 and np.linalg.norm(node.offset) > 0:
-            if np.linalg.norm(node.children[0].offset) == 0: # the end site does have an offset of zero
-                y_axis = node.offset / np.linalg.norm(node.offset)
-            else:
-                y_axis = get_body_axis(skeleton, j, node.children[0].node_name)
-            joint_cos_map[j]["y"] = y_axis
-
-            #joint_cos_map[j]["z"] = np.cross(joint_cos_map[j]["y"], body_x_axis)
-            #joint_cos_map[j]["z"] /= np.linalg.norm(joint_cos_map[j]["z"])
-            #print(j, body_x_axis, joint_cos_map[j]["y"], joint_cos_map[j]["z"], node.offset)
-
+def create_local_cos_map_from_skeleton_mcs(skeleton):
+    joint_cos_map = create_local_cos_map_from_skeleton2(skeleton)
+    joint_cos_map["LeftShoulder"]["x"] = [-1, 0, 0]
+    joint_cos_map["RightShoulder"]["x"] = [-1, 0, 0]
+    joint_cos_map["LeftElbow"]["x"] = [-1, 0, 0]
+    joint_cos_map["RightElbow"]["x"] = [-1, 0, 0]
     return joint_cos_map
 
 
