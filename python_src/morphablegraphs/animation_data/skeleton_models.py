@@ -228,6 +228,72 @@ CMU_SKELETON_JOINTS["neck"] = "neck"
 CMU_SKELETON_JOINTS["head"] = "head"
 CMU_SKELETON_MODEL = collections.OrderedDict()
 CMU_SKELETON_MODEL["joints"] = CMU_SKELETON_JOINTS
+CMU_SKELETON_MODEL["foot_joints"] = []
 
-import json
-print (json.dumps(GAME_ENGINE_SKELETON_MODEL))
+MOVIEMATION_SKELETON_JOINTS = collections.OrderedDict()
+MOVIEMATION_SKELETON_JOINTS["root"] = "Hips"
+MOVIEMATION_SKELETON_JOINTS["pelvis"] = "Hips"
+MOVIEMATION_SKELETON_JOINTS["spine"] = "Ab"
+MOVIEMATION_SKELETON_JOINTS["spine_1"] = "Chest"
+MOVIEMATION_SKELETON_JOINTS["left_clavicle"] = "LeftCollar"
+MOVIEMATION_SKELETON_JOINTS["right_clavicle"] = "RightCollar"
+MOVIEMATION_SKELETON_JOINTS["left_shoulder"] = "LeftShoulder"
+MOVIEMATION_SKELETON_JOINTS["right_shoulder"] = "RightShoulder"
+MOVIEMATION_SKELETON_JOINTS["left_elbow"] = "LeftElbow"
+MOVIEMATION_SKELETON_JOINTS["right_elbow"] = "RightElbow"
+MOVIEMATION_SKELETON_JOINTS["left_wrist"] = "LeftWrist"
+MOVIEMATION_SKELETON_JOINTS["right_wrist"] = "RightWrist"
+MOVIEMATION_SKELETON_JOINTS["left_hip"] = "LeftHip"
+MOVIEMATION_SKELETON_JOINTS["right_hip"] = "RightHip"
+MOVIEMATION_SKELETON_JOINTS["left_knee"] = "LeftKnee"
+MOVIEMATION_SKELETON_JOINTS["right_knee"] = "RightKnee"
+MOVIEMATION_SKELETON_JOINTS["left_ankle"] = "LeftAnkle"
+MOVIEMATION_SKELETON_JOINTS["right_ankle"] = "RightAnkle"
+MOVIEMATION_SKELETON_JOINTS["left_toe"] = "LeftAnkle_EndSite"
+MOVIEMATION_SKELETON_JOINTS["right_toe"] = "RightAnkle_EndSite"
+MOVIEMATION_SKELETON_JOINTS["left_heel"] = None
+MOVIEMATION_SKELETON_JOINTS["right_heel"] = None
+MOVIEMATION_SKELETON_JOINTS["neck"] = "Neck"
+MOVIEMATION_SKELETON_JOINTS["head"] = "Head"
+MOVIEMATION_SKELETON_MODEL = collections.OrderedDict()
+MOVIEMATION_SKELETON_MODEL["joints"] = MOVIEMATION_SKELETON_JOINTS
+MOVIEMATION_SKELETON_MODEL["foot_joints"] = []
+
+
+MCS_SKELETON_JOINTS = collections.OrderedDict()
+MCS_SKELETON_JOINTS["root"] = "Hips"
+MCS_SKELETON_JOINTS["pelvis"] = "Hips"
+MCS_SKELETON_JOINTS["spine"] = None
+MCS_SKELETON_JOINTS["spine_1"] = "Chest"
+MCS_SKELETON_JOINTS["left_clavicle"] = "LeftCollar"
+MCS_SKELETON_JOINTS["right_clavicle"] = "RightCollar"
+MCS_SKELETON_JOINTS["left_shoulder"] = "LeftShoulder"
+MCS_SKELETON_JOINTS["right_shoulder"] = "RightShoulder"
+MCS_SKELETON_JOINTS["left_elbow"] = "LeftElbow"
+MCS_SKELETON_JOINTS["right_elbow"] = "RightElbow"
+MCS_SKELETON_JOINTS["left_wrist"] = "LeftWrist"
+MCS_SKELETON_JOINTS["right_wrist"] = "RightWrist"
+MCS_SKELETON_JOINTS["left_hip"] = "LeftHip"
+MCS_SKELETON_JOINTS["right_hip"] = "RightHip"
+MCS_SKELETON_JOINTS["left_knee"] = "LeftKnee"
+MCS_SKELETON_JOINTS["right_knee"] = "RightKnee"
+MCS_SKELETON_JOINTS["left_ankle"] = "LeftAnkle"
+MCS_SKELETON_JOINTS["right_ankle"] = "RightAnkle"
+MCS_SKELETON_JOINTS["left_toe"] = "LeftAnkle_EndSite"
+MCS_SKELETON_JOINTS["right_toe"] = "RightAnkle_EndSite"
+MCS_SKELETON_JOINTS["left_heel"] = None
+MCS_SKELETON_JOINTS["right_heel"] = None
+MCS_SKELETON_JOINTS["neck"] = "Neck"
+MCS_SKELETON_JOINTS["head"] = "Head"
+MCS_SKELETON_MODEL = collections.OrderedDict()
+MCS_SKELETON_MODEL["joints"] = MCS_SKELETON_JOINTS
+MCS_SKELETON_MODEL["foot_joints"] = []
+
+SKELETON_MODELS = dict()
+SKELETON_MODELS["rocketbox"] = ROCKETBOX_SKELETON_MODEL
+SKELETON_MODELS["game_engine"] = GAME_ENGINE_SKELETON_MODEL
+SKELETON_MODELS["cmu"] = CMU_SKELETON_MODEL
+SKELETON_MODELS["mcs"] = MCS_SKELETON_MODEL
+SKELETON_MODELS["moviemation"] = MOVIEMATION_SKELETON_MODEL
+
+
