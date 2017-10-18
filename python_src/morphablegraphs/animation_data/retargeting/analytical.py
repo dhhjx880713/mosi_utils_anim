@@ -6,7 +6,7 @@ See: http://www.vis.uni-stuttgart.de/plain/vdl/vdl_upload/91_35_retargeting%20mo
 import numpy as np
 import math
 from .constants import OPENGL_UP_AXIS, GAME_ENGINE_SPINE_OFFSET_LIST
-from .utils import normalize, align_axis, find_rotation_between_vectors, align_root_translation, to_local_cos, get_quaternion_rotation_by_name, apply_additional_rotation_on_frames, project_vector_on_axis
+from .utils import normalize, align_axis, find_rotation_between_vectors, align_root_translation, to_local_cos, get_quaternion_rotation_by_name, apply_additional_rotation_on_frames, project_vector_on_axis, quaternion_from_vector_to_vector
 from ...external.transformations import quaternion_matrix, quaternion_multiply, quaternion_about_axis
 
 
@@ -55,14 +55,26 @@ def get_body_y_axis(skeleton):
     b = skeleton.skeleton_model["joints"]["head"]
     return get_body_axis(skeleton, a,b)
 
-def get_body_axis(skeleton, joint_a, joint_b):
+def get_quaternion_to_axis(skeleton, joint_a, joint_b, axis):
     ident_f = skeleton.identity_frame
     ap = skeleton.nodes[joint_a].get_global_position(ident_f)
     bp = skeleton.nodes[joint_b].get_global_position(ident_f)
     delta = bp - ap
     delta /= np.linalg.norm(delta)
-    projection = project_vector_on_axis(delta)
-    return projection / np.linalg.norm(projection)
+    return quaternion_from_vector_to_vector(axis, delta)
+
+
+def get_body_axis(skeleton, joint_a, joint_b, project=True):
+    ident_f = skeleton.identity_frame
+    ap = skeleton.nodes[joint_a].get_global_position(ident_f)
+    bp = skeleton.nodes[joint_b].get_global_position(ident_f)
+    delta = bp - ap
+    delta /= np.linalg.norm(delta)
+    if project:
+        projection = project_vector_on_axis(delta)
+        return projection / np.linalg.norm(projection)
+    else:
+        return delta
 
 def create_local_cos_map_from_skeleton(skeleton):
     body_x_axis = get_body_x_axis(skeleton)
