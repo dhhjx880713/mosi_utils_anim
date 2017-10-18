@@ -104,30 +104,32 @@ def create_local_cos_map_from_skeleton(skeleton):
     return joint_cos_map
 
 
-def create_local_cos_map_from_skeleton2(skeleton):
-    body_x_axis = get_body_x_axis(skeleton)
+def create_local_cos_map_from_skeleton2(skeleton, flip=1.0):
+    body_x_axis = get_body_x_axis(skeleton)*flip
     print("body x axis", body_x_axis)
     body_y_axis = get_body_y_axis(skeleton)
     print("body y axis", body_y_axis)
-    rotation = quaternion_matrix(quaternion_about_axis(np.radians(90), [0,0,1]))[:3,:3]
+    #rotation = quaternion_matrix(quaternion_about_axis(np.radians(90), [0,0,1]))[:3,:3]
+
     joint_cos_map = dict()
     for j in list(skeleton.nodes.keys()):
         joint_cos_map[j] = dict()
         joint_cos_map[j]["y"] = body_y_axis
         joint_cos_map[j]["x"] = body_x_axis
         node = skeleton.nodes[j]
-        if len(node.children) > 0 and np.linalg.norm(node.offset) > 0 and j != "Root":
-            if np.linalg.norm(node.children[0].offset) == 0:#  the end site does have an offset of zero
-                y_axis = node.offset/ np.linalg.norm(node.offset)
-            else:
-                y_axis = get_body_axis(skeleton, j, node.children[0].node_name)
+        if len(node.children) > 0 and np.linalg.norm(node.children[0].offset) > 0 and j != skeleton.root:
+            y_axis = get_body_axis(skeleton, j, node.children[0].node_name)
             joint_cos_map[j]["y"] = y_axis
-
-            #joint_cos_map[j]["x"] = normalize(np.dot(rotation, y_axis))
             #check if the new y axis is similar to the x axis
             z_vector = np.cross(y_axis, joint_cos_map[j]["x"])
             if np.linalg.norm(z_vector) == 0.0:
                 joint_cos_map[j]["x"] = body_y_axis *-np.sum(joint_cos_map[j]["y"])
+            #check for angle and rotate
+            q = get_quaternion_to_axis(skeleton, j, node.children[0].node_name, y_axis)
+            m = quaternion_matrix(q)[:3, :3]
+            for key, a in list(joint_cos_map[j].items()):
+                joint_cos_map[j][key] = np.dot(m, a)
+                joint_cos_map[j][key] = normalize(joint_cos_map[j][key])
             print(j, joint_cos_map[j])
     return joint_cos_map
 
