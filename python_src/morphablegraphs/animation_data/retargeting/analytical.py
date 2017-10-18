@@ -218,9 +218,6 @@ class Retargeting(object):
         self.n_params = len(self.target_skeleton.animated_joints) * 4 + 3
         self.ground_height = 0.0
         self.additional_rotation_map = additional_rotation_map
-        src_cos_map, target_cos_map = self.setup_local_cos_maps()
-        self.src_cos_map = src_cos_map
-        self.target_cos_map = target_cos_map
         self.target_cos_map = create_local_cos_map_from_skeleton2(self.target_skeleton)#this should be local
         self.src_cos_map = create_local_cos_map_from_skeleton2(self.src_skeleton)#this should be local too
 
