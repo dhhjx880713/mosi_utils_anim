@@ -349,6 +349,7 @@ def generate_joint_map(src_model, target_model):
 
 
 def retarget_from_src_to_target(src_skeleton, target_skeleton, src_frames, joint_map=None, additional_rotation_map=None, scale_factor=1.0, frame_range=None):
-    auto_map = generate_joint_map(src_skeleton.skeleton_model, target_skeleton.skeleton_model)
-    retargeting = Retargeting(src_skeleton, target_skeleton, auto_map, scale_factor, additional_rotation_map=additional_rotation_map)
+    if joint_map is None:
+        joint_map = generate_joint_map(src_skeleton.skeleton_model, target_skeleton.skeleton_model)
+    retargeting = Retargeting(src_skeleton, target_skeleton, joint_map, scale_factor, additional_rotation_map=additional_rotation_map)
     return retargeting.run(src_frames, frame_range)
