@@ -63,14 +63,17 @@ def generate_reference_frame(skeleton, animated_joints):
 
 class SkeletonBuilder(object):
 
-    def load_from_bvh(self, bvh_reader, animated_joints=None, add_tool_joints=True):
+    def load_from_bvh(self, bvh_reader, animated_joints=None, add_tool_joints=True, reference_frame=None, skeleton_model=None):
         skeleton = Skeleton()
         if animated_joints is None:
             animated_joints = ROCKETBOX_ANIMATED_JOINT_LIST
         skeleton.animated_joints = animated_joints
         skeleton.frame_time = deepcopy(bvh_reader.frame_time)
         skeleton.root = deepcopy(bvh_reader.root)
-        skeleton.reference_frame = read_reference_frame_from_bvh_reader(bvh_reader)
+        if reference_frame is None:
+            skeleton.reference_frame = read_reference_frame_from_bvh_reader(bvh_reader)
+        else:
+            skeleton.reference_frame = reference_frame
         skeleton.reference_frame_length = len(skeleton.reference_frame)
         skeleton.node_channels = collections.OrderedDict()
         skeleton.nodes = collections.OrderedDict()
@@ -89,6 +92,8 @@ class SkeletonBuilder(object):
         skeleton._chain_names = skeleton._generate_chain_names()
         create_euler_frame_indices(skeleton)
         create_identity_frame(skeleton)
+        if skeleton_model is not None:
+            skeleton.skeleton_model = skeleton_model
         return skeleton
 
     def construct_hierarchy_from_bvh(self, skeleton, joint_list, node_info, node_name, level):
