@@ -289,12 +289,45 @@ MCS_SKELETON_MODEL = collections.OrderedDict()
 MCS_SKELETON_MODEL["joints"] = MCS_SKELETON_JOINTS
 MCS_SKELETON_MODEL["foot_joints"] = []
 
+
+
+MH_CMU_SKELETON_JOINTS = collections.OrderedDict()
+MH_CMU_SKELETON_JOINTS["root"] = "CMU compliant skeleton"
+MH_CMU_SKELETON_JOINTS["pelvis"] = "Hips"
+MH_CMU_SKELETON_JOINTS["spine"] = "Spine"
+MH_CMU_SKELETON_JOINTS["spine_1"] = "Spine1"
+MH_CMU_SKELETON_JOINTS["left_clavicle"] = "LeftShoulder"
+MH_CMU_SKELETON_JOINTS["right_clavicle"] = "RightShoulder"
+MH_CMU_SKELETON_JOINTS["left_shoulder"] = "LeftArm"
+MH_CMU_SKELETON_JOINTS["right_shoulder"] = "RightArm"
+MH_CMU_SKELETON_JOINTS["left_elbow"] = "LeftForeArm"
+MH_CMU_SKELETON_JOINTS["right_elbow"] = "RightForeArm"
+MH_CMU_SKELETON_JOINTS["left_wrist"] = "LeftHand"
+MH_CMU_SKELETON_JOINTS["right_wrist"] = "RightHand"
+MH_CMU_SKELETON_JOINTS["left_hip"] = "LeftUpLeg"
+MH_CMU_SKELETON_JOINTS["right_hip"] = "RightUpLeg"
+MH_CMU_SKELETON_JOINTS["left_knee"] = "LeftLeg"
+MH_CMU_SKELETON_JOINTS["right_knee"] = "RightLeg"
+MH_CMU_SKELETON_JOINTS["left_ankle"] = "LeftFoot"
+MH_CMU_SKELETON_JOINTS["right_ankle"] = "RightFoot"
+MH_CMU_SKELETON_JOINTS["left_toe"] = "LeftToeBase"
+MH_CMU_SKELETON_JOINTS["right_toe"] = "RightToeBase"
+MH_CMU_SKELETON_JOINTS["left_heel"] = None
+MH_CMU_SKELETON_JOINTS["right_heel"] = None
+MH_CMU_SKELETON_JOINTS["neck"] = "Neck"
+MH_CMU_SKELETON_JOINTS["head"] = "Head"
+
+MH_CMU_SKELETON_MODEL = collections.OrderedDict()
+MH_CMU_SKELETON_MODEL["joints"] = MH_CMU_SKELETON_JOINTS
+MH_CMU_SKELETON_MODEL["foot_joints"] = []
+
 SKELETON_MODELS = dict()
 SKELETON_MODELS["rocketbox"] = ROCKETBOX_SKELETON_MODEL
 SKELETON_MODELS["game_engine"] = GAME_ENGINE_SKELETON_MODEL
 SKELETON_MODELS["raw"] = RAW_SKELETON_MODEL
 SKELETON_MODELS["cmu"] = CMU_SKELETON_MODEL
 SKELETON_MODELS["mcs"] = MCS_SKELETON_MODEL
+SKELETON_MODELS["mh_cmu"] = MH_CMU_SKELETON_MODEL
 SKELETON_MODELS["moviemation"] = MOVIEMATION_SKELETON_MODEL
 
 
