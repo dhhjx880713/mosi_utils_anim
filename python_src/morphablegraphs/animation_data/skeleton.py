@@ -10,7 +10,7 @@ from copy import copy
 import json
 import numpy as np
 from ..external.transformations import quaternion_matrix
-
+from .skeleton_node import SkeletonEndSiteNode
 from .constants import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER
 from .skeleton_models import ROCKETBOX_ANIMATED_JOINT_LIST, ROCKETBOX_FREE_JOINTS_MAP, ROCKETBOX_REDUCED_FREE_JOINTS_MAP, ROCKETBOX_SKELETON_MODEL, ROCKETBOX_BOUNDS, ROCKETBOX_TOOL_BONES, ROCKETBOX_ROOT_DIR
 try:
@@ -20,6 +20,10 @@ try:
 except ImportError:
     has_mgrd = False
     pass
+
+
+def project_vector_on_vector(a, b):
+    return np.dot(np.dot(b, a), b)
 
 
 class Skeleton(object):
@@ -276,6 +280,24 @@ class Skeleton(object):
     def get_n_joints(self):
         return len([node for node in list(self.nodes.values()) if len(node.channels) > 0])
 
+    def get_joint_names(self):
+        return [k for k, n in list(self.nodes.items()) if len(n.children) > 0]
+
+    def scale(self, scale_factor):
+        for node in list(self.nodes.values()):
+            node.offset = np.array(node.offset) * scale_factor
+
+    def get_channels(self, euler=False):
+        channels = collections.OrderedDict()
+        for node in list(self.nodes.values()):
+            if node.node_name in self.animated_joints:
+                node_channels = copy(node.channels)
+                if not euler:
+                    if np.all([ch in node_channels for ch in ["Xrotation", "Yrotation", "Zrotation"]]):
+                        node_channels += ["Wrotation"]  # TODO fix order
+                channels[node.node_name] = node_channels
+        return channels
+
     def to_unity_format(self, joint_name_map=None, scale=1):
         """ Converts the skeleton into a custom json format and applies a coordinate transform to the left-handed coordinate system of Unity.
             src: http://answers.unity3d.com/questions/503407/need-to-convert-to-right-handed-coordinates.html
@@ -305,20 +327,45 @@ class Skeleton(object):
         data["referencePose"] = default_pose
         return data
 
-    def get_joint_names(self):
-        return [k for k, n in list(self.nodes.items()) if len(n.children) > 0]
+    def add_heels(self, skeleton_model):
+        lknee_name = skeleton_model["joints"]["left_knee"]
+        rknee_name = skeleton_model["joints"]["right_knee"]
 
-    def scale(self, scale_factor):
-        for node in list(self.nodes.values()):
-            node.offset = np.array(node.offset) * scale_factor
+        lfoot_name = skeleton_model["joints"]["left_ankle"]
+        rfoot_name = skeleton_model["joints"]["right_ankle"]
 
-    def get_channels(self, euler=False):
-        channels = collections.OrderedDict()
-        for node in list(self.nodes.values()):
-            if node.node_name in self.animated_joints:
-                node_channels = copy(node.channels)
-                if not euler:
-                    if np.all([ch in node_channels for ch in ["Xrotation", "Yrotation", "Zrotation"]]):
-                        node_channels += ["Wrotation"]  # TODO fix order
-                channels[node.node_name] = node_channels
-        return channels
+        ltoe_name = skeleton_model["joints"]["left_toe"]
+        rtoe_name = skeleton_model["joints"]["right_toe"]
+
+        frame = self.identity_frame
+        frame = self.reference_frame
+        self.add_heel("left_heel",lknee_name, lfoot_name, ltoe_name, frame)
+        self.add_heel("right_heel", rknee_name, rfoot_name, rtoe_name, frame)
+
+    def add_heel(self, heel_name, knee_name, foot_name, toe_name, frame):
+        print("add heel", heel_name)
+        lknee_position = self.nodes[knee_name].get_global_position(frame)
+        lfoot_position = self.nodes[foot_name].get_global_position(frame)
+        ltoe_position = self.nodes[toe_name].get_global_position(frame)
+
+        #project toe offset vector onto negative foot offset vector
+        leg_delta = lfoot_position - lknee_position
+        leg_delta /= np.linalg.norm(leg_delta)
+        delta = ltoe_position - lfoot_position
+        #heel_offset = project_vector_on_vector(delta, leg_delta)
+        #print("h1",heel_offset)
+        heel_offset = project_vector_on_vector(delta, [0,1,0])*1.2
+        #print("h2",heel_offset)
+
+        # bring into local coordinate system
+        m = self.nodes[foot_name].get_global_matrix(frame)[:3, :3]
+        heel_offset = np.dot(np.linalg.inv(m), heel_offset)
+        node = SkeletonEndSiteNode(heel_name, [], self.nodes[foot_name],
+                                                      self.nodes[foot_name].level + 1)
+        node.fixed = True
+        node.index = -1
+        node.offset = np.array(heel_offset)
+        node.rotation = np.array([1, 0, 0, 0])
+        self.nodes[heel_name] = node
+        self.nodes[foot_name].children.append(node)
+
