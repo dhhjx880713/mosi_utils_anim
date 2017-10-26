@@ -121,24 +121,20 @@ def create_local_cos_map_from_skeleton_axes(skeleton, flip=1.0, project=True):
         joint_cos_map[j]["y"] = body_y_axis
         joint_cos_map[j]["x"] = body_x_axis
         node = skeleton.nodes[j]
-        n_children = len(node.children)
-        child_idx = 0
-        if n_children > 0 and j != skeleton.root:
-            #pick the child index based on heuristic for game engine skeleton
-            if n_children ==3:
-                child_idx = 2
-            if np.linalg.norm(node.children[child_idx].offset) == 0:
-                continue
-            y_axis = get_body_axis(skeleton, j, node.children[child_idx].node_name, project)
+        if len(node.children) > 0 and np.linalg.norm(node.children[0].offset) > 0 and j != skeleton.root:
+            y_axis = get_body_axis(skeleton, j, node.children[0].node_name)
             joint_cos_map[j]["y"] = y_axis
             #check if the new y axis is similar to the x axis
             z_vector = np.cross(y_axis, joint_cos_map[j]["x"])
             if np.linalg.norm(z_vector) == 0.0:
                 joint_cos_map[j]["x"] = body_y_axis *-np.sum(joint_cos_map[j]["y"])
             #check for angle and rotate
-            q = get_quaternion_to_axis(skeleton, j, node.children[child_idx].node_name, y_axis)
-            rotate_axes(joint_cos_map[j], q)
-        print(j, joint_cos_map[j])
+            q = get_quaternion_to_axis(skeleton, j, node.children[0].node_name, y_axis)
+            m = quaternion_matrix(q)[:3, :3]
+            for key, a in list(joint_cos_map[j].items()):
+                joint_cos_map[j][key] = np.dot(m, a)
+                joint_cos_map[j][key] = normalize(joint_cos_map[j][key])
+            print(j, joint_cos_map[j])
     return joint_cos_map
 
 
