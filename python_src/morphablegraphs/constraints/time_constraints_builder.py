@@ -1,7 +1,7 @@
 __author__ = 'erhe01'
 
-from time_constraints import TimeConstraints
-from spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
+from .time_constraints import TimeConstraints
+from .spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
 from ..utilities import write_message_to_log, LOG_MODE_DEBUG
 
 
@@ -9,7 +9,7 @@ class TimeConstraintsBuilder(object):
     def __init__(self, graph_walk, start_step, end_step):
         self.start_step = start_step
         self.end_step = min(end_step+1, len(graph_walk.steps))
-        index_range = range(self.start_step, self.end_step)
+        index_range = list(range(self.start_step, self.end_step))
         self.time_constraint_list = []
         self.n_time_constraints = 0
         self._extract_time_constraints_from_graph_walk(graph_walk.steps, index_range)

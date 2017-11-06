@@ -8,14 +8,14 @@ Created on Mon Jul 27 18:38:15 2015
 from copy import copy
 import numpy as np
 import collections
-from ..utilities.exceptions import PathSearchError
 from .motion_primitive_constraints import MotionPrimitiveConstraints
-from .spatial_constraints import PoseConstraint, Direction2DConstraint, GlobalTransformConstraint, PoseConstraintQuatFrame, TwoHandConstraintSet, LookAtConstraint, FeetConstraint
+from .spatial_constraints import PoseConstraint, GlobalTransformConstraint, PoseConstraintQuatFrame, TwoHandConstraintSet, LookAtConstraint, FeetConstraint
 from ..animation_data.motion_concatenation import align_and_concatenate_frames, get_transform_from_start_pose, get_node_aligning_2d_transform
 from . import CA_CONSTRAINTS_MODE_SET, OPTIMIZATION_MODE_ALL, OPTIMIZATION_MODE_KEYFRAMES, OPTIMIZATION_MODE_TWO_HANDS
 from .spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
 from ..motion_model.elementary_action_meta_info import KEYFRAME_LABEL_END, KEYFRAME_LABEL_START, KEYFRAME_LABEL_MIDDLE
-from keyframe_event import KeyframeEvent
+from .keyframe_event import KeyframeEvent
+from .trajectory_following_constraints_builder import TrajectoryFollowingConstraintsBuilder
 
 
 class MotionPrimitiveConstraintsBuilder(object):
@@ -24,6 +24,7 @@ class MotionPrimitiveConstraintsBuilder(object):
     """
 
     mp_constraint_types = ["position", "orientation", "time"]
+
     def __init__(self):
         self.action_constraints = None
         self.algorithm_config = None
@@ -31,14 +32,15 @@ class MotionPrimitiveConstraintsBuilder(object):
         self.motion_state_graph = None
         self.node_group = None
         self.skeleton = None
-        self.precision = 1.0
-        self.trajectory_following_settings = None
+        self.precision = {"pos": 1.0, "rot": 1.0, "smooth": 1.0}
+        self.trajectory_following_settings = dict()
         self.local_optimization_mode = "None"
         self.ca_constraint_mode = "None"
         self.use_local_coordinates = False
         self.use_transition_constraint = False
         self.generate_half_step_constraint = False
         self.pose_constraint_node_names = None
+        self.trajectory_constraint_builder = None
 
     def set_action_constraints(self, action_constraints):
         self.action_constraints = action_constraints
@@ -48,24 +50,29 @@ class MotionPrimitiveConstraintsBuilder(object):
 
         if self.skeleton.skeleton_model is not None:
             important_joints = []
-            skeleton_model = self.skeleton.skeleton_model
-            for j in ["pelvis", "right_hand", "left_hand", "right_foot", "left_foot"]:
-                important_joints.append(skeleton_model[j])
+            joint_map = self.skeleton.skeleton_model["joints"]
+            for j in ["pelvis", "right_wrist", "left_wrist", "right_ankle", "left_ankle"]:
+                important_joints.append(joint_map[j])
             self.pose_constraint_node_names = important_joints
         else:
-            self.pose_constraint_node_names = self.skeleton.joint_weight_map.keys()
+            self.pose_constraint_node_names = list(self.skeleton.joint_weight_map.keys())
+
+        self.trajectory_constraint_builder = TrajectoryFollowingConstraintsBuilder(self.skeleton, self,
+                                                                                   self.trajectory_following_settings)
 
     def set_algorithm_config(self, algorithm_config):
         self.algorithm_config = algorithm_config
-        self.precision = algorithm_config["constrained_gmm_settings"]["precision"]
         self.trajectory_following_settings = algorithm_config["trajectory_following_settings"]
         self.local_optimization_mode = algorithm_config["local_optimization_mode"]
         self.ca_constraint_mode = algorithm_config["collision_avoidance_constraints_mode"]
         self.use_local_coordinates = algorithm_config["use_local_coordinates"]
         self.use_mgrd = algorithm_config["constrained_sampling_mode"] == "random_spline"
         self.use_transition_constraint = self.trajectory_following_settings["use_transition_constraint"]
-        if "generate_half_step_constraint" in self.trajectory_following_settings.keys():
+        if "generate_half_step_constraint" in list(self.trajectory_following_settings.keys()):
             self.generate_half_step_constraint = self.trajectory_following_settings["generate_half_step_constraint"]
+
+        if self.trajectory_constraint_builder is not None:
+            self.trajectory_constraint_builder.set_algorithm_config(self.trajectory_following_settings)
 
     def set_status(self, node_key, last_arc_length, graph_walk, is_last_step=False):
         n_prev_frames = graph_walk.get_num_of_frames()
@@ -83,9 +90,11 @@ class MotionPrimitiveConstraintsBuilder(object):
         self.status["motion_primitive_name"] = node_key[1]
         self.status["n_canonical_frames"] = n_canonical_frames
         self.status["last_arc_length"] = last_arc_length # defined in actionstate.transition() based on the closest point on the path
+        self.status["n_prev_frames"] = n_prev_frames
 
         if prev_frames is None:
             last_pos = self.action_constraints.start_pose["position"]
+
         else:
             last_pos = prev_frames[-1][:3]
         last_pos = copy(last_pos)
@@ -100,7 +109,6 @@ class MotionPrimitiveConstraintsBuilder(object):
 
     def _set_aligning_transform(self, node_key, prev_frames):
         if prev_frames is None:
-            #print "create aligning transform from start pose",self.action_constraints.start_pose
             self.status["aligning_transform"] = get_transform_from_start_pose(self.action_constraints.start_pose)
         else:
             sample = self.motion_state_graph.nodes[node_key].sample(False)
@@ -108,38 +116,30 @@ class MotionPrimitiveConstraintsBuilder(object):
             self.status["aligning_transform"] = get_node_aligning_2d_transform(self.skeleton, self.skeleton.aligning_root_node, prev_frames, frames)
 
     def build(self):
-        mp_constraints = MotionPrimitiveConstraints()
-        mp_constraints.action_name = self.status["action_name"]
-        mp_constraints.motion_primitive_name = self.status["motion_primitive_name"]
-        mp_constraints.aligning_transform = self.status["aligning_transform"]
-        mp_constraints.is_last_step = self.status["is_last_step"]
-        mp_constraints.settings = self.trajectory_following_settings
-        mp_constraints.constraints = list()
-        mp_constraints.goal_arc_length = 0.0
-        mp_constraints.step_start = self.status["last_pos"]
         if self.use_local_coordinates:
-            mp_constraints.start_pose = None
+            start_pose = None
         else:
-            mp_constraints.start_pose = self.action_constraints.start_pose
-        mp_constraints.skeleton = self.skeleton
-        mp_constraints.precision = self.action_constraints.precision
-        mp_constraints.verbose = self.algorithm_config["verbose"]
-        print "add constraints", self.use_transition_constraint
-
+            start_pose = self.action_constraints.start_pose
+        mp_constraints = MotionPrimitiveConstraints.from_dict(self.skeleton, self.status,
+                                                              self.trajectory_following_settings,
+                                                              self.precision,
+                                                              start_pose)
         if self.action_constraints.root_trajectory is not None:
-            self._add_path_following_constraints(mp_constraints)
+            node_key = (self.action_constraints.action_name, self.status["motion_primitive_name"])
+            self.trajectory_constraint_builder.add_constraints(mp_constraints, node_key,
+                                                               self.action_constraints.root_trajectory,
+                                                               self.status["last_arc_length"],
+                                                               self.status["is_last_step"])
             if self.use_transition_constraint:
                 self._add_pose_constraint(mp_constraints)
-        if len(self.action_constraints.keyframe_constraints.keys()) > 0:
+        if len(list(self.action_constraints.keyframe_constraints.keys())) > 0:
             self._add_keyframe_constraints(mp_constraints)
             # generate frame constraints for the last step based on the previous state
             # if not already done for the trajectory following
             if self.status["is_last_step"] and not mp_constraints.pose_constraint_set:
                 self._add_pose_constraint(mp_constraints)
-
         if mp_constraints.action_name in ["pickBoth","placeBoth"] and mp_constraints.motion_primitive_name == "reach":
             self._add_feet_constraint(mp_constraints)
-
         self._add_trajectory_constraints(mp_constraints)
         self._add_events_to_event_list(mp_constraints)
         self._decide_on_optimization(mp_constraints)
@@ -159,7 +159,7 @@ class MotionPrimitiveConstraintsBuilder(object):
             mp_constraints.constraints.append(ca_trajectory_set_constraint)
 
     def _add_feet_constraint(self, mp_constraints):
-        if "LeftFoot" in self.skeleton.nodes.keys() and "RightFoot" in self.skeleton.nodes.keys():
+        if "LeftFoot" in list(self.skeleton.nodes.keys()) and "RightFoot" in list(self.skeleton.nodes.keys()):
             left_position = self.skeleton.nodes["LeftFoot"].get_global_position(self.status["prev_frames"][-1])
             right_position = self.skeleton.nodes["RightFoot"].get_global_position(self.status["prev_frames"][-1])
             desc = {"left":left_position, "right": right_position}
@@ -172,7 +172,6 @@ class MotionPrimitiveConstraintsBuilder(object):
     def _add_pose_constraint(self, mp_constraints):
         if mp_constraints.settings["transition_pose_constraint_factor"] > 0.0 and self.status["prev_frames"] is not None:
             pose_constraint_desc = self.create_pose_constraint(self.status["prev_frames"], self.pose_constraint_node_names)
-            #pose_constraint_desc = self._create_pose_constraint_angular_from_preceding_motion()
             pose_constraint_desc = self._map_label_to_canonical_keyframe(pose_constraint_desc)
             pose_constraint = PoseConstraint(self.skeleton, pose_constraint_desc, self.precision["smooth"],
                                               mp_constraints.settings["transition_pose_constraint_factor"])
@@ -187,86 +186,22 @@ class MotionPrimitiveConstraintsBuilder(object):
         mp_constraints.constraints.append(pose_constraint_quat_frame)
         mp_constraints.pose_constraint_set = True
 
-    def _add_path_following_constraints(self, mp_constraints):
-        # if it is the last step we need to reach the point exactly otherwise
-        # make a guess for a reachable point on the path that we have not visited yet
-        if not self.status["is_last_step"]:
-            mp_constraints.goal_arc_length = self._estimate_step_goal_arc_length()
-        else:
-            mp_constraints.goal_arc_length = self.action_constraints.root_trajectory.full_arc_length
-
-
-        mp_constraints.step_goal, goal_dir_vector = self._get_point_and_orientation_from_arc_length(mp_constraints.goal_arc_length)
-        mp_constraints.print_status()
-        if self.generate_half_step_constraint:
-            prev_goal_arc_length = self.status["last_arc_length"]
-            half_step_arc_length = prev_goal_arc_length * 0.5 + mp_constraints.goal_arc_length * 0.5
-            half_step_goal, half_step_dir_vector = self._get_point_and_orientation_from_arc_length(half_step_arc_length)
-            self._add_path_following_half_step_constraint(self.skeleton.aligning_root_node, mp_constraints,
-                                                          half_step_goal)
-
-        self._add_path_following_goal_constraint(self.skeleton.aligning_root_node, mp_constraints, mp_constraints.step_goal)
-
-
-
-        self._add_path_following_direction_constraint(self.skeleton.aligning_root_node, mp_constraints, goal_dir_vector)
-
-    def _get_approximate_step_length(self):
-        node_key = (self.action_constraints.action_name, self.status["motion_primitive_name"])
-        return self.motion_state_graph.nodes[node_key].average_step_length * self.trajectory_following_settings["heuristic_step_length_factor"]
-
-    def _add_path_following_goal_constraint(self, joint_name, mp_constraints, goal, keyframeLabel="end"):
-        if mp_constraints.settings["position_constraint_factor"] > 0.0:
-            keyframe_semantic_annotation = {"keyframeLabel": keyframeLabel, "generated": True}
-            keyframe_constraint_desc = {"joint": joint_name,
-                                        "position": goal,
-                                        "semanticAnnotation": keyframe_semantic_annotation}
-            keyframe_constraint_desc = self._map_label_to_canonical_keyframe(keyframe_constraint_desc)
-            keyframe_constraint = GlobalTransformConstraint(self.skeleton,
-                                                                keyframe_constraint_desc,
-                                                                self.precision["pos"],
-                                                                mp_constraints.settings["position_constraint_factor"])
-            mp_constraints.constraints.append(keyframe_constraint)
-
-    def _add_path_following_half_step_constraint(self, joint_name, mp_constraints, half_step_goal, keyframeLabel="middle"):
-        if mp_constraints.settings["position_constraint_factor"] > 0.0:
-            keyframe_semantic_annotation = {"keyframeLabel": keyframeLabel, "generated": True}
-            keyframe_constraint_desc = {"joint": joint_name,
-                                        "position": half_step_goal,
-                                        "semanticAnnotation": keyframe_semantic_annotation}
-            keyframe_constraint_desc = self._map_label_to_canonical_keyframe(keyframe_constraint_desc)
-            keyframe_constraint = GlobalTransformConstraint(self.skeleton,
-                                                            keyframe_constraint_desc,
-                                                            self.precision["pos"],
-                                                            mp_constraints.settings["position_constraint_factor"])
-            mp_constraints.constraints.append(keyframe_constraint)
-
-    def _add_path_following_direction_constraint(self, joint_name, mp_constraints, dir_vector):
-        if mp_constraints.settings["dir_constraint_factor"] > 0.0:
-            dir_semantic_annotation = {"keyframeLabel": "end", "generated": True}
-            dir_constraint_desc = {"joint": joint_name, "dir_vector": dir_vector,
-                                   "semanticAnnotation": dir_semantic_annotation}
-            dir_constraint_desc = self._map_label_to_canonical_keyframe(dir_constraint_desc)
-            direction_constraint = Direction2DConstraint(self.skeleton, dir_constraint_desc, self.precision["rot"],
-                                                         mp_constraints.settings["dir_constraint_factor"])
-            mp_constraints.constraints.append(direction_constraint)
-
     def _add_keyframe_constraints(self, mp_constraints):
         """ Extract keyframe constraints of the motion primitive name.
         """
-        if self.status["motion_primitive_name"] in self.action_constraints.keyframe_constraints.keys():
+        if self.status["motion_primitive_name"] in list(self.action_constraints.keyframe_constraints.keys()):
             for c_desc in self.action_constraints.keyframe_constraints[self.status["motion_primitive_name"]]:
                 keyframe_constraint = self.create_keyframe_constraint(c_desc)
                 if keyframe_constraint is not None:
                     mp_constraints.constraints.append(keyframe_constraint)
 
     def create_keyframe_constraint(self, c_desc):
-        if "keyframeLabel" in c_desc["semanticAnnotation"].keys():
+        if "keyframeLabel" in list(c_desc["semanticAnnotation"].keys()):
             c_desc = self._map_label_to_canonical_keyframe(c_desc)
             constraint_factor = self.trajectory_following_settings["position_constraint_factor"]
-            if "merged" in c_desc.keys():
+            if "merged" in list(c_desc.keys()):
                 return TwoHandConstraintSet(self.skeleton, c_desc, self.precision["pos"], constraint_factor)
-            elif "look_at" in c_desc.keys():
+            elif "look_at" in list(c_desc.keys()):
                 return LookAtConstraint(self.skeleton, c_desc, self.precision["pos"], constraint_factor)
             else:
                 return GlobalTransformConstraint(self.skeleton, c_desc, self.precision["pos"], constraint_factor)
@@ -277,7 +212,7 @@ class MotionPrimitiveConstraintsBuilder(object):
         if self.local_optimization_mode == OPTIMIZATION_MODE_ALL:
             mp_constraints.use_local_optimization = True
         elif self.local_optimization_mode == OPTIMIZATION_MODE_KEYFRAMES:
-            mp_constraints.use_local_optimization = len(self.action_constraints.keyframe_constraints.keys()) > 0 \
+            mp_constraints.use_local_optimization = len(list(self.action_constraints.keyframe_constraints.keys())) > 0 \
                                                     or self.status["is_last_step"]
         elif self.local_optimization_mode == OPTIMIZATION_MODE_TWO_HANDS:
             mp_constraints.use_local_optimization = self.action_constraints.contains_two_hands_constraints and not self.status["is_last_step"]
@@ -285,15 +220,16 @@ class MotionPrimitiveConstraintsBuilder(object):
             mp_constraints.use_local_optimization = False
 
     def _add_events_to_event_list(self, mp_constraints):
-        for label in self.action_constraints.keyframe_annotations.keys():
-            print "try to set annotations for label ", label
-            if mp_constraints.motion_primitive_name in self.motion_state_graph.node_groups[self.action_constraints.action_name].motion_primitive_annotations.keys():
+        for label in list(self.action_constraints.keyframe_annotations.keys()):
+            print("try to set annotations for label ", label)
+            if mp_constraints.motion_primitive_name in list(self.motion_state_graph.node_groups[self.action_constraints.action_name].motion_primitive_annotations.keys()):
                 if label in self.motion_state_graph.node_groups[self.action_constraints.action_name].motion_primitive_annotations[mp_constraints.motion_primitive_name]:
                     event_list = self.action_constraints.keyframe_annotations[label]["annotations"]
 
                     # add keyframe constraint based on joint and label
                     constraint = None
-                    if len(event_list) == 1:#only if there is only one constraint on one joint otherwise correspondence is not clear
+                    if len(event_list) == 1:
+                        #only if there is only one constraint on one joint otherwise correspondence is not clear
                         joint_name = event_list[0]["parameters"]["joint"]
                         for c in mp_constraints.constraints:
                             if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION and c.joint_name == joint_name and c.keyframe_label == label :
@@ -333,10 +269,10 @@ class MotionPrimitiveConstraintsBuilder(object):
             for node_name in node_names:
                 if node_name in self.skeleton.joint_weight_map:
                     weights_map[node_name] = self.skeleton.joint_weight_map[node_name]
-            weights = weights_map.values()
+            weights = list(weights_map.values())
         else:
-            node_names = self.skeleton.joint_weight_map.keys()
-            weights = self.skeleton.joint_weight_map.values()
+            node_names = list(self.skeleton.joint_weight_map.keys())
+            weights = list(self.skeleton.joint_weight_map.values())
 
         last_pose = np.array(self.skeleton.convert_quaternion_frame_to_cartesian_frame(frames[-1], node_names))
         pre_root_pos = self.skeleton.nodes[node_names[0]].get_global_position(frames[-2])
@@ -353,58 +289,3 @@ class MotionPrimitiveConstraintsBuilder(object):
     def create_pose_constraint_angular(cls, frame):
         frame_constraint = {"frame_constraint": frame, "keyframeLabel": "start", "semanticAnnotation": {"keyframeLabel": "start"}}
         return frame_constraint
-
-    def _estimate_step_goal_arc_length(self):
-        """ Makes a guess for a reachable arc length based on the current position.
-            It searches for the closest point on the trajectory, retrieves the absolute arc length
-            and its the arc length of a random sample of the next motion primitive
-        Returns
-        -------
-        * arc_length : float
-          The absolute arc length of the new goal on the trajectory.
-          The goal should then be extracted using get_point_and_orientation_from_arc_length
-        """
-        step_length = self._get_approximate_step_length()
-        # find closest point in the range of the last_arc_length and max_arc_length
-        #closest_point = self.find_closest_point_to_current_position_on_trajectory(step_length)
-        # approximate arc length of the point closest to the current position
-        #start_arc_length, eval_point = self.action_constraints.root_trajectory.get_absolute_arc_length_of_point(closest_point)
-
-        start_arc_length = self.status["last_arc_length"] #last arc length is already found as closest point on path to current position
-        # update arc length based on the step length of the next motion primitive
-        if start_arc_length == -1:
-            return self.action_constraints.root_trajectory.full_arc_length
-        else:
-            return start_arc_length + step_length
-
-    def find_closest_point_to_current_position_on_trajectory(self, step_length):
-        max_arc_length = self.status["last_arc_length"] + step_length * 4.0
-        closest_point, distance = self.action_constraints.root_trajectory.find_closest_point(self.status["last_pos"],
-                                                                                             self.status["last_arc_length"],
-                                                                                             max_arc_length)
-        if closest_point is None:
-            self._raise_closest_point_search_exception(max_arc_length)
-        return closest_point
-
-    def _get_point_and_orientation_from_arc_length(self, arc_length):
-        """ Returns a point, an orientation and a direction vector on the trajectory
-        """
-        point = self.action_constraints.root_trajectory.query_point_by_absolute_arc_length(arc_length).tolist()
-        #reference_vector = np.array([0.0, 1.0])  # is interpreted as x, z
-        #start, dir_vector, angle = self.action_constraints.root_trajectory.get_angle_at_arc_length_2d(arc_length, reference_vector)
-        #delta = self.action_constraints.root_trajectory.full_arc_length - arc_length
-        # dir_vector = self.action_constraints.root_trajectory.get_direction_vector_by_absolute_arc_length(arc_length)
-        # print "orientation vector", dir_vector,dir_vector1
-
-        #if math.sqrt(delta*delta) < 0.01 and True:
-        dir_vector = self.action_constraints.root_trajectory.query_orientation_by_absolute_arc_length(arc_length)
-        dir_vector /= np.linalg.norm(dir_vector)
-        for i in self.action_constraints.root_trajectory.unconstrained_indices:
-            point[i] = None
-        return point, dir_vector
-
-    def _raise_closest_point_search_exception(self, max_arc_length):
-        parameters = {"last": self.status["last_arc_length"], "max": max_arc_length,
-                       "full": self.action_constraints.root_trajectory.full_arc_length}
-        print "Error: Did not find closest point", str(parameters)
-        raise PathSearchError(parameters)

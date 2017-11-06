@@ -29,12 +29,12 @@ class FPCATimeSemantic(object):
         if self.temporal_data is None or self.semantic_data is None:
             raise ValueError('Load semantic annotation or time warping data first!')
         temporal_semantic_data_dic = {}
-        for key, value in self.semantic_data.items():
+        for key, value in list(self.semantic_data.items()):
             temporal_semantic_data_dic[key] = [self.temporal_data[key]]
-            for feature, anno in value.items():
+            for feature, anno in list(value.items()):
                 temporal_semantic_data_dic[key].append(anno)
-        self.temporal_semantic_data = temporal_semantic_data_dic.values()
-        self.file_order = temporal_semantic_data_dic.keys()
+        self.temporal_semantic_data = list(temporal_semantic_data_dic.values())
+        self.file_order = list(temporal_semantic_data_dic.keys())
 
     def z_t_transform(self):
         for i in range(len(self.temporal_semantic_data)):
@@ -68,7 +68,7 @@ class FPCATimeSemantic(object):
         if shifted_indices[0] == shifted_indices[-1]:
             raise ValueError("First and Last element are equal")
 
-        for i in xrange(1, len(shifted_indices) - 1):
+        for i in range(1, len(shifted_indices) - 1):
             if shifted_indices[i] > shifted_indices[i - 1] + delta:
                 continue
 
@@ -76,7 +76,7 @@ class FPCATimeSemantic(object):
                     shifted_indices[i] <= shifted_indices[i - 1] + delta:
                 shifted_indices[i] = shifted_indices[i] + epsilon
 
-        for i in xrange(len(indices) - 2, 0, -1):
+        for i in range(len(indices) - 2, 0, -1):
             if shifted_indices[i] + delta < shifted_indices[i + 1]:
                 break
 
@@ -99,7 +99,7 @@ class FPCATimeSemantic(object):
         -------
         boolean
         """
-        for i in xrange(1, len(indices)):
+        for i in range(1, len(indices)):
             if np.allclose(indices[i], indices[i - 1]) or indices[i] < indices[i - 1]:
                 return False
         return True
@@ -111,7 +111,7 @@ class FPCATimeSemantic(object):
         n_basis_funcs = 8
         knots = get_cubic_b_spline_knots(n_basis_funcs, n_canonical_frame)
 
-        time_vec = range(n_canonical_frame)
+        time_vec = list(range(n_canonical_frame))
         for value in self.temporal_semantic_data:
             coeff_vec = []
             for item in value:
@@ -127,7 +127,7 @@ class FPCATimeSemantic(object):
         self.mean_vec = centerobj.mean
         pcaobj = PCA(self.fpca_data, fraction=0.95)
         self.eigenvectors = pcaobj.Vt[:pcaobj.npc]
-        print 'number of eigenvectors: ' + str(pcaobj.npc)
+        print('number of eigenvectors: ' + str(pcaobj.npc))
         self.lowVs = self.project_data(self.fpca_data)
         self.npc = pcaobj.npc
 
@@ -174,7 +174,7 @@ class NormalPCA(object):
         error = 0
         for i in range(self.n_samples):
             error += np.linalg.norm(self.backprojection[i] - self.data[i])
-        print('backprojection error is: ', error/self.n_samples)
+        print(('backprojection error is: ', error/self.n_samples))
 
     def evaluate_backprojection_per_frame(self):
         errors = np.zeros(self.n_frames)
@@ -197,7 +197,7 @@ class FunctionalPCA(object):
     def convert_functional_data(self):
         self.functional_coeffs = []
         for i in range(self.n_samples):
-            tck = si.splrep(range(self.n_frames), self.data[i], t=self.knots[4: -4])
+            tck = si.splrep(list(range(self.n_frames)), self.data[i], t=self.knots[4: -4])
             self.functional_coeffs.append(tck[1][:-4])
         self.functional_coeffs = np.asarray(self.functional_coeffs)
 
@@ -210,12 +210,12 @@ class FunctionalPCA(object):
     def evaluate_fucntional_data(self):
         self.evalutation_datamat = np.zeros((self.n_samples, self.n_frames))
         for i in range(self.n_samples):
-            self.evalutation_datamat[i] = si.splev(range(self.n_frames),
+            self.evalutation_datamat[i] = si.splev(list(range(self.n_frames)),
                                                    (self.knots, self.functional_coeffs[i], 3))
         error = 0
         for i in range(self.n_samples):
             error += np.linalg.norm(self.data[i] - self.evalutation_datamat[i])
-        print('functional data representation error is: ', error/self.n_samples)
+        print(('functional data representation error is: ', error/self.n_samples))
 
     def apply_pca_on_smoothed_data(self, npc):
         print('pca on smoothed data')
@@ -223,7 +223,7 @@ class FunctionalPCA(object):
         centerobj = Center(tmp)
         pcaobj = PCA(tmp)
         eigenvectors = pcaobj.Vt[:npc]
-        print('fraction on variance kept: ', pcaobj.sumvariance[npc])
+        print(('fraction on variance kept: ', pcaobj.sumvariance[npc]))
         lowVs = np.transpose(np.dot(eigenvectors, np.transpose(tmp)))
 
         backprojection = np.dot(lowVs, eigenvectors)
@@ -231,7 +231,7 @@ class FunctionalPCA(object):
         error = 0
         for i in range(len(backprojection)):
             error += np.linalg.norm(self.evalutation_datamat[i] - backprojection[i])
-        print("reconstruction error of pca on smoothed data is: ", error/len(backprojection))
+        print(("reconstruction error of pca on smoothed data is: ", error/len(backprojection)))
 
     def apply_pca(self, npc):
         print('pca on coeffs')
@@ -241,19 +241,19 @@ class FunctionalPCA(object):
         self.eigenvectors = self.pcaobj.Vt[:npc]
         self.n_pcs = npc
 
-        print('fraction of variance kept: ', self.pcaobj.sumvariance[npc])
+        print(('fraction of variance kept: ', self.pcaobj.sumvariance[npc]))
         self.lowVs = np.transpose(np.dot(self.eigenvectors, np.transpose(self.functional_coeffs)))
 
     def plot_original_data(self):
         fig = plt.figure()
-        x = range(self.n_frames)
+        x = list(range(self.n_frames))
         for i in x:
             plt.plot(x, self.data[i])
         plt.show()
 
     def plot_functional_data(self):
         fig = plt.figure()
-        x = range(self.n_frames)
+        x = list(range(self.n_frames))
         for i in x:
             plt.plot(x, self.evalutation_datamat[i])
         plt.show()
@@ -268,24 +268,24 @@ class FunctionalPCA(object):
         coeff_error = 0
         for i in range(self.n_samples):
             coeff_error += np.linalg.norm(self.functional_coeffs[i] + self.centerobj.mean - backprojection[i])
-        print("coeffs error is: ", coeff_error/self.n_samples)
+        print(("coeffs error is: ", coeff_error/self.n_samples))
 
     def evaluate_back_projection(self):
         backprojection = self.get_backprojected_functional_data()
         evaluation_backproject_mat = np.zeros((self.n_samples, self.n_frames))
         for i in range(self.n_samples):
-            evaluation_backproject_mat[i] = si.splev(range(self.n_frames),
+            evaluation_backproject_mat[i] = si.splev(list(range(self.n_frames)),
                                                      (self.knots, backprojection[i], 3))
         error = 0
         for i in range(self.n_samples):
             error += np.linalg.norm(self.data[i] - evaluation_backproject_mat[i])
-        print('fpca reconstruction error is: ', error/self.n_samples)
+        print(('fpca reconstruction error is: ', error/self.n_samples))
 
     def evaluate_reconstruction_error_per_frame(self):
         backprojection = self.get_backprojected_functional_data()
         evaluation_backproject_mat = np.zeros((self.n_samples, self.n_frames))
         for i in range(self.n_samples):
-            evaluation_backproject_mat[i] = si.splev(range(self.n_frames),
+            evaluation_backproject_mat[i] = si.splev(list(range(self.n_frames)),
                                                      (self.knots, backprojection[i], 3))
         errors = np.zeros(self.n_frames)
         for i in range(self.n_frames):
@@ -296,9 +296,9 @@ class FunctionalPCA(object):
         backprojection = self.get_backprojected_functional_data()
         evaluation_backproject_mat = np.zeros((self.n_samples, self.n_frames))
         for i in range(self.n_samples):
-            evaluation_backproject_mat[i] = si.splev(range(self.n_frames),
+            evaluation_backproject_mat[i] = si.splev(list(range(self.n_frames)),
                                                      (self.knots, backprojection[i], 3))
         error = 0
         for i in range(self.n_samples):
             error += np.linalg.norm(self.evalutation_datamat[i] - evaluation_backproject_mat[i])
-        print('functional reconstruction error is: ', error/self.n_samples)
+        print(('functional reconstruction error is: ', error/self.n_samples))

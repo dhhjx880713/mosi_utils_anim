@@ -99,7 +99,7 @@ def normalize_quaternion(q):
 def get_average_joint_position(skeleton, frames, joint_name, start_frame, end_frame):
     end_frame = min(end_frame, frames.shape[0])
     temp_positions = []
-    for idx in xrange(start_frame, end_frame):
+    for idx in range(start_frame, end_frame):
         frame = frames[idx]
         pos = skeleton.nodes[joint_name].get_global_position(frame)
         temp_positions.append(pos)
@@ -108,7 +108,7 @@ def get_average_joint_position(skeleton, frames, joint_name, start_frame, end_fr
 
 def get_average_joint_direction(skeleton, frames, joint_name, child_joint_name, start_frame, end_frame,ground_height=0):
     temp_dirs = []
-    for idx in xrange(start_frame, end_frame):
+    for idx in range(start_frame, end_frame):
         frame = frames[idx]
         pos1 = skeleton.nodes[joint_name].get_global_position(frame)
         pos2 = skeleton.nodes[child_joint_name].get_global_position(frame)
@@ -120,7 +120,7 @@ def get_average_joint_direction(skeleton, frames, joint_name, child_joint_name, 
 
 def get_average_direction_from_target(skeleton, frames, target_pos, child_joint_name, start_frame, end_frame,ground_height=0):
     temp_dirs = []
-    for idx in xrange(start_frame, end_frame):
+    for idx in range(start_frame, end_frame):
         frame = frames[idx]
         pos2 = skeleton.nodes[child_joint_name].get_global_position(frame)
         pos2[1] = ground_height
@@ -213,12 +213,12 @@ def plot_line(ax, start, end,label=None, color=None):
 
 def convert_to_foot_positions(joint_heights):
 
-    n_frames = len(joint_heights.items()[0][1][0])
-    print n_frames
+    n_frames = len(list(joint_heights.items())[0][1][0])
+    print(n_frames)
     foot_positions = []
-    for f in xrange(n_frames):
+    for f in range(n_frames):
         foot_positions.append(dict())
-    for joint, data in joint_heights.items():
+    for joint, data in list(joint_heights.items()):
         ps, yv, ya = data
         for frame_idx, p in enumerate(ps):
             foot_positions[frame_idx].update({joint: p})
@@ -228,7 +228,7 @@ def plot_foot_positions(ax, foot_positions, bodies,step_size=5):
     for f, data in enumerate(foot_positions):
         if f%step_size != 0:
             continue
-        for body in [bodies.values()[0] ]:
+        for body in [list(bodies.values())[0] ]:
             start_j = body["start"]
             end_j = body["end"]
             start = f, data[start_j][1]
@@ -309,7 +309,7 @@ def plot_joint_heights(joint_heights, ground_height=0, frame_range=(None,None)):
     #ax.set_ylim(ymin=-10, ymax=500)
     #ax.set_xlim(xmin=-10, xmax=500)
     n_frames = 0
-    for joint, data in joint_heights.items():
+    for joint, data in list(joint_heights.items()):
         ps, yv, ya = data
         if frame_range == (None, None):
             start, end = 0, len(ps)
@@ -332,14 +332,14 @@ def plot_angular_velocities(angular_velocities, frame_range=(None,None)):
     #ax.set_ylim(ymin=-10, ymax=500)
     #ax.set_xlim(xmin=-10, xmax=500)
     n_frames = 0
-    for joint, data in angular_velocities.items():
+    for joint, data in list(angular_velocities.items()):
         if frame_range == (None, None):
             start, end = 0, len(data)
         else:
             start, end = frame_range
         n_frames = end- start
         x = np.linspace(start,end, n_frames)
-        v = map(np.linalg.norm, data[start:end])
+        v = list(map(np.linalg.norm, data[start:end]))
         plt.plot(x, np.rad2deg(v), label=joint)
     plt.legend()
     plt.show(True)
@@ -365,7 +365,7 @@ def export_constraints(constraints, file_path):
             unique_dict[key] = None
 
     points = []
-    for p in unique_dict.keys():
+    for p in list(unique_dict.keys()):
         points.append(p)
     data = dict()
     data["points"] = points
@@ -380,10 +380,10 @@ def plot_constraints(constraints, ground_height=0):
 
     for frame_idx in constraints:
         for c in constraints[frame_idx]:
-            if c.joint_name not in joint_constraints.keys():
+            if c.joint_name not in list(joint_constraints.keys()):
                 joint_constraints[c.joint_name] = []
             joint_constraints[c.joint_name].append(c.position)
-    for joint_name in joint_constraints.keys():
+    for joint_name in list(joint_constraints.keys()):
         temp = np.array(joint_constraints[joint_name])
         y = temp[:, 1]
         n_frames = len(y)
@@ -407,7 +407,7 @@ def convert_ground_contacts_to_annotation(ground_contacts, joints, n_frames):
     data = dict()
     data["color_map"] = {j : get_random_color() for j in joints}
     data["semantic_annotation"] = dict()
-    for idx in xrange(n_frames):
+    for idx in range(n_frames):
         for label in ground_contacts[idx]:
             if label not in data["semantic_annotation"]:
                 data["semantic_annotation"][label] = []
@@ -422,11 +422,11 @@ def save_ground_contact_annotation(ground_contacts, joints, n_frames, filename):
 
 
 def load_ground_contact_annotation(filename, n_frames):
-    ground_contacts = [[] for f in xrange(n_frames)]
+    ground_contacts = [[] for f in range(n_frames)]
     with open(filename, "r") as in_file:
         annotation_data = json.load(in_file)
         semantic_annotation = annotation_data["semantic_annotation"]
-        for label in semantic_annotation.keys():
+        for label in list(semantic_annotation.keys()):
             for idx in semantic_annotation[label]:
                 ground_contacts[idx].append(label)
 
@@ -442,7 +442,7 @@ def save_ground_contact_annotation_merge_labels(ground_contacts, n_frames, left_
                          contact_label: [0,0,1],
                          no_contact_label: [1,1,1]}
     data["frame_annotation"] = []
-    for idx in xrange(n_frames):
+    for idx in range(n_frames):
         if left_foot in ground_contacts[idx] and right_foot in ground_contacts[idx]:
             annotation = contact_label
         elif left_foot in ground_contacts[idx]:
@@ -472,7 +472,7 @@ def get_intersection_circle(center1, radius1, center2, radius2):
     nom = r1_sq - r2_sq + d_sq
     c_r_sq = r1_sq - ((nom * nom) / (4 * d_sq))
     if c_r_sq < 0:  # no intersection
-        print "no intersection", c_r_sq
+        print("no intersection", c_r_sq)
         return
     c_r = math.sqrt(c_r_sq)
 
@@ -526,7 +526,7 @@ def project_on_intersection_circle(p, center1, radius1, center2, radius2):
     p_c = c_c + delta * c_r
 
     # set the root position to the projection on the intersection
-    print "two constraints - before", p, "after", p_c
+    print("two constraints - before", p, "after", p_c)
     return p_c
 
 #h = np.dot(np.dot(c_n, c_c-p), c_n)
@@ -548,7 +548,7 @@ def smooth_root_positions(positions, window):
 def guess_ground_height(skeleton, frames, start_frame, n_frames, foot_joints):
     minimum_height = np.inf
     joint_heights = get_joint_height(skeleton, frames[start_frame:start_frame+n_frames], foot_joints)
-    for joint in joint_heights.keys():
+    for joint in list(joint_heights.keys()):
         p, v, a = joint_heights[joint]
         pT = np.array(p).T
         new_min_height = min(pT[1])
@@ -592,25 +592,25 @@ def generate_root_constraint_for_one_foot(skeleton, frame, c):
         return global_position_to_root_translation(skeleton, frame, root, new_root_pos)
 
     else:
-        print "no change"
+        print("no change")
 
 
-def generate_root_constraint_for_two_feet(skeleton, frame, constraint1, constraint2):
+def generate_root_constraint_for_two_feet(skeleton, frame, constraint1, constraint2, length_offset=1.0):
     """ Set the root position to the projection on the intersection of two spheres """
     root = skeleton.aligning_root_node
     # root = self.skeleton.root
     p = skeleton.nodes[root].get_global_position(frame)
     offset = skeleton.nodes[root].get_global_position(skeleton.identity_frame)#[0, skeleton.nodes[root].offset[0], -skeleton.nodes[root].offset[1]]
-    print p, offset
+    print(p, offset)
 
     t1 = np.linalg.norm(constraint1.position - p)
     t2 = np.linalg.norm(constraint2.position - p)
 
     c1 = constraint1.position
-    r1 = get_limb_length(skeleton, constraint1.joint_name)
+    r1 = get_limb_length(skeleton, constraint1.joint_name)- length_offset
     # p1 = c1 + r1 * normalize(p-c1)
     c2 = constraint2.position
-    r2 = get_limb_length(skeleton, constraint2.joint_name)
+    r2 = get_limb_length(skeleton, constraint2.joint_name) - length_offset
     # p2 = c2 + r2 * normalize(p-c2)
     if r1 > t1 and r2 > t2:
         #print "no root constraint", t1,t2, r1, r2
@@ -631,7 +631,7 @@ def smooth_root_translation_at_end(frames, d, window):
     start_idx = d-window
     start = frames[start_idx, :3]
     end = root_pos
-    for i in xrange(window):
+    for i in range(window):
         t = float(i) / (window)
         frames[start_idx + i, :3] = start * (1 - t) + end * t
 
@@ -640,6 +640,6 @@ def smooth_root_translation_at_start(frames, d, window):
     start = frames[d, :3]
     start_idx = d+window
     end = frames[start_idx, :3]
-    for i in xrange(window):
+    for i in range(window):
         t = float(i) / (window)
         frames[d + i, :3] = start * (1 - t) + end * t

@@ -33,8 +33,8 @@ class TestMotionSegmentation(object):
     @params(param_load_annotation)
     def test_load_annotation(self, annotation_file, res):
         self.motion_segmentor.load_annotation(annotation_file)
-        filename = res.keys()[0]
-        assert filename in self.motion_segmentor.annotation_label.keys()
+        filename = list(res.keys())[0]
+        assert filename in list(self.motion_segmentor.annotation_label.keys())
         assert res[filename] in self.motion_segmentor.annotation_label[
             filename]
 
@@ -48,8 +48,8 @@ class TestMotionSegmentation(object):
     def test_convert_to_json(self, annotation_file, res):
         annotated_data = self.motion_segmentor._convert_to_json(
             annotation_file)
-        filename = res.keys()[0]
-        assert filename in annotated_data.keys()
+        filename = list(res.keys())[0]
+        assert filename in list(annotated_data.keys())
         assert res[filename] in annotated_data[filename]
 
     param_cut_files = [{'elementary_action': 'walk',

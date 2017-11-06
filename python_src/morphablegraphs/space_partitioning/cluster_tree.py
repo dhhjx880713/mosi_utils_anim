@@ -7,8 +7,8 @@ Created on Mon Jun 15 14:58:08 2015
 import numpy as np
 import heapq
 import json
-import cPickle as pickle
-from cluster_tree_node_builder import ClusterTreeNodeBuilder
+import pickle as pickle
+from .cluster_tree_node_builder import ClusterTreeNodeBuilder
 from . import ROOT_NODE
 from ..utilities import write_message_to_log, LOG_MODE_DEBUG
 
@@ -125,7 +125,7 @@ class ClusterTree(object):
             r = heapq.heappop(results)
             return r[0], r[2]
         else:
-            print "Error: failed to find a result"
+            print("Error: failed to find a result")
             return np.inf, self.root.mean
         
     def find_best_example_excluding_search_candidates_boundary(self, obj, data, n_candidates=5):
@@ -143,7 +143,7 @@ class ClusterTree(object):
         level = 0
         while len(candidates) > 0:
             boundary = max([c[0] for c in candidates])
-            print boundary
+            print(boundary)
             new_candidates = []
             for value, node in candidates:
                 
@@ -163,7 +163,7 @@ class ClusterTree(object):
         if len(results) > 0:
             return heapq.heappop(results)    
         else:
-            print "Error: failed to find a result"
+            print("Error: failed to find a result")
             return np.inf, self.root.mean
 
     def find_best_example_excluding_search_candidates_knn(self, obj, data, n_candidates=1, k=50):
@@ -194,5 +194,5 @@ class ClusterTree(object):
         if len(results) > 0:
             return heapq.heappop(results)    
         else:
-            print "Error: failed to find a result"
+            print("Error: failed to find a result")
             return np.inf, self.root.mean

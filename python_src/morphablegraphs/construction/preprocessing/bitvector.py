@@ -71,20 +71,20 @@ def smooth_bitvectors(bitvectors, threshold=4):
     threshod: int
         The minimum number for a peak
     """
-    features = bitvectors.keys()
+    features = list(bitvectors.keys())
     vectors = deepcopy(bitvectors)
 
     counter = 0
     at_start = True
 
     for feature in features:
-        for i in xrange(1, len(bitvectors[feature])):
+        for i in range(1, len(bitvectors[feature])):
             if vectors[feature][i] != vectors[feature][i-1]:
                 if at_start:
                     at_start = False
                     counter = 0
                 elif counter < threshold:
-                    for j in xrange(1, counter+2):
+                    for j in range(1, counter+2):
                         vectors[feature][i-j] = vectors[feature][i]
                 else:
                     counter = 0
@@ -121,7 +121,7 @@ def calc_bitvector_walking(frames, features, skeleton=None, verbose=False,
         reader = BVHReader('skeleton.bvh')
         skeleton = Skeleton(reader)
 
-    if isinstance(features, basestring):
+    if isinstance(features, str):
         features = [features]
 
     jointpositions = {}
@@ -149,14 +149,14 @@ def calc_bitvector_walking(frames, features, skeleton=None, verbose=False,
                                              [bitvector[feature][-1]]))
 
     height_bitvectors = [{feature: 0 for feature in features}
-                         for i in xrange(frames.shape[0])]
+                         for i in range(frames.shape[0])]
 
     height_threshold = threshold
 
     jointpositions_y = {}
     for feature in features:
         jointpositions_y[feature] = [pos[1] for pos in jointpositions[feature]]
-        for i in xrange(len(jointpositions_y[feature])):
+        for i in range(len(jointpositions_y[feature])):
             if jointpositions_y[feature][i] < height_threshold:
                 height_bitvectors[i][feature] = 1
 
@@ -195,7 +195,7 @@ def calc_bitvector_walking(frames, features, skeleton=None, verbose=False,
 #        plt.ylabel('bitvalue')
 
         plt.figure()
-        line_x = range(len(relativ_velo[features[0]]))
+        line_x = list(range(len(relativ_velo[features[0]])))
         line_y = [xz_threshold] * len(line_x)
         plt.plot(line_x, line_y)
         for feature in features:
@@ -254,10 +254,10 @@ def detect_walking_keyframes(frames, features, skeleton, verbose=False):
 
     keyframes = {feature: [] for feature in features}
 
-    print features
+    print(features)
 
     def next_keyframe(bitvector):
-        for i in xrange(1, len(bitvector)):
+        for i in range(1, len(bitvector)):
             if bitvector[i] == 0 and bitvector[i-1] == 1:
                 yield i
 
@@ -265,17 +265,17 @@ def detect_walking_keyframes(frames, features, skeleton, verbose=False):
     highest = 0
     highest_feature = None
 
-    feature_order = [(f, next_keyframe(bitvectors[f]).next()) for f in features]
+    feature_order = [(f, next(next_keyframe(bitvectors[f]))) for f in features]
     feature_order = sorted(feature_order, key=itemgetter(1))
 
     gens = {feature: next_keyframe(bitvectors[feature])
             for feature in features}
 
-    while len(gens.values()) > 0:
+    while len(list(gens.values())) > 0:
         pop = []
         for feature, _ in feature_order:
             try:
-                i = gens[feature].next()
+                i = next(gens[feature])
             except StopIteration:
                 pop.append((feature, _))
                 continue
@@ -285,7 +285,7 @@ def detect_walking_keyframes(frames, features, skeleton, verbose=False):
                 highest = i
                 highest_feature = feature
         for f, _ in pop:
-            print "pop", f
+            print("pop", f)
             gens.pop(f)
             feature_order.remove((f, _))
 
@@ -299,7 +299,7 @@ def detect_walking_keyframes(frames, features, skeleton, verbose=False):
     for feature in features:
         keyframes[feature].sort()
 
-    print "Keyframes:", keyframes
+    print("Keyframes:", keyframes)
     return keyframes
 
 

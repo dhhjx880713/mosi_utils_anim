@@ -33,7 +33,7 @@ class NumericalInverseKinematicsQuat(object):
 
     def modify_pose(self, joint_name, target, direction=None):
         error = 0.0
-        if joint_name in self.pose.free_joints_map.keys():
+        if joint_name in list(self.pose.free_joints_map.keys()):
             free_joints = self.pose.free_joints_map[joint_name]
             error = self._modify_using_optimization(joint_name, target, free_joints, direction)
         return error

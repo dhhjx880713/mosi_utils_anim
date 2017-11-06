@@ -6,12 +6,12 @@ Created on Fri Jul 10 11:28:22 2015
 """
 import numpy as np
 from math import sqrt, acos
-from catmull_rom_spline import CatmullRomSpline
-from segment_list import SegmentList
-from b_spline import BSpline
-from fitted_b_spline import FittedBSpline
+from .catmull_rom_spline import CatmullRomSpline
+from .segment_list import SegmentList
+from .b_spline import BSpline
+from .fitted_b_spline import FittedBSpline
 from scipy.optimize import minimize
-from arc_length_map import RelativeArcLengthMap
+from .arc_length_map import RelativeArcLengthMap
 SPLINE_TYPE_CATMULL_ROM = 0
 SPLINE_TYPE_BSPLINE = 1
 SPLINE_TYPE_FITTED_BSPLINE = 2
@@ -154,7 +154,7 @@ class ParameterizedSpline(object):
         index = 1
         while index < num_points:
             eval_arc_length, eval_point = self.get_absolute_arc_length_of_point(self.spline.control_points[index])
-            print 'check arc length', index, eval_arc_length
+            print('check arc length', index, eval_arc_length)
             if arc_length < eval_arc_length:
                 min_index = index
                 break
@@ -269,8 +269,8 @@ class ParameterizedSpline(object):
             if range_large_enough:
                 result = segment_list.find_closest_point(point)
                 if result[0] is None:
-                    print "Failed to generate trajectory segments for the closest point search"
-                    print point, min_arc_length, max_arc_length
+                    print("Failed to generate trajectory segments for the closest point search")
+                    print(point, min_arc_length, max_arc_length)
                     return None, -1
                 else:
                     return result

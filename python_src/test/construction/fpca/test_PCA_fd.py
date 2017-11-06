@@ -15,8 +15,8 @@ class TestPCA_fd(object):
         test_data_file = TEST_DATA_PATH + os.sep + 'test_data_pca_fd.json'
         with open(test_data_file, 'rb') as infile:
             test_data = json.load(infile)
-        print type(test_data)
-        print np.asarray(test_data).shape
+        print(type(test_data))
+        print(np.asarray(test_data).shape)
         self.pca_fd = PCAFunctionalData(test_data, 7, 0.95)
 
     param_convert_to_fd = [{'res': (7, 29, 79)}]
@@ -31,7 +31,7 @@ class TestPCA_fd(object):
     def test_reshape_fd(self, res):
         assert  self.pca_fd.reshaped_fd.shape == res
         reshaped_fd, shape = self.pca_fd.reshape_fd(self.pca_fd.fd)
-        for i in xrange(79):
+        for i in range(79):
             assert round(reshaped_fd[0,i], 5) == round(self.pca_fd.fd[0, 0, i], 5)
 
 
@@ -40,5 +40,5 @@ class TestPCA_fd(object):
 
     @params(param_project_data)
     def test_project_data(self, res):
-        for i in xrange(len(res)):
+        for i in range(len(res)):
             assert  round(self.pca_fd.low_vecs[0][i], 3) == round(res[i], 3)

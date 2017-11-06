@@ -1,6 +1,6 @@
 # encoding: UTF-8
 import collections
-from motion_dimension_reduction import MotionDimensionReduction
+from .motion_dimension_reduction import MotionDimensionReduction
 from ...utilities.io_helper_functions import load_json_file
 from ..construction_algorithm_configuration import ConstructionAlgorithmConfigurationBuilder
 from ...animation_data import BVHReader, Skeleton
@@ -34,7 +34,7 @@ def create_pseudo_timewarping(aligned_data_folder):
     for item in bvhfiles:
         filename = os.path.split(item)[-1]
         bvhreader = BVHReader(item)
-        frame_indices = range(len(bvhreader.frames))
+        frame_indices = list(range(len(bvhreader.frames)))
         timewarping_data[filename] = frame_indices
     return timewarping_data
 
@@ -49,7 +49,7 @@ def load_aligned_data(elementary_action, motion_primitive):
     else:
         timewarping_data = load_json_file(timewarping_file)
     bvhfiles = glob.glob(os.path.join(aligned_data_folder, '*.bvh'))
-    for filename, time_index in timewarping_data.iteritems():
+    for filename, time_index in timewarping_data.items():
         aligned_motion_data[filename] = {}
         aligned_motion_data[filename]['warping_index'] = time_index
         filepath = os.path.join(aligned_data_folder, filename)

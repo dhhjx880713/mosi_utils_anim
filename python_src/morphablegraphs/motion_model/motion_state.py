@@ -8,7 +8,7 @@ import os
 import random
 import numpy as np
 from . import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END
-from motion_primitive_wrapper import MotionPrimitiveModelWrapper
+from .motion_primitive_wrapper import MotionPrimitiveModelWrapper
 from ..animation_data.utils import extract_root_positions_from_frames, get_arc_length_from_points
 from ..space_partitioning import ClusterTree, FeatureClusterTree
 from ..utilities import write_message_to_log, LOG_MODE_DEBUG
@@ -63,16 +63,16 @@ class MotionState(MotionPrimitiveModelWrapper):
         skeleton = self.motion_state_group.motion_state_graph.mgrd_skeleton
         write_message_to_log("Init motion state "+self.name, LOG_MODE_DEBUG)
         self._initialize_from_json(skeleton, desc["mm"], self.motion_state_group.motion_state_graph.animated_joints)
-        if "space_partition_pickle" in desc.keys():
+        if "space_partition_pickle" in list(desc.keys()):
             self.cluster_tree = desc["space_partition_pickle"]
-        if "space_partition_json" in desc.keys():
+        if "space_partition_json" in list(desc.keys()):
             tree_data = desc["space_partition_json"]
             self.cluster_tree = FeatureClusterTree(None,None,None,None, None)
             data = np.array(tree_data["data"])
             features = np.array(tree_data["features"])
             options = tree_data["options"]
             self.cluster_tree.build_node_from_json(data, features, options, tree_data["root"])
-        if "stats" in desc.keys():
+        if "stats" in list(desc.keys()):
             self.parameter_bb = desc["stats"]["pose_bb"]
             self.cartesian_bb = desc["stats"]["cartesian_bb"]
             self.velocity_data = desc["stats"]["pose_velocity"]
@@ -118,7 +118,7 @@ class MotionState(MotionPrimitiveModelWrapper):
         \t Identifies edges as either standard or end transitions
         """
         if self.outgoing_edges:
-            edges = [edge_key for edge_key in self.outgoing_edges.keys()
+            edges = [edge_key for edge_key in list(self.outgoing_edges.keys())
                      if self.outgoing_edges[edge_key].transition_type == transition_type]
             if len(edges) > 0:
                 random_index = random.randrange(0, len(edges), 1)
@@ -139,7 +139,7 @@ class MotionState(MotionPrimitiveModelWrapper):
             start_states = self.motion_state_group.motion_state_graph.node_groups[elementary_action_name].start_states
             if cycle:
                 start_states += self.motion_state_group.motion_state_graph.node_groups[elementary_action_name].cycle_states
-            edges = [edge_key for edge_key in self.outgoing_edges.keys()
+            edges = [edge_key for edge_key in list(self.outgoing_edges.keys())
                      if edge_key[0] == elementary_action_name and edge_key[1] in start_states]
             if len(edges) > 0:
                 random_index = random.randrange(0, len(edges), 1)
@@ -151,9 +151,9 @@ class MotionState(MotionPrimitiveModelWrapper):
     def update_motion_stats(self, n_samples=50, method="median"):
         """ Calculates motion stats for faster look up
         """
-        self.n_standard_transitions = len([e for e in self.outgoing_edges.keys()
+        self.n_standard_transitions = len([e for e in list(self.outgoing_edges.keys())
                                            if self.outgoing_edges[e].transition_type == NODE_TYPE_STANDARD])
-        sample_lengths = [self._get_random_sample_step_length() for i in xrange(n_samples)]
+        sample_lengths = [self._get_random_sample_step_length() for i in range(n_samples)]
         if method == "average":
             self.average_step_length = sum(sample_lengths)/n_samples
         else:
@@ -198,7 +198,7 @@ class MotionState(MotionPrimitiveModelWrapper):
         return step_length
             
     def has_transition_model(self, to_node_key):
-        return to_node_key in self.outgoing_edges.keys() and self.outgoing_edges[to_node_key].transition_model is not None
+        return to_node_key in list(self.outgoing_edges.keys()) and self.outgoing_edges[to_node_key].transition_model is not None
         
     def predict_parameters(self, to_node_key, current_parameters):
         """ Predicts parameters for a transition using the transition model.

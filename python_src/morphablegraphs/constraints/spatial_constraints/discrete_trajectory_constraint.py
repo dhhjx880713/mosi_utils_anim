@@ -1,7 +1,7 @@
 __author__ = 'erhe01'
 import numpy as np
 
-from spatial_constraint_base import SpatialConstraintBase
+from .spatial_constraint_base import SpatialConstraintBase
 from ...animation_data.utils import get_cartesian_coordinates_from_quaternion
 
 

@@ -1,1 +1,1 @@
-from parameterized_spline import ParameterizedSpline
+from .parameterized_spline import ParameterizedSpline

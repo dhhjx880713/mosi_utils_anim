@@ -5,8 +5,8 @@ Created on Fri Jul 24 19:56:30 2015
 @author: mamauer,FARUPP,erhe01
 """
 import time
-from constrained_gmm import ConstrainedGMM
-from gmm_math import mul
+from .constrained_gmm import ConstrainedGMM
+from .gmm_math import mul
 
 
 class ConstrainedGMMBuilder(object):
@@ -81,17 +81,17 @@ class ConstrainedGMMBuilder(object):
         \tThe gmm of the motion_primitive constrained by the constraints
         """
         if self.verbose:
-            print "generating gmm using", len(motion_primitive_constraints.constraints),"constraints"
+            print("generating gmm using", len(motion_primitive_constraints.constraints),"constraints")
             start = time.clock()
         cgmms = []
         for i, constraint in enumerate(motion_primitive_constraints.constraints):
-            print "\t checking constraint %d" % i
+            print("\t checking constraint %d" % i)
             cgmms.append(self._constrain_primitive(mp_node, constraint, prev_frames))
         cgmm = cgmms[0]
-        for k in xrange(1, len(cgmms)):
+        for k in range(1, len(cgmms)):
             cgmm = mul(cgmm, cgmms[k])
         if self.verbose:
-            print "generated gmm in ", time.clock()-start, "seconds"
+            print("generated gmm in ", time.clock()-start, "seconds")
         return cgmm
 
     def _create_next_motion_distribution(self, prev_parameters,  mp_node,

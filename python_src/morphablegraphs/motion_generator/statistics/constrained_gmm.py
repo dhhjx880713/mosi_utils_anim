@@ -92,12 +92,12 @@ class ConstrainedGMM(mixture.GMM):
                 bad_distances.append(distance)
                 tmp_bad_samples+=1
             if self.verbose:
-                print "sample no", num, "min distance", distance
+                print("sample no", num, "min distance", distance)
             num += 1
              
             if tmp_bad_samples>self.max_bad_samples:
                 if not self.strict:
-                    print "could not reach constraints use", self.n_random_samples, "best samples instead"
+                    print("could not reach constraints use", self.n_random_samples, "best samples instead")
                     #merge good and bad samples
                     merged_samples = good_samples + bad_samples 
                     merged_distances = good_distances + bad_distances
@@ -109,7 +109,7 @@ class ConstrainedGMM(mixture.GMM):
                          merged_samples.append(s)
                          merged_distances.append(distance)
                     #order them based on distance
-                    sorted_samples = zip(merged_samples,merged_distances)
+                    sorted_samples = list(zip(merged_samples,merged_distances))
                     sorted_samples.sort(key=itemgetter(1))
                     #print type(sorted_samples)
                     good_samples = zip(*sorted_samples)[0][:self.n_random_samples]
@@ -118,8 +118,8 @@ class ConstrainedGMM(mixture.GMM):
                     raise ConstraintError(bad_samples)
                 break
         if self.verbose:
-            print len(good_samples), " out of ", num
-            print "Using %d samples out of %d" % (len(good_samples), num)
+            print(len(good_samples), " out of ", num)
+            print("Using %d samples out of %d" % (len(good_samples), num))
         good_samples = np.array(good_samples)
         self.fit(good_samples)
 

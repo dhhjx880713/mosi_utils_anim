@@ -1,11 +1,11 @@
 import numpy as np
-from motion_primitive import MotionPrimitive as MGMotionPrimitive
+from .motion_primitive import MotionPrimitive as MGMotionPrimitive
 try:
     from .extended_mgrd_mixture_model import ExtendedMGRDMixtureModel
     from mgrd import MotionPrimitiveModel as MGRDMotionPrimitiveModel
     from mgrd import QuaternionSplineModel as MGRDQuaternionSplineModel
     from mgrd import TemporalSplineModel as MGRDTemporalSplineModel
-    from legacy_temporal_spline_model import LegacyTemporalSplineModel
+    from .legacy_temporal_spline_model import LegacyTemporalSplineModel
     has_mgrd = True
 except ImportError:
     pass
@@ -33,12 +33,12 @@ class MotionPrimitiveModelWrapper(object):
 
     def _initialize_from_json(self, mgrd_skeleton, data, animated_joints=None, use_mgrd_mixture_model=False, scale=None):#[10,10,10]
         if not has_mgrd:
-            if "tspm" in data.keys():
+            if "tspm" in list(data.keys()):
                 self.motion_primitive = self._load_legacy_model_from_mgrd_json(data)
             else:
                 self.motion_primitive = self._load_legacy_model_from_legacy_json(data)
         else:
-            if "tspm" in data.keys():
+            if "tspm" in list(data.keys()):
                 self.motion_primitive = self._load_mgrd_model_from_mgrd_json(mgrd_skeleton, data, use_mgrd_mixture_model, scale)
             elif animated_joints is not None:
                 self.motion_primitive = self._load_mgrd_model_from_legacy_json(mgrd_skeleton, data, use_mgrd_mixture_model, animated_joints)
@@ -121,7 +121,7 @@ class MotionPrimitiveModelWrapper(object):
             coeff_start = coeff_idx * sspm.n_dims
             root_columns += np.arange(coeff_start,coeff_start+3).tolist()
 
-        indices_range = range(len(root_columns))
+        indices_range = list(range(len(root_columns)))
         x_indices = [root_columns[i] for i in indices_range if i % 3 == 0]
         y_indices = [root_columns[i] for i in indices_range if i % 3 == 1]
         z_indices = [root_columns[i] for i in indices_range if i % 3 == 2]
@@ -131,7 +131,7 @@ class MotionPrimitiveModelWrapper(object):
         sspm.fpca.mean[x_indices] *= scale[0]
         sspm.fpca.mean[y_indices] *= scale[1]
         sspm.fpca.mean[z_indices] *= scale[2]
-        print "Prescale root translation"
+        print("Prescale root translation")
 
     def sample_legacy(self, use_time=True):
         return self.motion_primitive.sample(use_time)
@@ -175,7 +175,7 @@ class MotionPrimitiveModelWrapper(object):
         if self.motion_primitive.has_time_parameters:
             return self.motion_primitive._back_transform_gamma_to_canonical_time_function(s_vec[self.get_n_spatial_components():])
         else:
-            return list(xrange(0,self.motion_primitive.n_canonical_frames))
+            return list(range(0,self.motion_primitive.n_canonical_frames))
 
     def back_project_time_function_mgrd(self, s_vec):
         if len(np.asarray(s_vec.shape)) == 2:
@@ -241,7 +241,7 @@ class MotionPrimitiveModelWrapper(object):
             if frame_idx > -1:
                 frame_range = [frame_idx]
             else:
-                frame_range = xrange(n_frames)
+                frame_range = range(n_frames)
             for frame in frame_range:
                 frame_offset = frame * n_params
                 joint_indices += [frame_offset + i * LEN_QUATERNION + LEN_TRANSLATION for i, j in

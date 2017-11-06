@@ -1,12 +1,12 @@
 import time
 import numpy as np
-from algorithm_configuration import AlgorithmConfigurationBuilder, DEFAULT_ALGORITHM_CONFIG
-from graph_walk import GraphWalk, GraphWalkEntry
-from graph_walk_optimizer import GraphWalkOptimizer
-from graph_walk_planner import GraphWalkPlanner
-from motion_generator_state import MotionGeneratorState
-from motion_primitive_generator import MotionPrimitiveGenerator
-from scene_interface import SceneInterface
+from .algorithm_configuration import DEFAULT_ALGORITHM_CONFIG
+from .graph_walk import GraphWalk, GraphWalkEntry
+from .graph_walk_optimizer import GraphWalkOptimizer
+from .graph_walk_planner import GraphWalkPlanner
+from .motion_generator_state import MotionGeneratorState
+from .motion_primitive_generator import MotionPrimitiveGenerator
+from .scene_interface import SceneInterface
 from ..animation_data.motion_editing import MotionEditing, MotionGrounding, FootplantConstraintGenerator, add_heels_to_skeleton
 from ..constraints import OPTIMIZATION_MODE_ALL
 from ..constraints.elementary_action_constraints_builder import ElementaryActionConstraintsBuilder
@@ -42,7 +42,7 @@ class MotionGenerator(object):
         self.step_look_ahead_distance = self._algorithm_config["trajectory_following_settings"]["look_ahead_distance"]
         self.activate_global_optimization = False
         self.graph_walk_optimizer = GraphWalkOptimizer(self._motion_state_graph, algorithm_config)
-        if "motion_grounding_settings" in algorithm_config.keys():
+        if "motion_grounding_settings" in list(algorithm_config.keys()):
             motion_grounding_settings = algorithm_config["motion_grounding_settings"]
         else:
             motion_grounding_settings = DEFAULT_ALGORITHM_CONFIG["motion_grounding_settings"]
@@ -53,12 +53,12 @@ class MotionGenerator(object):
                                                                                skeleton_model,
                                                                                motion_grounding_settings,
                                                                                self.scene_interface)
-            if skeleton_model["left_heel"] not in list(self._motion_state_graph.skeleton.nodes.keys()):
+            if skeleton_model["joints"]["left_heel"] not in list(self._motion_state_graph.skeleton.nodes.keys()):
                 self._motion_state_graph.skeleton = add_heels_to_skeleton(self._motion_state_graph.skeleton,
-                                                                          skeleton_model["left_foot"],
-                                                                          skeleton_model["right_foot"],
-                                                                          skeleton_model["left_heel"],
-                                                                          skeleton_model["right_heel"],
+                                                                          skeleton_model["joints"]["left_ankle"],
+                                                                          skeleton_model["joints"]["right_ankle"],
+                                                                          skeleton_model["joints"]["left_heel"],
+                                                                          skeleton_model["joints"]["right_heel"],
                                                                           skeleton_model["heel_offset"])
         else:
             self.footplant_constraint_generator = None
@@ -242,23 +242,8 @@ class MotionGenerator(object):
         ik_settings = self._algorithm_config["inverse_kinematics_settings"]
         has_model = self.footplant_constraint_generator is not None and self._motion_state_graph.skeleton.skeleton_model is not None
         if self._algorithm_config["activate_motion_grounding"] and has_model and self.scene_interface is not None and "motion_grounding_settings" in self._algorithm_config:
-            grounding_settings = self._algorithm_config["motion_grounding_settings"]
-            skeleton_model = self._motion_state_graph.skeleton.skeleton_model
-            grounding = MotionGrounding(self._motion_state_graph.skeleton, ik_settings, skeleton_model,
-                                        use_analytical_ik=True)
-            if grounding_settings["generate_foot_plant_constraints"]:
-                constraints, blend_ranges, ground_contacts = self.footplant_constraint_generator.generate_from_graph_walk(
-                    motion_vector)
-                motion_vector.grounding_constraints = constraints
-                motion_vector.ground_contacts = ground_contacts
-                grounding.set_constraints(constraints)
-                if grounding_settings["activate_blending"]:
-                    for target_joint in blend_ranges:
-                        joint_list = [skeleton_model["ik_chains"][target_joint]["root"],
-                                      skeleton_model["ik_chains"][target_joint]["joint"], target_joint]
-                        for frame_range in blend_ranges[target_joint]:
-                            grounding.add_blend_range(joint_list, tuple(frame_range))
-            grounding.run(motion_vector, self.scene_interface)
+            self.run_motion_grounding(motion_vector, ik_settings)
+            #self.run_motion_grounding(motion_vector, ik_settings)
 
         if self._algorithm_config["activate_inverse_kinematics"]:
             write_message_to_log("Modify using inverse kinematics", LOG_MODE_INFO)
@@ -267,8 +252,29 @@ class MotionGenerator(object):
             me.fill_rotate_events(motion_vector)
 
         if complete_motion_vector:
-            motion_vector.frames = self._motion_state_graph.skeleton.complete_motion_vector_from_reference(
+            motion_vector.frames = self._motion_state_graph.skeleton.add_fixed_joint_parameters_to_motion(
                 motion_vector.frames)
+
+    def run_motion_grounding(self, motion_vector, ik_settings):
+        grounding_settings = self._algorithm_config["motion_grounding_settings"]
+        skeleton_model = self._motion_state_graph.skeleton.skeleton_model
+        damp_angle = grounding_settings["damp_angle"] * np.pi
+        damp_factor = grounding_settings["damp_factor"]
+        grounding = MotionGrounding(self._motion_state_graph.skeleton, ik_settings, skeleton_model,
+                                    use_analytical_ik=True, damp_angle=damp_angle, damp_factor=damp_factor)
+        if grounding_settings["generate_foot_plant_constraints"]:
+            constraints, blend_ranges, ground_contacts = self.footplant_constraint_generator.generate_from_graph_walk(
+                motion_vector)
+            motion_vector.grounding_constraints = constraints
+            motion_vector.ground_contacts = ground_contacts
+            grounding.set_constraints(constraints)
+            if grounding_settings["activate_blending"]:
+                for target_joint in blend_ranges:
+                    joint_list = [skeleton_model["ik_chains"][target_joint]["root"],
+                                  skeleton_model["ik_chains"][target_joint]["joint"], target_joint]
+                    for frame_range in blend_ranges[target_joint]:
+                        grounding.add_blend_range(joint_list, tuple(frame_range))
+        grounding.run(motion_vector, self.scene_interface)
 
     def get_end_step_arc_length(self, action_constraints):
         node_group = action_constraints.get_node_group()
@@ -304,12 +310,11 @@ class MotionGenerator(object):
             Contains options for the algorithm.
         """
         if algorithm_config is None:
-            algorithm_config_builder = AlgorithmConfigurationBuilder()
-            self._algorithm_config = algorithm_config_builder.build()
+            self._algorithm_config = DEFAULT_ALGORITHM_CONFIG
         else:
             self._algorithm_config = algorithm_config
         self.graph_walk_optimizer.set_algorithm_config(self._algorithm_config)
-        if "trajectory_following_settings" in algorithm_config.keys():
+        if "trajectory_following_settings" in list(algorithm_config.keys()):
             trajectory_following_settings = algorithm_config["trajectory_following_settings"]
             self.end_step_length_factor = trajectory_following_settings["end_step_length_factor"]
             self.step_look_ahead_distance = trajectory_following_settings["look_ahead_distance"]

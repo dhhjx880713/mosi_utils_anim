@@ -1,7 +1,7 @@
 
 from copy import copy
 from .spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE,SPATIAL_CONSTRAINT_TYPE_KEYFRAME_DIR_2D, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_LOOK_AT, SPATIAL_CONSTRAINT_TYPE_CA_CONSTRAINT
-from ik_constraints import JointIKConstraint, TwoJointIKConstraint
+from .ik_constraints import JointIKConstraint, TwoJointIKConstraint
 from ..utilities import write_message_to_log, LOG_MODE_DEBUG
 
 SUPPORTED_CONSTRAINT_TYPES = [SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION,
@@ -20,7 +20,7 @@ class IKConstraintsBuilder(object):
         for constraint in constraints:
             ik_constraints, ik_constraint_types = self._create_ik_constraints(constraint, frame_offset, time_function, constrain_orientation)
             for ik_c, ik_c_type in zip(ik_constraints,ik_constraint_types):
-                if ik_c.keyframe not in ik_constraints_dict.keys():
+                if ik_c.keyframe not in list(ik_constraints_dict.keys()):
                     ik_constraints_dict[ik_c.keyframe] = dict()
                     ik_constraints_dict[ik_c.keyframe]["single"] = []
                     ik_constraints_dict[ik_c.keyframe]["multiple"] = []
@@ -33,14 +33,14 @@ class IKConstraintsBuilder(object):
         ik_constraints = []
         ik_constraint_types = []
         if constraint.constraint_type in SUPPORTED_CONSTRAINT_TYPES and \
-            "generated" not in constraint.semantic_annotation.keys():
+            "generated" not in list(constraint.semantic_annotation.keys()):
             if time_function is not None:
                 # add +1 to map the frame correctly TODO: test and verify for all cases
                 keyframe = frame_offset + int(time_function[constraint.canonical_keyframe]) + 1
             else:
                 keyframe = frame_offset + constraint.canonical_keyframe
 
-            if constraint.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION and constraint.joint_name in self.skeleton.free_joints_map.keys():
+            if constraint.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION and constraint.joint_name in list(self.skeleton.free_joints_map.keys()):
                 ik_constraint = self._create_keyframe_ik_constraint(constraint, keyframe, frame_offset,
                                                                     time_function, constrain_orientation, look_at=True)
                 ik_constraints.append(ik_constraint)
@@ -51,8 +51,8 @@ class IKConstraintsBuilder(object):
                 ik_constraint_types.append("single")
 
             elif constraint.constraint_type == SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION and \
-                            constraint.joint_names[0] in self.skeleton.free_joints_map.keys() and \
-                            constraint.joint_names[1] in self.skeleton.free_joints_map.keys():
+                            constraint.joint_names[0] in list(self.skeleton.free_joints_map.keys()) and \
+                            constraint.joint_names[1] in list(self.skeleton.free_joints_map.keys()):
                 free_joints = self.skeleton.reduced_free_joints_map[constraint.joint_names[0]]
                 ik_constraint = JointIKConstraint(constraint.joint_names[0], constraint.positions[0], None, keyframe, free_joints, look_at=False)
                 ik_constraints.append(ik_constraint)
@@ -88,9 +88,9 @@ class IKConstraintsBuilder(object):
     def _detect_frame_range(self, c, frame_offset, time_function):
         frame_range = None
         annotated_regions = self.motion_state_graph.node_groups[self.action_name].motion_primitive_annotation_regions
-        if self.motion_primitive_name in annotated_regions.keys():
+        if self.motion_primitive_name in list(annotated_regions.keys()):
             frame_range_annotation = annotated_regions[self.motion_primitive_name]
-            if c.keyframe_label in frame_range_annotation.keys():
+            if c.keyframe_label in list(frame_range_annotation.keys()):
                 frame_range = copy(frame_range_annotation[c.keyframe_label])
                 range_start = frame_range[0]
                 range_end = frame_range[1]

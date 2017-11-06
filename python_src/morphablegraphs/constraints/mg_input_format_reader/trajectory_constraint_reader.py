@@ -2,14 +2,14 @@ import numpy as np
 import math
 from ...utilities.log import write_log, write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_ERROR, LOG_MODE_INFO
 from ...external.transformations import quaternion_from_euler, euler_from_quaternion, euler_matrix
-from utils import _transform_point_from_cad_to_opengl_cs, _transform_unconstrained_indices_from_cad_to_opengl_cs
-from constants import *
+from .utils import _transform_point_from_cad_to_opengl_cs, _transform_unconstrained_indices_from_cad_to_opengl_cs
+from .constants import *
 
 DISTANCE_WARNING = "Warning: shift second to last control point because it is too close to the last control point"
 
 
 def _init_active_region(traj_constraint):
-    if "semanticAnnotation" in traj_constraint[0].keys():
+    if "semanticAnnotation" in list(traj_constraint[0].keys()):
         active_region = dict()
         active_region["start_point"] = None
         active_region["end_point"] = None
@@ -33,8 +33,8 @@ def _update_active_region(active_region, point, new_active):
 
 
 def _is_active_trajectory_region(control_points, index):
-    if "semanticAnnotation" in control_points[index].keys():
-        if "collisionAvoidance" in control_points[index]["semanticAnnotation"].keys():
+    if "semanticAnnotation" in list(control_points[index].keys()):
+        if "collisionAvoidance" in list(control_points[index]["semanticAnnotation"].keys()):
             return control_points[index]["semanticAnnotation"]["collisionAvoidance"]
     return True
 
@@ -49,7 +49,7 @@ class TrajectoryConstraintReader(object):
         previous_point = None
         n_control_points = len(control_points)
         last_distance = None
-        for idx in xrange(n_control_points):
+        for idx in range(n_control_points):
             result = self._filter_control_point(control_points, n_control_points, idx, previous_point,
                                                 last_distance, distance_threshold)
             if result is not None:
@@ -74,7 +74,7 @@ class TrajectoryConstraintReader(object):
         was_active = False
         last_distance = None
         count = -1
-        for idx in xrange(n_control_points):
+        for idx in range(n_control_points):
             is_active = _is_active_trajectory_region(control_points, idx)
             if not is_active:
                 was_active = is_active
@@ -126,7 +126,7 @@ class TrajectoryConstraintReader(object):
                               distance_threshold):
 
         control_point = control_points[index]
-        if P_KEY not in control_point.keys() or control_point[P_KEY] == [None, None, None]:
+        if P_KEY not in list(control_point.keys()) or control_point[P_KEY] == [None, None, None]:
             write_log("Warning: skip undefined control point")
             return None
 
@@ -135,7 +135,7 @@ class TrajectoryConstraintReader(object):
         point = [p * self.scale_factor if p is not None else 0 for p in position]
         point = np.asarray(_transform_point_from_cad_to_opengl_cs(point, self.activate_coordinate_transform))
 
-        if O_KEY in control_point.keys() and None not in control_point[O_KEY]:
+        if O_KEY in list(control_point.keys()) and None not in control_point[O_KEY]:
             #q = quaternion_from_euler(*np.radians(control_point[O_KEY]))
             ref_vector = [0, 0, 1, 1]
             m = euler_matrix(*np.radians(control_point[O_KEY]))
@@ -169,7 +169,7 @@ class TrajectoryConstraintReader(object):
     def _extract_control_point_list(self, action_desc, joint_name):
         control_point_list = None
         for c in action_desc[CONSTRAINTS_KEY]:
-            if "joint" in c.keys() and TRAJECTORY_CONSTRAINTS_KEY in c.keys() and joint_name == c["joint"]:
+            if "joint" in list(c.keys()) and TRAJECTORY_CONSTRAINTS_KEY in list(c.keys()) and joint_name == c["joint"]:
                 control_point_list = c[TRAJECTORY_CONSTRAINTS_KEY]
                 break  # there should only be one list per joint and elementary action
         return control_point_list
@@ -177,7 +177,7 @@ class TrajectoryConstraintReader(object):
     def _find_semantic_annotation(self, control_points):
         semantic_annotation = None
         for p in control_points:
-            if "semanticAnnotation" in p.keys() and not "collisionAvoidance" in p["semanticAnnotation"].keys():
+            if "semanticAnnotation" in list(p.keys()) and not "collisionAvoidance" in list(p["semanticAnnotation"].keys()):
                 semantic_annotation = p["semanticAnnotation"]
                 break
         return semantic_annotation
@@ -187,7 +187,7 @@ class TrajectoryConstraintReader(object):
         unconstrained_indices = list()
         idx = 0
         for p in trajectory_constraint_data:
-            if [P_KEY] in p.keys():
+            if [P_KEY] in list(p.keys()):
                 for v in p[P_KEY]:
                     if v is None:
                         unconstrained_indices.append(idx)
@@ -205,13 +205,13 @@ class TrajectoryConstraintReader(object):
         """
         assert len(trajectory_constraint_desc) == len(control_points), str(len(trajectory_constraint_desc)) +" != " +  str(  len(control_points))
         active_region = None
-        if "semanticAnnotation" in trajectory_constraint_desc[0].keys():
+        if "semanticAnnotation" in list(trajectory_constraint_desc[0].keys()):
             active_region = dict()
             active_region["start_point"] = None
             active_region["end_point"] = None
             c_index = 0
             for c in trajectory_constraint_desc:
-                if "semanticAnnotation" in c.keys():
+                if "semanticAnnotation" in list(c.keys()):
                     if c["semanticAnnotation"]["collisionAvoidance"]:
                         active_region["start_point"] = control_points[c_index]
                     elif active_region["start_point"] is not None and active_region["end_point"] is None:

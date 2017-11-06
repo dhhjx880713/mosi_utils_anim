@@ -33,7 +33,7 @@ class ClusterTreeNode(object):
         """
         if self.leaf:
             result_queue = []
-            for i in xrange(len(self.clusters)):
+            for i in range(len(self.clusters)):
                 result = self.clusters[i].knn_interpolation(obj, data, k)
                 heapq.heappush(result_queue, result)
             return heapq.heappop(result_queue)
@@ -45,7 +45,7 @@ class ClusterTreeNode(object):
             n_clusters = len(self.clusters)
             result_queue = []
             if n_clusters > 0:
-                for i in xrange(n_clusters):
+                for i in range(n_clusters):
                     result = self.clusters[i].find_best_example(obj, data)
                     heapq.heappush(result_queue, result)
             else:
@@ -60,7 +60,7 @@ class ClusterTreeNode(object):
         """Return the best example based on the evaluation using an objective function.
         """
         result_queue = []
-        for i in xrange(len(self.clusters)):
+        for i in range(len(self.clusters)):
             result = self.clusters[i].find_best_example_exhaustive(obj, data)
             heapq.heappush(result_queue, result)
         return heapq.heappop(result_queue)
@@ -79,7 +79,7 @@ class ClusterTreeNode(object):
         """
         best_value = np.inf
         best_index = 0
-        for cluster_index in xrange(len(self.clusters)):
+        for cluster_index in range(len(self.clusters)):
             sample = self.clusters[cluster_index].mean
             cluster_value = obj(sample, data)
             
@@ -108,7 +108,7 @@ class ClusterTreeNode(object):
             List of candidates ordered using the objective function value.
         """
         result_queue = []
-        for cluster_index in xrange(len(self.clusters)):
+        for cluster_index in range(len(self.clusters)):
             sample = self.clusters[cluster_index].mean
             cluster_value = obj(sample, data)
             heapq.heappush(result_queue, (cluster_value,cluster_index, self.clusters[cluster_index]))

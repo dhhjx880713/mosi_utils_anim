@@ -37,7 +37,7 @@ class TestMotionEditing(object):
         pos = get_cartesian_coordinates_from_quaternion(self.skeleton,
                                                         test_joint,
                                                         np.asarray(self.quat_frames_rightStance[0]))
-        for i in xrange(len(pos)):
+        for i in range(len(pos)):
             assert round(pos[i], 5) == round(res[i], 5)
 
     param_get_cartesian_coordinates_from_euler_full_skeleton = [
@@ -54,7 +54,7 @@ class TestMotionEditing(object):
                                                                  self.skeleton,
                                                                  test_joint,
                                                                  self.rightStance_bvhreader.frames[0])
-        for i in xrange(len(pos)):
+        for i in range(len(pos)):
             assert round(pos[i], 5) == round(res[i], 5)
 
     param_get_cartesian_coordinates_from_euler = [{'test_joint': 'LeftHand',
@@ -65,7 +65,7 @@ class TestMotionEditing(object):
         pos = get_cartesian_coordinates_from_euler(self.skeleton,
                                                    test_joint,
                                                    self.euler_frames_rightStance[0])
-        for i in xrange(len(pos)):
+        for i in range(len(pos)):
             assert round(pos[i], 5) == round(res[i], 5)
 
     param_euler_to_quaternion = [{'euler_angles': [0, 0, 60],
@@ -74,7 +74,7 @@ class TestMotionEditing(object):
     @params(param_euler_to_quaternion)
     def test_euler_to_quatenrion(self, euler_angles, res):
         quat = euler_to_quaternion(euler_angles)
-        for i in xrange(len(quat)):
+        for i in range(len(quat)):
             assert round(quat[i], 5) == round(res[i], 5)
 
     param_quaternion_to_euler = [{'quat': [0.86602540378443871, 0.0, 0.0, 0.5],
@@ -82,7 +82,7 @@ class TestMotionEditing(object):
     @params(param_quaternion_to_euler)
     def test_quaternion_to_euler(self, quat, res):
         euler_angles = quaternion_to_euler(quat)
-        for i in xrange(len(euler_angles)):
+        for i in range(len(euler_angles)):
             assert round(euler_angles[i], 3) == round(res[i], 3)
 
     param_convert_euler_frames_to_quaternion_frames = [
@@ -97,7 +97,7 @@ class TestMotionEditing(object):
         res_point = get_cartesian_coordinates_from_quaternion(self.skeleton,
                                                               test_joint,
                                                               np.asarray(self.quat_frames_rightStance[0]))
-        for i in xrange(len(expected_point)):
+        for i in range(len(expected_point)):
             assert round(res_point[i], 5) == round(expected_point[i], 5)
 
     param_convert_quaternion_frames_to_euler_frames = [{'test_joint': 'RightHand'}]
@@ -110,7 +110,7 @@ class TestMotionEditing(object):
         res_pos = get_cartesian_coordinates_from_euler(self.skeleton,
                                                        test_joint,
                                                        self.euler_frames_rightStance[0])
-        for i in xrange(len(expected_pos)):
+        for i in range(len(expected_pos)):
             assert round(res_pos[i], 5) == round(expected_pos[i], 5)
 
     param_euler_substraction = [{'angles': [30, 60],
@@ -166,7 +166,7 @@ class TestMotionEditing(object):
     @params(param_pose_orientation_euler)
     def test_pose_orientation_euler(self, res):
         orientation = pose_orientation_euler(self.rightStance_bvhreader.frames[0])
-        for i in xrange(len(orientation)):
+        for i in range(len(orientation)):
             assert round(res[i], 5) == round(orientation[i], 5)
 
     param_transform_euler_frames = [{'angles':[0, 60, 0],
@@ -183,7 +183,7 @@ class TestMotionEditing(object):
                                                                  self.skeleton,
                                                                  'LeftHand',
                                                                  transformed_frames[0])
-        for i in xrange(len(pos)):
+        for i in range(len(pos)):
             assert round(pos[i], 5) == round(res[i], 5)
 
     param_pose_orientation_quat = [{'res': [0.00488134, -0.99998809]}]
@@ -191,7 +191,7 @@ class TestMotionEditing(object):
     @params(param_pose_orientation_quat)
     def test_pose_orientation_quat(self, res):
         orientation = pose_orientation_quat(self.quat_frames_rightStance[0])
-        for i in xrange(len(orientation)):
+        for i in range(len(orientation)):
             assert round(res[i], 5) == round(orientation[i], 5)
 
     param_extract_root_position = [{'res': [[-1.15780000332, 4.68537284741], [-1.32248545151, 2.8568899515499999],

@@ -1,5 +1,5 @@
 import json
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 from copy import deepcopy
 import numpy as np
 from ...constraints.spatial_constraints.keyframe_constraints import GlobalTransformCAConstraint
@@ -53,9 +53,9 @@ class CAInterface(object):
     def _create_ca_constraints(self, new_node, ca_output, graph_walk):
         ca_constraints = []
         n_canonical_frames = int(self.ea_generator.motion_state_graph.nodes[new_node].get_n_canonical_frames())
-        for joint_name in ca_output.keys():
+        for joint_name in list(ca_output.keys()):
             for ca_constraint_desc in ca_output[joint_name]:
-                if "position" in ca_constraint_desc.keys() and len(ca_constraint_desc["position"]) == 3:
+                if "position" in list(ca_constraint_desc.keys()) and len(ca_constraint_desc["position"]) == 3:
                     if self.activate_coordinate_transform:
                         position = np.array([ca_constraint_desc["position"][0],ca_constraint_desc["position"][2],-ca_constraint_desc["position"][1]])
                     else:
@@ -77,15 +77,15 @@ class CAInterface(object):
             if self.ca_service_url is not None:
                 write_message_to_log("Call CA interface "+ str(self.ca_service_url,) + " for " + ca_input["elementary_action_name"]+ \
                           ca_input["motion_primitive_name"], LOG_MODE_DEBUG)
-                request = urllib2.Request("http://" + self.ca_service_url, json.dumps(ca_input))
+                request = urllib.request.Request("http://" + self.ca_service_url, json.dumps(ca_input))
                 try:
-                    handler = urllib2.urlopen(request)
+                    handler = urllib.request.urlopen(request)
                     ca_output_string = handler.read()
                     ca_result = json.loads(ca_output_string)
                     return ca_result
-                except urllib2.HTTPError, e:
+                except urllib.error.HTTPError as e:
                     write_message_to_log(str(e.code), LOG_MODE_ERROR)
-                except urllib2.URLError, e:
+                except urllib.error.URLError as e:
                     write_message_to_log(str(e.args), LOG_MODE_ERROR)
             return None
 

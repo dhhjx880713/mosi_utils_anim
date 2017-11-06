@@ -89,7 +89,7 @@ def obj_spatial_error_sum_and_naturalness_jac(s, data):
     numerator = 0
 
     n_models = len(gmm.weights_)
-    for i in xrange(n_models):
+    for i in range(n_models):
         numerator += np.exp(logLikelihoods[i]) * gmm.weights_[i] * np.dot(np.linalg.inv(gmm.covars_[i]), (s - gmm.means_[i]))
 #    numerator = numerator
     denominator = np.exp(gmm.score([s])[0])
@@ -150,7 +150,7 @@ def obj_spatial_error_residual_vector_and_naturalness(s, data):
     residual_vector = mp_constraints.get_residual_vector(mp, s, prev_frames, use_time_parameters=False)
     mp_constraints.min_error = np.sum(residual_vector)
     n_error_values = len(residual_vector)
-    for i in xrange(n_error_values):
+    for i in range(n_error_values):
         residual_vector[i] *= error_scale_factor
         residual_vector[i] += negative_log_likelihood
     #print len(residual_vector), residual_vector
@@ -213,7 +213,7 @@ def obj_global_error_sum(s, data):
                                               step.motion_primitive_constraints.start_pose, 0)
         error += obj_spatial_error_sum(alpha, step_data)#_and_naturalness
         offset += step.n_spatial_components
-    print "global error", error
+    print("global error", error)
     return error
 
 

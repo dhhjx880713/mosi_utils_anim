@@ -5,9 +5,9 @@ Created on Mon Jul 27 12:00:15 2015
 @author: erhe01
 """
 import numpy as np
-from elementary_action_constraints import ElementaryActionConstraints
-from spatial_constraints import TrajectoryConstraint
-from spatial_constraints import TrajectorySetConstraint
+from .elementary_action_constraints import ElementaryActionConstraints
+from .spatial_constraints import TrajectoryConstraint
+from .spatial_constraints import TrajectorySetConstraint
 from ..constraints.mg_input_format_reader import P_KEY, O_KEY, T_KEY
 from . import *
 from ..utilities.log import write_log, write_message_to_log, LOG_MODE_DEBUG
@@ -37,14 +37,14 @@ class ElementaryActionConstraintsBuilder(object):
         self.set_algorithm_config(algorithm_config)
 
     def set_algorithm_config(self, algorithm_config):
-        if "trajectory_following_settings" in algorithm_config.keys():
+        if "trajectory_following_settings" in list(algorithm_config.keys()):
             trajectory_following_settings = algorithm_config["trajectory_following_settings"]
             self.closest_point_search_accuracy = trajectory_following_settings["closest_point_search_accuracy"]
             self.closest_point_search_max_iterations = trajectory_following_settings["closest_point_search_max_iterations"]
             self.default_spline_type = trajectory_following_settings["spline_type"]
             self.spline_arc_length_parameter_granularity = trajectory_following_settings["arc_length_granularity"]
             self.control_point_distance_threshold = trajectory_following_settings["control_point_filter_threshold"]
-            if "spline_supersampling_factor" in trajectory_following_settings.keys():
+            if "spline_supersampling_factor" in list(trajectory_following_settings.keys()):
                 self.spline_super_sampling_factor = trajectory_following_settings["spline_super_sampling_factor"]
 
         self.collision_avoidance_constraints_mode = algorithm_config["collision_avoidance_constraints_mode"]
@@ -59,7 +59,7 @@ class ElementaryActionConstraintsBuilder(object):
         self.mg_input = mg_input
         self._init_start_pose(mg_input)
         action_constraints_list = []
-        for idx in xrange(self.mg_input.get_number_of_actions()):
+        for idx in range(self.mg_input.get_number_of_actions()):
             action_constraints_list.append(self._build_action_constraint(idx))
 
         self._detect_action_cycles(action_constraints_list)
@@ -124,7 +124,7 @@ class ElementaryActionConstraintsBuilder(object):
         #print action_constraints.action_name, action_constraints.keyframe_constraints, action_constraints.contains_user_constraints
 
     def _has_user_defined_constraints(self, action_constraints):
-        for keyframe_label_constraints in action_constraints.keyframe_constraints.values():
+        for keyframe_label_constraints in list(action_constraints.keyframe_constraints.values()):
                 if len(keyframe_label_constraints) > 0:
                     if len(keyframe_label_constraints[0]) > 0:
                         return True
@@ -133,7 +133,7 @@ class ElementaryActionConstraintsBuilder(object):
     def _merge_two_hand_constraints(self, action_constraints):
         """ Create a special constraint if two hand joints are constrained on the same keyframe
         """
-        for mp_name in action_constraints.keyframe_constraints.keys():
+        for mp_name in list(action_constraints.keyframe_constraints.keys()):
             keyframe_constraints_map = self._map_constraints_by_label(action_constraints.keyframe_constraints[mp_name])
             action_constraints.keyframe_constraints[mp_name], merged_constraints = \
                 self._merge_two_hand_constraints_in_keyframe_label_map(keyframe_constraints_map)
@@ -146,7 +146,7 @@ class ElementaryActionConstraintsBuilder(object):
         keyframe_constraints_map = dict()
         for desc in keyframe_constraints:
             keyframe_label = desc["semanticAnnotation"]["keyframeLabel"]
-            if keyframe_label not in keyframe_constraints_map.keys():
+            if keyframe_label not in list(keyframe_constraints_map.keys()):
                 keyframe_constraints_map[keyframe_label] = list()
             keyframe_constraints_map[keyframe_label].append(desc)
         return keyframe_constraints_map
@@ -156,7 +156,7 @@ class ElementaryActionConstraintsBuilder(object):
         """
         merged_constraints = False
         merged_keyframe_constraints = list()
-        for keyframe_label in keyframe_constraints_map.keys():
+        for keyframe_label in list(keyframe_constraints_map.keys()):
             new_constraint_list, is_merged = self._merge_two_hand_constraint_for_label(keyframe_constraints_map[keyframe_label])
             merged_keyframe_constraints += new_constraint_list
             if is_merged:
@@ -215,7 +215,7 @@ class ElementaryActionConstraintsBuilder(object):
         self._add_joint_trajectory_constraints(action_constraints, action_index)
 
     def _add_joint_trajectory_constraints(self, action_constraints, action_index):
-        for joint_name in self.motion_state_graph.skeleton.node_name_frame_map.keys():
+        for joint_name in list(self.motion_state_graph.skeleton.nodes.keys()):
             if joint_name != self.motion_state_graph.skeleton.root:
                 self._add_trajectory_constraint(action_constraints, action_index, joint_name)
         if self.collision_avoidance_constraints_mode == CA_CONSTRAINTS_MODE_SET and len(

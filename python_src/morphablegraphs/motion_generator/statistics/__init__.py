@@ -1,2 +1,2 @@
 
-from constrained_gmm_builder import ConstrainedGMMBuilder
+from .constrained_gmm_builder import ConstrainedGMMBuilder

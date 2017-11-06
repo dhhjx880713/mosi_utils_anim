@@ -51,7 +51,7 @@ See also:
 
 """
 
-from __future__ import division
+
 import numpy as np
 from scipy.sparse.linalg import svds
 dot = np.dot
@@ -127,13 +127,13 @@ class Center:
     def __init__(self, A, axis=0, scale=False, verbose=0):
         self.mean = A.mean(axis=axis)
         if verbose:
-            print "Center -= A.mean:", self.mean
+            print("Center -= A.mean:", self.mean)
         A -= self.mean
         if scale:
             std = A.std(axis=axis)
             self.std = np.where(std, std, 1.)
             if verbose:
-                print "Center /= A.std:", self.std
+                print("Center /= A.std:", self.std)
             A /= self.std
         else:
             self.std = np.ones(A.shape[-1])

@@ -44,7 +44,7 @@ class GraphDefinitionTester(object):
 
     def _parse_graph_definition(self):
         self.motion_primitives = {}
-        for key, values in self.graph_definition_data['transitions'].iteritems():
+        for key, values in self.graph_definition_data['transitions'].items():
             counter = 0
             for value in values:
                 if "end" not in value.lower():
@@ -53,17 +53,17 @@ class GraphDefinitionTester(object):
                                            'transitions': values}
 
     def check_space_partitioning_files(self):
-        for motion_primitive in self.motion_primitives.keys():
+        for motion_primitive in list(self.motion_primitives.keys()):
             assert motion_primitive + '_quaternion_cluster_tree.pck' in self.space_partitioning_files, \
                 (motion_primitive + ' has no space partitioning file! ')
         print("spalce partitioning files are completed! ")
 
     def check_motion_primitive_files(self):
-        for motion_primitive in self.motion_primitives.keys():
+        for motion_primitive in list(self.motion_primitives.keys()):
             if motion_primitive + '_quaternion_mm.json' not in self.motion_primitive_files:
-                print(motion_primitive + '_quaternion_mm.json')
+                print((motion_primitive + '_quaternion_mm.json'))
                 print("######################################")
-                print(self.motion_primitive_files)
+                print((self.motion_primitive_files))
             # assert motion_primitive + '_quaternion_mm.json' in self.motion_primitive_files, \
             #     (motion_primitive + ' has no motion primitive file! ')
         print("motion primitive files are completed! ")
@@ -80,18 +80,18 @@ class GraphDefinitionTester(object):
             with open(os.path.join(self.motion_primitive_folder, subfolder, metafilename), 'r') as infile:
                 elementary_action = subfolder.split('_')[-1]
                 meta_data = json.load(infile)
-                for motion_primitive, value in meta_data["stats"].iteritems():
+                for motion_primitive, value in meta_data["stats"].items():
                     n_transitions = value['n_standard_transitions']
                     mm_name = '_'.join([elementary_action, motion_primitive])
                     if n_transitions != self.motion_primitives[mm_name]['n_transitions']:
                         print("################################")
-                        print(mm_name + ' has different n_transitions in graph_definition file and meta_information file')
-                        print(mm_name + ' has ' + str(n_transitions) + ' transitions in meta_information file')
-                        print(mm_name + ' has ' + str(self.motion_primitives[mm_name]['n_transitions']) + ' transitions in graph_definition file')
+                        print((mm_name + ' has different n_transitions in graph_definition file and meta_information file'))
+                        print((mm_name + ' has ' + str(n_transitions) + ' transitions in meta_information file'))
+                        print((mm_name + ' has ' + str(self.motion_primitives[mm_name]['n_transitions']) + ' transitions in graph_definition file'))
 
     def generate_all_transitions(self):
         self.transition_pairs = []
-        for key, values in self.motion_primitives.iteritems():
+        for key, values in self.motion_primitives.items():
             for transition in values['transitions']:
                 new_pair = (key, transition)
                 if new_pair not in self.transition_pairs:
@@ -104,12 +104,12 @@ class GraphDefinitionTester(object):
         :param motion_state_graph:
         :return:
         """
-        for elementary_action in motion_state_graph.node_groups.keys():
+        for elementary_action in list(motion_state_graph.node_groups.keys()):
             start_primitive_list = motion_state_graph.get_start_nodes(None, elementary_action)
             assert start_primitive_list != [], ('No start motion primitive for ' + elementary_action)
             for motion_primitive in start_primitive_list:
                 motion_primitive_name = elementary_action + '_' + motion_primitive
-                assert motion_primitive_name in self.motion_primitives.keys(), \
+                assert motion_primitive_name in list(self.motion_primitives.keys()), \
                     (motion_primitive_name + 'is not in motion data folder!')
 
     def check_graph_walk(self):
@@ -121,20 +121,20 @@ class GraphDefinitionTester(object):
         self.generate_all_transitions()
         self.check_start_node_for_elementary_actions(motion_state_graph)
         for transition_pair in self.transition_pairs:
-            for key, node in motion_state_graph.nodes.iteritems():
+            for key, node in motion_state_graph.nodes.items():
                 if transition_pair[0] == '_'.join(key):
                     type = node.node_type  # three types:  begin, end, standard
                     if type == 'begin':
                         assert transition_pair[0] in motion_state_graph.get_start_nodes(None, key[0]) # check the nodetype is correct or not
-                        assert tuple(transition_pair[1].split('_')) in node.outgoing_edges.keys(), \
+                        assert tuple(transition_pair[1].split('_')) in list(node.outgoing_edges.keys()), \
                             ('transition from ' + transition_pair[0] + ' to ' + transition_pair[1] + ' cannot be found in outedges')
                     elif type == 'end':
                         assert transition_pair[0].split('_')[1] in motion_state_graph.node_groups[key[0]].end_states, \
                             ('End state ' + transition_pair[0] + ' is not in ' + key[0] + ' end_states')
-                        assert tuple(transition_pair[1].split('_')) in node.outgoing_edges.keys(), \
+                        assert tuple(transition_pair[1].split('_')) in list(node.outgoing_edges.keys()), \
                             ('transition from ' + transition_pair[0] + ' to ' + transition_pair[1] + ' cannot be found in outedges')
                     elif type == 'standard':
-                        assert tuple(transition_pair[1].split('_')) in node.outgoing_edges.keys(), \
+                        assert tuple(transition_pair[1].split('_')) in list(node.outgoing_edges.keys()), \
                             ('transition from ' + transition_pair[0] + ' to ' + transition_pair[1] + ' cannot be found in outedges')
 
 

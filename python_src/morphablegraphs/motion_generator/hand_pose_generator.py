@@ -31,7 +31,7 @@ class HandPoseGenerator(object):
         self.left_hand_skeleton = hand_pose_info["left_hand_skeleton"]
         self.right_hand_skeleton["indices"] = self.skeleton.get_joint_indices(hand_pose_info["right_hand_skeleton"]["joint_names"])
         self.left_hand_skeleton["indices"] = self.skeleton.get_joint_indices(hand_pose_info["left_hand_skeleton"]["joint_names"])
-        for pose in hand_pose_info["poses"].keys():
+        for pose in list(hand_pose_info["poses"].keys()):
             hand_pose = HandPose()
             hand_pose.hand_skeletons = dict()
             hand_pose.hand_skeletons["RightHand"] = self.right_hand_skeleton
@@ -66,7 +66,7 @@ class HandPoseGenerator(object):
                 #            skeleton = Skeleton(bvh_reader)
                 #            self._add_hand_pose(file_name[:-4], skeleton)
         else:
-            print "Error: Could not load hand poses from", hand_pose_directory
+            print("Error: Could not load hand poses from", hand_pose_directory)
 
     def _add_hand_pose(self, name, skeleton):
 
@@ -96,17 +96,17 @@ class HandPoseGenerator(object):
             left_status = "standard"
             left_hand_events = []
             right_hand_events = []
-            for frame_idx in xrange(motion_vector.n_frames):
-                if frame_idx in motion_vector.keyframe_event_list.keyframe_events_dict["events"].keys():
+            for frame_idx in range(motion_vector.n_frames):
+                if frame_idx in list(motion_vector.keyframe_event_list.keyframe_events_dict["events"].keys()):
                     for event_desc in motion_vector.keyframe_event_list.keyframe_events_dict["events"][frame_idx]:
                         if event_desc["event"] != "transfer" and event_desc["event"] != "rotate":
                             if self._is_affecting_hand("RightHand", event_desc):
                                 right_status = self.status_change_map[event_desc["event"]]
-                                print "change right hand status to", right_status
+                                print("change right hand status to", right_status)
                                 right_hand_events.append(frame_idx)
                             if self._is_affecting_hand("LeftHand", event_desc):
                                 left_status = self.status_change_map[event_desc["event"]]
-                                print "change left hand status to", left_status
+                                print("change left hand status to", left_status)
                                 left_hand_events.append(frame_idx)
                         elif event_desc["event"] == "transfer":
                             right_hand_events.append(frame_idx)
@@ -138,7 +138,7 @@ class HandPoseGenerator(object):
         for event_frame in events:
             for i in indices:
                 index = i*4+3
-                smooth_quaternion_frames_using_slerp_(quat_frames, range(index, index+4), event_frame, window)
+                smooth_quaternion_frames_using_slerp_(quat_frames, list(range(index, index+4)), event_frame, window)
 
 
     def nlerp(self, start, end, t):

@@ -7,16 +7,16 @@ Created on Wed Mar 10 17:15:22 2015
 
 import time
 import numpy as np
-from optimization import OptimizerBuilder
+from .optimization import OptimizerBuilder
 from ..constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE
-from optimization.objective_functions import obj_spatial_error_sum
-from statistics import ConstrainedGMMBuilder
+from .optimization.objective_functions import obj_spatial_error_sum
+from .statistics import ConstrainedGMMBuilder
 from ..utilities.exceptions import ConstraintError, SynthesisError
 try:
     from mgrd import motion_primitive_get_random_samples
 except ImportError:
     pass
-from mgrd_motion_primitive_sample_filter import MGRDMotionPrimitiveSampleFilter as MGRDFilter
+from .mgrd_motion_primitive_sample_filter import MGRDMotionPrimitiveSampleFilter as MGRDFilter
 from ..utilities import write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_ERROR
 SAMPLING_MODE_RANDOM = "random_discrete"
 SAMPLING_MODE_CLUSTER_TREE_SEARCH = "cluster_tree_search"
@@ -49,11 +49,8 @@ class MotionPrimitiveGenerator(object):
 
     def set_algorithm_config(self, algorithm_config):
         self._algorithm_config = algorithm_config
-        self._constrained_gmm_config = self._algorithm_config["constrained_gmm_settings"]
         self.n_random_samples = self._algorithm_config["n_random_samples"]
         self.verbose = self._algorithm_config["verbose"]
-        self.precision = self._constrained_gmm_config["precision"]
-        self.max_bad_samples = self._constrained_gmm_config["max_bad_samples"]
         self.use_constraints = self._algorithm_config["use_constraints"]
         self.local_optimization_mode = self._algorithm_config["local_optimization_mode"]
         self._settings = self._algorithm_config["local_optimization_settings"]
@@ -241,7 +238,7 @@ class MotionPrimitiveGenerator(object):
         for idx, s_vector in enumerate(samples):
             object_function_params = mp_node, constraints, prev_frames
             error = obj_spatial_error_sum(s_vector, object_function_params)
-            print "evaluated sample", idx, error
+            print("evaluated sample", idx, error)
             if min_error > error:
                 min_error = error
                 best_sample = s_vector

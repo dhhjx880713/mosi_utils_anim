@@ -47,7 +47,7 @@ def embedded_scale_factor_into_mean_and_eigen(translation_maxima,
     for row in range(n_coeffs):
         for idx in index_list:
             root_indices.append(n_dims * row + idx)
-    indices_range = range(len(root_indices))
+    indices_range = list(range(len(root_indices)))
     x_indices = [root_indices[i] for i in indices_range if i%3 == 0]
     y_indices = [root_indices[i] for i in indices_range if i%3 == 1]
     z_indices = [root_indices[i] for i in indices_range if i%3 == 2]
@@ -61,14 +61,14 @@ def embedded_scale_factor_into_mean_and_eigen(translation_maxima,
 
 
 def convert_spatial_motion_primitive_data_new_format(mm_data):
-    if 'frame_time' not in mm_data.keys():
+    if 'frame_time' not in list(mm_data.keys()):
         mm_data['frame_time'] = 0.013889
-    if 'animated_joints' not in mm_data.keys():
+    if 'animated_joints' not in list(mm_data.keys()):
         mm_data['animated_joints'] = ["Hips", "Spine", "Spine_1", "Neck", "Head", "LeftShoulder", "LeftArm",
                                       "LeftForeArm", "LeftHand", "RightShoulder", "RightArm", "RightForeArm",
                                       "RightHand", "LeftUpLeg", "LeftLeg", "LeftFoot", "RightUpLeg", "RightLeg",
                                       "RightFoot"]
-    if 'gmm_eigen' not in mm_data.keys():
+    if 'gmm_eigen' not in list(mm_data.keys()):
         gaussian_eigens = gen_gaussian_eigen(mm_data['gmm_covars'])
         mm_data['gmm_eigen'] = gaussian_eigens.tolist()
     eigen_spatial, mean_spatial = embedded_scale_factor_into_mean_and_eigen(mm_data['translation_maxima'],
@@ -94,14 +94,14 @@ def convert_spatial_motion_primitive_data_new_format(mm_data):
 
 
 def covnert_motion_primitive_data_new_format(mm_data):
-    if 'frame_time' not in mm_data.keys():
+    if 'frame_time' not in list(mm_data.keys()):
         mm_data['frame_time'] = 0.013889
-    if 'animated_joints' not in mm_data.keys():
+    if 'animated_joints' not in list(mm_data.keys()):
         mm_data['animated_joints'] = ["Hips", "Spine", "Spine_1", "Neck", "Head", "LeftShoulder", "LeftArm",
                                       "LeftForeArm", "LeftHand", "RightShoulder", "RightArm", "RightForeArm",
                                       "RightHand", "LeftUpLeg", "LeftLeg", "LeftFoot", "RightUpLeg", "RightLeg",
                                       "RightFoot"]
-    if 'gmm_eigen' not in mm_data.keys():
+    if 'gmm_eigen' not in list(mm_data.keys()):
         gaussian_eigens = gen_gaussian_eigen(mm_data['gmm_covars'])
         mm_data['gmm_eigen'] = gaussian_eigens.tolist()
     eigen_spatial, mean_spatial = embedded_scale_factor_into_mean_and_eigen(mm_data['translation_maxima'],
@@ -120,24 +120,24 @@ def covnert_motion_primitive_data_new_format(mm_data):
     motion_primitive_data['sspm']['knots'] = mm_data['b_spline_knots_spatial']
     motion_primitive_data['sspm']['animated_joints'] = mm_data['animated_joints']
     motion_primitive_data['sspm']['degree'] = 3
-    if 'eigen_vectors_temporal_semantic' in mm_data.keys():
+    if 'eigen_vectors_temporal_semantic' in list(mm_data.keys()):
         motion_primitive_data['tspm']['eigen'] = mm_data['eigen_vectors_temporal_semantic']
     else:
         motion_primitive_data['tspm']['eigen'] = numpy.transpose(mm_data['eigen_vectors_time']).tolist()
-    if 'mean_temporal_semantic_vector' in mm_data.keys():
+    if 'mean_temporal_semantic_vector' in list(mm_data.keys()):
         motion_primitive_data['tspm']['mean'] = mm_data['mean_temporal_semantic_vector']
     else:
         motion_primitive_data['tspm']['mean'] = mm_data['mean_time_vector']
-    if 'n_basis_temporal_semantic' in mm_data.keys():
+    if 'n_basis_temporal_semantic' in list(mm_data.keys()):
         motion_primitive_data['tspm']['n_coeffs'] = mm_data['n_basis_temporal_semantic']
     else:
         motion_primitive_data['tspm']['n_coeffs'] = mm_data['n_basis_time']
-    if 'n_dim_temporal_semantic' in mm_data.keys():
+    if 'n_dim_temporal_semantic' in list(mm_data.keys()):
         motion_primitive_data['tspm']['n_dims'] = mm_data['n_dim_temporal_semantic']
     else:
         motion_primitive_data['tspm']['n_dims'] = 1
 
-    if 'b_spline_knots_temporal_semantic' in mm_data.keys():
+    if 'b_spline_knots_temporal_semantic' in list(mm_data.keys()):
         motion_primitive_data['tspm']['knots'] = mm_data['b_spline_knots_temporal_semantic']
     else:
         motion_primitive_data['tspm']['knots'] = mm_data['b_spline_knots_time']
@@ -145,7 +145,7 @@ def covnert_motion_primitive_data_new_format(mm_data):
 
     motion_primitive_data['tspm']['n_canonical_frames'] = mm_data['n_canonical_frames']
 
-    if 'semantic_annotation' in mm_data.keys():
+    if 'semantic_annotation' in list(mm_data.keys()):
         motion_primitive_data['tspm']['semantic_labels'] = mm_data['semantic_annotation']
     else:
         motion_primitive_data['tspm']['semantic_labels'] = []
@@ -219,7 +219,7 @@ def convert_models_from_one_folder_to_another(src_folder,
 def test():
     test_model = r'C:\repo\data\3 - Motion primitives\motion_primitives_quaternion_PCA95\elementary_action_lookAt\lookAt_lookAt_quaternion_mm.json'
     model_data = load_json_file(test_model)
-    print(model_data.keys())
+    print((list(model_data.keys())))
     new_model_data = covnert_motion_primitive_data_new_format(model_data)
 
 

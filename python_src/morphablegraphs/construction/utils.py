@@ -109,7 +109,7 @@ def scale_root_translation_in_fpca_data(mean, eigen_vectors, scale_vec, n_coeffs
         coeff_start = coeff_idx * n_dims
         root_columns += np.arange(coeff_start, coeff_start + 3).tolist()
 
-    indices_range = range(len(root_columns))
+    indices_range = list(range(len(root_columns)))
     x_indices = [root_columns[i] for i in indices_range if i % 3 == 0]
     y_indices = [root_columns[i] for i in indices_range if i % 3 == 1]
     z_indices = [root_columns[i] for i in indices_range if i % 3 == 2]

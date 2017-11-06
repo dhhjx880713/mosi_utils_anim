@@ -24,7 +24,7 @@ class PCAFunctionalData(object):
         '''
         self.input_data = np.asarray(input_data)
         self.n_basis = n_basis
-        print("input data shape: ", self.input_data.shape)
+        print(("input data shape: ", self.input_data.shape))
         print("start to convert to functional data")
         self.functional_data = self.convert_to_fd()
         print("functional convertion completed!")
@@ -33,10 +33,10 @@ class PCAFunctionalData(object):
         self.pcaobj = PCA(self.reshaped_fd, fraction=fraction)
         if n_pc is None:
             self.eigenvectors = self.pcaobj.Vt[:self.pcaobj.npc]
-            print 'number of eigenvectors: ' + str(self.pcaobj.npc)
+            print('number of eigenvectors: ' + str(self.pcaobj.npc))
         else:
             self.eigenvectors = self.pcaobj.Vt[:n_pc]
-            print('number of eigenvectors: ' + str(n_pc))
+            print(('number of eigenvectors: ' + str(n_pc)))
         self.low_vecs = self.project_data(self.reshaped_fd)
 
     @classmethod
@@ -45,7 +45,7 @@ class PCAFunctionalData(object):
         """
         reconstructed_data = np.zeros(original_shape)
         n_samples, n_frames, n_dims = original_shape
-        for i in xrange(n_samples):
+        for i in range(n_samples):
             reconstructed_data[i, :, :] = np.reshape(
                 data[i, :], (n_frames, n_dims))
         return reconstructed_data
@@ -116,7 +116,7 @@ class PCAFunctionalData(object):
         assert len(functional_data.shape) == 3, ("functional data should be a 3d array")
         n_samples, n_coefs, n_dim = functional_data.shape
         pca_data = np.zeros((n_samples, n_coefs * n_dim))
-        for i in xrange(n_samples):
+        for i in range(n_samples):
             pca_data[i] = np.reshape(functional_data[i, :, :], (1, n_coefs * n_dim))
         return pca_data, (n_samples, n_coefs, n_dim)
 
@@ -126,7 +126,7 @@ class PCAFunctionalData(object):
         assert len(
             origin_shape) == 3, ('the original data should be a 3d array')
         fd_back = np.zeros(origin_shape)
-        for i in xrange(len(pca_data)):
+        for i in range(len(pca_data)):
             fd_back[:, i, :] = np.reshape(
                 pca_data[i], (origin_shape[0], origin_shape[2]))
         return fd_back
@@ -136,7 +136,7 @@ class PCAFunctionalData(object):
         project functional data to low dimensional space
         '''
         low_vecs = []
-        for i in xrange(len(data)):
+        for i in range(len(data)):
             low_vec = np.dot(self.eigenvectors, data[i])
             low_vecs.append(low_vec)
         low_vecs = np.asarray(low_vecs)
@@ -145,7 +145,7 @@ class PCAFunctionalData(object):
     def backproject_data(self, low_vecs):
         n_samples = len(low_vecs)
         high_vecs = []
-        for i in xrange(n_samples):
+        for i in range(n_samples):
             high_vec = np.dot(np.transpose(self.eigenvectors), low_vecs[i].T)
             high_vec = high_vec + self.centerobj.mean
             high_vecs.append(high_vec)

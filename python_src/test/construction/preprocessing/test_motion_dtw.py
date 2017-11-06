@@ -100,9 +100,9 @@ class TestMotionDynamicTimeWarping(object):
                        'frames': test_bvhreader.frames}
         distgrid = self.motion_dtw.get_distgrid(ref_motion, test_motion)
         pathx, pathy, dist = self.motion_dtw.calculate_path(distgrid)
-        for i in xrange(len(pathx)):
+        for i in range(len(pathx)):
             assert pathx[i] == res['pathx'][i]
-        for i in xrange(len(pathy)):
+        for i in range(len(pathy)):
             assert pathy[i] == res['pathy'][i]
         assert round(dist, 3) == round(res['dist'], 3)
 

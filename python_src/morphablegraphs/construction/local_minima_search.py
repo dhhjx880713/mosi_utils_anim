@@ -54,7 +54,7 @@ def get_global_minima(distance_matrix, candidates):
 def filter_minima(distance_matrix, candidates, threshold_factor):
     # find global minimum
     global_minimum = get_global_minima(distance_matrix, candidates)
-    print "global minimum", global_minimum
+    print("global minimum", global_minimum)
     # filter local minima using the threshold
     filtered_coords = []
     for c in candidates:
@@ -72,7 +72,7 @@ def filter_infinity(distance_matrix, candidates):
         x = c[0]
         y = c[1]
         value = distance_matrix[x][y]
-        print x,y,value
+        print(x,y,value)
         if value < np.inf:
             filtered_coords.append([x,y])
     return filtered_coords
@@ -89,8 +89,8 @@ def trysomething():
     x = np.random.random((5,5))
     values, coordinates = detect_local_minima(x)
     filtered_coordinates = extracted_filtered_minima(x, 5)
-    print coordinates
-    print filtered_coordinates
+    print(coordinates)
+    print(filtered_coordinates)
 
 if __name__ == "__main__":
     from scipy.signal import argrelextrema
@@ -100,6 +100,6 @@ if __name__ == "__main__":
 
     # for local minima
     #print argrelextrema(x, np.less)
-    print x
+    print(x)
     extrema = argrelextrema(x, np.greater)
-    print extrema
+    print(extrema)

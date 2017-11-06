@@ -8,8 +8,8 @@ import tornado.escape
 import tornado.ioloop
 import tornado.web
 import json
-from morphablegraphs.motion_generator.annotated_motion_vector import AnnotatedMotionVector
-from morphablegraphs.animation_data import BVHReader, SkeletonBuilder
+from .morphablegraphs.motion_generator.annotated_motion_vector import AnnotatedMotionVector
+from .morphablegraphs.animation_data import BVHReader, SkeletonBuilder
 SERVICE_CONFIG_FILE = "config" + os.sep + "service.config"
 ALGORITHM_CONFIG_FILE = "config" + os.sep + "accuracy_algorithm.config"
 
@@ -47,7 +47,7 @@ class GetMotionHandler(tornado.web.RequestHandler):
 
     def get(self):
         error_string = "GET request not implemented. Use POST instead."
-        print error_string
+        print(error_string)
         self.write(error_string)
 
     def post(self):
@@ -68,7 +68,7 @@ class GetSkeletonHandler(tornado.web.RequestHandler):
 
     def get(self):
         error_string = "GET request not implemented. Use POST instead."
-        print error_string
+        print(error_string)
         self.write(error_string)
 
     def post(self):
@@ -85,7 +85,7 @@ class UnityRESTApplication(tornado.web.Application):
         tornado.web.Application.__init__(self, handlers, default_host, transforms)
         bvh_reader = BVHReader(bvh_path)
         animated_joints = list(bvh_reader.get_animated_joints())
-        print animated_joints
+        print(animated_joints)
         self.skeleton = SkeletonBuilder().load_from_bvh(bvh_reader, animated_joints=animated_joints, add_tool_joints=False)
         self.algorithm_config = None
         self.motion_vector = AnnotatedMotionVector(self.algorithm_config)
@@ -117,7 +117,7 @@ def main():
         mg_service = UnityAnimationPlayerInterface(bvh_path)
         mg_service.start()
     else:
-        print "Error: could not open service or algorithm configuration file"
+        print("Error: could not open service or algorithm configuration file")
 
 
 if __name__ == "__main__":

@@ -19,7 +19,7 @@ class GMMTrainer(object):
         if n_samples < n_K:
             n_K = n_samples -1
         model_scores = []
-        K = range(1, n_K + 1)
+        K = list(range(1, n_K + 1))
         for i in K:
             gmm = mixture.GaussianMixture(n_components=i, covariance_type='full')
             gmm.fit(obs)
@@ -29,8 +29,8 @@ class GMMTrainer(object):
                 model_scores.append(gmm.aic(obs))
             else:
                 raise NotImplementedError
-        min_idx = min(xrange(n_K), key=model_scores.__getitem__)
-        print('number of Gaussian: ' + str(min_idx + 1))
+        min_idx = min(range(n_K), key=model_scores.__getitem__)
+        print(('number of Gaussian: ' + str(min_idx + 1)))
         self.numberOfGaussian = min_idx + 1
         if DEBUG:
             fig = plt.figure()
@@ -46,7 +46,7 @@ class GMMTrainer(object):
         self.gmm.fit(data)
         scores = self.gmm.score(data)
         self.averageScore = np.mean(scores)
-        print 'average score is:' + str(self.averageScore)
+        print('average score is:' + str(self.averageScore))
 
     def convert_model_to_json(self):
         model_data = {'gmm_weights': self.gmm.weights_.tolist(),

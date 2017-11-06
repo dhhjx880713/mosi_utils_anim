@@ -38,7 +38,7 @@ def euler_frame_diff(frame_a, frame_b):
 
 def calculate_velocity(euler_frames):
     velocity = []
-    for i in xrange(len(euler_frames)):
+    for i in range(len(euler_frames)):
         if i > 0:
             diff_frame = np.sqrt(
                 np.power(
@@ -61,7 +61,7 @@ def filter_vectors(frames, node_names):
     for frame in frames:
         filtered_v = []
         j = 0
-        for node_name in node_names.keys():
+        for node_name in list(node_names.keys()):
             # only add non bip frames
             if not node_name.startswith("Bip") and \
                     not node_names[node_name].isEndSite():
@@ -120,7 +120,7 @@ def calculate_avg_motion_velocity_from_bvh(bvh_reader,
     # copy into a OrderedDict data structure representing a pose
     average_velocity = collections.OrderedDict()
     j = 0
-    for node_name in bvh_reader.node_names.keys():
+    for node_name in list(bvh_reader.node_names.keys()):
         # only add non bip frames
         if not node_name.startswith("Bip") and \
            not bvh_reader.node_names[node_name].isEndSite():
@@ -215,7 +215,7 @@ def calculate_parameter_bounding_box(bvh_reader):
     """
 
     bounding_box = collections.OrderedDict()  # {}
-    for node_name in bvh_reader.node_names.keys():
+    for node_name in list(bvh_reader.node_names.keys()):
         # only add non bip frames
         if not node_name.startswith("Bip") and \
            not bvh_reader.node_names[node_name].isEndSite():
@@ -229,7 +229,7 @@ def calculate_parameter_bounding_box(bvh_reader):
 
         frame = bvh_reader.keyframes[i]
         j = 0
-        for node_name in bvh_reader.node_names.keys():
+        for node_name in list(bvh_reader.node_names.keys()):
             if node_name in bounding_box:
                 for c in bvh_reader.node_names[node_name].channels:
                     update_bb_value(bounding_box[node_name][c], frame[j])
@@ -258,13 +258,13 @@ def calculate_cartesian_pose_bounding_box(bvh_reader):
     # print cartesian_frames.shape
     for frame in cartesian_frames:  # iterate over frames
         j = 0
-        for node_name in bvh_reader.node_names.keys():  # iterate over joints
+        for node_name in list(bvh_reader.node_names.keys()):  # iterate over joints
             if not node_name.startswith("Bip") and \
                not bvh_reader.node_names[node_name].isEndSite():
                # print "add",node_name,j,frame.shape
                 # iterate over X Y Z for bounding box breach check
                 k = 0
-                for c in bounding_box.keys():
+                for c in list(bounding_box.keys()):
                     update_bb_value(bounding_box[c], frame[j][k])
                     k += 1
                 j += 1
@@ -287,19 +287,19 @@ def check_parameter_bounding_box(
     if bip_present:  # when Bip joints are present in euler frames
         for frame in euler_frames:
             i = 0
-            for node_name in bvh_reader.node_names.keys():
+            for node_name in list(bvh_reader.node_names.keys()):
                 if not node_name.startswith("Bip") and \
                    not bvh_reader.node_names[node_name].isEndSite():
                     # print node_name
-                    for c in pose_bb[node_name].keys():
+                    for c in list(pose_bb[node_name].keys()):
                         if abs(frame[i]) > eps:
                             if not check_bb_value(
                                     pose_bb[node_name][c],
                                     frame[i],
                                     eps):
                                 if not update_bb:
-                                    print "bounding box", node_name, c, \
-                                        pose_bb[node_name], frame[i]
+                                    print("bounding box", node_name, c, \
+                                        pose_bb[node_name], frame[i])
                                     return False
                                 else:
                                     update_bb_value(
@@ -310,18 +310,18 @@ def check_parameter_bounding_box(
     else:  # when Bip joints are ignored
         for frame in euler_frames:
             i = 0
-            for node_name in pose_bb.keys():
+            for node_name in list(pose_bb.keys()):
 
                 # print node_name
-                for c in pose_bb[node_name].keys():
+                for c in list(pose_bb[node_name].keys()):
                     if abs(frame[i]) > eps:
                         if not check_bb_value(
                                 pose_bb[node_name][c],
                                 frame[i],
                                 eps):
                             if not update_bb:
-                                print "bounding box", node_name, c, \
-                                    pose_bb[node_name], frame[i]
+                                print("bounding box", node_name, c, \
+                                    pose_bb[node_name], frame[i])
                                 return False
                             else:
                                 update_bb_value(
@@ -346,19 +346,19 @@ def check_parameter_bounding_box(
     if bip_present:  # when Bip joints are present in euler frames
         for frame in euler_frames:
             i = 0
-            for node_name in bvh_reader.node_names.keys():
+            for node_name in list(bvh_reader.node_names.keys()):
                 if not node_name.startswith("Bip") and \
                    not bvh_reader.node_names[node_name].isEndSite():
                     # print node_name
-                    for c in pose_bb[node_name].keys():
+                    for c in list(pose_bb[node_name].keys()):
                         if abs(frame[i]) > eps:
                             if not check_bb_value(
                                     pose_bb[node_name][c],
                                     frame[i],
                                     eps):
                                 if not update_bb:
-                                    print "bounding box", node_name, c, \
-                                        pose_bb[node_name], frame[i]
+                                    print("bounding box", node_name, c, \
+                                        pose_bb[node_name], frame[i])
                                     return False
                                 else:
                                     update_bb_value(
@@ -369,18 +369,18 @@ def check_parameter_bounding_box(
     else:  # when Bip joints are ignored
         for frame in euler_frames:
             i = 0
-            for node_name in pose_bb.keys():
+            for node_name in list(pose_bb.keys()):
 
                 # print node_name
-                for c in pose_bb[node_name].keys():
+                for c in list(pose_bb[node_name].keys()):
                     if abs(frame[i]) > eps:
                         if not check_bb_value(
                                 pose_bb[node_name][c],
                                 frame[i],
                                 eps):
                             if not update_bb:
-                                print "bounding box", node_name, c, \
-                                    pose_bb[node_name], frame[i]
+                                print("bounding box", node_name, c, \
+                                    pose_bb[node_name], frame[i])
                                 return False
                             else:
                                 update_bb_value(
@@ -403,10 +403,10 @@ def check_parameter_bounding_box2(
 
     for frame in euler_frames:
         i = 0
-        for node_name in pose_bb.keys():
+        for node_name in list(pose_bb.keys()):
 
             # print node_name
-            for c in pose_bb[node_name].keys():
+            for c in list(pose_bb[node_name].keys()):
                 if abs(frame[i]) > eps:
                     if not check_bb_value(
                             pose_bb[node_name][c],
@@ -450,16 +450,16 @@ def check_cartesian_bounding_box(
     for frame in cartesian_frames:  # iterate over frames
         # print "frame",frame_index
         j = 0
-        for node_name in bvh_reader.node_names.keys():  # iterate over joints
+        for node_name in list(bvh_reader.node_names.keys()):  # iterate over joints
             # print "node_name", node_name, bip_present,frame[j][:3]
             if not node_name.startswith("Bip") and \
                not bvh_reader.node_names[node_name].isEndSite():
                 # iterate over X Y Z for bounding box breach check
                 k = 0
-                for c in cartesian_bb.keys():  # X Y Z
+                for c in list(cartesian_bb.keys()):  # X Y Z
                     if not check_bb_value(cartesian_bb[c], frame[j][k], eps):
-                        print "cartesian bounding box", node_name, c,\
-                            cartesian_bb[c], frame[j][k]
+                        print("cartesian bounding box", node_name, c,\
+                            cartesian_bb[c], frame[j][k])
                         return False
                     k += 1
                 j += 1
@@ -507,13 +507,13 @@ def check_average_velocity(
 
     # check average velocity
     i = 0
-    for node_name in average_velocity.keys():
-        for c in average_velocity[node_name].keys():
+    for node_name in list(average_velocity.keys()):
+        for c in list(average_velocity[node_name].keys()):
             success = check_velocity_value(average_velocity[node_name][c],
                                            avg_vector[i], eps)
             if not success:
-                print "velocity", node_name, c, \
-                    average_velocity[node_name][c], avg_vector[i]
+                print("velocity", node_name, c, \
+                    average_velocity[node_name][c], avg_vector[i])
                 return False
             i += 1
     return True
@@ -550,11 +550,11 @@ def evaluate_motion_primitive_model(test_model_file, save_data_path):
     if not save_data_path.endswith(os.sep):
         save_data_path += os.sep
     N = 30
-    for i in xrange(N):
-        print i
+    for i in range(N):
+        print(i)
         # sample = test_mm.sample()
         sample = test_mm.sample_low_dimensional_vector()
-        print test_mm.gaussian_mixture_model.score([sample,])[0]
+        print(test_mm.gaussian_mixture_model.score([sample,])[0])
         sample_motion = test_mm.back_project(sample)
         quat_frames = sample_motion.get_motion_vector()
         # print "position: ", [quat_frames[0][0], quat_frames[0][2]]

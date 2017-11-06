@@ -312,8 +312,8 @@ def error_measure_3d_mat(raw_data,
     diff = raw_data - reconstructed_data
     n_samples, n_frames, n_dim = diff.shape
     err = 0
-    for i in xrange(n_samples):
-        for j in xrange(n_frames):
+    for i in range(n_samples):
+        for j in range(n_frames):
             err += np.linalg.norm(diff[i, j])
     err = err/(n_samples * n_frames)
     return err
@@ -327,8 +327,8 @@ def err_quat_data(raw_data,
     diff = raw_data - reconstructed_data
     n_samples, n_frames, n_dim = diff.shape
     err = 0
-    for i in xrange(n_samples):
-        for j in xrange(n_frames):
+    for i in range(n_samples):
+        for j in range(n_frames):
             err += np.linalg.norm(diff[i, j][3:])
 
     err = err/(n_samples * n_frames)
@@ -370,7 +370,7 @@ def quat_to_logmap(q):
 def expmap_to_quat(exp_map):
     v = np.log(exp_map)
     theta = np.linalg.norm(v)
-    print('theta is: ', theta)
+    print(('theta is: ', theta))
     if theta < 1e-3:
         auxillary = 0.5 + theta ** 2 / 48
     else:

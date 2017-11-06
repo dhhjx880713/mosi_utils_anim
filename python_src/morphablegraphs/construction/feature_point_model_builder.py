@@ -1,6 +1,6 @@
 __author__ = 'hadu01'
 
-from feature_point_model import FeaturePointModel
+from .feature_point_model import FeaturePointModel
 import json
 import os
 

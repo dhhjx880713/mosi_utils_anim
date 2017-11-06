@@ -1,5 +1,5 @@
-from parameterized_spline import ParameterizedSpline, SPLINE_TYPE_CATMULL_ROM
-from catmull_rom_spline import CatmullRomSpline
+from .parameterized_spline import ParameterizedSpline, SPLINE_TYPE_CATMULL_ROM
+from .catmull_rom_spline import CatmullRomSpline
 
 
 class AnnotatedSpline(ParameterizedSpline):

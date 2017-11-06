@@ -3,10 +3,10 @@ import os
 import time
 from datetime import datetime
 from ...constraints import MGInputFormatReader
-from ..algorithm_configuration import AlgorithmConfigurationBuilder
+from ..algorithm_configuration import DEFAULT_ALGORITHM_CONFIG
 from ..graph_walk_optimizer import GraphWalkOptimizer
 from ...animation_data.motion_editing import InverseKinematics
-from graph_walk_generator import GraphWalkGenerator
+from .graph_walk_generator import GraphWalkGenerator
 from ...motion_model import MotionStateGraphLoader
 from ...utilities import clear_log, save_log, write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO, LOG_MODE_ERROR
 
@@ -40,8 +40,7 @@ class MotionGenerator(object):
             Contains options for the algorithm.
         """
         if algorithm_config is None:
-            algorithm_config_builder = AlgorithmConfigurationBuilder()
-            self._algorithm_config = algorithm_config_builder.build()
+            self._algorithm_config = DEFAULT_ALGORITHM_CONFIG
         else:
             self._algorithm_config = algorithm_config
         self.graph_walk_generator.set_algorithm_config(self._algorithm_config)
@@ -125,7 +124,7 @@ class MotionGenerator(object):
             self.inverse_kinematics.fill_rotate_events(motion_vector)
         self._print_time("synthesis", start_time)
         if complete_motion_vector:
-            motion_vector.frames = self.motion_state_graph.skeleton.complete_motion_vector_from_reference(
+            motion_vector.frames = self.motion_state_graph.skeleton.add_fixed_joint_parameters_to_motion(
                 motion_vector.frames)
             if motion_vector.frames is not None:
                 if self.motion_state_graph.hand_pose_generator is not None:
@@ -139,7 +138,7 @@ class MotionGenerator(object):
     def _print_info(self, graph_walk):
         write_message_to_log(graph_walk.get_statistics_string(), LOG_MODE_INFO)
         if self._service_config["write_log"]:
-            time_stamp = unicode(datetime.now().strftime("%d%m%y_%H%M%S"))
+            time_stamp = str(datetime.now().strftime("%d%m%y_%H%M%S"))
             save_log(self._service_config["output_dir"] + os.sep + "mg_" + time_stamp + ".log")
             graph_walk.export_generated_constraints(
                 self._service_config["output_dir"] + os.sep + "generated_constraints_" + time_stamp + ".json")
@@ -147,7 +146,7 @@ class MotionGenerator(object):
     def export_statistics(self, mg_input, graph_walk, motion_vector, filename):
         if motion_vector.has_frames():
             output_filename = self._service_config["output_filename"]
-            if output_filename == "" and "session" in mg_input.keys():
+            if output_filename == "" and "session" in list(mg_input.keys()):
                 output_filename = mg_input["session"]
                 motion_vector.frame_annotation["sessionID"] = mg_input["session"]
                 motion_vector.export(self._service_config["output_dir"], output_filename, add_time_stamp=True,
@@ -158,7 +157,7 @@ class MotionGenerator(object):
                 constraints = graph_walk.get_generated_constraints()
                 constraints_string = json.dumps(constraints)
                 if filename is None:
-                    time_stamp = unicode(datetime.now().strftime("%d%m%y_%H%M%S"))
+                    time_stamp = str(datetime.now().strftime("%d%m%y_%H%M%S"))
                     filename = "graph_walk_statistics" + time_stamp + ".json"
                 outfile = open(filename, "wb")
                 outfile.write(statistics_string)

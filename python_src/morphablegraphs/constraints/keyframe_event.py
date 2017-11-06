@@ -39,19 +39,19 @@ class KeyframeEvent(object):
     def _merge_multiple_keyframe_events(self, events, num_events):
         """Merge events if there are more than one event defined for the same keyframe.
         """
-        event_list = [(events[i]["event"], events[i]) for i in xrange(num_events)]
+        event_list = [(events[i]["event"], events[i]) for i in range(num_events)]
         temp_event_dict = dict()
         for name, event in event_list:
-            if name not in temp_event_dict.keys():
+            if name not in list(temp_event_dict.keys()):
                temp_event_dict[name] = event
             else:
-                if "joint" in temp_event_dict[name]["parameters"].keys():
+                if "joint" in list(temp_event_dict[name]["parameters"].keys()):
                     existing_entry = copy(temp_event_dict[name]["parameters"]["joint"])
-                    if isinstance(existing_entry, basestring) and event["parameters"]["joint"] != existing_entry:
+                    if isinstance(existing_entry, str) and event["parameters"]["joint"] != existing_entry:
                         temp_event_dict[name]["parameters"]["joint"] = [existing_entry, event["parameters"]["joint"]]
                     elif event["parameters"]["joint"] not in existing_entry:
                         temp_event_dict[name]["parameters"]["joint"].append(event["parameters"]["joint"])
-                    print "event dict merged", temp_event_dict[name]
+                    print("event dict merged", temp_event_dict[name])
                 else:
-                    print "event dict merge did not happen", temp_event_dict[name]
-        return temp_event_dict.values()
+                    print("event dict merge did not happen", temp_event_dict[name])
+        return list(temp_event_dict.values())

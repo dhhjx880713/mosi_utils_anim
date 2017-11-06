@@ -45,7 +45,7 @@ class TestFPCATemporalData(object):
     def test_z_t_transform(self, res):
         self.fpca_temporal.z_t_transform()
         z_t = self.fpca_temporal.z_t_transform_data[res['filename']]
-        for i in xrange(len(z_t)):
+        for i in range(len(z_t)):
             assert round(z_t[i], 3) == round((res['data'][i]), 3)
 
     param_get_monotonic_indices = [{'indices': [0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11,
@@ -71,7 +71,7 @@ class TestFPCATemporalData(object):
     @params(param_get_monotonic_indices)
     def test_get_monotonic_indices(self, indices, res):
         shifted_indices = self.fpca_temporal._get_monotonic_indices(indices)
-        for i in xrange(len(res)):
+        for i in range(len(res)):
             assert round(shifted_indices[i], 5) == round(res[i], 5)
 
     param_is_strict_increasing = [{'indices': [0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11,

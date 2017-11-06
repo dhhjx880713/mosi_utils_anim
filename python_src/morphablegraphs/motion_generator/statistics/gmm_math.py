@@ -15,7 +15,7 @@ Optimal Mixture Approximation of the Product of Mixtures
 
 """
 import numpy as np
-from gaussian import Gaussian
+from .gaussian import Gaussian
 import sklearn.mixture as mixture
 
 
@@ -39,7 +39,7 @@ def _cluster_mul(gmm1, gmm2):
     means_ = []
     covars_ = []
 
-    for i in xrange(gmm1.n_components):
+    for i in range(gmm1.n_components):
         g1 = Gaussian(gmm1.mean_[i], gmm1.covar_[i])
         g2 = Gaussian(gmm2.mean_[i], gmm2.covar_[i])
         g3 = g1 * g2
@@ -73,8 +73,8 @@ def _full_mul(gmm1, gmm2):
     means_ = []
     covars_ = []
 
-    for i in xrange(gmm1.n_components):
-        for j in xrange(gmm2.n_components):
+    for i in range(gmm1.n_components):
+        for j in range(gmm2.n_components):
             g1 = Gaussian(gmm1.means_[i], gmm1.covars_[i])
             g2 = Gaussian(gmm2.means_[j], gmm2.covars_[j])
             g3 = g1 * g2

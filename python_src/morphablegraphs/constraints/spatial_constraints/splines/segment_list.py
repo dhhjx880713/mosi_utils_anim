@@ -3,7 +3,7 @@ __author__ = 'erhe01'
 import heapq
 import numpy as np
 from math import sqrt
-from spline_segment import SplineSegment
+from .spline_segment import SplineSegment
 
 
 class SegmentList(object):

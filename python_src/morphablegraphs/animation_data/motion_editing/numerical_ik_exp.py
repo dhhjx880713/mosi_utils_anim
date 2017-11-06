@@ -12,7 +12,7 @@ Proceedings of the 26th annual conference on Computer graphics and interactive t
 
 import numpy as np
 from scipy.optimize import minimize
-from utils import convert_exp_frame_to_quat_frame, add_quat_frames
+from .utils import convert_exp_frame_to_quat_frame, add_quat_frames
 
 
 def ik_objective(x, skeleton, reference, constraints, weights):

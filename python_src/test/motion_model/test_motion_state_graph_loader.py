@@ -15,8 +15,8 @@ def test_motion_primitive_graph_builder():
     motion_primitive_graph_builder.set_data_source(motion_primitive_graph_path, transition_model_directory, load_transition_models)
     motion_primitive_graph = motion_primitive_graph_builder.build()
     motion_primitive_graph.print_information()
-    assert ('walk', 'sidestepRight') in motion_primitive_graph.nodes.keys()
-    assert ("walk", "leftStance") in motion_primitive_graph.nodes[("walk", "beginRightStance")].outgoing_edges.keys()
+    assert ('walk', 'sidestepRight') in list(motion_primitive_graph.nodes.keys())
+    assert ("walk", "leftStance") in list(motion_primitive_graph.nodes[("walk", "beginRightStance")].outgoing_edges.keys())
     assert motion_primitive_graph.nodes[("walk", "endLeftStance")].s_pca["n_components"] == 7
     assert motion_primitive_graph.nodes[("walk", "leftStance")].average_step_length > 0.0
     assert motion_primitive_graph.nodes[("walk", "rightStance")].n_standard_transitions == 1

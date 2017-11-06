@@ -5,9 +5,9 @@ Created on Wed Mar 10 17:15:22 2015
 
 Wrapper around scipy minimize and error function definition.
 
-@author: erhe01,hadu01
+@author: erhe01, hadu01
 """
-from optimizer_base import OptimizerBase
+from .optimizer_base import OptimizerBase
 import time
 from scipy.optimize import minimize
 
@@ -28,7 +28,9 @@ class NumericalMinimizer(OptimizerBase):
         if self._objective_function is not None and initial_guess is not None:
             if self.verbose:
                 start = time.clock()
-                print "Start optimization using", self.optimization_settings["method"], self.optimization_settings["max_iterations"]
+                print("Start optimization using", self.optimization_settings["method"],
+                      self.optimization_settings["max_iterations"],
+                      self.optimization_settings["diff_eps"])
         #    jac = error_function_jac(s0, data)
             try:
                 result = minimize(self._objective_function,
@@ -37,15 +39,16 @@ class NumericalMinimizer(OptimizerBase):
                                   method=self.optimization_settings["method"],
                                   #jac = error_function_jac,
                                   tol=self.optimization_settings["tolerance"],
-                                  options={'maxiter': self.optimization_settings["max_iterations"], 'disp': self.verbose, 'eps': 2.0})
+                                  options={'maxiter': self.optimization_settings["max_iterations"], 'disp': self.verbose,
+                                           'eps': self.optimization_settings["diff_eps"]})
 
             except ValueError as e:
-                print "Warning:", e.message
+                print("Warning:", e.message)
                 return initial_guess
 
             if self.verbose:
-                print "Finished optimization in ", time.clock()-start, "seconds"
+                print("Finished optimization in ", time.clock()-start, "seconds")
             return result.x
         else:
-            print "Error: No objective function set. Return initial guess instead."
+            print("Error: No objective function set. Return initial guess instead.")
             return initial_guess

@@ -3,7 +3,7 @@ __author__ = 'erhe01'
 import numpy as np
 import os
 import json
-from morphablegraphs.motion_model.motion_primitive import MotionPrimitive
+from .morphablegraphs.motion_model.motion_primitive import MotionPrimitive
 from rpy2 import robjects
 
 class MotionPrimitiveExporter(MotionPrimitive):
@@ -62,7 +62,7 @@ class MotionPrimitiveExporter(MotionPrimitive):
         robjects.r(rcode)
         self.t_pca["basis_function"] = robjects.globalenv['basisobj']
         self.t_pca["knots"] = np.asarray(robjects.r['knots'](self.t_pca["basis_function"], False))
-        self.t_pca["eigen_coefs"] =zip(* self.t_pca["eigen_vectors"])
+        self.t_pca["eigen_coefs"] =list(zip(* self.t_pca["eigen_vectors"]))
 
     def save_to_file(self, filename):
         data = {'name': self.name,
@@ -88,7 +88,7 @@ def add_property_to_elementary_action(directory):
       for root, dirs, files in os.walk(directory):
         for file_name in files:#for each morphable model
             if file_name.endswith("mm.json"):
-                print "found motion primitive",file_name
+                print("found motion primitive",file_name)
                 motion_primitive_file_name = directory+os.sep+file_name
                 motion_primitive = MotionPrimitiveExporter(motion_primitive_file_name)
                 motion_primitive.save_to_file(motion_primitive_file_name)

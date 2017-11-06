@@ -7,12 +7,12 @@ Created on Thu Feb 12 20:11:35 2015
 import os
 import numpy as np
 from math import sqrt, radians, sin, cos, isnan
-from itertools import izip
+
 from copy import deepcopy
 import glob
-from bvh import BVHReader, BVHWriter
+from .bvh import BVHReader, BVHWriter
 from scipy import stats  # linear regression
-from quaternion_frame import QuaternionFrame
+from .quaternion_frame import QuaternionFrame
 from ..external.transformations import quaternion_matrix, euler_from_matrix, \
     quaternion_from_matrix, euler_matrix, \
     quaternion_multiply, \
@@ -26,7 +26,7 @@ try:
 except:
     print("Could not find euler FK-Extension")
 
-from constants import *
+from .constants import *
 
 if use_euler_fk:
     FK_FUNCS = [
@@ -65,7 +65,7 @@ def rotation_order_to_string(rotation_order):
 
 def extract_root_positions_from_frames(frames):
     roots = []
-    for i in xrange(len(frames)):
+    for i in range(len(frames)):
         position = np.array([frames[i][0], frames[i][1], frames[i][2]])
         roots.append(position)
     return np.array(roots)
@@ -189,7 +189,7 @@ def quaternion_to_euler_smooth(q, euler_ref, rotation_order=DEFAULT_ROTATION_ORD
     """
     len_angle = len(euler_ref)
     euler_angles = quaternion_to_euler(q, rotation_order)
-    for i in xrange(len_angle):
+    for i in range(len_angle):
         if euler_ref[i] < 0:
             diff1 = abs(euler_ref[i] - euler_angles[i])
             diff2 = abs(euler_angles[i] - 360 - euler_ref[i])
@@ -250,14 +250,14 @@ def convert_euler_frames_to_quaternion_frames(bvhreader, euler_frames, filter_jo
     for frame in euler_frames:
         quat_frame = QuaternionFrame(bvhreader, frame, ignore_bip_joints=filter_joints)
         if last_quat_frame is not None:
-            for joint_name in bvhreader.node_names.keys():
-                if joint_name in quat_frame.keys():
+            for joint_name in list(bvhreader.node_names.keys()):
+                if joint_name in list(quat_frame.keys()):
                     quat_frame[joint_name] = check_quat(
                         quat_frame[joint_name],
                         last_quat_frame[joint_name])
         last_quat_frame = quat_frame
         root_translation = frame[0:3]
-        quat_frame_values = [root_translation, ] + quat_frame.values()
+        quat_frame_values = [root_translation, ] + list(quat_frame.values())
         quat_frame_values = convert_quat_frame_value_to_array(quat_frame_values)
         quat_frames.append(quat_frame_values)
     return quat_frames
@@ -304,7 +304,7 @@ def convert_quaternion_frames_to_euler_frames(quaternion_frames):
     def gen_4_tuples(it):
         """Generator of n-tuples from iterable"""
 
-        return zip(it[0::4], it[1::4], it[2::4], it[3::4])
+        return list(zip(it[0::4], it[1::4], it[2::4], it[3::4]))
 
     def get_euler_frame(quaternionion_frame):
         """Converts a quaternion frame into an Euler frame"""
@@ -315,7 +315,7 @@ def convert_quaternion_frames_to_euler_frames(quaternion_frames):
 
         return euler_frame
 
-    euler_frames = map(get_euler_frame, quaternion_frames)
+    euler_frames = list(map(get_euler_frame, quaternion_frames))
 
     return np.array(euler_frames)
 
@@ -339,7 +339,7 @@ def convert_quaternion_to_euler(quaternion_frames):
     def gen_4_tuples(it):
         """Generator of n-tuples from iterable"""
 
-        return zip(it[0::4], it[1::4], it[2::4], it[3::4])
+        return list(zip(it[0::4], it[1::4], it[2::4], it[3::4]))
 
     def get_euler_frame(quaternionion_frame):
         """Converts a quaternion frame into an Euler frame"""
@@ -350,7 +350,7 @@ def convert_quaternion_to_euler(quaternion_frames):
 
         return euler_frame
 
-    euler_frames = map(get_euler_frame, quaternion_frames)
+    euler_frames = list(map(get_euler_frame, quaternion_frames))
 
     return np.array(euler_frames)
 
@@ -398,7 +398,7 @@ def get_cartesian_coordinates_from_quaternion(skeleton, node_name, quaternion_fr
         root_node_offset = skeleton.node_names[node_name]["offset"]
 
         return [t + o for t, o in
-                izip(root_frame_position, root_node_offset)]
+                zip(root_frame_position, root_node_offset)]
 
     else:
         # Names are generated bottom to up --> reverse
@@ -409,7 +409,7 @@ def get_cartesian_coordinates_from_quaternion(skeleton, node_name, quaternion_fr
         offsets = [skeleton.node_names[nodename]["offset"]
                    for nodename in chain_names]
         root_position = quaternion_frame[:3].flatten()
-        offsets[0] = [r + o for r, o in izip(root_position, offsets[0])]
+        offsets[0] = [r + o for r, o in zip(root_position, offsets[0])]
 
         j_matrices = []
         count = 0
@@ -481,7 +481,7 @@ if use_euler_fk:
             root_node_offset = bvh_reader.node_names[node_name]["offset"]
 
             return [t + o for t, o in
-                    izip(root_frame_position, root_node_offset)]
+                    zip(root_frame_position, root_node_offset)]
 
         else:
             # Names are generated bottom to up --> reverse
@@ -502,18 +502,18 @@ if use_euler_fk:
 
             # bvh_reader.node_names.keys().index("RightShoulder")*3 +
             # 3,len(euler_frame)
-            rad_angles = (map(radians, eul_angle) for eul_angle in eul_angles)
+            rad_angles = (list(map(radians, eul_angle)) for eul_angle in eul_angles)
 
-            thx, thy, thz = map(list, zip(*rad_angles))
+            thx, thy, thz = list(map(list, list(zip(*rad_angles))))
 
             offsets = [bvh_reader.node_names[nodename]["offset"]
                        for nodename in chain_names]
 
             # Add root offset to frame offset list
             root_position = euler_frame[:3]
-            offsets[0] = [r + o for r, o in izip(root_position, offsets[0])]
+            offsets[0] = [r + o for r, o in zip(root_position, offsets[0])]
 
-            ax, ay, az = map(list, izip(*offsets))
+            ax, ay, az = list(map(list, zip(*offsets)))
 
             # f_idx identifies the kinematic forward transform function
             # This does not lead to a negative index because the root is
@@ -565,7 +565,7 @@ def get_cartesian_coordinates_for_plam_euler(
     offsets.append(Finger21_offset)
     chain_names.append(Finger2)
     chain_names.append(Finger21)
-    for i in xrange(len(chain_names)):
+    for i in range(len(chain_names)):
         rot_angles = eul_angles[i]
         translation = offsets[i]
         rot_angles_rad = np.deg2rad(rot_angles)
@@ -598,7 +598,7 @@ if use_euler_fk:
             root_node_offset = skeleton.node_names[node_name]["offset"]
 
             return [t + o for t, o in
-                    izip(root_frame_position, root_node_offset)]
+                    zip(root_frame_position, root_node_offset)]
 
         else:
             # Names are generated bottom to up --> reverse
@@ -609,18 +609,18 @@ if use_euler_fk:
             for nodename in chain_names:
                 index = skeleton.node_name_frame_map[nodename] * 3 + 3
                 eul_angles.append(euler_frame[index:index + 3])
-            rad_angles = (map(radians, eul_angle) for eul_angle in eul_angles)
+            rad_angles = (list(map(radians, eul_angle)) for eul_angle in eul_angles)
 
-            thx, thy, thz = map(list, zip(*rad_angles))
+            thx, thy, thz = list(map(list, list(zip(*rad_angles))))
 
             offsets = [skeleton.node_names[nodename]["offset"]
                        for nodename in chain_names]
 
             # Add root offset to frame offset list
             root_position = euler_frame[:3]
-            offsets[0] = [r + o for r, o in izip(root_position, offsets[0])]
+            offsets[0] = [r + o for r, o in zip(root_position, offsets[0])]
 
-            ax, ay, az = map(list, izip(*offsets))
+            ax, ay, az = list(map(list, zip(*offsets)))
 
             # f_idx identifies the kinematic forward transform function
             # This does not lead to a negative index because the root is
@@ -640,7 +640,7 @@ def convert_euler_frame_to_cartesian_frame(skeleton, euler_frame):
     cartesian_frame = []
     for node_name in skeleton.node_names:
         # ignore Bip joints and end sites
-        if not node_name.startswith("Bip") and "children" in skeleton.node_names[node_name].keys():
+        if not node_name.startswith("Bip") and "children" in list(skeleton.node_names[node_name].keys()):
             cartesian_frame.append(
                 get_cartesian_coordinates_from_euler(
                     skeleton,
@@ -658,7 +658,7 @@ def convert_quaternion_frame_to_cartesian_frame(skeleton, quat_frame):
     for node_name in skeleton.node_names:
         # ignore Bip joints and end sites
         if not node_name.startswith(
-                "Bip") and "children" in skeleton.node_names[node_name].keys():
+                "Bip") and "children" in list(skeleton.node_names[node_name].keys()):
             cartesian_frame.append(
                 get_cartesian_coordinates_from_quaternion(
                     skeleton,
@@ -788,7 +788,7 @@ def transform_point_by_quaternion(point, quaternion, offset, origin=None):
     homogenous_point = np.append([0], point)
     tmp_q = quaternion_multiply(quaternion, homogenous_point)
     temp_q = quaternion_multiply(tmp_q, quaternion_conjugate(quaternion))
-    new_point = [temp_q[i+1] + offset[i] + origin[i] for i in xrange(3)]
+    new_point = [temp_q[i+1] + offset[i] + origin[i] for i in range(3)]
     return new_point
 
 
@@ -807,7 +807,7 @@ def transform_point_by_quaternion_faster(point, quaternion, offset, origin=None)
         origin = [0,0,0]
     t = 2 * np.cross(quaternion[1:], point)
     new_point = np.array(point) + quaternion[0] * t + np.cross(quaternion[1:], t)
-    new_point = [new_point[i] + offset[i] + origin[i] for i in xrange(3)]
+    new_point = [new_point[i] + offset[i] + origin[i] for i in range(3)]
     return new_point
 
 
@@ -827,7 +827,7 @@ def transform_point_by_quaternion_faster2(point, quaternion, offset, origin=None
     u = quaternion[1:]
     s = quaternion[0]
     new_point = 2.0 * np.dot(u, point) * u + (s*s - np.dot(u, u)) * point + 2.0 * s * np.cross(u, point)
-    new_point = [new_point[i] + offset[i] + origin[i] for i in xrange(3)]
+    new_point = [new_point[i] + offset[i] + origin[i] for i in range(3)]
     return new_point
 
 
@@ -1074,8 +1074,8 @@ def smooth_quaternion_frames(quaternion_frames, discontinuity, window=20):
     n_joints = (len(quaternion_frames[0]) - 3) / 4
     # smooth quaternion
     n_frames = len(quaternion_frames)
-    for i in xrange(n_joints):
-        for j in xrange(n_frames - 1):
+    for i in range(n_joints):
+        for j in range(n_frames - 1):
             q1 = np.array(quaternion_frames[j][3 + i * 4: 3 + (i + 1) * 4])
             q2 = np.array(quaternion_frames[j + 1][3 + i * 4:3 + (i + 1) * 4])
             if np.dot(q1, q2) < 0:
@@ -1085,7 +1085,7 @@ def smooth_quaternion_frames(quaternion_frames, discontinuity, window=20):
     d = float(discontinuity)
     w = float(window)
     smoothing_factors = []
-    for f in xrange(n_frames):
+    for f in range(n_frames):
         value = 0.0
         if d - w <= f < d:
             tmp = (f - d + w) / w
@@ -1096,7 +1096,7 @@ def smooth_quaternion_frames(quaternion_frames, discontinuity, window=20):
         smoothing_factors.append(value)
     smoothing_factors = np.array(smoothing_factors)
     new_quaternion_frames = []
-    for i in xrange(len(quaternion_frames[0])):
+    for i in range(len(quaternion_frames[0])):
         current_value = quaternion_frames[:, i]
         magnitude = current_value[int(d)] - current_value[int(d) - 1]
         new_value = current_value + (magnitude * smoothing_factors)
@@ -1125,8 +1125,8 @@ def smooth_quaternion_frames_partially(quaternion_frames, joint_parameter_indice
     n_joints = (len(quaternion_frames[0]) - 3) / 4
     # smooth quaternion
     n_frames = len(quaternion_frames)
-    for i in xrange(n_joints):
-         for j in xrange(n_frames - 1):
+    for i in range(n_joints):
+         for j in range(n_frames - 1):
              q1 = np.array(quaternion_frames[j][3 + i * 4: 3 + (i + 1) * 4])
              q2 = np.array(quaternion_frames[j + 1][3 + i * 4:3 + (i + 1) * 4])
              if np.dot(q1, q2) < 0:
@@ -1136,7 +1136,7 @@ def smooth_quaternion_frames_partially(quaternion_frames, joint_parameter_indice
     transition_frame = float(discontinuity)
     window_size = float(window)
     smoothing_factors = []
-    for frame_number in xrange(n_frames):
+    for frame_number in range(n_frames):
         value = 0.0
         if transition_frame - window_size <= frame_number < transition_frame:
             tmp = (frame_number - transition_frame + window_size) / window_size
@@ -1152,7 +1152,7 @@ def smooth_quaternion_frames_partially(quaternion_frames, joint_parameter_indice
     #print "magnitude ", magnitude_vector
     for i in joint_parameter_indices:
         joint_parameter_index = i*4+3
-        for frame_index in xrange(n_frames):
+        for frame_index in range(n_frames):
             quaternion_frames[frame_index][joint_parameter_index] = quaternion_frames[frame_index][joint_parameter_index]+magnitude_vector[joint_parameter_index] * smoothing_factors[frame_index]
     #
     # for i in xrange(len(quaternion_frames[0])):
@@ -1189,7 +1189,7 @@ def smooth_motion(euler_frames, discontinuity, window=20):
     s = float(window)
 
     smoothing_faktors = []
-    for f in xrange(len(euler_frames)):
+    for f in range(len(euler_frames)):
         value = 0.0
         if d - s <= f < d:
             tmp = ((f - d + s) / s)
@@ -1202,7 +1202,7 @@ def smooth_motion(euler_frames, discontinuity, window=20):
 
     smoothing_faktors = np.array(smoothing_faktors)
     new_euler_frames = []
-    for i in xrange(len(euler_frames[0])):
+    for i in range(len(euler_frames[0])):
         current_value = euler_frames[:, i]
         magnitude = current_value[int(d)] - current_value[int(d) - 1]
         if magnitude > 180:
@@ -1405,7 +1405,7 @@ def calculate_point_cloud_distance(a, b):
     assert len(a) == len(b)
     distance = 0
     n_points = len(a)
-    for i in xrange(n_points):
+    for i in range(n_points):
         d = [a[i][0] - b[i][0], a[i][1] - b[i][1], a[i][2] - b[i][2]]
         distance += sqrt(d[0] ** 2 + d[1] ** 2 + d[2] ** 2)
     return distance / n_points
@@ -1496,7 +1496,7 @@ def calculate_weighted_frame_distance_quat(quat_frame_a,
     assert len(quat_frame_a) == len(quat_frame_b) and \
         len(quat_frame_a) == (len(weights) - 2) * LEN_QUAT + LEN_ROOT_POS
     diff = 0
-    for i in xrange(len(weights) - 2):
+    for i in range(len(weights) - 2):
         quat1 = quat_frame_a[(i+1)*LEN_QUAT+LEN_ROOT_POS: (i+2)*LEN_QUAT+LEN_ROOT_POS]
         quat2 = quat_frame_b[(i+1)*LEN_QUAT+LEN_ROOT_POS: (i+2)*LEN_QUAT+LEN_ROOT_POS]
         tmp = quat_distance(quat1, quat2)*weights[i]
@@ -1525,7 +1525,7 @@ def calculate_pose_distances_from_low_dim(skeleton, mm_models, X, Y):
     assert len(X) == len(Y)
     n = len(X)
     errors = []
-    for i in xrange(n):
+    for i in range(n):
         euler_frames_a = mm_models["X"].back_project(X[i]).get_motion_vector()
         euler_frames_b = mm_models["Y"].back_project(Y[i]).get_motion_vector()
         error = calculate_pose_distance(
@@ -1542,7 +1542,7 @@ def extract_root_positions(frames):
     :return roots_2D: a list of root position in 2D space
     """
     roots_2D = []
-    for i in xrange(len(frames)):
+    for i in range(len(frames)):
         position_2D = [frames[i][0], frames[i][2]]
         roots_2D.append(position_2D)
 

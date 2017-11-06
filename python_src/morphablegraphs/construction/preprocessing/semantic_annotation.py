@@ -15,19 +15,19 @@ def create_low_level_semantic_annotation(elementary_action,
     if repo_dir is None:
         repo_dir = r'C:\repo'
     if 'pick' in elementary_action.lower() or 'place' in elementary_action.lower():
-        print('create synthetic semantic annotation for ' + elementary_action)
+        print(('create synthetic semantic annotation for ' + elementary_action))
         gen_synthetic_semantic_annotation_pick_and_place(elementary_action,
                                                          motion_primitive)
     elif 'walk' in elementary_action.lower() or 'carry' in elementary_action.lower():
-        print('create synthetic semantic annotation for ' + elementary_action)
+        print(('create synthetic semantic annotation for ' + elementary_action))
         gen_walk_annotation(elementary_action,
                             motion_primitive)
     elif 'screw' in elementary_action.lower():
-        print('create synthetic semnatic annotation for ' + elementary_action)
+        print(('create synthetic semnatic annotation for ' + elementary_action))
         gen_synthetic_semantic_annotation_for_screw(elementary_action,
                                                     motion_primitive)
     elif 'transfer' in elementary_action.lower():
-        print('create synthetic semnatic annotation for ' + elementary_action)
+        print(('create synthetic semnatic annotation for ' + elementary_action))
         gen_synthetic_semantic_annotation_for_transfer(elementary_action,
                                                        motion_primitive)
     else:

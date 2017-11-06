@@ -41,7 +41,7 @@ class FeaturePointModel(object):
         """
         assert type(joint_name_list) == list, 'joint names should be a list'
         self.feature_point_list = joint_name_list
-        for i in xrange(n):
+        for i in range(n):
             low_dimension_vector = self.motion_primitive_model.sample_low_dimensional_vector()
             motion_spline = self.motion_primitive_model.back_project(low_dimension_vector)
             self.low_dimension_vectors.append(low_dimension_vector.tolist())
@@ -60,7 +60,7 @@ class FeaturePointModel(object):
 
     def create_root_pos_ori(self, n):
         assert 'walk' or 'carry' in self.motion_primitive_model.name, 'root distribution only works for trajectory motion.'
-        for i in xrange(n):
+        for i in range(n):
             motion_spline = self.motion_primitive_model.sample()
             quat_frames = motion_spline.get_motion_vector()
             rot_pos = np.array([quat_frames[-1][0], quat_frames[-1][2]])
@@ -140,7 +140,7 @@ class FeaturePointModel(object):
 
     def plot_orientation(self):
         fig = plt.figure()
-        for i in xrange(len(self.orientations)):
+        for i in range(len(self.orientations)):
             plt.plot([0, self.orientations[i][0]], [0, self.orientations[i][1]], 'r')
         plt.xlim([-1, 1])
         plt.ylim([-1, 1])

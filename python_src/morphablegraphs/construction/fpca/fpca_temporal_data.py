@@ -54,7 +54,7 @@ class FPCATemporalData(object):
         if shifted_indices[0] == shifted_indices[-1]:
             raise ValueError("First and Last element are equal")
 
-        for i in xrange(1, len(shifted_indices) - 1):
+        for i in range(1, len(shifted_indices) - 1):
             if shifted_indices[i] > shifted_indices[i - 1] + delta:
                 continue
 
@@ -62,7 +62,7 @@ class FPCATemporalData(object):
                     shifted_indices[i] <= shifted_indices[i - 1] + delta:
                 shifted_indices[i] = shifted_indices[i] + epsilon
 
-        for i in xrange(len(indices) - 2, 0, -1):
+        for i in range(len(indices) - 2, 0, -1):
             if shifted_indices[i] + delta < shifted_indices[i + 1]:
                 break
 
@@ -85,7 +85,7 @@ class FPCATemporalData(object):
         -------
         boolean
         """
-        for i in xrange(1, len(indices)):
+        for i in range(1, len(indices)):
             if np.allclose(indices[i], indices[i - 1]) or indices[i] < indices[i - 1]:
                 return False
         return True

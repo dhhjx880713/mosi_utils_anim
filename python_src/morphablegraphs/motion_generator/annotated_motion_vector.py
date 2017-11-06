@@ -15,20 +15,20 @@ class AnnotatedMotionVector(MotionVector):
         self.ground_contacts = None
         self.ik_constraints = dict()
 
-    def export(self, output_dir, output_filename, add_time_stamp=False, export_details=False):
+    def export(self, output_filename, add_time_stamp=False, export_details=False):
         """ Saves the resulting animation frames, the annotation and actions to files.
         Also exports the input file again to the output directory, where it is
         used as input for the constraints visualization by the animation server.
         """
 
-        MotionVector.export(self, self.skeleton, output_dir, output_filename, add_time_stamp)
-        self.export_annotation(output_dir, output_filename)
+        MotionVector.export(self, self.skeleton, output_filename, add_time_stamp)
+        self.export_annotation(output_filename)
 
-    def export_annotation(self,output_dir, output_filename):
+    def export_annotation(self, output_filename):
         if self.mg_input is not None:
-            write_to_json_file(output_dir + os.sep + output_filename + ".json", self.mg_input.mg_input_file)
+            write_to_json_file(output_filename + ".json", self.mg_input.mg_input_file)
         if self.keyframe_event_list is not None:
-            self.keyframe_event_list.export_to_file(output_dir + os.sep + output_filename)
+            self.keyframe_event_list.export_to_file(output_filename)
 
     def load_from_file(self, file_name, filter_joints=True):
         bvh = BVHReader(file_name)
@@ -40,11 +40,11 @@ class AnnotatedMotionVector(MotionVector):
 
     def to_unity_format(self, scale=1.0):
         """ Converts the frames into a custom json format for use in a Unity client"""
-        animated_joints = [j for j, n in self.skeleton.nodes.items() if
+        animated_joints = [j for j, n in list(self.skeleton.nodes.items()) if
                            "EndSite" not in j and len(n.children) > 0]  # self.animated_joints
         unity_frames = []
 
-        for node in self.skeleton.nodes.values():
+        for node in list(self.skeleton.nodes.values()):
             node.quaternion_index = node.index
 
         for frame in self.frames:
@@ -63,7 +63,7 @@ class AnnotatedMotionVector(MotionVector):
             src: http://answers.unity3d.com/questions/503407/need-to-convert-to-right-handed-coordinates.html
         """
         unity_frame = {"rotations": [], "rootTranslation": None}
-        for node_name in self.skeleton.nodes.keys():
+        for node_name in list(self.skeleton.nodes.keys()):
             if node_name in animated_joints:
                 node = self.skeleton.nodes[node_name]
                 if node_name == self.skeleton.root:

@@ -167,7 +167,7 @@ class KDTree(object):
             best_option, least_distance = self._decide_direction_distance(target, node.left, node.right)
             if best_option is not None:
                 heapq.heappush(result_queue, (least_distance, best_option))
-        return zip([(n[0], n[1]) for n in result_queue[:k]])
+        return list(zip([(n[0], n[1]) for n in result_queue[:k]]))
 
     def print_tree_df(self):
         """prints tree using a depth first traversal 
@@ -177,7 +177,7 @@ class KDTree(object):
         element_count = 1
         while len(node_stack) > 0:
             node = node_stack.pop(-1)
-            print element_count, node.index, node.point
+            print(element_count, node.index, node.point)
             if node.type == INNER_NODE:
                 if node.left is not None:
                     node_stack.append(node.left)

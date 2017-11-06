@@ -15,13 +15,13 @@ os.chdir(dirname)
 import json
 import glob
 import time
-from morphablegraphs import MotionGenerator, AlgorithmConfigurationBuilder, load_json_file
+from .morphablegraphs import MotionGenerator, DEFAULT_ALGORITHM_CONFIG, load_json_file
 SERVICE_CONFIG_FILE = "config" + os.sep + "service.config"
 
 
 def get_newest_file_from_input_dir(service_config):
     input_file = glob.glob(service_config["input_dir"] + os.sep + "*.json")[-1]
-    print "Loading constraints from file", input_file
+    print("Loading constraints from file", input_file)
     return input_file
 
 
@@ -41,20 +41,18 @@ def run_pipeline(service_config):
 
     input_file = get_newest_file_from_input_dir(service_config)
 
-    algorithm_config_builder = AlgorithmConfigurationBuilder()
-
     algorithm_config_file = "config" + os.sep + service_config["algorithm_settings"] + "_algorithm.config"
     if os.path.isfile(algorithm_config_file):
-        print "Load algorithm configuration from", algorithm_config_file
-        algorithm_config_builder.from_json(algorithm_config_file)
+        print("Load algorithm configuration from", algorithm_config_file)
+        algorithm_config = load_json_file(algorithm_config_file)
     else:
-        print "Did not find algorithm configuration file", algorithm_config_file
-    algorithm_config = algorithm_config_builder.build()
+        print("Did not find algorithm configuration file", algorithm_config_file)
+        algorithm_config = DEFAULT_ALGORITHM_CONFIG
     service_config["collision_avoidance_service_url"] = None  # disable collision avoidance
 
     start = time.clock()
     motion_generator = MotionGenerator(service_config, algorithm_config)
-    print "Finished construction from file in", time.clock() - start, "seconds"
+    print("Finished construction from file in", time.clock() - start, "seconds")
 
     mg_input = replace_hand_joints_in_input_file(input_file)
     motion_vector = motion_generator.generate_motion(mg_input, activate_joint_map=service_config["activate_joint_map"],
@@ -73,7 +71,7 @@ def main():
         service_config = load_json_file(SERVICE_CONFIG_FILE)
         run_pipeline(service_config)
     else:
-        print "Error: Could not read service config file", SERVICE_CONFIG_FILE
+        print("Error: Could not read service config file", SERVICE_CONFIG_FILE)
 
 
 if __name__ == "__main__":

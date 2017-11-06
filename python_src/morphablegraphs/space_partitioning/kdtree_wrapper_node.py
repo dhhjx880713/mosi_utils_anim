@@ -7,7 +7,7 @@ Created on Wed Jul 29 16:02:54 2015
 
 import uuid
 import numpy as np
-from kdtree import KDTree
+from .kdtree import KDTree
 from . import KDTREE_WRAPPER_NODE
 
 
@@ -43,10 +43,10 @@ class KDTreeWrapper(object):
         """
         results = self.kdtree.find_best_example(obj, data, k)
         if len(results) > 1:
-            distances, points = zip(*results)
+            distances, points = list(zip(*results))
             weights = self._get_knn_weights(distances)
             new_point = np.zeros(len(points[0]))
-            for i in xrange(len(weights)):
+            for i in range(len(weights)):
                 new_point += weights[i] * np.array(points[i])
             return obj(new_point, data), new_point
         else:
@@ -59,7 +59,7 @@ class KDTreeWrapper(object):
         ## calculate weight based on normalized influence
         weights = []
         sum_influence = np.sum(influences)
-        for i in xrange(len(influences)):
+        for i in range(len(influences)):
             weights.append(influences[i]/sum_influence)
         return weights
 

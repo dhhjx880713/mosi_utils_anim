@@ -7,8 +7,8 @@ Created on Sun Aug 02 13:15:01 2015
 
 import numpy as np
 from ...external.transformations import quaternion_multiply
-from fpca_temporal_data import FPCATemporalData
-from fpca_spatial_data import FPCASpatialData
+from .fpca_temporal_data import FPCATemporalData
+from .fpca_spatial_data import FPCASpatialData
 from ...utilities.custom_math import areQuatClose, diff_quat, quat_to_logmap, normalize_quaternion, logmap_to_quat
 from ..utils import get_data_analysis_folder
 from ...utilities import load_json_file, write_to_json_file
@@ -56,17 +56,17 @@ class MotionDimensionReduction(object):
 
     def load_motion_data(self, motion_data):
         self.motion_data = motion_data
-        for filename, data in self.motion_data.iteritems():
+        for filename, data in self.motion_data.items():
             self.spatial_data[filename] = data['frames']
             self.temporal_data[filename] = data['warping_index']
-        self.fdata['n_frames'] = len(self.spatial_data[self.spatial_data.keys()[0]])
+        self.fdata['n_frames'] = len(self.spatial_data[list(self.spatial_data.keys())[0]])
 
     def load_temporal_data(self, temporal_data):
         self.temporal_data = temporal_data
 
     def load_spatial_data(self, spatial_data):
         self.spatial_data = spatial_data
-        self.fdata['n_frames'] = len(self.spatial_data[self.spatial_data.keys()[0]])
+        self.fdata['n_frames'] = len(self.spatial_data[list(self.spatial_data.keys())[0]])
 
     def use_fpca_on_temporal_params(self):
         if not self.temporal_data:
@@ -100,7 +100,7 @@ class MotionDimensionReduction(object):
         self.fpca_spatial.fit_motion_dictionary(smoothed_quat_frames)
 
     def convert_euler_to_quat(self):
-        for filename, frames in self.spatial_data.iteritems():
+        for filename, frames in self.spatial_data.items():
             self.quat_frames[filename] = convert_euler_frames_to_quaternion_frames(self.skeleton_bvh, frames)
 
     @staticmethod
@@ -109,7 +109,7 @@ class MotionDimensionReduction(object):
         Calculate average motion by averaging quaternion values
         :return:
         """
-        smoothed_quat_values = np.asarray(smoothed_quat_frames.values())
+        smoothed_quat_values = np.asarray(list(smoothed_quat_frames.values()))
         average_quat_value = np.average(smoothed_quat_values, axis=0)
         n_frames, n_dims = average_quat_value.shape
         n_quats = (n_dims - LEN_ROOT_POSITION)/LEN_QUATERNION
@@ -129,7 +129,7 @@ class MotionDimensionReduction(object):
         """
         mean_moton = MotionDimensionReduction.get_mean_motion(smoothed_quat_frames)
         centrailized_motion_data = {}
-        for key, value in smoothed_quat_frames.iteritems():
+        for key, value in smoothed_quat_frames.items():
             centrailized_motion_data[key] = MotionDimensionReduction.quat_motion_subtraction(value, mean_moton).tolist()
         return centrailized_motion_data, mean_moton.tolist()
 
@@ -161,7 +161,7 @@ class MotionDimensionReduction(object):
             full_euler_frames_dic = load_json_file(full_euler_frames_filename)['data']
         else:
             full_euler_frames_dic = {}
-            for filename, frames in self.spatial_data.iteritems():
+            for filename, frames in self.spatial_data.items():
                 full_euler_frames_dic[filename] = frames
         if export_data:
             output_data = {'data': full_euler_frames_dic}
@@ -175,7 +175,7 @@ class MotionDimensionReduction(object):
         else:
             bvhreader = BVHReader(self.skeleton_bvh)
             reduced_euler_frames_dic = {}
-            for filename, frames in self.spatial_data.iteritems():
+            for filename, frames in self.spatial_data.items():
                 reduced_euler_frames_dic[filename] = convert_euler_frames_to_reduced_euler_frames(bvhreader, frames)
         if export_data:
             output_data = {'data': reduced_euler_frames_dic}
@@ -185,23 +185,23 @@ class MotionDimensionReduction(object):
     @staticmethod
     def get_root_trajectory_data(smoothed_quat_frames):
         root_trajectory = OrderedDict()
-        for key, value in smoothed_quat_frames.iteritems():
+        for key, value in smoothed_quat_frames.items():
             root_trajectory[key] = np.asarray(value)[:, :LEN_ROOT_POSITION]
         return root_trajectory
 
     @staticmethod
     def get_pose_data(smoothed_quat_frames):
         pose_data = OrderedDict()
-        for key, value in smoothed_quat_frames.iteritems():
+        for key, value in smoothed_quat_frames.items():
             pose_data[key] = np.asarray(value)[:, LEN_ROOT_POSITION:]
         return pose_data
 
     @staticmethod
     def smooth_quat_frames(quat_frames):
         smoothed_quat_frames = {}
-        filenames = quat_frames.keys()
-        smoothed_quat_frames_data = np.asarray(copy.deepcopy(quat_frames.values()))
-        print('quaternion frame data shape: ', smoothed_quat_frames_data.shape)
+        filenames = list(quat_frames.keys())
+        smoothed_quat_frames_data = np.asarray(copy.deepcopy(list(quat_frames.values())))
+        print(('quaternion frame data shape: ', smoothed_quat_frames_data.shape))
         assert len(smoothed_quat_frames_data.shape) == 3, ('The shape of quaternion frames is not correct!')
         n_samples, n_frames, n_dims = smoothed_quat_frames_data.shape
         assert n_dims == 79, ('The length of dimension is not correct!')
@@ -254,7 +254,7 @@ class MotionDimensionReduction(object):
         max_x = 0
         max_y = 0
         max_z = 0
-        for key, value in self.quat_frames.iteritems():
+        for key, value in self.quat_frames.items():
             tmp = np.asarray(value)
             max_x_i = np.max(np.abs(tmp[:, 0]))
             max_y_i = np.max(np.abs(tmp[:, 1]))
@@ -269,7 +269,7 @@ class MotionDimensionReduction(object):
         # max_x = 1.0
         # max_y = 1.0
         # max_z = 1.0
-        for key, value in self.quat_frames.iteritems():
+        for key, value in self.quat_frames.items():
             value = np.array(value)
             value[:, 0] /= max_x
             value[:, 1] /= max_y
@@ -341,7 +341,7 @@ class MotionDimensionReduction(object):
         :return:
         """
         res = {}
-        for key, value in quat_motions.iteritems():
+        for key, value in quat_motions.items():
             res[key] = MotionDimensionReduction.logmap_quat_motion(value).tolist()
         return res
 
@@ -365,7 +365,7 @@ class MotionDimensionReduction(object):
 
     @staticmethod
     def cal_mean_motion(smoothed_quat_frames):
-        quat_data = np.asarray(smoothed_quat_frames.values())
+        quat_data = np.asarray(list(smoothed_quat_frames.values()))
 
     @staticmethod
     def logmap_to_quat_frame(logmap_vec):

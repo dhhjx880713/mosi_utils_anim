@@ -24,7 +24,7 @@ def write_log(*args):
     global _lines
     if _active:
         line = " ".join(map(str, args))
-        print line
+        print(line)
         _lines.append(line)
 
 
@@ -32,7 +32,7 @@ def write_message_to_log(message, mode=LOG_MODE_INFO):
     global _active
     global _lines
     if _active and _mode >= mode:
-        print message
+        print(message)
         _lines.append(message)
 
 

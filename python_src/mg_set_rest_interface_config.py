@@ -15,9 +15,9 @@ os.chdir(dirname)
 import glob
 import time
 import sys
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 import json
-from morphablegraphs import load_json_file
+from .morphablegraphs import load_json_file
 SERVICE_CONFIG_FILE = "config" + os.sep + "service.config"
 ALGORITHM_CONFIG_FILE = "config" + os.sep + "standard_algorithm.config"
 
@@ -29,12 +29,12 @@ def config_pipeline(service_config):
     mg_input = load_json_file(ALGORITHM_CONFIG_FILE)
     data = json.dumps(mg_input)
     mg_server_url = 'http://localhost:8888/config_morphablegraphs'
-    request = urllib2.Request(mg_server_url, data)
+    request = urllib.request.Request(mg_server_url, data)
     
-    print "send config and wait for motion generator..."
-    handler = urllib2.urlopen(request)
+    print("send config and wait for motion generator...")
+    handler = urllib.request.urlopen(request)
     result = handler.read()
-    print result
+    print(result)
 
 
 def main():
@@ -47,7 +47,7 @@ def main():
 
         config_pipeline(service_config)
     else:
-        print "Error: Could not read service config file", SERVICE_CONFIG_FILE
+        print("Error: Could not read service config file", SERVICE_CONFIG_FILE)
 
 
 if __name__ == "__main__":

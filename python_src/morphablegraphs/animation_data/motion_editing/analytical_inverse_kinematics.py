@@ -2,16 +2,16 @@
 
 [1] Lee, Jehee, and Sung Yong Shin. "A hierarchical approach to interactive motion editing for human-like figures."
 Proceedings of the 26th annual conference on Computer graphics and interactive techniques. 1999.
-[2] Kovar, Lucas, John Schreiner, and Michael Gleicher. "Footskate cleanup for motion capture editing." Proceedings of the 2002 ACM SIGGRAPH/Eurographics symposium on Computer animation. ACM, 2002.
+[2] Lucas Kovar, John Schreiner, and Michael Gleicher. "Footskate cleanup for motion capture editing." Proceedings of the 2002 ACM SIGGRAPH/Eurographics symposium on Computer animation. ACM, 2002.
 
 """
 import math
 import numpy as np
-from utils import normalize, to_local_cos, project_vec3
+from .utils import normalize, to_local_cos, project_vec3
 from ..retargeting.utils import find_rotation_between_vectors
 from ..utils import quaternion_from_vector_to_vector
 from ...external.transformations import quaternion_multiply, quaternion_about_axis, quaternion_matrix, quaternion_from_matrix, quaternion_inverse
-
+import scipy.integrate as integrate
 
 def calculate_angle(upper_limb, lower_limb, ru, rl, target_length):
     upper_limb_sq = upper_limb * upper_limb
@@ -26,7 +26,7 @@ def calculate_angle(upper_limb, lower_limb, ru, rl, target_length):
     temp += 2 * math.sqrt(lusq_rusq) * math.sqrt(llsq_rlsq)
     temp += - (target_length*target_length)
     temp /= 2 * ru * rl
-    print "temp",temp
+    print("temp",temp)
     temp = max(-1, temp)
     return math.acos(temp)
 
@@ -37,17 +37,28 @@ def calculate_angle2(upper_limb,lower_limb,target_length):
     a = upper_limb
     b = lower_limb
     c = target_length
-    #print a, b, c
     temp = (a*a + b*b - c*c) / (2 * a * b)
     temp = min(1, temp)
     temp = max(-1, temp)
-    #print temp
     angle = math.acos(temp)
     return angle
 
 
+def damp_angle(orig_angle, target_angle, p=0.1*np.pi, a=0.01):
+    """ src: Kovar et al. [2] Section 4.4. eq. 10 and 11"""
+    def func(x):
+        if x < p:
+            return 1.0
+        elif p <= x <= np.pi:
+            return a * ((x-p)/(np.pi-p))
+        else:
+            return 0.0
+    res = integrate.quad(func, orig_angle, target_angle)
+    return orig_angle + res[0]
+
+
 class AnalyticalLimbIK(object):
-    def __init__(self, skeleton, limb_root, limb_joint, end_effector, joint_axis, local_end_effector_dir, min_angle=0.1):
+    def __init__(self, skeleton, limb_root, limb_joint, end_effector, joint_axis, local_end_effector_dir, damp_angle=None, damp_factor=0.01):
         self.skeleton = skeleton
         self.limb_root = limb_root
         self.limb_joint = limb_joint
@@ -60,15 +71,16 @@ class AnalyticalLimbIK(object):
         self.root_indices = [root_idx, root_idx + 1, root_idx + 2, root_idx + 3]
         end_effector_idx = self.skeleton.animated_joints.index(self.end_effector) * 4 + 3
         self.end_effector_indices = [end_effector_idx, end_effector_idx + 1, end_effector_idx + 2, end_effector_idx + 3]
-        self.min_angle = min_angle
+        self.damp_angle = damp_angle
+        self.damp_factor = damp_factor
 
     @classmethod
-    def init_from_dict(cls, skeleton, joint_name, data):
+    def init_from_dict(cls, skeleton, joint_name, data, damp_angle=None, damp_factor=None):
         limb_root = data["root"]
         limb_joint = data["joint"]
         joint_axis = data["joint_axis"]
         end_effector_dir = data["end_effector_dir"]
-        return AnalyticalLimbIK(skeleton, limb_root, limb_joint, joint_name, joint_axis, end_effector_dir)
+        return AnalyticalLimbIK(skeleton, limb_root, limb_joint, joint_name, joint_axis, end_effector_dir, damp_angle, damp_factor)
 
     def calculate_limb_joint_rotation(self, frame, target_position):
         """ find angle so the distance from root to end effector is equal to the distance from the root to the target"""
@@ -80,20 +92,18 @@ class AnalyticalLimbIK(object):
         lower_limb_vec = joint_pos - end_effector_pos
         upper_limb = np.linalg.norm(upper_limb_vec)
         lower_limb = np.linalg.norm(lower_limb_vec)
-
-        #initial_length = np.linalg.norm(root_pos - end_effector_pos)
-
         target_length = np.linalg.norm(root_pos - target_position)
-        angle = calculate_angle2(upper_limb, lower_limb, target_length)
-        if abs(angle - np.pi) < self.min_angle:
-            angle -= self.min_angle
-        joint_delta_angle = np.pi - angle
+        current_length = np.linalg.norm(root_pos - end_effector_pos)
+        current_angle = calculate_angle2(upper_limb, lower_limb, current_length)
+        target_angle = calculate_angle2(upper_limb, lower_limb, target_length)
+        if self.damp_angle is not None:
+            target_angle = damp_angle(current_angle, target_angle, self.damp_angle, self.damp_factor)
+        #if abs(target_angle - np.pi) < self.min_angle:
+        #    target_angle -= self.min_angle
+        joint_delta_angle = np.pi - target_angle
         joint_delta_q = quaternion_about_axis(joint_delta_angle, self.local_joint_axis)
         joint_delta_q = normalize(joint_delta_q)
         frame[self.joint_indices] = joint_delta_q
-        #end_effector_pos2 = self.skeleton.nodes[self.end_effector].get_global_position(frame)
-        #result_length = np.linalg.norm(root_pos - end_effector_pos2)
-        #print "found angle", np.degrees(joint_delta_angle), target_length, initial_length, result_length
         return joint_delta_q
 
     def calculate_limb_root_rotation(self, frame, target_position):
@@ -113,8 +123,6 @@ class AnalyticalLimbIK(object):
         root_delta_q = find_rotation_between_vectors(src_dir, target_dir)
         root_delta_q = normalize(root_delta_q)
 
-        #delta_m = quaternion_matrix(root_delta_q)
-        #print src_dir, np.dot(delta_m[:3, :3], src_dir), target_dir
         new_local_q = self._to_local_coordinate_system(frame, self.limb_root, root_delta_q)
         frame[self.root_indices] = new_local_q
 

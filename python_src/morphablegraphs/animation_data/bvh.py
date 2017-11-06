@@ -22,6 +22,7 @@ QUAT_LEN = 4
 TRANSLATION_LEN = 3
 TOE_NODES = ["Bip01_R_Toe0", "Bip01_L_Toe0"]
 
+
 class BVHReader(object):
 
     """Biovision file format class
@@ -42,7 +43,7 @@ class BVHReader(object):
         self.frames = None
         self.root = ""  # needed for the bvh writer
         if infilename != "":
-            infile = open(infilename, "rb")
+            infile = open(infilename, "r")
             lines = infile.readlines()
             self.process_lines(lines)
             infile.close()
@@ -69,7 +70,6 @@ class BVHReader(object):
                 break
 
             else:
-                #print lines[line_index]
                 if "{" in lines[line_index]:
                     parents.append(name)
                     level += 1
@@ -107,9 +107,8 @@ class BVHReader(object):
                         # also the end sites need to be adde as children
                         self.node_names[parents[-1]]["children"].append(name)
 
-                    elif line_split[0] == "OFFSET" and name in self.node_names.keys():
-                        offset = [float(x) for x in line_split[1:]]
-                        self.node_names[name]["offset"] = offset
+                    elif line_split[0] == "OFFSET" and name in list(self.node_names.keys()):
+                        self.node_names[name]["offset"] = list(map(float, line_split[1:]))
                 line_index += 1
         return line_index
 
@@ -128,9 +127,8 @@ class BVHReader(object):
             n_lines = len(lines)
         frames = []
         while line_index < n_lines:
-            #print lines[line_index]
             line_split = lines[line_index].strip().split()
-            frames.append(np.array(map(float, line_split)))
+            frames.append(np.array(list(map(float, line_split))))
             line_index += 1
 
         self.frames = np.array(frames)
@@ -156,8 +154,19 @@ class BVHReader(object):
             else:
                 line_index += 1
 
+    def get_channel_indices(self, node_channels):
+        """Returns indices for specified channels
 
-    def get_angles(self, *node_channels):
+        Parameters
+        ----------
+         * node_channels: 2-tuples of strings
+        \tEach tuple contains joint name and channel name
+        \te.g. ("hip", "Xposition")
+
+        """
+        return [self.node_channels.index(nc) for nc in node_channels]
+
+    def get_angles(self, node_channels):
         """Returns numpy array of angles in all frames for specified channels
 
         Parameters
@@ -167,15 +176,25 @@ class BVHReader(object):
         \te.g. ("hip", "Xposition")
 
         """
-
-        indices = [self.node_channels.index(nc) for nc in node_channels]
+        indices = self.get_channel_indices(node_channels)
         return self.frames[:, indices]
 
     def get_animated_joints(self):
         """Returns an ordered list of joints which have animation channels"""
-        for name, node in self.node_names.iteritems():
-            if "channels" in node.keys() and len(node["channels"]) > 0:
+        for name, node in self.node_names.items():
+            if "channels" in list(node.keys()) and len(node["channels"]) > 0:
                 yield name
+
+    def scale(self, scale):
+        for node in self.node_names:
+            self.node_names[node]["offset"] = [scale * o for o in self.node_names[node]["offset"]]
+            if "channels" not in self.node_names[node]:
+                continue
+            ch = [(node, c) for c in self.node_names[node]["channels"] if "position" in c]
+            if len(ch) > 0:
+                ch_indices = self.get_channel_indices(ch)
+                scaled_params = [scale * o for o in self.frames[:, ch_indices]]
+                self.frames[:, ch_indices] = scaled_params
 
 
 class BVHWriter(object):
@@ -214,7 +233,7 @@ class BVHWriter(object):
             filename = filename
         else:
             filename = filename + '.bvh'
-        outfile = open(filename, 'wb')
+        outfile = open(filename, 'w')
         outfile.write(bvh_string)
         outfile.close()
 
@@ -350,7 +369,7 @@ class BVHWriter(object):
     def _get_euler_frame_from_partial_euler_frame(self, frame, skip_joints):
         euler_frame = frame[:3]
         joint_idx = 0
-        for node_name in self.skeleton.nodes.keys():
+        for node_name in list(self.skeleton.nodes.keys()):
             if len(self.skeleton.nodes[node_name].channels) > 0:# ignore end sites
                 if not node_name.startswith("Bip") or not skip_joints:
                     if node_name in TOE_NODES:
@@ -371,7 +390,7 @@ class BVHWriter(object):
     def _get_euler_frame_from_partial_quaternion_frame(self, frame):
         euler_frame = frame[:3]     # copy root
         joint_idx = 0
-        for node_name in self.skeleton.nodes.keys():
+        for node_name in list(self.skeleton.nodes.keys()):
             if len(self.skeleton.nodes[node_name].channels) > 0:# ignore end sites completely
                 if not node_name.startswith("Bip"):
                     i = joint_idx * QUAT_LEN + TRANSLATION_LEN
@@ -393,7 +412,7 @@ class BVHWriter(object):
     def _get_euler_frame_from_quaternion_frame(self, frame):
         euler_frame = frame[:3]  # copy root
         joint_idx = 0
-        for node_name in self.skeleton.nodes.keys():
+        for node_name in list(self.skeleton.nodes.keys()):
             if len(self.skeleton.nodes[node_name].channels) > 0:  # ignore end sites completely
                 if node_name in TOE_NODES:
                     # special fix for unused toe parameters

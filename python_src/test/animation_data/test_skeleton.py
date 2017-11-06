@@ -25,8 +25,8 @@ class TestSkeleton(object):
     @params(param_get_parent_dict)
     def test_get_parent_dict(self, res):
         parent_dic = self.skeleton._get_parent_dict()
-        for key, value in res.iteritems():
-            assert key in parent_dic.keys() and parent_dic[key] == value
+        for key, value in res.items():
+            assert key in list(parent_dic.keys()) and parent_dic[key] == value
 
     param_gen_all_parents = [{'node_name': 'Bip01_L_Finger0',
                               'res': ['LeftHand', 'LeftForeArm', 'LeftArm', 'LeftShoulder', 'Neck', 'Spine_1', 'Spine',
@@ -48,7 +48,7 @@ class TestSkeleton(object):
 
     @params(param_set_joint_weights)
     def test_set_joint_weights(self, res):
-        for i in xrange(len(self.skeleton.joint_weights)):
+        for i in range(len(self.skeleton.joint_weights)):
             assert round(self.skeleton.joint_weights[i], 5) == round(res[i], 5)
 
     param_create_filtered_node_name_map = [{'res': collections.OrderedDict([('Hips', 0), ('Spine', 1), ('Spine_1', 2),

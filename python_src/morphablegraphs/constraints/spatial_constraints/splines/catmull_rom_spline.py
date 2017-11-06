@@ -31,7 +31,7 @@ class CatmullRomSpline(object):
                                              [2.0, -5.0, 4.0, -1.0],
                                              [-1.0, 0.0, 1.0, 0.0],
                                              [0.0, 2.0, 0.0, 0.0]])
-        if isinstance(control_points[0], (int, long, float, complex)):
+        if isinstance(control_points[0], (int, float, complex)):
             self.dimensions = 1
         else:
             self.dimensions = len(control_points[0])
@@ -48,9 +48,9 @@ class CatmullRomSpline(object):
         self.number_of_segments = len(control_points) - 1
         self.control_points = [control_points[0]] + control_points + [control_points[-1], control_points[-1]]
         if self.verbose:
-            print "length of control point list ", len(self.control_points)
-            print "number of segments ", self.number_of_segments
-            print "number of dimensions", self.dimensions
+            print("length of control point list ", len(self.control_points))
+            print("number of segments ", self.number_of_segments)
+            print("number of dimensions", self.dimensions)
         return
 
     def add_control_point(self, point):
@@ -75,12 +75,12 @@ class CatmullRomSpline(object):
         matrix nxn transformation matrix where n is the number of dimensions of the catmull rom spline
         """
         if self.dimensions < matrix.shape[0]:
-            for i in xrange(len(self.control_points)):
+            for i in range(len(self.control_points)):
                 self.control_points[i] = np.dot(
                     matrix, self.control_points[i] + [1])[:3]
     #             print "t",i
         else:
-            print "Failed to transform spline by matrix", matrix.shape
+            print("Failed to transform spline by matrix", matrix.shape)
         return
 
     def get_last_control_point(self):
@@ -90,7 +90,7 @@ class CatmullRomSpline(object):
         if len(self.control_points) > 0:
             return np.array(self.control_points[-1])
         else:
-            print "no control points defined"
+            print("no control points defined")
             return np.zeros((1, self.dimensions))
 
     def map_parameter_to_segment(self, u):

@@ -7,7 +7,7 @@ Created on Mon Aug 03 19:01:21 2015
 """
 
 import numpy as np
-from keyframe_constraint_base import KeyframeConstraintBase
+from .keyframe_constraint_base import KeyframeConstraintBase
 from .. import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_FEET
 
 
@@ -32,7 +32,7 @@ class FeetConstraint(KeyframeConstraintBase):
     def get_residual_vector(self, aligned_quat_frames):
         left_error = np.linalg.norm(self.left - self.skeleton.nodes["LeftFoot"].get_global_position(aligned_quat_frames))*self.weight_factor
         right_error = np.linalg.norm(self.right - self.skeleton.nodes["RightFoot"].get_global_position(aligned_quat_frames))*self.weight_factor
-        print "foot sliding error", sum([left_error, right_error]),self.left,self.skeleton.nodes["LeftFoot"].get_global_position(aligned_quat_frames)
+        print("foot sliding error", sum([left_error, right_error]),self.left,self.skeleton.nodes["LeftFoot"].get_global_position(aligned_quat_frames))
         return [left_error, right_error]
 
     def get_residual_vector_spline(self, aligned_spline):

@@ -1,10 +1,10 @@
 import os
 import json
 import numpy as np
-from morphablegraphs.animation_data.bvh import BVHReader
-from morphablegraphs.animation_data import SkeletonBuilder, MotionVector
-from morphablegraphs.construction.motion_model_constructor import MotionModelConstructor
-from morphablegraphs.motion_model.motion_primitive_wrapper import MotionPrimitiveModelWrapper
+from .morphablegraphs.animation_data.bvh import BVHReader
+from .morphablegraphs.animation_data import SkeletonBuilder, MotionVector
+from .morphablegraphs.construction.motion_model_constructor import MotionModelConstructor
+from .morphablegraphs.motion_model.motion_primitive_wrapper import MotionPrimitiveModelWrapper
 MM_FILE_ENDING = "_quaternion_mm.json"
 
 
@@ -28,7 +28,7 @@ def load_motion_data(motion_folder, max_count=np.inf):
     for root, dirs, files in os.walk(motion_folder):
         for file_name in files:
             if file_name.endswith("bvh"):
-                print "read", file_name
+                print("read", file_name)
                 mv = load_motion_vector_from_bvh_file(motion_folder + os.sep + file_name)
                 motions.append(mv.frames)
                 if len(motions) > max_count:
@@ -49,9 +49,9 @@ def get_standard_config():
 
 def export_frames_to_bvh(skeleton, frames, filename):
     mv = MotionVector()
-    mv.frames = np.array([skeleton.generate_complete_frame_vector_from_reference(f) for f in frames])
-    print mv.frames.shape
-    mv.export(skeleton, ".", filename, add_time_stamp=False)
+    mv.frames = np.array([skeleton.add_fixed_joint_parameters_to_frame(f) for f in frames])
+    print(mv.frames.shape)
+    mv.export(skeleton, filename, add_time_stamp=False)
 
 
 def export_motions(skeleton, motions):
@@ -76,7 +76,7 @@ def load_model(filename, skeleton):
         model._initialize_from_json(skeleton.convert_to_mgrd_skeleton(), model_data)
         motion_spline = model.sample(True)
         frames = motion_spline.get_motion_vector()
-        print frames.shape
+        print(frames.shape)
         export_frames_to_bvh(skeleton, frames, "sample")
 
 if __name__ == "__main__":

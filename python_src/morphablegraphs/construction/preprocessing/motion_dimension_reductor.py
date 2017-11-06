@@ -204,12 +204,12 @@ class MotionDimensionReductor(object):
     def reduce_dimension(self, n_low_dims, n_basis=None, save_result=True):
         motion_data = self.load_data(n_basis)
         if self.data_type == 'discrete':
-            filelist = motion_data.keys()
-            motion_data_matrix = np.asarray(motion_data.values())
+            filelist = list(motion_data.keys())
+            motion_data_matrix = np.asarray(list(motion_data.values()))
         else:
             knots = motion_data['knots']
-            motion_data_matrix = np.asarray(motion_data['functional_data'].values())
-            filelist = motion_data['functional_data'].keys()
+            motion_data_matrix = np.asarray(list(motion_data['functional_data'].values()))
+            filelist = list(motion_data['functional_data'].keys())
             n_canonical_frames = motion_data['n_canonical_frames']
         # scale motion data
         if self.scaling == 'normalization':

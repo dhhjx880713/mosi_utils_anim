@@ -14,7 +14,7 @@ class TCPClient(object):
     def send_message(self,data):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-        print "call",self.address, len(data)
+        print("call",self.address, len(data))
         self.socket.connect(self.address)
         self.socket.send(data)
         data = self.socket.recv(self.buffer_size)

@@ -20,7 +20,7 @@ if has_mgrd:
             self.n_dim = N_TIME_DIM
             self.n_components = len(self.eigen_vectors.T)
             self.knots = np.asarray(data['b_spline_knots_time'])
-            self.eigen_coefs = zip(* self.eigen_vectors)
+            self.eigen_coefs = list(zip(* self.eigen_vectors))
             self.n_canonical_frames = data['n_canonical_frames']
             self.canonical_time_range = np.arange(0, self.n_canonical_frames)
 
@@ -65,10 +65,10 @@ if has_mgrd:
             """
             mean_t = self._mean_temporal()
             n_latent_dim = len(self.eigen_coefs)
-            t_eigen_spline = [(self.knots, self.eigen_coefs[i], 3) for i in xrange(n_latent_dim)]
+            t_eigen_spline = [(self.knots, self.eigen_coefs[i], 3) for i in range(n_latent_dim)]
             t_eigen_discrete = np.array([si.splev(self.canonical_time_range, spline_definition) for spline_definition in t_eigen_spline]).T
             canonical_time_function = [0]
-            for i in xrange(self.n_canonical_frames):
+            for i in range(self.n_canonical_frames):
                 canonical_time_function.append(canonical_time_function[-1] + np.exp(mean_t[i] + np.dot(t_eigen_discrete[i], gamma)))
             # undo step from timeVarinaces.transform_timefunction during alignment
             canonical_time_function = np.array(canonical_time_function[1:])

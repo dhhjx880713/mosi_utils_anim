@@ -1,6 +1,6 @@
 import numpy as np
 from ..animation_data.motion_distance import _point_cloud_distance, _transform_invariant_point_cloud_distance
-from local_minima_search import extracted_filtered_minima
+from .local_minima_search import extracted_filtered_minima
 
 
 def argmin(values):

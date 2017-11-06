@@ -10,8 +10,8 @@ import numpy as np
 from sklearn import cluster
 import uuid
 from . import KDTREE_WRAPPER_NODE, LEAF_NODE, INNER_NODE, ROOT_NODE
-from cluster_tree_node import ClusterTreeNode
-from kdtree_wrapper_node import KDTreeWrapper
+from .cluster_tree_node import ClusterTreeNode
+from .kdtree_wrapper_node import KDTreeWrapper
 
 
 class ClusterTreeNodeBuilder(object):
@@ -69,13 +69,13 @@ class ClusterTreeNodeBuilder(object):
             labels = self.kmeans.fit_predict(data[:, :self.dim])
         else:
             labels = self.kmeans.fit_predict(data[indices, :self.dim])
-        cluster_indices = [[] for i in xrange(self.n_subdivisions)]
+        cluster_indices = [[] for i in range(self.n_subdivisions)]
         if indices is None:
-            for i in xrange(n_samples):
+            for i in range(n_samples):
                 l = labels[i]
                 cluster_indices[l].append(i)
         else:
-            for i in xrange(n_samples):
+            for i in range(n_samples):
                 l = labels[i]
                 original_index = indices[i]
                 cluster_indices[l].append(original_index)
@@ -121,12 +121,12 @@ class ClusterTreeNodeBuilder(object):
         mean, n_samples = self._calculate_mean(data, indices)
         cluster_indices = self._detect_clusters(data, indices, n_samples)
         if depth < self.max_level or not self.use_kd_tree:
-            for j in xrange(len(cluster_indices)):
+            for j in range(len(cluster_indices)):
                 if len(cluster_indices[j]) > 0:
                     child_node = self.construct_from_data(data, cluster_indices[j], depth + 1)
                     clusters.append(child_node)
         else:
-            for j in xrange(len(cluster_indices)):
+            for j in range(len(cluster_indices)):
                 if len(cluster_indices[j]) > 0:
                     child_node = KDTreeWrapper(self.dim)
                     child_node.construct(data, cluster_indices[j])

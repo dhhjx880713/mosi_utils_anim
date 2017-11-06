@@ -2,7 +2,7 @@
 import numpy as np
 from scipy.optimize import minimize
 #from python_src.morphablegraphs.animation_data.retargeting import *
-from constants import ROCKETBOX_TO_GAME_ENGINE_MAP, GAME_ENGINE_ROOT_JOINT, GAME_ENGINE_REFERENCE_POSE_EULER, EXTRA_ROOT_NAME, OPENGL_UP_AXIS, ROCKETBOX_ROOT_OFFSET
+from .constants import ROCKETBOX_TO_GAME_ENGINE_MAP, GAME_ENGINE_ROOT_JOINT, GAME_ENGINE_REFERENCE_POSE_EULER, EXTRA_ROOT_NAME, OPENGL_UP_AXIS, ROCKETBOX_ROOT_OFFSET
 from ...external.transformations import quaternion_from_matrix, euler_matrix, quaternion_matrix, quaternion_multiply, euler_from_quaternion, quaternion_from_euler, quaternion_inverse, euler_from_matrix
 from ..utils import LEN_QUAT, LEN_ROOT_POS, LEN_EULER
 from ..constants import ROTATION_TYPE_EULER, ROTATION_TYPE_QUATERNION
@@ -75,7 +75,7 @@ def get_new_euler_frames_from_direction_constraints(target_skeleton,
     new_frames = []
     for frame_idx, frame_targets in enumerate(targets[frame_range[0]:frame_range[1]]):
         target_skeleton.clear_cached_global_matrices()
-        print "process", "frame " + str(frame_range[0]+frame_idx)
+        print("process", "frame " + str(frame_range[0]+frame_idx))
 
         new_frame = np.zeros(n_params)
         new_frame[:3] = np.array(frame_targets[target_root]["pos"]) *scale_factor
@@ -102,7 +102,7 @@ def get_new_euler_frames_from_direction_constraints(target_skeleton,
             if frame_idx > 0:
                 reference_pose = new_frames[frame_idx - 1]
             angles = get_euler_rotation_by_name(free_joint_name, reference_pose, target_skeleton)
-            if free_joint_name in frame_targets.keys() and len(frame_targets[free_joint_name]["targets"]) > 0:
+            if free_joint_name in list(frame_targets.keys()) and len(frame_targets[free_joint_name]["targets"]) > 0:
 
                 angles = find_rotation_euler_using_optimization(target_skeleton,
                                                                 free_joint_name,

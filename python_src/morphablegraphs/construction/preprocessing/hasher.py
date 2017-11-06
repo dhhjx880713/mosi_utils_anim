@@ -28,11 +28,11 @@ def duplicated_file_detection():
     counter = 0
     for key in file_hashes:
         if len(file_hashes[key]) > 1:
-            print file_hashes[key]
+            print(file_hashes[key])
             delete_duplicated_files(file_hashes[key], BVH_PATH)
             counter += 1
 
-    print counter, len(file_hashes)
+    print(counter, len(file_hashes))
 
 def delete_duplicated_files(filenames, folder_path):
     """

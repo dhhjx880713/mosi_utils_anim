@@ -5,8 +5,8 @@ from copy import copy
 import numpy as np
 from scipy.optimize import minimize
 
-from ..motion_blending import smooth_quaternion_frames_using_slerp, apply_slerp
-from skeleton_pose_model import SkeletonPoseModel
+from ..motion_blending import smooth_joints_around_transition_using_slerp, create_transition_using_slerp
+from .skeleton_pose_model import SkeletonPoseModel
 from ..constants import ROTATION_TYPE_EULER
 from ...external.transformations import quaternion_matrix, euler_from_matrix
 from ...utilities.log import write_log, write_message_to_log, LOG_MODE_DEBUG
@@ -87,7 +87,7 @@ class InverseKinematics(object):
 
     def _modify_pose(self, joint_name, target, direction=None):
         error = 0.0
-        if joint_name in self.pose.free_joints_map.keys():
+        if joint_name in list(self.pose.free_joints_map.keys()):
             free_joints = self.pose.free_joints_map[joint_name]
             if self.solving_method == IK_METHOD_CYCLIC_COORDINATE_DESCENT:
                 error = self._modify_using_cyclic_coordinate_descent(joint_name, target, free_joints,direction)
@@ -190,14 +190,14 @@ class InverseKinematics(object):
         # modify individual keyframes based on constraints
         while keep_running:
             error = 0.0
-            if "trajectories" in elementary_action_ik_constraints.keys():
+            if "trajectories" in list(elementary_action_ik_constraints.keys()):
                 constraints = elementary_action_ik_constraints["trajectories"]
                 c_error = self._modify_motion_vector_using_trajectory_constraint_list(motion_vector,constraints)
                 error += c_error * trajectory_weights
-            if "collision_avoidance" in elementary_action_ik_constraints.keys():
+            if "collision_avoidance" in list(elementary_action_ik_constraints.keys()):
                 constraints = elementary_action_ik_constraints["collision_avoidance"]
                 error += self._modify_motion_vector_using_ca_constraints(motion_vector, constraints)
-            if "keyframes" in elementary_action_ik_constraints.keys():
+            if "keyframes" in list(elementary_action_ik_constraints.keys()):
                 constraints = elementary_action_ik_constraints["keyframes"]
                 error += self._modify_motion_vector_using_keyframe_constraint_list(motion_vector, constraints)
             if last_error is not None:
@@ -211,8 +211,8 @@ class InverseKinematics(object):
 
     def _modify_motion_vector_using_keyframe_constraint_list(self, motion_vector, constraints):
         error = 0.0
-        for keyframe, constraints in constraints.items():
-            if "single" in constraints.keys():
+        for keyframe, constraints in list(constraints.items()):
+            if "single" in list(constraints.keys()):
                 for c in constraints["single"]:
                     if c.optimize:
                         if c.frame_range is not None:
@@ -250,12 +250,12 @@ class InverseKinematics(object):
         for target_joint_name in joint_names:
             joint_parameter_indices = self._extract_free_parameter_indices(self.pose.free_joints_map[target_joint_name])
             for joint_name in self.pose.free_joints_map[target_joint_name]:
-                smooth_quaternion_frames_using_slerp(frames, joint_parameter_indices[joint_name], keyframe, window)
+                smooth_joints_around_transition_using_slerp(frames, joint_parameter_indices[joint_name], keyframe, window)
 
     def _look_at_in_range(self, motion_vector, position, start, end):
         start = max(0, start)
         end = min(motion_vector.frames.shape[0], end)
-        for idx in xrange(start, end):
+        for idx in range(start, end):
             self.set_pose_from_frame(motion_vector.frames[idx])
             self.pose.lookat(position)
             motion_vector.frames[idx] = self.pose.get_vector()
@@ -266,8 +266,8 @@ class InverseKinematics(object):
             joint_parameter_indices = list(range(*self.pose.extract_parameters_indices(target_joint)))
             transition_start = max(start - self.transition_window, 0)
             transition_end = min(end + self.transition_window, frames.shape[0]) - 1
-            apply_slerp(frames, transition_start, start, joint_parameter_indices)
-            apply_slerp(frames, end, transition_end, joint_parameter_indices)
+            create_transition_using_slerp(frames, transition_start, start, joint_parameter_indices)
+            create_transition_using_slerp(frames, end, transition_end, joint_parameter_indices)
 
     def _modify_motion_vector_using_trajectory_constraint_list(self, motion_vector, constraints):
         error = 0.0
@@ -293,7 +293,7 @@ class InverseKinematics(object):
                 target_direction = None
 
         full_length = n_frames*d
-        for idx in xrange(n_frames):
+        for idx in range(n_frames):
             t = (idx*d)/full_length
             target_position = trajectory.query_point_by_parameter(t)
             keyframe = start_idx+idx
@@ -307,7 +307,7 @@ class InverseKinematics(object):
             motion_vector.frames[keyframe] = self.pose.get_vector()
         parent_joint = self.pose.get_parent_joint(traj_constraint["joint_name"])
 
-        if traj_constraint["joint_name"] in self.pose.free_joints_map.keys():
+        if traj_constraint["joint_name"] in list(self.pose.free_joints_map.keys()):
             free_joints = self.pose.free_joints_map[traj_constraint["joint_name"]]
             free_joints = list(set(free_joints+[parent_joint]))
         else:
@@ -328,7 +328,7 @@ class InverseKinematics(object):
         arc_length = 0.0
         self.set_pose_from_frame(motion_vector.frames[start_idx])
         prev_position = self.pose.evaluate_position(traj_constraint["joint_name"])
-        for idx in xrange(n_frames):
+        for idx in range(n_frames):
             keyframe = start_idx+idx
             self.set_pose_from_frame(motion_vector.frames[keyframe])
             current_position = self.pose.evaluate_position(traj_constraint["joint_name"])
@@ -362,7 +362,7 @@ class InverseKinematics(object):
         closest_start_frame = copy(start_idx)
         min_error = np.inf
         n_frames = end_idx-start_idx
-        for idx in xrange(n_frames):
+        for idx in range(n_frames):
             keyframe = start_idx+idx
             self.set_pose_from_frame(motion_vector.frames[keyframe])
             position = self.pose.evaluate_position(target_joint)
@@ -409,8 +409,8 @@ class InverseKinematics(object):
         carrying = False
         frame_ranges = []
         last_frame = motion_vector.n_frames - 1
-        for frame_idx in xrange(motion_vector.n_frames):
-            if frame_idx in motion_vector.keyframe_event_list.keyframe_events_dict["events"].keys():
+        for frame_idx in range(motion_vector.n_frames):
+            if frame_idx in list(motion_vector.keyframe_event_list.keyframe_events_dict["events"].keys()):
                 for event_desc in motion_vector.keyframe_event_list.keyframe_events_dict["events"][frame_idx]:
                     if event_desc["event"] == "attach" and (
                             event_desc["parameters"]["joint"] == ["RightHand", "LeftHand"]
@@ -449,7 +449,7 @@ class InverseKinematics(object):
 
         left_parameters = self._extract_free_parameters(left_free_joints)
         right_parameters = self._extract_free_parameters(right_free_joints)
-        for idx in xrange(end_of_pick_frame + 1, end_of_carry_frame):
+        for idx in range(end_of_pick_frame + 1, end_of_carry_frame):
             self.pose.set_pose_parameters(motion_vector.frames[idx])
             self.pose.set_channel_values(left_parameters, left_free_joints)
             self.pose.set_channel_values(right_parameters, right_free_joints)
@@ -459,17 +459,17 @@ class InverseKinematics(object):
         self._create_transition_for_frame_range(motion_vector.frames, end_of_pick_frame+1, end_of_carry_frame-1, joint_names)
 
     def _adapt_hand_orientations_during_carry(self, motion_vector, frame_region):
-        for frame in xrange(frame_region[0], frame_region[1]):
+        for frame in range(frame_region[0], frame_region[1]):
             self.pose.set_pose_parameters(motion_vector.frames[frame])
             self.pose.orient_hands_to_each_other()
             motion_vector.frames[frame] = self.pose.get_vector()
-        print "create transition for frames", frame_region[0], frame_region[1]
+        print("create transition for frames", frame_region[0], frame_region[1])
         # joint_parameter_indices = list(range(*self.pose.extract_parameters_indices("RightHand")))
         # before = motion_vector.frames[:,joint_parameter_indices]
         self._create_transition_for_frame_range(motion_vector.frames, frame_region[0]+1, frame_region[1]-1, ["RightHand", "LeftHand"])
 
     def fill_rotate_events(self, motion_vector):
-        for keyframe in motion_vector.keyframe_event_list.keyframe_events_dict["events"].keys():
+        for keyframe in list(motion_vector.keyframe_event_list.keyframe_events_dict["events"].keys()):
             keyframe = int(keyframe)
             for event in motion_vector.keyframe_event_list.keyframe_events_dict["events"][keyframe]:
                 if event["event"] == "rotate":

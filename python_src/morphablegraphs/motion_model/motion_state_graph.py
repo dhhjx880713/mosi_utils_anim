@@ -40,30 +40,30 @@ class MotionStateGraph(object):
         *graph_walk: a list of dictionaries
             The graph walk is defined by a list of dictionaries containing entries for "action","motion primitive" and "parameters"
         """
-        assert start_action in self.node_groups.keys()
-        print "generate random graph walk for", start_action
+        assert start_action in list(self.node_groups.keys())
+        print("generate random graph walk for", start_action)
         start_state = self.node_groups[start_action].get_random_start_state()
-        print start_state
+        print(start_state)
         return self.node_groups[start_action].generate_random_walk(self.nodes, start_state, number_of_steps, use_transition_model)
     
     def print_information(self):
         """
         Prints out information on the graph structure and properties of the motion primitives
         """
-        for s in self.node_groups.keys():
-            print s
-            for n in self.node_groups[s].nodes.keys():
-                print "\t"+ str(n)
-                print "\t"+"n canonical frames", self.nodes[n].n_canonical_frames
-                print "\t"+"n latent spatial dimensions", self.nodes[n].s_pca["n_components"]
-                print "\t"+"n latent time dimensions", self.nodes[n].t_pca["n_components"]
-                print "\t"+"n basis spatial ", self.nodes[n].s_pca["n_basis"]
-                print "\t"+"n basis time ", self.nodes[n].t_pca["n_basis"]
-                print "\t"+"n clusters", len(self.nodes[n].gaussian_mixture_model.weights_)
-                print "\t"+"average length", self.nodes[n].average_step_length
-                for e in self.nodes[n].outgoing_edges.keys():
-                    print "\t \t to " + str(e)
-                print "\t##########"       
+        for s in list(self.node_groups.keys()):
+            print(s)
+            for n in list(self.node_groups[s].nodes.keys()):
+                print("\t"+ str(n))
+                print("\t"+"n canonical frames", self.nodes[n].n_canonical_frames)
+                print("\t"+"n latent spatial dimensions", self.nodes[n].s_pca["n_components"])
+                print("\t"+"n latent time dimensions", self.nodes[n].t_pca["n_components"])
+                print("\t"+"n basis spatial ", self.nodes[n].s_pca["n_basis"])
+                print("\t"+"n basis time ", self.nodes[n].t_pca["n_basis"])
+                print("\t"+"n clusters", len(self.nodes[n].gaussian_mixture_model.weights_))
+                print("\t"+"average length", self.nodes[n].average_step_length)
+                for e in list(self.nodes[n].outgoing_edges.keys()):
+                    print("\t \t to " + str(e))
+                print("\t##########")       
 
     def get_random_action_transition(self, graph_walk, action_name, is_cycle=False):
         """ Get random start state based on edge from previous elementary action if possible
@@ -72,7 +72,7 @@ class MotionStateGraph(object):
         if graph_walk.step_count > 0:
             prev_node_key = graph_walk.steps[-1].node_key
       
-            if prev_node_key in self.nodes.keys():
+            if prev_node_key in list(self.nodes.keys()):
                 next_node = self.nodes[prev_node_key].generate_random_action_transition(action_name,is_cycle)
             write_message_to_log("Generate start from transition of last action " + str(prev_node_key) + str(next_node), mode=LOG_MODE_DEBUG)
         # if there is no previous elementary action or no action transition
@@ -95,7 +95,7 @@ class MotionStateGraph(object):
         """ If there are start sates defined in the graph a node key tuple is returned  (action_name, state_name)
             else None is returned.
         """
-        actions = self.node_groups.keys()
+        actions = list(self.node_groups.keys())
         if len(actions) > 0:
             random_index = random.randrange(0, len(actions), 1)
             action_name = actions[random_index]

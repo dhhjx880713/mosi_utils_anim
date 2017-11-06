@@ -10,9 +10,9 @@ from copy import copy
 import json
 import numpy as np
 from ..external.transformations import quaternion_matrix
-from itertools import izip
-from constants import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER
-from skeleton_models import ROCKETBOX_ANIMATED_JOINT_LIST, ROCKETBOX_FREE_JOINTS_MAP, ROCKETBOX_REDUCED_FREE_JOINTS_MAP, ROCKETBOX_SKELETON_MODEL, ROCKETBOX_BOUNDS, ROCKETBOX_TOOL_BONES, ROCKETBOX_ROOT_DIR
+from .skeleton_node import SkeletonEndSiteNode
+from .constants import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER
+from .skeleton_models import ROCKETBOX_ANIMATED_JOINT_LIST, ROCKETBOX_FREE_JOINTS_MAP, ROCKETBOX_REDUCED_FREE_JOINTS_MAP, ROCKETBOX_SKELETON_MODEL, ROCKETBOX_BOUNDS, ROCKETBOX_TOOL_BONES, ROCKETBOX_ROOT_DIR
 try:
     from mgrd import Skeleton as MGRDSkeleton
     from mgrd import SkeletonNode as MGRDSkeletonNode
@@ -20,6 +20,10 @@ try:
 except ImportError:
     has_mgrd = False
     pass
+
+
+def project_vector_on_vector(a, b):
+    return np.dot(np.dot(b, a), b)
 
 
 class Skeleton(object):
@@ -36,12 +40,9 @@ class Skeleton(object):
         self.root = None
         self.aligning_root_node = None  # Node that defines body orientation. Can be different from the root node.
         self.aligning_root_dir = None
-        self.node_names = None
         self.reference_frame = None
         self.reference_frame_length = None
-        self.node_channels = collections.OrderedDict()
         self.nodes = collections.OrderedDict()
-        self.node_name_frame_map = collections.OrderedDict()
         self.tool_nodes = []
         self.max_level = -1
         self.parent_dict = dict()
@@ -59,10 +60,11 @@ class Skeleton(object):
             node_desc["parent"] = None
         node_desc["quaternion_frame_index"] = node.quaternion_frame_index
         node_desc["index"] = node.index
-        node_desc["offset"] = node.offset
+        node_desc["offset"] = list(node.offset)
         node_desc["channels"] = node.channels
         node_desc["rotation"] = node.rotation.tolist()
         node_desc["fixed"] = node.fixed
+        node_desc["level"] = node.level
         node_desc["node_type"] = node.node_type
         node_desc["children"] = []
         for c in node.children:
@@ -73,7 +75,6 @@ class Skeleton(object):
     def save_to_json(self, file_name):
         data = dict()
         data["animated_joints"] = self.animated_joints
-        data["node_names"] = self.node_names
         data["free_joints_map"] = self.free_joints_map
         data["reduced_free_joints_map"] = self.reduced_free_joints_map
         data["bounds"] = self.bounds
@@ -81,19 +82,11 @@ class Skeleton(object):
         data["frame_time"] = self.frame_time
         data["root"] = self._get_node_desc(self.root)
         data["reference_frame"] = self.reference_frame.tolist()
-        data["node_channels"] = self.node_channels
         data["tool_nodes"] = self.tool_nodes
-        data["node_name_frame_map"] = self.node_name_frame_map
-        with open(file_name, 'wb') as outfile:
+        with open(file_name, 'w') as outfile:
             tmp = json.dumps(data, indent=4)
             outfile.write(tmp)
             outfile.close()
-
-    def extract_channels(self):
-        for node_idx, node_name in enumerate(self.node_names):
-            if "channels" in self.node_names[node_name].keys():
-                channels = self.node_names[node_name]["channels"]
-                self.node_channels[node_name] = channels
 
     def is_motion_vector_complete(self, frames, is_quaternion):
         if is_quaternion:
@@ -104,18 +97,18 @@ class Skeleton(object):
 
     def get_number_of_frame_parameters(self, rotation_type):
         n_parameters = 0
-        for node_name in self.nodes.keys():
+        for node_name in list(self.nodes.keys()):
             local_parameters = self.nodes[node_name].get_number_of_frame_parameters(rotation_type)
             n_parameters += local_parameters
         return n_parameters
 
-    def complete_motion_vector_from_reference(self, reduced_quat_frames):
+    def add_fixed_joint_parameters_to_motion(self, reduced_quat_frames):
         new_quat_frames = np.zeros((len(reduced_quat_frames), self.reference_frame_length))
         for idx, reduced_frame in enumerate(reduced_quat_frames):
-            new_quat_frames[idx] = self.generate_complete_frame_vector_from_reference(reduced_frame)
+            new_quat_frames[idx] = self.add_fixed_joint_parameters_to_frame(reduced_frame)
         return new_quat_frames
 
-    def generate_complete_frame_vector_from_reference(self, reduced_frame):
+    def add_fixed_joint_parameters_to_frame(self, reduced_frame):
         """
         Takes parameters from the reduced frame for each joint of the complete skeleton found in the reduced skeleton
         otherwise it takes parameters from the reference frame
@@ -124,7 +117,7 @@ class Skeleton(object):
         """
         new_frame = np.zeros(self.reference_frame_length)
         joint_index = 0
-        for joint_name in self.nodes.keys():
+        for joint_name in list(self.nodes.keys()):
             if len(self.nodes[joint_name].children) > 0 and "EndSite" not in joint_name:
                 if joint_name == self.root:
                     new_frame[:7] = reduced_frame[:7]
@@ -140,8 +133,8 @@ class Skeleton(object):
         return new_frame
 
     def _get_max_level(self):
-        levels = [node["level"] for node in self.node_names.values() if "level" in node.keys()]
-        if len(levels)> 0:
+        levels = [node.level for node in list(self.nodes.values())]
+        if len(levels) > 0:
             return max(levels)
         else:
             return 0
@@ -150,7 +143,7 @@ class Skeleton(object):
         """Returns a dict of node names to their parent node's name"""
 
         parent_dict = {}
-        for node_name in self.nodes.keys():
+        for node_name in list(self.nodes.keys()):
             for child_node in self.nodes[node_name].children:
                 parent_dict[child_node.node_name] = node_name
 
@@ -168,25 +161,22 @@ class Skeleton(object):
         """ Gives joints weights according to their distance in the joint hierarchy
            to the root joint. The further away the smaller the weight.
         """
-
-        # self.joint_weights = [np.exp(-self.node_names[node_name]["level"])
-        #                       for node_name in self.node_name_frame_map.keys()]
-        self.joint_weights = [1.0/(self.node_names[node_name]["level"] + 1.0) for node_name in self.node_name_frame_map.keys()]
+        self.joint_weights = [1.0/(self.nodes[n].level + 1.0) for n in list(self.nodes.keys())]
         self.joint_weight_map = collections.OrderedDict()
         weight_index = 0
-        for node_name in self.node_name_frame_map.keys():
+        for node_name in list(self.nodes.keys()):
             self.joint_weight_map[node_name] = self.joint_weights[weight_index]
             weight_index += 1
         self.joint_weight_map["RightHand"] = 2.0
         self.joint_weight_map["LeftHand"] = 2.0
-        self.joint_weights = self.joint_weight_map.values()
+        self.joint_weights = list(self.joint_weight_map.values())
 
     def get_joint_weights(self):
-        return self.joint_weight_map.values()
+        return list(self.joint_weight_map.values())
 
     def _generate_chain_names(self):
         chain_names = dict()
-        for node_name in self.nodes.keys():
+        for node_name in list(self.nodes.keys()):
             chain_names[node_name] = list(self.gen_all_parents(node_name))
             # Names are generated bottom to up --> reverse
             chain_names[node_name].reverse()
@@ -206,25 +196,24 @@ class Skeleton(object):
         \tBVH data structure read from a file
 
         """
-        if self.node_names[target_node_name]["level"] == 0:
+        if self.nodes[target_node_name].level == 0:
             root_frame_position = quaternion_frame[:3]
-            root_node_offset = self.node_names[target_node_name]["offset"]
+            root_node_offset = self.nodes[target_node_name].offset
             return [t + o for t, o in
-                    izip(root_frame_position, root_node_offset)]
+                    zip(root_frame_position, root_node_offset)]
         else:
-            offsets = [self.node_names[node_name]["offset"]
+            offsets = [list(self.nodes[node_name].offset)
                        for node_name in self._chain_names[target_node_name]]
             root_position = quaternion_frame[:3].flatten()
-            offsets[0] = [r + o for r, o in izip(root_position, offsets[0])]
+            offsets[0] = [r + o for r, o in zip(root_position, offsets[0])]
             j_matrices = []
             count = 0
             for node_name in self._chain_names[target_node_name]:
-                if "children" in self.node_names[node_name].keys():  # check if it is a joint or an end site
-                    index = self.node_name_frame_map[node_name] * 4 + 3
+                if len(self.nodes[target_node_name].children) > 0:  # check if it is a joint or an end site
+                    index = self.animated_joints.index(node_name) * 4 + 3
                     j_matrix = quaternion_matrix(quaternion_frame[index: index + 4])
                     j_matrix[:, 3] = offsets[count] + [1]
                 else:
-                    #print node_name, self._chain_names[target_node_name][count-1], offsets[count]
                     j_matrix = np.identity(4)
                     j_matrix[:, 3] = offsets[count] + [1]
                 j_matrices.append(j_matrix)
@@ -245,16 +234,16 @@ class Skeleton(object):
         Converts quaternion frames to cartesian frames by calling get_cartesian_coordinates_from_quaternion for each joint
         """
         if node_names is None:
-            node_names = self.node_name_frame_map.keys()
+            node_names = self.nodes.keys()
         cartesian_frame = []
         for node_name in node_names:
-            if node_name in self.node_name_frame_map.keys():
+            if node_name in self.nodes:
                 position = self.nodes[node_name].get_global_position(quat_frame)
                 cartesian_frame.append(position)
         return cartesian_frame
 
     def clear_cached_global_matrices(self):
-        for joint in self.nodes.values():
+        for joint in list(self.nodes.values()):
             joint.clear_cached_global_matrix()
 
     def convert_to_mgrd_skeleton(self):
@@ -283,20 +272,38 @@ class Skeleton(object):
     def get_joint_indices(self, joint_names):
         indices = []
         for name in joint_names:
-            if name in self.nodes.keys():
+            if name in list(self.nodes.keys()):
                 node = self.nodes[name]
                 indices.append(node.index)
         return indices
 
     def get_n_joints(self):
-        return len([node for node in self.nodes.values() if len(node.channels) > 0])
+        return len([node for node in list(self.nodes.values()) if len(node.channels) > 0])
+
+    def get_joint_names(self):
+        return [k for k, n in list(self.nodes.items()) if len(n.children) > 0]
+
+    def scale(self, scale_factor):
+        for node in list(self.nodes.values()):
+            node.offset = np.array(node.offset) * scale_factor
+
+    def get_channels(self, euler=False):
+        channels = collections.OrderedDict()
+        for node in list(self.nodes.values()):
+            if node.node_name in self.animated_joints:
+                node_channels = copy(node.channels)
+                if not euler:
+                    if np.all([ch in node_channels for ch in ["Xrotation", "Yrotation", "Zrotation"]]):
+                        node_channels += ["Wrotation"]  # TODO fix order
+                channels[node.node_name] = node_channels
+        return channels
 
     def to_unity_format(self, joint_name_map=None, scale=1):
         """ Converts the skeleton into a custom json format and applies a coordinate transform to the left-handed coordinate system of Unity.
             src: http://answers.unity3d.com/questions/503407/need-to-convert-to-right-handed-coordinates.html
         """
 
-        animated_joints = [j for j, n in self.nodes.items() if "EndSite" not in j and len(n.children) > 0]#self.animated_joints
+        animated_joints = [j for j, n in list(self.nodes.items()) if "EndSite" not in j and len(n.children) > 0]#self.animated_joints
         joint_descs = []
         self.nodes[self.root].to_unity_format(joint_descs, animated_joints, joint_name_map=joint_name_map)
 
@@ -306,7 +313,7 @@ class Skeleton(object):
         data["jointSequence"] = animated_joints
         default_pose = dict()
         default_pose["rotations"] = []
-        for node in self.nodes.values():
+        for node in list(self.nodes.values()):
               if node.node_name in animated_joints:
                   q = node.rotation
                   if len(q) ==4:
@@ -315,25 +322,50 @@ class Skeleton(object):
                       r = {"x":0, "y":0, "z":0, "w":1}
                   default_pose["rotations"].append(r)
 
-        default_pose["translations"] = [{"x":-scale*node.offset[0], "y":scale*node.offset[1], "z":scale*node.offset[2]} for node in self.nodes.values() if node.node_name in animated_joints and len(node.children) > 0]
+        default_pose["translations"] = [{"x":-scale*node.offset[0], "y":scale*node.offset[1], "z":scale*node.offset[2]} for node in list(self.nodes.values()) if node.node_name in animated_joints and len(node.children) > 0]
 
         data["referencePose"] = default_pose
         return data
 
-    def get_joint_names(self):
-        return [k for k, n in self.nodes.items() if len(n.children) > 0]
+    def add_heels(self, skeleton_model):
+        lknee_name = skeleton_model["joints"]["left_knee"]
+        rknee_name = skeleton_model["joints"]["right_knee"]
 
-    def scale(self, scale_factor):
-        for node in self.nodes.values():
-            node.offset = np.array(node.offset) * scale_factor
+        lfoot_name = skeleton_model["joints"]["left_ankle"]
+        rfoot_name = skeleton_model["joints"]["right_ankle"]
 
-    def get_channels(self, euler=False):
-        channels = collections.OrderedDict()
-        for node in self.nodes.values():
-            if node.node_name in self.animated_joints:
-                node_channels = copy(node.channels)
-                if not euler:
-                    if np.all([ch in node_channels for ch in ["Xrotation", "Yrotation", "Zrotation"]]):
-                        node_channels += ["Wrotation"]  # TODO fix order
-                channels[node.node_name] = node_channels
-        return channels
+        ltoe_name = skeleton_model["joints"]["left_toe"]
+        rtoe_name = skeleton_model["joints"]["right_toe"]
+
+        frame = self.identity_frame
+        frame = self.reference_frame
+        self.add_heel("left_heel",lknee_name, lfoot_name, ltoe_name, frame)
+        self.add_heel("right_heel", rknee_name, rfoot_name, rtoe_name, frame)
+
+    def add_heel(self, heel_name, knee_name, foot_name, toe_name, frame):
+        print("add heel", heel_name)
+        lknee_position = self.nodes[knee_name].get_global_position(frame)
+        lfoot_position = self.nodes[foot_name].get_global_position(frame)
+        ltoe_position = self.nodes[toe_name].get_global_position(frame)
+
+        #project toe offset vector onto negative foot offset vector
+        leg_delta = lfoot_position - lknee_position
+        leg_delta /= np.linalg.norm(leg_delta)
+        delta = ltoe_position - lfoot_position
+        #heel_offset = project_vector_on_vector(delta, leg_delta)
+        #print("h1",heel_offset)
+        heel_offset = project_vector_on_vector(delta, [0,1,0])*1.2
+        #print("h2",heel_offset)
+
+        # bring into local coordinate system
+        m = self.nodes[foot_name].get_global_matrix(frame)[:3, :3]
+        heel_offset = np.dot(np.linalg.inv(m), heel_offset)
+        node = SkeletonEndSiteNode(heel_name, [], self.nodes[foot_name],
+                                                      self.nodes[foot_name].level + 1)
+        node.fixed = True
+        node.index = -1
+        node.offset = np.array(heel_offset)
+        node.rotation = np.array([1, 0, 0, 0])
+        self.nodes[heel_name] = node
+        self.nodes[foot_name].children.append(node)
+

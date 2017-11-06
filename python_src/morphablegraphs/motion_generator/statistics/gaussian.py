@@ -157,7 +157,7 @@ def main():
     return
 
     g3 = g1 * g2
-    print g3
+    print(g3)
 
     g1.plot(dim=(0, 1), label='g1')
     g2.plot(dim=(0, 1), newfigure=False, label='g2')

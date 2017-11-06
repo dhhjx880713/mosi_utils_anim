@@ -13,7 +13,7 @@ based on previous steps.
 from ...constraints import ElementaryActionConstraintsBuilder
 from ..graph_walk import GraphWalk
 from ..graph_walk_optimizer import GraphWalkOptimizer
-from elementary_action_generator import ElementaryActionGenerator
+from .elementary_action_generator import ElementaryActionGenerator
 from ...utilities import write_log, write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_ERROR, LOG_MODE_INFO
 
 
@@ -32,7 +32,7 @@ class GraphWalkGenerator(object):
     def __init__(self, motion_primitive_graph, algorithm_config, service_config):
         self._algorithm_config = algorithm_config
         self.motion_primitive_graph = motion_primitive_graph
-        if "create_ca_vis_data" in service_config.keys():
+        if "create_ca_vis_data" in list(service_config.keys()):
             self.create_ca_vis_data = service_config["create_ca_vis_data"]
         else:
             self.create_ca_vis_data = False
@@ -96,5 +96,5 @@ class GraphWalkGenerator(object):
         return success
 
     def print_algorithm_config(self):
-        for key in self._algorithm_config.keys():
+        for key in list(self._algorithm_config.keys()):
             write_log(key, self._algorithm_config[key])

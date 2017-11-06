@@ -42,7 +42,7 @@ class TestMotionNormalization(object):
         self.motion_normalizer.normalize_root(origin_point, touch_ground_joint)
         assert self.motion_normalizer.ref_bvhreader.node_names[
             'Hips']['offset'] == [0, 0, 0]
-        for filename, frames in self.motion_normalizer.translated_motions.iteritems():
+        for filename, frames in self.motion_normalizer.translated_motions.items():
             assert frames[0][0] == 0
             assert frames[0][2] == 0
 
@@ -57,9 +57,9 @@ class TestMotionNormalization(object):
         self.motion_normalizer.load_data_for_normalization(data_folder)
         self.motion_normalizer.translated_motions = self.motion_normalizer.cutted_motions
         self.motion_normalizer.align_motion(aligned_frame_idx, ref_orientation)
-        for filename, frames in self.motion_normalizer.aligned_motions.iteritems():
+        for filename, frames in self.motion_normalizer.aligned_motions.items():
             orientation = pose_orientation_euler(frames[0])
-            for i in xrange(len(orientation)):
+            for i in range(len(orientation)):
                 assert round(orientation[i], 3) == res[i]
 
     param_save_motion = [{'data_folder': TESTDATAPATH,

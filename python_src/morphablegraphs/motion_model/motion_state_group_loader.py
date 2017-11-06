@@ -7,8 +7,8 @@ Created on Thu Jul 16 15:57:42 2015
 
 import os
 from ..utilities.io_helper_functions import load_json_file
-from motion_state import MotionState
-from motion_state_group import MotionStateGroup
+from .motion_state import MotionState
+from .motion_state_group import MotionStateGroup
 from . import META_INFORMATION_FILE_NAME
 from ..utilities import write_log
 
@@ -65,11 +65,11 @@ class MotionStateGroupLoader(object):
         
     def _build_from_dict(self, motion_state_graph):
         motion_primitive_node_group = MotionStateGroup(self.elementary_action_data["name"], None, motion_state_graph)
-        for motion_primitive_name in self.elementary_action_data["nodes"].keys():
+        for motion_primitive_name in list(self.elementary_action_data["nodes"].keys()):
             node_key = (self.elementary_action_data["name"], motion_primitive_name)
             motion_primitive_node_group.nodes[node_key] = MotionState(motion_primitive_node_group)
             motion_primitive_node_group.nodes[node_key].init_from_dict(self.elementary_action_name, self.elementary_action_data["nodes"][motion_primitive_name])
-        if "info" in self.elementary_action_data.keys():
+        if "info" in list(self.elementary_action_data.keys()):
             motion_primitive_node_group.set_meta_information(self.elementary_action_data["info"])
         else:
             motion_primitive_node_group.set_meta_information()
@@ -105,7 +105,7 @@ class MotionStateGroupLoader(object):
         #load information about training data if available
         for file_name in temp_file_list:
             motion_primitive = file_name.split("_")[1][:-6]
-            if motion_primitive in motion_primitive_node_group.nodes.keys():
+            if motion_primitive in list(motion_primitive_node_group.nodes.keys()):
                 info = load_json_file(self.elementary_action_directory+os.sep+file_name, use_ordered_dict=True)
                 motion_primitive_node_group.nodes[motion_primitive].parameter_bb = info["pose_bb"]
                 motion_primitive_node_group.nodes[motion_primitive].cartesian_bb = info["cartesian_bb"]

@@ -30,17 +30,17 @@ class GraphWalkPlanner(object):
         trajectory_following_settings = algorithm_config["trajectory_following_settings"]
         self.step_look_ahead_distance = trajectory_following_settings["look_ahead_distance"]
 
-        if "constrain_start_orientation" in trajectory_following_settings.keys():
+        if "constrain_start_orientation" in list(trajectory_following_settings.keys()):
             self.constrain_start_orientation = trajectory_following_settings["constrain_start_orientation"]
         else:
             self.constrain_start_orientation = True
 
-        if "constrain_transition_orientation" in trajectory_following_settings.keys():
+        if "constrain_transition_orientation" in list(trajectory_following_settings.keys()):
             self.constrain_transition_orientation = trajectory_following_settings["constrain_transition_orientation"]
         else:
             self.constrain_transition_orientation = False
 
-        if "generate_half_step_constraint" in trajectory_following_settings.keys():
+        if "generate_half_step_constraint" in list(trajectory_following_settings.keys()):
             self.generate_half_step_constraint = trajectory_following_settings["generate_half_step_constraint"]
         else:
             self.generate_half_step_constraint = False
@@ -81,7 +81,7 @@ class GraphWalkPlanner(object):
             next_node_type = self.node_group.get_transition_type_for_action(state.graph_walk, self.action_constraints)
 
         edges = self.motion_state_graph.nodes[self.state.current_node].outgoing_edges
-        options = [edge_key for edge_key in edges.keys() if edges[edge_key].transition_type == next_node_type]
+        options = [edge_key for edge_key in list(edges.keys()) if edges[edge_key].transition_type == next_node_type]
         #print "options",next_node_type, options
         return options, next_node_type
 
@@ -204,7 +204,7 @@ class GraphWalkPlanner(object):
         #TODO add state fork
         index = 0
         for node_name in options:
-            print "evaluate",node_name
+            print("evaluate",node_name)
             node_state = state.create_copy()
             step_count = 0
 
@@ -213,7 +213,7 @@ class GraphWalkPlanner(object):
                 #write_log("Evaluated option", node_name, mp_constraints.min_error,"at level", n_steps)
                 errors[index] += error
                 self._update_path(node_state, node_name, s_vector)
-                print "advance along",node_name
+                print("advance along",node_name)
                 #if node_state.current_node is not None:
                 #    new_options, next_node_type = self.get_transition_options(node_state)
                     #errors[index] += self._look_ahead_deeper(node_state, new_options, self._n_steps_looking_ahead, add_orientation)

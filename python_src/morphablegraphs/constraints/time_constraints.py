@@ -13,7 +13,7 @@ class TimeConstraints(object):
         if start_step <= 0:
             return 0
         start_keyframe = 0
-        for i in xrange(0, start_step):  # until start_step - 1
+        for i in range(0, start_step):  # until start_step - 1
             time_function = motion_primitive_graph.nodes[graph_walk.steps[i].node_key].back_project_time_function(graph_walk.steps[i].parameters)
             start_keyframe += time_function[-1]
         return start_keyframe
@@ -61,7 +61,7 @@ class TimeConstraints(object):
                 total_seconds = n_frames * frame_time
                 error = (desired_time-total_seconds)**2
                 #print time_function
-                print "time error", constrained_keyframe_index, error, total_seconds, desired_time,n_frames,frame_time#, mapped_keyframe, constrained_keyframe_index, n_frames
+                print("time error", constrained_keyframe_index, error, total_seconds, desired_time,n_frames,frame_time)#, mapped_keyframe, constrained_keyframe_index, n_frames
                 return error
         return 10000
 

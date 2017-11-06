@@ -16,7 +16,7 @@ from datetime import datetime
 from ..animation_data.utils import transform_euler_frames, \
     transform_quaternion_frames
 from ..animation_data.bvh import BVHWriter
-from ..constraints.spatial_constraints.splines import ParameterizedSpline
+#from ..constraints.spatial_constraints.splines import ParameterizedSpline
 
 def write_to_logfile(path, time_string, data):
     """ Appends json data to a text file.
@@ -26,7 +26,7 @@ def write_to_logfile(path, time_string, data):
     data_string = json.dumps(data, indent=4)
     line = time_string + ": \n" + data_string + "\n-------\n\n"
     if not os.path.isfile(path):
-        file_handle = open(path, "wb")
+        file_handle = open(path, "w")
         file_handle.write(line)
         file_handle.close()
     else:
@@ -45,7 +45,7 @@ def load_json_file(filename, use_ordered_dict=False):
     \tIf set to True dicts are read as OrderedDicts.
     """
     tmp = None
-    with open(filename, 'rb') as infile:
+    with open(filename, 'r') as infile:
         if use_ordered_dict:
             tmp = json.JSONDecoder(
                 object_pairs_hook=collections.OrderedDict).decode(
@@ -57,7 +57,7 @@ def load_json_file(filename, use_ordered_dict=False):
 
 
 def write_to_json_file(filename, serializable, indent=4):
-    with open(filename, 'wb') as outfile:
+    with open(filename, 'w') as outfile:
         tmp = json.dumps(serializable, indent=4)
         outfile.write(tmp)
         outfile.close()
@@ -177,12 +177,12 @@ def export_euler_frames_to_bvh(
             euler_frames, start_pose["orientation"], start_pose["position"])
     if time_stamp:
         filepath = output_dir + os.sep + prefix + "_" + \
-            unicode(datetime.now().strftime("%d%m%y_%H%M%S")) + ".bvh"
+            str(datetime.now().strftime("%d%m%y_%H%M%S")) + ".bvh"
     elif prefix != "":
         filepath = output_dir + os.sep + prefix + ".bvh"
     else:
         filepath = output_dir + os.sep + "output" + ".bvh"
-    print filepath
+    print(filepath)
     BVHWriter(
         filepath,
         skeleton,
@@ -203,7 +203,7 @@ def get_bvh_writer(skeleton, quat_frames, start_pose=None, is_quaternion=True):
                                                   start_pose["orientation"],
                                                   start_pose["position"])
     if len(quat_frames) > 0 and len(quat_frames[0]) < skeleton.reference_frame_length:
-        quat_frames = skeleton.complete_motion_vector_from_reference(quat_frames)
+        quat_frames = skeleton.add_fixed_joint_parameters_to_motion(quat_frames)
     bvh_writer = BVHWriter(None, skeleton, quat_frames, skeleton.frame_time, is_quaternion)
     return bvh_writer
 
@@ -224,12 +224,12 @@ def export_frames_to_bvh_file(output_dir, skeleton, frames, prefix="", time_stam
     bvh_writer = get_bvh_writer(skeleton, frames, is_quaternion=is_quaternion)
     if time_stamp:
         filepath = output_dir + os.sep + prefix + "_" + \
-            unicode(datetime.now().strftime("%d%m%y_%H%M%S")) + ".bvh"
+            str(datetime.now().strftime("%d%m%y_%H%M%S")) + ".bvh"
     elif prefix != "":
         filepath = output_dir + os.sep + prefix + ".bvh"
     else:
         filepath = output_dir + os.sep + "output" + ".bvh"
-    print filepath
+    print(filepath)
     bvh_writer.write(filepath)
 
 
@@ -248,7 +248,7 @@ def gen_spline_from_control_points(control_points, take=10):
             #print "append"
         count+=1
     dim = len(tmp[0])
-    print "number of points", len(tmp), len(control_points)
+    print("number of points", len(tmp), len(control_points))
     spline = ParameterizedSpline(tmp, dim)
     # print tmp
     return spline
@@ -264,7 +264,7 @@ def load_collision_free_constraints(json_file):
         with open(json_file, "rb") as infile:
             json_data = json.load(infile)
     except IOError:
-        print('cannot read data from ' + json_file)
+        print(('cannot read data from ' + json_file))
     collision_free_constraints = {}
     for action in json_data['modification']:
         collision_free_constraints[action["elementaryActionIndex"]] = {}
