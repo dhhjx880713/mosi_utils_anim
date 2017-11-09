@@ -8,6 +8,7 @@ import math
 from .constants import OPENGL_UP_AXIS, GAME_ENGINE_SPINE_OFFSET_LIST
 from .utils import normalize, align_axis, find_rotation_between_vectors, align_root_translation, to_local_cos, get_quaternion_rotation_by_name, apply_additional_rotation_on_frames, project_vector_on_axis, quaternion_from_vector_to_vector
 from ...external.transformations import quaternion_matrix, quaternion_multiply, quaternion_about_axis
+from ..skeleton_models import JOINT_CHILD_MAP
 
 
 def create_local_cos_map_using_child_map(skeleton, up_vector, x_vector, child_map=None):
@@ -138,6 +139,50 @@ def create_local_cos_map_from_skeleton_axes(skeleton, flip=1.0, project=True):
     return joint_cos_map
 
 
+
+def get_child_joint(skeleton, inv_joint_map, node_name):
+    child_node = None
+    if len(skeleton.nodes[node_name].children)>0:
+        child_node = skeleton.nodes[node_name].children[-1]
+    if node_name in inv_joint_map:
+        joint_name = inv_joint_map[node_name]
+        #print(JOINT_CHILD_MAP[joint_name])
+        if joint_name in JOINT_CHILD_MAP:
+            child_joint_name = JOINT_CHILD_MAP[joint_name]
+            print(joint_name, child_joint_name)
+            child_node = skeleton.nodes[skeleton.skeleton_model["joints"][child_joint_name]]
+    return child_node
+
+def create_local_cos_map_from_skeleton_axes_with_map(skeleton, flip=1.0, project=True):
+    body_x_axis = get_body_x_axis(skeleton)*flip
+    print("body x axis", body_x_axis)
+    body_y_axis = get_body_y_axis(skeleton)
+    print("body y axis", body_y_axis)
+    inv_joint_map = dict((v,k) for k, v in skeleton.skeleton_model["joints"].items())
+    joint_cos_map = dict()
+    for j in list(skeleton.nodes.keys()):
+        joint_cos_map[j] = dict()
+        joint_cos_map[j]["y"] = body_y_axis
+        joint_cos_map[j]["x"] = body_x_axis
+
+        node = skeleton.nodes[j]
+        child_node = get_child_joint(skeleton, inv_joint_map, node.node_name)
+
+        if child_node is None:
+            continue
+        y_axis = get_body_axis(skeleton, j, child_node.node_name, project)
+        joint_cos_map[j]["y"] = y_axis
+        #check if the new y axis is similar to the x axis
+        z_vector = np.cross(y_axis, joint_cos_map[j]["x"])
+        if np.linalg.norm(z_vector) == 0.0:
+            joint_cos_map[j]["x"] = body_y_axis *-np.sum(joint_cos_map[j]["y"])
+        #check for angle and rotate
+        q = get_quaternion_to_axis(skeleton, j, child_node.node_name, y_axis)
+        rotate_axes(joint_cos_map[j], q)
+        print(j, joint_cos_map[j])
+    return joint_cos_map
+
+
 def create_local_cos_map_from_skeleton_rocketbox(skeleton):
     joint_cos_map = create_local_cos_map_from_skeleton2(skeleton, -1.0)
     joint_cos_map["Hips"]["x"] = [0, -1, 0]
@@ -152,6 +197,16 @@ def create_local_cos_map_from_skeleton_mcs(skeleton):
     joint_cos_map["RightShoulder"]["x"] = [-1, 0, 0]
     joint_cos_map["LeftElbow"]["x"] = [-1, 0, 0]
     joint_cos_map["RightElbow"]["x"] = [-1, 0, 0]
+    return joint_cos_map
+
+def create_local_cos_map_from_skeleton_iclone(skeleton):
+    joint_cos_map = create_local_cos_map_from_skeleton_axes_with_map(skeleton)
+    joint_cos_map["CC_Base_L_Thigh"]["x"] *= -1
+    joint_cos_map["CC_Base_R_Thigh"]["x"] *= -1
+    joint_cos_map["CC_Base_L_Calf"]["x"] *= -1
+    joint_cos_map["CC_Base_R_Calf"]["x"] *= -1
+    joint_cos_map["CC_Base_L_Foot"]["x"] *= -1
+    joint_cos_map["CC_Base_R_Foot"]["x"] *= -1
     return joint_cos_map
 
 
