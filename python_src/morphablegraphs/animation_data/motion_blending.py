@@ -182,7 +182,7 @@ def smooth_quaternion_frames_with_slerp(frames, discontinuity, window=20):
     return np.asarray(new_quaternion_frames)
 
 
-def smooth_quaternion_frames_with_slerp2(skeleton, frames,d, smoothing_window=0):
+def smooth_quaternion_frames_with_slerp2(skeleton, frames, d, smoothing_window):
     '''
 
     :param new_frames (numpy.array): n_frames * n_dims
