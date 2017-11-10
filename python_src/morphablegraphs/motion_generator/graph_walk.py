@@ -135,7 +135,7 @@ class GraphWalk(object):
         for step in self.steps[start_step:]:
             step.start_frame = start_frame
             #write_log(step.node_key, len(step.parameters))
-            quat_frames = self.motion_state_graph.nodes[step.node_key].back_project(step.parameters, use_time_parameters).get_motion_vector(step_size)
+            quat_frames = self.motion_state_graph.nodes[step.node_key].back_project(step.parameters, use_time_parameters, step_size).get_motion_vector()
             if step.node_key[1].lower().endswith("leftstance"):
                 foot_joint = "foot_r"
             elif step.node_key[1].lower().endswith("rightstance"):
@@ -205,7 +205,7 @@ class GraphWalk(object):
             frame_offset = self.steps[start_step].start_frame
             for step in self.steps[start_step: end_step+1]:
                 time_function = None
-                if self.use_time_parameters:
+                if self.use_time_parameters and self.motion_state_graph.nodes[step.node_key].get_n_time_components() > 0:
                     time_function = self.motion_state_graph.nodes[step.node_key].back_project_time_function(step.parameters)
                 step_keyframe_constraints = step.motion_primitive_constraints.convert_to_ik_constraints(self.motion_state_graph, frame_offset, time_function, constrain_orientation)
                 elementary_action_ik_constraints["collision_avoidance"] += step.motion_primitive_constraints.get_ca_constraints()
@@ -268,7 +268,7 @@ class GraphWalk(object):
                 traj_constraint["constrain_orientation"] = True
                 traj_constraint["fixed_range"] = True
                 time_function = None
-                if self.use_time_parameters:
+                if self.use_time_parameters and self.motion_state_graph.nodes[step.node_key].get_n_time_components() > 0:
                     time_function = self.motion_state_graph.nodes[step.node_key].back_project_time_function(step.parameters)
                 if time_function is None:
                     traj_constraint["start_frame"] = start_frame + annotation_range[0]
