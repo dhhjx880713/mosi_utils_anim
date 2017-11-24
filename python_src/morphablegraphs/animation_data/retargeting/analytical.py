@@ -241,6 +241,15 @@ def create_local_cos_map_from_skeleton_iclone(skeleton):
     return joint_cos_map
 
 
+def apply_manual_fixes(joint_cos_map):
+    xjoints = ["CC_Base_L_Thigh", "CC_Base_R_Thigh", "CC_Base_L_Calf", "CC_Base_R_Calf", "CC_Base_L_Foot","CC_Base_R_Foot",
+               "Hips","Spine","Spine_1", "Neck"]
+    for j in xjoints:
+        if j in joint_cos_map:
+            joint_cos_map[j]["x"] *= -1
+
+
+
 def align_root_joint(axes, global_src_x_vec, max_iter_count=10):
     # handle special case for the root joint
     # apply only the y axis rotation of the Hip to the Game_engine node
@@ -305,12 +314,10 @@ class Retargeting(object):
         self.n_params = len(self.target_skeleton.animated_joints) * 4 + 3
         self.ground_height = 0.0
         self.additional_rotation_map = additional_rotation_map
-
-        #print(target_cos_map)
-        #print(self.target_cos_map)
-        self.src_cos_map = create_local_cos_map_from_skeleton_axes(self.src_skeleton)  #this should be local local, i.e. zero rotation but global offset
-        self.target_cos_map = create_local_cos_map_from_skeleton_axes(self.target_skeleton)  # this should be local, i.e. zero rotation but global offset
-        self.constant_offset = constant_offset
+        self.target_cos_map = create_local_cos_map_from_skeleton_axes_with_map(self.target_skeleton)
+        self.src_cos_map = create_local_cos_map_from_skeleton_axes_with_map(self.src_skeleton)
+        apply_manual_fixes(self.target_cos_map)
+        apply_manual_fixes(self.src_cos_map)
         self.correction_map = dict()
         self.create_correction_map()
 
@@ -429,8 +436,9 @@ def generate_joint_map(src_model, target_model):
     joint_map = dict()
     for j in src_model["joints"]:
         src = src_model["joints"][j]
-        target = target_model["joints"][j]
-        joint_map[target] = src
+        if j in target_model["joints"]:
+            target = target_model["joints"][j]
+            joint_map[target] = src
     return joint_map
 
 
