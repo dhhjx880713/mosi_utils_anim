@@ -3,7 +3,7 @@ import collections
 from ..skeleton_models import *
 from .utils import generate_root_constraint_for_one_foot, generate_root_constraint_for_two_feet, \
     guess_ground_height, smooth_root_translation_at_end, smooth_root_translation_at_start
-from .motion_grounding import MotionGroundingConstraint, generate_ankle_constraint_from_toe, create_ankle_constraint_from_toe_and_heel, create_ankle_constraint_from_toe_and_temp_heel
+from .motion_grounding import MotionGroundingConstraint, generate_ankle_constraint_from_toe, create_ankle_constraint_from_toe_and_heel
 from .analytical_inverse_kinematics import AnalyticalLimbIK
 from ...external.transformations import quaternion_slerp
 
