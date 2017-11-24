@@ -13,6 +13,7 @@ from ..utils import quaternion_from_vector_to_vector
 from ...external.transformations import quaternion_multiply, quaternion_about_axis, quaternion_matrix, quaternion_from_matrix, quaternion_inverse
 import scipy.integrate as integrate
 
+
 def calculate_angle(upper_limb, lower_limb, ru, rl, target_length):
     upper_limb_sq = upper_limb * upper_limb
     lower_limb_sq = lower_limb * lower_limb
