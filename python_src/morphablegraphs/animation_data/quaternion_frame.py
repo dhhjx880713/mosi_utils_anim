@@ -119,11 +119,14 @@ class QuaternionFrame(collections.OrderedDict):
 
 
         """
-        rotation_order = bvh_reader.node_names[node_name]["channels"][-3:]
+        channels = bvh_reader.node_names[node_name]["channels"]
         euler_angles = []
-        for ch in rotation_order:
-            idx = bvh_reader.node_channels.index((node_name, ch))
-            euler_angles.append(frame_vector[idx])
+        rotation_order = []
+        for ch in channels:
+            if ch.lower().endswith("rotation"):
+                idx = bvh_reader.node_channels.index((node_name, ch))
+                rotation_order.append(ch)
+                euler_angles.append(frame_vector[idx])
         return QuaternionFrame._get_quaternion_from_euler(
                                 euler_angles,
                                 rotation_order,

@@ -59,7 +59,7 @@ class MotionPrimitiveGenerator(object):
         self.use_transition_model = self._algorithm_config["use_transition_model"]
         self.constrained_sampling_mode = self._algorithm_config["constrained_sampling_mode"]
         self.activate_parameter_check = self._algorithm_config["activate_parameter_check"]
-        self.n_cluster_search_candidates = self._algorithm_config["n_cluster_search_candidates"]
+        self.n_cluster_search_candidates = int(self._algorithm_config["n_cluster_search_candidates"])
         self.use_local_coordinates = self._algorithm_config["use_local_coordinates"]
         self.use_semantic_annotation_with_mgrd = self._algorithm_config["use_semantic_annotation_with_mgrd"]
 

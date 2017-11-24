@@ -8,7 +8,7 @@
 """
 
 
-from .morphablegraphs.utilities import write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_ERROR, set_log_mode
+from morphablegraphs.utilities import write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_ERROR, set_log_mode
 import distutils
 import re
 

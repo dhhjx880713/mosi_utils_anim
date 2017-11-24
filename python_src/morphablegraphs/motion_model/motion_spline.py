@@ -47,7 +47,7 @@ class MotionSpline(object):
         self.semantic_annotation = semantic_annotation
         self.n_pose_parameters = len(canonical_motion_coeffs[0])
 
-    def get_motion_vector(self, step_size=1.0):
+    def get_motion_vector(self):
         """ Return a 2d - vector representing the motion in the new timeline
 
         Returns

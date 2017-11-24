@@ -171,7 +171,7 @@ class MotionPrimitive(object):
         """
         return self.back_project(self.sample_low_dimensional_vector(), use_time_parameters)
 
-    def back_project(self, low_dimensional_vector, use_time_parameters=True):
+    def back_project(self, low_dimensional_vector, use_time_parameters=True, speed=1.0):
         """ Return a motion sample based on a low dimensional motion vector.
 
         Parameters
@@ -196,9 +196,9 @@ class MotionPrimitive(object):
             low_dimensional_vector = np.delete(low_dimensional_vector, -1)
         spatial_coefs = self.back_project_spatial_coeffs(low_dimensional_vector[:self.s_pca["n_components"]])
         if self.has_time_parameters and use_time_parameters:
-            time_function = self.back_project_time_function(low_dimensional_vector[self.s_pca["n_components"]:])
+            time_function = self.back_project_time_function(low_dimensional_vector[self.s_pca["n_components"]:], speed)
         else:
-            time_function = np.arange(0, self.n_canonical_frames)
+            time_function = np.linspace(0, self.n_canonical_frames, self.n_canonical_frames * (1.0 / speed))
         return MotionSpline(low_dimensional_vector, spatial_coefs, time_function, self.s_pca["knots"], semantic_annotation)
 
     def back_project_spatial_coeffs(self, alpha):
@@ -235,7 +235,7 @@ class MotionPrimitive(object):
         mean_tck = (self.t_pca["knots"], self.t_pca["mean_vector"], 3)
         return si.splev(self.canonical_time_range, mean_tck)
 
-    def back_project_time_function(self, gamma):
+    def back_project_time_function(self, gamma, speed=1.0):
         """ Backtransform a lowdimensional vector gamma to the timewarping
         function t(t') and inverse it to t'(t).
 
@@ -250,7 +250,7 @@ class MotionPrimitive(object):
         \tThe indices of the timewarping function t'(t)
         """
         canonical_time_function = self._back_transform_gamma_to_canonical_time_function(gamma)
-        sample_time_function = self._invert_canonical_to_sample_time_function(canonical_time_function)
+        sample_time_function = self._invert_canonical_to_sample_time_function(canonical_time_function, speed)
         if self.smooth_time_parameters:
             return self._smooth_time_function(sample_time_function)
         else:
@@ -271,7 +271,7 @@ class MotionPrimitive(object):
         canonical_time_function -= 1.0
         return canonical_time_function
 
-    def _invert_canonical_to_sample_time_function(self, canonical_time_function):
+    def _invert_canonical_to_sample_time_function(self, canonical_time_function, speed=1.0):
         """ calculate inverse spline and then sample that inverse spline
             # i.e. calculate t'(t) from t(t')
         """
@@ -280,7 +280,8 @@ class MotionPrimitive(object):
         sample_time_spline = si.splrep(canonical_time_function, x_sample, w=None, k=B_SPLINE_DEGREE)
         # 2 sample discrete data from inverse spline
         # canonical_time_function gets inverted to map from sample to canonical time
-        frames = np.linspace(1, stop=canonical_time_function[-2], num=np.round(canonical_time_function[-2]))
+        num = np.round(canonical_time_function[-2]) * (1.0 / speed)
+        frames = np.linspace(1, stop=canonical_time_function[-2], num=num)
         sample_time_function = si.splev(frames, sample_time_spline)
         sample_time_function = np.insert(sample_time_function, 0, 0)
         sample_time_function = np.insert(sample_time_function, len(sample_time_function), self.n_canonical_frames-1)
@@ -306,4 +307,7 @@ class MotionPrimitive(object):
         return self.s_pca["n_components"]
 
     def get_n_time_components(self):
-        return self.t_pca["n_components"]
+        if "n_components" in self.t_pca.keys():
+            return self.t_pca["n_components"]
+        else:
+            return 0

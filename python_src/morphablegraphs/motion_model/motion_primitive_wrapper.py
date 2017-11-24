@@ -31,7 +31,7 @@ class MotionPrimitiveModelWrapper(object):
         if data is not None:
             self._initialize_from_json(mgrd_skeleton, data, animated_joints, use_mgrd_mixture_model, scale)
 
-    def _initialize_from_json(self, mgrd_skeleton, data, animated_joints=None, use_mgrd_mixture_model=False, scale=None):#[10,10,10]
+    def _initialize_from_json(self, mgrd_skeleton, data, animated_joints=None, use_mgrd_mixture_model=False, scale=None):
         if not has_mgrd:
             if "tspm" in list(data.keys()):
                 self.motion_primitive = self._load_legacy_model_from_mgrd_json(data)
@@ -158,10 +158,10 @@ class MotionPrimitiveModelWrapper(object):
         #return self.motion_primitive.get_random_samples(n_samples)[0]
     sample_low_dimensional_vectors = sample_vectors_mgrd if has_mgrd else sample_vectors_legacy
 
-    def back_project_legacy(self, s_vec, use_time_parameters=True):
-        return self.motion_primitive.back_project(s_vec, use_time_parameters)
+    def back_project_legacy(self, s_vec, use_time_parameters=True, speed=1.0):
+        return self.motion_primitive.back_project(s_vec, use_time_parameters, speed)
 
-    def back_project_mgrd(self, s_vec, use_time_parameters=True):
+    def back_project_mgrd(self, s_vec, use_time_parameters=True, speed=1.0):
         if len(np.asarray(s_vec.shape)) == 2:
             s_vec = np.ravel(s_vec)
         quat_spline = self.motion_primitive.create_spatial_spline(s_vec)

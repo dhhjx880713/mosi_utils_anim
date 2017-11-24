@@ -7,7 +7,8 @@ import numpy as np
 import math
 from .constants import OPENGL_UP_AXIS, GAME_ENGINE_SPINE_OFFSET_LIST
 from .utils import normalize, align_axis, find_rotation_between_vectors, align_root_translation, to_local_cos, get_quaternion_rotation_by_name, apply_additional_rotation_on_frames, project_vector_on_axis, quaternion_from_vector_to_vector
-from ...external.transformations import quaternion_matrix, quaternion_multiply, quaternion_about_axis
+from ...external.transformations import quaternion_matrix, quaternion_multiply, quaternion_about_axis, quaternion_from_matrix
+from ..skeleton_models import JOINT_CHILD_MAP
 
 
 def create_local_cos_map_using_child_map(skeleton, up_vector, x_vector, child_map=None):
@@ -103,14 +104,8 @@ def create_local_cos_map_from_skeleton(skeleton):
 
     return joint_cos_map
 
-def rotate_axes(cos, q):
-    m = quaternion_matrix(q)[:3, :3]
-    for key, a in list(cos.items()):
-        cos[key] = np.dot(m, a)
-        cos[key] = normalize(cos[key])
-    return cos
 
-def create_local_cos_map_from_skeleton_axes(skeleton, flip=1.0, project=True):
+def create_local_cos_map_from_skeleton_axes_old(skeleton, flip=1.0):
     body_x_axis = get_body_x_axis(skeleton)*flip
     print("body x axis", body_x_axis)
     body_y_axis = get_body_y_axis(skeleton)
@@ -138,8 +133,89 @@ def create_local_cos_map_from_skeleton_axes(skeleton, flip=1.0, project=True):
     return joint_cos_map
 
 
+def rotate_axes(cos, q):
+    m = quaternion_matrix(q)[:3, :3]
+    for key, a in list(cos.items()):
+        cos[key] = np.dot(m, a)
+        cos[key] = normalize(cos[key])
+    return cos
+
+def create_local_cos_map_from_skeleton_axes(skeleton, flip=1.0, project=True):#TODO fix bug
+    body_x_axis = get_body_x_axis(skeleton)*flip
+    print("body x axis", body_x_axis)
+    body_y_axis = get_body_y_axis(skeleton)
+    print("body y axis", body_y_axis)
+    joint_cos_map = dict()
+    for j in list(skeleton.nodes.keys()):
+        joint_cos_map[j] = dict()
+        joint_cos_map[j]["y"] = body_y_axis
+        joint_cos_map[j]["x"] = body_x_axis
+        node = skeleton.nodes[j]
+        n_children = len(node.children)
+        child_idx = -1# for retargeting von iclone auf game engine?
+        if n_children > 0 and j != skeleton.root:
+            #pick the child index based on heuristic for game engine skeleton
+            if n_children ==3 and j == "spine_03":
+                child_idx = 2
+            if np.linalg.norm(node.children[child_idx].offset) == 0:
+                continue
+            y_axis = get_body_axis(skeleton, j, node.children[child_idx].node_name, project)
+            joint_cos_map[j]["y"] = y_axis
+            #check if the new y axis is similar to the x axis
+            z_vector = np.cross(y_axis, joint_cos_map[j]["x"])
+            if np.linalg.norm(z_vector) == 0.0:
+                joint_cos_map[j]["x"] = body_y_axis *-np.sum(joint_cos_map[j]["y"])
+            #check for angle and rotate
+            q = get_quaternion_to_axis(skeleton, j, node.children[child_idx].node_name, y_axis)
+            rotate_axes(joint_cos_map[j], q)
+        print(j, joint_cos_map[j])
+    return joint_cos_map
+
+def get_child_joint(skeleton, inv_joint_map, node_name):
+    child_node = None
+    if len(skeleton.nodes[node_name].children)>0:
+        child_node = skeleton.nodes[node_name].children[-1]
+    if node_name in inv_joint_map:
+        joint_name = inv_joint_map[node_name]
+        #print(JOINT_CHILD_MAP[joint_name])
+        if joint_name in JOINT_CHILD_MAP:
+            child_joint_name = JOINT_CHILD_MAP[joint_name]
+            print(joint_name, child_joint_name)
+            child_node = skeleton.nodes[skeleton.skeleton_model["joints"][child_joint_name]]
+    return child_node
+
+def create_local_cos_map_from_skeleton_axes_with_map(skeleton, flip=1.0, project=True):
+    body_x_axis = get_body_x_axis(skeleton)*flip
+    print("body x axis", body_x_axis)
+    body_y_axis = get_body_y_axis(skeleton)
+    print("body y axis", body_y_axis)
+    inv_joint_map = dict((v,k) for k, v in skeleton.skeleton_model["joints"].items())
+    joint_cos_map = dict()
+    for j in list(skeleton.nodes.keys()):
+        joint_cos_map[j] = dict()
+        joint_cos_map[j]["y"] = body_y_axis
+        joint_cos_map[j]["x"] = body_x_axis
+
+        node = skeleton.nodes[j]
+        child_node = get_child_joint(skeleton, inv_joint_map, node.node_name)
+
+        if child_node is None:
+            continue
+        y_axis = get_body_axis(skeleton, j, child_node.node_name, project)
+        joint_cos_map[j]["y"] = y_axis
+        #check if the new y axis is similar to the x axis
+        z_vector = np.cross(y_axis, joint_cos_map[j]["x"])
+        if np.linalg.norm(z_vector) == 0.0:
+            joint_cos_map[j]["x"] = body_y_axis *-np.sum(joint_cos_map[j]["y"])
+        #check for angle and rotate
+        q = get_quaternion_to_axis(skeleton, j, child_node.node_name, y_axis)
+        rotate_axes(joint_cos_map[j], q)
+        print(j, joint_cos_map[j])
+    return joint_cos_map
+
+
 def create_local_cos_map_from_skeleton_rocketbox(skeleton):
-    joint_cos_map = create_local_cos_map_from_skeleton2(skeleton, -1.0)
+    joint_cos_map = create_local_cos_map_from_skeleton_axes(skeleton, -1.0)
     joint_cos_map["Hips"]["x"] = [0, -1, 0]
     joint_cos_map["Spine"]["x"] = [0, -1, 0]
     joint_cos_map["Spine_1"]["x"] = [0, -1, 0]
@@ -147,11 +223,21 @@ def create_local_cos_map_from_skeleton_rocketbox(skeleton):
     return joint_cos_map
 
 def create_local_cos_map_from_skeleton_mcs(skeleton):
-    joint_cos_map = create_local_cos_map_from_skeleton2(skeleton)
+    joint_cos_map = create_local_cos_map_from_skeleton_axes(skeleton)
     joint_cos_map["LeftShoulder"]["x"] = [-1, 0, 0]
     joint_cos_map["RightShoulder"]["x"] = [-1, 0, 0]
     joint_cos_map["LeftElbow"]["x"] = [-1, 0, 0]
     joint_cos_map["RightElbow"]["x"] = [-1, 0, 0]
+    return joint_cos_map
+
+def create_local_cos_map_from_skeleton_iclone(skeleton):
+    joint_cos_map = create_local_cos_map_from_skeleton_axes_with_map(skeleton)
+    joint_cos_map["CC_Base_L_Thigh"]["x"] *= -1
+    joint_cos_map["CC_Base_R_Thigh"]["x"] *= -1
+    joint_cos_map["CC_Base_L_Calf"]["x"] *= -1
+    joint_cos_map["CC_Base_R_Calf"]["x"] *= -1
+    joint_cos_map["CC_Base_L_Foot"]["x"] *= -1
+    joint_cos_map["CC_Base_R_Foot"]["x"] *= -1
     return joint_cos_map
 
 
@@ -205,13 +291,12 @@ def find_rotation_analytically(new_skeleton, free_joint_name, target, frame, joi
     if free_joint_name == new_skeleton.root:
         q = align_root_joint(local_target_axes, global_src_x_vec, max_iter_count)
     else:
-        add_offset = free_joint_name in[new_skeleton.skeleton_model["joints"]["pelvis"]]#, new_skeleton.skeleton_model["joints"]["spine"]
-        q = align_joint(new_skeleton, free_joint_name, local_target_axes, global_src_up_vec, global_src_x_vec, joint_cos_map, add_offset)
+        q = align_joint(new_skeleton, free_joint_name, local_target_axes, global_src_up_vec, global_src_x_vec, joint_cos_map)
     return to_local_cos(new_skeleton, free_joint_name, frame, q)
 
 
 class Retargeting(object):
-    def __init__(self, src_skeleton, target_skeleton, target_to_src_joint_map, scale_factor=1.0, additional_rotation_map=None, constant_offset=None):#[0,-7.63486613913*(1/0.0881),0]
+    def __init__(self, src_skeleton, target_skeleton, target_to_src_joint_map, scale_factor=1.0, additional_rotation_map=None, constant_offset=None, place_on_ground=False):#[0,-7.63486613913*(1/0.0881),0]
         self.src_skeleton = src_skeleton
         self.target_skeleton = target_skeleton
         self.target_to_src_joint_map = target_to_src_joint_map
@@ -226,59 +311,61 @@ class Retargeting(object):
         self.src_cos_map = create_local_cos_map_from_skeleton_axes(self.src_skeleton)  #this should be local local, i.e. zero rotation but global offset
         self.target_cos_map = create_local_cos_map_from_skeleton_axes(self.target_skeleton)  # this should be local, i.e. zero rotation but global offset
         self.constant_offset = constant_offset
+        self.correction_map = dict()
+        self.create_correction_map()
 
-    def setup_local_cos_maps(self):
-        src_x_vector = [0, 1, 0]
-        src_up_vector = [1, 0, 0]
+        self.constant_offset = constant_offset
+        self.place_on_ground = place_on_ground
 
-        src_x_vector = get_body_x_axis(self.src_skeleton)
-        src_up_vector = get_body_y_axis(self.src_skeleton)
-        print(src_x_vector, src_up_vector)
+    def create_correction_map(self):
+        self.correction_map = dict()
+        for target_name in self.target_to_src_joint_map:
+            src_name = self.target_to_src_joint_map[target_name]
+            if src_name is not None:
+                src_zero_vector_y = self.src_cos_map[src_name]["y"]
+                target_zero_vector_y = self.target_cos_map[target_name]["y"]
+                src_zero_vector_x = self.src_cos_map[src_name]["x"]
+                target_zero_vector_x = self.target_cos_map[target_name]["x"]
+                q = quaternion_from_vector_to_vector(target_zero_vector_y, src_zero_vector_y)
+                m = quaternion_matrix(q)[:3, :3]
+                target_zero_vector_x = np.dot(m, target_zero_vector_x)
+                target_zero_vector_x = normalize(target_zero_vector_x)
+                qx = quaternion_from_vector_to_vector(target_zero_vector_x, src_zero_vector_x)
+                q = quaternion_multiply(qx, q)
+                q = normalize(q)
+                self.correction_map[target_name] = q
 
-        target_x_vector = [1, 0, 0]
-        target_up_vector = [0, 1, 0]
-        target_x_vector = get_body_x_axis(self.target_skeleton)
-        target_up_vector = get_body_y_axis(self.target_skeleton)
-
-        src_cos_map = create_local_cos_map(self.src_skeleton, src_up_vector, src_x_vector)
-        target_cos_map = create_local_cos_map(self.target_skeleton, target_up_vector, target_x_vector)
-        #src_cos_map["Hips"]["x"] = [-1, 0, 0]
-        #src_cos_map["Spine"]["x"] = [-1, 0, 0]
-        #src_cos_map["Spine1"]["x"] = [-1, 0, 0]
-        return src_cos_map, target_cos_map
-
-        src_cos_map["RightUpLeg"]["y"] = [0, -1, 0]
-        #src_cos_map["RightUpLeg"]["x"] = [-1, 0, 0]
-        src_cos_map["LeftUpLeg"]["y"] = [0, -1, 0]
-        src_cos_map["LeftUpLeg"]["x"] = [-1, 0, 0]
-        src_cos_map["RightLeg"]["y"] = [0, -1, 0]
-        #src_cos_map["RightLeg"]["x"] = [-1, 0, 0]
-
-        src_cos_map["LeftLeg"]["y"] = [0, -1, 0]
-       # src_cos_map["LeftLeg"]["x"] = [-1, 0, 0]
-
-        return src_cos_map, target_cos_map
-        src_cos_map["Hips"]["x"] = [0, -1, 0]
-        src_cos_map["Spine"]["x"] = [0, -1, 0]
-        src_cos_map["Spine_1"]["x"] = [0, -1, 0]
-        src_cos_map["Neck"]["x"] = [0, -1, 0]
-
-        return src_cos_map, target_cos_map
-
-    def rotate_bone(self, src_name, target_name, src_frame, target_frame, guess):
+    def rotate_bone_old(self, src_name, target_name, src_frame, target_frame, guess):
         q = guess
+        #print(src_name)
         src_child_name = self.src_skeleton.nodes[src_name].children[0].node_name # TODO take into account changed targets
         src_x_axis = self.src_cos_map[src_name]["x"]
         src_up_axis = self.src_cos_map[src_name]["y"]
 
-        if src_child_name in self.src_to_target_joint_map:
+        if src_child_name in self.src_to_target_joint_map:#or target_name =="neck_01" or target_name.startswith("hand")
             global_m = self.src_skeleton.nodes[src_name].get_global_matrix(src_frame)[:3, :3]
+            local_m = self.src_skeleton.nodes[src_name].get_local_matrix(src_frame)[:3, :3]
+            q = quaternion_from_matrix(global_m)
             global_src_up_vec = normalize(np.dot(global_m, src_up_axis))
             global_src_x_vec = normalize(np.dot(global_m, src_x_axis))
+            local_src_x_vec = normalize(np.dot(local_m, src_x_axis))
 
             target = {"global_src_up_vec": global_src_up_vec,
-                      "global_src_x_vec": global_src_x_vec}
+                      "global_src_x_vec": global_src_x_vec,
+                      "local_src_x_vec":  local_src_x_vec}
             q = find_rotation_analytically(self.target_skeleton, target_name, target, target_frame, self.target_cos_map)
+        return q
+
+    def rotate_bone(self, src_name, target_name, src_frame, target_frame, quess):
+        q = quess
+        src_child_name = self.src_skeleton.nodes[src_name].children[0].node_name
+        if src_child_name in self.src_to_target_joint_map:
+            m = self.src_skeleton.nodes[src_name].get_global_matrix(src_frame)[:3, :3]
+            q = quaternion_from_matrix(m)
+            correction_q = self.correction_map[target_name]
+            q = quaternion_multiply(q, correction_q)
+            q = normalize(q)
+            q = to_local_cos(self.target_skeleton, target_name, target_frame, q)
         return q
 
     def retarget_frame(self, src_frame, ref_frame):
@@ -300,7 +387,7 @@ class Retargeting(object):
                 src_name = self.target_to_src_joint_map[target_name]
                 #else:
                 #    src_name = "Hips"
-                if src_name is not None and len(self.src_skeleton.nodes[src_name].children) >0:
+                if src_name is not None and len(self.src_skeleton.nodes[src_name].children)>0:
                     q = self.rotate_bone(src_name, target_name, src_frame, target_frame, q)
 
             if ref_frame is not None:
@@ -332,6 +419,9 @@ class Retargeting(object):
                 ref_frame = target_frame
             target_frames.append(target_frame)
         target_frames = np.array(target_frames)
+        if self.place_on_ground:
+            delta = target_frames[0][1] - self.ground_height
+            target_frames[:,1] -= delta
         return target_frames
 
 
@@ -344,8 +434,8 @@ def generate_joint_map(src_model, target_model):
     return joint_map
 
 
-def retarget_from_src_to_target(src_skeleton, target_skeleton, src_frames, joint_map=None, additional_rotation_map=None, scale_factor=1.0, frame_range=None):
+def retarget_from_src_to_target(src_skeleton, target_skeleton, src_frames, joint_map=None, additional_rotation_map=None, scale_factor=1.0, frame_range=None, place_on_ground=False):
     if joint_map is None:
         joint_map = generate_joint_map(src_skeleton.skeleton_model, target_skeleton.skeleton_model)
-    retargeting = Retargeting(src_skeleton, target_skeleton, joint_map, scale_factor, additional_rotation_map=additional_rotation_map)
+    retargeting = Retargeting(src_skeleton, target_skeleton, joint_map, scale_factor, additional_rotation_map=additional_rotation_map, place_on_ground=place_on_ground)
     return retargeting.run(src_frames, frame_range)

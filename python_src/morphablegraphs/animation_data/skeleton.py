@@ -327,6 +327,12 @@ class Skeleton(object):
         data["referencePose"] = default_pose
         return data
 
+    def get_reduced_reference_frame(self):
+        frame = [0, 0, 0]
+        for joint_name in self.animated_joints:
+            frame += self.nodes[joint_name].rotation.tolist()
+        return frame
+
     def add_heels(self, skeleton_model):
         lknee_name = skeleton_model["joints"]["left_knee"]
         rknee_name = skeleton_model["joints"]["right_knee"]
@@ -337,9 +343,8 @@ class Skeleton(object):
         ltoe_name = skeleton_model["joints"]["left_toe"]
         rtoe_name = skeleton_model["joints"]["right_toe"]
 
-        frame = self.identity_frame
-        frame = self.reference_frame
-        self.add_heel("left_heel",lknee_name, lfoot_name, ltoe_name, frame)
+        frame = self.get_reduced_reference_frame()
+        self.add_heel("left_heel", lknee_name, lfoot_name, ltoe_name, frame)
         self.add_heel("right_heel", rknee_name, rfoot_name, rtoe_name, frame)
 
     def add_heel(self, heel_name, knee_name, foot_name, toe_name, frame):
