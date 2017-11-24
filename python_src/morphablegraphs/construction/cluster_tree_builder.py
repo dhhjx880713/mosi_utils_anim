@@ -63,7 +63,7 @@ class MGRDSkeletonBVHLoader(object):
         offset = node_data["offset"]
         if "channels" in node_data:
             angle_channels = ["Xrotation", "Yrotation", "Zrotation"]
-            angles_for_all_frames = self.bvh.get_angles(*[(name, ch) for ch in angle_channels])
+            angles_for_all_frames = self.bvh.get_angles([(name, ch) for ch in angle_channels])
             orientation = euler_to_quaternion(angles_for_all_frames[0])
         else:
             orientation = euler_to_quaternion([0, 0, 0])
@@ -80,13 +80,13 @@ class MGRDSkeletonBVHLoader(object):
 
 
 def save_data_to_pickle(data, output_filename):
-    with file(output_filename, "wb") as output_file:
+    with open(output_filename, "wb") as output_file:
         pickle.dump(data, output_file, pickle.HIGHEST_PROTOCOL)
 
 
 def load_data_from_pickle(input_filename):
     print("load", input_filename)
-    with file(input_filename, "rb") as in_file:
+    with open(input_filename, "rb") as in_file:
         return pickle.load(in_file)
 
 
