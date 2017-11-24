@@ -10,6 +10,23 @@ def get_quat_delta(qa, qb):
     """ get quaternion from quat a to quat b """
     return quaternion_multiply(qb, quaternion_inverse(qa))
 
+def get_leg_state(plant_range, foot_definitions, side, frame):
+    state = "swinging"
+    for foot in foot_definitions[side]:
+            if side in plant_range:
+                if foot in plant_range[side]:
+                    if plant_range[side][foot]["start"] is not None and plant_range[side][foot]["start"] <= frame <= plant_range[side][foot]["end"]:
+                        state = "planted"
+    return state
+
+
+def create_leg_state_model(plant_range, start_frame, end_frame, foot_definitions):
+    model = collections.OrderedDict()
+    for f in range(start_frame, end_frame):
+        model[f] = dict()
+        for side in foot_definitions:
+            model[f][side] = get_leg_state(plant_range, foot_definitions, side, f)
+    return model
 
 
 def regenerate_ankle_constraint_with_new_orientation(position, joint_offset, new_orientation):
