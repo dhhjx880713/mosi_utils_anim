@@ -408,10 +408,11 @@ def convert_ground_contacts_to_annotation(ground_contacts, joints, n_frames):
     data["color_map"] = {j : get_random_color() for j in joints}
     data["semantic_annotation"] = dict()
     for idx in range(n_frames):
-        for label in ground_contacts[idx]:
-            if label not in data["semantic_annotation"]:
-                data["semantic_annotation"][label] = []
-            data["semantic_annotation"][label].append(idx)
+        if idx in ground_contacts:
+            for label in ground_contacts[idx]:
+                if label not in data["semantic_annotation"]:
+                    data["semantic_annotation"][label] = []
+                data["semantic_annotation"][label].append(idx)
     return data
 
 
