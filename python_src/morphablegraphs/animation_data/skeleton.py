@@ -330,7 +330,7 @@ class Skeleton(object):
     def get_reduced_reference_frame(self):
         frame = [0, 0, 0]
         for joint_name in self.animated_joints:
-            frame += self.nodes[joint_name].rotation.tolist()
+            frame += list(self.nodes[joint_name].rotation)
         return frame
 
     def add_heels(self, skeleton_model):
