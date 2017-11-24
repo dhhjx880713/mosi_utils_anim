@@ -94,6 +94,7 @@ class SkeletonBuilder(object):
         create_identity_frame(skeleton)
         if skeleton_model is not None:
             skeleton.skeleton_model = skeleton_model
+            skeleton.add_heels(skeleton_model)
         return skeleton
 
     def construct_hierarchy_from_bvh(self, skeleton, joint_list, node_info, node_name, level):
