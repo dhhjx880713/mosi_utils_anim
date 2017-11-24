@@ -382,9 +382,9 @@ class Retargeting(object):
         src_child_name = self.src_skeleton.nodes[src_name].children[0].node_name
         if src_child_name in self.src_to_target_joint_map:
             m = self.src_skeleton.nodes[src_name].get_global_matrix(src_frame)[:3, :3]
-            q = quaternion_from_matrix(m)
+            gq = quaternion_from_matrix(m)
             correction_q = self.correction_map[target_name]
-            q = quaternion_multiply(q, correction_q)
+            q = quaternion_multiply(gq, correction_q)
             q = normalize(q)
             q = to_local_cos(self.target_skeleton, target_name, target_frame, q)
         return q
