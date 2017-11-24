@@ -326,17 +326,31 @@ class Retargeting(object):
 
     def create_correction_map(self):
         self.correction_map = dict()
+        joint_map = self.target_skeleton.skeleton_model["joints"]
         for target_name in self.target_to_src_joint_map:
             src_name = self.target_to_src_joint_map[target_name]
-            if src_name is not None:
+            if src_name in self.src_cos_map:
                 src_zero_vector_y = self.src_cos_map[src_name]["y"]
                 target_zero_vector_y = self.target_cos_map[target_name]["y"]
                 src_zero_vector_x = self.src_cos_map[src_name]["x"]
                 target_zero_vector_x = self.target_cos_map[target_name]["x"]
                 q = quaternion_from_vector_to_vector(target_zero_vector_y, src_zero_vector_y)
+                q = normalize(q)
+
+                if target_name in [joint_map["pelvis"], joint_map["spine"]]:
+                    # add offset rotation to spine based on an upright reference pose
+                    m = quaternion_matrix(q)[:3, :3]
+                    v = normalize(np.dot(m, target_zero_vector_y))
+                    node = self.target_skeleton.nodes[target_name]
+                    t_pose_global_m = node.get_global_matrix(self.target_skeleton.reference_frame)[:3, :3]
+                    global_original = np.dot(t_pose_global_m, v)
+                    global_original = normalize(global_original)
+                    qoffset = find_rotation_between_vectors(OPENGL_UP_AXIS, global_original)
+                    q = quaternion_multiply(qoffset, q)
+                    q = normalize(q)
+
                 m = quaternion_matrix(q)[:3, :3]
-                target_zero_vector_x = np.dot(m, target_zero_vector_x)
-                target_zero_vector_x = normalize(target_zero_vector_x)
+                target_zero_vector_x = normalize(np.dot(m, target_zero_vector_x))
                 qx = quaternion_from_vector_to_vector(target_zero_vector_x, src_zero_vector_x)
                 q = quaternion_multiply(qx, q)
                 q = normalize(q)
