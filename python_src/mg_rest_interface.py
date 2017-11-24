@@ -19,16 +19,16 @@ import tornado.web
 import json
 import time
 from datetime import datetime
-from .morphablegraphs import MotionGenerator, DEFAULT_ALGORITHM_CONFIG, load_json_file, write_to_json_file
-from .morphablegraphs.motion_model import MotionStateGraphLoader
-from .morphablegraphs.animation_data.retargeting import retarget_from_src_to_target, GAME_ENGINE_TO_ROCKETBOX_MAP, ROCKETBOX_ROOT_OFFSET
-from .morphablegraphs.animation_data import SkeletonBuilder, MotionVector, BVHReader, BVHWriter
-from .morphablegraphs.motion_generator import AnnotatedMotionVector
-from .morphablegraphs.animation_data.fbx_io import load_skeleton_and_animations_from_fbx, export_motion_vector_to_fbx_file
-from .morphablegraphs.utilities.io_helper_functions import get_bvh_writer
-from .morphablegraphs.utilities import write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO, LOG_MODE_ERROR, set_log_mode
+from morphablegraphs import MotionGenerator, DEFAULT_ALGORITHM_CONFIG, load_json_file, write_to_json_file
+from morphablegraphs.motion_model import MotionStateGraphLoader
+from morphablegraphs.animation_data.retargeting import retarget_from_src_to_target, GAME_ENGINE_TO_ROCKETBOX_MAP, ROCKETBOX_ROOT_OFFSET
+from morphablegraphs.animation_data import SkeletonBuilder, MotionVector, BVHReader, BVHWriter
+from morphablegraphs.motion_generator import AnnotatedMotionVector
+from morphablegraphs.animation_data.fbx_io import load_skeleton_and_animations_from_fbx, export_motion_vector_to_fbx_file
+from morphablegraphs.utilities.io_helper_functions import get_bvh_writer
+from morphablegraphs.utilities import write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO, LOG_MODE_ERROR, set_log_mode
 import argparse
-from .jsonpath_wrapper import update_data_using_jsonpath
+from jsonpath_wrapper import update_data_using_jsonpath
 
 SERVICE_CONFIG_FILE = "config" + os.sep + "service.config"
 TARGET_SKELETON = "game_engine_target.bvh"
@@ -101,9 +101,9 @@ class GenerateMotionHandler(tornado.web.RequestHandler):
 
     def post(self):
         try:
-            mg_input = json.loads(self.request.body)
-        except:
-            error_string = "Error: Could not decode request body as JSON."
+            mg_input = json.loads(self.request.body.decode("utf-8"))
+        except Exception as e:
+            error_string = "Error: Could not decode request body as JSON." + str(e.args)
             write_message_to_log(error_string, LOG_MODE_ERROR)
             self.write(error_string)
             return
@@ -213,7 +213,7 @@ class SetConfigurationHandler(tornado.web.RequestHandler):
     def post(self):
         #  try to decode message body
         try:
-            algorithm_config = json.loads(self.request.body)
+            algorithm_config = json.loads(self.request.body.decode("utf-8"))
         except:
             error_string = "Error: Could not decode request body as JSON."
             self.write(error_string)
@@ -299,7 +299,7 @@ class MGRestApplication(tornado.web.Application):
                 write_message_to_log("Collision avoidance will be activated", LOG_MODE_INFO)
                 return True
             except Exception as e:
-                write_message_to_log("Warning: Could not create connection to collision avoidance interface" + str(e.message), LOG_MODE_ERROR)
+                write_message_to_log("Warning: Could not create connection to collision avoidance interface" + str(e.args), LOG_MODE_ERROR)
         write_message_to_log("Collision avoidance will be disabled", LOG_MODE_INFO)
         service_config["collision_avoidance_service_url"] = None
         return False
@@ -336,15 +336,13 @@ class MGRESTInterface(object):
         #  Load configuration files
         service_config = load_json_file(service_config_file)
         update_data_using_jsonpath(service_config, json_path_expressions)
-        algorithm_config_builder = DEFAULT_ALGORITHM_CONFIG
         algorithm_config_file = "config" + os.sep + service_config["algorithm_settings"] + "_algorithm.config"
         if os.path.isfile(algorithm_config_file):
             write_message_to_log("Load algorithm configuration from " + algorithm_config_file, LOG_MODE_INFO)
-            algorithm_config_builder.from_json(algorithm_config_file)
+            algorithm_config = load_json_file(algorithm_config_file)
         else:
             write_message_to_log("Did not find algorithm configuration file " + algorithm_config_file, LOG_MODE_INFO)
-
-        algorithm_config = algorithm_config_builder.build()
+            algorithm_config = DEFAULT_ALGORITHM_CONFIG
 
         #  Construct morphable graph from files
         self.application = MGRestApplication(service_config, algorithm_config,
