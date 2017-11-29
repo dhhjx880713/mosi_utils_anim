@@ -15,6 +15,9 @@ from morphablegraphs.utilities import write_message_to_log, LOG_MODE_DEBUG, LOG_
 import argparse
 import asyncio
 import tornado.platform.asyncio
+from morphablegraphs.animation_data.skeleton_models import SKELETON_MODELS
+from morphablegraphs.animation_data import BVHReader, SkeletonBuilder
+from morphablegraphs.animation_data.retargeting import retarget_from_src_to_target
 
 
 def eval_func( n):
@@ -47,7 +50,7 @@ class TestHandler(tornado.web.RequestHandler):
 
 
 class Context(object):
-    def __init__(self, service_config, algorithm_config):
+    def __init__(self, service_config, algorithm_config, target_skeleton=None):
         self.service_config = service_config
         self.algorithm_config = algorithm_config
         graph_loader = MotionStateGraphLoader()
@@ -56,15 +59,46 @@ class Context(object):
         self.generator = MotionGenerator(motion_state_graph, self.service_config, self.algorithm_config)
         self.request_count = 0
 
+        if target_skeleton is not None:
+            self.target_skeleton = target_skeleton
+            joint_map = dict()
+            src_skeleton = self.generator.get_skeleton()
+            for j in src_skeleton.skeleton_model["joints"]:
+                src = src_skeleton.skeleton_model["joints"][j]
+                if j in self.target_skeleton.skeleton_model["joints"]:
+                    joint_map[src] = self.target_skeleton.skeleton_model["joints"][j]
+                else:
+                    joint_map[src] = None
+            self.joint_map = joint_map
+        else:
+            self.target_skeleton = None
+            self.joint_map = None
+
     def get_target_skeleton(self):
-        return self.generator.get_skeleton()
+        if self.target_skeleton is None:
+            return self.generator.get_skeleton()
+        else:
+            return self.target_skeleton
 
 
+def generate_motion(context, mg_input):
+    motion_vector = context.generator.generate_motion(mg_input, False, False, complete_motion_vector=False)
 
-def generate_motion(graph, mg_input):
-    motion_vector = graph.generate_motion(mg_input, False, False, complete_motion_vector=False)
+    if context.target_skeleton is not None:
+        scale_factor = 1.0
+        frame_range = None
+        src_skeleton = context.generator.get_skeleton()
+        target_skeleton = context.get_target_skeleton()
+        new_frames = retarget_from_src_to_target(src_skeleton, target_skeleton,
+                                                 motion_vector.frames,
+                                                 scale_factor=scale_factor,
+                                                 frame_range=frame_range,
+                                                 place_on_ground=True)
+        motion_vector.skeleton = target_skeleton
+        motion_vector.frames = new_frames
     result_object = motion_vector.to_unity_format()
     return json.dumps(result_object)
+
 
 class GenerateMotionHandler(tornado.web.RequestHandler):
     @gen.coroutine
@@ -83,7 +117,7 @@ class GenerateMotionHandler(tornado.web.RequestHandler):
             id = context.request_count
             print("start task", id)
             context.request_count += 1
-            fut = pool.submit(generate_motion, context.generator, mg_input)
+            fut = pool.submit(generate_motion, context, mg_input)
             while not fut.done():
                  yield gen.sleep(0.2)  # start process and wait until it is done
             result_str = fut.result()
@@ -115,8 +149,6 @@ class GetSkeletonHandler(tornado.web.RequestHandler):
     def post(self):
         global context
         target_skeleton = context.get_target_skeleton()
-        if target_skeleton is None:
-            target_skeleton = self.application.get_skeleton()
 
         result_object = target_skeleton.to_unity_format(joint_name_map=None)
         self.write(json.dumps(result_object))
@@ -129,11 +161,14 @@ app = tornado.web.Application([
 ])
 
 SERVICE_CONFIG_FILE = "config" + os.sep + "service.config"
+MODEL_DATA_DIR = r"E:\projects\model_data"
 context = None
 pool = None
 def main():
     global context, pool
     port = 8888
+
+    target_skeleton_file = MODEL_DATA_DIR + os.sep + "iclone_female4.bvh"
     parser = argparse.ArgumentParser(description="Start the MorphableGraphs REST-interface")
     parser.add_argument("-set", nargs='+', default=[], help="JSONPath expression, e.g. -set $.model_data=path/to/data")
     parser.add_argument("-config_file", nargs='?', default=SERVICE_CONFIG_FILE, help="Path to default config file")
@@ -145,9 +180,17 @@ def main():
             algorithm_config_file = "config" + os.sep + service_config["algorithm_settings"] + "_algorithm.config"
             algorithm_config = load_json_file(algorithm_config_file)
             port = service_config["port"]
-            context = Context(service_config, algorithm_config)
 
+            if args.target_skeleton is not None:
+                # TODO use custom json file instead
+                bvh_reader = BVHReader(args.target_skeleton)
+                animated_joints = list(bvh_reader.get_animated_joints())
+                target_skeleton = SkeletonBuilder().load_from_bvh(bvh_reader, animated_joints=animated_joints)
+                target_skeleton.skeleton_model = SKELETON_MODELS["iclone"]
+            else:
+                target_skeleton = None
 
+            context = Context(service_config, algorithm_config, target_skeleton)
     count = cpu_count()
     print("run {} processes on port {}".format(count, port))
     pool = ProcessPoolExecutor(max_workers=count)
