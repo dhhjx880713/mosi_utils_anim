@@ -7,7 +7,8 @@ Created on Mon Jan 26 14:11:11 2015
 
 import numpy as np
 import json
-from sklearn import mixture
+#from sklearn import mixture
+from sklearn.mixture.gaussian_mixture import GaussianMixture, _compute_precision_cholesky
 import scipy.interpolate as si
 from . import B_SPLINE_DEGREE
 from .motion_spline import MotionSpline
@@ -106,11 +107,16 @@ class MotionPrimitive(object):
 
         """
         n_components = len(np.array(data['gmm_weights']))
-        self.gaussian_mixture_model = mixture.GMM(n_components, covariance_type='full')
-        self.gaussian_mixture_model.weights_ = np.array(data['gmm_weights'])
-        self.gaussian_mixture_model.means_ = np.array(data['gmm_means'])
-        self.gaussian_mixture_model.converged_ = True
-        self.gaussian_mixture_model.covars_ = np.array(data['gmm_covars'])
+        gmm = GaussianMixture(n_components=n_components, covariance_type='full')
+        gmm.weights_ = np.array(data['gmm_weights'])
+        gmm.means_ = np.array(data['gmm_means'])
+        gmm.converged_ = True
+        gmm.covariances_ = np.array(data['gmm_covars'])
+        gmm.precisions_cholesky_ = _compute_precision_cholesky(gmm.covariances_,
+                                                               covariance_type='full')
+        gmm.n_dims = len(gmm.means_[0])
+        self.gaussian_mixture_model = gmm
+
 
     def _init_spatial_parameters_from_json(self, data):
         """  Set the parameters for back_project_spatial_function.
@@ -154,7 +160,7 @@ class MotionPrimitive(object):
         * s:  numpy.ndarray
         """
         assert self.gaussian_mixture_model is not None, "Motion primitive not initialized."
-        return np.ravel(self.gaussian_mixture_model.sample(n_samples))
+        return np.ravel(self.gaussian_mixture_model.sample(n_samples)[0])
 
     def sample(self, use_time_parameters=True):
         """ Sample the motion primitive and return a motion spline
