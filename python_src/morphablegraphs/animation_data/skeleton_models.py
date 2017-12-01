@@ -384,6 +384,59 @@ CUSTOM_SKELETON_MODEL["joints"] = CUSTOM_SKELETON_JOINTS
 CUSTOM_SKELETON_MODEL["foot_joints"] = []
 
 
+CAPTURY_SKELETON_JOINTS = collections.OrderedDict()
+CAPTURY_SKELETON_JOINTS["root"] = "Hips"
+CAPTURY_SKELETON_JOINTS["pelvis"] = "Hips"
+CAPTURY_SKELETON_JOINTS["spine"] = "Spine"
+CAPTURY_SKELETON_JOINTS["spine_1"] = "Spine1"
+CAPTURY_SKELETON_JOINTS["spine_2"] = "Spine3"
+CAPTURY_SKELETON_JOINTS["left_clavicle"] = "LeftShoulder"
+CAPTURY_SKELETON_JOINTS["right_clavicle"] = "RightShoulder"
+CAPTURY_SKELETON_JOINTS["left_shoulder"] = "LeftArm"
+CAPTURY_SKELETON_JOINTS["right_shoulder"] = "RightArm"
+CAPTURY_SKELETON_JOINTS["left_elbow"] = "LeftForeArm"
+CAPTURY_SKELETON_JOINTS["right_elbow"] = "RightForeArm"
+CAPTURY_SKELETON_JOINTS["left_wrist"] = "LeftHand"
+CAPTURY_SKELETON_JOINTS["right_wrist"] = "RightHand"
+CAPTURY_SKELETON_JOINTS["left_finger"] = "LeftHand_EndSite"
+CAPTURY_SKELETON_JOINTS["right_finger"] = "RightHand_EndSite"
+CAPTURY_SKELETON_JOINTS["left_hip"] = "LeftUpLeg"
+CAPTURY_SKELETON_JOINTS["right_hip"] = "RightUpLeg"
+CAPTURY_SKELETON_JOINTS["left_knee"] = "LeftLeg"
+CAPTURY_SKELETON_JOINTS["right_knee"] = "RightLeg"
+CAPTURY_SKELETON_JOINTS["left_ankle"] = "LeftFoot"
+CAPTURY_SKELETON_JOINTS["right_ankle"] = "RightFoot"
+CAPTURY_SKELETON_JOINTS["left_toe"] = "LeftToeBase"
+CAPTURY_SKELETON_JOINTS["right_toe"] = "RightToeBase"
+CAPTURY_SKELETON_JOINTS["left_heel"] = None
+CAPTURY_SKELETON_JOINTS["right_heel"] = None
+CAPTURY_SKELETON_JOINTS["neck"] = "Neck"
+CAPTURY_SKELETON_JOINTS["head"] = "Head"
+CAPTURY_SKELETON_COS_MAP = collections.defaultdict(dict)
+CAPTURY_SKELETON_COS_MAP["LeftHand"]["y"] = [-1, 0, 0]
+CAPTURY_SKELETON_COS_MAP["LeftHand"]["x"] = [0, -1, 0]
+CAPTURY_SKELETON_COS_MAP["LeftArm"]["y"] = [-1, 0, 0]
+CAPTURY_SKELETON_COS_MAP["LeftArm"]["x"] = [0, -1, 0]
+CAPTURY_SKELETON_COS_MAP["LeftShoulder"]["y"] = [-1, 0, 0]
+CAPTURY_SKELETON_COS_MAP["LeftShoulder"]["x"] = [0, -1, 0]
+
+CAPTURY_SKELETON_COS_MAP["LeftForeArm"]["y"] = [-1, 0, 0]
+CAPTURY_SKELETON_COS_MAP["LeftForeArm"]["x"] = [0, -1, 0]
+CAPTURY_SKELETON_COS_MAP["RightHand"]["y"] = [1, 0, 0]
+CAPTURY_SKELETON_COS_MAP["RightHand"]["x"] = [0, 1, 0]
+CAPTURY_SKELETON_COS_MAP["RightArm"]["y"] = [1, 0, 0]
+CAPTURY_SKELETON_COS_MAP["RightArm"]["x"] = [0, 1, 0]
+CAPTURY_SKELETON_COS_MAP["RightShoulder"]["y"] = [1, 0, 0]
+CAPTURY_SKELETON_COS_MAP["RightShoulder"]["x"] = [0, 1, 0]
+
+CAPTURY_SKELETON_COS_MAP["RightForeArm"]["y"] = [1, 0, 0]
+CAPTURY_SKELETON_COS_MAP["RightForeArm"]["x"] = [0, 1, 0]
+
+
+CAPTURY_SKELETON_MODEL = collections.OrderedDict()
+CAPTURY_SKELETON_MODEL["joints"] = CAPTURY_SKELETON_JOINTS
+CAPTURY_SKELETON_MODEL["foot_joints"] = []
+CAPTURY_SKELETON_MODEL["cos_map"] = CAPTURY_SKELETON_COS_MAP
 SKELETON_MODELS = dict()
 SKELETON_MODELS["rocketbox"] = ROCKETBOX_SKELETON_MODEL
 SKELETON_MODELS["game_engine"] = GAME_ENGINE_SKELETON_MODEL
