@@ -132,7 +132,7 @@ class MotionPrimitiveConstraintsBuilder(object):
                                                                self.status["is_last_step"])
             if self.use_transition_constraint:
                 self._add_pose_constraint(mp_constraints)
-        if len(list(self.action_constraints.keyframe_constraints.keys())) > 0:
+        if len(self.action_constraints.keyframe_constraints.keys()) > 0:
             self._add_keyframe_constraints(mp_constraints)
             # generate frame constraints for the last step based on the previous state
             # if not already done for the trajectory following
@@ -222,8 +222,8 @@ class MotionPrimitiveConstraintsBuilder(object):
     def _add_events_to_event_list(self, mp_constraints):
         for label in list(self.action_constraints.keyframe_annotations.keys()):
             print("try to set annotations for label ", label)
-            if mp_constraints.motion_primitive_name in list(self.motion_state_graph.node_groups[self.action_constraints.action_name].motion_primitive_annotations.keys()):
-                if label in self.motion_state_graph.node_groups[self.action_constraints.action_name].motion_primitive_annotations[mp_constraints.motion_primitive_name]:
+            if mp_constraints.motion_primitive_name in list(self.motion_state_graph.node_groups[self.action_constraints.action_name].mp_annotations.keys()):
+                if label in self.motion_state_graph.node_groups[self.action_constraints.action_name].mp_annotations[mp_constraints.motion_primitive_name]:
                     event_list = self.action_constraints.keyframe_annotations[label]["annotations"]
 
                     # add keyframe constraint based on joint and label
