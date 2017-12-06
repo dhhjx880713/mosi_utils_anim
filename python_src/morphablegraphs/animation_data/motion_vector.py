@@ -85,16 +85,17 @@ class MotionVector(object):
         else:
             self.append_frames_generic(new_frames)
 
-    def export(self, skeleton, output_filename, add_time_stamp=True):
+    def export(self, skeleton, output_filename, add_time_stamp=False):
         bvh_writer = BVHWriter(None, skeleton, self.frames, skeleton.frame_time, True)
         if add_time_stamp:
-            filepath = output_filename + "_" + \
+            output_filename = output_filename + "_" + \
                        str(datetime.now().strftime("%d%m%y_%H%M%S")) + ".bvh"
         elif output_filename != "":
-            filepath = output_filename + ".bvh"
+            if not output_filename.endswith("bvh"):
+                output_filename = output_filename + ".bvh"
         else:
-            filepath = "output.bvh"
-        bvh_writer.write(filepath)
+            output_filename = "output.bvh"
+        bvh_writer.write(output_filename)
 
     def reduce_frames(self, n_frames):
         if n_frames == 0:
