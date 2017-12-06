@@ -22,7 +22,7 @@ class ElementaryActionMetaInfo(object):
         self.n_start_states = 0
         self.end_states = list()
         self.n_end_states = 0
-        self.motion_primitive_annotations = dict()
+        self.mp_annotations = dict()
         self.meta_information = None
         self.motion_primitive_annotation_regions = dict()
 
@@ -41,7 +41,7 @@ class ElementaryActionMetaInfo(object):
         self.n_start_states = len(self.start_states)
         self.end_states = self.meta_information["end_states"]
         self.n_end_states = len(self.end_states)
-        self.motion_primitive_annotations = self.meta_information["annotations"]
+        self.mp_annotations = self.meta_information["annotations"]
         self._create_annotation_label_to_motion_primitive_map()
         if "annotation_regions" in list(self.meta_information.keys()):
             self.motion_primitive_annotation_regions = self.meta_information["annotation_regions"]
@@ -49,9 +49,9 @@ class ElementaryActionMetaInfo(object):
     def _create_annotation_label_to_motion_primitive_map(self):
         """Create a map from semantic label to motion primitive
         """
-        for motion_primitive in list(self.motion_primitive_annotations.keys()):
+        for motion_primitive in list(self.mp_annotations.keys()):
             if motion_primitive != "all_primitives":
-                annotations = self.motion_primitive_annotations[motion_primitive]
+                annotations = self.mp_annotations[motion_primitive]
                 for label in list(annotations.keys()):
                     if label not in list(self.label_to_motion_primitive_map.keys()):
                         self.label_to_motion_primitive_map[label] = []
@@ -98,31 +98,31 @@ class ElementaryActionMetaInfo(object):
         return
 
     def get_canonical_keyframe_labels(self, motion_primitive_name):
-        if motion_primitive_name in list(self.motion_primitive_annotations.keys()):
-            keyframe_labels = self.motion_primitive_annotations[motion_primitive_name]
+        if motion_primitive_name in list(self.mp_annotations.keys()):
+            keyframe_labels = self.mp_annotations[motion_primitive_name]
         else:
             keyframe_labels = {}
         return keyframe_labels
 
-    def get_keyframe_from_annotation(self, motion_primitive_name, keyframe_label, n_canonical_frames):
+    def get_keyframe_from_annotation(self, mp_name, label, n_canonical_frames):
         keyframe = None
-        # print "try to map frame annotation ", keyframe_label
-        if keyframe_label == KEYFRAME_LABEL_END:#"end"
+        if label == KEYFRAME_LABEL_END:
             keyframe = n_canonical_frames-1
-        elif keyframe_label == KEYFRAME_LABEL_START:#"start"
+        elif label == KEYFRAME_LABEL_START:#"start"
             keyframe = 0
-        elif keyframe_label == KEYFRAME_LABEL_MIDDLE:#"middle"
+        elif label == KEYFRAME_LABEL_MIDDLE:#"middle"
             keyframe = n_canonical_frames/2
         else:
-            if motion_primitive_name in list(self.motion_primitive_annotations.keys()) and \
-                   keyframe_label in list(self.motion_primitive_annotations[motion_primitive_name].keys()):
-                    keyframe = self.motion_primitive_annotations[motion_primitive_name][keyframe_label]
+            print("search for label ", label, list(self.mp_annotations[mp_name].keys()))
+            if mp_name in list(self.mp_annotations.keys()) and \
+                            label in list(self.mp_annotations[mp_name].keys()):
+                    keyframe = self.mp_annotations[mp_name][label]
                     if keyframe in [NEGATIVE_ONE, LAST_FRAME]:
                         keyframe = n_canonical_frames-1
                     elif keyframe == KEYFRAME_LABEL_MIDDLE:
                         keyframe = n_canonical_frames/2
             else:
-                print("Error: Could not map keyframe label", keyframe_label, list(self.motion_primitive_annotations.keys()))
+                print("Error: Could not map keyframe label", label, list(self.mp_annotations.keys()))
         if keyframe is not None:
             keyframe = int(keyframe)
         return keyframe
