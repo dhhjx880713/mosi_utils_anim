@@ -64,8 +64,7 @@ class GraphWalkPlanner(object):
 
     def get_best_start_node(self):
         start_nodes = self.motion_state_graph.get_start_nodes(self.action_constraints.action_name)
-        n_nodes = len(start_nodes)
-        if n_nodes > 1:
+        if len(start_nodes) > 1:
             options = [(self.action_constraints.action_name, next_node) for next_node in start_nodes]
             return self.select_next_step(self.state, options, add_orientation=self.constrain_start_orientation)
         else:
@@ -132,7 +131,8 @@ class GraphWalkPlanner(object):
 
         mp_constraints = MotionPrimitiveConstraints()
         mp_constraints.skeleton = self.motion_state_graph.skeleton
-        mp_constraints.aligning_transform = create_transformation_matrix(state.graph_walk.motion_vector.start_pose["position"], state.graph_walk.motion_vector.start_pose["orientation"])
+        start_pose = state.graph_walk.motion_vector.start_pose
+        mp_constraints.aligning_transform = create_transformation_matrix(start_pose["position"], start_pose["orientation"])
         mp_constraints.start_pose = state.graph_walk.motion_vector.start_pose
         constraint_desc = {"joint": joint, "canonical_keyframe": -1, "n_canonical_frames": 0,
                            "semanticAnnotation": {"keyframeLabel": "end", "generated": True}}

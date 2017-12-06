@@ -21,9 +21,9 @@ class MotionStateGroupLoader(object):
         self.elementary_action_directory = None
         self.has_transition_models = False
         self.meta_information = None
-        self.start_states = []
-        self.end_states = []
-        self.motion_primitive_annotations = {}
+        self.start_states = list()
+        self.end_states = list()
+        self.mp_annotations = dict()
         self.build_from_directory = False
         self.load_transition_models = False
         self.elementary_action_data = None

@@ -73,7 +73,7 @@ class KeyframeConstraintReader(object):
         for keyframe_label in list(keyframe_constraints.keys()):
             mp_names = node_group.label_to_motion_primitive_map[keyframe_label]
             for mp_name in mp_names:
-                time_info = node_group.motion_primitive_annotations[mp_name][keyframe_label]
+                time_info = node_group.mp_annotations[mp_name][keyframe_label]
                 if mp_name not in list(reordered_constraints.keys()):
                     reordered_constraints[mp_name] = list()
                 # iterate over joints constrained at that keyframe
