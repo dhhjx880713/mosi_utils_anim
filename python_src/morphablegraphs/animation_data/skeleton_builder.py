@@ -121,10 +121,11 @@ class SkeletonBuilder(object):
             if node_name in skeleton.animated_joints:
                 node.fixed = False
                 node.quaternion_frame_index = skeleton.animated_joints.index(node_name)
-                offset = node.quaternion_frame_index * 4 + 3
-                node.rotation = skeleton.reference_frame[offset: offset + 4]
             else:
                 node.fixed = True
+
+            offset = joint_index * 4 + 3
+            node.rotation = skeleton.reference_frame[offset: offset + 4]
             node.index = joint_index
         else:
             node = SkeletonEndSiteNode(node_name, channels, None, level)
