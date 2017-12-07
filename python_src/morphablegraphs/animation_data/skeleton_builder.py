@@ -24,7 +24,9 @@ def create_euler_frame_indices(skeleton):
 
 
 def read_reference_frame_from_bvh_reader(bvh_reader, frame_index=0):
-    quaternion_frame = np.array((list(QuaternionFrame(bvh_reader, bvh_reader.frames[frame_index], False, False).values()))).flatten()
+    quat_frame = QuaternionFrame(bvh_reader, bvh_reader.frames[frame_index], False, False, animated_joints=None)
+    quat_frames = list(quat_frame.values())
+    quaternion_frame = np.array(quat_frames).flatten()
     return np.array(bvh_reader.frames[0][:3].tolist() + quaternion_frame.tolist())
 
 

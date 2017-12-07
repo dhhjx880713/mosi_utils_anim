@@ -37,9 +37,9 @@ class MotionVector(object):
             if "apply_foot_alignment" in settings:
                 self.apply_foot_alignment = settings["apply_foot_alignment"]
 
-    def from_bvh_reader(self, bvh_reader, filter_joints=True):
+    def from_bvh_reader(self, bvh_reader, filter_joints=True, animated_joints=None):
         if self.rotation_type == ROTATION_TYPE_QUATERNION:
-            self.frames = np.array(convert_euler_frames_to_quaternion_frames(bvh_reader, bvh_reader.frames, filter_joints))
+            self.frames = np.array(convert_euler_frames_to_quaternion_frames(bvh_reader, bvh_reader.frames, filter_joints, animated_joints))
         elif self.rotation_type == ROTATION_TYPE_EULER:
             self.frames = bvh_reader.frames
         self.n_frames = len(self.frames)
