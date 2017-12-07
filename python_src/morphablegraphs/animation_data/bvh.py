@@ -307,7 +307,7 @@ class BVHWriter(object):
         joint_names = self.skeleton.get_joint_names()
         n_frames = len(quat_frames)
         n_joints = len(joint_names)
-        n_params = n_joints*QUAT_LEN + TRANSLATION_LEN
+        n_params = n_joints*EULER_LEN + TRANSLATION_LEN
         euler_frames = np.zeros((n_frames, n_params))
         for frame_idx, quat_frame in enumerate(quat_frames):
             euler_frames[frame_idx,:TRANSLATION_LEN] = quat_frame[:TRANSLATION_LEN]
