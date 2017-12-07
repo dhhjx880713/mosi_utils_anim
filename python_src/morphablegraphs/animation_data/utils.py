@@ -239,7 +239,7 @@ def quaternion_to_euler(q, rotation_order=DEFAULT_ROTATION_ORDER):
     return np.rad2deg(quaternion_to_euler_rad(q, rotation_order)).tolist()
 
 
-def convert_euler_frames_to_quaternion_frames(bvhreader, euler_frames, filter_joints=True):
+def convert_euler_frames_to_quaternion_frames(bvhreader, euler_frames, filter_joints=True, animated_joints=None):
     """
     :param bvhreader: a BVHReader instance to store skeleton information
     :param euler_frames: a list of euler frames
@@ -248,7 +248,7 @@ def convert_euler_frames_to_quaternion_frames(bvhreader, euler_frames, filter_jo
     quat_frames = []
     last_quat_frame = None
     for frame in euler_frames:
-        quat_frame = QuaternionFrame(bvhreader, frame, ignore_bip_joints=filter_joints)
+        quat_frame = QuaternionFrame(bvhreader, frame, ignore_bip_joints=filter_joints, animated_joints=animated_joints)
         if last_quat_frame is not None:
             for joint_name in list(bvhreader.node_names.keys()):
                 if joint_name in list(quat_frame.keys()):
