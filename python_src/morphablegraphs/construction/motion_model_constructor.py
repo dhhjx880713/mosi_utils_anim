@@ -1,13 +1,12 @@
 import numpy as np
+import time
 from copy import copy
 from .fpca.fpca_spatial_data import FPCASpatialData
 from .fpca.fpca_time_semantic import FPCATimeSemantic
-from .preprocessing.motion_dtw import MotionDynamicTimeWarping
 from .motion_primitive.statistical_model_trainer import GMMTrainer
 from ..animation_data.utils import pose_orientation_quat, get_rotation_angle
 from ..external.transformations import quaternion_from_euler
-from .dtw import run_dtw, get_warping_function, find_reference_motion, warp_motion
-from ..animation_data import SkeletonBuilder
+from .dtw import get_warping_function, find_optimal_dtw_async, warp_motion
 from ..utilities.io_helper_functions import export_frames_to_bvh_file
 from ..motion_model.motion_spline import MotionSpline
 from .utils import convert_poses_to_point_clouds, rotate_frames, align_quaternion_frames, get_cubic_b_spline_knots,\
@@ -15,8 +14,8 @@ from .utils import convert_poses_to_point_clouds, rotate_frames, align_quaternio
 
 
 class MotionModel(object):
-    def __init__(self, bvh_reader, animated_joints=None):
-        self._skeleton = SkeletonBuilder().load_from_bvh(bvh_reader, animated_joints, add_tool_joints=False)
+    def __init__(self, skeleton):
+        self._skeleton = skeleton
         self._input_motions = []
         self._aligned_frames = []
         self._temporal_data = []
@@ -54,13 +53,11 @@ class MotionModel(object):
 
 
 class MotionModelConstructor(MotionModel):
-    def __init__(self, bvh_reader, config, animated_joints=None):
-        super(MotionModelConstructor, self).__init__(bvh_reader, animated_joints)
-        self._bvh_reader = bvh_reader
+    def __init__(self, skeleton, config, animated_joints=None):
+        super(MotionModelConstructor, self).__init__(skeleton, animated_joints)
+        self.skeleton = skeleton
         self.config = config
         self.ref_orientation = [0,-1]
-        self._motion_dtw = MotionDynamicTimeWarping()
-        self._motion_dtw.ref_bvhreader = self._bvh_reader
 
     def set_motions(self, motions):
         """ Set the input data.
@@ -70,7 +67,7 @@ class MotionModelConstructor(MotionModel):
         """
         self._input_motions = motions
 
-    def construct_model(self, name, version=1):
+    def construct_model(self, name, version=1, save_skeleton=False):
         """ Runs the construction pipeline
         Args:
         -----
@@ -78,10 +75,15 @@ class MotionModelConstructor(MotionModel):
              version (int): format supported values are 1, 2 and 3
         """
 
+        start = time.clock()
         self._align_frames()
         self.run_dimension_reduction()
         self.learn_statistical_model()
-        model_data = self.convert_motion_model_to_json(name, version)
+        model_data = self.convert_motion_model_to_json(name, version, save_skeleton)
+        delta = time.clock() - start
+        minutes = int(delta/ 60)
+        seconds = delta % 60
+        print("Finished modeling in", minutes, "minutes and", seconds, "seconds")
         return model_data
 
     def _align_frames(self):
@@ -116,48 +118,19 @@ class MotionModelConstructor(MotionModel):
             aligned_frames.append(ma)
         return aligned_frames
 
-    def _align_frames_temporally_rpy2(self, input_motions):
-        """
-         run rpy2 dtw
-        """
-        self._motion_dtw.aligned_motions = dict(enumerate(input_motions))
-        print("run temporal alignment", len(self._motion_dtw.aligned_motions))
-        self._motion_dtw.dtw()
-        aligned_frames = []
-        temporal_data = []
-        for key, motion in self._motion_dtw.warped_motions:
-            aligned_frames.append(motion['frames'])
-            temporal_data.append(motion['warping_index'])
-        return aligned_frames, temporal_data
-
-    def _align_frames_temporally(self, input_motions):
-        print("run temporal alignment")
-        point_clouds = convert_poses_to_point_clouds(self._skeleton, input_motions, normalize=False)
-        ref_p = find_reference_motion(point_clouds)
-        temp = list(zip(input_motions, point_clouds))
-        warped_frames = []
-        warping_functions = []
-        for idx, data in enumerate(temp):
-            m, p = data
-            path, D = run_dtw(p, ref_p)
-            warping_function = get_warping_function(path)
-            #print path, warping_function
-            warped_frames.append(warp_motion(m, warping_function))
-            warping_functions.append(warping_function)
-        return warped_frames, warping_functions
-
     def run_dimension_reduction(self):
         self.run_spatial_dimension_reduction()
         self.run_temporal_dimension_reduction()
 
     def run_spatial_dimension_reduction(self):
         scaled_quat_frames, scale_vec = normalize_root_translation(self._aligned_frames)
-        smoothed_quat_frames = align_quaternion_frames(self._skeleton, scaled_quat_frames)
-        fpca_input = dict(enumerate(smoothed_quat_frames))
+        smoothed_quat_frames = np.array(align_quaternion_frames(self._skeleton, scaled_quat_frames))
         fpca_spatial = FPCASpatialData(self.config["n_basis_functions_spatial"],
                                        self.config["n_components"],
                                        self.config["fraction"])
-        fpca_spatial.fit_motion_dictionary(fpca_input)
+        fpca_spatial.fileorder = list(range(len(smoothed_quat_frames)))
+        print(smoothed_quat_frames.shape)
+        fpca_spatial.fit(smoothed_quat_frames)
 
         result = dict()
         result['parameters'] = fpca_spatial.fpcaobj.low_vecs
@@ -208,7 +181,7 @@ class MotionModelConstructor(MotionModel):
         trainer.fit(motion_parameters)
         self._gmm_data = trainer.convert_model_to_json()
 
-    def convert_motion_model_to_json(self, name="", version=1):
+    def convert_motion_model_to_json(self, name="", version=1, save_skeleton=False):
         weights = self._gmm_data['gmm_weights']
         means = self._gmm_data['gmm_means']
         covars = self._gmm_data['gmm_covars']
@@ -296,5 +269,7 @@ class MotionModelConstructor(MotionModel):
             data['tspm']['degree'] = BSPLINE_DEGREE
             data['tspm']['semantic_labels'] = semantic_label
             data['tspm']['frame_time'] = self._skeleton.frame_time
+        if save_skeleton:
+            data["skeleton"] = self.skeleton.to_json()
         return data
 
