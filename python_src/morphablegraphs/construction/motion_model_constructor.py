@@ -1,5 +1,4 @@
 import numpy as np
-import time
 from copy import copy
 from .fpca.fpca_spatial_data import FPCASpatialData
 from .fpca.fpca_time_semantic import FPCATimeSemantic
@@ -53,8 +52,8 @@ class MotionModel(object):
 
 
 class MotionModelConstructor(MotionModel):
-    def __init__(self, skeleton, config, animated_joints=None):
-        super(MotionModelConstructor, self).__init__(skeleton, animated_joints)
+    def __init__(self, skeleton, config):
+        super(MotionModelConstructor, self).__init__(skeleton)
         self.skeleton = skeleton
         self.config = config
         self.ref_orientation = [0,-1]
@@ -75,15 +74,10 @@ class MotionModelConstructor(MotionModel):
              version (int): format supported values are 1, 2 and 3
         """
 
-        start = time.clock()
         self._align_frames()
         self.run_dimension_reduction()
         self.learn_statistical_model()
         model_data = self.convert_motion_model_to_json(name, version, save_skeleton)
-        delta = time.clock() - start
-        minutes = int(delta/ 60)
-        seconds = delta % 60
-        print("Finished modeling in", minutes, "minutes and", seconds, "seconds")
         return model_data
 
     def _align_frames(self):
@@ -117,6 +111,28 @@ class MotionModelConstructor(MotionModel):
                 f[:3] -= delta + self._skeleton.nodes[self._skeleton.root].offset
             aligned_frames.append(ma)
         return aligned_frames
+
+    def _align_frames_temporally(self, input_motions):
+        print("run temporal alignment")
+        print("convert motions to point clouds")
+        point_clouds = convert_poses_to_point_clouds(self._skeleton, input_motions, normalize=False)
+        print("find reference motion")
+        dtw_results = find_optimal_dtw_async(point_clouds)
+        warped_frames = []
+        warping_functions = []
+        for idx, m in enumerate(input_motions):
+            print("align motion", idx)
+            path = dtw_results[idx]
+            warping_function = get_warping_function(path)
+            warped_motion = warp_motion(m, warping_function)
+            warped_frames.append(warped_motion)
+            warping_functions.append(warping_function)
+        warped_frames = np.array(warped_frames)
+        n_samples = len(point_clouds)
+        n_frames = len(warped_frames[0])
+        n_dims = len(warped_frames[0][0])
+        warped_frames = warped_frames.reshape((n_samples, n_frames, n_dims))
+        return warped_frames, warping_functions
 
     def run_dimension_reduction(self):
         self.run_spatial_dimension_reduction()

@@ -182,7 +182,7 @@ class FPCATimeSemantic(object):
         with open(save_file, 'w') as outfile:
             json.dump(semantic_data, outfile)
 
-    def get_b_spline_knots(self, n_basis, n_canonical_frames):
+    def get_b_spline_knots_rpy2(self, n_basis, n_canonical_frames):
         import rpy2.robjects as robjects
         rcode = """
             library(fda)
@@ -193,3 +193,16 @@ class FPCATimeSemantic(object):
         robjects.r(rcode)
         basis_function = robjects.globalenv['basisobj']
         return np.asarray(robjects.r['knots'](basis_function, False))
+
+    def get_b_spline_knots(self, n_basis, n_canonical_frames):
+        """ create cubic bspline knot list, the order of the spline is 4
+        :param n_basis: number of knots
+        :param n_canonical_frames: length of discrete samples
+        :return:
+        """
+        n_orders = 4
+        knots = np.zeros(n_orders + n_basis)
+        # there are two padding at the beginning and at the end
+        knots[3: -3] = np.linspace(0, n_canonical_frames-1, n_basis-2)
+        knots[-3:] = n_canonical_frames - 1
+        return knots

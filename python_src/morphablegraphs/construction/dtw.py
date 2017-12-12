@@ -150,14 +150,18 @@ def run_dtw_coroutine(pool, params, results):
     results[ref_idx] = fut.result()
 
 
-def find_optimal_dtw_async(point_clouds):
-    n_workers = cpu_count()
+def find_optimal_dtw_async(point_clouds, mean_idx=-1):
+    n_workers = max(cpu_count()-1, 1)
     pool = ProcessPoolExecutor(max_workers=n_workers)
+    if 0 <= mean_idx < len(point_clouds):
+        x_point_clouds = [point_clouds[mean_idx]]
+    else:
+        x_point_clouds = point_clouds
     dtw_results = []
     avg_distances = []
     tasks = []
     results = dict()
-    for i, pi in enumerate(point_clouds):
+    for i, pi in enumerate(x_point_clouds):
         avg_distances.append(0)
         dtw_results.append([])
         t = run_dtw_coroutine(pool, (i, point_clouds), results)

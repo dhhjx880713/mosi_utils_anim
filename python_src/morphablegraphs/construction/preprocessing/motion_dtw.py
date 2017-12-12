@@ -9,8 +9,8 @@ from ...animation_data import BVHReader, BVHWriter, SkeletonBuilder
 from .motion_normalization import MotionNormalization
 from ...animation_data.utils import calculate_frame_distance
 import numpy as np
-import rpy2.robjects.numpy2ri as numpy2ri
-import rpy2.robjects as robjects
+#import rpy2.robjects.numpy2ri as numpy2ri
+#import rpy2.robjects as robjects
 import matplotlib.pyplot as plt
 import glob
 import json
