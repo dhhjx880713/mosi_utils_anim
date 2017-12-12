@@ -27,13 +27,13 @@ class LeastSquares(OptimizerBase):
                 result = leastsq(self._objective_function,
                                  initial_guess,
                                  args=(self._error_func_params,),
-                                 maxfev=self.optimization_settings["max_iterations"])
+                                 maxfev=int(self.optimization_settings["max_iterations"]))
                 #result = pylevmar.ddif(self._objective_function,initial_guess, measurements,
                 #                       self.optimization_settings["max_iterations"],
                 #                       data=self._error_func_params)
 
             except ValueError as e:
-                print("Warning: error in LeastSquares.run", e.message)
+                print("Warning: error in LeastSquares.run", e)
                 return initial_guess
 
             if self.verbose:
