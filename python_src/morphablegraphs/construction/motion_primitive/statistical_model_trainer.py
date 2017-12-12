@@ -8,7 +8,7 @@ import json
 import numpy as np
 import os
 from ...animation_data.bvh import BVHReader, BVHWriter
-import rpy2.robjects as robjects
+#import rpy2.robjects as robjects
 from .gmm_trainer import GMMTrainer
 from ..utils import get_cubic_b_spline_knots
 

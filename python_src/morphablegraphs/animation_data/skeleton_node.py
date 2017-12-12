@@ -97,10 +97,13 @@ class SkeletonNodeBase(object):
     def to_unity_format(self, joints, animated_joint_list, joint_name_map=None):
         joint_desc = dict()
         joint_desc["name"] = self.node_name
-        if joint_name_map is not None and self.node_name in joint_name_map:
-            joint_desc["targetName"] = joint_name_map[self.node_name]
+        if joint_name_map is not None:
+            if self.node_name in joint_name_map:
+                joint_desc["targetName"] = joint_name_map[self.node_name]
+            else:
+                joint_desc["targetName"] = "none"
         else:
-            joint_desc["targetName"] = "none"
+            joint_desc["targetName"] = self.node_name
         joint_desc["children"] = []
         joints.append(joint_desc)
         for c in self.children:
@@ -149,7 +152,6 @@ class SkeletonJointNode(SkeletonNodeBase):
         self.node_type = SKELETON_NODE_TYPE_JOINT
 
     def get_local_matrix(self, quaternion_frame):
-        #self.node_name, self.quaternion_frame_index
         if not self.fixed:
             frame_index = self.quaternion_frame_index * 4 + 3
             local_matrix = quaternion_matrix(quaternion_frame[frame_index: frame_index + 4])

@@ -10,8 +10,8 @@ from copy import deepcopy
 import os
 from operator import itemgetter
 from ...animation_data import BVHReader, BVHWriter, SkeletonBuilder
-from ...animation_data.utils import \
-    get_cartesian_coordinates_from_euler_full_skeleton as get_cartesian_coords
+#from ...animation_data.utils import \
+#    get_cartesian_coordinates_from_euler_full_skeleton as get_cartesian_coords
 
 
 def dict_and(a, b):

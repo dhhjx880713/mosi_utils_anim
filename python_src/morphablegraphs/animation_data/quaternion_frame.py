@@ -14,7 +14,7 @@ class QuaternionFrame(collections.OrderedDict):
 
     """OrderedDict that contains data for a quaternion frame"""
 
-    def __init__(self, bvh_reader, frame_vector, filter_values=True, ignore_bip_joints=True):
+    def __init__(self, bvh_reader, frame_vector, filter_values=True, ignore_bip_joints=True, animated_joints=None):
         """Reads an animation frame from a BVH file and fills the list class
            with quaternions of the skeleton nodes
 
@@ -32,7 +32,8 @@ class QuaternionFrame(collections.OrderedDict):
         quaternions = self._get_all_nodes_quat_repr(bvh_reader,
                                                     frame_vector,
                                                     filter_values,
-                                                    ignore_bip_joints=ignore_bip_joints)
+                                                    ignore_bip_joints=ignore_bip_joints,
+                                                    animated_joints=animated_joints)
         collections.OrderedDict.__init__(self, quaternions)
 
     @classmethod
@@ -132,7 +133,7 @@ class QuaternionFrame(collections.OrderedDict):
                                 rotation_order,
                                 filter_values)
 
-    def _get_all_nodes_quat_repr(self, bvh_reader, frame_vector, filter_values, ignore_bip_joints=True):
+    def _get_all_nodes_quat_repr(self, bvh_reader, frame_vector, filter_values, ignore_bip_joints=True, animated_joints=None):
         """Returns dictionary of all quaternions for all nodes except leave nodes
            Note: bvh_reader.node_names may not include EndSites
 
@@ -147,13 +148,19 @@ class QuaternionFrame(collections.OrderedDict):
         \t enforce a unique rotation representation
 
         """
-
-        for node_name in bvh_reader.node_names:
-            # simple fix for ignoring finger joints.
-            if (not ignore_bip_joints or not node_name.startswith("Bip")) and 'EndSite' not in node_name:
+        if animated_joints is not None:
+            for node_name in animated_joints:
                 yield node_name, self._get_quaternion_representation(bvh_reader,
                                                                      node_name,
                                                                      frame_vector,
                                                                      filter_values)
+        else:
+            for node_name in bvh_reader.node_names:
+                # simple fix for ignoring finger joints.
+                if (not ignore_bip_joints or not node_name.startswith("Bip")) and 'EndSite' not in node_name:
+                    yield node_name, self._get_quaternion_representation(bvh_reader,
+                                                                         node_name,
+                                                                         frame_vector,
+                                                                         filter_values)
 
 

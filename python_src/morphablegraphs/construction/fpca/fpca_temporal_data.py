@@ -5,8 +5,6 @@ Created on Sun Aug 02 21:31:09 2015
 @author: du
 """
 import numpy as np
-import rpy2.robjects.numpy2ri as numpy2ri
-import rpy2.robjects as robjects
 
 
 class FPCATemporalData(object):
@@ -25,8 +23,8 @@ class FPCATemporalData(object):
     def z_t_transform(self):
         for filename in self.temporal_data:
             tmp = FPCATemporalData._get_monotonic_indices(self.temporal_data[filename])
-            assert FPCATemporalData._is_strict_increasing(tmp), \
-                ("convert %s to monotonic indices failed" % filename)
+            #assert FPCATemporalData._is_strict_increasing(tmp), \
+            #    ("convert %s to monotonic indices failed" % filename)
             w_tmp = np.array(tmp)
             # add one to each entry, because we start with 0
             w_tmp = w_tmp + 1

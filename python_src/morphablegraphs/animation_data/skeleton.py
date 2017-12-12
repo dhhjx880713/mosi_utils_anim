@@ -72,7 +72,7 @@ class Skeleton(object):
             node_desc["children"].append(c_desc)
         return node_desc
 
-    def save_to_json(self, file_name):
+    def to_json(self):
         data = dict()
         data["animated_joints"] = self.animated_joints
         data["free_joints_map"] = self.free_joints_map
@@ -83,8 +83,11 @@ class Skeleton(object):
         data["root"] = self._get_node_desc(self.root)
         data["reference_frame"] = self.reference_frame.tolist()
         data["tool_nodes"] = self.tool_nodes
+        return data
+
+    def save_to_json(self, file_name):
         with open(file_name, 'w') as outfile:
-            tmp = json.dumps(data, indent=4)
+            tmp = json.dumps(self.to_json(), indent=4)
             outfile.write(tmp)
             outfile.close()
 
@@ -348,7 +351,6 @@ class Skeleton(object):
         self.add_heel("right_heel", rknee_name, rfoot_name, rtoe_name, frame)
 
     def add_heel(self, heel_name, knee_name, foot_name, toe_name, frame):
-        print("add heel", heel_name)
         lknee_position = self.nodes[knee_name].get_global_position(frame)
         lfoot_position = self.nodes[foot_name].get_global_position(frame)
         ltoe_position = self.nodes[toe_name].get_global_position(frame)

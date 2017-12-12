@@ -5,11 +5,12 @@ Created on Tue Jul 07 10:34:25 2015
 @author: du
 """
 from ...animation_data.utils import euler_to_quaternion, \
-                                     get_cartesian_coordinates_from_euler_full_skeleton, \
                                      transform_euler_frames, \
                                      rotate_euler_frames_about_x_axis, \
                                      rotate_euler_frames, \
                                     point_rotation_by_quaternion, quaternion_to_euler
+# get_cartesian_coordinates_from_euler_full_skeleton
+
 from ...external.transformations import quaternion_inverse, quaternion_multiply
 from ...animation_data import BVHReader, BVHWriter, SkeletonBuilder
 from .motion_segmentation import MotionSegmentation

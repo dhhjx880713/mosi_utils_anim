@@ -129,7 +129,7 @@ def create_local_cos_map_from_skeleton_axes_old(skeleton, flip=1.0):
             for key, a in list(joint_cos_map[j].items()):
                 joint_cos_map[j][key] = np.dot(m, a)
                 joint_cos_map[j][key] = normalize(joint_cos_map[j][key])
-            print(j, joint_cos_map[j])
+            #print(j, joint_cos_map[j])
     return joint_cos_map
 
 
@@ -177,7 +177,6 @@ def get_child_joint(skeleton, inv_joint_map, node_name):
         child_node = skeleton.nodes[node_name].children[-1]
     if node_name in inv_joint_map:
         joint_name = inv_joint_map[node_name]
-        #print(JOINT_CHILD_MAP[joint_name])
         if joint_name in JOINT_CHILD_MAP:
             child_joint_name = JOINT_CHILD_MAP[joint_name]
             print(joint_name, child_joint_name)
@@ -210,7 +209,8 @@ def create_local_cos_map_from_skeleton_axes_with_map(skeleton, flip=1.0, project
         #check for angle and rotate
         q = get_quaternion_to_axis(skeleton, j, child_node.node_name, y_axis)
         rotate_axes(joint_cos_map[j], q)
-        print(j, joint_cos_map[j])
+
+        #print(j, joint_cos_map[j])
     return joint_cos_map
 
 

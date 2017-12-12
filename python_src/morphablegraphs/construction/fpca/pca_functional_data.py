@@ -4,8 +4,6 @@ Created on Jan 14, 2015
 @author: hadu01
 '''
 import numpy as np
-import rpy2.robjects.numpy2ri as numpy2ri
-import rpy2.robjects as robjects
 from ...external.PCA import Center, PCA
 import scipy.interpolate as si
 from .functional_data import FunctionalData
