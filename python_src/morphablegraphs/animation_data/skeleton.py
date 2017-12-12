@@ -351,7 +351,6 @@ class Skeleton(object):
         self.add_heel("right_heel", rknee_name, rfoot_name, rtoe_name, frame)
 
     def add_heel(self, heel_name, knee_name, foot_name, toe_name, frame):
-        print("add heel", heel_name)
         lknee_position = self.nodes[knee_name].get_global_position(frame)
         lfoot_position = self.nodes[foot_name].get_global_position(frame)
         ltoe_position = self.nodes[toe_name].get_global_position(frame)
