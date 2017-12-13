@@ -56,7 +56,8 @@ class MotionModelConstructor(MotionModel):
         super(MotionModelConstructor, self).__init__(skeleton)
         self.skeleton = skeleton
         self.config = config
-        self.ref_orientation = [0,-1]
+        self.ref_orientation = [0,-1]  # look into -z direction in 2d
+        self.dtw_sections = None
 
     def set_motions(self, motions):
         """ Set the input data.
@@ -65,6 +66,14 @@ class MotionModelConstructor(MotionModel):
              motions (List): input motion data in quaternion format.
         """
         self._input_motions = motions
+
+    def set_dtw_sections(self, dtw_sections):
+        """ Set sections input data.
+        Args:
+        -----
+             motions (List): input motion data in quaternion format.
+        """
+        self._dtw_sections = dtw_sections
 
     def construct_model(self, name, version=1, save_skeleton=False):
         """ Runs the construction pipeline
@@ -82,7 +91,8 @@ class MotionModelConstructor(MotionModel):
 
     def _align_frames(self):
         aligned_frames = self._align_frames_spatially(self._input_motions)
-        self._aligned_frames, self._temporal_data = self._align_frames_temporally(aligned_frames)
+        self._aligned_frames, self._temporal_data = self._align_frames_temporally_split(aligned_frames, self._dtw_sections)
+
         #self._export_aligned_frames()
 
     def _export_aligned_frames(self):
@@ -112,12 +122,25 @@ class MotionModelConstructor(MotionModel):
             aligned_frames.append(ma)
         return aligned_frames
 
+    def get_average_time_line(self, input_motions):
+        n_frames = [len(m) for m in input_motions]
+        mean = np.mean(n_frames)
+        best_idx = 0
+        least_distance = np.inf
+        for idx, n in enumerate(n_frames):
+            if abs(n-mean) < least_distance:
+                best_idx = idx
+                least_distance = abs(n-mean)
+        return best_idx
+
     def _align_frames_temporally(self, input_motions):
         print("run temporal alignment")
         print("convert motions to point clouds")
         point_clouds = convert_poses_to_point_clouds(self._skeleton, input_motions, normalize=False)
         print("find reference motion")
-        dtw_results = find_optimal_dtw_async(point_clouds)
+        mean_idx = self.get_average_time_line(input_motions)
+        print("set reference to index", mean_idx, "of", len(input_motions), "motions")
+        dtw_results = find_optimal_dtw_async(point_clouds, mean_idx)
         warped_frames = []
         warping_functions = []
         for idx, m in enumerate(input_motions):
@@ -132,6 +155,46 @@ class MotionModelConstructor(MotionModel):
         n_frames = len(warped_frames[0])
         n_dims = len(warped_frames[0][0])
         warped_frames = warped_frames.reshape((n_samples, n_frames, n_dims))
+        return warped_frames, warping_functions
+
+    def _align_frames_temporally_split(self, input_motions, sections=None):
+
+        # split_motions into sections
+        n_motions = len(input_motions)
+        if sections is not None:
+            splitted_motions = []
+            for idx, input_motion in enumerate(input_motions):
+                splitted_motion = []
+                for section in sections[idx]:
+                    start_idx = section["start_idx"]
+                    end_idx = section["end_idx"]
+                    split = input_motion[start_idx:end_idx]
+                    print("split motion", idx, len(splitted_motion))
+                    splitted_motion.append(split)
+                splitted_motions.append(splitted_motion)
+            splitted_motions = np.array(splitted_motions).T
+        else:
+            splitted_motions = [input_motions]
+
+        # run dtw for each section
+        splitted_dtw_results = []
+        for section_samples in splitted_motions:
+            result = self._align_frames_temporally(section_samples)
+            splitted_dtw_results.append(result)
+
+        # combine sections
+        warped_frames = []
+        warping_functions = []
+        for motion_idx in range(n_motions):
+            combined_frames = []
+            combined_warping_function = []
+            for section_idx, result in enumerate(splitted_dtw_results):
+                print(motion_idx, section_idx, len(result),len(result[0]), n_motions)
+                combined_frames += list(result[0][motion_idx])
+                combined_warping_function += list(result[1][motion_idx])
+            warped_frames.append(combined_frames)
+            warping_functions.append(combined_warping_function)
+
         return warped_frames, warping_functions
 
     def run_dimension_reduction(self):
