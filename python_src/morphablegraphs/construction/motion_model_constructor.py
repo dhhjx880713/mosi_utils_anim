@@ -133,13 +133,14 @@ class MotionModelConstructor(MotionModel):
                 least_distance = abs(n-mean)
         return best_idx
 
-    def _align_frames_temporally(self, input_motions):
+    def _align_frames_temporally(self, input_motions, mean_idx=None):
         print("run temporal alignment")
         print("convert motions to point clouds")
         point_clouds = convert_poses_to_point_clouds(self._skeleton, input_motions, normalize=False)
         print("find reference motion")
-        mean_idx = self.get_average_time_line(input_motions)
-        print("set reference to index", mean_idx, "of", len(input_motions), "motions")
+        if mean_idx is None:
+            mean_idx = self.get_average_time_line(input_motions)
+            print("set reference to index", mean_idx, "of", len(input_motions), "motions")
         dtw_results = find_optimal_dtw_async(point_clouds, mean_idx)
         warped_frames = []
         warping_functions = []
@@ -158,6 +159,8 @@ class MotionModelConstructor(MotionModel):
         return warped_frames, warping_functions
 
     def _align_frames_temporally_split(self, input_motions, sections=None):
+        mean_idx = self.get_average_time_line(input_motions)
+        print("set reference to index", mean_idx, "of", len(input_motions), "motions", sections[mean_idx])
 
         # split_motions into sections
         n_motions = len(input_motions)
@@ -179,7 +182,7 @@ class MotionModelConstructor(MotionModel):
         # run dtw for each section
         splitted_dtw_results = []
         for section_samples in splitted_motions:
-            result = self._align_frames_temporally(section_samples)
+            result = self._align_frames_temporally(section_samples, mean_idx)
             splitted_dtw_results.append(result)
 
         # combine sections
