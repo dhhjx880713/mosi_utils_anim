@@ -42,9 +42,9 @@ class MotionStateGroupLoader(object):
             mp_node_group.set_meta_information()
 
         for mp_name in ea_data["nodes"]:
-            if "keyframes" in ea_data["nodes"][mp_name]:
-                keyframes = ea_data["nodes"][mp_name]["keyframes"]
-                for label, frame_idx in keyframes:
+            if "keyframes" in ea_data["nodes"][mp_name]["mm"]:
+                keyframes = ea_data["nodes"][mp_name]["mm"]["keyframes"]
+                for label, frame_idx in keyframes.items():
                     mp_node_group.label_to_motion_primitive_map[label] = mp_name
                 if mp_name not in mp_node_group.labeled_frames:
                     mp_node_group.labeled_frames[mp_name] = dict()
