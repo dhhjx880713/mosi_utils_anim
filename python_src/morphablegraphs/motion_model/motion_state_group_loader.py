@@ -17,97 +17,70 @@ class MotionStateGroupLoader(object):
     """ Creates an instance of a MotionStateGroup from a data source
     """
     def __init__(self):
-        self.elementary_action_name = None
-        self.elementary_action_directory = None
         self.has_transition_models = False
         self.meta_information = None
         self.start_states = list()
         self.end_states = list()
-        self.mp_annotations = dict()
-        self.build_from_directory = False
+        self.labeled_frames = dict()
         self.load_transition_models = False
-        self.elementary_action_data = None
         self.motion_state_graph = None
 
     def set_properties(self, load_transition_models=False):
         self.load_transition_models = load_transition_models
 
-    def set_data_from_zip(self, elementary_action_data):
-        """Sets the directory with the motion primitives
-        Parameters
-        ----------
-        * elementary_action_data: dict
-            Description loaded from zip file
-         """
-        self.elementary_action_name = elementary_action_data["name"]
-        self.elementary_action_data = elementary_action_data
-        self.build_from_directory = False
+    def build_from_dict(self, ea_data, graph):
+        mp_node_group = MotionStateGroup(ea_data["name"], None, graph)
 
-    def set_directory_as_data_source(self, elementary_action_name, elementary_action_directory):
-        """Sets the directory with the motion primitives
-        Parameters
-        ----------
-        * elementary_action_name: string
-            The name of the elementary action
-        * elementary_action_directory: string
-            The directory of the morphable models of an elementary action.
-         """
-        self.elementary_action_name = elementary_action_name
-        self.elementary_action_directory = elementary_action_directory
-        self.build_from_directory = True
+        for mp_name in list(ea_data["nodes"].keys()):
+            node_key = (ea_data["name"], mp_name)
+            mp_node_group.nodes[node_key] = MotionState(mp_node_group)
+            mp_node_group.nodes[node_key].init_from_dict(ea_data["name"], ea_data["nodes"][mp_name])
 
-    def build(self, motion_state_graph):
-        if self.build_from_directory:
-            motion_primitive_node_group = self._build_from_directory(motion_state_graph)
+        if "info" in list(ea_data.keys()):
+            mp_node_group.set_meta_information(ea_data["info"])
         else:
-            motion_primitive_node_group = self._build_from_dict(motion_state_graph)
-        return motion_primitive_node_group
-        
-    def _build_from_dict(self, motion_state_graph):
-        motion_primitive_node_group = MotionStateGroup(self.elementary_action_data["name"], None, motion_state_graph)
-        for motion_primitive_name in list(self.elementary_action_data["nodes"].keys()):
-            node_key = (self.elementary_action_data["name"], motion_primitive_name)
-            motion_primitive_node_group.nodes[node_key] = MotionState(motion_primitive_node_group)
-            motion_primitive_node_group.nodes[node_key].init_from_dict(self.elementary_action_name, self.elementary_action_data["nodes"][motion_primitive_name])
-        if "info" in list(self.elementary_action_data.keys()):
-            motion_primitive_node_group.set_meta_information(self.elementary_action_data["info"])
-        else:
-            motion_primitive_node_group.set_meta_information()
-        return motion_primitive_node_group
+            mp_node_group.set_meta_information()
 
-    def _build_from_directory(self, motion_state_graph):
-        motion_primitive_node_group = MotionStateGroup(self.elementary_action_name, self.elementary_action_directory, motion_state_graph)
-        #load morphable models
+        for mp_name in ea_data["nodes"]:
+            if "keyframes" in ea_data["nodes"][mp_name]:
+                keyframes = ea_data["nodes"][mp_name]["keyframes"]
+                for label, frame_idx in keyframes:
+                    mp_node_group.label_to_motion_primitive_map[label] = mp_name
+                if mp_name not in mp_node_group.labeled_frames:
+                    mp_node_group.labeled_frames[mp_name] = dict()
+                mp_node_group.labeled_frames[mp_name].update(keyframes)
+
+        return mp_node_group
+
+    def build_from_directory(self, ea_name, ea_directory, graph):
+        mp_node_group = MotionStateGroup(ea_name, ea_directory, graph)
         temp_file_list = []#for files containing additional information that require the full graph to be constructed first
         meta_information = None
-        motion_primitive_node_group.label_to_motion_primitive_map = {}
-        for root, dirs, files in os.walk(self.elementary_action_directory):
+        mp_node_group.label_to_motion_primitive_map = {}
+        for root, dirs, files in os.walk(ea_directory):
             for file_name in files:
                 if file_name == META_INFORMATION_FILE_NAME:
-                    write_log("found meta information for", self.elementary_action_name)
-
-                    meta_information = load_json_file(self.elementary_action_directory+os.sep+file_name)
-                    
+                    write_log("found meta information for", ea_name)
+                    meta_information = load_json_file(ea_directory+os.sep+file_name)
                 elif file_name.endswith("mm.json"):
                     write_log("found motion primitive", file_name)
-                    motion_primitive_name = file_name.split("_")[1]
-                    motion_primitive_file_name = self.elementary_action_directory+os.sep+file_name
-                    node_key = (self.elementary_action_name, motion_primitive_name)
-                    motion_primitive_node_group.nodes[node_key] = MotionState(motion_primitive_node_group)
-                    motion_primitive_node_group.nodes[node_key].init_from_file(motion_primitive_node_group.elementary_action_name, motion_primitive_name, motion_primitive_file_name)
+                    mp_name = file_name.split("_")[1]
+                    mp_file_name = ea_directory+os.sep+file_name
+                    node_key = (ea_name, mp_name)
+                    mp_node_group.nodes[node_key] = MotionState(mp_node_group)
+                    mp_node_group.nodes[node_key].init_from_file(mp_node_group.ea_name, mp_name, mp_file_name)
                 elif file_name.endswith(".stats"):
                     write_log("found stats", file_name)
                     temp_file_list.append(file_name)
-
                 else:
                     write_log("ignored", file_name)
-        motion_primitive_node_group.set_meta_information(meta_information)
+            mp_node_group.set_meta_information(meta_information)
         #load information about training data if available
         for file_name in temp_file_list:
             motion_primitive = file_name.split("_")[1][:-6]
-            if motion_primitive in list(motion_primitive_node_group.nodes.keys()):
-                info = load_json_file(self.elementary_action_directory+os.sep+file_name, use_ordered_dict=True)
-                motion_primitive_node_group.nodes[motion_primitive].parameter_bb = info["pose_bb"]
-                motion_primitive_node_group.nodes[motion_primitive].cartesian_bb = info["cartesian_bb"]
-                motion_primitive_node_group.nodes[motion_primitive].velocity_data = info["pose_velocity"]
-        return motion_primitive_node_group
+            if motion_primitive in list(mp_node_group.nodes.keys()):
+                info = load_json_file(ea_directory+os.sep+file_name, use_ordered_dict=True)
+                mp_node_group.nodes[motion_primitive].parameter_bb = info["pose_bb"]
+                mp_node_group.nodes[motion_primitive].cartesian_bb = info["cartesian_bb"]
+                mp_node_group.nodes[motion_primitive].velocity_data = info["pose_velocity"]
+        return mp_node_group

@@ -13,31 +13,29 @@ from ..utilities import write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO, LOG
 class MotionStateGroup(ElementaryActionMetaInfo):
     """ Contains the motion primitives of an elementary action as nodes.
     """
-    def __init__(self, elementary_action_name, elementary_action_directory, motion_state_graph):
-        super(MotionStateGroup, self).__init__(elementary_action_name, elementary_action_directory)
+    def __init__(self, ea_name, ea_directory, motion_state_graph):
+        super(MotionStateGroup, self).__init__(ea_name, ea_directory)
         self.motion_state_graph = motion_state_graph
         self.nodes = dict()
         self.has_transition_models = False
-        self.loaded_from_dict = elementary_action_directory is None
+        self.loaded_from_dict = ea_directory is None
 
     def set_meta_information(self, meta_information=None):
         super(MotionStateGroup, self).set_meta_information(meta_information)
-        self._set_node_attributes()
 
-    def _set_node_attributes(self):
-        write_message_to_log("elementary_action" + str(self.elementary_action_name), LOG_MODE_DEBUG)
+        write_message_to_log("action" + str(self.ea_name), LOG_MODE_DEBUG)
         write_message_to_log("start states" + str(self.start_states), LOG_MODE_DEBUG)
         if len(self.nodes) == 1:
             node_key = list(self.nodes.keys())[0]
             self.nodes[node_key].node_type = NODE_TYPE_SINGLE
         else:
             for k in self.start_states:
-                self.nodes[(self.elementary_action_name, k)].node_type = NODE_TYPE_START
-            write_message_to_log("end states" + str(self.end_states), LOG_MODE_DEBUG)
+                self.nodes[(self.ea_name, k)].node_type = NODE_TYPE_START
+            #write_message_to_log("end states" + str(self.end_states), LOG_MODE_DEBUG)
             for k in self.end_states:
-                 self.nodes[(self.elementary_action_name, k)].node_type = NODE_TYPE_END
+                 self.nodes[(self.ea_name, k)].node_type = NODE_TYPE_END
             for k in self.cycle_states:
-                 self.nodes[(self.elementary_action_name, k)].node_type = NODE_TYPE_CYCLE_END
+                 self.nodes[(self.ea_name, k)].node_type = NODE_TYPE_CYCLE_END
 
     def get_action_type(self):
         n_standard_nodes = 0
@@ -60,7 +58,7 @@ class MotionStateGroup(ElementaryActionMetaInfo):
                 self.nodes[node_key].update_motion_stats()
                 self.meta_information["stats"][node_key[1]] = {"average_step_length": self.nodes[node_key].average_step_length,
                                                                "n_standard_transitions": self.nodes[node_key].n_standard_transitions}
-                write_message_to_log("n standard transitions " + str(node_key) +" "+ str(self.nodes[node_key].n_standard_transitions), LOG_MODE_DEBUG)
+                write_message_to_log("n standard transitions " + str(node_key) + " " + str(self.nodes[node_key].n_standard_transitions), LOG_MODE_DEBUG)
             write_message_to_log("Updated meta information " + str(self.meta_information), LOG_MODE_DEBUG)
         else:
             if self.meta_information is None:
@@ -95,7 +93,7 @@ class MotionStateGroup(ElementaryActionMetaInfo):
         * use_transition_model: bool
         \t flag to set whether a prediction from the transition model should be made or not.
         """
-        assert to_node_key[0] == self.elementary_action_name
+        assert to_node_key[0] == self.ea_name
         if self.has_transition_models and use_transition_model:
             print("use transition model", current_node_key, to_node_key)
             next_parameters = self.nodes[current_node_key].predict_parameters(to_node_key, current_parameters)
@@ -106,8 +104,7 @@ class MotionStateGroup(ElementaryActionMetaInfo):
     def get_transition_type_for_action_from_trajectory(self, graph_walk, action_constraint, travelled_arc_length, arc_length_of_end):
 
         #test end condition for trajectory constraints
-        if not action_constraint.check_end_condition(graph_walk.get_quat_frames(),\
-                                travelled_arc_length, arc_length_of_end):
+        if not action_constraint.check_end_condition(graph_walk.get_quat_frames(), travelled_arc_length, arc_length_of_end):
 
             #make standard transition to go on with trajectory following
             next_node_type = NODE_TYPE_STANDARD
@@ -189,4 +186,4 @@ class MotionStateGroup(ElementaryActionMetaInfo):
         return graph_walk
 
     def has_cycle_states(self):
-        return len(self.cycle_states)> 0
+        return len(self.cycle_states) > 0

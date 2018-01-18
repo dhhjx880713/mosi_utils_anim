@@ -43,13 +43,13 @@ class MotionState(MotionPrimitiveModelWrapper):
         self.name = None
         self.cluster_tree = None
 
-    def init_from_file(self, action_name, primitive_name, motion_primitive_filename, node_type=NODE_TYPE_STANDARD):
+    def init_from_file(self, action_name, mp_name, motion_primitive_filename, node_type=NODE_TYPE_STANDARD):
         self.outgoing_edges = {}
         self.node_type = node_type
         self.n_standard_transitions = 0
         self.average_step_length = 0
         self.action_name = action_name
-        self.name = primitive_name
+        self.name = mp_name
         skeleton = self.motion_state_group.motion_state_graph.mgrd_skeleton
         self._load_from_file(skeleton, motion_primitive_filename, self.motion_state_group.motion_state_graph.animated_joints)
         self.cluster_tree = None
@@ -57,14 +57,17 @@ class MotionState(MotionPrimitiveModelWrapper):
         self._construct_space_partition(cluster_file_name)
 
     def init_from_dict(self, action_name, desc):
-        self.action_name = action_name
         self.name = desc["name"]
+        self.action_name = action_name
+        write_message_to_log("Init motion state "+self.name, LOG_MODE_DEBUG)
 
         skeleton = self.motion_state_group.motion_state_graph.mgrd_skeleton
-        write_message_to_log("Init motion state "+self.name, LOG_MODE_DEBUG)
+
         self._initialize_from_json(skeleton, desc["mm"], self.motion_state_group.motion_state_graph.animated_joints)
+
         if "space_partition_pickle" in list(desc.keys()):
             self.cluster_tree = desc["space_partition_pickle"]
+
         if "space_partition_json" in list(desc.keys()):
             tree_data = desc["space_partition_json"]
             self.cluster_tree = FeatureClusterTree(None,None,None,None, None)
@@ -72,6 +75,7 @@ class MotionState(MotionPrimitiveModelWrapper):
             features = np.array(tree_data["features"])
             options = tree_data["options"]
             self.cluster_tree.build_node_from_json(data, features, options, tree_data["root"])
+
         if "stats" in list(desc.keys()):
             self.parameter_bb = desc["stats"]["pose_bb"]
             self.cartesian_bb = desc["stats"]["cartesian_bb"]

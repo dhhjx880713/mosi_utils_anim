@@ -191,6 +191,8 @@ class ParameterizedSpline(object):
         if magnitude != 0:
             dir_vector /= magnitude
         return dir_vector
+
+
     def get_angle_at_arc_length_2d(self, arc_length, reference_vector):
         """
         Parameters

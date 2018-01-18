@@ -24,6 +24,7 @@ class MotionPrimitiveModelWrapper(object):
     def __init__(self):
         self.motion_primitive = None
         self.use_mgrd_mixture_model = False
+        self.keyframes = dict()
 
     def _load_from_file(self, mgrd_skeleton, file_name, animated_joints=None, use_mgrd_mixture_model=False, scale=None):
         self.use_mgrd_mixture_model = use_mgrd_mixture_model
@@ -32,6 +33,9 @@ class MotionPrimitiveModelWrapper(object):
             self._initialize_from_json(mgrd_skeleton, data, animated_joints, use_mgrd_mixture_model, scale)
 
     def _initialize_from_json(self, mgrd_skeleton, data, animated_joints=None, use_mgrd_mixture_model=False, scale=None):
+        if "keyframes" in data:
+            self.keyframes = data["keyframes"]
+
         if not has_mgrd:
             if "tspm" in list(data.keys()):
                 self.motion_primitive = self._load_legacy_model_from_mgrd_json(data)
@@ -257,7 +261,9 @@ class MotionPrimitiveModelWrapper(object):
     @staticmethod
     def load_mixture_model(data, use_mgrd=True):
          if use_mgrd:
-             mm = ExtendedMGRDMixtureModel.load_from_json({'covars': data['gmm_covars'], 'means': data['gmm_means'], 'weights': data['gmm_weights']})
+             mm = ExtendedMGRDMixtureModel.load_from_json({'covars': data['gmm_covars'],
+                                                           'means': data['gmm_means'],
+                                                           'weights': data['gmm_weights']})
          else:
              n_components =len(np.array(data['gmm_weights']))
              mm = GaussianMixture(n_components=n_components, covariance_type='full')#weights_init=np.array(data['gmm_weights']),

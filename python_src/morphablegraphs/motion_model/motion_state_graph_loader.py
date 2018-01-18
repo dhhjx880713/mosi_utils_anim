@@ -26,12 +26,12 @@ class MotionStateGraphLoader(object):
     """   Constructs a MotionPrimitiveGraph instance from a zip file or directory as data source
     """  
     def __init__(self):
-        self.graph_data = None # used to store the zip file content
+        self.graph_data = None  # used to store the zip file content
         self.load_transition_models = False
         self.update_stats = False
         self.motion_state_graph_path = None
-        self.elementary_action_directory = None
-        self.motion_primitive_node_group_builder = MotionStateGroupLoader()
+        self.ea_directory = None
+        self.mp_node_group_builder = MotionStateGroupLoader()
 
     def set_data_source(self, motion_state_graph_path, load_transition_models=False, update_stats=False):
         """ Set the source which is used to load the data structure into memory.
@@ -48,53 +48,50 @@ class MotionStateGraphLoader(object):
         self.load_transition_models = load_transition_models
         self.update_stats = update_stats
         self.motion_state_graph_path = motion_state_graph_path
-        self.motion_primitive_node_group_builder.set_properties(self.load_transition_models)
+        self.mp_node_group_builder.set_properties(self.load_transition_models)
 
     def build(self):
-        motion_state_graph = MotionStateGraph()
+        graph = MotionStateGraph()
         if os.path.isfile(self.motion_state_graph_path+".zip"):
-            self._init_from_zip_file(motion_state_graph)
+            self._build_from_zip_file(graph)
         else:
-            self._init_from_directory(motion_state_graph)
+            self._build_from_directory(graph)
+        return graph
 
-        return motion_state_graph
-
-    def _init_from_zip_file(self, motion_state_graph):
+    def _build_from_zip_file(self, ms_graph):
         zip_path = self.motion_state_graph_path+".zip"
         zip_reader = ZipReader(zip_path, pickle_objects=True)
         graph_data = zip_reader.get_graph_data()
         if SKELETON_BVH_STRING_KEY in list(graph_data.keys()):
             bvh_reader = BVHReader("").init_from_string(graph_data[SKELETON_BVH_STRING_KEY])
-            motion_state_graph.skeleton = SkeletonBuilder().load_from_bvh(bvh_reader)
+            ms_graph.skeleton = SkeletonBuilder().load_from_bvh(bvh_reader)
         elif SKELETON_JSON_KEY in list(graph_data.keys()):
-            skeleton = SkeletonBuilder().load_from_json_data(graph_data[SKELETON_JSON_KEY])
-
-            motion_state_graph.skeleton = skeleton
+            ms_graph.skeleton = SkeletonBuilder().load_from_json_data(graph_data[SKELETON_JSON_KEY])
         else:
             raise Exception("There is no skeleton defined in the graph file")
             return
 
-        motion_state_graph.animated_joints = motion_state_graph.skeleton.animated_joints
-        motion_state_graph.mgrd_skeleton = motion_state_graph.skeleton.convert_to_mgrd_skeleton()
+        ms_graph.animated_joints = ms_graph.skeleton.animated_joints
+        ms_graph.mgrd_skeleton = ms_graph.skeleton.convert_to_mgrd_skeleton()
 
         #skeleton_path = self.motion_state_graph_path + os.sep + SKELETON_FILE
         #motion_state_graph.skeleton = Skeleton(BVHReader(skeleton_path))
         transition_dict = graph_data["transitions"]
-        elementary_actions = graph_data["subgraphs"]
-        for action_name in list(elementary_actions.keys()):
-            self.motion_primitive_node_group_builder.set_data_from_zip(elementary_actions[action_name])
-            node_group = self.motion_primitive_node_group_builder.build(motion_state_graph)
-            motion_state_graph.nodes.update(node_group.nodes)
-            motion_state_graph.node_groups[node_group.elementary_action_name] = node_group
-        self._set_transitions_from_dict(motion_state_graph, transition_dict)
+        actions = graph_data["subgraphs"]
+        for action_name in list(actions.keys()):
+            node_group = self.mp_node_group_builder.build_from_dict(actions[action_name], ms_graph)
+            ms_graph.nodes.update(node_group.nodes)
+            ms_graph.node_groups[node_group.ea_name] = node_group
 
-        self._update_motion_state_stats(motion_state_graph, recalculate=False)
+        self._set_transitions_from_dict(ms_graph, transition_dict)
+
+        self._update_motion_state_stats(ms_graph, recalculate=False)
 
         if "handPoseInfo" in list(graph_data.keys()):
-            motion_state_graph.hand_pose_generator = HandPoseGenerator(motion_state_graph.skeleton)
-            motion_state_graph.hand_pose_generator.init_from_desc(graph_data["handPoseInfo"])
+            ms_graph.hand_pose_generator = HandPoseGenerator(ms_graph.skeleton)
+            ms_graph.hand_pose_generator.init_from_desc(graph_data["handPoseInfo"])
 
-    def _init_from_directory(self, motion_state_graph, recalculate_motion_stats=True):
+    def _build_from_directory(self, ms_graph, recalculate_motion_stats=True):
         """ Initializes the class
         """
         graph_definition_file = self.motion_state_graph_path + os.sep + TRANSITION_DEFINITION_FILE_NAME
@@ -103,33 +100,32 @@ class MotionStateGraphLoader(object):
             graph_definition = load_json_file(graph_definition_file)
             skeleton_path = self.motion_state_graph_path + os.sep + SKELETON_FILE
             if SKELETON_JSON_KEY in list(graph_definition.keys()):
-                motion_state_graph.skeleton = SkeletonBuilder().load_from_json_data(graph_definition[SKELETON_JSON_KEY])
+                ms_graph.skeleton = SkeletonBuilder().load_from_json_data(graph_definition[SKELETON_JSON_KEY])
             elif os.path.isfile(skeleton_path+"bvh"):
-                motion_state_graph.skeleton = SkeletonBuilder().load_from_bvh(BVHReader(skeleton_path+"bvh"))
+                ms_graph.skeleton = SkeletonBuilder().load_from_bvh(BVHReader(skeleton_path+"bvh"))
             else:
                 raise Exception("There is no skeleton defined in the graph directory")
                 return
 
-            motion_state_graph.animated_joints = motion_state_graph.skeleton.animated_joints
-            #motion_state_graph.skeleton = motion_state_graph.full_skeleton.create_reduced_copy()
-            motion_state_graph.mgrd_skeleton = motion_state_graph.skeleton.convert_to_mgrd_skeleton()
+            ms_graph.animated_joints = ms_graph.skeleton.animated_joints
+            # ms_graph.skeleton = motion_state_graph.full_skeleton.create_reduced_copy()
+            ms_graph.mgrd_skeleton = ms_graph.skeleton.convert_to_mgrd_skeleton()
 
             #load graphs representing elementary actions including transitions between actions
             for key in next(os.walk(self.motion_state_graph_path + os.sep + ELEMENTARY_ACTION_DIRECTORY_NAME))[1]:
                 subgraph_path = self. motion_state_graph_path + os.sep + ELEMENTARY_ACTION_DIRECTORY_NAME + os.sep + key
                 name = key.split("_")[-1]
-                self.motion_primitive_node_group_builder.set_directory_as_data_source(name, subgraph_path)
-                node_group = self.motion_primitive_node_group_builder.build(motion_state_graph)
-                motion_state_graph.nodes.update(node_group.nodes)
-                motion_state_graph.node_groups[node_group.elementary_action_name] = node_group
+                node_group = self.mp_node_group_builder.build_from_directory(name, subgraph_path, ms_graph)
+                ms_graph.nodes.update(node_group.nodes)
+                ms_graph.node_groups[node_group.ea_name] = node_group
 
             if "transitions" in list(graph_definition.keys()):
-                write_message_to_log("add transitions between subgraphs from" + graph_definition_file, LOG_MODE_DEBUG)
-                self._set_transitions_from_dict(motion_state_graph, graph_definition["transitions"])
+                write_message_to_log("add transitions between actions from" + graph_definition_file, LOG_MODE_DEBUG)
+                self._set_transitions_from_dict(ms_graph, graph_definition["transitions"])
         else:
             write_message_to_log("Error: Did not find graph definition file " + graph_definition_file, LOG_MODE_ERROR)
 
-        self._update_motion_state_stats(motion_state_graph, recalculate=recalculate_motion_stats)
+        self._update_motion_state_stats(ms_graph, recalculate=recalculate_motion_stats)
 
     def _update_motion_state_stats(self, motion_state_graph, recalculate=False):
         for keys in list(motion_state_graph.node_groups.keys()):
@@ -170,9 +166,9 @@ class MotionStateGraphLoader(object):
             transition_type = "action_transition"
         return transition_type
 
-    def _add_transition(self, motion_state_graph, from_node_key, to_node_key):
+    def _add_transition(self, graph, from_node_key, to_node_key):
         transition_model = None
         if self.load_transition_models:
-            transition_model = self._load_transition_model(motion_state_graph, from_node_key, to_node_key)
-        transition_type = self._get_transition_type(motion_state_graph, from_node_key, to_node_key)
-        motion_state_graph.nodes[from_node_key].outgoing_edges[to_node_key] = MotionStateTransition(from_node_key, to_node_key, transition_type, transition_model)
+            transition_model = self._load_transition_model(graph, from_node_key, to_node_key)
+        transition_type = self._get_transition_type(graph, from_node_key, to_node_key)
+        graph.nodes[from_node_key].outgoing_edges[to_node_key] = MotionStateTransition(from_node_key, to_node_key, transition_type, transition_model)

@@ -5,7 +5,6 @@ from ..utilities.exceptions import PathSearchError
 from ..animation_data.motion_editing.motion_primitive_grounding import MP_CONFIGURATIONS
 
 
-
 class TrajectoryFollowingConstraintsBuilder(object):
     def __init__(self, skeleton, mp_constraint_builder, settings):
         self.skeleton = skeleton

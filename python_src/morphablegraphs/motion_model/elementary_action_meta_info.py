@@ -13,16 +13,16 @@ KEYFRAME_LABEL_MIDDLE = "middle"
 
 
 class ElementaryActionMetaInfo(object):
-    def __init__(self, elementary_action_name, elementary_action_directory):
-        self.elementary_action_name = elementary_action_name
-        self.elementary_action_directory = elementary_action_directory
+    def __init__(self, ea_name, ea_directory):
+        self.ea_name = ea_name
+        self.ea_directory = ea_directory
         self.label_to_motion_primitive_map = dict()
         self.start_states = list()
         self.cycle_states = list()
         self.n_start_states = 0
         self.end_states = list()
         self.n_end_states = 0
-        self.mp_annotations = dict()
+        self.labeled_frames = dict()
         self.meta_information = None
         self.motion_primitive_annotation_regions = dict()
 
@@ -41,17 +41,19 @@ class ElementaryActionMetaInfo(object):
         self.n_start_states = len(self.start_states)
         self.end_states = self.meta_information["end_states"]
         self.n_end_states = len(self.end_states)
-        self.mp_annotations = self.meta_information["annotations"]
-        self._create_annotation_label_to_motion_primitive_map()
+        self.labeled_frames = self.meta_information["annotations"]
+
+        self._create_label_to_motion_primitive_map()
         if "annotation_regions" in list(self.meta_information.keys()):
             self.motion_primitive_annotation_regions = self.meta_information["annotation_regions"]
 
-    def _create_annotation_label_to_motion_primitive_map(self):
+
+    def _create_label_to_motion_primitive_map(self):
         """Create a map from semantic label to motion primitive
         """
-        for motion_primitive in list(self.mp_annotations.keys()):
+        for motion_primitive in list(self.labeled_frames.keys()):
             if motion_primitive != "all_primitives":
-                annotations = self.mp_annotations[motion_primitive]
+                annotations = self.labeled_frames[motion_primitive]
                 for label in list(annotations.keys()):
                     if label not in list(self.label_to_motion_primitive_map.keys()):
                         self.label_to_motion_primitive_map[label] = []
@@ -61,7 +63,7 @@ class ElementaryActionMetaInfo(object):
         """ Returns the name of a random start state. """
         if self.n_start_states > 0:
             random_index = random.randrange(0, self.n_start_states, 1)
-            return self.elementary_action_name, self.start_states[random_index]
+            return self.ea_name, self.start_states[random_index]
 
     def get_start_states(self):
         """
@@ -74,7 +76,7 @@ class ElementaryActionMetaInfo(object):
         """ Returns the name of a random start state."""
         if self.n_end_states > 0:
             random_index = random.randrange(0, self.n_end_states, 1)
-            return self.elementary_action_name, self.end_states[random_index]
+            return self.ea_name, self.end_states[random_index]
 
     def _convert_tuples_to_strings(self, in_dict):
         copy_dict = {}
@@ -83,7 +85,7 @@ class ElementaryActionMetaInfo(object):
                 try:
                     copy_dict[key[1]] = in_dict[key]
                 except Exception as exception:
-                    print(exception.message)
+                    print(exception.args)
                     continue
             else:
                 copy_dict[key] = in_dict[key]
@@ -92,19 +94,19 @@ class ElementaryActionMetaInfo(object):
     def save_updated_meta_info(self):
         """ Save updated meta data to a json file
         """
-        if self.meta_information is not None and self.elementary_action_directory is not None:
-            path = self.elementary_action_directory + os.sep + META_INFORMATION_FILE_NAME
+        if self.meta_information is not None and self.ea_directory is not None:
+            path = self.ea_directory + os.sep + META_INFORMATION_FILE_NAME
             write_to_json_file(path, self._convert_tuples_to_strings(self.meta_information))
         return
 
     def get_canonical_keyframe_labels(self, motion_primitive_name):
-        if motion_primitive_name in list(self.mp_annotations.keys()):
-            keyframe_labels = self.mp_annotations[motion_primitive_name]
+        if motion_primitive_name in list(self.labeled_frames.keys()):
+            keyframe_labels = self.labeled_frames[motion_primitive_name]
         else:
             keyframe_labels = {}
         return keyframe_labels
 
-    def get_keyframe_from_annotation(self, mp_name, label, n_canonical_frames):
+    def get_keyframe_from_label(self, mp_name, label, n_canonical_frames):
         keyframe = None
         if label == KEYFRAME_LABEL_END:
             keyframe = n_canonical_frames-1
@@ -113,16 +115,16 @@ class ElementaryActionMetaInfo(object):
         elif label == KEYFRAME_LABEL_MIDDLE:#"middle"
             keyframe = n_canonical_frames/2
         else:
-            print("search for label ", label, list(self.mp_annotations[mp_name].keys()))
-            if mp_name in list(self.mp_annotations.keys()) and \
-                            label in list(self.mp_annotations[mp_name].keys()):
-                    keyframe = self.mp_annotations[mp_name][label]
+            print("search for label ", label, list(self.labeled_frames[mp_name].keys()))
+            if mp_name in list(self.labeled_frames.keys()) and \
+                            label in list(self.labeled_frames[mp_name].keys()):
+                    keyframe = self.labeled_frames[mp_name][label]
                     if keyframe in [NEGATIVE_ONE, LAST_FRAME]:
                         keyframe = n_canonical_frames-1
                     elif keyframe == KEYFRAME_LABEL_MIDDLE:
                         keyframe = n_canonical_frames/2
             else:
-                print("Error: Could not map keyframe label", label, list(self.mp_annotations.keys()))
+                print("Error: Could not map keyframe label", label, list(self.labeled_frames.keys()))
         if keyframe is not None:
             keyframe = int(keyframe)
         return keyframe
