@@ -316,8 +316,15 @@ class Retargeting(object):
         self.additional_rotation_map = additional_rotation_map
         self.target_cos_map = create_local_cos_map_from_skeleton_axes_with_map(self.target_skeleton)
         self.src_cos_map = create_local_cos_map_from_skeleton_axes_with_map(self.src_skeleton)
-        apply_manual_fixes(self.target_cos_map)
-        apply_manual_fixes(self.src_cos_map)
+
+        if "cos_map" in target_skeleton.skeleton_model:
+            self.target_cos_map.update(target_skeleton.skeleton_model["cos_map"])
+        else:
+            apply_manual_fixes(self.target_cos_map)
+        if "cos_map" in src_skeleton.skeleton_model:
+            self.src_cos_map.update(src_skeleton.skeleton_model["cos_map"])
+        else:
+            apply_manual_fixes(self.src_cos_map)
         self.correction_map = dict()
         self.create_correction_map()
 
