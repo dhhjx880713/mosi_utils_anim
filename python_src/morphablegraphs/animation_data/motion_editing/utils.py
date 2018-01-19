@@ -369,7 +369,7 @@ def export_constraints(constraints, file_path):
         points.append(p)
     data = dict()
     data["points"] = points
-    with open(file_path, "wb") as out:
+    with open(file_path, "w") as out:
         json.dump(data, out)
 
 def plot_constraints(constraints, ground_height=0):
@@ -418,7 +418,7 @@ def convert_ground_contacts_to_annotation(ground_contacts, joints, n_frames):
 
 def save_ground_contact_annotation(ground_contacts, joints, n_frames, filename):
     data = convert_ground_contacts_to_annotation(ground_contacts, joints, n_frames)
-    with open(filename, "wb") as out:
+    with open(filename, "w") as out:
         json.dump(data, out)
 
 
@@ -454,7 +454,7 @@ def save_ground_contact_annotation_merge_labels(ground_contacts, n_frames, left_
             annotation = no_contact_label
 
         data["frame_annotation"].append(annotation)
-    with open(filename, "wb") as out:
+    with open(filename, "w") as out:
         json.dump(data, out)
 
 def get_intersection_circle(center1, radius1, center2, radius2):
