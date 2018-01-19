@@ -180,7 +180,8 @@ def get_child_joint(skeleton, inv_joint_map, node_name):
         if joint_name in JOINT_CHILD_MAP:
             child_joint_name = JOINT_CHILD_MAP[joint_name]
             print(joint_name, child_joint_name)
-            child_node = skeleton.nodes[skeleton.skeleton_model["joints"][child_joint_name]]
+            if child_joint_name in skeleton.skeleton_model["joints"]:
+                child_node = skeleton.nodes[skeleton.skeleton_model["joints"][child_joint_name]]
     return child_node
 
 def create_local_cos_map_from_skeleton_axes_with_map(skeleton, flip=1.0, project=True):
@@ -315,7 +316,7 @@ class Retargeting(object):
         self.ground_height = 0.0
         self.additional_rotation_map = additional_rotation_map
         self.target_cos_map = create_local_cos_map_from_skeleton_axes_with_map(self.target_skeleton)
-        self.src_cos_map = create_local_cos_map_from_skeleton_axes_with_map(self.src_skeleton)
+        self.src_cos_map = create_local_cos_map_from_skeleton_axes_with_map(self.src_skeleton, flip=1.0, project=True)
 
         if "cos_map" in target_skeleton.skeleton_model:
             self.target_cos_map.update(target_skeleton.skeleton_model["cos_map"])
@@ -336,7 +337,7 @@ class Retargeting(object):
         joint_map = self.target_skeleton.skeleton_model["joints"]
         for target_name in self.target_to_src_joint_map:
             src_name = self.target_to_src_joint_map[target_name]
-            if src_name in self.src_cos_map:
+            if src_name in self.src_cos_map and target_name is not None:
                 src_zero_vector_y = self.src_cos_map[src_name]["y"]
                 target_zero_vector_y = self.target_cos_map[target_name]["y"]
                 src_zero_vector_x = self.src_cos_map[src_name]["x"]
@@ -344,7 +345,7 @@ class Retargeting(object):
                 q = quaternion_from_vector_to_vector(target_zero_vector_y, src_zero_vector_y)
                 q = normalize(q)
 
-                if target_name in [joint_map["pelvis"], joint_map["spine"]]:
+                if target_name in [joint_map["pelvis"], joint_map["spine"], joint_map["spine_1"]]:#,joint_map["spine_2"]
                     # add offset rotation to spine based on an upright reference pose
                     m = quaternion_matrix(q)[:3, :3]
                     v = normalize(np.dot(m, target_zero_vector_y))
@@ -373,7 +374,7 @@ class Retargeting(object):
         if src_child_name in self.src_to_target_joint_map:#or target_name =="neck_01" or target_name.startswith("hand")
             global_m = self.src_skeleton.nodes[src_name].get_global_matrix(src_frame)[:3, :3]
             local_m = self.src_skeleton.nodes[src_name].get_local_matrix(src_frame)[:3, :3]
-            q = quaternion_from_matrix(global_m)
+            #q = quaternion_from_matrix(global_m)
             global_src_up_vec = normalize(np.dot(global_m, src_up_axis))
             global_src_x_vec = normalize(np.dot(global_m, src_x_axis))
             local_src_x_vec = normalize(np.dot(local_m, src_x_axis))
@@ -410,13 +411,12 @@ class Retargeting(object):
 
         for target_name in animated_joints:
             q = get_quaternion_rotation_by_name(target_name, self.target_skeleton.reference_frame, self.target_skeleton, root_offset=3)
-            if target_name in list(self.target_to_src_joint_map.keys()):# or target_name == "Game_engine"
-                #if target_name != "Game_engine":  # special case for splitting the rotation onto two joints
+            if target_name in list(self.target_to_src_joint_map.keys()):
                 src_name = self.target_to_src_joint_map[target_name]
-                #else:
-                #    src_name = "Hips"
+                #print("retarget", target_name, src_name)
                 if src_name is not None and len(self.src_skeleton.nodes[src_name].children)>0:
-                    q = self.rotate_bone(src_name, target_name, src_frame, target_frame, q)
+                    #q = self.rotate_bone(src_name, target_name, src_frame, target_frame, q)
+                    q = self.rotate_bone_old(src_name, target_name, src_frame, target_frame, q)
 
             if ref_frame is not None:
                 #  align quaternion to the reference frame to allow interpolation
