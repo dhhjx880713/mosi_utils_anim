@@ -233,9 +233,8 @@ class BVHWriter(object):
             filename = filename
         else:
             filename = filename + '.bvh'
-        outfile = open(filename, 'w')
-        outfile.write(bvh_string)
-        outfile.close()
+        with open(filename, 'w') as outfile:
+            outfile.write(bvh_string)
 
     def generate_bvh_string(self):
         bvh_string = self._generate_hierarchy_string(self.skeleton) + "\n"
@@ -306,20 +305,29 @@ class BVHWriter(object):
         """
         joint_names = self.skeleton.get_joint_names()
         n_frames = len(quat_frames)
-        n_joints = len(joint_names)
-        n_params = n_joints*EULER_LEN + TRANSLATION_LEN
+        n_params = sum([len(skeleton.nodes[j].channels) for j in joint_names])
         euler_frames = np.zeros((n_frames, n_params))
         for frame_idx, quat_frame in enumerate(quat_frames):
             euler_frames[frame_idx,:TRANSLATION_LEN] = quat_frame[:TRANSLATION_LEN]
             src = TRANSLATION_LEN
-            dst = TRANSLATION_LEN
+            dst = 0 # the translation offset will be added
             for joint_name in joint_names:
-                rotation_order = skeleton.nodes[joint_name].channels[-3:]
-                #print d_offset,s_offset, idx
+                channels = skeleton.nodes[joint_name].channels
+                n_channels = len(channels)
+                rotation_order = []
+                rotation_offset = None
+                for idx, ch in enumerate(channels):
+                    if ch.lower().endswith("rotation"):
+                        rotation_order.append(ch)
+                        if rotation_offset is None:
+                            rotation_offset = idx
+
                 q = quat_frame[src:src+QUAT_LEN]
                 e = BVHWriter._quaternion_to_euler(q, rotation_order)
-                euler_frames[frame_idx,dst:dst+EULER_LEN] = e
-                dst += EULER_LEN
+                params_start = dst + rotation_offset
+                params_end = params_start + EULER_LEN
+                euler_frames[frame_idx, params_start:params_end] = e
+                dst += n_channels
                 src += QUAT_LEN
         return euler_frames
 
