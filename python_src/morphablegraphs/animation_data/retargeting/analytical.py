@@ -242,10 +242,10 @@ def create_local_cos_map_from_skeleton_iclone(skeleton):
     return joint_cos_map
 
 
-def apply_manual_fixes(joint_cos_map):
-    xjoints = ["CC_Base_L_Thigh", "CC_Base_R_Thigh", "CC_Base_L_Calf", "CC_Base_R_Calf", "CC_Base_L_Foot","CC_Base_R_Foot",
-               "Hips","Spine","Spine_1", "Neck"]
-    for j in xjoints:
+X_JOINTS = ["CC_Base_L_Thigh", "CC_Base_R_Thigh", "CC_Base_L_Calf", "CC_Base_R_Calf", "CC_Base_L_Foot", "CC_Base_R_Foot",
+           "Hips", "Spine", "Spine_1", "Neck"]
+def apply_manual_fixes(joint_cos_map, joints=X_JOINTS):
+    for j in joints:
         if j in joint_cos_map:
             joint_cos_map[j]["x"] *= -1
 
@@ -272,13 +272,15 @@ def align_root_joint(axes, global_src_x_vec, max_iter_count=10):
     return q
 
 
-def align_joint(new_skeleton, free_joint_name, local_target_axes, global_src_up_vec,global_src_x_vec, joint_cos_map, add_offset=False):#GAME_ENGINE_SPINE_OFFSET_LIST
+def align_joint(new_skeleton, free_joint_name, local_target_axes, global_src_up_vec, global_src_x_vec, joint_cos_map):
     # first align the bone vectors
     q = [1, 0, 0, 0]
     qy, axes = align_axis(local_target_axes, "y", global_src_up_vec)
-    q = normalize(quaternion_multiply(qy, q))
-    if add_offset:  # free_joint_name == joint_map["pelvis"] or free_joint_name == joint_map["spine"] and False
-        # handle special case when the axes should not align exactly
+    q = quaternion_multiply(qy, q)
+    joint_map = new_skeleton.skeleton_model["joints"]
+    q = normalize(q)
+    if  free_joint_name == joint_map["spine"]:#free_joint_name == joint_map["pelvis"] or
+        # handle special case of applying the x axis rotation of the Hip to the pelvis
         node = new_skeleton.nodes[free_joint_name]
         t_pose_global_m = node.get_global_matrix(new_skeleton.reference_frame)[:3, :3]
         global_original = np.dot(t_pose_global_m, joint_cos_map[free_joint_name]["y"])
