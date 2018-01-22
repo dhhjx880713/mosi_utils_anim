@@ -334,12 +334,12 @@ class Retargeting(object):
 
         if "cos_map" in target_skeleton.skeleton_model:
             self.target_cos_map.update(target_skeleton.skeleton_model["cos_map"])
-        else:
-            apply_manual_fixes(self.target_cos_map)
+        elif "x_cos_fixes" in src_skeleton.skeleton_model:
+            apply_manual_fixes(self.target_cos_map, src_skeleton.skeleton_model["x_cos_fixes"])
         if "cos_map" in src_skeleton.skeleton_model:
             self.src_cos_map.update(src_skeleton.skeleton_model["cos_map"])
-        else:
-            apply_manual_fixes(self.src_cos_map)
+        elif "x_cos_fixes" in src_skeleton.skeleton_model:
+            apply_manual_fixes(self.src_cos_map, src_skeleton.skeleton_model["x_cos_fixes"])
         self.correction_map = dict()
         self.create_correction_map()
 
