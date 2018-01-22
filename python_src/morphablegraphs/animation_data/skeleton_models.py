@@ -164,12 +164,13 @@ GAME_ENGINE_JOINTS["head"] = "head"
 
 GAME_ENGINE_SKELETON_COS_MAP = collections.defaultdict(lambda:dict())
 GAME_ENGINE_SKELETON_COS_MAP["Game_engine"]["y"] = [0, 1, 0]
+GAME_ENGINE_SKELETON_COS_MAP["Game_engine"]["x"] = [1, 0, 0]
 GAME_ENGINE_SKELETON_MODEL = collections.OrderedDict()
 GAME_ENGINE_SKELETON_MODEL["joints"] = GAME_ENGINE_JOINTS
 GAME_ENGINE_SKELETON_MODEL["foot_joints"] = ["foot_l", "foot_r", "ball_r", "ball_l", "heel_r", "heel_l"]
 GAME_ENGINE_SKELETON_MODEL["heel_offset"] = (np.array([0, 2.45, 3.480602]) * 2.5).tolist()
 GAME_ENGINE_SKELETON_MODEL["ik_chains"] = IK_CHAINS_GAME_ENGINE_SKELETON
-
+GAME_ENGINE_SKELETON_MODEL["cos_map"] = GAME_ENGINE_SKELETON_COS_MAP
 
 ROCKETBOX_JOINTS = collections.OrderedDict()
 ROCKETBOX_JOINTS["root"] = "Hips"
