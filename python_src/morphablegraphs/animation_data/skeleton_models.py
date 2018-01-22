@@ -357,6 +357,8 @@ ICLONE_SKELETON_JOINTS["head"] = "CC_Base_Head"
 ICLONE_SKELETON_MODEL = collections.OrderedDict()
 ICLONE_SKELETON_MODEL["joints"] = ICLONE_SKELETON_JOINTS
 ICLONE_SKELETON_MODEL["foot_joints"] = []
+ICLONE_SKELETON_MODEL["x_cos_fixes"] = ["CC_Base_L_Thigh", "CC_Base_R_Thigh", "CC_Base_L_Calf", "CC_Base_R_Calf", "CC_Base_L_Foot", "CC_Base_R_Foot"]
+
 
 CUSTOM_SKELETON_JOINTS = collections.OrderedDict()
 CUSTOM_SKELETON_JOINTS["root"] = "FK_back1_jnt"

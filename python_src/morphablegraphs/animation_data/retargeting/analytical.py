@@ -332,17 +332,18 @@ class Retargeting(object):
         self.target_cos_map = create_local_cos_map_from_skeleton_axes_with_map(self.target_skeleton)
         self.src_cos_map = create_local_cos_map_from_skeleton_axes_with_map(self.src_skeleton, flip=1.0, project=True)
 
+
         if "cos_map" in target_skeleton.skeleton_model:
             self.target_cos_map.update(target_skeleton.skeleton_model["cos_map"])
-        elif "x_cos_fixes" in src_skeleton.skeleton_model:
-            apply_manual_fixes(self.target_cos_map, src_skeleton.skeleton_model["x_cos_fixes"])
+        if "x_cos_fixes" in target_skeleton.skeleton_model:
+            apply_manual_fixes(self.target_cos_map, target_skeleton.skeleton_model["x_cos_fixes"])
         if "cos_map" in src_skeleton.skeleton_model:
             self.src_cos_map.update(src_skeleton.skeleton_model["cos_map"])
-        elif "x_cos_fixes" in src_skeleton.skeleton_model:
+        if "x_cos_fixes" in src_skeleton.skeleton_model:
             apply_manual_fixes(self.src_cos_map, src_skeleton.skeleton_model["x_cos_fixes"])
+
         self.correction_map = dict()
         self.create_correction_map()
-
         self.constant_offset = constant_offset
         self.place_on_ground = place_on_ground
 
@@ -359,7 +360,7 @@ class Retargeting(object):
                 q = quaternion_from_vector_to_vector(target_zero_vector_y, src_zero_vector_y)
                 q = normalize(q)
 
-                if target_name in [joint_map["pelvis"], joint_map["spine"], joint_map["spine_1"]]:#,joint_map["spine_2"]
+                if target_name in [joint_map["pelvis"], joint_map["spine"], joint_map["spine_1"]]:#,, joint_map["spine_2"]
                     # add offset rotation to spine based on an upright reference pose
                     m = quaternion_matrix(q)[:3, :3]
                     v = normalize(np.dot(m, target_zero_vector_y))
