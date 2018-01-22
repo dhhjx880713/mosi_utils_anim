@@ -177,11 +177,23 @@ def get_child_joint(skeleton, inv_joint_map, node_name):
         child_node = skeleton.nodes[node_name].children[-1]
     if node_name in inv_joint_map:
         joint_name = inv_joint_map[node_name]
-        if joint_name in JOINT_CHILD_MAP:
+        while joint_name in JOINT_CHILD_MAP:
             child_joint_name = JOINT_CHILD_MAP[joint_name]
-            print(joint_name, child_joint_name)
+
+            # check if child joint is mapped
+            joint_key = None
             if child_joint_name in skeleton.skeleton_model["joints"]:
-                child_node = skeleton.nodes[skeleton.skeleton_model["joints"][child_joint_name]]
+                joint_key = skeleton.skeleton_model["joints"][child_joint_name]
+
+            if joint_key is not None: # return child joint
+                child_node = skeleton.nodes[joint_key]
+                return child_node
+            else: #keep traversing until end of child map is reached
+                if child_joint_name in JOINT_CHILD_MAP:
+                    joint_name = JOINT_CHILD_MAP[child_joint_name]
+                    print(joint_name)
+                else:
+                    break
     return child_node
 
 def create_local_cos_map_from_skeleton_axes_with_map(skeleton, flip=1.0, project=True):
