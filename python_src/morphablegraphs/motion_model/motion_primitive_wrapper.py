@@ -1,5 +1,6 @@
 import numpy as np
 from .motion_primitive import MotionPrimitive as MGMotionPrimitive
+from .static_motion_primitive import StaticMotionPrimitive
 try:
     from .extended_mgrd_mixture_model import ExtendedMGRDMixtureModel
     from mgrd import MotionPrimitiveModel as MGRDMotionPrimitiveModel
@@ -36,6 +37,11 @@ class MotionPrimitiveModelWrapper(object):
         if "keyframes" in data:
             self.keyframes = data["keyframes"]
 
+        if "spatial_coeffs" in data:
+            self.motion_primitive = StaticMotionPrimitive()
+            self.motion_primitive._initialize_from_json(data)
+
+
         if not has_mgrd:
             if "tspm" in list(data.keys()):
                 self.motion_primitive = self._load_legacy_model_from_mgrd_json(data)
@@ -48,6 +54,8 @@ class MotionPrimitiveModelWrapper(object):
                 self.motion_primitive = self._load_mgrd_model_from_legacy_json(mgrd_skeleton, data, use_mgrd_mixture_model, animated_joints)
             else:
                 raise Exception("Motion Primitive format is not supported")
+
+
 
     def _load_legacy_model_from_mgrd_json(self, data):
         motion_primitive = MGMotionPrimitive(None)
