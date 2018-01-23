@@ -162,7 +162,8 @@ GAME_ENGINE_JOINTS["right_heel"] = "heel_r"
 GAME_ENGINE_JOINTS["neck"] = "neck_01"
 GAME_ENGINE_JOINTS["head"] = "head"
 
-GAME_ENGINE_SKELETON_COS_MAP = collections.defaultdict(lambda:dict())
+GAME_ENGINE_SKELETON_COS_MAP = collections.defaultdict(dict)
+GAME_ENGINE_SKELETON_COS_MAP["Game_engine"] = dict()
 GAME_ENGINE_SKELETON_COS_MAP["Game_engine"]["y"] = [0, 1, 0]
 GAME_ENGINE_SKELETON_COS_MAP["Game_engine"]["x"] = [1, 0, 0]
 GAME_ENGINE_SKELETON_MODEL = collections.OrderedDict()
