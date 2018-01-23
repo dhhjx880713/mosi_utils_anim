@@ -116,7 +116,6 @@ class MotionPrimitiveConstraintsBuilder(object):
             self.status["aligning_transform"] = get_node_aligning_2d_transform(self.skeleton, self.skeleton.aligning_root_node, prev_frames, frames)
 
     def build(self):
-        print("build constraints", len(self.action_constraints.keyframe_constraints.keys()))
         if self.use_local_coordinates:
             start_pose = None
         else:
@@ -190,20 +189,23 @@ class MotionPrimitiveConstraintsBuilder(object):
     def _add_keyframe_constraints(self, mp_constraints):
         """ Extract keyframe constraints of the motion primitive name.
         """
-        print(self.status["motion_primitive_name"], list(self.action_constraints.keyframe_constraints.keys()))
-        if self.status["motion_primitive_name"] in list(self.action_constraints.keyframe_constraints.keys()):
+
+        if self.status["motion_primitive_name"] in self.action_constraints.keyframe_constraints.keys():
+            #print("create constraints")
+            #print(len(self.action_constraints.keyframe_constraints[self.status["motion_primitive_name"]]))
             for c_desc in self.action_constraints.keyframe_constraints[self.status["motion_primitive_name"]]:
                 keyframe_constraint = self.create_keyframe_constraint(c_desc)
                 if keyframe_constraint is not None:
                     mp_constraints.constraints.append(keyframe_constraint)
+            #print("added", len(mp_constraints.constraints), "constraints")
 
     def create_keyframe_constraint(self, c_desc):
-        if "keyframeLabel" in list(c_desc["semanticAnnotation"].keys()):
+        if "keyframeLabel" in c_desc["semanticAnnotation"].keys():
             c_desc = self._map_label_to_canonical_keyframe(c_desc)
             constraint_factor = self.trajectory_following_settings["position_constraint_factor"]
-            if "merged" in list(c_desc.keys()):
+            if "merged" in c_desc.keys():
                 return TwoHandConstraintSet(self.skeleton, c_desc, self.precision["pos"], constraint_factor)
-            elif "look_at" in list(c_desc.keys()):
+            elif "look_at" in c_desc.keys():
                 return LookAtConstraint(self.skeleton, c_desc, self.precision["pos"], constraint_factor)
             else:
                 return GlobalTransformConstraint(self.skeleton, c_desc, self.precision["pos"], constraint_factor)
@@ -214,7 +216,7 @@ class MotionPrimitiveConstraintsBuilder(object):
         if self.local_optimization_mode == OPTIMIZATION_MODE_ALL:
             mp_constraints.use_local_optimization = True
         elif self.local_optimization_mode == OPTIMIZATION_MODE_KEYFRAMES:
-            mp_constraints.use_local_optimization = len(list(self.action_constraints.keyframe_constraints.keys())) > 0 \
+            mp_constraints.use_local_optimization = len(self.action_constraints.keyframe_constraints.keys()) > 0 \
                                                     or self.status["is_last_step"]
         elif self.local_optimization_mode == OPTIMIZATION_MODE_TWO_HANDS:
             mp_constraints.use_local_optimization = self.action_constraints.contains_two_hands_constraints and not self.status["is_last_step"]

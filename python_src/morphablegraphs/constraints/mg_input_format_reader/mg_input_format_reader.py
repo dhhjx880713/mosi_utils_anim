@@ -23,7 +23,7 @@ class MGInputFormatReader(object):
     def __init__(self, motion_state_graph, activate_joint_mapping=False, activate_coordinate_transform=True, scale_factor=1.0):
         self.motion_state_graph = motion_state_graph
         self.mg_input_file = None
-        self.elementary_action_list = list()
+        self.action_list = list()
         self.keyframe_annotations = list()
         self.joint_name_map = dict()
         self.inverse_joint_name_map = dict()
@@ -51,17 +51,17 @@ class MGInputFormatReader(object):
         return success
 
     def _extract_elementary_actions(self):
-        if ACTIONS_KEY in list(self.mg_input_file.keys()):
-            self.elementary_action_list = self.mg_input_file[ACTIONS_KEY]
-        elif TASKS_KEY in list(self.mg_input_file.keys()):
-            self.elementary_action_list = []
+        if ACTIONS_KEY in self.mg_input_file.keys():
+            self.action_list = self.mg_input_file[ACTIONS_KEY]
+        elif TASKS_KEY in self.mg_input_file.keys():
+            self.action_list = []
             for task in self.mg_input_file[TASKS_KEY]:
-                if ACTIONS_KEY in list(task.keys()):
-                    self.elementary_action_list += task[ACTIONS_KEY]
+                if ACTIONS_KEY in task.keys():
+                    self.action_list += task[ACTIONS_KEY]
         self.keyframe_annotations = self._extract_keyframe_annotations()
 
     def get_number_of_actions(self):
-        return len(self.elementary_action_list)
+        return len(self.action_list)
 
     def get_session_id(self):
         if SESSION_KEY not in list(self.mg_input_file.keys()):
@@ -83,7 +83,7 @@ class MGInputFormatReader(object):
         return start_pose
 
     def get_elementary_action_name(self, action_index):
-        return self.elementary_action_list[action_index][ACTION_KEY]
+        return self.action_list[action_index][ACTION_KEY]
 
     def _fill_joint_name_map(self):
         # TODO: read from file
@@ -166,7 +166,7 @@ class MGInputFormatReader(object):
                     p[P_KEY] = new_p
 
     def extract_trajectory_desc(self, action_index, joint_name, distance_treshold=-1):
-        return self.trajectory_constraints_reader.extract_trajectory_desc(self.elementary_action_list, action_index, joint_name, distance_treshold)
+        return self.trajectory_constraints_reader.extract_trajectory_desc(self.action_list, action_index, joint_name, distance_treshold)
 
     def get_ordered_keyframe_constraints(self, action_index, node_group):
         """
@@ -175,7 +175,7 @@ class MGInputFormatReader(object):
             reordered_constraints: dict of lists
             dict of constraints lists applicable to a specific motion primitive of the node_group
         """
-        return self.keyframe_constraints_reader.get_ordered_keyframe_constraints(self.elementary_action_list, action_index, node_group)
+        return self.keyframe_constraints_reader.get_ordered_keyframe_constraints(self.action_list, action_index, node_group)
 
     def _extract_keyframe_annotations(self):
         """
@@ -185,7 +185,7 @@ class MGInputFormatReader(object):
           Contains for every elementary action a dict that associates of events/actions with certain keyframes
         """
         keyframe_annotations = []
-        for action_index, entry in enumerate(self.elementary_action_list):
+        for action_index, entry in enumerate(self.action_list):
             keyframe_annotations.append(self.get_keyframe_annotations(action_index))
         return keyframe_annotations
 
@@ -197,8 +197,8 @@ class MGInputFormatReader(object):
           Contains for every elementary action a dict that associates of events/actions with certain keyframes
         """
         annotations = dict()
-        if ANNOTATIONS_KEY in list(self.elementary_action_list[action_index].keys()):
-            for annotation in self.elementary_action_list[action_index][ANNOTATIONS_KEY]:
+        if ANNOTATIONS_KEY in list(self.action_list[action_index].keys()):
+            for annotation in self.action_list[action_index][ANNOTATIONS_KEY]:
                 keyframe_label = annotation[KEYFRAME_KEY]
                 annotations[keyframe_label] = annotation
         return annotations

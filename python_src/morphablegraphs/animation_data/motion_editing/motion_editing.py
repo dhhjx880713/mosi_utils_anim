@@ -11,16 +11,16 @@ class MotionEditing(object):
     def __init__(self, skeleton, algorithm_settings):
         self.skeleton = skeleton
         self._ik_settings = algorithm_settings["inverse_kinematics_settings"]
-        self.window = self._ik_settings["interpolation_window"]
-        self.transition_window = self._ik_settings["transition_window"]
+        self.window = int(self._ik_settings["interpolation_window"])
+        self.transition_window = int(self._ik_settings["transition_window"])
         self.verbose = False
         self.use_euler = self._ik_settings["use_euler_representation"]
         self.solving_method = self._ik_settings["solving_method"]
         self.success_threshold = self._ik_settings["success_threshold"]
-        self.max_retries = self._ik_settings["max_retries"]
+        self.max_retries = int(self._ik_settings["max_retries"])
         self.activate_look_at = self._ik_settings["activate_look_at"]
         self.optimize_orientation = self._ik_settings["optimize_orientation"]
-        self.elementary_action_max_iterations = self._ik_settings["elementary_action_max_iterations"]
+        self.elementary_action_max_iterations = int(self._ik_settings["elementary_action_max_iterations"])
         self.elementary_action_epsilon = self._ik_settings["elementary_action_optimization_eps"]
         self.adapt_hands_during_both_hand_carry = self._ik_settings["adapt_hands_during_carry_both"]
         self.pose = SkeletonPoseModel(self.skeleton, self.use_euler)
@@ -58,9 +58,10 @@ class MotionEditing(object):
 
     def _modify_motion_vector_using_keyframe_constraint_list(self, motion_vector, constraints):
         error = 0.0
-        for keyframe, constraints in list(constraints.items()):
-            if "single" in list(constraints.keys()):
-                for c in constraints["single"]:
+        for keyframe, keyframe_constraints in list(constraints.items()):
+            keyframe = int(keyframe)
+            if "single" in list(keyframe_constraints.keys()):
+                for c in keyframe_constraints["single"]:
                     if c.optimize:
                         if c.frame_range is not None:
                             error += self._modify_motion_vector_using_keyframe_constraint_range(motion_vector, c,

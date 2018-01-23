@@ -54,10 +54,10 @@ class KeyframeConstraintReader(object):
     def _constraint_definition_has_label(self, constraint_definition, label):
         """ Checks if the label is in the semantic annotation dict of a constraint
         """
-        if "semanticAnnotation" in list(constraint_definition.keys()):
+        if "semanticAnnotation" in constraint_definition.keys():
             if label in list(constraint_definition["semanticAnnotation"].keys()):
                 return True
-        elif "keyframeLabel" in list(constraint_definition.keys()) and constraint_definition["keyframeLabel"] == label:
+        elif "keyframeLabel" in constraint_definition.keys() and constraint_definition["keyframeLabel"] == label:
             constraint_definition["semanticAnnotation"] = {label:True}
             return True
         return False
@@ -70,27 +70,27 @@ class KeyframeConstraintReader(object):
         """
         reordered_constraints = dict()
         # iterate over keyframe labels
-        for keyframe_label in list(keyframe_constraints.keys()):
+        for keyframe_label in keyframe_constraints.keys():
             mp_names = node_group.label_to_motion_primitive_map[keyframe_label]
             for mp_name in mp_names:
                 time_info = node_group.labeled_frames[mp_name][keyframe_label]
-                if mp_name not in list(reordered_constraints.keys()):
+                if mp_name not in reordered_constraints.keys():
                     reordered_constraints[mp_name] = list()
                 # iterate over joints constrained at that keyframe
-                for joint_name in list(keyframe_constraints[keyframe_label].keys()):
+                for joint_name in keyframe_constraints[keyframe_label].keys():
                     # iterate over constraints for that joint
                     for c_type in CONSTRAINT_TYPES:
-                        reordered_constraints[mp_name] += self._filter_by_constraint_type(keyframe_constraints,keyframe_label, joint_name, time_info, c_type)
+                        reordered_constraints[mp_name] += self._filter_by_constraint_type(keyframe_constraints, keyframe_label, joint_name, time_info, c_type)
         return reordered_constraints
 
-    def get_ordered_keyframe_constraints(self, elementary_action_list, action_index, node_group):
+    def get_ordered_keyframe_constraints(self, action_list, action_index, node_group):
         """
         Returns
         -------
             reordered_constraints: dict of lists
             dict of constraints lists applicable to a specific motion primitive of the node_group
         """
-        keyframe_constraints = self._extract_all_keyframe_constraints(elementary_action_list[action_index]["constraints"], node_group)
+        keyframe_constraints = self._extract_all_keyframe_constraints(action_list[action_index]["constraints"], node_group)
         return self._reorder_keyframe_constraints_by_motion_primitive_name(node_group, keyframe_constraints)
 
     def _filter_by_constraint_type(self, constraints, keyframe_label, joint_name, time_info, c_type):
