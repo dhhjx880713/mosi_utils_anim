@@ -14,17 +14,20 @@ class StaticMotionPrimitive(object):
         self.n_canonical_frames = 0
 
     def _initialize_from_json(self, data):
-        spatial_coefs = data["spatial_coeffs"]
-        knots = data["knots"]
-        self.n_canonical_frames = data["n_canonical_frames"]
         self.name = data["name"]
+        self.spatial_coefs = np.array(data["spatial_coeffs"])
+        self.knots = np.array(data["knots"])
+        self.n_canonical_frames = data["n_canonical_frames"]
         self.time_function = np.array(list(range(self.n_canonical_frames)))
-        self.motion_spline = MotionSpline([0], spatial_coefs, self.time_function, knots, None)
+        self.motion_spline = MotionSpline([0], self.spatial_coefs, self.time_function, self.knots, None)
         self.gmm = GaussianMixture(n_components=1, covariance_type='full')
         self.gmm.fit([0])
 
-    def sample(self, use_time_parameters=True):
+    def sample_low_dimensional_vector(self, use_time_parameters=True):
         return [0]
+
+    def sample(self, use_time_parameters=True):
+        return self.motion_spline
 
     def back_project(self, s, use_time_parameters=True, speed=1.0):
         return self.motion_spline

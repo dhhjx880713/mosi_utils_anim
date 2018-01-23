@@ -40,7 +40,7 @@ class MotionPrimitiveModelWrapper(object):
         if "spatial_coeffs" in data:
             self.motion_primitive = StaticMotionPrimitive()
             self.motion_primitive._initialize_from_json(data)
-
+            return
 
         if not has_mgrd:
             if "tspm" in list(data.keys()):
