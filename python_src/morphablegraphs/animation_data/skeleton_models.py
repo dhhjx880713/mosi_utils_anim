@@ -82,6 +82,14 @@ IK_CHAINS_GAME_ENGINE_SKELETON["hand_r"] = {"root": "upperarm_r", "joint": "lowe
 IK_CHAINS_GAME_ENGINE_SKELETON["hand_l"] = {"root": "upperarm_l", "joint": "lowerarm_l", "joint_axis": [1, 0, 0], "end_effector_dir": [1,0,0]}
 
 
+
+IK_CHAINS_CUSTOM_SKELETON = dict()
+IK_CHAINS_CUSTOM_SKELETON["L_foot_jnt"] = {"root": "L_upLeg_jnt", "joint": "L_lowLeg_jnt", "joint_axis": [1, 0, 0], "end_effector_dir": [0,0,1]}
+IK_CHAINS_CUSTOM_SKELETON["R_foot_jnt"] = {"root": "R_upLeg_jnt", "joint": "R_lowLeg_jnt", "joint_axis": [1, 0, 0], "end_effector_dir": [0,0,1]}
+IK_CHAINS_CUSTOM_SKELETON["R_hand_jnt"] = {"root": "R_upArm_jnt", "joint": "R_lowArm_jnt", "joint_axis": [1, 0, 0], "end_effector_dir": [1,0,0]}
+IK_CHAINS_CUSTOM_SKELETON["L_hand_jnt"] = {"root": "L_upArm_jnt", "joint": "L_lowArm_jnt", "joint_axis": [1, 0, 0], "end_effector_dir": [1,0,0]}
+
+
 RIGHT_SHOULDER = "RightShoulder"
 RIGHT_ELBOW = "RightElbow"
 RIGHT_WRIST = "RightHand"
@@ -441,8 +449,16 @@ CUSTOM_SKELETON_COS_MAP["R_hand_jnt"]["x"] = [0, -1, 0]
 
 CUSTOM_SKELETON_COS_MAP["L_hand_jnt"]["y"] = [0, 0, 1]
 CUSTOM_SKELETON_COS_MAP["L_hand_jnt"]["x"] = [0, -1, 0]
+if False:
+    CUSTOM_SKELETON_COS_MAP["FK_back3_jnt"]["y"] = [0, 0.7, -0.3]
+    CUSTOM_SKELETON_COS_MAP["FK_back3_jnt"]["x"] = [1, 0, 0]
+    CUSTOM_SKELETON_COS_MAP["head_jnt"]["y"] = [0.6, 0.4, 0]
+    CUSTOM_SKELETON_COS_MAP["head_jnt"]["x"] = [0, 0, -1]
 
 CUSTOM_SKELETON_MODEL["cos_map"] = CUSTOM_SKELETON_COS_MAP
+CUSTOM_SKELETON_MODEL["foot_joints"] = []
+CUSTOM_SKELETON_MODEL["heel_offset"] = [0, -6.480602, 0]
+CUSTOM_SKELETON_MODEL["ik_chains"] = IK_CHAINS_CUSTOM_SKELETON
 
 
 CAPTURY_SKELETON_JOINTS = collections.OrderedDict()
