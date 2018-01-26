@@ -21,6 +21,7 @@ class MotionModel(object):
         self._spatial_fpca_data = None
         self._temporal_fpca_data = None
         self._gmm_data = None
+        self._keyframes = dict()
 
     def back_project_sample(self, alpha):
         coeffs = np.dot(self._spatial_fpca_data["eigenvectors"].T, alpha)
@@ -74,6 +75,7 @@ class MotionModelConstructor(MotionModel):
              motions (List): input motion data in quaternion format.
         """
         self._dtw_sections = dtw_sections
+        self._keyframes = dict()
 
     def construct_model(self, name, version=1, save_skeleton=False):
         """ Runs the construction pipeline
@@ -160,8 +162,10 @@ class MotionModelConstructor(MotionModel):
 
     def _align_frames_temporally_split(self, input_motions, sections=None):
         mean_idx = self.get_average_time_line(input_motions)
-        print("set reference to index", mean_idx, "of", len(input_motions), "motions", sections[mean_idx])
-
+        if sections is not None:
+            print("set reference to index", mean_idx, "of", len(input_motions), "motions", sections[mean_idx])
+            for i, s in enumerate(sections[mean_idx]):
+                self._keyframes["contact" + str(i)] = s["end_idx"]
         # split_motions into sections
         n_motions = len(input_motions)
         if sections is not None:
@@ -353,5 +357,6 @@ class MotionModelConstructor(MotionModel):
             data['tspm']['frame_time'] = self._skeleton.frame_time
         if save_skeleton:
             data["skeleton"] = self.skeleton.to_json()
+        data["keyframes"] = self._keyframes
         return data
 
