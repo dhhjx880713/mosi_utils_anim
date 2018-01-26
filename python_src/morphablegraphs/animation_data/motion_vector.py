@@ -156,3 +156,18 @@ class MotionVector(object):
             offset += 4
 
         return frame
+
+    def from_custom_unity_format(self, data):
+        self.frames = []
+        for f in data["frames"]:
+            t = f["rootTranslation"]
+            new_f = [-t["x"], t["y"], t["z"]]
+            for q in f["rotations"]:
+                new_f.append(-q["w"])
+                new_f.append(-q["x"])
+                new_f.append(q["y"])
+                new_f.append(q["z"])
+
+            self.frames.append(new_f)
+        self.n_frames = len(self.frames)
+        self.frame_time = data["frameTime"]
