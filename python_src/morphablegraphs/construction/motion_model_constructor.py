@@ -116,9 +116,9 @@ class MotionModelConstructor(MotionModel):
             ma = rotate_frames(ma, q)
 
             # normalize position
-            delta = copy(ma[0, :3])
+            delta = np.array(ma[0, :3]) # + self._skeleton.nodes[self._skeleton.root].offset
             for f in ma:
-                f[:3] -= delta + self._skeleton.nodes[self._skeleton.root].offset
+                f[:3] -= delta
             aligned_frames.append(ma)
         return aligned_frames
 
