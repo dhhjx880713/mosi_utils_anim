@@ -12,6 +12,23 @@ from .utils import convert_poses_to_point_clouds, rotate_frames, align_quaternio
                   normalize_root_translation, scale_root_translation_in_fpca_data, gen_gaussian_eigen, BSPLINE_DEGREE
 
 
+def moving_average_filter(src, window=4):
+    """ https://www.wavemetrics.com/products/igorpro/dataanalysis/signalprocessing/smoothing.htm#MovingAverage
+    """
+    n_frames = len(src.frames)
+    n_dims = len(src.frames[0])
+    new_frames = np.zeros(src.frames.shape)
+    new_frames[0,:] = src.frames[0,:]
+    hw = int(window/2)
+    for i in range(1, n_frames):
+        for j in range(n_dims):
+            start = max(0, i-hw)
+            end = min(n_frames-1, i+hw)
+            w = end-start
+            #print(i, j, start, end, w, n_frames, n_dims)
+            #print("filter", v, src.frames[i, j])
+            new_frames[i, j] = np.sum(src.frames[start:end, j])/w
+    return np.array(new_frames)
 class MotionModel(object):
     def __init__(self, skeleton):
         self._skeleton = skeleton
@@ -83,12 +100,19 @@ class MotionModelConstructor(MotionModel):
              name (string): name of the motion primitive
              version (int): format supported values are 1, 2 and 3
         """
-
+        if self.config["filter_window"] > 0:
+            self.smooth_motion(self.config["filter_window"])
         self._align_frames()
         self.run_dimension_reduction()
         self.learn_statistical_model()
         model_data = self.convert_motion_model_to_json(name, version, save_skeleton)
         return model_data
+
+    def smooth_motion(self, window_size=4):
+        filtered_motions = []
+        for m in self._input_motions:
+            filtered_motions.append(moving_average_filter(m, window_size))
+        self._input_motions = filtered_motions
 
     def _align_frames(self):
         aligned_frames = self._align_frames_spatially(self._input_motions)
