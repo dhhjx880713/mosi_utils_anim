@@ -1,14 +1,71 @@
 import os
 import json
 import numpy as np
+import scipy.interpolate as si
 import collections
+from multiprocessing import Process
 from morphablegraphs.animation_data.bvh import BVHReader
 from morphablegraphs.animation_data import SkeletonBuilder, MotionVector
 from morphablegraphs.construction.motion_model_constructor import MotionModelConstructor
 from morphablegraphs.motion_model.motion_primitive_wrapper import MotionPrimitiveModelWrapper
-from morphablegraphs.animation_data.skeleton_models import SKELETON_MODELS, ANIMATED_JOINTS
+from morphablegraphs.animation_data.skeleton_models import SKELETON_MODELS
 from morphablegraphs.utilities import load_json_file
+from morphablegraphs.construction.utils import get_cubic_b_spline_knots
 
+
+ANIMATED_JOINTS = ["root", "pelvis","spine","spine_1","spine_2", "neck", "left_shoulder",
+                   "left_elbow", "left_wrist",
+                   "right_shoulder",
+                   "right_elbow", "right_wrist", "left_hip",
+                   "left_knee", "left_ankle", "right_hip", "right_knee", "right_ankle"]
+ANIMATED_JOINTS = dict()
+ANIMATED_JOINTS["game_engine"] = [
+    "Game_engine",
+    "Root",
+    "pelvis",
+    "spine_01",
+    "spine_02",
+    "spine_03",
+    "clavicle_l",
+    "upperarm_l",
+    "lowerarm_l",
+    "hand_l",
+    "clavicle_r",
+    "upperarm_r",
+    "lowerarm_r",
+    "hand_r",
+    "neck_01",
+    "head",
+    "thigh_l",
+    "calf_l",
+    "foot_l",
+    "ball_l",
+    "thigh_r",
+    "calf_r",
+    "foot_r",
+    "ball_r"
+]
+
+ANIMATED_JOINTS["custom"] = [
+    "FK_back1_jnt",
+    "FK_back2_jnt",
+    "FK_back4_jnt",
+    "head_jnt",
+    "R_shoulder_jnt",
+    "R_upArm_jnt",
+    "R_lowArm_jnt",
+    "R_hand_jnt",
+    "L_shoulder_jnt",
+    "L_upArm_jnt",
+    "L_lowArm_jnt",
+    "L_hand_jnt",
+    "L_upLeg_jnt",
+    "L_lowLeg_jnt",
+    "L_foot_jnt",
+    "R_upLeg_jnt",
+    "R_lowLeg_jnt",
+    "R_foot_jnt"
+]
 
 MM_FILE_ENDING = "_quaternion_mm.json"
 
@@ -39,7 +96,7 @@ def load_motion_data(motion_folder, max_count=np.inf, animated_joints=None):
         for file_name in files:
             if file_name.endswith("bvh"):
                 mv = load_motion_vector_from_bvh_file(motion_folder + os.sep + file_name, animated_joints)
-                motions[file_name[:-4]] = mv.frames
+                motions[file_name[:-4]] = np.array(mv.frames, dtype=np.float)
                 if len(motions) > max_count:
                     break
     return motions
@@ -53,6 +110,7 @@ def get_standard_config():
     config["npc_temporal"] = 3
     config["n_components"] = None
     config["precision_temporal"] = 0.99
+    config["filter_window"] = 0
     return config
 
 
@@ -72,6 +130,8 @@ def export_motions(skeleton, motions):
 def define_sections_from_keyframes(motion_names, keyframes):
     sections = []
     for key in motion_names:
+        if key not in keyframes:
+            continue
         m_sections = []
         keyframe = keyframes[key]
         section = dict()
@@ -85,24 +145,105 @@ def define_sections_from_keyframes(motion_names, keyframes):
         sections.append(m_sections)
     return sections
 
-def load_sections_from_keyframes_file(motion_names, filename):
-    keyframes = load_json_file(filename)
-    return define_sections_from_keyframes(motion_names, keyframes)
 
-def train_model(out_filename,name,  motion_folder, skeleton, max_training_samples=100, animated_joints=None, save_skeleton=False):
+def smooth_quaternion_frames(skeleton, frames, reference_frame):
+    print("smooth", len(frames[0]), len(reference_frame))
+    for frame in frames:
+        for idx, node in enumerate(skeleton.animated_joints):
+            o = idx*4 + 3
+            ref_q = reference_frame[o:o+4]
+            q = frame[o:o+4]
+            if np.dot(q, ref_q) < 0:
+                frame[o:o + 4] = -q
+    return frames
+
+
+def define_sections_from_annotations(motion_folder, motions):
+    filtered_motions = collections.OrderedDict()
+    sections = collections.OrderedDict()
+    for key in motions.keys():
+        annotations_file = motion_folder + os.sep + key + "_sections.json"
+        if os.path.isfile(annotations_file):
+            data = load_json_file(annotations_file)
+            annotations = data["semantic_annotation"]
+            motion_sections = dict()
+            for label in annotations:
+                annotations[label].sort()
+                section = dict()
+                section["start_idx"] = annotations[label][0]
+                section["end_idx"] = annotations[label][-1]
+                motion_sections[section["start_idx"]] = section
+            motion_sections = collections.OrderedDict(sorted(motion_sections.items()))
+            sections[key] = motion_sections.values()
+            filtered_motions[key] = motions[key]
+
+    if len(sections) > 0:
+        motions = filtered_motions
+        return motions, list(sections.values())
+    else:
+        return motions, None
+
+
+def convert_motion_to_static_motion_primitive(name, motion, skeleton, n_basis=7, degree=3):
+    """
+        Represent motion data as functional data, motion data should be narray<2d> n_frames * n_dims,
+        the functional data has the shape n_basis * n_dims
+    """
+
+    motion_data = np.asarray(motion)
+    n_frames, n_dims = motion_data.shape
+    knots = get_cubic_b_spline_knots(n_basis, n_frames)
+    x = list(range(n_frames))
+    coeffs = [si.splrep(x, motion_data[:, i], k=degree,
+                        t=knots[degree + 1: -(degree + 1)])[1][:-4] for i in range(n_dims)]
+    coeffs = np.asarray(coeffs).T
+
+    data = dict()
+    data["name"] = name
+    data["spatial_coeffs"] = coeffs.tolist()
+    data["knots"] = knots.tolist()
+    data["n_canonical_frames"] = len(motion)
+    data["skeleton"] = skeleton.to_json()
+    return data
+
+
+def train_model(out_filename, name, motion_folder, skeleton, max_training_samples=100, animated_joints=None, save_skeleton=False):
     motions = load_motion_data(motion_folder, max_count=max_training_samples, animated_joints=animated_joints)
+
+    ref_frame = None
+    for key, m in motions.items():
+        if ref_frame is None:
+            ref_frame = m[0]
+        motions[key] = smooth_quaternion_frames(skeleton, m, ref_frame)
 
     keyframes_filename = motion_folder+os.sep+"keyframes.json"
     if os.path.isfile(keyframes_filename):
-        sections = load_sections_from_keyframes_file(motions.keys(), keyframes_filename)
+        keyframes = load_json_file(keyframes_filename)
+        sections = define_sections_from_keyframes(motions.keys(), keyframes)
+        filtered_motions = collections.OrderedDict()
+        for key in motions.keys():
+            if key in keyframes:
+                filtered_motions[key] = motions[key]
+        motions = filtered_motions
     else:
-        sections = None
-    constructor = MotionModelConstructor(skeleton, get_standard_config())
-    constructor.set_motions(motions.values())
-    constructor.set_dtw_sections(sections)
-    model_data = constructor.construct_model(name, version=3, save_skeleton=save_skeleton)
-    with open(out_filename, 'w') as outfile:
-        json.dump(model_data, outfile)
+        motions, sections = define_sections_from_annotations(motion_folder, motions)
+
+    if len(motions) > 1:
+        constructor = MotionModelConstructor(skeleton, get_standard_config())
+        constructor.set_motions(motions.values())
+        constructor.set_dtw_sections(sections)
+        #constructor.ground_node = "R_toe_tip_jnt_EndSite"
+        model_data = constructor.construct_model(name, version=3, save_skeleton=save_skeleton)
+        with open(out_filename, 'w') as outfile:
+            json.dump(model_data, outfile)
+
+    elif len(motions) == 1:
+        keys = list(motions.keys())
+        model_data = convert_motion_to_static_motion_primitive(name, motions[keys[0]], skeleton)
+        with open(out_filename, 'w') as outfile:
+            json.dump(model_data, outfile)
+    else:
+        print("Error: Did not find any BVH files in the directory", motion_folder)
 
 
 def load_model(filename, skeleton):
@@ -117,10 +258,20 @@ def load_model(filename, skeleton):
 
 
 def main():
+    # motion_file = motion_folder + os.sep + "17-11-20-Hybrit-VW_fix-screws-by-hand_002_snapPoseSkeleton.bvh"
+    # skeleton = load_skeleton(skeleton_file, None, 10)
     skeleton_file = "skeleton.bvh"
     motion_folder = r"E:\projects\INTERACT\data\1 - MoCap\3 - Cutting\elementary_action_walk\leftStance"
 
+
     skeleton_file = "game_engine_target.bvh"
+
+    #motion_folder = r"E:\projects\model_data\hybrit\retargeting\vw scenario\fix-screws-by-hand"
+    #name = "fix-screws-by-hand"
+    #motion_folder = r"E:\projects\model_data\hybrit\retargeting\vw scenario\screws-on-part"
+    #name = "screws-on-part"
+    motion_folder = r"E:\projects\model_data\hybrit\retargeting\vw scenario\pickup-screws"
+    name = "pickup-screws"
 
     model_folder = r"E:\projects\model_data\hybrit\modeling"
     out_filename = model_folder + os.sep + name + MM_FILE_ENDING
@@ -135,25 +286,90 @@ def main():
 
     load_model(out_filename, skeleton)
 
-def model_actions():
-    data_folder = r"E:\projects\model_data\hybrit\processed_data"
-    model_folder = r"E:\projects\model_data\hybrit\modeling"
+
+def model_action():
+    data_folder = r"E:\projects\model_data\hybrit\3_mirroring\bak\game_engine\place\out"
+    model_folder = r"E:\projects\model_data\hybrit\3_mirroring\bak\game_engine\place\out"
+    elementary_action = "place"
     max_training_samples = 100
     skeleton_file = "game_engine_target.bvh"
     joint_map = SKELETON_MODELS["game_engine"]["joints"]
-    action_filter = ["pickup-part", "place-part"]
     joint_filter = [joint_map[j] for j in ANIMATED_JOINTS]
     joint_filter += ["Root"]
     skeleton = load_skeleton(skeleton_file, joint_filter, 10)
     animated_joints = skeleton.animated_joints
+    motion_folder = data_folder
+    out_filename = model_folder + os.sep + elementary_action + MM_FILE_ENDING
+    print("model", motion_folder, out_filename)
+    train_model(out_filename, elementary_action, motion_folder, skeleton, max_training_samples, animated_joints, save_skeleton=True)
+
+
+def model_actions(skeleton, data_folder, model_folder, input_folder_names, output_file_names, max_training_samples=200):
+
     for elementary_action in next(os.walk(data_folder))[1]:
-        if elementary_action not in action_filter:
+        if input_folder_names is not None and elementary_action not in input_folder_names:
             continue
         motion_folder = data_folder + os.sep + elementary_action
-        out_filename = model_folder + os.sep + elementary_action + MM_FILE_ENDING
-        print("model", motion_folder, out_filename)
-        train_model(out_filename, elementary_action, motion_folder, skeleton, max_training_samples, animated_joints, save_skeleton=True)
+        if output_file_names is None:
+            out_filename = model_folder + os.sep + elementary_action + MM_FILE_ENDING
+        else:
+            idx = input_folder_names.index(elementary_action)
+            out_filename = model_folder + os.sep + output_file_names[idx] + MM_FILE_ENDING
 
+        train_model(out_filename, elementary_action, motion_folder, skeleton, max_training_samples, skeleton.animated_joints, save_skeleton=True)
+
+
+
+def start_processes():
+    processes = []
+    actions = ["fix-screws-by-hand", "fix-screws-schrauber", "pickup-screws", "place-part", "screws-on-part", "pickup-part"]
+    model_names = ["fixScrews_fixScrews", "fixScrewsSchrauber_fixScrewsSchrauber", "pickupScrew_pickupScrew", "placePart_placePart", "screwsOnPart_screwsOnPart", "pickupPart_pickupPart"]
+    actions = [actions[-2]]
+    model_names = [model_names[-2]]
+
+    modeling_folder = r"E:\projects\model_data\hybrit\6_modeling"
+    data_folder = modeling_folder + os.sep + "input - custom captury"
+    model_folder = modeling_folder + os.sep + "output - custom"
+    max_training_samples = 200
+    skeleton_file = "game_engine_target.bvh"
+    scale = 10
+    skeleton_file = r"E:\projects\model_data\hybrit\game_engine_target2.bvh"
+    scale = 1
+    skeleton_file = r"E:\projects\model_data\hybrit\custom_target.bvh"
+    scale = 2.54
+    model_type = "custom"
+    skeleton = load_skeleton(skeleton_file, None, scale)
+    skeleton.skeleton_model = SKELETON_MODELS[model_type]
+    skeleton.animated_joints = ANIMATED_JOINTS[model_type]
+
+    actions = None
+    model_names = None
+    #actions = ["pickupScrew_pickupScrew", "placePart_placePart"]
+    #model_names = ["pickupScrew_pickupScrew", "placePart_placePart"]
+
+    for elementary_action in next(os.walk(data_folder))[1]:
+        if actions is not None and elementary_action not in actions:
+            continue
+        motion_folder = data_folder + os.sep + elementary_action
+        if model_names is None:
+            out_filename = model_folder + os.sep + elementary_action + MM_FILE_ENDING
+        else:
+            idx = model_names.index(elementary_action)
+            out_filename = model_folder + os.sep + model_names[idx] + MM_FILE_ENDING
+
+        p = Process(target=train_model,
+                    args=(out_filename, elementary_action, motion_folder, skeleton, max_training_samples,
+                          skeleton.animated_joints, True))
+        #train_model(out_filename, elementary_action, motion_folder, skeleton, max_training_samples,
+        #            skeleton.animated_joints, save_skeleton=True)
+
+        processes.append(p)
+        p.start()
+
+    for p in processes:
+         p.join()
 
 if __name__ == "__main__":
-    model_actions()
+    start_processes()
+
+
