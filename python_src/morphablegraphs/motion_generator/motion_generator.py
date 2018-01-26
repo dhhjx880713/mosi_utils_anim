@@ -48,7 +48,7 @@ class MotionGenerator(object):
             motion_grounding_settings = DEFAULT_ALGORITHM_CONFIG["motion_grounding_settings"]
         skeleton_model = self._motion_state_graph.skeleton.skeleton_model
         self.scene_interface = SceneInterface()
-        if skeleton_model is not None:
+        if skeleton_model is not None and "heel_offset" in skeleton_model:
             self.footplant_constraint_generator = FootplantConstraintGenerator(self._motion_state_graph.skeleton,
                                                                                skeleton_model,
                                                                                motion_grounding_settings,
