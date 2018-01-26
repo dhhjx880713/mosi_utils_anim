@@ -21,7 +21,6 @@ class MotionModel(object):
         self._spatial_fpca_data = None
         self._temporal_fpca_data = None
         self._gmm_data = None
-        self._keyframes = dict()
 
     def back_project_sample(self, alpha):
         coeffs = np.dot(self._spatial_fpca_data["eigenvectors"].T, alpha)
@@ -59,6 +58,7 @@ class MotionModelConstructor(MotionModel):
         self.config = config
         self.ref_orientation = [0,-1]  # look into -z direction in 2d
         self.dtw_sections = None
+        self._keyframes = dict()
 
     def set_motions(self, motions):
         """ Set the input data.
@@ -75,7 +75,6 @@ class MotionModelConstructor(MotionModel):
              motions (List): input motion data in quaternion format.
         """
         self._dtw_sections = dtw_sections
-        self._keyframes = dict()
 
     def construct_model(self, name, version=1, save_skeleton=False):
         """ Runs the construction pipeline
