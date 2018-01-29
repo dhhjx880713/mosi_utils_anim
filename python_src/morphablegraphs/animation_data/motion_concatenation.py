@@ -20,7 +20,7 @@ def concatenate_frames(prev_frames, new_frames):
 
 
 def convert_quat_frame_to_point_cloud(skeleton, frame, joints=None):
-    points = []
+    points = list()
     if joints is None:
         joints = [k for k, n in list(skeleton.nodes.items()) if len(n.children) > 0 and "Bip" not in n.node_name]
     for j in joints:
@@ -153,22 +153,22 @@ def get_global_node_orientation_vector(skeleton, node_name, frame, v=[0, 0, 1]):
     return dir_vec
 
 
-def get_node_aligning_2d_transform(skeleton, node_name, prev_frames, new_frames):
+def get_node_aligning_2d_transform(skeleton, node_name, prev_frames, new_frames, ref_vector=[0,0,1]):
     """from last of prev frames to first of new frames"""
 
     m_a = skeleton.nodes[node_name].get_global_matrix(prev_frames[-1])
     m_b = skeleton.nodes[node_name].get_global_matrix(new_frames[0])
-    dir_vec_a = get_orientation_vector_from_matrix(m_a[:3, :3])
-    dir_vec_b = get_orientation_vector_from_matrix(m_b[:3, :3])
+    dir_vec_a = get_orientation_vector_from_matrix(m_a[:3, :3], ref_vector)
+    dir_vec_b = get_orientation_vector_from_matrix(m_b[:3, :3], ref_vector)
     angle = get_rotation_angle(dir_vec_a, dir_vec_b)
     q = quaternion_about_axis(np.deg2rad(angle), [0, 1, 0])
     m = quaternion_matrix(q)
 
-    first_frame_pos = m_b[:4,3]
+    first_frame_pos = [new_frames[0][0], 0, new_frames[0][2],1.0]
     rotated_first_frame_pos = np.dot(m, first_frame_pos)[:3]
-    offset_x = m_a[0, 3] - rotated_first_frame_pos[0]
-    offset_z = m_a[2, 3] - rotated_first_frame_pos[2]
-    m[:3,3] = [offset_x, 0.0, offset_z]
+    delta = prev_frames[-1][:3] - rotated_first_frame_pos
+    m[0, 3] = delta[0]
+    m[2, 3] = delta[2]
     return m
 
 def get_transform_from_point_cloud_alignment(skeleton, prev_frames, new_frames):
@@ -222,13 +222,11 @@ def concatenate_frames_with_slerp(new_frames, prev_frames, smoothing_window=0):
     return frames
 
 
-
 def align_quaternion_frames_automatically(skeleton, node_name, new_frames, prev_frames, alignment_mode=ALIGNMENT_MODE_FAST):
     if alignment_mode == ALIGNMENT_MODE_FAST:
         m = get_node_aligning_2d_transform(skeleton, node_name, prev_frames, new_frames)
     else:
         m = get_transform_from_point_cloud_alignment(skeleton, prev_frames, new_frames)
-
     new_frames = transform_quaternion_frames(new_frames, m)
     return new_frames
 
