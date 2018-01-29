@@ -41,7 +41,7 @@ class KeyframeConstraintReader(object):
                         keyframe_constraints[joint_name][constraint_type] = list()
                     if constraint_type in list(joint_constraints.keys()):
                         filtered_list = self.filter_constraints_by_label(joint_constraints[constraint_type], label)
-                        keyframe_constraints[joint_name][constraint_type] = filtered_list
+                        keyframe_constraints[joint_name][constraint_type] += filtered_list
         return keyframe_constraints
 
     def filter_constraints_by_label(self, constraints, label):
