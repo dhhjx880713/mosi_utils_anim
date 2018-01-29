@@ -125,52 +125,51 @@ def find_optimal_dtw(point_clouds):
 
 
 def run_dtw_process(params):
-    ref_idx, point_clouds = params
-    dtw_results = []
+    ref_key, point_clouds = params
+    dtw_results = dict()
     cost = 0
-    pi = point_clouds[ref_idx]
-    for j, pj in enumerate(point_clouds):
-        print("start dtw", ref_idx, j)
+    pi = point_clouds[ref_key]
+    for k, pj in point_clouds.items():
+        print("start dtw", ref_key, k)
         #path, D = run_dtw(pi, pj)
         #path_cost = sum([D[c[0], c[1]] for c in path])
         path_cost, path = fastdtw(pi, pj, dist=_transform_invariant_point_cloud_distance)
-        dtw_results.append(path)
+        dtw_results[k] = path
         cost += path_cost
     return cost/len(point_clouds), dtw_results
 
 @asyncio.coroutine
 def run_dtw_coroutine(pool, params, results):
     print("start task")
-    ref_idx, point_clouds = params
+    ref_key, point_clouds = params
     fut = pool.submit(run_dtw_process, params)
     while not fut.done() and not fut.cancelled():
         #print("run batch")
         yield from asyncio.sleep(0.1)
-    print("done")
-    results[ref_idx] = fut.result()
+    results[ref_key] = fut.result()
 
 
-def find_optimal_dtw_async(point_clouds, mean_idx=-1):
+def find_optimal_dtw_async(point_clouds, mean_key=None):
     n_workers = max(cpu_count()-1, 1)
     pool = ProcessPoolExecutor(max_workers=n_workers)
-    if 0 <= mean_idx < len(point_clouds):
-        x_point_clouds = [point_clouds[mean_idx]]
+    if mean_key in point_clouds:
+        x_point_clouds = {mean_key: point_clouds[mean_key]}
     else:
         x_point_clouds = point_clouds
-    dtw_results = []
-    avg_distances = []
+    dtw_results = dict()
+    avg_distances = dict()
     tasks = []
     results = dict()
-    for i, pi in enumerate(x_point_clouds):
-        avg_distances.append(0)
-        dtw_results.append([])
-        t = run_dtw_coroutine(pool, (i, point_clouds), results)
+    for key, pi in x_point_clouds.items():
+        avg_distances[key] = 0
+        dtw_results[key] = 0
+        t = run_dtw_coroutine(pool, (key, point_clouds), results)
         tasks.append(t)
     asyncio.get_event_loop().run_until_complete(asyncio.gather(*tasks))
-    best_idx = 0
+    best_key = list(point_clouds.keys())[0]
     best_d = np.inf
-    print("best index", best_idx, len(point_clouds[best_idx]))
-    for idx, result in results.items():
+    print("best index", best_key, len(point_clouds[best_key]))
+    for key, result in results.items():
         if result[0] < best_d:
-            best_idx = idx
-    return results[best_idx][1]
+            best_key = key
+    return results[best_key][1]

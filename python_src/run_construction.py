@@ -128,7 +128,7 @@ def export_motions(skeleton, motions):
 
 
 def define_sections_from_keyframes(motion_names, keyframes):
-    sections = []
+    sections = collections.OrderedDict()
     for key in motion_names:
         if key not in keyframes:
             continue
@@ -142,7 +142,7 @@ def define_sections_from_keyframes(motion_names, keyframes):
         section["start_idx"] = keyframe
         section["end_idx"] = -1
         m_sections.append(section)
-        sections.append(m_sections)
+        sections[key] = m_sections
     return sections
 
 
@@ -179,7 +179,7 @@ def define_sections_from_annotations(motion_folder, motions):
 
     if len(sections) > 0:
         motions = filtered_motions
-        return motions, list(sections.values())
+        return motions, sections
     else:
         return motions, None
 
@@ -216,7 +216,10 @@ def train_model(out_filename, name, motion_folder, skeleton, max_training_sample
             ref_frame = m[0]
         motions[key] = smooth_quaternion_frames(skeleton, m, ref_frame)
 
+    timewarping = None
+    sections = None
     keyframes_filename = motion_folder+os.sep+"keyframes.json"
+    timewarping_filename = motion_folder + os.sep + "timewarping.json"
     if os.path.isfile(keyframes_filename):
         keyframes = load_json_file(keyframes_filename)
         sections = define_sections_from_keyframes(motions.keys(), keyframes)
@@ -225,13 +228,24 @@ def train_model(out_filename, name, motion_folder, skeleton, max_training_sample
             if key in keyframes:
                 filtered_motions[key] = motions[key]
         motions = filtered_motions
+    elif os.path.isfile(timewarping_filename):
+        timewarping = load_json_file(timewarping_filename)
+        temp = dict()
+        for key in timewarping.keys():
+            print(key)
+            temp[key[:-4]] = np.array(timewarping[key])
+
+        timewarping = temp
     else:
         motions, sections = define_sections_from_annotations(motion_folder, motions)
 
     if len(motions) > 1:
         constructor = MotionModelConstructor(skeleton, get_standard_config())
-        constructor.set_motions(motions.values())
-        constructor.set_dtw_sections(sections)
+        constructor.set_motions(motions)
+        if timewarping is not None:
+            constructor.set_timewarping(timewarping)
+        elif sections is not None:
+            constructor.set_dtw_sections(sections)
         #constructor.ground_node = "R_toe_tip_jnt_EndSite"
         model_data = constructor.construct_model(name, version=3, save_skeleton=save_skeleton)
         with open(out_filename, 'w') as outfile:
@@ -357,14 +371,14 @@ def start_processes():
             idx = model_names.index(elementary_action)
             out_filename = model_folder + os.sep + model_names[idx] + MM_FILE_ENDING
 
-        p = Process(target=train_model,
-                    args=(out_filename, elementary_action, motion_folder, skeleton, max_training_samples,
-                          skeleton.animated_joints, True))
-        #train_model(out_filename, elementary_action, motion_folder, skeleton, max_training_samples,
-        #            skeleton.animated_joints, save_skeleton=True)
+        #p = Process(target=train_model,
+        #            args=(out_filename, elementary_action, motion_folder, skeleton, max_training_samples,
+        #                  skeleton.animated_joints, True))
+        train_model(out_filename, elementary_action, motion_folder, skeleton, max_training_samples,
+                    skeleton.animated_joints, save_skeleton=True)
 
-        processes.append(p)
-        p.start()
+        #processes.append(p)
+        #p.start()
 
     for p in processes:
          p.join()

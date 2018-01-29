@@ -1,4 +1,5 @@
 import os
+import collections
 import numpy as np
 import scipy as sp
 from copy import copy
@@ -74,7 +75,7 @@ def get_max_translation(motions):
     max_x = 0
     max_y = 0
     max_z = 0
-    for m in motions:
+    for k, m in motions.items():
         tmp = np.asarray(m)
         max_x_i = np.max(np.abs(tmp[:, 0]))
         max_y_i = np.max(np.abs(tmp[:, 1]))
@@ -95,11 +96,11 @@ def normalize_root_translation(motions):
     scaling all positions between -1 and 1
     """
     scale_vec = get_max_translation(motions)
-    scaled_motions = []
-    for frames in motions:
+    scaled_motions = collections.OrderedDict()
+    for key, frames in motions.items():
         frames = np.array(frames)
         frames[:, :3] /= scale_vec
-        scaled_motions.append(frames)
+        scaled_motions[key] = frames
     return scaled_motions, scale_vec
 
 
@@ -139,8 +140,8 @@ def align_quaternion_frames(skeleton, motions):
     src: http://physicsforgames.blogspot.de/2010/02/quaternions.html
     """
     ref_frame = None
-    new_motions = []
-    for m in motions:
+    new_motions = collections.OrderedDict()
+    for key, m in motions.items():
         new_frames = []
         for frame in m:
             if ref_frame is None:
@@ -155,7 +156,7 @@ def align_quaternion_frames(skeleton, motions):
                         frame[offset:offset + 4] = -q
                     offset += 4
             new_frames.append(frame)
-        new_motions.append(new_frames)
+        new_motions[key] = np.array(new_frames)
     return new_motions
 
 

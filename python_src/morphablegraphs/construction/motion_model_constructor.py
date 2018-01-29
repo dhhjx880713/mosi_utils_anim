@@ -1,5 +1,6 @@
 import numpy as np
 from copy import copy
+import collections
 from .fpca.fpca_spatial_data import FPCASpatialData
 from .fpca.fpca_time_semantic import FPCATimeSemantic
 from .motion_primitive.statistical_model_trainer import GMMTrainer
@@ -8,27 +9,58 @@ from ..external.transformations import quaternion_from_euler
 from .dtw import get_warping_function, find_optimal_dtw_async, warp_motion
 from ..utilities.io_helper_functions import export_frames_to_bvh_file
 from ..motion_model.motion_spline import MotionSpline
-from .utils import convert_poses_to_point_clouds, rotate_frames, align_quaternion_frames, get_cubic_b_spline_knots,\
+from .utils import _convert_pose_to_point_cloud, rotate_frames, align_quaternion_frames, get_cubic_b_spline_knots,\
                   normalize_root_translation, scale_root_translation_in_fpca_data, gen_gaussian_eigen, BSPLINE_DEGREE
+from os import cpu_count
+import asyncio
+from concurrent.futures import ProcessPoolExecutor
+
+def convert_poses_to_point_clouds(params):
+    skeleton, keys, motions, normalize = params
+    point_clouds = dict()
+    for k in keys:
+        point_cloud = []
+        for f in motions[k]:
+            p = _convert_pose_to_point_cloud(skeleton, f, normalize)
+            point_cloud.append(p)
+        point_clouds[k] = point_cloud
+    return point_clouds
 
 
-def moving_average_filter(src, window=4):
-    """ https://www.wavemetrics.com/products/igorpro/dataanalysis/signalprocessing/smoothing.htm#MovingAverage
-    """
-    n_frames = len(src.frames)
-    n_dims = len(src.frames[0])
-    new_frames = np.zeros(src.frames.shape)
-    new_frames[0,:] = src.frames[0,:]
-    hw = int(window/2)
-    for i in range(1, n_frames):
-        for j in range(n_dims):
-            start = max(0, i-hw)
-            end = min(n_frames-1, i+hw)
-            w = end-start
-            #print(i, j, start, end, w, n_frames, n_dims)
-            #print("filter", v, src.frames[i, j])
-            new_frames[i, j] = np.sum(src.frames[start:end, j])/w
-    return np.array(new_frames)
+@asyncio.coroutine
+def run_conversion_coroutine(pool, params, results):
+    print("start task")
+    fut = pool.submit(convert_poses_to_point_clouds, params)
+    while not fut.done() and not fut.cancelled():
+        yield from asyncio.sleep(0.1)
+    print("done")
+    results.update(fut.result())
+
+def chunks(l, n):
+    """Yield successive n-sized chunks from l.
+    https://stackoverflow.com/questions/312443/how-do-you-split-a-list-into-evenly-sized-chunks"""
+    for i in range(0, len(l), n):
+        yield l[i:i + n]
+
+
+def convert_motions_to_point_clouds_parallel(skeleton, motions, normalize=False):
+    n_workers = max(cpu_count()-1, 1)
+    pool = ProcessPoolExecutor(max_workers=n_workers)
+    n_motions = len(motions)
+    if n_workers > n_motions:
+        n_workers = n_motions
+    n_batches = int(len(motions) / n_workers)
+    tasks = []
+    results = dict()
+    for batch_keys in chunks(list(motions.keys()), n_batches):
+        print("start batch", len(batch_keys))
+        t = run_conversion_coroutine(pool, (skeleton, batch_keys, motions,  normalize), results)
+        tasks.append(t)
+    asyncio.get_event_loop().run_until_complete(asyncio.gather(*tasks))
+    return results
+
+
+
 class MotionModel(object):
     def __init__(self, skeleton):
         self._skeleton = skeleton
@@ -74,8 +106,9 @@ class MotionModelConstructor(MotionModel):
         self.skeleton = skeleton
         self.config = config
         self.ref_orientation = [0,-1]  # look into -z direction in 2d
-        self.dtw_sections = None
+        self._dtw_sections = None
         self._keyframes = dict()
+        self._temporal_data = None
 
     def set_motions(self, motions):
         """ Set the input data.
@@ -92,6 +125,12 @@ class MotionModelConstructor(MotionModel):
              motions (List): input motion data in quaternion format.
         """
         self._dtw_sections = dtw_sections
+        self._keyframes = dict()
+
+
+    def set_timewarping(self, temporal_data):
+        self._temporal_data = temporal_data
+
 
     def construct_model(self, name, version=1, save_skeleton=False):
         """ Runs the construction pipeline
@@ -100,37 +139,39 @@ class MotionModelConstructor(MotionModel):
              name (string): name of the motion primitive
              version (int): format supported values are 1, 2 and 3
         """
-        if self.config["filter_window"] > 0:
-            self.smooth_motion(self.config["filter_window"])
+
         self._align_frames()
         self.run_dimension_reduction()
         self.learn_statistical_model()
         model_data = self.convert_motion_model_to_json(name, version, save_skeleton)
         return model_data
 
-    def smooth_motion(self, window_size=4):
-        filtered_motions = []
-        for m in self._input_motions:
-            filtered_motions.append(moving_average_filter(m, window_size))
-        self._input_motions = filtered_motions
-
     def _align_frames(self):
         aligned_frames = self._align_frames_spatially(self._input_motions)
-        self._aligned_frames, self._temporal_data = self._align_frames_temporally_split(aligned_frames, self._dtw_sections)
-
+        if self._temporal_data is not None:
+            self._aligned_frames = aligned_frames
+            temp = collections.OrderedDict()
+            for key in self._aligned_frames.keys():
+                if key in self._temporal_data:
+                    temp[key] = self._temporal_data[key]
+            self._temporal_data = temp
+        else:
+            self._aligned_frames, self._temporal_data = self._align_frames_temporally_split(aligned_frames,
+                                                                                            self._dtw_sections)
+        print("finished processing",len(self._aligned_frames), len(self._temporal_data))
         #self._export_aligned_frames()
 
     def _export_aligned_frames(self):
-        for idx, frames in enumerate(self._aligned_frames):
+        for key, frames in self._aligned_frames.items():
             print(np.array(frames).shape)
-            name = "aligned"+str(idx)
+            name = "aligned"+str(key)
             self._export_frames(name, frames)
 
     def _align_frames_spatially(self, input_motions):
         print("run spatial alignment", self.ref_orientation)
-        aligned_frames = []
+        aligned_frames = collections.OrderedDict()
         frame_idx = 0
-        for input_m in input_motions:
+        for key, input_m in input_motions.items():
             ma = input_m[:]
 
             # align orientation to reference orientation
@@ -141,89 +182,85 @@ class MotionModelConstructor(MotionModel):
             ma = rotate_frames(ma, q)
 
             # normalize position
-            delta = np.array(ma[0, :3]) # + self._skeleton.nodes[self._skeleton.root].offset
+            delta = copy(ma[0, :3])
             for f in ma:
-                f[:3] -= delta
-            aligned_frames.append(ma)
+                f[:3] -= delta# + self._skeleton.nodes[self._skeleton.root].offset
+            aligned_frames[key] = ma
         return aligned_frames
 
     def get_average_time_line(self, input_motions):
-        n_frames = [len(m) for m in input_motions]
+        n_frames = [len(m) for m in input_motions.values()]
         mean = np.mean(n_frames)
-        best_idx = 0
+        best_key = 0
         least_distance = np.inf
-        for idx, n in enumerate(n_frames):
-            if abs(n-mean) < least_distance:
-                best_idx = idx
-                least_distance = abs(n-mean)
-        return best_idx
+        for k, m in input_motions.items():
+            d = abs(len(m)-mean)
+            if d < least_distance:
+                best_key = k
+                least_distance = d
+        return best_key
 
-    def _align_frames_temporally(self, input_motions, mean_idx=None):
+    def _align_frames_temporally(self, input_motions, mean_key=None):
         print("run temporal alignment")
         print("convert motions to point clouds")
-        point_clouds = convert_poses_to_point_clouds(self._skeleton, input_motions, normalize=False)
-        print("find reference motion")
-        if mean_idx is None:
-            mean_idx = self.get_average_time_line(input_motions)
-            print("set reference to index", mean_idx, "of", len(input_motions), "motions")
-        dtw_results = find_optimal_dtw_async(point_clouds, mean_idx)
-        warped_frames = []
-        warping_functions = []
-        for idx, m in enumerate(input_motions):
-            print("align motion", idx)
-            path = dtw_results[idx]
+        #point_clouds = convert_poses_to_point_clouds(self._skeleton, input_motions.keys(), input_motions, normalize=False)
+        point_clouds = convert_motions_to_point_clouds_parallel(self._skeleton, input_motions, normalize=False)
+        print("find reference motion", len(point_clouds))
+        if mean_key is None:
+            mean_key = self.get_average_time_line(input_motions)
+            print("set reference to index", mean_key, "of", len(input_motions), "motions")
+        dtw_results = find_optimal_dtw_async(point_clouds, mean_key)
+        warped_frames = collections.OrderedDict()
+        warping_functions = collections.OrderedDict()
+        for k, m in input_motions.items():
+            path = dtw_results[k]
             warping_function = get_warping_function(path)
             warped_motion = warp_motion(m, warping_function)
-            warped_frames.append(warped_motion)
-            warping_functions.append(warping_function)
-        warped_frames = np.array(warped_frames)
-        n_samples = len(point_clouds)
-        n_frames = len(warped_frames[0])
-        n_dims = len(warped_frames[0][0])
-        warped_frames = warped_frames.reshape((n_samples, n_frames, n_dims))
+            warped_frames[k] = np.array(warped_motion)
+            warping_functions[k] = warping_function
         return warped_frames, warping_functions
 
     def _align_frames_temporally_split(self, input_motions, sections=None):
-        mean_idx = self.get_average_time_line(input_motions)
+        mean_key = self.get_average_time_line(input_motions)
         if sections is not None:
-            print("set reference to index", mean_idx, "of", len(input_motions), "motions", sections[mean_idx])
-            for i, s in enumerate(sections[mean_idx]):
-                self._keyframes["contact" + str(i)] = s["end_idx"]
+            #print("set reference to index", mean_key, "of", len(input_motions), "motions", sections[mean_key])
+            # use segment end as keyframe
+            for i, s in enumerate(sections[mean_key]):
+                self._keyframes["contact"+str(i)] = s["end_idx"]
         # split_motions into sections
-        n_motions = len(input_motions)
         if sections is not None:
-            splitted_motions = []
-            for idx, input_motion in enumerate(input_motions):
+            key = list(input_motions.keys())[0]
+            n_sections = len(sections[key])
+            splitted_motions = [collections.OrderedDict() for section_idx in range(n_sections)]
+            for key, input_motion in input_motions.items():
                 splitted_motion = []
-                for section in sections[idx]:
+                for section_idx, section in enumerate(sections[key]):
                     start_idx = section["start_idx"]
                     end_idx = section["end_idx"]
                     split = input_motion[start_idx:end_idx]
-                    print("split motion", idx, len(splitted_motion))
-                    splitted_motion.append(split)
-                splitted_motions.append(splitted_motion)
-            splitted_motions = np.array(splitted_motions).T
+                    print("split motion", key, len(splitted_motion))
+                    splitted_motions[section_idx][key] = split
         else:
             splitted_motions = [input_motions]
 
         # run dtw for each section
         splitted_dtw_results = []
         for section_samples in splitted_motions:
-            result = self._align_frames_temporally(section_samples, mean_idx)
+            result = self._align_frames_temporally(section_samples, mean_key)
             splitted_dtw_results.append(result)
 
         # combine sections
-        warped_frames = []
-        warping_functions = []
-        for motion_idx in range(n_motions):
+        warped_frames = collections.OrderedDict()
+        warping_functions = collections.OrderedDict()
+        for key in input_motions.keys():
             combined_frames = []
             combined_warping_function = []
             for section_idx, result in enumerate(splitted_dtw_results):
-                print(motion_idx, section_idx, len(result),len(result[0]), n_motions)
-                combined_frames += list(result[0][motion_idx])
-                combined_warping_function += list(result[1][motion_idx])
-            warped_frames.append(combined_frames)
-            warping_functions.append(combined_warping_function)
+                print(key, section_idx, len(result),len(result[0]))
+                combined_frames += list(result[0][key])
+                combined_warping_function += list(result[1][key])
+            warped_frames[key] = combined_frames
+            warping_functions[key] = combined_warping_function
 
         return warped_frames, warping_functions
 
@@ -233,13 +270,20 @@ class MotionModelConstructor(MotionModel):
 
     def run_spatial_dimension_reduction(self):
         scaled_quat_frames, scale_vec = normalize_root_translation(self._aligned_frames)
-        smoothed_quat_frames = np.array(align_quaternion_frames(self._skeleton, scaled_quat_frames))
+        smoothed_quat_frames = align_quaternion_frames(self._skeleton, scaled_quat_frames)
         fpca_spatial = FPCASpatialData(self.config["n_basis_functions_spatial"],
                                        self.config["n_components"],
                                        self.config["fraction"])
-        fpca_spatial.fileorder = list(range(len(smoothed_quat_frames)))
-        print(smoothed_quat_frames.shape)
-        fpca_spatial.fit(smoothed_quat_frames)
+        fpca_spatial.fileorder = smoothed_quat_frames.keys()#list(range(len(smoothed_quat_frames)))
+        #print(smoothed_quat_frames.shape)
+        input_data = np.array(list(smoothed_quat_frames.values()))
+
+        n_samples = len(input_data)
+        n_frames = len(input_data[0])
+        n_dims = len(input_data[0][0])
+        input_data = input_data.reshape((n_samples, n_frames, n_dims))
+        print(fpca_spatial.fileorder, input_data.shape)
+        fpca_spatial.fit(input_data)
 
         result = dict()
         result['parameters'] = fpca_spatial.fpcaobj.low_vecs
@@ -264,8 +308,14 @@ class MotionModelConstructor(MotionModel):
         fpca_temporal = FPCATimeSemantic(self.config["n_basis_functions_temporal"],
                                           n_components_temporal=self.config["npc_temporal"],
                                           precision_temporal=self.config["precision_temporal"])
-        print(np.array(self._temporal_data).shape)
-        fpca_temporal.temporal_semantic_data = self._temporal_data
+        print(np.array(self._temporal_data.values()).shape)
+        input_data = []
+        print(len(self._temporal_data))
+        for k in self._temporal_data.keys():
+            input_data.append((self._temporal_data[k]))
+        input_data = np.array(input_data)
+        #input_data = np.array(self._temporal_data.values())
+        fpca_temporal.temporal_semantic_data = input_data
         fpca_temporal.semantic_annotation_list = []
         fpca_temporal.functional_pca()
         result = dict()
@@ -295,7 +345,8 @@ class MotionModelConstructor(MotionModel):
         means = self._gmm_data['gmm_means']
         covars = self._gmm_data['gmm_covars']
 
-        n_frames = len(self._aligned_frames[0])
+        key = list(self._aligned_frames.keys())[0]
+        n_frames = len(self._aligned_frames[key])
 
         mean_motion = self._spatial_fpca_data["mean"].tolist()
         spatial_eigenvectors = self._spatial_fpca_data["eigenvectors"].tolist()
@@ -380,6 +431,6 @@ class MotionModelConstructor(MotionModel):
             data['tspm']['frame_time'] = self._skeleton.frame_time
         if save_skeleton:
             data["skeleton"] = self.skeleton.to_json()
+
         data["keyframes"] = self._keyframes
         return data
-
