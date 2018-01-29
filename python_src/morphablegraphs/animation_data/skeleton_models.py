@@ -459,6 +459,8 @@ CUSTOM_SKELETON_MODEL["cos_map"] = CUSTOM_SKELETON_COS_MAP
 CUSTOM_SKELETON_MODEL["foot_joints"] = []
 CUSTOM_SKELETON_MODEL["heel_offset"] = [0, -6.480602, 0]
 CUSTOM_SKELETON_MODEL["ik_chains"] = IK_CHAINS_CUSTOM_SKELETON
+CUSTOM_SKELETON_MODEL["aligning_root_node"] = "FK_back1_jnt"
+CUSTOM_SKELETON_MODEL["free_joints_map"] = {"R_hand_jnt":["FK_back2_jnt", "R_upArm_jnt", "R_lowArm_jnt"], "L_hand_jnt": ["FK_back2_jnt", "L_upArm_jnt", "L_lowArm_jnt"]}
 
 
 CAPTURY_SKELETON_JOINTS = collections.OrderedDict()
