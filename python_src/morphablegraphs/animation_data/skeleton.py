@@ -62,7 +62,7 @@ class Skeleton(object):
         node_desc["index"] = node.index
         node_desc["offset"] = list(node.offset)
         node_desc["channels"] = node.channels
-        node_desc["rotation"] = node.rotation.tolist()
+        node_desc["rotation"] = list(node.rotation)
         node_desc["fixed"] = node.fixed
         node_desc["level"] = node.level
         node_desc["node_type"] = node.node_type
