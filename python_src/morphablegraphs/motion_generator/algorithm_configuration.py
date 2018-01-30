@@ -214,7 +214,7 @@ DEFAULT_ALGORITHM_CONFIG = collections.OrderedDict({
     "average_elementary_action_error_threshold": 500,
     "constrained_sampling_mode": "cluster_tree_search",
     "activate_inverse_kinematics": True,
-    "activate_motion_grounding": True,
+    "activate_motion_grounding": False,
     "n_cluster_search_candidates": 4,
     "use_transition_model": False,
     "local_optimization_mode": "all",
