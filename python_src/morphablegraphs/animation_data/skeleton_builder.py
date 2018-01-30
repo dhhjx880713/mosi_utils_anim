@@ -146,10 +146,22 @@ class SkeletonBuilder(object):
             skeleton = self.load_from_json_data(data)
             return skeleton
 
-    def load_from_json_data(self, data):
+    def load_from_json_data(self, data, animated_joints=None):
+        def extract_animated_joints(node, animated_joints):
+            animated_joints.append(node["name"])
+            for c in node["children"]:
+                if c["index"] >= 0:
+                    extract_animated_joints(c, animated_joints)
+
         skeleton = Skeleton()
         print("load from json")
-        skeleton.animated_joints = data["animated_joints"]
+        if animated_joints is not None:
+            skeleton.animated_joints = animated_joints
+        elif "animated_joints" in data.keys():
+            skeleton.animated_joints = data["animated_joints"]
+        else:
+            animated_joints = list()
+            extract_animated_joints(data["root"], animated_joints)
         if "free_joints_map" in list(data.keys()):
             skeleton.free_joints_map = data["free_joints_map"]
         skeleton.reduced_free_joints_map = ROCKETBOX_REDUCED_FREE_JOINTS_MAP  # data["reduced_free_joints_map"]
