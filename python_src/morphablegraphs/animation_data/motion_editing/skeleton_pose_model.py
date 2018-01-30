@@ -39,10 +39,24 @@ class SkeletonPoseModel(object):
         self.reduced_free_joints_map = skeleton.reduced_free_joints_map
         self.head_joint = skeleton.skeleton_model["joints"]["head"]
         self.neck_joint = skeleton.skeleton_model["joints"]["neck"]
-        self.relative_hand_dir = np.array([1.0, 0.0, 0.0, 0.0])
-        self.relative_hand_cross = np.array([0.0,1.0,0.0, 0.0])
-        self.relative_hand_up = np.array([0.0, 0.0, 1.0, 0.0])
-        self.relative_head_dir = np.array([0.0, 0.0, 1.0, 0.0])
+        if "cos_map" in skeleton.skeleton_model:
+            hand_joint = skeleton.skeleton_model["joints"]["right_wrist"]
+            if hand_joint in skeleton.skeleton_model["cos_map"]:
+                cos = skeleton.skeleton_model["cos_map"][hand_joint]
+                self.relative_hand_dir = np.array(list(cos["y"]) + [0])
+                self.relative_hand_cross = np.array(list(cos["x"]) + [0])
+                up_vec = list(np.cross(cos["y"], cos["x"]))
+                self.relative_hand_up = np.array(up_vec + [0])
+        else:
+            self.relative_hand_dir = np.array([1.0, 0.0, 0.0, 0.0])
+            self.relative_hand_cross = np.array([0.0,1.0,0.0, 0.0])
+            self.relative_hand_up = np.array([0.0, 0.0, 1.0, 0.0])
+        if "relative_head_dir" in skeleton.skeleton_model.keys():
+            vec = list(skeleton.skeleton_model["relative_head_dir"])
+            self.relative_head_dir = np.array(vec+[0])
+        else:
+            self.relative_head_dir = np.array([0.0, 0.0, 1.0, 0.0])
+
         self.bounds = skeleton.bounds
 
     def set_pose_parameters(self, pose_parameters):
