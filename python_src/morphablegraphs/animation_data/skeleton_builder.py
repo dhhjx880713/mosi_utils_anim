@@ -12,7 +12,7 @@ def create_identity_frame(skeleton):
     skeleton.identity_frame = np.zeros(skeleton.reference_frame_length)
     offset = 3
     for j in list(skeleton.nodes.keys()):
-        if len(skeleton.nodes[j].channels) > 0:
+        if skeleton.nodes[j].index > 0:
             skeleton.identity_frame[offset:offset + 4] = [1, 0, 0, 0]
             offset += 4
 
@@ -48,12 +48,12 @@ def generate_reference_frame(skeleton, animated_joints):
     identity_frame = [0,0,0]
     frame = [0, 0, 0]
     joint_idx = 0
-    node_list = [(skeleton.nodes[n].index, n) for n in skeleton.nodes.keys() if len(skeleton.nodes[n].channels) >= 0]
+    node_list = [(skeleton.nodes[n].index, n) for n in skeleton.nodes.keys() if skeleton.nodes[n].index >= 0]
     node_list.sort()
     for idx, node in node_list:
-        frame += skeleton.nodes[node].rotation.tolist()
+        frame += list(skeleton.nodes[node].rotation)
         if node in animated_joints:
-            identity_frame += [1,0,0,0]
+            identity_frame += [1.0,0.0,0.0,0.0]
             skeleton.nodes[node].quaternion_frame_index = joint_idx
             joint_idx += 1
         else:
