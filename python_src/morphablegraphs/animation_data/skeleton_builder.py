@@ -48,7 +48,7 @@ def generate_reference_frame(skeleton, animated_joints):
     identity_frame = [0,0,0]
     frame = [0, 0, 0]
     joint_idx = 0
-    node_list = [(skeleton.nodes[n].index, n) for n in skeleton.nodes.keys() if skeleton.nodes[n].index >= 0]
+    node_list = [(skeleton.nodes[n].index, n) for n in skeleton.nodes.keys() if len(skeleton.nodes[n].channels) >= 0]
     node_list.sort()
     for idx, node in node_list:
         frame += skeleton.nodes[node].rotation.tolist()
