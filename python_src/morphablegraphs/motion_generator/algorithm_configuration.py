@@ -8,7 +8,8 @@ OLD_ALGORITHM_CONFIG = {
         "spatial_smoothing_method": "smoothing",
         "spatial_smoothing_window": 20,
         "time_smoothing_window": 15,
-        "apply_foot_alignment": True
+        "apply_foot_alignment": True,
+        "root_filter_window": 0
 
     },
     "trajectory_following_settings": {
@@ -122,7 +123,8 @@ DEFAULT_ALGORITHM_CONFIG = collections.OrderedDict({
         "spatial_smoothing_method": "smoothing",
         "spatial_smoothing_window": 20,
         "time_smoothing_window": 15,
-        "apply_foot_alignment": False
+        "apply_foot_alignment": False,
+        "root_filter_window": 0
 
     },
     "trajectory_following_settings": {

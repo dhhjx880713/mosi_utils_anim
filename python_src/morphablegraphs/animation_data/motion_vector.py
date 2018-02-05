@@ -4,7 +4,7 @@ from datetime import datetime
 import os
 import numpy as np
 from .utils import align_frames,transform_euler_frames, convert_euler_frames_to_quaternion_frames
-from .motion_concatenation import align_and_concatenate_frames#, align_frames_and_fix_feet
+from .motion_concatenation import align_and_concatenate_frames, smooth_root_positions#, align_frames_and_fix_feet
 from .constants import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER
 from .bvh import BVHWriter
 import imp
@@ -171,3 +171,6 @@ class MotionVector(object):
             self.frames.append(new_f)
         self.n_frames = len(self.frames)
         self.frame_time = data["frameTime"]
+
+    def apply_low_pass_filter_on_root(self, window):
+        self.frames[:, :3] = smooth_root_positions(self.frames[:, :3], window)

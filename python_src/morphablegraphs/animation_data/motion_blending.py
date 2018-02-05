@@ -8,6 +8,17 @@ BLEND_DIRECTION_FORWARD = 0
 BLEND_DIRECTION_BACKWARD = 1
 
 
+def smooth_root_positions(positions, window):
+    h_window = int(window/2)
+    smoothed_positions = []
+    n_pos = len(positions)
+    for idx, p in enumerate(positions):
+        start = max(idx-h_window, 0)
+        end = min(idx + h_window, n_pos)
+        #print start, end, positions[start:end]
+        avg_p = np.average(positions[start:end], axis=0)
+        smoothed_positions.append(avg_p)
+    return smoothed_positions
 def blend_quaternion(a, b, w):
     return quaternion_slerp(a, b, w, spin=0, shortestpath=True)
 
