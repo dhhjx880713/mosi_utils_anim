@@ -404,15 +404,11 @@ class Retargeting(object):
         if self.src_child_map[src_name] in self.src_to_target_joint_map and self.src_cos_map[src_name]["y"] is not None and self.target_cos_map[target_name]["y"] is not None:#  and or target_name =="neck_01" or target_name.startswith("hand")
             #print("map", src_name, target_name, src_up_axis,  self.target_cos_map[target_name]["y"], self.src_child_map[src_name])
             global_m = self.src_skeleton.nodes[src_name].get_global_matrix(src_frame)[:3, :3]
-            local_m = self.src_skeleton.nodes[src_name].get_local_matrix(src_frame)[:3, :3]
-            #q = quaternion_from_matrix(global_m)
             global_src_up_vec = normalize(np.dot(global_m, src_up_axis))
             global_src_x_vec = normalize(np.dot(global_m, src_x_axis))
-            local_src_x_vec = normalize(np.dot(local_m, src_x_axis))
 
             target = {"global_src_up_vec": global_src_up_vec,
-                      "global_src_x_vec": global_src_x_vec,
-                      "local_src_x_vec":  local_src_x_vec}
+                      "global_src_x_vec": global_src_x_vec}
             q = find_rotation_analytically(self.target_skeleton, target_name, target, target_frame, self.target_cos_map)
         #else:
         #    print("dont map2", src_name, target_name, self.src_child_map[src_name], self.src_child_map[src_name] in self.src_to_target_joint_map)
@@ -434,7 +430,7 @@ class Retargeting(object):
         target_frame = np.zeros(self.n_params)
         # copy the root translation assuming the rocketbox skeleton with static offset on the hips is used as source
         target_frame[0] = src_frame[0] * self.scale_factor
-        target_frame[1] = (src_frame[1]) * self.scale_factor
+        target_frame[1] = src_frame[1] * self.scale_factor
         target_frame[2] = src_frame[2] * self.scale_factor
 
         if self.constant_offset is not None:
