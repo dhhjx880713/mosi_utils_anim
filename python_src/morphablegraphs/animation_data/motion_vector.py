@@ -8,7 +8,7 @@ from .motion_concatenation import align_and_concatenate_frames, smooth_root_posi
 from .constants import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER
 from .bvh import BVHWriter
 import imp
-
+from ..external.transformations import quaternion_inverse, quaternion_multiply
 
 class MotionVector(object):
     """
@@ -45,6 +45,22 @@ class MotionVector(object):
         self.n_frames = len(self.frames)
         self._prev_n_frames = 0
         self.frame_time = bvh_reader.frame_time
+
+    def get_relative_frames(self):
+        relative_frames = []
+        for idx in range(1, len(self.frames)):
+            delta_frame = np.zeros(len(self.frames[0]))
+            delta_frame[7:] = self.frames[idx][7:]
+            delta_frame[:3] = self.frames[idx][:3] - self.frames[idx-1][:3]
+            currentq = self.frames[idx][3:7] / np.linalg.norm(self.frames[idx][3:7])
+            prevq = self.frames[idx-1][3:7] / np.linalg.norm(self.frames[idx-1][3:7])
+            delta_q = quaternion_multiply(quaternion_inverse(prevq), currentq)
+            delta_frame[3:7] = delta_q
+            print(idx, self.frames[idx][:3], self.frames[idx - 1][:3], delta_frame[:3], delta_frame[3:7])
+
+            relative_frames.append(delta_frame)
+        return relative_frames
+
 
     def append_frames_generic(self, new_frames):
         """Align quaternion frames to previous frames
