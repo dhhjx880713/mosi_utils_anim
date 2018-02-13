@@ -213,10 +213,27 @@ class MotionGenerator(object):
 
         motion_spline = self._motion_state_graph.nodes[node_key].back_project(new_parameters, use_time_parameters=False)
 
-        self.graph_walk.append_quat_frames(motion_spline.get_motion_vector())
+        prev_mv_frames = self.graph_walk.get_quat_frames()
+        if prev_mv_frames is not None:
+            prev_end_point = prev_mv_frames[-1, :3]
+        else:
+            prev_end_point = np.array([np.inf, np.inf, np.inf])
+        print("append", len(self.graph_walk.steps))
+        new_mv = motion_spline.get_motion_vector()
+        n_new_frames = len(new_mv)
+        self.graph_walk.append_quat_frames(new_mv)
 
         new_travelled_arc_length = 0
         if action_constraints.root_trajectory is not None:
+            mv_frames = self.graph_walk.get_quat_frames()
+            new_end_point = mv_frames[-1, :3]
+            if self.check_overstepping(node_key, action_constraints, new_end_point, prev_end_point):
+                self.graph_walk.motion_vector.frames = self.graph_walk.motion_vector.frames[-n_new_frames:]
+                self.graph_walk.motion_vector.n_frames -= n_new_frames
+                self.graph_walk.motion_vector._prev_n_frames -= n_new_frames
+                action_state.overstepped = True
+                return
+
             new_travelled_arc_length = self._update_travelled_arc_length(action_constraints, self.graph_walk.get_quat_frames(),
                                                                          action_state.travelled_arc_length)
         new_step = GraphWalkEntry(self._motion_state_graph, node_key, new_parameters,
@@ -226,6 +243,19 @@ class MotionGenerator(object):
         self.graph_walk.steps.append(new_step)
 
         action_state.transition(node_key, new_node_type, new_travelled_arc_length, self.graph_walk.get_num_of_frames())
+
+
+    def check_overstepping(self, node_key, action_constraints, new_end_point, prev_end_point):
+        trajectory_end = action_constraints.root_trajectory.get_last_control_point()
+        old_distance = np.linalg.norm(trajectory_end - prev_end_point)
+        new_distance = np.linalg.norm(trajectory_end - new_end_point)
+        average_step_length = self._motion_state_graph.nodes[node_key].average_step_length
+        if old_distance < average_step_length and old_distance < new_distance:
+            print("overstepped", old_distance, new_distance, prev_end_point, new_end_point, trajectory_end,
+                  average_step_length)
+            return True
+        else:
+            return False
 
     def _post_process_motion(self, motion_vector, complete_motion_vector):
         """

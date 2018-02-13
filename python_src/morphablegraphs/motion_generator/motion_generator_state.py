@@ -16,6 +16,7 @@ class MotionGeneratorState(object):
             self.step_start_frame = 0
             self.max_arc_length = np.inf
             self.action_cycled_next = False
+            self.overstepped = False
 
         def initialize_from_previous_graph_walk(self, graph_walk, max_arc_length, action_cycled_next):
             self.start_step = graph_walk.step_count

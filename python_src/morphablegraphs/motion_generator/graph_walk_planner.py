@@ -8,20 +8,22 @@ from ..constraints.spatial_constraints.keyframe_constraints import GlobalTransfo
 from ..animation_data.utils import create_transformation_matrix
 from ..utilities import write_log, write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO, LOG_MODE_ERROR
 from .graph_walk import GraphWalk, GraphWalkEntry
+from ..motion_model import NODE_TYPE_END
 
 
 class PlannerState(object):
-    def __init__(self, current_node, graph_walk, travelled_arc_length):
+    def __init__(self, current_node, graph_walk, travelled_arc_length, overstepped=False):
         self.graph_walk = graph_walk
         self.travelled_arc_length = travelled_arc_length
         self.current_node = current_node
+        self.overstepped = overstepped
 
     def create_copy(self):
         current_node = copy(self.current_node)
         travelled_arc_length = self.travelled_arc_length
         graph_walk = GraphWalk(self.graph_walk.motion_state_graph, self.graph_walk.mg_input, self.graph_walk._algorithm_config)
         graph_walk.motion_vector.frames = [deepcopy(self.graph_walk.motion_vector.frames[-1])]
-        return PlannerState(current_node, graph_walk, travelled_arc_length)
+        return PlannerState(current_node, graph_walk, travelled_arc_length, self.overstepped)
 
 
 class GraphWalkPlanner(object):
@@ -56,7 +58,7 @@ class GraphWalkPlanner(object):
 
     def set_state(self, graph_walk, mp_generator, action_state, action_constraints, arc_length_of_end):
         self.mp_generator = mp_generator
-        self.state = PlannerState(action_state.current_node, graph_walk, action_state.travelled_arc_length)
+        self.state = PlannerState(action_state.current_node, graph_walk, action_state.travelled_arc_length, action_state.overstepped)
         self.action_constraints = action_constraints
         self.trajectory = action_constraints.root_trajectory
         self.arc_length_of_end = arc_length_of_end
@@ -72,7 +74,10 @@ class GraphWalkPlanner(object):
 
     def get_transition_options(self, state):
         if self.trajectory is not None:
-            next_node_type = self.node_group.get_transition_type_for_action_from_trajectory(state.graph_walk,
+            if state.overstepped:
+                next_node_type = NODE_TYPE_END
+            else:
+                next_node_type = self.node_group.get_transition_type_for_action_from_trajectory(state.graph_walk,
                                                                                             self.action_constraints,
                                                                                             state.travelled_arc_length,
                                                                                             self.arc_length_of_end)
