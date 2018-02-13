@@ -33,6 +33,7 @@ class MotionGeneratorState(object):
             self.travelled_arc_length = 0.0
             self.max_arc_length = max_arc_length
             self.action_cycled_next = action_cycled_next
+            self.overstepped = False
 
         def is_end_state(self):
             return self.is_last_node() or self.reached_debug_max_step() or self.reached_max_arc_length()
