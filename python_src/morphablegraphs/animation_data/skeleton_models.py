@@ -516,6 +516,43 @@ CAPTURY_SKELETON_MODEL = collections.OrderedDict()
 CAPTURY_SKELETON_MODEL["joints"] = CAPTURY_SKELETON_JOINTS
 CAPTURY_SKELETON_MODEL["foot_joints"] = []
 CAPTURY_SKELETON_MODEL["cos_map"] = CAPTURY_SKELETON_COS_MAP
+
+
+HOLDEN_SKELETON_JOINTS = collections.OrderedDict()
+HOLDEN_SKELETON_JOINTS["root"] = None
+HOLDEN_SKELETON_JOINTS["pelvis"] = "Hips"
+HOLDEN_SKELETON_JOINTS["spine"] = "Spine"
+HOLDEN_SKELETON_JOINTS["spine_1"] = "Spine1"
+HOLDEN_SKELETON_JOINTS["spine_2"] = "Neck"
+HOLDEN_SKELETON_JOINTS["left_clavicle"] = "LeftShoulder"
+HOLDEN_SKELETON_JOINTS["right_clavicle"] = "RightShoulder"
+HOLDEN_SKELETON_JOINTS["left_shoulder"] = "LeftArm"
+HOLDEN_SKELETON_JOINTS["right_shoulder"] = "RightArm"
+HOLDEN_SKELETON_JOINTS["left_elbow"] = "LeftForeArm"
+HOLDEN_SKELETON_JOINTS["right_elbow"] = "RightForeArm"
+HOLDEN_SKELETON_JOINTS["left_wrist"] = "LeftHand"
+HOLDEN_SKELETON_JOINTS["right_wrist"] = "RightHand"
+HOLDEN_SKELETON_JOINTS["left_finger"] = None
+HOLDEN_SKELETON_JOINTS["right_finger"] = None
+HOLDEN_SKELETON_JOINTS["left_hip"] = "LeftUpLeg"
+HOLDEN_SKELETON_JOINTS["right_hip"] = "RightUpLeg"
+HOLDEN_SKELETON_JOINTS["left_knee"] = "LeftLeg"
+HOLDEN_SKELETON_JOINTS["right_knee"] = "RightLeg"
+HOLDEN_SKELETON_JOINTS["left_ankle"] = "LeftFoot"
+HOLDEN_SKELETON_JOINTS["right_ankle"] = "RightFoot"
+HOLDEN_SKELETON_JOINTS["left_toe"] = "LeftToeBase"
+HOLDEN_SKELETON_JOINTS["right_toe"] = "RightToeBase"
+HOLDEN_SKELETON_JOINTS["left_heel"] = None
+HOLDEN_SKELETON_JOINTS["right_heel"] = None
+HOLDEN_SKELETON_JOINTS["neck"] = "Neck1"
+HOLDEN_SKELETON_JOINTS["head"] = "Head"
+HOLDEN_SKELETON_COS_MAP = collections.defaultdict(dict)
+HOLDEN_SKELETON_MODEL = collections.OrderedDict()
+HOLDEN_SKELETON_MODEL["joints"] = HOLDEN_SKELETON_JOINTS
+HOLDEN_SKELETON_MODEL["foot_joints"] = []
+HOLDEN_SKELETON_MODEL["cos_map"] = HOLDEN_SKELETON_COS_MAP
+
+
 SKELETON_MODELS = dict()
 SKELETON_MODELS["rocketbox"] = ROCKETBOX_SKELETON_MODEL
 SKELETON_MODELS["game_engine"] = GAME_ENGINE_SKELETON_MODEL
@@ -527,6 +564,7 @@ SKELETON_MODELS["iclone"] = ICLONE_SKELETON_MODEL
 SKELETON_MODELS["moviemation"] = MOVIEMATION_SKELETON_MODEL
 SKELETON_MODELS["custom"] = CUSTOM_SKELETON_MODEL
 SKELETON_MODELS["captury"] = CAPTURY_SKELETON_MODEL
+SKELETON_MODELS["holden"] = HOLDEN_SKELETON_MODEL
 
 JOINT_CHILD_MAP = dict()
 JOINT_CHILD_MAP["root"] = "pelvis"
