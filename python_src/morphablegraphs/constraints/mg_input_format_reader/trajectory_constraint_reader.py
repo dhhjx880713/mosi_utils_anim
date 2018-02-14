@@ -134,6 +134,8 @@ class TrajectoryConstraintReader(object):
         position = control_point[P_KEY]
         point = [p * self.scale_factor if p is not None else 0 for p in position]
         point = np.asarray(_transform_point_from_cad_to_opengl_cs(point, self.activate_coordinate_transform))
+        if previous_point is not None and np.linalg.norm(point - previous_point) < 0.001:
+            return None
 
         if O_KEY in list(control_point.keys()) and None not in control_point[O_KEY]:
             #q = quaternion_from_euler(*np.radians(control_point[O_KEY]))
