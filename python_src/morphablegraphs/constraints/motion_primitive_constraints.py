@@ -36,7 +36,7 @@ class MotionPrimitiveConstraints(object):
         self.action_name = None
         self.motion_primitive_name = None
         self.settings = None
-        self.constraints = []
+        self.constraints = list()
         self.goal_arc_length = 0           
         self.use_local_optimization = False
         self.step_goal = None

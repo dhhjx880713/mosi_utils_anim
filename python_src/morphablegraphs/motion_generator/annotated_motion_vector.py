@@ -3,6 +3,7 @@ import numpy as np
 from ..animation_data import MotionVector, ROTATION_TYPE_QUATERNION, SkeletonBuilder, BVHReader
 from ..utilities import write_to_json_file
 from ..utilities.io_helper_functions import get_bvh_writer
+from ..constraints.spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
 
 
 class AnnotatedMotionVector(MotionVector):
@@ -55,6 +56,7 @@ class AnnotatedMotionVector(MotionVector):
         result_object["frames"] = unity_frames
         result_object["frameTime"] = self.frame_time
         result_object["jointSequence"] = animated_joints
+        result_object["events"] = self._extract_event_list_from_keyframes()
         return result_object
 
     def _convert_frame_to_unity_format(self, frame, animated_joints, scale=1.0):
@@ -63,7 +65,7 @@ class AnnotatedMotionVector(MotionVector):
             src: http://answers.unity3d.com/questions/503407/need-to-convert-to-right-handed-coordinates.html
         """
         unity_frame = {"rotations": [], "rootTranslation": None}
-        for node_name in list(self.skeleton.nodes.keys()):
+        for node_name in self.skeleton.nodes.keys():
             if node_name in animated_joints:
                 node = self.skeleton.nodes[node_name]
                 if node_name == self.skeleton.root:
@@ -78,5 +80,23 @@ class AnnotatedMotionVector(MotionVector):
                     unity_frame["rotations"].append({"x": -r[1], "y": r[2], "z": r[3], "w": -r[0]})
                 else:  # use fixed joint rotation
                     r = node.rotation
-                    unity_frame["rotations"].append({"x": -r[1], "y": r[2], "z": r[3], "w": -r[0]})
+                    unity_frame["rotations"].append({"x": -float(r[1]), "y": float(r[2]), "z":float(r[3]), "w": -float(r[0])})
         return unity_frame
+
+    def _extract_event_list_from_keyframes(self):
+        frame_offset = 0
+        event_list = list()
+        for step in self.graph_walk.steps:
+            time_function = None
+            if self.graph_walk.use_time_parameters:
+                time_function = self.graph_walk.motion_state_graph.nodes[step.node_key].back_project_time_function(
+                    step.parameters)
+            for c in step.motion_primitive_constraints.constraints:
+                if c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION and c.event_name is not None:
+                    event_keyframe_index = c.extract_keyframe_index(time_function, frame_offset)
+                    event_list.append({"eventName": c.event_name,
+                                       "eventTarget": c.event_target,
+                                       "keyframe": event_keyframe_index})
+            frame_offset += step.end_frame - step.start_frame + 1
+        print("extracted", event_list)
+        return event_list

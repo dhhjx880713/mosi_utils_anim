@@ -197,7 +197,7 @@ class MGInputFormatReader(object):
           Contains for every elementary action a dict that associates of events/actions with certain keyframes
         """
         annotations = dict()
-        if ANNOTATIONS_KEY in list(self.action_list[action_index].keys()):
+        if ANNOTATIONS_KEY in self.action_list[action_index].keys():
             for annotation in self.action_list[action_index][ANNOTATIONS_KEY]:
                 keyframe_label = annotation[KEYFRAME_KEY]
                 annotations[keyframe_label] = annotation

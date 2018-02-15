@@ -27,15 +27,19 @@ class GlobalTransformConstraint(KeyframeConstraintBase):
         self.constraint_type = SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION
         self.skeleton = skeleton
         self.joint_name = constraint_desc["joint"]
-        if "position" in list(constraint_desc.keys()):
+        if "position" in constraint_desc.keys():
             self.position = constraint_desc["position"]
         else:
             self.position = None
-        if "orientation" in list(constraint_desc.keys()) and None not in constraint_desc["orientation"]:
+        if "orientation" in constraint_desc.keys() and None not in constraint_desc["orientation"]:
             self.orientation = euler_to_quaternion(constraint_desc["orientation"])
         else:
             self.orientation = None
         self.n_canonical_frames = constraint_desc["n_canonical_frames"]
+
+        if "eventName" in constraint_desc and "eventTarget" in constraint_desc:
+            self.event_name = constraint_desc["eventName"]
+            self.event_target = constraint_desc["eventTarget"]
 
 
     def evaluate_motion_spline(self, aligned_spline):

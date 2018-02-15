@@ -16,6 +16,15 @@ class KeyframeConstraintBase(SpatialConstraintBase):
             self.desired_time = float(constraint_desc["time"])
         else:
             self.desired_time = None
+        self.event_name = None
+        self.event_target = None
 
     def is_generated(self):
         return self.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION and "generated" in list(self.semantic_annotation.keys())
+
+    def extract_keyframe_index(self, time_function, frame_offset):
+        #TODO: test and verify for all cases
+        if time_function is not None:
+            return frame_offset + int(time_function[self.canonical_keyframe]) + 1  # add +1 to map the frame correctly
+        else:
+            return frame_offset + self.canonical_keyframe

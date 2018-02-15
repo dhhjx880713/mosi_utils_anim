@@ -16,9 +16,10 @@ class KeyframeConstraintReader(object):
           access as keyframe_constraints["label"]["joint"][index]
         """
         keyframe_constraints = dict()
-        annotations = list(node_group.label_to_motion_primitive_map.keys())
+        annotations = node_group.label_to_motion_primitive_map.keys()
         for label in annotations:
-            keyframe_constraints[label] = self._extract_constraints_for_keyframe_label(constraint_list, label)
+            constraints = self._extract_constraints_for_keyframe_label(constraint_list, label)
+            keyframe_constraints[label] = constraints
         return keyframe_constraints
 
     def _extract_constraints_for_keyframe_label(self, input_constraint_list, label):
@@ -32,14 +33,14 @@ class KeyframeConstraintReader(object):
 
         keyframe_constraints = dict()
         for joint_constraints in input_constraint_list:
-            if "joint" in list(joint_constraints.keys()):
+            if "joint" in joint_constraints.keys():
                 joint_name = joint_constraints["joint"]
                 if joint_name not in keyframe_constraints:
                     keyframe_constraints[joint_name] = dict()
                 for constraint_type in CONSTRAINT_TYPES:
                     if constraint_type not in keyframe_constraints[joint_name]:
                         keyframe_constraints[joint_name][constraint_type] = list()
-                    if constraint_type in list(joint_constraints.keys()):
+                    if constraint_type in joint_constraints.keys():
                         filtered_list = self.filter_constraints_by_label(joint_constraints[constraint_type], label)
                         keyframe_constraints[joint_name][constraint_type] += filtered_list
         return keyframe_constraints
@@ -55,10 +56,10 @@ class KeyframeConstraintReader(object):
         """ Checks if the label is in the semantic annotation dict of a constraint
         """
         if "semanticAnnotation" in constraint_definition.keys():
-            if label in list(constraint_definition["semanticAnnotation"].keys()):
+            if label in constraint_definition["semanticAnnotation"].keys():
                 return True
         elif "keyframeLabel" in constraint_definition.keys() and constraint_definition["keyframeLabel"] == label:
-            constraint_definition["semanticAnnotation"] = {label:True}
+            constraint_definition["semanticAnnotation"] = {label: True}
             return True
         return False
 
@@ -80,7 +81,8 @@ class KeyframeConstraintReader(object):
                 for joint_name in keyframe_constraints[keyframe_label].keys():
                     # iterate over constraints for that joint
                     for c_type in CONSTRAINT_TYPES:
-                        reordered_constraints[mp_name] += self._filter_by_constraint_type(keyframe_constraints, keyframe_label, joint_name, time_info, c_type)
+                        new_constraint = self._filter_by_constraint_type(keyframe_constraints, keyframe_label, joint_name, time_info, c_type)
+                        reordered_constraints[mp_name] += new_constraint
         return reordered_constraints
 
     def get_ordered_keyframe_constraints(self, action_list, action_index, node_group):
@@ -95,7 +97,7 @@ class KeyframeConstraintReader(object):
 
     def _filter_by_constraint_type(self, constraints, keyframe_label, joint_name, time_info, c_type):
         filtered_constraints = list()
-        if c_type in list(constraints[keyframe_label][joint_name].keys()):
+        if c_type in constraints[keyframe_label][joint_name].keys():
             for constraint in constraints[keyframe_label][joint_name][c_type]:
                 # create constraint definition usable by the algorithm
                 # and add it to the list of constraints for that state
@@ -125,34 +127,43 @@ class KeyframeConstraintReader(object):
         position = [None, None, None]
         orientation = [None, None, None]
         time = None
-        if "position" in list(constraint.keys()):
+        event_name = None
+        event_target = None
+
+        if "position" in constraint.keys():
             position = constraint["position"]
-        if "orientation" in list(constraint.keys()):
+        if "orientation" in constraint.keys():
             orientation = constraint["orientation"]
             if orientation != [None, None, None]:
                 orientation = _transform_point_from_cad_to_opengl_cs(orientation, self.activate_coordinate_transform)
                 print("orientation", orientation)
-        if "time" in list(constraint.keys()):
+        if "time" in constraint.keys():
             time = constraint["time"]
         # check if last or fist frame from annotation
         position = _transform_point_from_cad_to_opengl_cs(position, self.activate_coordinate_transform)
-        if "semanticAnnotation" in list(constraint.keys()):
+        if "semanticAnnotation" in constraint.keys():
             semantic_annotation = constraint["semanticAnnotation"]
         else:
             semantic_annotation = dict()
+
+        if "eventName" in constraint:
+            event_name = constraint["eventName"]
+            event_target = constraint["eventTarget"]
         # self._add_legacy_constrained_gmm_info(time_info, semantic_annotation)
         semantic_annotation["keyframeLabel"] = keyframe_label
-        constraint_desc = {"joint": joint_name,
+        extended_constraint_desc = {"joint": joint_name,
                            "position": position,
                            "orientation": orientation,
                            "time": time,
-                           "semanticAnnotation": semantic_annotation}
+                           "semanticAnnotation": semantic_annotation,
+                           "eventName": event_name,
+                           "eventTarget": event_target}
 
         if c_type == "directionConstraints":
             # position is interpreted as look at target
             # TODO improve integration of look at constraints
-            constraint_desc["look_at"] = True
-        return constraint_desc
+            extended_constraint_desc["look_at"] = True
+        return extended_constraint_desc
 
     def _add_legacy_constrained_gmm_info(self, time_information, semantic_annotation):
         first_frame = None
