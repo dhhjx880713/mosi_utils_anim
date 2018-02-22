@@ -113,9 +113,12 @@ class ClusterTreeBuilder(object):
         self.output_mode = settings["output_mode"]
         self.animated_joints = ROCKETBOX_ANIMATED_JOINT_LIST
 
-    def set_config(self, config_file_path):
+    def set_config_from_file(self, config_file_path):
         config_file = open(config_file_path)
         config = json.load(config_file)
+        set_config(config)
+
+    def set_config(self, config):
         self.morphable_model_directory = config["model_data_dir"]
         self.n_samples = config["n_random_samples"]
         self.n_subdivisions_per_level = config["n_subdivisions_per_level"]

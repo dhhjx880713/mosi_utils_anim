@@ -160,7 +160,7 @@ class MotionPrimitive(object):
         * s:  numpy.ndarray
         """
         assert self.gaussian_mixture_model is not None, "Motion primitive not initialized."
-        return np.ravel(self.gaussian_mixture_model.sample(n_samples)[0])
+        return self.gaussian_mixture_model.sample(n_samples)[0]
 
     def sample(self, use_time_parameters=True):
         """ Sample the motion primitive and return a motion spline
@@ -175,7 +175,7 @@ class MotionPrimitive(object):
         * motion: MotionSample
         \tThe sampled motion as object of type MotionPrimitiveSample
         """
-        return self.back_project(self.sample_low_dimensional_vector(), use_time_parameters)
+        return self.back_project(np.ravel(self.sample_low_dimensional_vector()), use_time_parameters)
 
     def back_project(self, low_dimensional_vector, use_time_parameters=True, speed=1.0):
         """ Return a motion sample based on a low dimensional motion vector.

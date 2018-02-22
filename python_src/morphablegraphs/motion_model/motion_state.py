@@ -174,7 +174,7 @@ class MotionState(MotionPrimitiveModelWrapper):
         *step_length: float
         \tThe arc length of the path of the motion primitive
         """
-        current_parameters = self.sample_low_dimensional_vector()
+        current_parameters = np.ravel(self.sample_low_dimensional_vector())
         return self.get_step_length_for_sample(current_parameters, method)
 
     def get_step_length_for_sample(self, parameters, method="arc_length"):
