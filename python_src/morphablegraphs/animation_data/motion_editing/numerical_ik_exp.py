@@ -48,13 +48,17 @@ class NumericalInverseKinematicsExp(object):
     def set_joint_weights(self, weights):
         self.joint_weights = np.dot(self.joint_weights, weights)
 
-    def modify_frame(self, reference, constraints):
+    def run(self, reference, constraints):
         guess = np.zeros(self.n_joints * 3)
         r = minimize(self._objective, guess, args=(self.skeleton, reference, constraints, self.joint_weights),
-                             method=self.ik_settings["optimization_method"],
-                             tol=self.ik_settings["tolerance"],
-                             options=self._optimization_options)
+                     method=self.ik_settings["optimization_method"],
+                     tol=self.ik_settings["tolerance"],
+                     options=self._optimization_options)
         exp_frame = r["x"]
+        return exp_frame
+
+    def modify_frame(self, reference, constraints):
+        exp_frame = self.run(reference, constraints)
         d = convert_exp_frame_to_quat_frame(self.skeleton, exp_frame)
         q_frame = add_quat_frames(self.skeleton, reference, d)
         return q_frame
