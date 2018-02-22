@@ -13,6 +13,7 @@ from ..external.transformations import quaternion_matrix
 from .skeleton_node import SkeletonEndSiteNode
 from .constants import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER
 from .skeleton_models import ROCKETBOX_ANIMATED_JOINT_LIST, ROCKETBOX_FREE_JOINTS_MAP, ROCKETBOX_REDUCED_FREE_JOINTS_MAP, ROCKETBOX_SKELETON_MODEL, ROCKETBOX_BOUNDS, ROCKETBOX_TOOL_BONES, ROCKETBOX_ROOT_DIR
+from .joint_constraints import apply_conic_constraint, apply_axial_constraint, apply_spherical_constraint
 try:
     from mgrd import Skeleton as MGRDSkeleton
     from mgrd import SkeletonNode as MGRDSkeletonNode
@@ -375,4 +376,31 @@ class Skeleton(object):
         node.rotation = np.array([1, 0, 0, 0])
         self.nodes[heel_name] = node
         self.nodes[foot_name].children.append(node)
+
+    def apply_joint_constraints(self, frame):
+        if "joint_constraints" in self.skeleton_model:
+            constraints = self.skeleton_model["joint_constraints"]
+            for n in self.nodes.keys():
+                if n in constraints:
+                    idx = self.nodes[n].quaternion_frame_index * 4 + 3
+                    if "cone" in constraints[n]:
+                        q = frame[idx:idx + 4]
+                        k = constraints[n]["cone"]["k"]
+                        up_axis = constraints[n]["axis"]
+                        ref_q = self.nodes[n].rotation
+                        frame[idx:idx + 4] = apply_conic_constraint(q, ref_q, up_axis, k)
+                    if "axial" in constraints:
+                        q = frame[idx:idx + 4]
+                        k1 = constraints[n]["axial"]["k1"]
+                        k2 = constraints[n]["axial"]["k2"]
+                        up_axis = constraints[n]["axis"]
+                        ref_q = self.nodes[n].rotation
+                        frame[idx:idx + 4] = apply_axial_constraint(q, ref_q, up_axis, k1, k2)
+                    if "spherical" in constraints:
+                        q = frame[idx:idx + 4]
+                        k = constraints[n]["spherical"]["k"]
+                        up_axis = constraints[n]["axis"]
+                        ref_q = self.nodes[n].rotation
+                        frame[idx:idx + 4] = apply_spherical_constraint(q, ref_q, up_axis, k)
+
 
