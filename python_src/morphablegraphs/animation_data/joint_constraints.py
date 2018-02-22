@@ -1,6 +1,6 @@
 import numpy as np
 from math import acos, cos, sin, atan
-from ..external.transformations import quaternion_about_axis, quaternion_inverse, quaternion_multiply, quaternion_from_axis_angle
+from ..external.transformations import quaternion_about_axis, quaternion_inverse, quaternion_multiply
 
 def exponential(q):
     """ https://math.stackexchange.com/questions/1030737/exponential-function-of-quaternion-derivation
