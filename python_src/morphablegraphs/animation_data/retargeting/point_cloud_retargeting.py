@@ -442,7 +442,7 @@ class PointCloudRetargeting(object):
                         global_src_x_vec = np.cross(global_src_up_vec, global_parent_up_vector)
                         global_src_x_vec /= np.linalg.norm(global_src_x_vec)
                         #print("apply",src_name, parent_joint, global_src_x_vec)
-                        if target_name in ["calf_l", "calf_r","thigh_r","thigh_l", "foot_r", "foot_l","spine_03","neck_01"]:
+                        if target_name in ["calf_l", "calf_r","thigh_r","thigh_l", "spine_03","neck_01"]:
                             global_src_x_vec = - global_src_x_vec
                         #global_src_x_vec = None
                 if global_src_x_vec is None:
