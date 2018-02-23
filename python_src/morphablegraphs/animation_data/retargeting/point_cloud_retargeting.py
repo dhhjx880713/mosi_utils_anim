@@ -432,7 +432,7 @@ class PointCloudRetargeting(object):
                 right_shoulder_idx = self.src_skeleton.joints[right_shoulder]["index"]
                 global_src_x_vec = src_frame[left_shoulder_idx] - src_frame[right_shoulder_idx]
                 global_src_x_vec /= np.linalg.norm(global_src_x_vec)
-            elif target_name in ["thigh_r","thigh_l",]: # use x vector of knee
+            elif target_name in ["thigh_r","thigh_l","upperarm_r","upperarm_l"]: # use x vector of child
                 child_child_name = self.src_child_map[child_name]
                 child_child_idx = self.src_skeleton.joints[child_child_name]["index"]
                 child_global_src_up_vec = src_frame[child_child_idx] - src_frame[child_idx]
@@ -440,7 +440,6 @@ class PointCloudRetargeting(object):
 
                 global_src_x_vec = np.cross(global_src_up_vec, child_global_src_up_vec)
                 global_src_x_vec /= np.linalg.norm(global_src_x_vec)
-
             else:# find x vector by cross product with parent
                 global_src_x_vec = None
                 parent_joint = None
@@ -451,7 +450,7 @@ class PointCloudRetargeting(object):
                         global_src_x_vec = np.cross(global_src_up_vec, global_parent_up_vector)
                         global_src_x_vec /= np.linalg.norm(global_src_x_vec)
                         #print("apply",src_name, parent_joint, global_src_x_vec)
-                        if target_name in ["calf_l", "calf_r","thigh_r","thigh_l", "spine_03","neck_01"]:
+                        if target_name in ["calf_l", "calf_r","thigh_r","thigh_l", "spine_03","neck_01","lowerarm_r","lowerarm_l"]:
                             global_src_x_vec = - global_src_x_vec
                         #global_src_x_vec = None
                 if global_src_x_vec is None:
