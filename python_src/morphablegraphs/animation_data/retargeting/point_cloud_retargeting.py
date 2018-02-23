@@ -418,21 +418,30 @@ class PointCloudRetargeting(object):
             global_src_up_vec = src_frame[child_idx] - src_frame[joint_idx]
             global_src_up_vec /= np.linalg.norm(global_src_up_vec)
             self.temp_frame_data[src_name] = global_src_up_vec
-            if target_name == self.target_skeleton.root:#
+            if target_name == self.target_skeleton.root:# find x vector from hips
                 left_hip = self.src_skeleton.skeleton_model["joints"]["left_hip"]
                 right_hip = self.src_skeleton.skeleton_model["joints"]["right_hip"]
                 left_hip_idx = self.src_skeleton.joints[left_hip]["index"]
                 right_hip_idx = self.src_skeleton.joints[right_hip]["index"]
                 global_src_x_vec = src_frame[left_hip_idx] - src_frame[right_hip_idx]
                 global_src_x_vec /= np.linalg.norm(global_src_x_vec)
-            elif target_name in ["spine_03","neck_01"]:
+            elif target_name in ["spine_03","neck_01"]:# find x vector from shoulders
                 left_shoulder = self.src_skeleton.skeleton_model["joints"]["left_shoulder"]
                 right_shoulder = self.src_skeleton.skeleton_model["joints"]["right_shoulder"]
                 left_shoulder_idx = self.src_skeleton.joints[left_shoulder]["index"]
                 right_shoulder_idx = self.src_skeleton.joints[right_shoulder]["index"]
                 global_src_x_vec = src_frame[left_shoulder_idx] - src_frame[right_shoulder_idx]
                 global_src_x_vec /= np.linalg.norm(global_src_x_vec)
-            else:
+            elif target_name in ["thigh_r","thigh_l",]: # use x vector of knee
+                child_child_name = self.src_child_map[child_name]
+                child_child_idx = self.src_skeleton.joints[child_child_name]["index"]
+                child_global_src_up_vec = src_frame[child_child_idx] - src_frame[child_idx]
+                child_global_src_up_vec /= np.linalg.norm(child_global_src_up_vec)
+
+                global_src_x_vec = np.cross(global_src_up_vec, child_global_src_up_vec)
+                global_src_x_vec /= np.linalg.norm(global_src_x_vec)
+
+            else:# find x vector by cross product with parent
                 global_src_x_vec = None
                 parent_joint = None
                 if src_name in self.src_parent_map:
