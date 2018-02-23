@@ -1,10 +1,27 @@
 from copy import copy
 import numpy as np
 from .numerical_ik_quat import NumericalInverseKinematicsQuat
+from .numerical_ik_exp import NumericalInverseKinematicsExp
+from .cubic_motion_spline import CubicMotionSpline
 from .skeleton_pose_model import SkeletonPoseModel
 from ..motion_blending import smooth_joints_around_transition_using_slerp, create_transition_using_slerp
-from ...external.transformations import quaternion_matrix, euler_from_matrix
+from ...external.transformations import quaternion_matrix, euler_from_matrix, quaternion_multiply
 from ...utilities.log import write_message_to_log, LOG_MODE_DEBUG
+from .utils import convert_exp_frame_to_quat_frame
+
+
+def add_frames(skeleton, a, b):
+    """ returns c = a + b"""
+    #print("add frames", len(a), len(b))
+    c = np.zeros(len(a))
+    c[:3] = a[:3] + b[:3]
+    for idx, j in enumerate(skeleton.animated_joints):
+        o = idx * 4 + 3
+        q_a = a[o:o + 4]
+        q_b = b[o:o + 4]
+        q_prod = quaternion_multiply(q_a, q_b)
+        c[o:o + 4] = q_prod / np.linalg.norm(q_prod)
+    return c
 
 
 class MotionEditing(object):
@@ -25,6 +42,7 @@ class MotionEditing(object):
         self.adapt_hands_during_both_hand_carry = self._ik_settings["adapt_hands_during_carry_both"]
         self.pose = SkeletonPoseModel(self.skeleton, self.use_euler)
         self._ik = NumericalInverseKinematicsQuat(self.pose, self._ik_settings)
+        self._ik_exp = NumericalInverseKinematicsExp(self.skeleton, self._ik_settings)
 
     def modify_motion_vector(self, motion_vector):
         for idx, action_ik_constraints in enumerate(motion_vector.ik_constraints):
@@ -253,3 +271,55 @@ class MotionEditing(object):
         euler = np.degrees(euler_from_matrix(delta_orientation))
         # convert to CAD coordinate system
         event["parameters"]["relativeOrientation"] = [euler[0], -euler[2], euler[1]]
+
+    def generate_zero_frame(self):
+        n_dims = len(self.skeleton.animated_joints) * 4 + 3
+        zero_frame = np.zeros(n_dims)
+        for j in range(len(self.skeleton.animated_joints)):
+            o = j * 4 + 3
+            zero_frame[o:o + 4] = [1, 0, 0, 0]
+        return zero_frame
+
+    def generate_delta_frames(self, frames, constraints):
+        n_frames = frames.shape[0]
+        zero_frame = self.generate_zero_frame()
+        delta_frames = []
+        d_times = []
+        delta_frames.append(zero_frame)
+        d_times.append(0)
+        delta_frames.append(zero_frame)
+        d_times.append(1)
+
+        for frame_idx, frame_constraints in constraints.items():
+            reference = frames[frame_idx]
+            # reach constraint accurately
+            exp_frame = self._ik_exp.run(reference, list(frame_constraints.values()))
+            delta_frame = convert_exp_frame_to_quat_frame(self.skeleton, exp_frame)
+            delta_frame = np.array([0, 0, 0] + delta_frame.tolist())
+            delta_frames.append(delta_frame)
+            d_times.append(frame_idx)
+        delta_frames.append(zero_frame)
+        d_times.append(n_frames - 2)
+        delta_frames.append(zero_frame)
+        d_times.append(n_frames - 1)
+        return d_times, delta_frames
+
+    def edit_motion_using_displacement_map(self, frames, constraints, plot=False):
+        """ References
+                Witkin and Popovic: Motion Warping, 1995.
+                Bruderlin and Williams: Motion Signal Processing, 1995.
+                Lee and Shin: A Hierarchical Approach to Interactive Motion Editing for Human-like Figures, 1999.
+        """
+        n_frames = len(frames)
+        times = list(range(n_frames))
+        d_times, delta_frames = self.generate_delta_frames(frames, constraints)
+        d_curve = CubicMotionSpline.fit_frames(self.skeleton, d_times, np.array(delta_frames))
+        if plot:
+            t = np.linspace(0, n_frames - 1, num=100, endpoint=True)
+            d_curve.plot(t)
+        new_frames = []
+        for t in times:
+            f = add_frames(self.skeleton, frames[t], d_curve.evaluate(t))
+            new_frames.append(f)
+        return np.array(new_frames)
+
