@@ -24,6 +24,19 @@ def add_frames(skeleton, a, b):
     return c
 
 
+class KeyframeConstraint(object):
+    def __init__(self, frame_idx, joint_name, position, direction=None, orientation=None):
+        self.frame_idx = frame_idx
+        self.joint_name = joint_name
+        self.position = position
+        self.direction = direction
+        self.orientation = orientation
+
+    def evaluate(self, skeleton, frame):
+        d = self.position - skeleton.nodes[self.joint_name].get_global_position(frame)
+        return np.dot(d, d)
+
+
 class MotionEditing(object):
     def __init__(self, skeleton, algorithm_settings):
         self.skeleton = skeleton
@@ -291,9 +304,7 @@ class MotionEditing(object):
         d_times.append(1)
 
         for frame_idx, frame_constraints in constraints.items():
-            reference = frames[frame_idx]
-            # reach constraint accurately
-            exp_frame = self._ik_exp.run(reference, list(frame_constraints.values()))
+            exp_frame = self._ik_exp.run(frames[frame_idx], list(frame_constraints.values()))
             delta_frame = convert_exp_frame_to_quat_frame(self.skeleton, exp_frame)
             delta_frame = np.array([0, 0, 0] + delta_frame.tolist())
             delta_frames.append(delta_frame)
