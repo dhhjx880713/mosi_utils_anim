@@ -164,10 +164,11 @@ def get_node_aligning_2d_transform(skeleton, node_name, prev_frames, new_frames,
     q = quaternion_about_axis(np.deg2rad(angle), [0, 1, 0])
     m = quaternion_matrix(q)
 
-    first_frame_pos = [new_frames[0][0], 0, new_frames[0][2],1.0]
-    #rotated_first_frame_pos = np.dot(m, first_frame_pos)[:3]
-    delta = prev_frames[-1][:3] - first_frame_pos[:3]
+    first_frame_pos = [new_frames[0][0], new_frames[0][1], new_frames[0][2],1.0]
+    rotated_first_frame_pos = np.dot(m, first_frame_pos)[:3]
+    delta = prev_frames[-1][:3] - rotated_first_frame_pos[:3]
     m[0, 3] = delta[0]
+    #m[1, 3] = delta[1]
     m[2, 3] = delta[2]
     return m
 
