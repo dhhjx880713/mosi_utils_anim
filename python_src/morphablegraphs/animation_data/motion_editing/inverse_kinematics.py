@@ -30,7 +30,7 @@ def obj_inverse_kinematics(s, data):
 
 
 class InverseKinematics(object):
-    def __init__(self, skeleton, algorithm_settings, reference_frame):
+    def __init__(self, skeleton, algorithm_settings):
         self.skeleton = skeleton
         self._ik_settings = algorithm_settings["inverse_kinematics_settings"]
         self.window = self._ik_settings["interpolation_window"]
