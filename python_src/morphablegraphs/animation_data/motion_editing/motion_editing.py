@@ -318,7 +318,10 @@ class MotionEditing(object):
             delta_frames.append(zero_frame)
             d_times.append(n_frames - 1)
             print("add zero frame at the end")
-        return d_times, delta_frames
+        else:
+            delta_frames.append(delta_frames[-1])
+            d_times.append(n_frames - 2)
+        return d_times, np.array(delta_frames)
 
     def modify_motion_vector2(self, motion_vector):
         motion_vector.frames = self.edit_motion_using_displacement_map(motion_vector.frames, motion_vector.ik_constraints)
@@ -333,7 +336,7 @@ class MotionEditing(object):
         n_frames = len(frames)
         times = list(range(n_frames))
         d_times, delta_frames = self.generate_delta_frames(frames, constraints)
-        d_curve = CubicMotionSpline.fit_frames(self.skeleton, d_times, np.array(delta_frames))
+        d_curve = CubicMotionSpline.fit_frames(self.skeleton, d_times, delta_frames)
         if plot:
             t = np.linspace(0, n_frames - 1, num=100, endpoint=True)
             d_curve.plot(t)
