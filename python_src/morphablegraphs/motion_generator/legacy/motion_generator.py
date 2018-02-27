@@ -5,7 +5,7 @@ from datetime import datetime
 from ...constraints import MGInputFormatReader
 from ..algorithm_configuration import DEFAULT_ALGORITHM_CONFIG
 from ..graph_walk_optimizer import GraphWalkOptimizer
-from ...animation_data.motion_editing import InverseKinematics
+from ...animation_data.motion_editing import LegacyInverseKinematics
 from .graph_walk_generator import GraphWalkGenerator
 from ...motion_model import MotionStateGraphLoader
 from ...utilities import clear_log, save_log, write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO, LOG_MODE_ERROR
@@ -118,7 +118,7 @@ class MotionGenerator(object):
         """
         if self._algorithm_config["activate_inverse_kinematics"]:
             write_message_to_log("Modify using inverse kinematics", LOG_MODE_DEBUG)
-            self.inverse_kinematics = InverseKinematics(self.motion_state_graph.skeleton, self._algorithm_config)
+            self.inverse_kinematics = LegacyInverseKinematics(self.motion_state_graph.skeleton, self._algorithm_config)
             self.inverse_kinematics.modify_motion_vector(motion_vector)
             self.inverse_kinematics.fill_rotate_events(motion_vector)
         self._print_time("synthesis", start_time)

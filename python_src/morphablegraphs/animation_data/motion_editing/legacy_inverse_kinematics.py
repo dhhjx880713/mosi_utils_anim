@@ -1,10 +1,7 @@
 import time
-from collections import OrderedDict
 from copy import copy
-
 import numpy as np
 from scipy.optimize import minimize
-
 from ..motion_blending import smooth_joints_around_transition_using_slerp, create_transition_using_slerp
 from .skeleton_pose_model import SkeletonPoseModel
 from ..constants import ROTATION_TYPE_EULER
@@ -29,7 +26,7 @@ def obj_inverse_kinematics(s, data):
     return np.dot(d, d)
 
 
-class InverseKinematics(object):
+class LegacyInverseKinematics(object):
     def __init__(self, skeleton, algorithm_settings):
         self.skeleton = skeleton
         self._ik_settings = algorithm_settings["inverse_kinematics_settings"]
@@ -223,6 +220,7 @@ class InverseKinematics(object):
                         start = keyframe
                         end = keyframe+1
                         self._look_at_in_range(motion_vector, c.position, start, end)
+                        print("orientation constraint", c.orientation)
                         if c.orientation is not None and self.optimize_orientation:
                             self._set_hand_orientation(motion_vector, c.orientation, c.joint_name, keyframe, start, end)
         return error
@@ -398,6 +396,7 @@ class InverseKinematics(object):
         return indices
 
     def _set_hand_orientation(self, motion_vector, orientation, joint_name, keyframe, start, end):
+        print("set hand orienation", keyframe)
         parent_joint_name = self.pose.get_parent_joint(joint_name)
         self.set_pose_from_frame(motion_vector.frames[keyframe])
         self.pose.set_hand_orientation(parent_joint_name, orientation)
