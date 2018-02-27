@@ -177,12 +177,12 @@ class MotionPrimitive(object):
         """
         return self.back_project(np.ravel(self.sample_low_dimensional_vector()), use_time_parameters)
 
-    def back_project(self, low_dimensional_vector, use_time_parameters=True, speed=1.0):
+    def back_project(self, s, use_time_parameters=True, speed=1.0):
         """ Return a motion sample based on a low dimensional motion vector.
 
         Parameters
         ----------
-        *low_dimensional_vector: numpy.ndarray
+        *s: numpy.ndarray
         \tThe low dimensional motion representation sampled from a GMM or GP
         *use_time_parameters: boolean
         \tIf True use time function from _inverse_temporal_pca else canonical time line
@@ -193,19 +193,19 @@ class MotionPrimitive(object):
         """
         semantic_annotation = None
         if self.has_semantic_parameters:
-            semantic_label = low_dimensional_vector[-1]
+            semantic_label = s[-1]
             for key, value in self.semantic_labels.items():
                 if int(np.round(semantic_label)) == value:
                     semantic_annotation = key
             if semantic_annotation is None:
                 raise ValueError('Unknown semantic label!')
-            low_dimensional_vector = np.delete(low_dimensional_vector, -1)
-        spatial_coefs = self.back_project_spatial_coeffs(low_dimensional_vector[:self.s_pca["n_components"]])
+            s = np.delete(s, -1)
+        spatial_coeffs = self.back_project_spatial_coeffs(s[:self.s_pca["n_components"]])
         if self.has_time_parameters and use_time_parameters:
-            time_function = self.back_project_time_function(low_dimensional_vector[self.s_pca["n_components"]:], speed)
+            time_function = self.back_project_time_function(s[self.s_pca["n_components"]:], speed)
         else:
             time_function = np.linspace(0, self.n_canonical_frames, self.n_canonical_frames * (1.0 / speed))
-        return MotionSpline(low_dimensional_vector, spatial_coefs, time_function, self.s_pca["knots"], semantic_annotation)
+        return MotionSpline(s, spatial_coeffs, time_function, self.s_pca["knots"], semantic_annotation)
 
     def back_project_spatial_coeffs(self, alpha):
         """ Backtransform a lowdimensional vector alpha to a coefficients of
