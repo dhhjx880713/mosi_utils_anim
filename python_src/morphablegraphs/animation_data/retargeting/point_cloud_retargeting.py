@@ -267,7 +267,7 @@ def apply_manual_fixes(joint_cos_map, joints=X_JOINTS):
             joint_cos_map[j]["x"] *= -1
 
 
-def align_root_joint(axes, global_src_x_vec, max_iter_count=10):
+def align_root_joint(new_skeleton, free_joint_name, axes, global_src_up_vec, global_src_x_vec,joint_cos_map, max_iter_count=10):
     # handle special case for the root joint
     # apply only the y axis rotation of the Hip to the Game_engine node
     not_aligned = True
@@ -277,14 +277,27 @@ def align_root_joint(axes, global_src_x_vec, max_iter_count=10):
         qx, axes = align_axis(axes, "x", global_src_x_vec)  # first find rotation to align x axis
         q = quaternion_multiply(qx, q)
         q = normalize(q)
-        qy, axes = align_axis(axes, "y", OPENGL_UP_AXIS)  # then add a rotation to let the y axis point up
+
+        qy, axes = align_axis(axes, "y", global_src_up_vec)  # then add a rotation to let the y axis point up
         q = quaternion_multiply(qy, q)
         q = normalize(q)
 
-        a_y = math.acos(np.dot(axes["y"], OPENGL_UP_AXIS))
+        #print("handle special case for pelvis")
+        # handle special case of applying the x axis rotation of the Hip to the pelvis
+        node = new_skeleton.nodes[free_joint_name]
+        t_pose_global_m = node.get_global_matrix(new_skeleton.reference_frame)[:3, :3]
+        global_original = np.dot(t_pose_global_m, joint_cos_map[free_joint_name]["y"])
+        global_original = normalize(global_original)
+        qoffset = find_rotation_between_vectors(OPENGL_UP_AXIS, global_original)
+        q = quaternion_multiply(q, qoffset)
+        q = normalize(q)
+
+        target_axis = np.dot(quaternion_matrix(qoffset)[:3,:3], OPENGL_UP_AXIS)[:3]
+        a_y = math.acos(np.dot(axes["y"],  normalize(target_axis)))
         a_x = math.acos(np.dot(axes["x"], global_src_x_vec))
         iter_count += 1
-        not_aligned = a_y > 0.1 or a_x > 0.1 and iter_count < max_iter_count
+        #not_aligned = a_y > 0.1 or a_x > 0.1 and iter_count < max_iter_count
+        not_aligned = False
     return q
 
 
@@ -293,9 +306,10 @@ def align_joint(new_skeleton, free_joint_name, local_target_axes, global_src_up_
     q = [1, 0, 0, 0]
     qy, axes = align_axis(local_target_axes, "y", global_src_up_vec)
     q = quaternion_multiply(qy, q)
-    joint_map = new_skeleton.skeleton_model["joints"]
+    #joint_map = new_skeleton.skeleton_model["joints"]
     q = normalize(q)
-    if  free_joint_name == joint_map["spine"]:#free_joint_name == joint_map["pelvis"] or
+    if free_joint_name == "pelvis":
+        print("handle special case for pelvis")
         # handle special case of applying the x axis rotation of the Hip to the pelvis
         node = new_skeleton.nodes[free_joint_name]
         t_pose_global_m = node.get_global_matrix(new_skeleton.reference_frame)[:3, :3]
@@ -314,6 +328,7 @@ def align_joint(new_skeleton, free_joint_name, local_target_axes, global_src_up_
         qy, axes = align_axis(axes, "y", global_src_up_vec)
         q = quaternion_multiply(qy, q)
 
+
         qx, axes = align_axis(axes, "x", global_src_x_vec)
         q = quaternion_multiply(qx, q)
 
@@ -328,7 +343,7 @@ def find_rotation_analytically(new_skeleton, free_joint_name, target, frame, joi
     global_src_x_vec = target["global_src_x_vec"]
     local_target_axes = joint_cos_map[free_joint_name]
     if is_root:
-        q = align_root_joint(local_target_axes, global_src_x_vec, max_iter_count)
+        q = align_root_joint(new_skeleton, free_joint_name, local_target_axes, global_src_up_vec,global_src_x_vec, joint_cos_map, max_iter_count)
     else:
         q = align_joint(new_skeleton, free_joint_name, local_target_axes, global_src_up_vec, global_src_x_vec, joint_cos_map)
     return to_local_cos(new_skeleton, free_joint_name, frame, q)
@@ -365,6 +380,8 @@ class PointCloudRetargeting(object):
                 self.src_child_map[src_name] = None
         #print("ch",self.src_child_map)
         self.src_parent_map["spine_03"] = "pelvis"
+        self.src_child_map["pelvis"] = "neck_01"
+
         self.target_cos_map = create_local_cos_map_from_skeleton_axes_with_map(self.target_skeleton)
         self.src_cos_map = create_local_cos_map_from_skeleton_axes_with_map(self.src_skeleton, flip=1.0, project=True)
 
