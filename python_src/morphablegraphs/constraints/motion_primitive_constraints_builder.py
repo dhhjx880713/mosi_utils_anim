@@ -200,17 +200,18 @@ class MotionPrimitiveConstraintsBuilder(object):
             #print("added", len(mp_constraints.constraints), "constraints")
 
     def create_keyframe_constraint(self, c_desc):
+        c = None
         if "keyframeLabel" in c_desc["semanticAnnotation"].keys():
             c_desc = self._map_label_to_canonical_keyframe(c_desc)
             constraint_factor = self.trajectory_following_settings["position_constraint_factor"]
+
             if "merged" in c_desc.keys():
-                return TwoHandConstraintSet(self.skeleton, c_desc, self.precision["pos"], constraint_factor)
+                c = TwoHandConstraintSet(self.skeleton, c_desc, self.precision["pos"], constraint_factor)
             elif "look_at" in c_desc.keys():
-                return LookAtConstraint(self.skeleton, c_desc, self.precision["pos"], constraint_factor)
+                c = LookAtConstraint(self.skeleton, c_desc, self.precision["pos"], constraint_factor)
             else:
-                return GlobalTransformConstraint(self.skeleton, c_desc, self.precision["pos"], constraint_factor)
-        else:
-            return None
+                c = GlobalTransformConstraint(self.skeleton, c_desc, self.precision["pos"], constraint_factor)
+        return c
 
     def _decide_on_optimization(self, mp_constraints):
         if self.local_optimization_mode == OPTIMIZATION_MODE_ALL:
