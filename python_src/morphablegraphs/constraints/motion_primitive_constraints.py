@@ -13,6 +13,7 @@ from .spatial_constraints.keyframe_constraints.global_transform_ca_constraint im
 from .spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE,SPATIAL_CONSTRAINT_TYPE_KEYFRAME_DIR_2D, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_LOOK_AT, SPATIAL_CONSTRAINT_TYPE_CA_CONSTRAINT,SPATIAL_CONSTRAINT_TYPE_KEYFRAME_FEET
 from .ik_constraints import JointIKConstraint, TwoJointIKConstraint
 from .ik_constraints_builder import IKConstraintsBuilder
+from .ik_constraints_builder2 import IKConstraintsBuilder2
 from ..utilities.log import write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO
 try:
     from mgrd import CartesianConstraint as MGRDCartesianConstraint
@@ -339,8 +340,12 @@ class MotionPrimitiveConstraints(object):
                 mp_constraints.constraints.append(feet_constraint)
         return mp_constraints
 
-    def convert_to_ik_constraints(self, motion_state_graph, frame_offset, time_function=None, constrain_orientation=True):
-        builder = IKConstraintsBuilder(self.action_name, self.motion_primitive_name, motion_state_graph, self.skeleton)
+    def convert_to_ik_constraints(self, motion_state_graph, frame_offset, time_function=None, constrain_orientation=True, version=1):
+        print("create ik constraints", len(self.constraints))
+        if version == 1:
+            builder = IKConstraintsBuilder(self.action_name, self.motion_primitive_name, motion_state_graph, self.skeleton)
+        else:
+            builder = IKConstraintsBuilder2(self.action_name, self.motion_primitive_name, motion_state_graph, self.skeleton)
         return builder.convert_to_ik_constraints(self.constraints, frame_offset, time_function, constrain_orientation)
 
     def get_ca_constraints(self):

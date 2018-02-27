@@ -25,12 +25,12 @@ def add_frames(skeleton, a, b):
 
 
 class KeyframeConstraint(object):
-    def __init__(self, frame_idx, joint_name, position, direction=None, orientation=None):
+    def __init__(self, frame_idx, joint_name, position, orientation=None, look_at=False):
         self.frame_idx = frame_idx
         self.joint_name = joint_name
         self.position = position
-        self.direction = direction
         self.orientation = orientation
+        self.look_at = look_at
 
     def evaluate(self, skeleton, frame):
         d = self.position - skeleton.nodes[self.joint_name].get_global_position(frame)
@@ -99,12 +99,13 @@ class MotionEditing(object):
                                                                                                 c.frame_range)
                         else:
                             error += self._modify_frame_using_keyframe_constraint(motion_vector, c, keyframe)
+                    start = keyframe
+                    end = keyframe + 1
                     if self.activate_look_at and c.look_at:
-                        start = keyframe
-                        end = keyframe + 1
-                        self._look_at_in_range(motion_vector, c.position, start, end)
-                        if c.orientation is not None and self.optimize_orientation:
-                            self._set_hand_orientation(motion_vector, c.orientation, c.joint_name, keyframe, start, end)
+                        self._look_at_in_range(motion_vector.frames, c.position, start, end)
+                    print("set hand orientation", c.orientation)
+                    if c.orientation is not None and self.optimize_orientation:
+                        self._set_hand_orientation(motion_vector.frames, c.orientation, c.joint_name, keyframe, start, end)
         return error
 
     def _modify_frame_using_keyframe_constraint(self, motion_vector, constraint, keyframe):
@@ -133,14 +134,14 @@ class MotionEditing(object):
             for joint_name in self.pose.free_joints_map[target_joint_name]:
                 smooth_joints_around_transition_using_slerp(frames, joint_parameter_indices[joint_name], keyframe, window)
 
-    def _look_at_in_range(self, motion_vector, position, start, end):
+    def _look_at_in_range(self, frames, position, start, end):
         start = max(0, start)
-        end = min(motion_vector.frames.shape[0], end)
+        end = min(frames.shape[0], end)
         for idx in range(start, end):
-            self.set_pose_from_frame(motion_vector.frames[idx])
+            self.set_pose_from_frame(frames[idx])
             self.pose.lookat(position)
-            motion_vector.frames[idx] = self.pose.get_vector()
-        self._create_transition_for_frame_range(motion_vector.frames, start, end - 1, [self.pose.head_joint])
+            frames[idx] = self.pose.get_vector()
+        self._create_transition_for_frame_range(frames, start, end - 1, [self.pose.head_joint])
 
     def _create_transition_for_frame_range(self, frames, start, end, target_joints):
         for target_joint in target_joints:
@@ -150,13 +151,13 @@ class MotionEditing(object):
             create_transition_using_slerp(frames, transition_start, start, joint_parameter_indices)
             create_transition_using_slerp(frames, end, transition_end, joint_parameter_indices)
 
-    def _set_hand_orientation(self, motion_vector, orientation, joint_name, keyframe, start, end):
+    def _set_hand_orientation(self, frames, orientation, joint_name, keyframe, start, end):
         parent_joint_name = self.pose.get_parent_joint(joint_name)
-        self.set_pose_from_frame(motion_vector.frames[keyframe])
+        self.set_pose_from_frame(frames[keyframe])
         self.pose.set_hand_orientation(parent_joint_name, orientation)
         start = max(0, start)
-        end = min(motion_vector.frames.shape[0], end)
-        self._create_transition_for_frame_range(motion_vector.frames, start, end - 1, [parent_joint_name])
+        end = min(frames.shape[0], end)
+        self._create_transition_for_frame_range(frames, start, end - 1, [parent_joint_name])
 
     def set_pose_from_frame(self, reference_frame):
         self.pose.set_pose_parameters(reference_frame)
@@ -319,6 +320,10 @@ class MotionEditing(object):
             print("add zero frame at the end")
         return d_times, delta_frames
 
+    def modify_motion_vector2(self, motion_vector):
+        motion_vector.frames = self.edit_motion_using_displacement_map(motion_vector.frames, motion_vector.ik_constraints)
+        self.apply_orientation_constraints(motion_vector.frames, motion_vector.ik_constraints)
+
     def edit_motion_using_displacement_map(self, frames, constraints, plot=False):
         """ References
                 Witkin and Popovic: Motion Warping, 1995.
@@ -338,3 +343,13 @@ class MotionEditing(object):
             new_frames.append(f)
         return np.array(new_frames)
 
+    def apply_orientation_constraints(self, frames, constraints):
+        for frame_idx, frame_constraints in constraints.items():
+            for joint_name, c in frame_constraints.items():
+                if c.orientation is not None and self.optimize_orientation:
+                    start = c.frame_idx
+                    end = c.frame_idx + 1
+                    if self.activate_look_at and c.look_at:
+                        self._look_at_in_range(frames, c.position, start, end)
+                    print("set hand orientation", c.orientation)
+                    self._set_hand_orientation(frames, c.orientation, c.joint_name, c.frame_idx, start, end)

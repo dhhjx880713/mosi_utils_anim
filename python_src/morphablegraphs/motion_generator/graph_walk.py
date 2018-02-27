@@ -6,6 +6,7 @@ Created on Tue Jul 14 18:39:41 2015
 """
 
 from datetime import datetime
+import collections
 import json
 import numpy as np
 from ..animation_data import MotionVector, align_quaternion_frames
@@ -44,6 +45,7 @@ class GraphWalkEntry(object):
         data["start_frame"] = self.start_frame
         data["end_frame"] = self.end_frame
         return data
+
 
 class HighLevelGraphWalkEntry(object):
     def __init__(self, action_name, start_step, end_step, action_constraints):
@@ -98,7 +100,13 @@ class GraphWalk(object):
         annotated_motion_vector.keyframe_event_list = self.keyframe_event_list
         annotated_motion_vector.skeleton = self.motion_state_graph.skeleton
         annotated_motion_vector.mg_input = self.mg_input
-        annotated_motion_vector.ik_constraints = self._create_ik_constraints()
+        version = 0
+        if "version" in self._algorithm_config["inverse_kinematics_settings"]:
+            version = self._algorithm_config["inverse_kinematics_settings"]["version"]
+        if version == 1:
+            annotated_motion_vector.ik_constraints = self._create_ik_constraints()
+        elif version == 2:
+            annotated_motion_vector.ik_constraints = self._create_ik_constraints2()
         annotated_motion_vector.graph_walk = self
         return annotated_motion_vector
 
@@ -207,15 +215,43 @@ class GraphWalk(object):
                 time_function = None
                 if self.use_time_parameters and self.motion_state_graph.nodes[step.node_key].get_n_time_components() > 0:
                     time_function = self.motion_state_graph.nodes[step.node_key].back_project_time_function(step.parameters)
+
                 step_keyframe_constraints = step.motion_primitive_constraints.convert_to_ik_constraints(self.motion_state_graph, frame_offset, time_function, constrain_orientation)
-                elementary_action_ik_constraints["collision_avoidance"] += step.motion_primitive_constraints.get_ca_constraints()
+
                 elementary_action_ik_constraints["keyframes"].update(step_keyframe_constraints)
+                elementary_action_ik_constraints["collision_avoidance"] += step.motion_primitive_constraints.get_ca_constraints()
+
                 frame_offset += step.end_frame - step.start_frame + 1
 
             if self._algorithm_config["collision_avoidance_constraints_mode"] == "ik":
                 elementary_action_ik_constraints["trajectories"] += self._create_ik_trajectory_constraints_from_ca_trajectories(idx)
             elementary_action_ik_constraints["trajectories"] += self._create_ik_trajectory_constraints_from_annotated_trajectories(idx)
             ik_constraints.append(elementary_action_ik_constraints)
+        return ik_constraints
+
+    def _create_ik_constraints2(self):
+        ik_constraints = collections.OrderedDict()
+        for idx, action in enumerate(self.elementary_action_list):
+            write_message_to_log("Create IK constraints for action" + " " + str(idx) + " " + str(action.start_step) + " " + str(self.steps[action.start_step].start_frame), LOG_MODE_DEBUG)
+            if not self.constrain_place_orientation and action.action_name in self.place_action_list:
+                constrain_orientation = False
+            else:
+                constrain_orientation = True
+            start_step = action.start_step
+            end_step = action.end_step
+            frame_offset = self.steps[start_step].start_frame
+            for step in self.steps[start_step: end_step + 1]:
+                time_function = None
+                if self.use_time_parameters and self.motion_state_graph.nodes[
+                    step.node_key].get_n_time_components() > 0:
+                    time_function = self.motion_state_graph.nodes[step.node_key].back_project_time_function(step.parameters)
+
+                step_constraints = step.motion_primitive_constraints.convert_to_ik_constraints(
+                    self.motion_state_graph, frame_offset, time_function, constrain_orientation, version=2)
+                ik_constraints.update(step_constraints)
+
+                frame_offset += step.end_frame - step.start_frame + 1
+
         return ik_constraints
 
     def _create_ik_trajectory_constraints_from_ca_trajectories(self, action_idx):

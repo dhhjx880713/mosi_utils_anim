@@ -280,11 +280,19 @@ class MotionGenerator(object):
             self.run_motion_grounding(motion_vector, ik_settings)
             #self.run_motion_grounding(motion_vector, ik_settings)
 
+
         if self._algorithm_config["activate_inverse_kinematics"]:
-            write_message_to_log("Modify using inverse kinematics", LOG_MODE_INFO)
             me = MotionEditing(self._motion_state_graph.skeleton, self._algorithm_config)
-            me.modify_motion_vector(motion_vector)
-            me.fill_rotate_events(motion_vector)
+            version = 1
+            if "version" in self._algorithm_config["inverse_kinematics_settings"]:
+                version = self._algorithm_config["inverse_kinematics_settings"]["version"]
+
+            write_message_to_log("Modify using inverse kinematics"+str(version), LOG_MODE_INFO)
+            if version == 1:
+                me.modify_motion_vector(motion_vector)
+                me.fill_rotate_events(motion_vector)
+            elif version == 2:
+                me.modify_motion_vector2(motion_vector)
 
         if complete_motion_vector:
             motion_vector.frames = self._motion_state_graph.skeleton.add_fixed_joint_parameters_to_motion(motion_vector.frames)

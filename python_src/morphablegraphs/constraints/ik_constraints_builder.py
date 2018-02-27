@@ -18,9 +18,11 @@ class IKConstraintsBuilder(object):
     def convert_to_ik_constraints(self, constraints,  frame_offset=0, time_function=None, constrain_orientation=True):
         ik_constraints_dict = dict()
         for constraint in constraints:
+            #print(constraint)
             ik_constraints, ik_constraint_types = self._create_ik_constraints(constraint, frame_offset, time_function, constrain_orientation)
-            for ik_c, ik_c_type in zip(ik_constraints,ik_constraint_types):
-                if ik_c.keyframe not in list(ik_constraints_dict.keys()):
+            # print(ik_constraints, ik_constraint_types)
+            for ik_c, ik_c_type in zip(ik_constraints, ik_constraint_types):
+                if ik_c.keyframe not in ik_constraints_dict.keys():
                     ik_constraints_dict[ik_c.keyframe] = dict()
                     ik_constraints_dict[ik_c.keyframe]["single"] = []
                     ik_constraints_dict[ik_c.keyframe]["multiple"] = []
@@ -32,15 +34,14 @@ class IKConstraintsBuilder(object):
 
         ik_constraints = []
         ik_constraint_types = []
-        if constraint.constraint_type in SUPPORTED_CONSTRAINT_TYPES and \
-            "generated" not in list(constraint.semantic_annotation.keys()):
+        if constraint.constraint_type in SUPPORTED_CONSTRAINT_TYPES and "generated" not in list(constraint.semantic_annotation.keys()):
             if time_function is not None:
                 # add +1 to map the frame correctly TODO: test and verify for all cases
                 keyframe = frame_offset + int(time_function[constraint.canonical_keyframe]) + 1
             else:
                 keyframe = frame_offset + constraint.canonical_keyframe
 
-            if constraint.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION and constraint.joint_name in list(self.skeleton.free_joints_map.keys()):
+            if constraint.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION and constraint.joint_name in self.skeleton.free_joints_map.keys():
                 ik_constraint = self._create_keyframe_ik_constraint(constraint, keyframe, frame_offset,
                                                                     time_function, constrain_orientation, look_at=True)
                 ik_constraints.append(ik_constraint)
@@ -51,8 +52,8 @@ class IKConstraintsBuilder(object):
                 ik_constraint_types.append("single")
 
             elif constraint.constraint_type == SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION and \
-                            constraint.joint_names[0] in list(self.skeleton.free_joints_map.keys()) and \
-                            constraint.joint_names[1] in list(self.skeleton.free_joints_map.keys()):
+                            constraint.joint_names[0] in self.skeleton.free_joints_map.keys() and \
+                            constraint.joint_names[1] in self.skeleton.free_joints_map.keys():
                 free_joints = self.skeleton.reduced_free_joints_map[constraint.joint_names[0]]
                 ik_constraint = JointIKConstraint(constraint.joint_names[0], constraint.positions[0], None, keyframe, free_joints, look_at=False)
                 ik_constraints.append(ik_constraint)
@@ -77,8 +78,9 @@ class IKConstraintsBuilder(object):
     def _create_keyframe_ik_constraint(self, c, keyframe, frame_offset, time_function, constrain_orientation, look_at=True, optimize=True):
         free_joints = self.skeleton.free_joints_map[c.joint_name]
         frame_range = self._detect_frame_range(c, frame_offset, time_function)
+        print("create ik constraint", keyframe, c.position, c.orientation)
         if frame_range is None:
-            write_message_to_log("Did not find frame range for" + str(c.keyframe_label), LOG_MODE_DEBUG)
+            write_message_to_log("Did not find frame range for " + str(c.keyframe_label), LOG_MODE_DEBUG)
         if constrain_orientation:
             orientation = c.orientation
         else:
