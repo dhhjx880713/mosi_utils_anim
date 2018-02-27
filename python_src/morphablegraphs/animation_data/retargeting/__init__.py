@@ -1,4 +1,5 @@
 from .analytical import retarget_from_src_to_target, Retargeting, generate_joint_map
+from .point_cloud_retargeting import retarget_from_point_cloud_to_target
 from .optimization import get_new_frames_from_direction_constraints, get_targets_from_motion
 from .optimization_euler import get_new_euler_frames_from_direction_constraints
 from .constants import ROCKETBOX_TO_GAME_ENGINE_MAP, ADDITIONAL_ROTATION_MAP,GAME_ENGINE_TO_ROCKETBOX_MAP, ROCKETBOX_ROOT_OFFSET
