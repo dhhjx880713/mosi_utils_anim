@@ -298,10 +298,11 @@ class MotionEditing(object):
         zero_frame = self.generate_zero_frame()
         delta_frames = []
         d_times = []
-        delta_frames.append(zero_frame)
-        d_times.append(0)
-        delta_frames.append(zero_frame)
-        d_times.append(1)
+        if 0 not in constraints:
+            delta_frames.append(zero_frame)
+            d_times.append(0)
+            delta_frames.append(zero_frame)
+            d_times.append(1)
 
         for frame_idx, frame_constraints in constraints.items():
             exp_frame = self._ik_exp.run(frames[frame_idx], list(frame_constraints.values()))
@@ -309,10 +310,13 @@ class MotionEditing(object):
             delta_frame = np.array([0, 0, 0] + delta_frame.tolist())
             delta_frames.append(delta_frame)
             d_times.append(frame_idx)
-        delta_frames.append(zero_frame)
-        d_times.append(n_frames - 2)
-        delta_frames.append(zero_frame)
-        d_times.append(n_frames - 1)
+
+        if n_frames-1 not in constraints:
+            delta_frames.append(zero_frame)
+            d_times.append(n_frames - 2)
+            delta_frames.append(zero_frame)
+            d_times.append(n_frames - 1)
+            print("add zero frame at the end")
         return d_times, delta_frames
 
     def edit_motion_using_displacement_map(self, frames, constraints, plot=False):
