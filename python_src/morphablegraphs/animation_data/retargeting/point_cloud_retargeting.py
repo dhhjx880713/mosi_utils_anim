@@ -270,34 +270,33 @@ def apply_manual_fixes(joint_cos_map, joints=X_JOINTS):
 def align_root_joint(new_skeleton, free_joint_name, axes, global_src_up_vec, global_src_x_vec,joint_cos_map, max_iter_count=10):
     # handle special case for the root joint
     # apply only the y axis rotation of the Hip to the Game_engine node
-    not_aligned = True
     q = [1, 0, 0, 0]
-    iter_count = 0
-    while not_aligned:
-        qx, axes = align_axis(axes, "x", global_src_x_vec)  # first find rotation to align x axis
-        q = quaternion_multiply(qx, q)
-        q = normalize(q)
+    #apply first time
+    qx, axes = align_axis(axes, "x", global_src_x_vec)  # first find rotation to align x axis
+    q = quaternion_multiply(qx, q)
+    q = normalize(q)
 
-        qy, axes = align_axis(axes, "y", global_src_up_vec)  # then add a rotation to let the y axis point up
-        q = quaternion_multiply(qy, q)
-        q = normalize(q)
+    qy, axes = align_axis(axes, "y", global_src_up_vec)  # then add a rotation to let the y axis point up
+    q = quaternion_multiply(qy, q)
+    q = normalize(q)
 
-        #print("handle special case for pelvis")
-        # handle special case of applying the x axis rotation of the Hip to the pelvis
-        node = new_skeleton.nodes[free_joint_name]
-        t_pose_global_m = node.get_global_matrix(new_skeleton.reference_frame)[:3, :3]
-        global_original = np.dot(t_pose_global_m, joint_cos_map[free_joint_name]["y"])
-        global_original = normalize(global_original)
-        qoffset = find_rotation_between_vectors(OPENGL_UP_AXIS, global_original)
-        q = quaternion_multiply(q, qoffset)
-        q = normalize(q)
+    #apply second time
+    qx, axes = align_axis(axes, "x", global_src_x_vec)  # first find rotation to align x axis
+    q = quaternion_multiply(qx, q)
+    q = normalize(q)
+    qy, axes = align_axis(axes, "y", global_src_up_vec)  # then add a rotation to let the y axis point up
+    q = quaternion_multiply(qy, q)
+    q = normalize(q)
 
-        target_axis = np.dot(quaternion_matrix(qoffset)[:3,:3], OPENGL_UP_AXIS)[:3]
-        a_y = math.acos(np.dot(axes["y"],  normalize(target_axis)))
-        a_x = math.acos(np.dot(axes["x"], global_src_x_vec))
-        iter_count += 1
-        #not_aligned = a_y > 0.1 or a_x > 0.1 and iter_count < max_iter_count
-        not_aligned = False
+    # print("handle special case for pelvis")
+    # handle special case of applying the x axis rotation of the Hip to the pelvis
+    node = new_skeleton.nodes[free_joint_name]
+    t_pose_global_m = node.get_global_matrix(new_skeleton.reference_frame)[:3, :3]
+    global_original = np.dot(t_pose_global_m, joint_cos_map[free_joint_name]["y"])
+    global_original = normalize(global_original)
+    qoffset = find_rotation_between_vectors(OPENGL_UP_AXIS, global_original)
+    q = quaternion_multiply(q, qoffset)
+    q = normalize(q)
     return q
 
 
@@ -483,7 +482,6 @@ class PointCloudRetargeting(object):
                 src_name = self.target_to_src_joint_map[target_name]
                 if src_name not in ["spine", "spine_01","spine_02"] and src_name is not None and len(self.src_skeleton.nodes[src_name].children)>0 and src_name in self.src_skeleton.joints.keys():
                     q = self.rotate_bone_old(src_name, target_name, src_frame, target_frame, q)
-
 
             if ref_frame is not None:
                 #  align quaternion to the reference frame to allow interpolation
