@@ -306,10 +306,17 @@ def align_joint(new_skeleton, free_joint_name, local_target_axes, global_src_up_
         q = normalize(q)
 
     # then align the twisting angles
-    if global_src_x_vec is not None and False:
+    if global_src_x_vec is not None:
         #old_x = np.array(axes["x"])
         qx, axes = align_axis(axes, "x", global_src_x_vec)
         q = quaternion_multiply(qx, q)
+
+        qy, axes = align_axis(axes, "y", global_src_up_vec)
+        q = quaternion_multiply(qy, q)
+
+        qx, axes = align_axis(axes, "x", global_src_x_vec)
+        q = quaternion_multiply(qx, q)
+
         #print("apply x",free_joint_name, old_x, axes["x"], global_src_x_vec)
     #else:
         #print("do not apply x", free_joint_name)
@@ -476,12 +483,10 @@ class PointCloudRetargeting(object):
         return target_frame
 
     def run(self, src_frames, frame_range):
-        #TODO get up axes and cross vector from skeleton heuristically,
-        # bone_dir = up, left leg to right leg = cross for all bones
         n_frames = len(src_frames)
         target_frames = []
         if n_frames > 0:
-            n_dims = len(src_frames[0])
+            #n_dims = len(src_frames[0])
             if frame_range is None:
                 frame_range = (0, n_frames)
 
@@ -492,14 +497,13 @@ class PointCloudRetargeting(object):
             ref_frame = None
             for idx, src_frame in enumerate(src_frames[frame_range[0]:frame_range[1]]):
                 target_frame = self.retarget_frame(src_frame, ref_frame)
-                print(target_frame.tolist())
                 if ref_frame is None:
                     ref_frame = target_frame
                 target_frames.append(target_frame)
             target_frames = np.array(target_frames)
             if self.place_on_ground:
                 delta = target_frames[0][1] - self.ground_height
-                target_frames[:,1] -= delta
+                target_frames[:, 1] -= delta
         return target_frames
 
 
