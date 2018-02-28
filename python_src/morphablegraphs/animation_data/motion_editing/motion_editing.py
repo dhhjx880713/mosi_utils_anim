@@ -294,40 +294,37 @@ class MotionEditing(object):
             zero_frame[o:o + 4] = [1, 0, 0, 0]
         return zero_frame
 
-    def generate_delta_frames(self, frames, constraints):
+    def generate_delta_frames(self, frames, constraints, influence_range=40):
         n_frames = frames.shape[0]
         zero_frame = self.generate_zero_frame()
-        delta_frames = []
-        d_times = []
-        if 0 not in constraints:
-            delta_frames.append(zero_frame)
-            d_times.append(0)
-            delta_frames.append(zero_frame)
-            d_times.append(1)
-
+        delta_frames = collections.OrderedDict()
+        delta_frames[0] = zero_frame
+        delta_frames[1] = zero_frame
+        for f in range(0, n_frames, influence_range):
+            delta_frames[f] = zero_frame
+            delta_frames[f+1] = zero_frame
+        delta_frames[n_frames - 2] = zero_frame
+        delta_frames[n_frames - 1] = zero_frame
         for frame_idx, frame_constraints in constraints.items():
-            exp_frame = self._ik_exp.run(frames[frame_idx], list(frame_constraints.values()))
-            delta_frame = convert_exp_frame_to_quat_frame(self.skeleton, exp_frame)
-            delta_frame = np.array([0, 0, 0] + delta_frame.tolist())
-            delta_frames.append(delta_frame)
-            d_times.append(frame_idx)
+            frame_constraints = list(frame_constraints.values())
+            exp_frame = self._ik_exp.run(frames[frame_idx], frame_constraints)
+            n_dims = len(self.skeleton.animated_joints) * 4 + 3
+            start = max(frame_idx-influence_range, min(frame_idx, 2))
+            end = min(frame_idx+influence_range, n_frames-2)
+            for i in range(start, end):
+                if i in delta_frames:
+                    del delta_frames[i]
+            delta_frames[frame_idx] = np.zeros(n_dims)
+            delta_frames[frame_idx][3:] = convert_exp_frame_to_quat_frame(self.skeleton, exp_frame)
+        delta_frames = collections.OrderedDict(sorted(delta_frames.items(), key=lambda x: x[0]))
+        return list(delta_frames.keys()), np.array(list(delta_frames.values()))
 
-        if n_frames-1 not in constraints:
-            delta_frames.append(zero_frame)
-            d_times.append(n_frames - 2)
-            delta_frames.append(zero_frame)
-            d_times.append(n_frames - 1)
-            print("add zero frame at the end")
-        else:
-            delta_frames.append(delta_frames[-1])
-            d_times.append(n_frames - 2)
-        return d_times, np.array(delta_frames)
-
-    def modify_motion_vector2(self, motion_vector):
-        motion_vector.frames = self.edit_motion_using_displacement_map(motion_vector.frames, motion_vector.ik_constraints)
+    def modify_motion_vector2(self, motion_vector, plot=False):
+        plot = True
+        motion_vector.frames = self.edit_motion_using_displacement_map(motion_vector.frames, motion_vector.ik_constraints, plot)
         self.apply_orientation_constraints(motion_vector.frames, motion_vector.ik_constraints)
 
-    def edit_motion_using_displacement_map(self, frames, constraints, plot=False):
+    def edit_motion_using_displacement_map(self, frames, constraints, influence_range=40, plot=False):
         """ References
                 Witkin and Popovic: Motion Warping, 1995.
                 Bruderlin and Williams: Motion Signal Processing, 1995.
@@ -335,7 +332,7 @@ class MotionEditing(object):
         """
         n_frames = len(frames)
         times = list(range(n_frames))
-        d_times, delta_frames = self.generate_delta_frames(frames, constraints)
+        d_times, delta_frames = self.generate_delta_frames(frames, constraints, influence_range)
         d_curve = CubicMotionSpline.fit_frames(self.skeleton, d_times, delta_frames)
         if plot:
             t = np.linspace(0, n_frames - 1, num=100, endpoint=True)
