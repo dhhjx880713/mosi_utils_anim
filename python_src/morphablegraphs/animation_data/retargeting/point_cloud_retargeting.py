@@ -212,12 +212,13 @@ class PointCloudRetargeting(object):
             else:
                 self.src_child_map[src_name] = None
         #print("ch",self.src_child_map)
-        target_joints = self.target_skeleton.skeleton_model["joints"]
         #for j in ["pelvis", "spine", "spine_1", "spine_2"]:
         #    if j in target_joints:
-
-        self.src_parent_map["spine_03"] = "pelvis"
-        self.src_child_map["pelvis"] = "neck_01"
+        src_joint_map = self.src_model["joints"]
+        for j in ["neck", "spine_2", "spine_1", "spine"]:
+            if j in src_joint_map:
+                self.src_parent_map["spine_03"] = "pelvis"
+        self.src_child_map[src_joint_map["pelvis"]] = src_joint_map["neck"]#"pelvis" "neck_01"
 
         self.constant_offset = constant_offset
         self.place_on_ground = place_on_ground
@@ -229,6 +230,7 @@ class PointCloudRetargeting(object):
         if "x_cos_fixes" in target_skeleton.skeleton_model:
             apply_manual_fixes(self.target_cos_map, target_skeleton.skeleton_model["x_cos_fixes"])
 
+        target_joints = self.target_skeleton.skeleton_model["joints"]
         self.target_spine_joints = [target_joints[j] for j in ["neck", "spine_2", "spine_1", "spine"] if j in target_joints]#["spine_03", "neck_01"]
         self.target_ball_joints = [target_joints[j] for j in ["left_shoulder", "right_shoulder", "left_hip", "right_hip"] if j in target_joints]# ["thigh_r", "thigh_l", "upperarm_r", "upperarm_l"]
         self.target_ankle_joints = [target_joints[j] for j in ["left_ankle", "right_ankle", "spine_1"] if j in target_joints]
