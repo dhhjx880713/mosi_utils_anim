@@ -341,9 +341,10 @@ MH_CMU_SKELETON_MODEL["foot_joints"] = []
 
 ICLONE_SKELETON_JOINTS = collections.OrderedDict()
 ICLONE_SKELETON_JOINTS["root"] = "CC_Base_BoneRoot"
-ICLONE_SKELETON_JOINTS["pelvis"] = "CC_Base_Pelvis"
+ICLONE_SKELETON_JOINTS["pelvis"] = "CC_Base_Hip"#CC_Base_Pelvis
 ICLONE_SKELETON_JOINTS["spine"] = "CC_Base_Waist"
-ICLONE_SKELETON_JOINTS["spine_1"] = "CC_Base_Spine02"
+ICLONE_SKELETON_JOINTS["spine_1"] = "CC_Base_Spine01"
+ICLONE_SKELETON_JOINTS["spine_2"] = "CC_Base_Spine02"
 ICLONE_SKELETON_JOINTS["left_clavicle"] = "CC_Base_L_Clavicle"
 ICLONE_SKELETON_JOINTS["right_clavicle"] = "CC_Base_R_Clavicle"
 ICLONE_SKELETON_JOINTS["left_shoulder"] = "CC_Base_L_Upperarm"
