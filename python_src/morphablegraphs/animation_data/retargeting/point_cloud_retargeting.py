@@ -51,7 +51,7 @@ def rotate_axes(cos, q):
     return cos
 
 
-def get_child_joint(joints, skeleton_model, inv_joint_map, node_name, src_children_map):
+def get_child_joint(skeleton_model, inv_joint_map, node_name, src_children_map):
     """ Warning output is random if there are more than one child joints
         and the value is not specified in the JOINT_CHILD_MAP """
     child_name = None
@@ -149,6 +149,7 @@ def align_joint(new_skeleton, free_joint_name, local_target_axes, global_src_up_
     q = normalize(q)
     return q
 
+
 def find_rotation_analytically(new_skeleton, free_joint_name, target, frame, joint_cos_map, is_root=False, max_iter_count=10):
     global_src_up_vec = target["global_src_up_vec"]
     global_src_x_vec = target["global_src_x_vec"]
@@ -166,6 +167,7 @@ def get_parent_map(joints):
     for joint_name in list(joints.keys()):
         parent_dict[joint_name] = joints[joint_name]['parent']
     return parent_dict
+
 
 def get_children_map(joints):
     """Returns a dict of node names to a list of children names"""
@@ -203,13 +205,17 @@ class PointCloudRetargeting(object):
         self.src_parent_map = get_parent_map(src_joints)
         src_children_map = get_children_map(src_joints)
         for src_name in self.src_joints:
-            src_child = get_child_joint(self.src_joints, self.src_model, self.src_inv_joint_map, src_name, src_children_map)
+            src_child = get_child_joint(self.src_model, self.src_inv_joint_map, src_name, src_children_map)
             if src_child is not None:
                 self.src_parent_map[src_child] = src_name
                 self.src_child_map[src_name] = src_child
             else:
                 self.src_child_map[src_name] = None
         #print("ch",self.src_child_map)
+        target_joints = self.target_skeleton.skeleton_model["joints"]
+        #for j in ["pelvis", "spine", "spine_1", "spine_2"]:
+        #    if j in target_joints:
+
         self.src_parent_map["spine_03"] = "pelvis"
         self.src_child_map["pelvis"] = "neck_01"
 
@@ -222,6 +228,11 @@ class PointCloudRetargeting(object):
             self.target_cos_map.update(target_skeleton.skeleton_model["cos_map"])
         if "x_cos_fixes" in target_skeleton.skeleton_model:
             apply_manual_fixes(self.target_cos_map, target_skeleton.skeleton_model["x_cos_fixes"])
+
+        self.target_spine_joints = [target_joints[j] for j in ["neck", "spine_2", "spine_1", "spine"] if j in target_joints]#["spine_03", "neck_01"]
+        self.target_ball_joints = [target_joints[j] for j in ["left_shoulder", "right_shoulder", "left_hip", "right_hip"] if j in target_joints]# ["thigh_r", "thigh_l", "upperarm_r", "upperarm_l"]
+        self.target_ankle_joints = [target_joints[j] for j in ["left_ankle", "right_ankle", "spine_1"] if j in target_joints]
+
 
     def rotate_bone(self, src_name, target_name, src_frame, target_frame, guess):
         q = guess
@@ -239,21 +250,21 @@ class PointCloudRetargeting(object):
             global_src_up_vec = src_frame[child_idx] - src_frame[joint_idx]
             global_src_up_vec /= np.linalg.norm(global_src_up_vec)
             self.temp_frame_data[src_name] = global_src_up_vec
-            if target_name in [self.target_skeleton_root]:
+            if target_name == self.target_skeleton.skeleton_model["joints"]["pelvis"]:
                 left_hip = self.src_model["joints"]["left_hip"]
                 right_hip = self.src_model["joints"]["right_hip"]
                 left_hip_idx = self.src_joints[left_hip]["index"]
                 right_hip_idx = self.src_joints[right_hip]["index"]
                 global_src_x_vec = src_frame[left_hip_idx] - src_frame[right_hip_idx]
                 global_src_x_vec /= np.linalg.norm(global_src_x_vec)
-            elif target_name in ["spine_03", "neck_01"]:# find x vector from shoulders
+            elif target_name in self.target_spine_joints or target_name == "CC_Base_Waist":# find x vector from shoulders
                 left_shoulder = self.src_model["joints"]["left_shoulder"]
                 right_shoulder = self.src_model["joints"]["right_shoulder"]
                 left_shoulder_idx = self.src_joints[left_shoulder]["index"]
                 right_shoulder_idx = self.src_joints[right_shoulder]["index"]
                 global_src_x_vec = src_frame[left_shoulder_idx] - src_frame[right_shoulder_idx]
                 global_src_x_vec /= np.linalg.norm(global_src_x_vec)
-            elif target_name in ["thigh_r", "thigh_l", "upperarm_r", "upperarm_l"]: # use x vector of child
+            elif target_name in self.target_ball_joints: # use x vector of child
                 child_child_name = self.src_child_map[child_name]
                 child_child_idx = self.src_joints[child_child_name]["index"]
                 child_global_src_up_vec = src_frame[child_child_idx] - src_frame[child_idx]
@@ -263,7 +274,6 @@ class PointCloudRetargeting(object):
                 global_src_x_vec /= np.linalg.norm(global_src_x_vec)
             else:# find x vector by cross product with parent
                 global_src_x_vec = None
-                parent_joint = None
                 if src_name in self.src_parent_map:
                     parent_joint = self.src_parent_map[src_name]
                     if parent_joint in self.temp_frame_data:
@@ -271,11 +281,12 @@ class PointCloudRetargeting(object):
                         global_src_x_vec = np.cross(global_src_up_vec, global_parent_up_vector)
                         global_src_x_vec /= np.linalg.norm(global_src_x_vec)
                         #print("apply",src_name, parent_joint, global_src_x_vec)
-                        if target_name in ["calf_l", "calf_r","thigh_r","thigh_l", "spine_03","neck_01","lowerarm_r","lowerarm_l"]:
+                        #if target_name in ["calf_l", "calf_r","thigh_r","thigh_l", "spine_03","neck_01","lowerarm_r","lowerarm_l"]:
+                        if target_name not in self.target_ankle_joints:
                             global_src_x_vec = - global_src_x_vec
                         #global_src_x_vec = None
                 #if global_src_x_vec is None:
-                    #print("did not find vector", target_name, parent_joint, self.target_skeleton.root)
+                #    print("did not find vector", target_name, parent_joint, self.target_skeleton.root)
 
             target = {"global_src_up_vec": global_src_up_vec,
                       "global_src_x_vec": global_src_x_vec}
