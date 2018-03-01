@@ -27,28 +27,6 @@ def eval_func( n):
     return str(count)
 
 
-class TestHandler(tornado.web.RequestHandler):
-    @gen.coroutine
-    def get(self):
-        global context
-        try:
-            id = context.count
-            print("start process", id)
-            context.count += 1
-            fut = pool.submit(eval_func, context)
-            while not fut.done():
-                yield gen.sleep(0.2) # start process and wait until it is done
-            result_str = fut.result()
-            print("end process", id)
-            self.write(str(id)+": "+result_str)
-        except Exception as e:
-            print("caught exception in get")
-            self.write("Caught an exception: %s" % e)
-            raise
-        finally:
-            self.finish()
-
-
 class Context(object):
     def __init__(self, service_config, algorithm_config, target_skeleton=None):
         self.service_config = service_config
@@ -155,7 +133,6 @@ class GetSkeletonHandler(tornado.web.RequestHandler):
 
 
 app = tornado.web.Application([
-    (r"/test", TestHandler),
     (r"/generate_motion", GenerateMotionHandler),
     (r"/get_skeleton", GetSkeletonHandler)
 ])
