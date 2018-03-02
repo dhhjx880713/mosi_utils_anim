@@ -52,10 +52,11 @@ class ConstrainedRetargeting(Retargeting):
         src_joint_map = src_skeleton.skeleton_model["joints"]
         self.constrained_joints = [src_joint_map[j] for j in CONSTRAINED_JOINTS]
         self.ik = HybritIK(target_skeleton, IK_SETTINGS)
-        self.ik.add_analytical_ik(src_joint_map["left_wrist"], src_joint_map["left_elbow"], src_joint_map["left_shoulder"], [1,0,0],[0,0,1])
-        self.ik.add_analytical_ik(src_joint_map["right_wrist"], src_joint_map["right_elbow"], src_joint_map["right_shoulder"], [1, 0, 0], [0, 0, 1])
-        self.ik.add_analytical_ik(src_joint_map["right_ankle"], src_joint_map["right_knee"], src_joint_map["right_hip"], [1, 0, 0], [0, 0, 1])
-        self.ik.add_analytical_ik(src_joint_map["left_ankle"], src_joint_map["left_knee"], src_joint_map["left_hip"], [1, 0, 0], [0, 0, 1])
+        target_joint_map = target_skeleton.skeleton_model["joints"]
+        self.ik.add_analytical_ik(target_joint_map["left_wrist"], target_joint_map["left_elbow"], target_joint_map["left_shoulder"], [1,0,0],[0,0,1])
+        self.ik.add_analytical_ik(target_joint_map["right_wrist"], target_joint_map["right_elbow"], target_joint_map["right_shoulder"], [1, 0, 0], [0, 0, 1])
+        self.ik.add_analytical_ik(target_joint_map["right_ankle"], target_joint_map["right_knee"], target_joint_map["right_hip"], [1, 0, 0], [0, 0, 1])
+        self.ik.add_analytical_ik(target_joint_map["left_ankle"], target_joint_map["left_knee"], target_joint_map["left_hip"], [1, 0, 0], [0, 0, 1])
 
     def generate_ik_constraints(self, frame):
         constraints = []
