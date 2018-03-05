@@ -72,6 +72,8 @@ class SkeletonBuilder(object):
         skeleton.animated_joints = animated_joints
         skeleton.frame_time = deepcopy(bvh_reader.frame_time)
         skeleton.root = deepcopy(bvh_reader.root)
+        skeleton.aligning_root_node = skeleton.root
+        skeleton.aligning_root_dir = ROCKETBOX_ROOT_DIR
         if reference_frame is None:
             skeleton.reference_frame = read_reference_frame_from_bvh_reader(bvh_reader)
         else:
@@ -170,6 +172,7 @@ class SkeletonBuilder(object):
             skeleton.skeleton_model = data["skeleton_model"]
         else:
             skeleton.skeleton_model = collections.OrderedDict()
+            skeleton.skeleton_model["joints"] = dict()
             if "head_joint" in list(data.keys()):
                 skeleton.skeleton_model["joints"]["head"] = data["head_joint"]
             if "neck_joint" in list(data.keys()):
