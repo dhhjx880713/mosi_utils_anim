@@ -185,18 +185,17 @@ class PointCloudRetargeting(object):
     def __init__(self, src_joints, src_model, target_skeleton, target_to_src_joint_map, scale_factor=1.0, additional_rotation_map=None, constant_offset=None, place_on_ground=False, ground_height=0):
         self.src_joints = src_joints
         self.src_model = src_model
-        #self.src_skeleton.skeleton_model["joints"]["root"] = None
-        #self.src_skeleton.skeleton_model["joints"]["pelvis"] = "Root"
         self.target_skeleton = target_skeleton
         self.target_to_src_joint_map = target_to_src_joint_map
-        self.target_skeleton_root = "pelvis"
-        #self.target_to_src_joint_map["Root"] = "Root"
-        #self.target_to_src_joint_map["pelvis"] = "pelvis"
-        self.target_to_src_joint_map["spine"] = None
-        self.target_to_src_joint_map["spine_01"] = None
-        #self.target_to_src_joint_map["spine_03"] = None
-        #self.target_to_src_joint_mapp["Root"] = "pelvis"
+        if target_skeleton.skeleton_model["joints"]["pelvis"] is not None:
+            self.target_skeleton_root = target_skeleton.skeleton_model["joints"]["pelvis"]
+        else:
+            self.target_skeleton_root = target_skeleton.root
 
+        for j in ["spine_2", "spine_1", "spine"]:
+            k = self.target_skeleton.skeleton_model["joints"][j]
+            self.target_to_src_joint_map[k] = None
+            
         self.src_to_target_joint_map = {v: k for k, v in list(self.target_to_src_joint_map.items())}
         self.scale_factor = scale_factor
         self.n_params = len(self.target_skeleton.animated_joints) * 4 + 3
@@ -235,7 +234,7 @@ class PointCloudRetargeting(object):
         target_joints = self.target_skeleton.skeleton_model["joints"]
         self.target_spine_joints = [target_joints[j] for j in ["neck", "spine_2", "spine_1", "spine"] if j in target_joints]#["spine_03", "neck_01"]
         self.target_ball_joints = [target_joints[j] for j in ["left_shoulder", "right_shoulder", "left_hip", "right_hip"] if j in target_joints]# ["thigh_r", "thigh_l", "upperarm_r", "upperarm_l"]
-        self.target_ankle_joints = [target_joints[j] for j in ["left_ankle", "right_ankle", "spine_1"] if j in target_joints]
+        self.target_ankle_joints = [target_joints[j] for j in ["left_ankle", "right_ankle"] if j in target_joints]
 
     def rotate_bone(self, src_name, target_name, src_frame, target_frame, guess):
         q = guess
