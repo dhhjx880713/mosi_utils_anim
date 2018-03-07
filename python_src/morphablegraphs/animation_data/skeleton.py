@@ -337,6 +337,13 @@ class Skeleton(object):
             frame += list(self.nodes[joint_name].rotation)
         return frame
 
+    def set_reference_frame(self, frame):
+        self.reference_frame = frame
+        o = 3
+        for joint_name in self.animated_joints:
+            self.nodes[joint_name].rotation = frame[o:o+4]
+            o += 4
+
     def add_heels(self, skeleton_model):
         lknee_name = skeleton_model["joints"]["left_knee"]
         rknee_name = skeleton_model["joints"]["right_knee"]
