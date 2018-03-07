@@ -135,15 +135,16 @@ def align_joint(new_skeleton, free_joint_name, local_target_axes, global_src_up_
         #old_x = np.array(axes["x"])
         qx, axes = align_axis(axes, "x", global_src_x_vec)
         q = quaternion_multiply(qx, q)
+        q = normalize(q)
+
 
         qy, axes = align_axis(axes, "y", global_src_up_vec)
         q = quaternion_multiply(qy, q)
-
+        q = normalize(q)
 
         qx, axes = align_axis(axes, "x", global_src_x_vec)
         q = quaternion_multiply(qx, q)
-
-        #print("apply x",free_joint_name, old_x, axes["x"], global_src_x_vec)
+        q = normalize(q)
     #else:
         #print("do not apply x", free_joint_name)
     q = normalize(q)
@@ -189,10 +190,11 @@ class PointCloudRetargeting(object):
         self.target_skeleton = target_skeleton
         self.target_to_src_joint_map = target_to_src_joint_map
         self.target_skeleton_root = "pelvis"
-        self.target_to_src_joint_map["Root"] = "Root"
-        self.target_to_src_joint_map["pelvis"] = "pelvis"
+        #self.target_to_src_joint_map["Root"] = "Root"
+        #self.target_to_src_joint_map["pelvis"] = "pelvis"
         self.target_to_src_joint_map["spine"] = None
         self.target_to_src_joint_map["spine_01"] = None
+        #self.target_to_src_joint_map["spine_03"] = None
         #self.target_to_src_joint_mapp["Root"] = "pelvis"
 
         self.src_to_target_joint_map = {v: k for k, v in list(self.target_to_src_joint_map.items())}
@@ -235,7 +237,6 @@ class PointCloudRetargeting(object):
         self.target_ball_joints = [target_joints[j] for j in ["left_shoulder", "right_shoulder", "left_hip", "right_hip"] if j in target_joints]# ["thigh_r", "thigh_l", "upperarm_r", "upperarm_l"]
         self.target_ankle_joints = [target_joints[j] for j in ["left_ankle", "right_ankle", "spine_1"] if j in target_joints]
 
-
     def rotate_bone(self, src_name, target_name, src_frame, target_frame, guess):
         q = guess
         if src_name not in self.src_child_map.keys() or self.src_child_map[src_name] is None:
@@ -244,7 +245,6 @@ class PointCloudRetargeting(object):
 
             joint_idx = self.src_joints[src_name]["index"]
             child_name = self.src_child_map[src_name]
-            #print(src_name, child_name)
             if child_name not in self.src_joints.keys():
                 return q
             child_idx = self.src_joints[child_name]["index"]
@@ -296,35 +296,25 @@ class PointCloudRetargeting(object):
             if target_name == self.target_skeleton_root:
                 is_root = True
             q = find_rotation_analytically(self.target_skeleton, target_name, target, target_frame, self.target_cos_map, is_root)
-
         return q/np.linalg.norm(q)
 
     def retarget_frame(self, src_frame, ref_frame):
         target_frame = np.zeros(self.n_params)
         self.temp_frame_data = dict()
-
         # copy the root translation assuming the rocketbox skeleton with static offset on the hips is used as source
         target_frame[:3] = np.array(src_frame[0]) * self.scale_factor
         if self.constant_offset is not None:
             target_frame[:3] += self.constant_offset
         animated_joints = self.target_skeleton.animated_joints
         target_offset = 3
-
         for target_name in animated_joints:
             q = get_quaternion_rotation_by_name(target_name, self.target_skeleton.reference_frame, self.target_skeleton, root_offset=3)
-
             if target_name in self.target_to_src_joint_map.keys():
-
                 src_name = self.target_to_src_joint_map[target_name]
                 if src_name is not None and src_name in self.src_joints.keys():
                     q = self.rotate_bone(src_name, target_name, src_frame, target_frame, q)
-
             if ref_frame is not None:
-                #  align quaternion to the reference frame to allow interpolation
-                #  http://physicsforgames.blogspot.de/2010/02/quaternions.html
-                ref_q = ref_frame[target_offset:target_offset + 4]
-                if np.dot(ref_q, q) < 0:
-                    q = -q
+                q = q if np.dot(ref_frame[target_offset:target_offset + 4], q) >= 0 else -q
             target_frame[target_offset:target_offset + 4] = q
             target_offset += 4
 
