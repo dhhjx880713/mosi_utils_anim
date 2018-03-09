@@ -10,6 +10,7 @@ from .bvh import BVHWriter
 import imp
 from ..external.transformations import quaternion_inverse, quaternion_multiply
 
+
 class MotionVector(object):
     """
     Contains quaternion frames,
@@ -56,11 +57,10 @@ class MotionVector(object):
             prevq = self.frames[idx-1][3:7] / np.linalg.norm(self.frames[idx-1][3:7])
             delta_q = quaternion_multiply(quaternion_inverse(prevq), currentq)
             delta_frame[3:7] = delta_q
-            print(idx, self.frames[idx][:3], self.frames[idx - 1][:3], delta_frame[:3], delta_frame[3:7])
+            #print(idx, self.frames[idx][:3], self.frames[idx - 1][:3], delta_frame[:3], delta_frame[3:7])
 
             relative_frames.append(delta_frame)
         return relative_frames
-
 
     def append_frames_generic(self, new_frames):
         """Align quaternion frames to previous frames
@@ -77,11 +77,11 @@ class MotionVector(object):
         self.frames = align_and_concatenate_frames(self.skeleton, self.skeleton.aligning_root_node, new_frames, self.frames, self.start_pose,
                                                    smoothing_window=smoothing_window, blending_method=self.spatial_smoothing_method)
 
-        self._prev_n_frames = self.n_frames
         self.n_frames = len(self.frames)
+        self._prev_n_frames = self.n_frames
+
 
     def append_frames_using_forward_blending(self, new_frames):
-
         if self.apply_spatial_smoothing:
             smoothing_window = self.smoothing_window
         else:
@@ -173,7 +173,51 @@ class MotionVector(object):
 
         return frame
 
-    def from_custom_unity_format(self, data):
+    def to_unity_format(self, scale=1.0):
+        """ Converts the frames into a custom json format for use in a Unity client"""
+        animated_joints = [j for j, n in list(self.skeleton.nodes.items()) if
+                           "EndSite" not in j and len(n.children) > 0]  # self.animated_joints
+        unity_frames = []
+
+        for node in list(self.skeleton.nodes.values()):
+            node.quaternion_index = node.index
+
+        for frame in self.frames:
+            unity_frame = self._convert_frame_to_unity_format(frame, animated_joints, scale)
+            unity_frames.append(unity_frame)
+
+        result_object = dict()
+        result_object["frames"] = unity_frames
+        result_object["frameTime"] = self.frame_time
+        result_object["jointSequence"] = animated_joints
+        return result_object
+
+    def _convert_frame_to_unity_format(self, frame, animated_joints, scale=1.0):
+        """ Converts the frame into a custom json format and converts the transformations
+            to the left-handed coordinate system of Unity.
+            src: http://answers.unity3d.com/questions/503407/need-to-convert-to-right-handed-coordinates.html
+        """
+        unity_frame = {"rotations": [], "rootTranslation": None}
+        for node_name in self.skeleton.nodes.keys():
+            if node_name in animated_joints:
+                node = self.skeleton.nodes[node_name]
+                if node_name == self.skeleton.root:
+                    t = frame[:3] * scale
+                    unity_frame["rootTranslation"] = {"x": -t[0], "y": t[1], "z": t[2]}
+
+                if node_name in self.skeleton.animated_joints:  # use rotation from frame
+                    # TODO fix: the animated_joints is ordered differently than the nodes list for the latest model
+                    index = self.skeleton.animated_joints.index(node_name)
+                    offset = index * 4 + 3
+                    r = frame[offset:offset + 4]
+                    unity_frame["rotations"].append({"x": -r[1], "y": r[2], "z": r[3], "w": -r[0]})
+                else:  # use fixed joint rotation
+                    r = node.rotation
+                    unity_frame["rotations"].append(
+                        {"x": -float(r[1]), "y": float(r[2]), "z": float(r[3]), "w": -float(r[0])})
+        return unity_frame
+
+    def  from_custom_unity_format(self, data):
         self.frames = []
         for f in data["frames"]:
             t = f["rootTranslation"]
@@ -185,6 +229,7 @@ class MotionVector(object):
                 new_f.append(q["z"])
 
             self.frames.append(new_f)
+        self.frames = np.array(self.frames)
         self.n_frames = len(self.frames)
         self.frame_time = data["frameTime"]
 
