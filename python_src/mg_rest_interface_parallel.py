@@ -18,6 +18,7 @@ import tornado.platform.asyncio
 from morphablegraphs.animation_data.skeleton_models import SKELETON_MODELS
 from morphablegraphs.animation_data import BVHReader, SkeletonBuilder
 from morphablegraphs.animation_data.retargeting import retarget_from_src_to_target
+from morphablegraphs.utilities.height_map_interface import HeightMapInterface
 
 
 def eval_func( n):
@@ -132,9 +133,67 @@ class GetSkeletonHandler(tornado.web.RequestHandler):
         self.write(json.dumps(result_object))
 
 
+def set_height_map(context, data):
+    """ https://stackoverflow.com/questions/12511408/accepting-json-image-file-in-python
+    https://stackoverflow.com/questions/32908639/open-pil-image-from-byte-file/32908899
+    """
+    from PIL import Image
+    success = False
+    if "image_path" in data:
+        image_path = data["image_path"]
+        width = data["width"]
+        depth = data["depth"]
+        height_scale = data["height_scale"]
+        if os.path.isfile(image_path):
+            with open(image_path, "rb") as input_file:
+                img = Image.open(input_file)
+                img_copy = img.copy()  # work with a copy of the image to close the file
+                img.close()
+                print("set height map from file", image_path, "size:",img.size,"mode:", img.mode)
+                scene = HeightMapInterface(img_copy, width, depth, height_scale)
+                context.generator.scene_interface.set_scene(scene)
+                success = True
+    elif "image" in data:
+        import base64
+        size = data["size"]
+        mode = data["mode"]
+        width = data["width"]
+        depth = data["depth"]
+        height_scale = data["height_scale"]
+        img = Image.frombytes(mode, size, base64.decodebytes(data["image"]))
+        print("set height map from string", "size:", img.size, "mode:", img.mode)
+        scene = HeightMapInterface(img, width, depth, height_scale)
+        context.generator.scene_interface.set_scene(scene)
+        success = True
+    return success
+
+
+class SetHeightMapHandler(tornado.web.RequestHandler):
+    @gen.coroutine
+    def post(self):
+        global context
+        try:
+            data = json.loads(self.request.body.decode("utf-8"))
+        except Exception as e:
+            error_string = "Error: Could not decode request body as JSON." + str(e.args)
+            write_message_to_log(error_string, LOG_MODE_ERROR)
+            self.write(error_string)
+            return
+        try:
+            success = set_height_map(context, data)
+            self.write("{'success': "+str(success)+"}")
+
+        except Exception as e:
+            print("caught exception in get")
+            self.write("Caught an exception: %s" % e)
+            raise
+        finally:
+            self.finish()
+
 app = tornado.web.Application([
     (r"/generate_motion", GenerateMotionHandler),
-    (r"/get_skeleton", GetSkeletonHandler)
+    (r"/get_skeleton", GetSkeletonHandler),
+    (r"/set_height_map", SetHeightMapHandler)
 ])
 
 SERVICE_CONFIG_FILE = "config" + os.sep + "service.config"
