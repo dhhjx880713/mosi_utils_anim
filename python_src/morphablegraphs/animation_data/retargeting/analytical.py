@@ -469,11 +469,8 @@ class Retargeting(object):
         n_frames = len(src_frames)
         target_frames = []
         if n_frames > 0:
-            n_dims = len(src_frames[0])
             if frame_range is None:
                 frame_range = (0, n_frames)
-
-            #print("retarget", n_frames, n_dims, len(self.target_skeleton.animated_joints), frame_range)
             if self.additional_rotation_map is not None:
                src_frames = apply_additional_rotation_on_frames(self.src_skeleton.animated_joints, src_frames, self.additional_rotation_map)
 
