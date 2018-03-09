@@ -61,7 +61,11 @@ class Skeleton(object):
             node_desc["parent"] = None
         node_desc["quaternion_frame_index"] = node.quaternion_frame_index
         node_desc["index"] = node.index
-        node_desc["offset"] = node.offset.tolist()
+        if type(node.offset) == np.ndarray:
+            offset = node.offset.tolist()
+        else:
+            offset = node.offset
+        node_desc["offset"] = offset
         node_desc["channels"] = node.channels
         node_desc["rotation"] = node.rotation.tolist()
         node_desc["fixed"] = node.fixed
