@@ -275,7 +275,7 @@ class MotionGenerator(object):
            Contains a list of quaternion frames and their annotation based on actions.
         """
         ik_settings = self._algorithm_config["inverse_kinematics_settings"]
-        has_model = self.footplant_constraint_generator is not None and self._motion_state_graph.skeleton.skeleton_model is not None
+        has_model = self._motion_state_graph.skeleton.skeleton_model is not None
         if self._algorithm_config["activate_motion_grounding"] and has_model and self.scene_interface is not None and "motion_grounding_settings" in self._algorithm_config:
             self.run_motion_grounding(motion_vector, ik_settings)
             #self.run_motion_grounding(motion_vector, ik_settings)
@@ -304,7 +304,7 @@ class MotionGenerator(object):
         damp_factor = grounding_settings["damp_factor"]
         grounding = MotionGrounding(self._motion_state_graph.skeleton, ik_settings, skeleton_model,
                                     use_analytical_ik=True, damp_angle=damp_angle, damp_factor=damp_factor)
-        if grounding_settings["generate_foot_plant_constraints"]:
+        if grounding_settings["generate_foot_plant_constraints"] and self.footplant_constraint_generator is not None:
             constraints, blend_ranges, ground_contacts = self.footplant_constraint_generator.generate_from_graph_walk(
                 motion_vector)
             motion_vector.grounding_constraints = constraints
