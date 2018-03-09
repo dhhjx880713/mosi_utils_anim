@@ -320,8 +320,7 @@ class MotionEditing(object):
         return list(delta_frames.keys()), np.array(list(delta_frames.values()))
 
     def modify_motion_vector2(self, motion_vector, plot=False):
-        plot = True
-        motion_vector.frames = self.edit_motion_using_displacement_map(motion_vector.frames, motion_vector.ik_constraints, plot)
+        motion_vector.frames = self.edit_motion_using_displacement_map(motion_vector.frames, motion_vector.ik_constraints, plot=plot)
         self.apply_orientation_constraints(motion_vector.frames, motion_vector.ik_constraints)
 
     def edit_motion_using_displacement_map(self, frames, constraints, influence_range=40, plot=False):
