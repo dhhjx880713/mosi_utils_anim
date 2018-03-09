@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import collections
 from ..animation_data import MotionVector, ROTATION_TYPE_QUATERNION, SkeletonBuilder, BVHReader
 from ..utilities import write_to_json_file
 from ..utilities.io_helper_functions import get_bvh_writer
@@ -14,7 +15,7 @@ class AnnotatedMotionVector(MotionVector):
         self.graph_walk = None
         self.grounding_constraints = None
         self.ground_contacts = None
-        self.ik_constraints = dict()
+        self.ik_constraints = collections.OrderedDict()
 
     def export(self, output_filename, add_time_stamp=False, export_details=False):
         """ Saves the resulting animation frames, the annotation and actions to files.
@@ -56,7 +57,8 @@ class AnnotatedMotionVector(MotionVector):
         result_object["frames"] = unity_frames
         result_object["frameTime"] = self.frame_time
         result_object["jointSequence"] = animated_joints
-        result_object["events"] = self._extract_event_list_from_keyframes()
+        if self.graph_walk is not None:
+            result_object["events"] = self._extract_event_list_from_keyframes()
         return result_object
 
     def _convert_frame_to_unity_format(self, frame, animated_joints, scale=1.0):
