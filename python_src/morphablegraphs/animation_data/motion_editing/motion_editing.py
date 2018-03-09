@@ -306,14 +306,17 @@ class MotionEditing(object):
         delta_frames[n_frames - 2] = zero_frame
         delta_frames[n_frames - 1] = zero_frame
         for frame_idx, frame_constraints in constraints.items():
+            # delete zero frames in range around constraint
+            start = max(frame_idx - influence_range, min(frame_idx, 2))
+            end = min(frame_idx + influence_range, max(frame_idx, n_frames - 2))
+            for i in range(start, end):
+                if i in delta_frames and i not in constrained_frames:
+                    del delta_frames[i]
+
             frame_constraints = list(frame_constraints.values())
             exp_frame = self._ik_exp.run(frames[frame_idx], frame_constraints)
+
             n_dims = len(self.skeleton.animated_joints) * 4 + 3
-            start = max(frame_idx-influence_range, min(frame_idx, 2))
-            end = min(frame_idx+influence_range, n_frames-2)
-            for i in range(start, end):
-                if i in delta_frames:
-                    del delta_frames[i]
             delta_frames[frame_idx] = np.zeros(n_dims)
             delta_frames[frame_idx][3:] = convert_exp_frame_to_quat_frame(self.skeleton, exp_frame)
         delta_frames = collections.OrderedDict(sorted(delta_frames.items(), key=lambda x: x[0]))
