@@ -299,13 +299,18 @@ def align_joint(new_skeleton, free_joint_name, local_target_axes, global_src_up_
     q = quaternion_multiply(qy, q)
     joint_map = new_skeleton.skeleton_model["joints"]
     q = normalize(q)
-    if  free_joint_name == joint_map["spine"]:#free_joint_name == joint_map["pelvis"] or
+    if free_joint_name == joint_map["pelvis"]:
         # handle special case of applying the x axis rotation of the Hip to the pelvis
         node = new_skeleton.nodes[free_joint_name]
-        t_pose_global_m = node.get_global_matrix(new_skeleton.reference_frame)[:3, :3]
-        global_original = np.dot(t_pose_global_m, joint_cos_map[free_joint_name]["y"])
+        t_pose_global_m = node.get_global_matrix(new_skeleton.reference_frame)
+        global_original = np.dot(t_pose_global_m[:3, :3], joint_cos_map[free_joint_name]["y"])
         global_original = normalize(global_original)
-        qoffset = find_rotation_between_vectors(OPENGL_UP_AXIS, global_original)
+        neck_node_name = new_skeleton.skeleton_model["joints"]["neck"]
+        neck_pos = new_skeleton.nodes[neck_node_name].get_global_position(new_skeleton.reference_frame)
+        pelvis_pos = t_pose_global_m[:3, 3]
+        direction_to_neck = neck_pos-pelvis_pos
+        direction_to_neck /= np.linalg.norm(direction_to_neck)
+        qoffset = find_rotation_between_vectors(direction_to_neck, global_original)
         q = quaternion_multiply(qoffset, q)
         q = normalize(q)
 
