@@ -125,7 +125,7 @@ def find_rotation_between_vectors(a, b):
     return q
 
 
-def to_local_cos(skeleton, node_name, frame, q):
+def to_local_cos_old(skeleton, node_name, frame, q):
     # bring into parent coordinate system
     pm = skeleton.nodes[node_name].get_global_matrix(frame)[:3,:3]
     inv_pm = np.linalg.inv(pm)
@@ -133,6 +133,14 @@ def to_local_cos(skeleton, node_name, frame, q):
     lr = np.dot(inv_pm, r)[:3,:3]
     q = quaternion_from_matrix(lr)
     return q
+
+
+def to_local_cos(skeleton, node_name, frame, q):
+    # bring into parent coordinate system
+    pm = skeleton.nodes[node_name].get_global_matrix(frame)[:3,:3]
+    inv_p = quaternion_inverse(quaternion_from_matrix(pm))
+    normalize(inv_p)
+    return quaternion_multiply(inv_p, q)
 
 
 def to_global_cos(skeleton, node_name, frame, q):
