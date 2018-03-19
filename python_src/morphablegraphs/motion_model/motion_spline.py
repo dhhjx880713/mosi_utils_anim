@@ -77,3 +77,6 @@ class MotionSpline(object):
         if self.buffered_frames is None:
             self.buffered_frames = self.get_motion_vector()
         return self.buffered_frames
+
+    def get_domain(self):
+        return self.knots[0], self.knots[-1]
