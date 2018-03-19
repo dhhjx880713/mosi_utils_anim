@@ -1,6 +1,7 @@
 NODE_TYPE_START = "start"
 NODE_TYPE_STANDARD = "standard"
 NODE_TYPE_END = "end"
+NODE_TYPE_IDLE = "idle"
 NODE_TYPE_SINGLE = "single_primitive"
 NODE_TYPE_CYCLE_END = "cycle_end"
 B_SPLINE_DEGREE = 3
