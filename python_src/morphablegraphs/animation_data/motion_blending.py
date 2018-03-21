@@ -112,7 +112,7 @@ def create_transition_using_slerp(quat_frames, start_frame, end_frame, joint_par
         quat_frames[start_frame+i, joint_parameter_indices] = slerp_q
 
 
-def smooth_quaternion_frames(frames, discontinuity, window=20, include_root=False):
+def smooth_quaternion_frames(frames, discontinuity, window=20, include_root=True):
     """ Smooth quaternion frames given discontinuity frame
 
     Parameters
@@ -257,14 +257,13 @@ def smooth_quaternion_frames_joint_filter(skeleton, frames, discontinuity, joint
     for idx, j in enumerate(joints):
         j_idx = skeleton.animated_joints.index(j)
         q_start_idx = 3 + j_idx * 4
-        q_end_idx = 3 + (j_idx + 1) * 4
+        q_end_idx = q_start_idx + 4
         dof_filter_list += [q_start_idx, q_start_idx + 1, q_start_idx + 2, q_start_idx + 3]
         for f in range(n_frames - 1):
             q1 = np.array(frames[f][q_start_idx: q_end_idx])
             q2 = np.array(frames[f + 1][q_start_idx:q_end_idx])
             if np.dot(q1, q2) < 0:
                 frames[f + 1][q_start_idx:q_end_idx] = -q2
-
     d = int(discontinuity)
     new_frames = np.array(frames)
     for dof_idx in dof_filter_list:
