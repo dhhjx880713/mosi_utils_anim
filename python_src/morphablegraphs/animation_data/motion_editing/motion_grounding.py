@@ -276,20 +276,20 @@ class MotionGrounding(object):
         else:
             print("no change")
 
-    def generate_root_constraint_for_two_feet(self, frame, constraint1, constraint2):
+    def generate_root_constraint_for_two_feet(self, frame, constraint1, constraint2, limb_length_offset=0.0):
         """ Set the root position to the projection on the intersection of two spheres """
         root = self.skeleton.skeleton_model["joints"]["pelvis"]
         m = self.skeleton.nodes[root].get_global_matrix(frame)
         p = m[:3, 3]
-        print("root position", root, p)
+        #print("root position", root, p)
         t1 = np.linalg.norm(constraint1.position - p)
         t2 = np.linalg.norm(constraint2.position - p)
 
         c1 = constraint1.position
-        r1 = self.get_limb_length(constraint1.joint_name)
+        r1 = self.get_limb_length(constraint1.joint_name) + limb_length_offset
         #p1 = c1 + r1 * normalize(p-c1)
         c2 = constraint2.position
-        r2 = self.get_limb_length(constraint2.joint_name)
+        r2 = self.get_limb_length(constraint2.joint_name) + limb_length_offset
         #(r1, r2, t1,t2)
         #p2 = c2 + r2 * normalize(p-c2)
         if t1 < r1 and t2 < r2:
