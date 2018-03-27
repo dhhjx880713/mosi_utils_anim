@@ -255,8 +255,10 @@ class FootplantConstraintGenerator(object):
         self.left_heel = skeleton_model["joints"]["left_heel"]
         self.right_toe = skeleton_model["joints"]["right_toe"]
         self.left_toe = skeleton_model["joints"]["left_toe"]
-        self.foot_joints = skeleton_model["foot_joints"]
-        self.heel_offset = skeleton_model["heel_offset"]
+        if "foot_joints" in skeleton_model:
+            self.foot_joints = skeleton_model["foot_joints"]
+        if "heel_offset" in skeleton_model:
+            self.heel_offset = skeleton_model["heel_offset"]
         self.right_toe_offset = skeleton.nodes[self.right_toe].offset
         self.left_toe_offset = skeleton.nodes[self.left_toe].offset
 
