@@ -225,5 +225,19 @@ class AnalyticalLimbIK(object):
 
         # 3 orient end effector
         if orientation is not None:
-            self.set_end_effector_rotation(frame, orientation)
+            self.set_end_effector_rotation2(frame, orientation)
         return frame
+
+
+    def set_end_effector_rotation2(self, frame, target_orientation):
+        #print("set", target_orientation)
+        new_local_q = self.to_local_cos2(self.end_effector, frame, target_orientation)
+        frame[self.end_effector_indices] = new_local_q
+
+    def to_local_cos2(self, joint_name, frame, q):
+        # bring into parent coordinate system
+        parent_joint = self.skeleton.nodes[joint_name].parent.node_name
+        pm = self.skeleton.nodes[parent_joint].get_global_matrix(frame)[:3, :3]
+        inv_p = quaternion_inverse(quaternion_from_matrix(pm))
+        normalize(inv_p)
+        return quaternion_multiply(inv_p, q)
