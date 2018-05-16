@@ -38,12 +38,8 @@ class MotionPrimitiveGenerator(object):
         self.action_name = action_constraints.action_name
         self.prev_action_name = action_constraints.prev_action_name
         self._motion_state_graph = self._action_constraints.motion_state_graph
-        self.skeleton = self._action_constraints.get_skeleton()
-        if self.use_constrained_gmm:
-            self._constrained_gmm_builder = ConstrainedGMMBuilder(self._motion_state_graph, self._algorithm_config,
-                                                                  self._action_constraints.start_pose, self.skeleton)
-        else:
-            self._constrained_gmm_builder = None
+        self.skeleton = self._motion_state_graph.skeleton
+        self._constrained_gmm_builder = None
         self.numerical_minimizer = OptimizerBuilder(self._algorithm_config).build_spatial_and_naturalness_error_minimizer()
         self.mgrd_filter = MGRDFilter()
 
@@ -161,8 +157,9 @@ class MotionPrimitiveGenerator(object):
 
     def _optimize_parameters_numerically(self, initial_guess, graph_node, mp_constraints, prev_frames):
         #print "condition", not self.use_transition_model, mp_constraints.use_local_optimization#, not close_to_optimum, self.optimization_start_error_threshold
-        #mp_constraints.constraints = [c for c in mp_constraints.constraints if c.constraint_type != SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE]
+        mp_constraints.constraints = [c for c in mp_constraints.constraints if c.constraint_type != SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE]
         if len(mp_constraints.constraints) > 0:
+            write_message_to_log("run optimization", mode=LOG_MODE_INFO)
             data = (graph_node, mp_constraints, prev_frames, self._settings["error_scale_factor"], self._settings["quality_scale_factor"], 1.0)
             error_sum = max(abs(np.sum(self.numerical_minimizer._objective_function(initial_guess, data))), 1.0)
             data = graph_node, mp_constraints, prev_frames, self._settings["error_scale_factor"], self._settings["quality_scale_factor"], error_sum
@@ -177,14 +174,17 @@ class MotionPrimitiveGenerator(object):
             gmm = self._constrained_gmm_builder.build(self.action_name, mp_constraints.motion_primitive_name, mp_constraints,
                                                       self.prev_action_name, prev_mp_name,
                                                       prev_frames, prev_parameters)
+            samples = gmm.sample(self.n_random_samples)
 
         elif self.use_transition_model and prev_parameters is not None:
             gmm = self._predict_gmm(mp_constraints.motion_primitive_name, prev_mp_name, prev_parameters)
+            samples = gmm.sample(self.n_random_samples)
         else:
-            gmm = graph_node.get_gaussian_mixture_model()
+            samples = graph_node.sample_low_dimensional_vectors(self.n_random_samples)
         #  2) sample parameters  from the Gaussian Mixture Model based on constraints and make sure
         #     the resulting motion is valid
-        parameters, min_error = self._sample_from_gmm_using_constraints(graph_node, gmm, mp_constraints, prev_frames, self.n_random_samples)
+
+        parameters, min_error = self.evaluate_samples_using_constraints(samples, graph_node, mp_constraints, prev_frames)
 
         write_message_to_log("Found best sample with distance: "+ str(min_error), LOG_MODE_DEBUG)
         return parameters
@@ -211,16 +211,15 @@ class MotionPrimitiveGenerator(object):
         constraints.min_error = distance
         return np.array(s)
 
-    def _sample_from_gmm_using_constraints(self, mp_node, gmm, constraints, prev_frames, n_samples):
-        """samples and picks the best samples out of a given set, quality measure
-        is naturalness
+    def evaluate_samples_using_constraints(self, samples, mp_node, constraints, prev_frames):
+        """ picks the best samples out of a given set, quality measure are the constraints
 
         Parameters
         ----------
+        * samples : list
+            a list of samples
         * mp_node : MotionState
             contains a motion primitive and meta information
-        * gmm : sklearn.mixture.gmm
-            The gmm to sample
         * constraints: MotionPrimitiveConstraints
         contains a list of dict with constraints for joints
         * prev_frames: list
@@ -228,17 +227,15 @@ class MotionPrimitiveGenerator(object):
         Returns
         -------
         * sample : numpy.ndarray
-            The best sample out of those which have been created
+            The best sample
         * error : bool
             the error of the best sample
         """
         best_sample = None
         min_error = np.inf
-        samples = gmm.sample(n_samples)[0]
         for idx, s_vector in enumerate(samples):
             object_function_params = mp_node, constraints, prev_frames
             error = obj_spatial_error_sum(s_vector, object_function_params)
-            print("evaluated sample", idx, error)
             if min_error > error:
                 min_error = error
                 best_sample = s_vector
