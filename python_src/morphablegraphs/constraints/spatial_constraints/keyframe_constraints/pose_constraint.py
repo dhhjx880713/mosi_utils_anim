@@ -20,6 +20,10 @@ class PoseConstraint(KeyframeConstraintBase):
         super(PoseConstraint, self).__init__(constraint_desc, precision, weight_factor)
         self.skeleton = skeleton
         self.pose_constraint = constraint_desc["frame_constraint"]
+        if "velocity_constraint" in constraint_desc:
+            self.velocity_constraint = constraint_desc["velocity_constraint"]
+        else:
+            self.velocity_constraint = None
         self.velocity_constraint = constraint_desc["velocity_constraint"]
         self.constraint_type = SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE
         self.node_names = constraint_desc["node_names"]
@@ -31,15 +35,18 @@ class PoseConstraint(KeyframeConstraintBase):
         point_cloud1 = np.array(self.skeleton.convert_quaternion_frame_to_cartesian_frame(frame1, self.node_names))
         frame2 = aligned_spline.evaluate(self.canonical_keyframe+1)
         root_pos2 = self.skeleton.nodes[self.node_names[0]].get_global_position(frame2)
-        velocity = root_pos2 - point_cloud1[0]  # measure only the velocity of the root
-        vel_error = np.linalg.norm(self.velocity_constraint - velocity)
+        if self.velocity_constraint is not None:
+            velocity = root_pos2 - point_cloud1[0]  # measure only the velocity of the root
+            vel_error = np.linalg.norm(self.velocity_constraint - velocity)
+        else:
+            vel_error = 0.0
         theta, offset_x, offset_z = align_point_clouds_2D(self.pose_constraint,
                                                           point_cloud1,
                                                           self.weights)
         t_point_cloud = transform_point_cloud(point_cloud1, theta, offset_x, offset_z)
 
         error = calculate_point_cloud_distance(self.pose_constraint, t_point_cloud)
-        print("evaluate pose constraint", error, vel_error)
+        #print("evaluate pose constraint", error, vel_error)
 
         return error + vel_error
 
