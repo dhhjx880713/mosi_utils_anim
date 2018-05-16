@@ -28,8 +28,11 @@ def quaternion_from_axis_angle(axis, angle):
 
 def exp_map_to_quaternion(e):
     angle = np.linalg.norm(e)
-    axis = e / angle
-    q = quaternion_from_axis_angle(axis, angle)
+    if angle > 0:
+        axis = e / angle
+        q = quaternion_from_axis_angle(axis, angle)
+    else:
+        q = [1, 0, 0, 0]
     return q
 
 
