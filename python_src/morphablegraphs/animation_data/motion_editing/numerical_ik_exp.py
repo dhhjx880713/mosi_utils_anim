@@ -16,6 +16,7 @@ from .utils import convert_exp_frame_to_quat_frame, add_quat_frames
 
 
 def ik_objective(x, skeleton, reference, constraints, weights):
+    x[:9] = 0
     d = convert_exp_frame_to_quat_frame(skeleton, x)
     q_frame = add_quat_frames(skeleton, reference, d)
 
@@ -44,17 +45,26 @@ class NumericalInverseKinematicsExp(object):
         self.verbose = verbose
         self._optimization_options = {'maxiter': self.ik_settings["max_iterations"], 'disp': self.verbose}
         self.joint_weights = np.eye(self.n_joints * 3)
+        self.max_retries = 1
+        self.success_threshold = 0.1
 
     def set_joint_weights(self, weights):
         self.joint_weights = np.dot(self.joint_weights, weights)
 
     def run(self, reference, constraints):
         guess = np.zeros(self.n_joints * 3)
-        r = minimize(self._objective, guess, args=(self.skeleton, reference, constraints, self.joint_weights),
-                     method=self.ik_settings["optimization_method"],
-                     tol=self.ik_settings["tolerance"],
-                     options=self._optimization_options)
-        exp_frame = r["x"]
+        iter_counter = 0
+        error = np.inf
+        while error > self.success_threshold and iter_counter < self.max_retries:
+            r = minimize(self._objective, guess, args=(self.skeleton, reference, constraints, self.joint_weights),
+                         method=self.ik_settings["optimization_method"],
+                         tol=self.ik_settings["tolerance"],
+                         options=self._optimization_options)
+            exp_frame = r["x"]
+            exp_frame[:9] = 0
+            error = self._objective(exp_frame, self.skeleton, reference, constraints, self.joint_weights)
+            iter_counter += 1
+
         return exp_frame
 
     def modify_frame(self, reference, constraints):
