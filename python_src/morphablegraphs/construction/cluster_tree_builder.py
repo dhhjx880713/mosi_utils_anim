@@ -131,7 +131,8 @@ class ClusterTreeBuilder(object):
     def load_skeleton(self, skeleton_path):
         bvh = BVHReader(skeleton_path)
         self.animated_joints = list(bvh.get_animated_joints())
-        self.mgrd_skeleton = MGRDSkeletonBVHLoader(skeleton_path).load()
+        if has_mgrd:
+            self.mgrd_skeleton = MGRDSkeletonBVHLoader(skeleton_path).load()
         self.skeleton = SkeletonBuilder().load_from_bvh(BVHReader(skeleton_path), self.animated_joints)
 
     def _get_samples_using_threshold(self, motion_primitive, threshold=0, max_iter_count=5):
