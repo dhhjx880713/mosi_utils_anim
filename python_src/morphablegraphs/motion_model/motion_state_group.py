@@ -5,20 +5,21 @@ Created on Thu Jul 16 15:57:42 2015
 @author: erhe01
 """
 
-from . import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END, NODE_TYPE_SINGLE,  NODE_TYPE_CYCLE_END
+from . import NODE_TYPE_START, NODE_TYPE_STANDARD, NODE_TYPE_END, NODE_TYPE_SINGLE,  NODE_TYPE_CYCLE_END, NODE_TYPE_IDLE
 from .elementary_action_meta_info import ElementaryActionMetaInfo
 from ..utilities import write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_INFO, LOG_MODE_ERROR
+import numpy as np
 
 
 class MotionStateGroup(ElementaryActionMetaInfo):
     """ Contains the motion primitives of an elementary action as nodes.
     """
-    def __init__(self, ea_name, ea_directory, motion_state_graph):
-        super(MotionStateGroup, self).__init__(ea_name, ea_directory)
+    def __init__(self, action_name, src_directory, motion_state_graph):
+        super(MotionStateGroup, self).__init__(action_name, src_directory)
         self.motion_state_graph = motion_state_graph
         self.nodes = dict()
         self.has_transition_models = False
-        self.loaded_from_dict = ea_directory is None
+        self.loaded_from_dict = src_directory is None
 
     def set_meta_information(self, meta_information=None):
         super(MotionStateGroup, self).set_meta_information(meta_information)
@@ -36,6 +37,8 @@ class MotionStateGroup(ElementaryActionMetaInfo):
                  self.nodes[(self.ea_name, k)].node_type = NODE_TYPE_END
             for k in self.cycle_states:
                  self.nodes[(self.ea_name, k)].node_type = NODE_TYPE_CYCLE_END
+            for k in self.idle_states:
+                self.nodes[(self.ea_name, k)].node_type = NODE_TYPE_IDLE
 
     def get_action_type(self):
         n_standard_nodes = 0
@@ -187,3 +190,17 @@ class MotionStateGroup(ElementaryActionMetaInfo):
 
     def has_cycle_states(self):
         return len(self.cycle_states) > 0
+
+    def map_label_to_keyframe(self, mp_name, label):
+        keyframe = None
+        node_key = (self.ea_name, mp_name)
+        n_canonical_frames = self.motion_state_graph.nodes[node_key].get_n_canonical_frames()
+        if mp_name in self.labeled_frames.keys() and label in self.labeled_frames[mp_name].keys():
+            keyframe = self.labeled_frames[mp_name][label]
+            if keyframe in [-1, "lastFrame"]:
+                keyframe = n_canonical_frames - 1
+            elif keyframe == "middle":
+                keyframe = n_canonical_frames / 2
+        if keyframe is not None:
+            keyframe = int(keyframe)
+        return keyframe
