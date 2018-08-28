@@ -104,7 +104,8 @@ def load_motion_data(motion_folder, max_count=np.inf, animated_joints=None):
 
 def get_standard_config():
     config = dict()
-    config["n_basis_functions_spatial"] = 16
+    config["n_basis_functions_spatial"] = 16#FIXME should be dynamic /n_frames divivded by 5
+    config["n_spatial_basis_factor"] = 1.0/5.0
     config["fraction"] = 0.95
     config["n_basis_functions_temporal"] = 8
     config["npc_temporal"] = 3

@@ -269,9 +269,13 @@ class MotionModelConstructor(MotionModel):
         self.run_temporal_dimension_reduction()
 
     def run_spatial_dimension_reduction(self):
+        key = list(self._aligned_frames.keys())[0]
+        n_basis = len(self._aligned_frames[key]) * self.config["n_spatial_basis_factor"]
+        print("use", n_basis, "basis functions for fpca")
         scaled_quat_frames, scale_vec = normalize_root_translation(self._aligned_frames)
         smoothed_quat_frames = align_quaternion_frames(self._skeleton, scaled_quat_frames)
-        fpca_spatial = FPCASpatialData(self.config["n_basis_functions_spatial"],
+
+        fpca_spatial = FPCASpatialData(int(n_basis),
                                        self.config["n_components"],
                                        self.config["fraction"])
         fpca_spatial.fileorder = smoothed_quat_frames.keys()#list(range(len(smoothed_quat_frames)))
