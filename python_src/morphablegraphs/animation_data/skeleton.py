@@ -336,7 +336,7 @@ class Skeleton(object):
         return data
 
     def get_reduced_reference_frame(self):
-        frame = [0, 0, 0]
+        frame = list(self.reference_frame[:3])
         for joint_name in self.animated_joints:
             frame += list(self.nodes[joint_name].rotation)
         return frame
