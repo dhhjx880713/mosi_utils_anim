@@ -21,7 +21,7 @@ class StaticMotionPrimitive(object):
         self.time_function = np.array(list(range(self.n_canonical_frames)))
         self.motion_spline = MotionSpline([0], self.spatial_coefs, self.time_function, self.knots, None)
         self.gmm = GaussianMixture(n_components=1, covariance_type='full')
-        self.gmm.fit([0])
+        #self.gmm.fit([0])
 
     def sample_low_dimensional_vector(self, use_time_parameters=True):
         return [0]

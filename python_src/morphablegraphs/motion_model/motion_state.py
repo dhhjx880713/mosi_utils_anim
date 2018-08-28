@@ -32,7 +32,7 @@ class MotionState(MotionPrimitiveModelWrapper):
     def __init__(self, motion_state_group):
         super(MotionState, self).__init__()
         self.motion_state_group = motion_state_group
-        self.outgoing_edges = {}
+        self.outgoing_edges = dict()
         self.node_type = NODE_TYPE_STANDARD
         self.n_standard_transitions = 0
         self.parameter_bb = None
@@ -44,7 +44,7 @@ class MotionState(MotionPrimitiveModelWrapper):
         self.cluster_tree = None
 
     def init_from_file(self, action_name, mp_name, motion_primitive_filename, node_type=NODE_TYPE_STANDARD):
-        self.outgoing_edges = {}
+        self.outgoing_edges = dict()
         self.node_type = node_type
         self.n_standard_transitions = 0
         self.average_step_length = 0
@@ -122,7 +122,7 @@ class MotionState(MotionPrimitiveModelWrapper):
         \t Identifies edges as either standard or end transitions
         """
         if self.outgoing_edges:
-            edges = [edge_key for edge_key in list(self.outgoing_edges.keys())
+            edges = [edge_key for edge_key in self.outgoing_edges.keys()
                      if self.outgoing_edges[edge_key].transition_type == transition_type]
             if len(edges) > 0:
                 random_index = random.randrange(0, len(edges), 1)

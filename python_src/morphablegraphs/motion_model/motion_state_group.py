@@ -101,7 +101,8 @@ class MotionStateGroup(ElementaryActionMetaInfo):
             print("use transition model", current_node_key, to_node_key)
             next_parameters = self.nodes[current_node_key].predict_parameters(to_node_key, current_parameters)
         else:
-            next_parameters = self.nodes[to_node_key].sample_low_dimensional_vector()[0]
+            next_parameters = self.nodes[to_node_key].sample_low_dimensional_vector()#[0]
+            print("sample from model", to_node_key)
         return next_parameters
 
     def get_transition_type_for_action_from_trajectory(self, graph_walk, action_constraint, travelled_arc_length, arc_length_of_end):
@@ -167,7 +168,7 @@ class MotionStateGroup(ElementaryActionMetaInfo):
         graph_walk = []
         count = 0
         #print "start", current_node
-        current_parameters = self.nodes[current_node].sample_low_dimensional_vector()[0]
+        current_parameters = self.nodes[current_node].sample_low_dimensional_vector()#[0]
         entry = {"node_key": current_node, "parameters": current_parameters}
         graph_walk.append(entry)
 

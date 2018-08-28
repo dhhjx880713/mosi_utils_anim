@@ -26,6 +26,7 @@ class MotionPrimitiveModelWrapper(object):
         self.motion_primitive = None
         self.use_mgrd_mixture_model = False
         self.keyframes = dict()
+        self.mgrd = True
 
     def _load_from_file(self, mgrd_skeleton, file_name, animated_joints=None, use_mgrd_mixture_model=False, scale=None):
         self.use_mgrd_mixture_model = use_mgrd_mixture_model
@@ -34,6 +35,7 @@ class MotionPrimitiveModelWrapper(object):
             self._initialize_from_json(mgrd_skeleton, data, animated_joints, use_mgrd_mixture_model, scale)
 
     def _initialize_from_json(self, mgrd_skeleton, data, animated_joints=None, use_mgrd_mixture_model=False, scale=None):
+        self.mgrd = False
         if "keyframes" in data:
             self.keyframes = data["keyframes"]
 
@@ -48,14 +50,15 @@ class MotionPrimitiveModelWrapper(object):
             else:
                 self.motion_primitive = self._load_legacy_model_from_legacy_json(data)
         else:
+            use_mgrd_mixture_model = True
             if "tspm" in list(data.keys()):
                 self.motion_primitive = self._load_mgrd_model_from_mgrd_json(mgrd_skeleton, data, use_mgrd_mixture_model, scale)
+                self.mgrd = True
             elif animated_joints is not None:
                 self.motion_primitive = self._load_mgrd_model_from_legacy_json(mgrd_skeleton, data, use_mgrd_mixture_model, animated_joints)
+                self.mgrd = True
             else:
                 raise Exception("Motion Primitive format is not supported")
-
-
 
     def _load_legacy_model_from_mgrd_json(self, data):
         motion_primitive = MGMotionPrimitive(None)
@@ -105,7 +108,7 @@ class MotionPrimitiveModelWrapper(object):
         return MGRDMotionPrimitiveModel(mgrd_skeleton, sspm, tspm, mm)
 
     def _load_mgrd_model_from_mgrd_json(self, skeleton, mm_data, use_mgrd_mixture_model=True, scale=None):
-        write_message_to_log("Init motion primitive model with semantic annotation", LOG_MODE_DEBUG)
+        write_message_to_log("Init motion primitive model with semantic annotation", LOG_MODE_INFO)
         sspm = MGRDQuaternionSplineModel.load_from_json(skeleton, mm_data['sspm'])
         tspm = MGRDTemporalSplineModel.load_from_json(mm_data['tspm'])
         mixture_model = MotionPrimitiveModelWrapper.load_mixture_model({
@@ -152,23 +155,38 @@ class MotionPrimitiveModelWrapper(object):
         s_vec = self.sample_low_dimensional_vector()
         quat_spline = self.back_project(s_vec, use_time)
         return quat_spline
-    sample = sample_mgrd if has_mgrd else sample_legacy
+
+    def sample(self, use_time=True):
+        if self.mgrd:
+            return self.sample_mgrd(use_time)
+        else:
+            return self.sample_legacy(use_time)
 
     def sample_vector_legacy(self):
         return self.motion_primitive.sample_low_dimensional_vector(1)
 
     def sample_vector_mgrd(self):
-        return self.motion_primitive.mixture.sample(1)[0]# we assume the sklearn Gaussian Mixture model is used
+        return self.motion_primitive.mixture.sample(1, False)[0]# we assume the sklearn Gaussian Mixture model is used
         #return self.motion_primitive.get_random_samples(1)[0]
-    sample_low_dimensional_vector = sample_vector_mgrd if has_mgrd else sample_vector_legacy
+
+    def sample_low_dimensional_vector(self):
+        if self.mgrd:
+            return self.sample_vector_mgrd()
+        else:
+            return self.sample_vector_legacy()
 
     def sample_vectors_legacy(self, n_samples=1):
         return self.motion_primitive.sample_low_dimensional_vector(n_samples)
 
     def sample_vectors_mgrd(self, n_samples=1):
-        return self.motion_primitive.mixture.sample(n_samples)[0]  # we assume the sklearn Gaussian Mixture model is used
+        return self.motion_primitive.mixture.sample(n_samples, True)  # we assume the sklearn Gaussian Mixture model is used
         #return self.motion_primitive.get_random_samples(n_samples)[0]
-    sample_low_dimensional_vectors = sample_vectors_mgrd if has_mgrd else sample_vectors_legacy
+
+    def sample_low_dimensional_vectors(self, n_samples=1):
+        if self.mgrd:
+            return self.sample_vectors_mgrd(n_samples)
+        else:
+            return self.sample_vectors_legacy(n_samples)
 
     def back_project_legacy(self, s_vec, use_time_parameters=True, speed=1.0):
         return self.motion_primitive.back_project(s_vec, use_time_parameters, speed)
@@ -181,7 +199,12 @@ class MotionPrimitiveModelWrapper(object):
             time_spline = self.motion_primitive.create_time_spline(s_vec)
             quat_spline = time_spline.warp(quat_spline)
         return quat_spline
-    back_project = back_project_mgrd if has_mgrd else back_project_legacy
+
+    def back_project(self, s_vec, use_time_parameters=True, speed=1.0):
+        if self.mgrd:
+            return self.back_project_mgrd(s_vec, use_time_parameters, speed)
+        else:
+            return self.back_project_legacy(s_vec, use_time_parameters, speed)
 
     def back_project_time_function_legacy(self, s_vec):
         if self.motion_primitive.has_time_parameters:
@@ -194,7 +217,12 @@ class MotionPrimitiveModelWrapper(object):
             s_vec = np.ravel(s_vec)
         time_spline = self.motion_primitive.create_time_spline(s_vec, labels=[])
         return np.asarray(time_spline.evaluate_domain(step_size=1.0))[:,0]
-    back_project_time_function = back_project_time_function_mgrd if has_mgrd else back_project_time_function_legacy
+
+    def back_project_time_function(self, s_vec):
+        if self.mgrd:
+            return self.back_project_time_function_mgrd(s_vec)
+        else:
+            return self.back_project_time_function_legacy(s_vec)
 
     def get_n_canonical_frames_legacy(self):
         return self.motion_primitive.n_canonical_frames
@@ -202,28 +230,48 @@ class MotionPrimitiveModelWrapper(object):
     def get_n_canonical_frames_mgrd(self):
         #print max(self.motion_primitive.time.knots)+1, self.motion_primitive.time.n_canonical_frames
         return max(self.motion_primitive.time.knots)+1#.n_canonical_frames
-    get_n_canonical_frames = get_n_canonical_frames_mgrd if has_mgrd else get_n_canonical_frames_legacy
+
+    def get_n_canonical_frames(self):
+        if self.mgrd:
+            return self.get_n_canonical_frames_mgrd()
+        else:
+            return self.get_n_canonical_frames_legacy()
 
     def get_n_spatial_components_legacy(self):
         return self.motion_primitive.get_n_spatial_components()
 
     def get_n_spatial_components_mgrd(self):
         return self.motion_primitive.spatial.get_n_components()
-    get_n_spatial_components = get_n_spatial_components_mgrd if has_mgrd else get_n_spatial_components_legacy
+
+    def get_n_spatial_components(self):
+        if self.mgrd:
+            return self.get_n_spatial_components_mgrd()
+        else:
+            return self.get_n_spatial_components_legacy()
 
     def get_n_time_components_legacy(self):
         return self.motion_primitive.get_n_time_components()
 
     def get_n_time_components_mgrd(self):
         return self.motion_primitive.time.get_n_components()
-    get_n_time_components = get_n_time_components_mgrd if has_mgrd else get_n_time_components_legacy
+
+    def get_n_time_components(self):
+        if self.mgrd:
+            return self.get_n_time_components_mgrd()
+        else:
+            return self.get_n_time_components_legacy()
 
     def get_gaussian_mixture_model_legacy(self):
         return self.motion_primitive.gaussian_mixture_model
 
     def get_gaussian_mixture_model_mgrd(self):
         return self.motion_primitive.mixture
-    get_gaussian_mixture_model = get_gaussian_mixture_model_mgrd if has_mgrd else get_gaussian_mixture_model_legacy
+
+    def get_gaussian_mixture_model(self):
+        if self.mgrd:
+            return self.get_gaussian_mixture_model_mgrd()
+        else:
+            return self.get_gaussian_mixture_model_legacy()
 
     def get_time_eigen_vector_matrix_mgrd(self):
         return self.motion_primitive.time.fpca.eigen
@@ -231,7 +279,11 @@ class MotionPrimitiveModelWrapper(object):
     def get_time_eigen_vector_matrix_legacy(self):
         return self.motion_primitive.t_pca["eigen_vectors"]
 
-    get_time_eigen_vector_matrix = get_time_eigen_vector_matrix_mgrd if has_mgrd else get_time_eigen_vector_matrix_legacy
+    def get_time_eigen_vector_matrix(self):
+        if self.mgrd:
+            return self.get_time_eigen_vector_matrix_mgrd()
+        else:
+            return self.get_time_eigen_vector_matrix_legacy()
 
     def get_spatial_eigen_vector_matrix_legacy(self, joints=None, frame_idx=-1):
         return self.motion_primitive.s_pca["eigen_vectors"].T
@@ -264,7 +316,12 @@ class MotionPrimitiveModelWrapper(object):
                 coeff_indices += list(range(i, i + LEN_QUATERNION))
             return eigen[coeff_indices]
 
-    get_spatial_eigen_vectors = get_spatial_eigen_vector_matrix_mgrd if has_mgrd else get_spatial_eigen_vector_matrix_legacy
+    def get_spatial_eigen_vectors(self, joints=None, frame_idx=-1):
+        if self.mgrd:
+            return self.get_spatial_eigen_vector_matrix_mgrd()
+        else:
+            return self.get_spatial_eigen_vector_matrix_legacy()
+
 
     @staticmethod
     def load_mixture_model(data, use_mgrd=True):
@@ -288,3 +345,8 @@ class MotionPrimitiveModelWrapper(object):
              write_message_to_log("Initialize scipy GMM", LOG_MODE_DEBUG)
          return mm
 
+    def get_animated_joints(self):
+        if self.mgrd:
+            return self.motion_primitive.spatial.animated_joints
+        else:
+            return []

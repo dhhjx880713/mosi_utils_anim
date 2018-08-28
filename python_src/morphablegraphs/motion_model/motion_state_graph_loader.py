@@ -134,14 +134,14 @@ class MotionStateGraphLoader(object):
     def _set_transitions_from_dict(self, motion_state_graph, transition_dict):
         for node_key in transition_dict:
             from_action_name = node_key.split("_")[0]
-            from_motion_primitive_name = node_key.split("_")[1]
-            from_node_key = (from_action_name, from_motion_primitive_name)
-            if from_node_key in list(motion_state_graph.nodes.keys()):
+            from_mp_key = node_key.split("_")[1]
+            from_node_key = (from_action_name, from_mp_key)
+            if from_node_key in motion_state_graph.nodes.keys():
                 for to_key in transition_dict[node_key]:
                     to_action_name = to_key.split("_")[0]
-                    to_motion_primitive_name = to_key.split("_")[1]
-                    to_node_key = (to_action_name, to_motion_primitive_name)
-                    if to_node_key in list(motion_state_graph.nodes.keys()):
+                    to_mp_name = to_key.split("_")[1]
+                    to_node_key = (to_action_name, to_mp_name)
+                    if to_node_key in motion_state_graph.nodes.keys():
                         self._add_transition(motion_state_graph, from_node_key, to_node_key)
 
     def _load_transition_model(self, motion_state_graph, from_node_key, to_node_key):
@@ -154,23 +154,34 @@ class MotionStateGraphLoader(object):
             write_message_to_log("Error: Did not find transition model file " + transition_model_file, LOG_MODE_ERROR)
             return None
 
-    def _get_transition_type(self, motion_state_graph, from_node_key, to_node_key):
+    def _get_transition_type(self, graph, from_node_key, to_node_key):
         if to_node_key[0] == from_node_key[0]:
-            if motion_state_graph.nodes[to_node_key].node_type in [NODE_TYPE_START, NODE_TYPE_STANDARD]:
-                transition_type = NODE_TYPE_STANDARD
-            elif motion_state_graph.nodes[to_node_key].node_type == NODE_TYPE_CYCLE_END:
-                transition_type = "cycle_end"
-            elif motion_state_graph.nodes[to_node_key].node_type == NODE_TYPE_IDLE:
-                transition_type = NODE_TYPE_IDLE
+            if graph.nodes[from_node_key].node_type == NODE_TYPE_IDLE:
+                if graph.nodes[to_node_key].node_type == NODE_TYPE_START:
+                    t_type = NODE_TYPE_START
+                elif graph.nodes[to_node_key].node_type == NODE_TYPE_IDLE:
+                    t_type = NODE_TYPE_IDLE
+                elif graph.nodes[to_node_key].node_type == NODE_TYPE_END:
+                    t_type = NODE_TYPE_END
             else:
-                transition_type = NODE_TYPE_END
+                if graph.nodes[to_node_key].node_type == NODE_TYPE_STANDARD:
+                    t_type = NODE_TYPE_STANDARD
+                elif graph.nodes[to_node_key].node_type == NODE_TYPE_START:
+                    t_type = NODE_TYPE_START
+                elif graph.nodes[to_node_key].node_type == NODE_TYPE_CYCLE_END:
+                    t_type = "cycle_end"
+                elif graph.nodes[to_node_key].node_type == NODE_TYPE_IDLE:
+                    t_type = NODE_TYPE_IDLE
+                else:
+                    t_type = NODE_TYPE_END
         else:
-            transition_type = "action_transition"
-        return transition_type
+            t_type = "action_transition"
+        return t_type
 
-    def _add_transition(self, graph, from_node_key, to_node_key):
+    def _add_transition(self, graph, from_key, to_key):
         transition_model = None
         if self.load_transition_models:
-            transition_model = self._load_transition_model(graph, from_node_key, to_node_key)
-        transition_type = self._get_transition_type(graph, from_node_key, to_node_key)
-        graph.nodes[from_node_key].outgoing_edges[to_node_key] = MotionStateTransition(from_node_key, to_node_key, transition_type, transition_model)
+            transition_model = self._load_transition_model(graph, from_key, to_key)
+        transition_type = self._get_transition_type(graph, from_key, to_key)
+        #print("add transition", from_key, to_key, transition_type)
+        graph.nodes[from_key].outgoing_edges[to_key] = MotionStateTransition(from_key, to_key, transition_type, transition_model)

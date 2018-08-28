@@ -22,6 +22,7 @@ class ElementaryActionMetaInfo(object):
         self.n_start_states = 0
         self.end_states = list()
         self.n_end_states = 0
+        self.idle_states = list()
         self.labeled_frames = dict()
         self.meta_information = None
         self.motion_primitive_annotation_regions = dict()
@@ -36,11 +37,13 @@ class ElementaryActionMetaInfo(object):
         for key in ["annotations", "start_states", "end_states"]:
             assert key in list(self.meta_information.keys())
         self.start_states = self.meta_information["start_states"]
-        if "cycle_states" in list(self.meta_information.keys()):
-            self.cycle_states = self.meta_information["cycle_states"]
         self.n_start_states = len(self.start_states)
         self.end_states = self.meta_information["end_states"]
         self.n_end_states = len(self.end_states)
+        if "idle_states" in list(self.meta_information.keys()):
+            self.idle_states = self.meta_information["idle_states"]
+        if "cycle_states" in list(self.meta_information.keys()):
+            self.cycle_states = self.meta_information["cycle_states"]
         self.labeled_frames = self.meta_information["annotations"]
 
         self._create_label_to_motion_primitive_map()
@@ -115,16 +118,16 @@ class ElementaryActionMetaInfo(object):
         elif label == KEYFRAME_LABEL_MIDDLE:#"middle"
             keyframe = n_canonical_frames/2
         else:
-            print("search for label ", label, list(self.labeled_frames[mp_name].keys()))
-            if mp_name in list(self.labeled_frames.keys()) and \
-                            label in list(self.labeled_frames[mp_name].keys()):
+            print("search for label ", label, self.labeled_frames[mp_name].keys())
+            if mp_name in self.labeled_frames.keys() and label in self.labeled_frames[mp_name].keys():
                     keyframe = self.labeled_frames[mp_name][label]
                     if keyframe in [NEGATIVE_ONE, LAST_FRAME]:
                         keyframe = n_canonical_frames-1
                     elif keyframe == KEYFRAME_LABEL_MIDDLE:
                         keyframe = n_canonical_frames/2
             else:
-                print("Error: Could not map keyframe label", label, list(self.labeled_frames.keys()))
+                print("Error: Could not map keyframe label", label, self.labeled_frames.keys())
         if keyframe is not None:
             keyframe = int(keyframe)
         return keyframe
+
