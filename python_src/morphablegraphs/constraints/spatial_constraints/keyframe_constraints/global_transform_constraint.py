@@ -31,10 +31,13 @@ class GlobalTransformConstraint(KeyframeConstraintBase):
             self.position = constraint_desc["position"]
         else:
             self.position = None
-        if "orientation" in constraint_desc.keys() and None not in constraint_desc["orientation"]:
+        if "orientation" in constraint_desc and None not in constraint_desc["orientation"]:
             self.orientation = euler_to_quaternion(constraint_desc["orientation"])
+        elif "qOrientation" in constraint_desc:
+            self.orientation = constraint_desc["qOrientation"]
         else:
             self.orientation = None
+
         self.n_canonical_frames = constraint_desc["n_canonical_frames"]
 
         if "eventName" in constraint_desc and "eventTarget" in constraint_desc:
