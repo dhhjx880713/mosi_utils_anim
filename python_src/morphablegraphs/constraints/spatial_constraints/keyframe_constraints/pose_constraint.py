@@ -24,7 +24,6 @@ class PoseConstraint(KeyframeConstraintBase):
             self.velocity_constraint = constraint_desc["velocity_constraint"]
         else:
             self.velocity_constraint = None
-        self.velocity_constraint = constraint_desc["velocity_constraint"]
         self.constraint_type = SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE
         self.node_names = constraint_desc["node_names"]
         self.weights = constraint_desc["weights"]
