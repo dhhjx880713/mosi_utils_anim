@@ -185,7 +185,7 @@ class ClusterTreeBuilder(object):
             print("loaded file", file_name)
         return data
 
-    def _create_space_partitioning(self, elementary_action_dir, file_name, elementary_action):
+    def _create_space_partitioning(self, elementary_action_dir, file_name, action_name):
 
         index = file_name.find("_mm")
         cluster_file_name = file_name[:index]
@@ -204,9 +204,9 @@ class ClusterTreeBuilder(object):
 
             data = self._create_training_data(elementary_action_dir, cluster_file_name, motion_primitive, self.n_samples)
             if self.tree_type == TREE_TYPE_FEATURE_CLUSTER_TREE:
-                self._build_feature_tree(elementary_action, cluster_file_name, data, motion_primitive)
+                self._build_feature_tree(action_name, cluster_file_name, data, motion_primitive)
             else:
-                self._build_tree(elementary_action, cluster_file_name, data, motion_primitive)
+                self._build_tree(elementary_action_dir, cluster_file_name, data, motion_primitive)
 
         else:
             print("Could not read motion primitive", motion_primitive_file_name)
@@ -263,7 +263,9 @@ class ClusterTreeBuilder(object):
                 print("save training data", filename)
                 save_data_to_pickle(features, filename)
         else:
-            features = data[:, :motion_primitive.get_n_spatial_components()]
+            n_spatial =motion_primitive.get_n_spatial_components()
+            print(n_spatial, data.shape)
+            features = data[:, :n_spatial]
 
         return features
 
@@ -297,6 +299,16 @@ class ClusterTreeBuilder(object):
             return True
         else:
             return False
+
+    def build_action(self, action_name):
+        elementary_action_dir = self.morphable_model_directory
+        for root, dirs, files in os.walk(elementary_action_dir):
+            for file_name in files:
+                if file_name.endswith(MOTION_PRIMITIVE_FILE_ENDING) or file_name.endswith(
+                        MOTION_PRIMITIVE_FILE_ENDING2):
+                    print(elementary_action_dir + os.sep + file_name)
+                    self._create_space_partitioning(elementary_action_dir, file_name, action_name)
+        return True
 
     def build_for_one_motion_primitive(self, motion_primitive_file, space_partition_file):
         self._create_space_partitioning(motion_primitive_file, space_partition_file)
