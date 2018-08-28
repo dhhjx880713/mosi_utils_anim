@@ -49,9 +49,8 @@ def convert_exp_frame_to_quat_frame(skeleton, e):
     return q
 
 
-def add_quat_frames(skeleton, q_frame1, q_frame2):
+def add_quat_frames(skeleton, q_frame1, q_frame2, dest_offset=3):
     src_offset = 0
-    dest_offset = 3
     new_quat_frame = np.zeros(len(q_frame1))
     new_quat_frame[:3] = q_frame1[:3]
     for node in skeleton.animated_joints:
@@ -231,7 +230,7 @@ def plot_foot_positions(ax, foot_positions, bodies,step_size=5):
     for f, data in enumerate(foot_positions):
         if f%step_size != 0:
             continue
-        for body in [list(bodies.values())[0] ]:
+        for body in [list(bodies.values())[0]]:
             start_j = body["start"]
             end_j = body["end"]
             start = f, data[start_j][1]
