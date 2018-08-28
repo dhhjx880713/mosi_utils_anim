@@ -18,37 +18,10 @@ from ..external.transformations import quaternion_matrix, euler_from_matrix, \
     quaternion_multiply, \
     quaternion_about_axis, \
     rotation_matrix, \
-    quaternion_conjugate,  quaternion_inverse, rotation_from_matrix
-use_euler_fk = False
-try:
-    import fk3
-    use_euler_fk = True
-except:
-    print("Could not find euler FK-Extension")
+    quaternion_conjugate
+
 
 from .constants import *
-
-if use_euler_fk:
-    FK_FUNCS = [
-        fk3.one_joint_fk,
-        fk3.two_joints_fk,
-        fk3.three_joints_fk,
-        fk3.four_joints_fk,
-        fk3.five_joints_fk,
-        fk3.six_joints_fk,
-        fk3.seven_joints_fk,
-        fk3.eight_joints_fk,
-    ]
-    FK_FUNC_JACS = [
-        fk3.one_joint_fk_jacobian,
-        fk3.two_joints_fk_jacobian,
-        fk3.three_joints_fk_jacobian,
-        fk3.four_joints_fk_jacobian,
-        fk3.five_joints_fk_jacobian,
-        fk3.six_joints_fk_jacobian,
-        fk3.seven_joints_fk_jacobian,
-        fk3.eight_joints_fk_jacobian,
-    ]
 
 
 def rotation_order_to_string(rotation_order):
@@ -468,187 +441,6 @@ def get_cartesian_coordinates_for_plam_quaternion(
     global_matrix = np.dot(global_matrix, transmat_finger21)
     return global_matrix[:3, 3]
 
-if use_euler_fk:
-    def get_cartesian_coordinates_from_euler_full_skeleton(bvh_reader,
-                                                           skeleton,
-                                                           node_name,
-                                                           euler_frame):
-        """Return cartesian coordinates for one node at one frame, include the
-           skipped joints starting with "Bip"
-        """
-        if bvh_reader.node_names[node_name]["level"] == 0:
-            root_frame_position = euler_frame[:3]
-            root_node_offset = bvh_reader.node_names[node_name]["offset"]
-
-            return [t + o for t, o in
-                    zip(root_frame_position, root_node_offset)]
-
-        else:
-            # Names are generated bottom to up --> reverse
-            chain_names = list(skeleton.gen_all_parents(node_name))
-            chain_names.reverse()
-            chain_names += [node_name]  # Node is not in its parent list
-
-            eul_angles = []
-            index = 0
-            for nodename in chain_names:
-                indeces = []
-                for channel in bvh_reader.node_names[nodename]["channels"]:
-                    if channel.endswith("rotation"):
-                        indeces.append(
-                            bvh_reader.node_channels.index((nodename, channel)))
-                eul_angles.append(euler_frame[indeces])
-                index += 1
-
-            # bvh_reader.node_names.keys().index("RightShoulder")*3 +
-            # 3,len(euler_frame)
-            rad_angles = (list(map(radians, eul_angle)) for eul_angle in eul_angles)
-
-            thx, thy, thz = list(map(list, list(zip(*rad_angles))))
-
-            offsets = [bvh_reader.node_names[nodename]["offset"]
-                       for nodename in chain_names]
-
-            # Add root offset to frame offset list
-            root_position = euler_frame[:3]
-            offsets[0] = [r + o for r, o in zip(root_position, offsets[0])]
-
-            ax, ay, az = list(map(list, zip(*offsets)))
-
-            # f_idx identifies the kinematic forward transform function
-            # This does not lead to a negative index because the root is
-            # handled separately
-
-            f_idx = len(ax) - 2
-            if len(ax) - 2 < len(FK_FUNCS):
-                return FK_FUNCS[f_idx](ax, ay, az, thx, thy, thz)
-            else:
-                return [0, 0, 0]
-
-
-def get_cartesian_coordinates_for_plam_euler(
-        skeleton,
-        euler_frame,
-        node_name='Left'):
-    if node_name == 'Left':
-        node_name = 'LeftHand'
-        Finger2 = 'Bip01_L_Finger2'
-        Finger21 = 'Bip01_L_Finger21'
-        Finger2_offset = [9.55928, -0.145352, -0.186424]
-        Finger2_angles = [-0.0, 0.0, 0.0]
-        Finger21_offset = [3.801407, 0.0, 0.0]
-        Figner21_angles = [-0.0, 0.0, 0.0]
-    elif node_name == 'Right':
-        node_name = 'RightHand'
-        Finger2 = 'Bip01_R_Finger2'
-        Finger21 = 'Bip01_R_Finger21'
-        Finger2_offset = [9.559288, 0.145353, -0.186417]
-        Finger2_angles = [-0.0, 0.0, 0.0]
-        Finger21_offset = [3.801407, 0.0, 0.0]
-        Figner21_angles = [-0.0, 0.0, 0.0]
-    else:
-        raise ValueError('Unknown node name!')
-    chain_names = list(skeleton.gen_all_parents(node_name))
-    chain_names.reverse()
-    chain_names += [node_name]  # Node is not in its parent list
-    global_trans = np.eye(4)
-    global_trans[:3, 3] = euler_frame[:3]
-    eul_angles = []
-    for nodename in chain_names:
-        index = skeleton.node_name_map[nodename] * 3 + 3
-        eul_angles.append(euler_frame[index:index + 3])
-    eul_angles.append(Finger2_angles)
-    eul_angles.append(Figner21_angles)
-    offsets = [skeleton.node_names[nodename]["offset"]
-               for nodename in chain_names]
-    offsets.append(Finger2_offset)
-    offsets.append(Finger21_offset)
-    chain_names.append(Finger2)
-    chain_names.append(Finger21)
-    for i in range(len(chain_names)):
-        rot_angles = eul_angles[i]
-        translation = offsets[i]
-        rot_angles_rad = np.deg2rad(rot_angles)
-        convert_quat_frame_value_to_array
-        transmat = np.eye(4)
-        transmat[:3, 3] = translation[:]
-        global_trans = np.dot(global_trans, transmat)
-        global_trans = np.dot(global_trans, rotmat)
-    return global_trans[:3, 3]
-
-if use_euler_fk:
-    def get_cartesian_coordinates_from_euler(skeleton, node_name, euler_frame):
-        """Returns cartesian coordinates for one node at one frame. Modified to
-         handle frames with omitted values for joints starting with "Bip"
-
-        Parameters
-        ----------
-
-        * node_name: String
-        \tName of node
-         * skeleton: Skeleton
-        \t skeleton structure read from a file
-        * frame_number: Integer
-        \tAnimation frame number that gets extracted
-
-        """
-
-        if skeleton.node_names[node_name]["level"] == 0:
-            root_frame_position = euler_frame[:3]
-            root_node_offset = skeleton.node_names[node_name]["offset"]
-
-            return [t + o for t, o in
-                    zip(root_frame_position, root_node_offset)]
-
-        else:
-            # Names are generated bottom to up --> reverse
-            chain_names = list(skeleton.gen_all_parents(node_name))
-            chain_names.reverse()
-            chain_names += [node_name]  # Node is not in its parent list
-            eul_angles = []
-            for nodename in chain_names:
-                index = skeleton.node_name_frame_map[nodename] * 3 + 3
-                eul_angles.append(euler_frame[index:index + 3])
-            rad_angles = (list(map(radians, eul_angle)) for eul_angle in eul_angles)
-
-            thx, thy, thz = list(map(list, list(zip(*rad_angles))))
-
-            offsets = [skeleton.node_names[nodename]["offset"]
-                       for nodename in chain_names]
-
-            # Add root offset to frame offset list
-            root_position = euler_frame[:3]
-            offsets[0] = [r + o for r, o in zip(root_position, offsets[0])]
-
-            ax, ay, az = list(map(list, zip(*offsets)))
-
-            # f_idx identifies the kinematic forward transform function
-            # This does not lead to a negative index because the root is
-            # handled separately
-
-            f_idx = len(ax) - 2
-            if len(ax) - 2 < len(FK_FUNCS):
-                return FK_FUNCS[f_idx](ax, ay, az, thx, thy, thz)
-            else:
-                return [0, 0, 0]
-
-
-def convert_euler_frame_to_cartesian_frame(skeleton, euler_frame):
-    """
-    converts euler frames to cartesian frames by calling get_cartesian_coordinates for each joint
-    """
-    cartesian_frame = []
-    for node_name in skeleton.node_names:
-        # ignore Bip joints and end sites
-        if not node_name.startswith("Bip") and "children" in list(skeleton.node_names[node_name].keys()):
-            cartesian_frame.append(
-                get_cartesian_coordinates_from_euler(
-                    skeleton,
-                    node_name,
-                    euler_frame))
-
-    return cartesian_frame
-
 
 def convert_quaternion_frame_to_cartesian_frame(skeleton, quat_frame):
     """
@@ -725,34 +517,6 @@ def align_point_clouds_2D(a, b, weights):
     offset_z = (weighted_sum_a_z + weighted_sum_b_x *
                 np.sin(theta) - weighted_sum_b_z * np.cos(theta)) / sum_of_weights
 
-    return theta, offset_x, offset_z
-
-
-def convert_euler_frames_to_cartesian_frames(skeleton, euler_frames):
-    """
-    converts to euler frames to cartesian frames
-    """
-
-    cartesian_frames = []
-    for euler_frame in euler_frames:
-        cartesian_frames.append(
-            convert_euler_frame_to_cartesian_frame(skeleton, euler_frame))
-    return np.array(cartesian_frames)
-
-
-def find_aligning_transformation(skeleton, euler_frames_a, euler_frames_b):
-    """
-    performs alignment of the point clouds based on the poses at the end of
-    euler_frames_a and the start of euler_frames_b
-    Returns the rotation around y axis in radians, x offset and z offset
-    """
-    point_cloud_a = convert_euler_frame_to_cartesian_frame(
-        skeleton, euler_frames_a[-1])
-    point_cloud_b = convert_euler_frame_to_cartesian_frame(
-        skeleton, euler_frames_b[0])
-    weights = skeleton.get_joint_weights()
-    theta, offset_x, offset_z = align_point_clouds_2D(
-        point_cloud_a, point_cloud_b, weights)
     return theta, offset_x, offset_z
 
 
@@ -1220,68 +984,16 @@ def smoothly_concatenate(euler_frames_a, euler_frames_b, window_size=20):
     euler_frames = smooth_motion(euler_frames, len(euler_frames_a), window_size)
     return euler_frames
 
-"""
+
 def smoothly_concatenate_quaternion_frames(quaternion_frames_a, quaternion_frames_b, window_size=20):
 
     quaternion_frames = np.concatenate((quaternion_frames_a, quaternion_frames_b), axis=0)
     d = len(quaternion_frames_a)
     quaternion_frames = smooth_quaternion_frames(quaternion_frames, d, window_size)
     return quaternion_frames
-"""
-
-def shift_euler_frames_to_ground(euler_frames, ground_contact_joint, skeleton):
-    """
-    shift all euler frames of motion to ground, which means the y-axis for
-    gound contact joint should be 0
-    Step 1: apply forward kinematic to compute global position for ground
-            contact joint for each frame
-    Setp 2: find the offset from ground contact joint to ground, and shift
-            corresponding frame based on offset
-    """
-    tmp_frames = deepcopy(euler_frames)
-    for frame in tmp_frames:
-        contact_point_position = get_cartesian_coordinates_from_euler(skeleton, ground_contact_joint, frame)
-        offset_y = contact_point_position[1]
-        # shift root position by offset_y
-        frame[1] = frame[1] - offset_y
-    return tmp_frames
 
 
-def align_frames(skeleton, euler_frames_a, euler_frames_b, smooth=True):
-    """
-    calls find_aligning_transformation and concatenates the frames based on the
-    resulting transformation
-     Parameters
-    ----------
-    *skeleton: Skeleton
-    \tUsed to extract hierarchy information.
-    *euler_frames_a: np.ndarray
-    \List of frames where the rotation is represented as euler angles in degrees.
-    *euler_frames_b: np.ndarray
-    \List of frames where the rotation is represented as euler angles in degrees.
-    *smooth: bool
-    \t Sets whether or not smoothing is supposed to be applied on the at the transition.
-     Returns
-    -------
-    *aligned_frames : np.ndarray
-    \tAligned and optionally smoothed motion
-    """
-    theta, offset_x, offset_z = find_aligning_transformation(skeleton, euler_frames_a, euler_frames_b)
 
-    # apply 2d transformation
-    offset = np.array([offset_x, 0, offset_z])
-    angles = [0, np.degrees(theta), 0]
-    euler_frames_b = transform_euler_frames(euler_frames_b, angles,
-                                            offset)
-
-    # concatenate frames and optionally apply smoothing
-    if smooth:
-        euler_frames = smoothly_concatenate(euler_frames_a, euler_frames_b)
-    else:
-        euler_frames = np.concatenate((euler_frames_a, euler_frames_b), axis=0)
-    return euler_frames
-
-"""
 def get_2d_pose_transform(quaternion_frames, frame_number, param_range=(3,7)):
     dir_vec = pose_orientation_quat(quaternion_frames[frame_number], param_range)
     angle = get_rotation_angle(dir_vec, [0, -1])
@@ -1306,7 +1018,7 @@ def fast_quat_frames_transformation(quaternion_frames_a,
     offset = [offset_x, 0.0, offset_z]
     return angle, offset
 
-"""
+
 
 def fast_euler_frames_transformation(euler_frames_a,
                                      euler_frames_b):
@@ -1397,17 +1109,19 @@ def fast_euler_frames_alignment(euler_frames_a,
     return quaternion_frames
 
 
-def calculate_point_cloud_distance(a, b):
+def calculate_point_cloud_distance(a, b, w=None):
     """
     calculates the distance between two point clouds with equal length and
     corresponding distances
     """
     assert len(a) == len(b)
+    if w is None:
+        w = np.ones(len(a))
     distance = 0
     n_points = len(a)
     for i in range(n_points):
         d = [a[i][0] - b[i][0], a[i][1] - b[i][1], a[i][2] - b[i][2]]
-        distance += sqrt(d[0] ** 2 + d[1] ** 2 + d[2] ** 2)
+        distance += sqrt(d[0] ** 2 + d[1] ** 2 + d[2] ** 2) * w[i]
     return distance / n_points
 
 
@@ -1435,45 +1149,6 @@ def transform_point_cloud(point_cloud, theta, offset_x, offset_z):
     return transformed_point_cloud
 
 
-def calculate_pose_distance(skeleton, euler_frames_a, euler_frames_b):
-    ''' Converts euler frames to point clouds and finds the aligning transformation
-        and calculates the distance after the aligning transformation
-    '''
-
-    #    theta, offset_x, offset_z = find_aligning_transformation(bvh_reader, euler_frames_a, euler_frames_b, node_name_map)
-    point_cloud_a = convert_euler_frame_to_cartesian_frame(
-        skeleton, euler_frames_a[-1])
-    point_cloud_b = convert_euler_frame_to_cartesian_frame(
-        skeleton, euler_frames_b[0])
-
-    weights = skeleton.joint_weights
-    theta, offset_x, offset_z = align_point_clouds_2D(
-        point_cloud_a, point_cloud_b, weights)
-    t_point_cloud_b = transform_point_cloud(
-        point_cloud_b, theta, offset_x, offset_z)
-    error = calculate_point_cloud_distance(point_cloud_a, t_point_cloud_b)
-    return error
-
-
-def calculate_frame_distance(skeleton,
-                             euler_frame_a,
-                             euler_frame_b,
-                             return_transform=False):
-    point_cloud_a = convert_euler_frame_to_cartesian_frame(skeleton,
-                                                           euler_frame_a)
-    point_cloud_b = convert_euler_frame_to_cartesian_frame(skeleton,
-                                                           euler_frame_b)
-    weights = skeleton.joint_weights
-
-    theta, offset_x, offset_z = align_point_clouds_2D(
-        point_cloud_a, point_cloud_b, weights)
-    t_point_cloud_b = transform_point_cloud(
-        point_cloud_b, theta, offset_x, offset_z)
-    error = calculate_point_cloud_distance(point_cloud_a, t_point_cloud_b)
-    if return_transform:
-        return error, theta, offset_x, offset_z
-    else:
-        return error
 
 
 def quat_distance(quat_a, quat_b):
@@ -1504,35 +1179,6 @@ def calculate_weighted_frame_distance_quat(quat_frame_a,
     return diff
 
 
-def calculate_pose_distances_from_low_dim(skeleton, mm_models, X, Y):
-    """
-    Converts low dimensional vectors to euler vectors and calculates the
-    pose distance error by calling calculate_pose_distance
-    Parameters
-    ----------
-    * skeleton: BVHReader
-    \tContains the skeleton definition needed for the point cloud conversion
-
-    * mm_models: Dict of MotionPrimitives
-    \tContains the motion primitives for X and Y data
-
-     * X: List
-    \tList of low dimensional vectors
-
-    * Y: List
-    \tList of low dimensional vectors
-    """
-    assert len(X) == len(Y)
-    n = len(X)
-    errors = []
-    for i in range(n):
-        euler_frames_a = mm_models["X"].back_project(X[i]).get_motion_vector()
-        euler_frames_b = mm_models["Y"].back_project(Y[i]).get_motion_vector()
-        error = calculate_pose_distance(
-            skeleton, euler_frames_a, euler_frames_b)
-        errors.append(error)
-
-    return errors
 
 
 def extract_root_positions(frames):
@@ -1803,11 +1449,19 @@ def quaternion_rotate_vector(q, vector):
 
 
 def quaternion_from_vector_to_vector(a, b):
-    "src: http://stackoverflow.com/questions/1171849/finding-quaternion-representing-the-rotation-from-one-vector-to-another"
+    """src: http://stackoverflow.com/questions/1171849/finding-quaternion-representing-the-rotation-from-one-vector-to-another
+    http://wiki.ogre3d.org/Quaternion+and+Rotation+Primer"""
+
     v = np.cross(a, b)
     w = np.sqrt((np.linalg.norm(a) ** 2) * (np.linalg.norm(b) ** 2)) + np.dot(a, b)
     q = np.array([w, v[0], v[1], v[2]])
-    return q/ np.linalg.norm(q)
+    if np.dot(q,q) != 0:
+        return q/ np.linalg.norm(q)
+    else:
+        idx = np.nonzero(a)[0]
+        q = np.array([0, 0, 0, 0])
+        q[1 + ((idx + 1) % 2)] = 1 # [0, 0, 1, 0] for a rotation of 180 around y axis
+        return q
 
 
 def convert_euler_frame_to_reduced_euler_frame(bvhreader, euler_frame):
