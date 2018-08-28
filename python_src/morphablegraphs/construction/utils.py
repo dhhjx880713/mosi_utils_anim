@@ -96,6 +96,8 @@ def normalize_root_translation(motions):
     scaling all positions between -1 and 1
     """
     scale_vec = get_max_translation(motions)
+    if np.any(scale_vec==0):
+        return motions, np.array([1,1,1])
     scaled_motions = collections.OrderedDict()
     for key, frames in motions.items():
         frames = np.array(frames)
