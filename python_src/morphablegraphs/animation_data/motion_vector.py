@@ -3,13 +3,45 @@ __author__ = 'erhe01'
 from datetime import datetime
 import os
 import numpy as np
-from .utils import align_frames,transform_euler_frames, convert_euler_frames_to_quaternion_frames
+from .utils import  convert_euler_frames_to_quaternion_frames
 from .motion_concatenation import align_and_concatenate_frames, smooth_root_positions#, align_frames_and_fix_feet
 from .constants import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER
 from .bvh import BVHWriter
 import imp
-from ..external.transformations import quaternion_inverse, quaternion_multiply
+from ..external.transformations import quaternion_inverse, quaternion_multiply, quaternion_slerp
 
+
+
+def get_quaternion_delta(a, b):
+    return quaternion_multiply(quaternion_inverse(b), a)
+
+
+def add_frames(skeleton, a, b):
+    """ returns c = a + b"""
+    #print("add frames", len(a), len(b))
+    c = np.zeros(len(a))
+    c[:3] = a[:3] + b[:3]
+    for idx, j in enumerate(skeleton.animated_joints):
+        o = idx * 4 + 3
+        q_a = a[o:o + 4]
+        q_b = b[o:o + 4]
+        #print(q_a,q_b)
+        q_prod = quaternion_multiply(q_a, q_b)
+        c[o:o + 4] = q_prod / np.linalg.norm(q_prod)
+    return c
+
+
+def substract_frames(skeleton, a, b):
+    """ returns c = a - b"""
+    c = np.zeros(len(a))
+    c[:3] = a[:3] - b[:3]
+    for idx, j in enumerate(skeleton.animated_joints):
+        o = idx*4 + 3
+        q_a = a[o:o+4]
+        q_b = b[o:o+4]
+        q_delta = get_quaternion_delta(q_a, q_b)
+        c[o:o+4] = q_delta / np.linalg.norm(q_delta)
+    return c
 
 class MotionVector(object):
     """
@@ -138,7 +170,9 @@ class MotionVector(object):
 
     def translate_root(self, offset):
         for idx in range(self.n_frames):
+            print("before", self.frames[idx, :3])
             self.frames[idx][:3] += offset
+            print("after",self.frames[idx,:3])
 
     def scale_root(self, scale_factor):
         for idx in range(self.n_frames):
@@ -235,3 +269,16 @@ class MotionVector(object):
 
     def apply_low_pass_filter_on_root(self, window):
         self.frames[:, :3] = smooth_root_positions(self.frames[:, :3], window)
+
+    def apply_delta_frame(self, skeleton, delta_frame):
+        for f in range(self.n_frames):
+            self.frames[f] = add_frames(skeleton, self.frames[f], delta_frame)
+
+    def interpolate(self, start_idx, end_idx, t):
+        new_frame = np.zeros(self.frames[0].shape)
+        new_frame[:3] = (1-t) * self.frames[start_idx][:3] + t * self.frames[end_idx][:3]
+        for i in range(3, new_frame.shape[0], 4):
+            start_q = self.frames[start_idx][i:i+4]
+            end_q = self.frames[end_idx][i:i+4]
+            new_frame[i:i+4] = quaternion_slerp(start_q, end_q, t, spin=0, shortestpath=True)
+        return new_frame
