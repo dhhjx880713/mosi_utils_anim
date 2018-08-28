@@ -19,7 +19,7 @@ class IKConstraintsBuilder2(object):
                 if time_function is not None:
                     keyframe = frame_offset + int(time_function[constraint.canonical_keyframe]) + 1
                 else:
-                    keyframe = frame_offset + constraint.canonical_keyframe
+                    keyframe = frame_offset + int(constraint.canonical_keyframe)
 
                 if constraint.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION:
                     ik_constraint = self._create_keyframe_ik_constraint(constraint, keyframe, constrain_orientation, look_at=True)
