@@ -321,14 +321,17 @@ class BVHWriter(object):
                         rotation_order.append(ch)
                         if rotation_offset is None:
                             rotation_offset = idx
-
-                q = quat_frame[src:src+QUAT_LEN]
-                e = BVHWriter._quaternion_to_euler(q, rotation_order)
-                params_start = dst + rotation_offset
-                params_end = params_start + EULER_LEN
-                euler_frames[frame_idx, params_start:params_end] = e
-                dst += n_channels
-                src += QUAT_LEN
+                if len(rotation_order) == 3:
+                    if skeleton.nodes[joint_name].fixed:
+                        q = skeleton.nodes[joint_name].rotation
+                    else:
+                        q = quat_frame[src:src+QUAT_LEN]
+                    e = BVHWriter._quaternion_to_euler(q, rotation_order)
+                    params_start = dst + rotation_offset
+                    params_end = params_start + EULER_LEN
+                    euler_frames[frame_idx, params_start:params_end] = e
+                    dst += n_channels
+                    src += QUAT_LEN
         return euler_frames
 
     def _generate_bvh_frame_string(self,euler_frames, frame_time):
