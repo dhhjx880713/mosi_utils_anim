@@ -6,9 +6,11 @@ from .utils import get_average_joint_position, get_average_joint_direction, get_
     quaternion_from_vector_to_vector
 from ...external.transformations import quaternion_from_matrix, quaternion_multiply, quaternion_matrix, quaternion_slerp, quaternion_inverse
 
+
 def get_quat_delta(qa, qb):
     """ get quaternion from quat a to quat b """
     return quaternion_multiply(qb, quaternion_inverse(qa))
+
 
 def get_leg_state(plant_range, foot_definitions, side, frame):
     state = "swinging"

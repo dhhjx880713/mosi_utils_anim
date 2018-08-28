@@ -1,6 +1,6 @@
 from .motion_editing import MotionEditing
-from .footplant_constraint_generator import FootplantConstraintGenerator
 from .motion_grounding import MotionGrounding
 from .utils import add_heels_to_skeleton, get_average_joint_position, get_average_joint_direction
 from .legacy_inverse_kinematics import LegacyInverseKinematics
 from .skeleton_pose_model import SkeletonPoseModel
+from .footplant_constraint_generator import FootplantConstraintGenerator

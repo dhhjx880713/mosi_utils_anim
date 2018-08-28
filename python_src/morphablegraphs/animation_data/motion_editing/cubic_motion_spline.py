@@ -48,14 +48,14 @@ class CubicMotionSpline(object):
         self.splines = splines
 
     @classmethod
-    def fit_frames(cls, skeleton, times, frames):
+    def fit_frames(cls, skeleton, times, frames, kind='cubic'):
         if type(frames) is np.ndarray:
             n_frames, n_dims = frames.shape
         else:
             n_dims = 1
         splines = []
         for d in range(n_dims):
-            s = interp1d(times, frames[:, d], kind='cubic')
+            s = interp1d(times, frames[:, d], kind=kind)
             splines.append(s)
         return CubicMotionSpline(skeleton, splines, n_dims)
 

@@ -292,6 +292,26 @@ def align_and_concatenate_frames(skeleton, joint_name, new_frames, prev_frames=N
 
 blend = lambda x: 2 * x * x * x - 3 * x * x + 1
 
+
+def align_joint(skeleton, frames, frame_idx, foot_joint, ik_chain, ik_window=7):
+    transition_start = frame_idx + 1
+    transition_end = frame_idx + ik_window
+    c = create_grounding_constraint_from_frame(skeleton, frames, frame_idx, foot_joint)
+    ik = AnalyticalLimbIK.init_from_dict(skeleton, c.joint_name, ik_chain)
+    frames[transition_start] = ik.apply2(frames[transition_start], c.position, c.orientation)
+
+    chain_joints = [ik_chain["root"], ik_chain["joint"], foot_joint]
+    for c_joint in chain_joints:
+        idx = skeleton.animated_joints.index(c_joint) * 4 + 3
+        j_indices = [idx, idx + 1, idx + 2, idx + 3]
+        start_q = frames[transition_start][j_indices]
+        end_q = frames[transition_end][j_indices]
+        for i in range(ik_window):
+            t = float(i) / ik_window
+            frames[transition_start + 1 + i][j_indices] = quaternion_slerp(start_q, end_q, t, spin=0, shortestpath=True)
+    return frames
+
+
 def align_frames_and_fix_foot_to_prev(skeleton, aligning_joint, new_frames, prev_frames, start_pose, foot_joint, ik_chain, ik_window=7, smoothing_window=0):
     new_frames = align_quaternion_frames(skeleton, aligning_joint, new_frames, prev_frames, start_pose)
     if prev_frames is not None:
@@ -334,9 +354,9 @@ def align_frames_and_fix_foot_to_prev(skeleton, aligning_joint, new_frames, prev
             #for j, frame in enumerate(frames[transition_start+1:transition_end]):
             #    w = (j + 1) / (ik_window + 1)
             #    frames[transition_start+1+j][j_indices] = normalize(quaternion_slerp(bq, fq, blend(w), spin=0, shortestpath=True))
-        idx = skeleton.animated_joints.index(foot_joint) * 4 + 3
-        j_indices = [idx, idx + 1, idx + 2, idx + 3]
-        print("after smoothing",frames[transition_start + 1][j_indices])
+        #idx = skeleton.animated_joints.index(foot_joint) * 4 + 3
+        #j_indices = [idx, idx + 1, idx + 2, idx + 3]
+        #print("after smoothing",frames[transition_start + 1][j_indices])
         if smoothing_window > 0 and False:
             frames = smooth_quaternion_frames(frames, d, smoothing_window)
         return frames

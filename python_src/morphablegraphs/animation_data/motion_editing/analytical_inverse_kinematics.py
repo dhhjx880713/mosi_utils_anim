@@ -89,10 +89,8 @@ class AnalyticalLimbIK(object):
         joint_pos = self.skeleton.nodes[self.limb_joint].get_global_position(frame)
         end_effector_pos = self.skeleton.nodes[self.end_effector].get_global_position(frame)
 
-        upper_limb_vec = root_pos - joint_pos
-        lower_limb_vec = joint_pos - end_effector_pos
-        upper_limb = np.linalg.norm(upper_limb_vec)
-        lower_limb = np.linalg.norm(lower_limb_vec)
+        upper_limb = np.linalg.norm(root_pos - joint_pos)
+        lower_limb = np.linalg.norm(joint_pos - end_effector_pos)
         target_length = np.linalg.norm(root_pos - target_position)
         current_length = np.linalg.norm(root_pos - end_effector_pos)
         current_angle = calculate_angle2(upper_limb, lower_limb, current_length)
@@ -113,8 +111,6 @@ class AnalyticalLimbIK(object):
         # align vectors
         root_pos = self.skeleton.nodes[self.limb_root].get_global_position(frame)
         end_effector_pos = self.skeleton.nodes[self.end_effector].get_global_position(frame)
-        original_toe_position = self.skeleton.nodes[self.end_effector].children[0].get_global_position(frame)
-        original_direction = normalize(original_toe_position - end_effector_pos)
         src_delta = end_effector_pos - root_pos
         src_dir = src_delta / np.linalg.norm(src_delta)
 
@@ -124,51 +120,19 @@ class AnalyticalLimbIK(object):
         root_delta_q = find_rotation_between_vectors(src_dir, target_dir)
         root_delta_q = normalize(root_delta_q)
 
-        new_local_q = self._to_local_coordinate_system(frame, self.limb_root, root_delta_q)
-        frame[self.root_indices] = new_local_q
-
-        # rotate around vector based on original orientation
-        if False:
-            pos1 = self.skeleton.nodes[self.end_effector].get_global_position(frame)
-            pos2 = self.skeleton.nodes[self.end_effector].children[0].get_global_position(frame)
-            new_direction = normalize(pos2-pos1)
-            q = normalize(quaternion_from_vector_to_vector(new_direction, original_direction))
-            new_q = quaternion_multiply(q, root_delta_q)
-            new_q = normalize(new_q)
-            frame[self.root_indices] = self._to_local_coordinate_system(frame, self.limb_root, new_q)
-
-        elif False:
-            end_effector_pos = self.skeleton.nodes[self.end_effector].get_global_position(frame)
-            toe_pos = self.skeleton.nodes[self.end_effector].children[0].get_global_position(frame)
-            proj_epos = project_vec3(end_effector_pos, target_dir)
-            proj_toe_pos = project_vec3(toe_pos, target_dir)
-            proj_orig_toe_pos = project_vec3(original_toe_position, target_dir)
-
-            toe_length = np.linalg.norm(proj_toe_pos - proj_epos)
-            toe_delta = np.linalg.norm(proj_toe_pos - proj_orig_toe_pos)
-
-            t2 = toe_length * toe_length
-            cos_alpha = (t2+t2 - toe_delta*toe_delta) / (2*t2)
-            cos_alpha = min(1, cos_alpha)
-            cos_alpha = max(-1, cos_alpha)
-            alpha = np.pi - math.acos(cos_alpha)
-            q = normalize(quaternion_about_axis(alpha, target_dir))
-            new_q = quaternion_multiply(q, root_delta_q)
-            new_q = normalize(new_q)
-            frame[self.root_indices] = self._to_local_coordinate_system(frame, self.limb_root, new_q)
+        frame[self.root_indices] = self._to_local_coordinate_system(frame, self.limb_root, root_delta_q)
 
     def _to_local_coordinate_system(self, frame, joint_name, q):
         """ given a global rotation concatenate it with an existing local rotation and bring it to the local coordinate system"""
         # delta*parent*old_local = parent*new_local
         # inv_parent*delta*parent*old_local = new_local
-        delta_m = quaternion_matrix(q)
+        global_m = quaternion_matrix(q)
         parent_joint = self.skeleton.nodes[joint_name].parent.node_name
         parent_m = self.skeleton.nodes[parent_joint].get_global_matrix(frame, use_cache=False)
         old_global = np.dot(parent_m, self.skeleton.nodes[joint_name].get_local_matrix(frame))
-        new_global = np.dot(delta_m, old_global)
+        new_global = np.dot(global_m, old_global)
         new_local = np.dot(np.linalg.inv(parent_m), new_global)
-        new_local_q = quaternion_from_matrix(new_local)
-        return new_local_q
+        return quaternion_from_matrix(new_local)
 
     def calculate_end_effector_rotation(self, frame, target_dir):
         #print "end effector rotation", self.end_effector, target_dir
@@ -200,6 +164,7 @@ class AnalyticalLimbIK(object):
         pos1 = self.skeleton.nodes[joint_name].get_global_position(frame)
         pos2 = self.skeleton.nodes[joint_name].children[0].get_global_position(frame)
         return normalize(pos2 - pos1)
+
 
     def apply(self, frame, position=None, direction=None):
 
