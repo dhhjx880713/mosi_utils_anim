@@ -182,7 +182,7 @@ class MotionPrimitiveConstraints(object):
                 semantic_label = UNLABELED_KEY#c.semantic_annotation["keyframeLabel"]#
                 if semantic_label not in list(temp_constraint_list.keys()):
                     temp_constraint_list[semantic_label] = []
-                joints = list(self.skeleton.node_name_frame_map.keys())
+                joints = self.skeleton.animated_joints
                 points = c.pose_constraint
                 for j, p in zip(joints,points):
                     desc = {"type":"pos","value":p, "joint": j, "weight_factor":c.weight_factor}
