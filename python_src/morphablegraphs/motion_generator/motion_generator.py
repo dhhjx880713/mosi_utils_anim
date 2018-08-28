@@ -227,7 +227,7 @@ class MotionGenerator(object):
         if action_constraints.root_trajectory is not None:
             mv_frames = self.graph_walk.get_quat_frames()
             new_end_point = mv_frames[-1, :3]
-            if self.check_overstepping(node_key, action_constraints, new_end_point, prev_end_point):
+            if self.check_overstepping(node_key, action_constraints, new_end_point, prev_end_point) and False:
                 self.graph_walk.motion_vector.frames = self.graph_walk.motion_vector.frames[-n_new_frames:]
                 self.graph_walk.motion_vector.n_frames -= n_new_frames
                 self.graph_walk.motion_vector._prev_n_frames -= n_new_frames
