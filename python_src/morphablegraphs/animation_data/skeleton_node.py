@@ -1,8 +1,8 @@
 __author__ = 'erhe01'
 
 import numpy as np
-
-from ..external.transformations import quaternion_matrix, euler_matrix, euler_from_matrix, quaternion_from_matrix
+from math import acos
+from ..external.transformations import quaternion_matrix, euler_matrix, euler_from_matrix, quaternion_about_axis, quaternion_from_matrix,quaternion_inverse, quaternion_multiply
 from .constants import ROTATION_TYPE_EULER, ROTATION_TYPE_QUATERNION
 
 SKELETON_NODE_TYPE_ROOT = 0
