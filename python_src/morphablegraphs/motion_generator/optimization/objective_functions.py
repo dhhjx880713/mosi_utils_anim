@@ -18,7 +18,123 @@ def obj_frame_error(s, data):
     sample = motion_primitive.back_project(s, use_time_parameters=False)# TODO backproject only current frame
     frame = sample.get_motion_vector()[frame_idx]
     p = motion_primitive.skeleton.nodes[joint_name].get_global_position(frame)
+
     return np.linalg.norm(target-p)
+
+
+def step_goal_error(s, data):
+    """
+    """
+    motion_primitive, mp_constraints, prev_frames = data[:3]
+    target_pos = mp_constraints.constraints[0].position
+    spline_model = motion_primitive.motion_primitive.spatial
+    sfpca = spline_model.fpca
+    n_spatial = sfpca.n_components
+    coeffs_flat = sfpca.project(s[:n_spatial])
+    #coeffs_flat = np.dot(s[:n_spatial], sfpca.eigen)
+    #coeffs = coeffs_flat.reshape((spline_model.n_coeffs, spline_model.n_dims))
+    idx = (spline_model.n_coeffs-1)* spline_model.n_dims
+    pos = coeffs_flat[idx:idx+3]
+    pos[1] = 0
+    #spline = motion_primitive.back_project(s)
+    #end_pos = coeffs[-1, :3]
+    delta = target_pos - pos
+    error = np.dot(delta,delta)
+    #print("error",target_pos, pos)
+    return error
+
+def step_goal_jac(s, data):
+    """
+    """
+    motion_primitive, mp_constraints, prev_frames = data[:3]
+
+    target_pos = mp_constraints.constraints[0].position
+
+    spline_model = motion_primitive.motion_primitive.spatial
+    sfpca = spline_model.fpca
+    n_spatial = sfpca.n_components
+    coeffs_flat = sfpca.project(s[:n_spatial])
+    idx = (spline_model.n_coeffs-1) * spline_model.n_dims
+    pos = coeffs_flat[idx:idx + 3]
+    pos[1] = 0
+    vector_derivative = sfpca.eigen[:, idx:idx + 3]#.T
+    gradient = -(target_pos - pos)
+    #error = np.linalg.norm(delta)
+    #print("jac",target_pos, pos)
+    #print(delta.shape, pos_m.shape, sfpca.eigen.shape)
+    jac = np.zeros(len(s))
+    #gradient[:n_spatial] = np.dot(delta, pos_m)
+    jac[:n_spatial] = np.dot(vector_derivative, gradient)
+    #print(delta, gradient)
+    return 2 * jac
+
+
+
+def step_goal_and_naturalness(s, data):
+    """
+    """
+    motion_primitive, mp_constraints, prev_frames = data[:3]
+    target_pos = mp_constraints.constraints[0].position
+    spline_model = motion_primitive.motion_primitive.spatial
+    sfpca = spline_model.fpca
+    n_spatial = sfpca.n_components
+    coeffs_flat = sfpca.project(s[:n_spatial])
+    #coeffs_flat = np.dot(s[:n_spatial], sfpca.eigen)
+    #coeffs = coeffs_flat.reshape((spline_model.n_coeffs, spline_model.n_dims))
+    idx = (spline_model.n_coeffs-1)* spline_model.n_dims
+    pos = coeffs_flat[idx:idx+3]
+    pos[1] = 0
+    #spline = motion_primitive.back_project(s)
+    #end_pos = coeffs[-1, :3]
+    delta = target_pos - pos
+    error = np.dot(delta,delta)
+
+    n_log_likelihood = -data[0].get_gaussian_mixture_model().score(s)
+    error += n_log_likelihood
+    #print("error", target_pos, pos, error)
+    return error
+
+def log_likelihood_jac(s, gmm):
+    tmp = np.reshape(s, (1, len(s)))
+    logLikelihoods = _log_multivariate_normal_density_full(tmp,
+                                                           gmm.means,
+                                                           gmm.covars)
+    logLikelihoods = np.ravel(logLikelihoods)
+    numerator = 0
+    n_models = len(gmm.weights)
+    for i in range(n_models):
+        numerator += np.exp(logLikelihoods[i]) * gmm.weights[i] * np.dot(np.linalg.inv(gmm.covars[i]), (s - gmm.means[i]))
+    denominator = np.exp(gmm.score(s))
+    if denominator != 0:
+        return numerator / denominator
+    else:
+        return np.ones(s.shape)
+
+def step_goal_and_naturalness_jac(s, data):
+    """
+    """
+    motion_primitive, mp_constraints, prev_frames = data[:3]
+
+    target_pos = mp_constraints.constraints[0].position
+
+    spline_model = motion_primitive.motion_primitive.spatial
+    sfpca = spline_model.fpca
+    n_spatial = sfpca.n_components
+    coeffs_flat = sfpca.project(s[:n_spatial])
+    idx = (spline_model.n_coeffs-1) * spline_model.n_dims
+    pos = coeffs_flat[idx:idx + 3]
+    pos[1] = 0
+    vector_derivative = sfpca.eigen[:, idx:idx + 3]#.T
+    gradient = -(target_pos - pos)
+    #error = np.linalg.norm(delta)
+    #print("jac",target_pos, pos)
+    #print(delta.shape, pos_m.shape, sfpca.eigen.shape)
+    jac = np.zeros(len(s))
+    #gradient[:n_spatial] = np.dot(delta, pos_m)
+    jac[:n_spatial] = np.dot(vector_derivative, gradient)
+    #print(delta, gradient)
+    return 2 * jac - log_likelihood_jac(s, motion_primitive.get_gaussian_mixture_model())
+
 
 
 def obj_spatial_error_sum(s, data):
@@ -39,6 +155,7 @@ def obj_spatial_error_sum(s, data):
     """
     motion_primitive, mp_constraints, prev_frames = data
     mp_constraints.min_error = mp_constraints.evaluate(motion_primitive, s, prev_frames, use_time_parameters=False)
+    #print("errors from all constraints", mp_constraints.min_error)
     return mp_constraints.min_error
 
 
@@ -56,18 +173,19 @@ def obj_spatial_error_sum_and_naturalness(s, data):
     Returns
     -------
     * error: float
-
     """
 
     spatial_error = obj_spatial_error_sum(s, data[:-3])# ignore the kinematic factor and quality factor
     error_scale_factor = data[-3]
     quality_scale_factor = data[-2]
     init_error_sum = data[-1]
-    n_log_likelihood = -data[0].get_gaussian_mixture_model().score(s.reshape((1, len(s))))
+    #s = s.reshape((1, len(s)))
+    n_log_likelihood = -data[0].get_gaussian_mixture_model().score(s)
     #print "naturalness is: " + str(n_log_likelihood)
-    error = error_scale_factor * spatial_error + n_log_likelihood * quality_scale_factor
-    #print "error", error
-    return error/init_error_sum
+    error = error_scale_factor * spatial_error#'+ n_log_likelihood * quality_scale_factor
+    print("error", error)
+    return error#/init_error_sum
+
 
 
 def obj_spatial_error_sum_and_naturalness_jac(s, data):
@@ -146,7 +264,8 @@ def obj_spatial_error_residual_vector_and_naturalness(s, data):
     * residual_vector: list
     """
     mp, mp_constraints, prev_frames, error_scale_factor, quality_scale_factor, init_error_sum = data
-    negative_log_likelihood = float(-data[0].get_gaussian_mixture_model().score(s.reshape((1, len(s)))) * quality_scale_factor)
+    #s = s.reshape((1, len(s)))
+    negative_log_likelihood = float(-data[0].get_gaussian_mixture_model().score(s) * quality_scale_factor)
     residual_vector = mp_constraints.get_residual_vector(mp, s, prev_frames, use_time_parameters=False)
     mp_constraints.min_error = np.sum(residual_vector)
     n_error_values = len(residual_vector)

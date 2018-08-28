@@ -317,3 +317,38 @@ class MotionPrimitive(object):
             return self.t_pca["n_components"]
         else:
             return 0
+
+    def path_following_obj(self, target, alpha):
+        coeffs = self.back_project_spatial_coeffs(alpha)
+        end_pos = coeffs[-1,:3]
+        error = np.linalg.norm(target-end_pos)
+        return error
+
+    def get_spatial_jacobian(self):
+        #alpha = 5
+        #n_dims = 100
+        # 100x5 * 5x1 = 100x1
+        # 5x100
+        return self.s_pca["eigen_vectors"].T
+
+    def path_following_jac(self, target, alpha, coff_idx):
+        """
+        you want to know how the error changes depending on the parameter change
+        so the gradient is a vector of length alpha
+        Error(a) = y(a)*2
+        Y(a) = M*a
+
+        d_error/d_a = d_error/d_y* d_y/d_a
+        = 2y(a) * M*a^0 = 2y(a)*M
+
+        """
+
+        coeffs = self.back_project_spatial_coeffs(alpha)
+        end_pos = coeffs[-1, :3]
+        d_error = target - end_pos #dim = 3
+        d_m = self.s_pca["n_components"] # dim = 100 x alpha
+        # coefs = coefs.reshape((self.s_pca["n_basis"], self.s_pca["n_dim"]))
+        row_idx = self.s_pca["n_dim"]*coff_idx
+        d_pos = d_m[row_idx:row_idx+3, :]
+        # 1x3 * 3 x n_alpha
+        return np.dot(d_error, d_pos)

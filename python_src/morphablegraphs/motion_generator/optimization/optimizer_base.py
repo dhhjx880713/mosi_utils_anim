@@ -16,12 +16,16 @@ class OptimizerBase(object):
         self.verbose = optimization_settings["verbose"]
         self._objective_function = None
         self._error_func_params = None
+        self._jacobian = None
 
     def set_objective_function(self, obj):
         self._objective_function = obj
 
     def set_objective_function_parameters(self, data):
         self._error_func_params = data
+
+    def set_jacobian(self, jac):
+        self._jacobian = jac
 
     def run(self, initial_guess):
         """ Runs the optimization for a single motion primitive and a list of constraints

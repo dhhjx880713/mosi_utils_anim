@@ -37,13 +37,15 @@ class NumericalMinimizer(OptimizerBase):
                                   initial_guess,
                                   args=(self._error_func_params,),
                                   method=self.optimization_settings["method"],
-                                  #jac = error_function_jac,
+                                  jac=self._jacobian,
                                   tol=self.optimization_settings["tolerance"],
-                                  options={'maxiter': self.optimization_settings["max_iterations"], 'disp': self.verbose,
+                                  options={'maxiter': self.optimization_settings["max_iterations"],
+                                           'disp': self.verbose,
                                            'eps': self.optimization_settings["diff_eps"]})
 
+
             except ValueError as e:
-                print("Warning:", e.message)
+                print("Warning:", e.args)
                 return initial_guess
 
             if self.verbose:
