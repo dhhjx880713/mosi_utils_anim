@@ -10,7 +10,7 @@ from copy import copy
 import json
 import numpy as np
 from ..external.transformations import quaternion_matrix
-from .skeleton_node import SkeletonEndSiteNode
+from .skeleton_node import SkeletonEndSiteNode, SkeletonJointNode
 from .constants import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER
 from .skeleton_models import ROCKETBOX_ANIMATED_JOINT_LIST, ROCKETBOX_FREE_JOINTS_MAP, ROCKETBOX_REDUCED_FREE_JOINTS_MAP, ROCKETBOX_SKELETON_MODEL, ROCKETBOX_BOUNDS, ROCKETBOX_TOOL_BONES, ROCKETBOX_ROOT_DIR
 from .joint_constraints import apply_conic_constraint, apply_axial_constraint, apply_spherical_constraint
@@ -138,6 +138,34 @@ class Skeleton(object):
                         new_frame[dest_start: dest_start+4] = reduced_frame[src_start: src_start + 4]
 
                 joint_index += 1
+        return new_frame
+
+
+    def add_fixed_joint_parameters_to_other_frame(self, reduced_frame, other_animated_joints):
+        """
+        Takes parameters from the reduced frame for each joint of the complete skeleton found in the reduced skeleton
+        otherwise it takes parameters from the reference frame
+        :param reduced_frame:
+        :return:
+        """
+        new_frame = np.zeros(self.reference_frame_length)
+        src_joint_index = 0
+        dest_joint_index = 0
+        for joint_name in list(self.nodes.keys()):
+            if len(self.nodes[joint_name].children) > 0 and "EndSite" not in joint_name:
+                if joint_name == self.root:
+                    new_frame[:7] = reduced_frame[:7]
+                    src_joint_index += 1
+                else:
+                    dest_start = dest_joint_index * 4 + 3
+                    if joint_name in other_animated_joints:
+                        src_start = other_animated_joints.index(joint_name) * 4 + 3
+                        new_frame[dest_start: dest_start + 4] = reduced_frame[src_start: src_start + 4]
+                        src_joint_index+=1
+                    else:
+                        new_frame[dest_start: dest_start + 4] = self.nodes[joint_name].rotation
+
+                dest_joint_index += 1
         return new_frame
 
     def _get_max_level(self):
@@ -306,12 +334,14 @@ class Skeleton(object):
                 channels[node.node_name] = node_channels
         return channels
 
-    def to_unity_format(self, joint_name_map=None, scale=1):
+
+    def to_unity_format(self, joint_name_map=None, animated_joints=None, scale=1):
         """ Converts the skeleton into a custom json format and applies a coordinate transform to the left-handed coordinate system of Unity.
             src: http://answers.unity3d.com/questions/503407/need-to-convert-to-right-handed-coordinates.html
         """
-
-        animated_joints = [j for j, n in list(self.nodes.items()) if "EndSite" not in j and len(n.children) > 0]#self.animated_joints
+        if animated_joints is None:
+            animated_joints = [j for j, n in list(self.nodes.items()) if
+                               "EndSite" not in j and len(n.children) > 0]  # self.animated_joints
         joint_descs = []
         self.nodes[self.root].to_unity_format(joint_descs, animated_joints, joint_name_map=joint_name_map)
 
@@ -322,15 +352,18 @@ class Skeleton(object):
         default_pose = dict()
         default_pose["rotations"] = []
         for node in list(self.nodes.values()):
-              if node.node_name in animated_joints:
-                  q = node.rotation
-                  if len(q) ==4:
-                      r = {"x":-q[1], "y":q[2], "z":q[3], "w":-q[0]}
-                  else:
-                      r = {"x":0, "y":0, "z":0, "w":1}
-                  default_pose["rotations"].append(r)
+            if node.node_name in animated_joints:
+                q = node.rotation
+                if len(q) == 4:
+                    r = {"x": -float(q[1]), "y": float(q[2]), "z": float(q[3]), "w": -float(q[0])}
+                else:
+                    r = {"x": 0.0, "y": 0.0, "z": 0.0, "w": 1.0}
+                default_pose["rotations"].append(r)
 
-        default_pose["translations"] = [{"x":-scale*node.offset[0], "y":scale*node.offset[1], "z":scale*node.offset[2]} for node in list(self.nodes.values()) if node.node_name in animated_joints and len(node.children) > 0]
+        default_pose["translations"] = [
+            {"x": -float(scale * node.offset[0]), "y": float(scale * node.offset[1]), "z": float(scale * node.offset[2])}
+            for node in
+            list(self.nodes.values()) if node.node_name in animated_joints and len(node.children) > 0]
 
         data["referencePose"] = default_pose
         return data
