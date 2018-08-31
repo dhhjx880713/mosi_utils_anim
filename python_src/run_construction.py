@@ -67,6 +67,85 @@ ANIMATED_JOINTS["custom"] = [
     "R_foot_jnt"
 ]
 
+
+ANIMATED_JOINTS["custom2"] = [
+    "FK_back1_jnt",
+    "FK_back2_jnt",
+    "FK_back4_jnt",
+    "head_jnt",
+    "R_shoulder_jnt",
+    "R_upArm_jnt",
+    "R_lowArm_jnt",
+    "R_hand_jnt",
+    "L_shoulder_jnt",
+    "L_upArm_jnt",
+    "L_lowArm_jnt",
+    "L_hand_jnt",
+    "L_upLeg_jnt",
+    "L_lowLeg_jnt",
+    "L_foot_jnt",
+    "R_upLeg_jnt",
+    "R_lowLeg_jnt",
+    "R_foot_jnt",
+   "R_thumb_base_jnt",
+"R_thumb_mid_jnt",
+ "R_thumb_tip_jnt",
+ "R_thumb_end_jnt",
+
+  "R_index_root_jnt",
+ "R_index_base_jnt",
+ "R_index_mid_jnt",
+ "R_index_tip_jnt",
+ "R_index_end_jnt",
+
+  "R_middle_root_jnt",
+  "R_middle_base_jnt",
+  "R_middle_mid_jnt",
+ "R_middle_tip_jnt",
+ "R_middle_end_jnt",
+
+  "R_ring_base_jnt",
+ "R_ring_root_jnt",
+ "R_ring_mid_jnt",
+  "R_ring_tip_jnt",
+  "R_ring_end_jnt",
+  "R_pinky_root_jnt",
+ "R_pinky_base_jnt",
+  "R_pinky_mid_jnt",
+ "R_pinky_tip_jnt",
+  "R_pinky_end_jnt",
+
+  "L_thumb_base_jnt",
+  "L_thumb_mid_jnt",
+  "L_thumb_tip_jnt",
+ "L_thumb_end_jnt",
+
+ "L_index_root_jnt",
+  "L_index_base_jnt",
+ "L_index_mid_jnt",
+  "L_index_tip_jnt",
+ "L_index_end_jnt",
+
+  "L_middle_root_jnt",
+  "L_middle_base_jnt",
+  "L_middle_mid_jnt",
+ "L_middle_tip_jnt",
+  "L_middle_end_jnt",
+
+ "L_ring_base_jnt",
+  "L_ring_root_jnt",
+  "L_ring_mid_jnt",
+  "L_ring_tip_jnt",
+ "L_ring_end_jnt",
+
+ "L_pinky_root_jnt",
+  "L_pinky_base_jnt",
+ "L_pinky_mid_jnt",
+  "L_pinky_tip_jnt",
+ "L_pinky_end_jnt"
+
+]
+
 MM_FILE_ENDING = "_quaternion_mm.json"
 
 
