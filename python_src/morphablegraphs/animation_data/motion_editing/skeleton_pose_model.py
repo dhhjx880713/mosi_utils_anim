@@ -107,6 +107,9 @@ class SkeletonPoseModel(object):
     def evaluate_orientation(self, target_joint):
         return self.skeleton.nodes[target_joint].get_global_orientation_quaternion(self.pose_parameters)
 
+    def evaluate_matrix(self, target_joint):
+        return self.skeleton.nodes[target_joint].get_global_matrix(self.pose_parameters)
+
     def apply_bounds(self, free_joint):
         if free_joint in list(self.bounds.keys()):
             euler_angles = self.get_euler_angles(free_joint)

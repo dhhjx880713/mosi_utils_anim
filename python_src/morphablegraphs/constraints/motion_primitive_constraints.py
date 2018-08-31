@@ -8,9 +8,9 @@ import numpy as np
 from copy import copy
 from ..animation_data.utils import transform_point, quaternion_from_vector_to_vector, euler_to_quaternion, quaternion_multiply
 from ..animation_data.motion_concatenation import align_quaternion_frames
-from .spatial_constraints import GlobalTransformConstraint, TwoHandConstraintSet, PoseConstraint,  Direction2DConstraint, LookAtConstraint, FeetConstraint
+from .spatial_constraints import GlobalTransformConstraint, TwoHandConstraintSet, PoseConstraint,  Direction2DConstraint, LookAtConstraint, FeetConstraint, RelativeTransformConstraint
 from .spatial_constraints.keyframe_constraints.global_transform_ca_constraint import GlobalTransformCAConstraint
-from .spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE,SPATIAL_CONSTRAINT_TYPE_KEYFRAME_DIR_2D, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_LOOK_AT, SPATIAL_CONSTRAINT_TYPE_CA_CONSTRAINT,SPATIAL_CONSTRAINT_TYPE_KEYFRAME_FEET
+from .spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE,SPATIAL_CONSTRAINT_TYPE_KEYFRAME_DIR_2D, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_LOOK_AT, SPATIAL_CONSTRAINT_TYPE_CA_CONSTRAINT,SPATIAL_CONSTRAINT_TYPE_KEYFRAME_FEET, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_RELATIVE_POSITION
 from .ik_constraints import JointIKConstraint, TwoJointIKConstraint
 from .ik_constraints_builder import IKConstraintsBuilder
 from .ik_constraints_builder2 import IKConstraintsBuilder2
@@ -270,6 +270,22 @@ class MotionPrimitiveConstraints(object):
                                                 "canonical_keyframe":  c.canonical_keyframe,
                                                 "semanticAnnotation": c.semantic_annotation}
                     mp_constraints.constraints.append(GlobalTransformConstraint(self.skeleton, keyframe_constraint_desc, 1.0))
+            elif c.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_RELATIVE_POSITION:
+                if c.position is not None:
+                    position = [c.position[0], c.position[1], c.position[2], 1]
+                    indices = [i for i in range(3) if position[i] is None]
+                    for i in indices:
+                        position[i] = 0
+                    position = np.dot(inv_aligning_transform, position)[:3].tolist()
+                    for i in indices:
+                        position[i] = None
+                    keyframe_constraint_desc = {"joint": c.joint_name,
+                                                "position": position,
+                                                "n_canonical_frames": c.n_canonical_frames,
+                                                "canonical_keyframe": c.canonical_keyframe,
+                                                "semanticAnnotation": c.semantic_annotation,
+                                                "offset": c.offset}
+                    mp_constraints.constraints.append(RelativeTransformConstraint(self.skeleton, keyframe_constraint_desc, 1.0))
 
             elif c.constraint_type == SPATIAL_CONSTRAINT_TYPE_CA_CONSTRAINT:
                 position = [c.position[0], c.position[1], c.position[2], 1]

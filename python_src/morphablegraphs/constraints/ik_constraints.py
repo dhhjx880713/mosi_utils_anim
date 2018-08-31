@@ -8,7 +8,7 @@ class IKConstraint(object):
 
 
 class JointIKConstraint(IKConstraint):
-    def __init__(self, joint_name, position, orientation, keyframe, free_joints, step_idx=-1, frame_range=None, look_at=False, optimize=True):
+    def __init__(self, joint_name, position, orientation, keyframe, free_joints, step_idx=-1, frame_range=None, look_at=False, optimize=True, offset=None):
         self.joint_name = joint_name
         self.position = position
         self.orientation = orientation
@@ -18,10 +18,11 @@ class JointIKConstraint(IKConstraint):
         self.step_idx = step_idx
         self.look_at = look_at
         self.optimize = optimize
+        self.offset = offset
 
     @staticmethod
     def evaluate(parameters, data):
-        pose, free_joints, target_joint, target_position, target_orientation = data
+        pose, free_joints, target_joint, target_position, target_orientation, offset = data
         pose.set_channel_values(parameters, free_joints)
         #parent_joint = pose.get_parent_joint(target_joint)
         #pose.apply_bounds_on_joint(parent_joint)
@@ -30,7 +31,12 @@ class JointIKConstraint(IKConstraint):
             if parent_joint is not None:
                 pose.set_hand_orientation(parent_joint, target_orientation)
                 #pose.apply_bounds_on_joint(parent_joint)
-        d = pose.evaluate_position(target_joint) - target_position
+        if offset is not None:
+            m = pose.evaluate_matrix(target_joint)
+            p = np.dot(m, offset)[:3]
+            d = target_position - p
+        else:
+            d = pose.evaluate_position(target_joint) - target_position
         return np.dot(d, d)
 
     def data(self, ik, free_joints=None):
@@ -40,7 +46,7 @@ class JointIKConstraint(IKConstraint):
             orientation = self.orientation
         else:
             orientation = None
-        return ik.pose, free_joints, self.joint_name, self.position, orientation
+        return ik.pose, free_joints, self.joint_name, self.position, orientation, self.offset
 
     def get_joint_names(self):
         return [self.joint_name]

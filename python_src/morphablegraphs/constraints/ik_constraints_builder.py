@@ -1,11 +1,11 @@
 
 from copy import copy
-from .spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSE,SPATIAL_CONSTRAINT_TYPE_KEYFRAME_DIR_2D, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_LOOK_AT, SPATIAL_CONSTRAINT_TYPE_CA_CONSTRAINT
+from .spatial_constraints import SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_RELATIVE_POSITION,SPATIAL_CONSTRAINT_TYPE_KEYFRAME_DIR_2D, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_LOOK_AT
 from .ik_constraints import JointIKConstraint, TwoJointIKConstraint
 from ..utilities import write_message_to_log, LOG_MODE_DEBUG
 
 SUPPORTED_CONSTRAINT_TYPES = [SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION,
-                              SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION,SPATIAL_CONSTRAINT_TYPE_KEYFRAME_LOOK_AT]
+                              SPATIAL_CONSTRAINT_TYPE_TWO_HAND_POSITION,SPATIAL_CONSTRAINT_TYPE_KEYFRAME_LOOK_AT, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_RELATIVE_POSITION]
 
 
 class IKConstraintsBuilder(object):
@@ -27,7 +27,6 @@ class IKConstraintsBuilder(object):
                     ik_constraints_dict[ik_c.keyframe]["single"] = []
                     ik_constraints_dict[ik_c.keyframe]["multiple"] = []
                 ik_constraints_dict[ik_c.keyframe][ik_c_type].append(ik_c)
-
         return ik_constraints_dict
 
     def _create_ik_constraints(self, constraint, frame_offset=0, time_function=None, constrain_orientation=True):
@@ -44,6 +43,11 @@ class IKConstraintsBuilder(object):
             if constraint.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION and constraint.joint_name in self.skeleton.free_joints_map.keys():
                 ik_constraint = self._create_keyframe_ik_constraint(constraint, keyframe, frame_offset,
                                                                     time_function, constrain_orientation, look_at=True)
+                ik_constraints.append(ik_constraint)
+                ik_constraint_types.append("single")
+            elif constraint.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_RELATIVE_POSITION and constraint.joint_name in self.skeleton.free_joints_map.keys():
+                ik_constraint = self._create_keyframe_ik_constraint(constraint, keyframe, frame_offset,
+                                                                    time_function, constrain_orientation, look_at=True, offset=constraint.offset)
                 ik_constraints.append(ik_constraint)
                 ik_constraint_types.append("single")
             elif constraint.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_LOOK_AT:
@@ -75,7 +79,7 @@ class IKConstraintsBuilder(object):
 
         return ik_constraints, ik_constraint_types
 
-    def _create_keyframe_ik_constraint(self, c, keyframe, frame_offset, time_function, constrain_orientation, look_at=True, optimize=True):
+    def _create_keyframe_ik_constraint(self, c, keyframe, frame_offset, time_function, constrain_orientation, look_at=True, optimize=True, offset=None):
         free_joints = self.skeleton.free_joints_map[c.joint_name]
         frame_range = self._detect_frame_range(c, frame_offset, time_function)
         print("create ik constraint", keyframe, c.position, c.orientation)
@@ -85,7 +89,7 @@ class IKConstraintsBuilder(object):
             orientation = c.orientation
         else:
             orientation = None
-        return JointIKConstraint(c.joint_name, c.position, orientation, keyframe, free_joints, frame_range=frame_range, look_at=look_at, optimize=optimize)
+        return JointIKConstraint(c.joint_name, c.position, orientation, keyframe, free_joints, frame_range=frame_range, look_at=look_at, optimize=optimize, offset=offset)
 
     def _detect_frame_range(self, c, frame_offset, time_function):
         frame_range = None

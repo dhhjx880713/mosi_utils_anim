@@ -25,15 +25,31 @@ def add_frames(skeleton, a, b):
 
 
 class KeyframeConstraint(object):
-    def __init__(self, frame_idx, joint_name, position, orientation=None, look_at=False):
+    def __init__(self, frame_idx, joint_name, position, orientation=None, look_at=False, offset=None):
         self.frame_idx = frame_idx
         self.joint_name = joint_name
         self.position = position
         self.orientation = orientation
         self.look_at = look_at
+        self.offset = offset
 
     def evaluate(self, skeleton, frame):
-        d = self.position - skeleton.nodes[self.joint_name].get_global_position(frame)
+        if self.orientation is not None:
+            parent_joint = skeleton.nodes[self.joint_name].parent
+            if parent_joint is not None:
+                m = quaternion_matrix(self.orientation)
+                parent_m = parent_joint.get_global_matrix(frame, use_cache=False)
+                local_m = np.dot(np.linalg.inv(parent_m), m)
+                q = quaternion_from_matrix(local_m)
+                idx = skeleton.animated_joints.index(parent_joint.node_name)
+                # idx = skeleton.nodes[c.joint_name].quaternion_frame_index * 4
+                frame[idx:idx + 4] = q
+        if self.offset is not None:
+            m = skeleton.nodes[self.joint_name].get_global_matrix(frame)
+            p = np.dot(m, self.offset)[:3]
+            d = self.position - p
+        else:
+            d = self.position - skeleton.nodes[self.joint_name].get_global_position(frame)
         return np.dot(d, d)
 
 
