@@ -347,6 +347,6 @@ class MotionPrimitiveModelWrapper(object):
 
     def get_animated_joints(self):
         if self.mgrd:
-            return self.motion_primitive.spatial.animated_joints
+            return [j.name for j in self.motion_primitive.spatial.animated_joints]
         else:
             return []
