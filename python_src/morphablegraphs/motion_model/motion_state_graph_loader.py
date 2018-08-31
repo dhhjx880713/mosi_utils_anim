@@ -31,6 +31,7 @@ class MotionStateGraphLoader(object):
         self.update_stats = False
         self.motion_state_graph_path = None
         self.ea_directory = None
+        self.use_all_joints = False
         self.mp_node_group_builder = MotionStateGroupLoader()
 
     def set_data_source(self, motion_state_graph_path, load_transition_models=False, update_stats=False):
@@ -66,6 +67,8 @@ class MotionStateGraphLoader(object):
             bvh_reader = BVHReader("").init_from_string(graph_data[SKELETON_BVH_STRING_KEY])
             ms_graph.skeleton = SkeletonBuilder().load_from_bvh(bvh_reader)
         elif SKELETON_JSON_KEY in list(graph_data.keys()):
+            if self.use_all_joints and "animated_joints" in graph_data[SKELETON_JSON_KEY]:
+                del graph_data[SKELETON_JSON_KEY]["animated_joints"]
             ms_graph.skeleton = SkeletonBuilder().load_from_json_data(graph_data[SKELETON_JSON_KEY])
         else:
             raise Exception("There is no skeleton defined in the graph file")
