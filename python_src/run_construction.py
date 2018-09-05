@@ -19,7 +19,7 @@ ANIMATED_JOINTS = ["root", "pelvis","spine","spine_1","spine_2", "neck", "left_s
                    "right_elbow", "right_wrist", "left_hip",
                    "left_knee", "left_ankle", "right_hip", "right_knee", "right_ankle"]
 ANIMATED_JOINTS = dict()
-ANIMATED_JOINTS["game_engine"] = [
+ANIMATED_JOINTS["game_engine_wrong_root"] = [
     "Game_engine",
     "Root",
     "pelvis",
@@ -146,6 +146,41 @@ ANIMATED_JOINTS["custom2"] = [
 
 ]
 
+ANIMATED_JOINTS["custom3"] = [
+    "R_shoulder_jnt",
+    "R_upArm_jnt",
+    "R_lowArm_jnt",
+    "R_hand_jnt",
+   "R_thumb_base_jnt",
+"R_thumb_mid_jnt",
+ "R_thumb_tip_jnt",
+ "R_thumb_end_jnt",
+
+  "R_index_root_jnt",
+ "R_index_base_jnt",
+ "R_index_mid_jnt",
+ "R_index_tip_jnt",
+ "R_index_end_jnt",
+
+  "R_middle_root_jnt",
+  "R_middle_base_jnt",
+  "R_middle_mid_jnt",
+ "R_middle_tip_jnt",
+ "R_middle_end_jnt",
+
+  "R_ring_base_jnt",
+ "R_ring_root_jnt",
+ "R_ring_mid_jnt",
+  "R_ring_tip_jnt",
+  "R_ring_end_jnt",
+  "R_pinky_root_jnt",
+ "R_pinky_base_jnt",
+  "R_pinky_mid_jnt",
+ "R_pinky_tip_jnt",
+  "R_pinky_end_jnt"
+]
+
+
 MM_FILE_ENDING = "_quaternion_mm.json"
 
 
@@ -246,6 +281,7 @@ def define_sections_from_annotations(motion_folder, motions):
         if os.path.isfile(annotations_file):
             data = load_json_file(annotations_file)
             annotations = data["semantic_annotation"]
+            print("found sections for ", key)
             motion_sections = dict()
             for label in annotations:
                 annotations[label].sort()
@@ -287,9 +323,9 @@ def convert_motion_to_static_motion_primitive(name, motion, skeleton, n_basis=7,
     return data
 
 
-def train_model(out_filename, name, motion_folder, skeleton, max_training_samples=100, animated_joints=None, save_skeleton=False):
+def train_model(out_filename, name, motion_folder, skeleton, max_training_samples=np.inf, animated_joints=None, save_skeleton=False):
     motions = load_motion_data(motion_folder, max_count=max_training_samples, animated_joints=animated_joints)
-
+    print("train")
     ref_frame = None
     for key, m in motions.items():
         if ref_frame is None:
@@ -302,9 +338,13 @@ def train_model(out_filename, name, motion_folder, skeleton, max_training_sample
     timewarping_filename = motion_folder + os.sep + "timewarping.json"
     if os.path.isfile(keyframes_filename):
         keyframes = load_json_file(keyframes_filename)
+
+        print("found keyframes file", len(keyframes))
         sections = define_sections_from_keyframes(motions.keys(), keyframes)
+        print("found ",len(motions), "motions")
         filtered_motions = collections.OrderedDict()
         for key in motions.keys():
+            print(key, keyframes.keys())
             if key in keyframes:
                 filtered_motions[key] = motions[key]
         motions = filtered_motions
@@ -329,7 +369,7 @@ def train_model(out_filename, name, motion_folder, skeleton, max_training_sample
         #constructor.ground_node = "R_toe_tip_jnt_EndSite"
         model_data = constructor.construct_model(name, version=3, save_skeleton=save_skeleton)
         with open(out_filename, 'w') as outfile:
-            json.dump(model_data, outfile)
+            json.dump(model_data, outfile, indent=4)
 
     elif len(motions) == 1:
         keys = list(motions.keys())
@@ -352,118 +392,29 @@ def load_model(filename, skeleton):
 
 
 def main():
-    # motion_file = motion_folder + os.sep + "17-11-20-Hybrit-VW_fix-screws-by-hand_002_snapPoseSkeleton.bvh"
-    # skeleton = load_skeleton(skeleton_file, None, 10)
-    skeleton_file = "skeleton.bvh"
-    motion_folder = r"E:\projects\INTERACT\data\1 - MoCap\3 - Cutting\elementary_action_walk\leftStance"
-
-
-    skeleton_file = "game_engine_target.bvh"
-
-    #motion_folder = r"E:\projects\model_data\hybrit\retargeting\vw scenario\fix-screws-by-hand"
-    #name = "fix-screws-by-hand"
-    #motion_folder = r"E:\projects\model_data\hybrit\retargeting\vw scenario\screws-on-part"
-    #name = "screws-on-part"
-    motion_folder = r"E:\projects\model_data\hybrit\retargeting\vw scenario\pickup-screws"
-    name = "pickup-screws"
-
-    model_folder = r"E:\projects\model_data\hybrit\modeling"
-    out_filename = model_folder + os.sep + name + MM_FILE_ENDING
-
-    max_training_samples = 10
-    joint_map = SKELETON_MODELS["game_engine"]["joints"]
-    joint_filter = [joint_map[j] for j in ANIMATED_JOINTS]
-    joint_filter += ["Root"]
-    skeleton = load_skeleton(skeleton_file, joint_filter, 10)
-    animated_joints = skeleton.animated_joints
-    train_model(out_filename,name, motion_folder, skeleton, max_training_samples, animated_joints, save_skeleton=True)
-
-    load_model(out_filename, skeleton)
-
-
-def model_action():
-    data_folder = r"E:\projects\model_data\hybrit\3_mirroring\bak\game_engine\place\out"
-    model_folder = r"E:\projects\model_data\hybrit\3_mirroring\bak\game_engine\place\out"
-    elementary_action = "place"
-    max_training_samples = 100
-    skeleton_file = "game_engine_target.bvh"
-    joint_map = SKELETON_MODELS["game_engine"]["joints"]
-    joint_filter = [joint_map[j] for j in ANIMATED_JOINTS]
-    joint_filter += ["Root"]
-    skeleton = load_skeleton(skeleton_file, joint_filter, 10)
-    animated_joints = skeleton.animated_joints
-    motion_folder = data_folder
-    out_filename = model_folder + os.sep + elementary_action + MM_FILE_ENDING
-    print("model", motion_folder, out_filename)
-    train_model(out_filename, elementary_action, motion_folder, skeleton, max_training_samples, animated_joints, save_skeleton=True)
-
-
-def model_actions(skeleton, data_folder, model_folder, input_folder_names, output_file_names, max_training_samples=200):
-
-    for elementary_action in next(os.walk(data_folder))[1]:
-        if input_folder_names is not None and elementary_action not in input_folder_names:
-            continue
-        motion_folder = data_folder + os.sep + elementary_action
-        if output_file_names is None:
-            out_filename = model_folder + os.sep + elementary_action + MM_FILE_ENDING
-        else:
-            idx = input_folder_names.index(elementary_action)
-            out_filename = model_folder + os.sep + output_file_names[idx] + MM_FILE_ENDING
-
-        train_model(out_filename, elementary_action, motion_folder, skeleton, max_training_samples, skeleton.animated_joints, save_skeleton=True)
-
-
-
-def start_processes():
-    processes = []
-    actions = ["fix-screws-by-hand", "fix-screws-schrauber", "pickup-screws", "place-part", "screws-on-part", "pickup-part"]
-    model_names = ["fixScrews_fixScrews", "fixScrewsSchrauber_fixScrewsSchrauber", "pickupScrew_pickupScrew", "placePart_placePart", "screwsOnPart_screwsOnPart", "pickupPart_pickupPart"]
-    actions = [actions[-2]]
-    model_names = [model_names[-2]]
-
-    modeling_folder = r"E:\projects\model_data\hybrit\6_modeling"
-    data_folder = modeling_folder + os.sep + "input - custom captury"
-    model_folder = modeling_folder + os.sep + "output - custom"
-    max_training_samples = 200
-    skeleton_file = "game_engine_target.bvh"
-    scale = 10
-    skeleton_file = r"E:\projects\model_data\hybrit\game_engine_target2.bvh"
-    scale = 1
+    elementary_action = "fixScrewsWithToolRight"
+    elementary_action = "fixScrews"
+    data_folder = r"E:\projects\model_data\hybrit\6_modeling\input"
+    data_folder = r"E:\projects\model_data\hybrit\6_modeling\perception_neuron2"
+    #data_folder = r"E:\projects\model_data\hybrit\6_modeling\walk"
+    model_folder = r"E:\projects\model_data\hybrit\6_modeling\output"
     skeleton_file = r"E:\projects\model_data\hybrit\custom_target.bvh"
     scale = 2.54
-    model_type = "custom"
-    skeleton = load_skeleton(skeleton_file, None, scale)
-    skeleton.skeleton_model = SKELETON_MODELS[model_type]
-    skeleton.animated_joints = ANIMATED_JOINTS[model_type]
+    max_training_samples = 1000000
+    joint_filter = ANIMATED_JOINTS["custom2"]
+    skeleton = load_skeleton(skeleton_file, joint_filter, scale)
+    animated_joints = skeleton.animated_joints
+    for elementary_action in os.listdir(data_folder):
+        print("construct", elementary_action, "model")
+        motion_folder = data_folder +os.sep+ elementary_action
+        out_filename = model_folder + os.sep + elementary_action + MM_FILE_ENDING
+        train_model(out_filename, elementary_action, motion_folder, skeleton, max_training_samples, animated_joints,
+                    save_skeleton=True)
+        print()
 
-    actions = None
-    model_names = None
-    #actions = ["pickupScrew_pickupScrew", "placePart_placePart"]
-    #model_names = ["pickupScrew_pickupScrew", "placePart_placePart"]
-
-    for elementary_action in next(os.walk(data_folder))[1]:
-        if actions is not None and elementary_action not in actions:
-            continue
-        motion_folder = data_folder + os.sep + elementary_action
-        if model_names is None:
-            out_filename = model_folder + os.sep + elementary_action + MM_FILE_ENDING
-        else:
-            idx = model_names.index(elementary_action)
-            out_filename = model_folder + os.sep + model_names[idx] + MM_FILE_ENDING
-
-        #p = Process(target=train_model,
-        #            args=(out_filename, elementary_action, motion_folder, skeleton, max_training_samples,
-        #                  skeleton.animated_joints, True))
-        train_model(out_filename, elementary_action, motion_folder, skeleton, max_training_samples,
-                    skeleton.animated_joints, save_skeleton=True)
-
-        #processes.append(p)
-        #p.start()
-
-    for p in processes:
-         p.join()
 
 if __name__ == "__main__":
-    start_processes()
+    main()
+
 
 
