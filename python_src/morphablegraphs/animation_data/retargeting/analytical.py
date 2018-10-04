@@ -292,19 +292,27 @@ def align_root_joint(axes, global_src_x_vec, max_iter_count=10):
     return q
 
 
-def align_joint(new_skeleton, free_joint_name, local_target_axes, global_src_up_vec, global_src_x_vec, joint_cos_map):
+def align_joint(new_skeleton, free_joint_name, local_target_axes, global_src_up_vec, global_src_x_vec, joint_cos_map, apply_spine_fix=False):
     # first align the bone vectors
     q = [1, 0, 0, 0]
     qy, axes = align_axis(local_target_axes, "y", global_src_up_vec)
     q = quaternion_multiply(qy, q)
     joint_map = new_skeleton.skeleton_model["joints"]
     q = normalize(q)
-    if free_joint_name == joint_map["pelvis"]:
+    spine_joints = [joint_map["pelvis"]]#, joint_map["spine"], joint_map["spine_1"]
+    if "spine" in joint_map:
+        spine_joints += joint_map["spine"]
+    if "spine_1" in joint_map:
+        spine_joints += joint_map["spine_1"]
+    if "spine_2" in joint_map:
+        spine_joints += joint_map["spine_2"]
+    if free_joint_name in spine_joints and apply_spine_fix :#FIXME breaks the cma es trajectory following for some skeletons if set to True
         # handle special case of applying the x axis rotation of the Hip to the pelvis
         node = new_skeleton.nodes[free_joint_name]
         t_pose_global_m = node.get_global_matrix(new_skeleton.reference_frame)
         global_original = np.dot(t_pose_global_m[:3, :3], joint_cos_map[free_joint_name]["y"])
         global_original = normalize(global_original)
+
         neck_node_name = new_skeleton.skeleton_model["joints"]["neck"]
         neck_pos = new_skeleton.nodes[neck_node_name].get_global_position(new_skeleton.reference_frame)
         pelvis_pos = t_pose_global_m[:3, 3]
@@ -320,15 +328,17 @@ def align_joint(new_skeleton, free_joint_name, local_target_axes, global_src_up_
     q = normalize(q)
     return q
 
-def find_rotation_analytically(new_skeleton, free_joint_name, target, frame, joint_cos_map, max_iter_count=10):
+
+def find_rotation_analytically(new_skeleton, free_joint_name, target, frame, joint_cos_map, apply_spine_fix=False, max_iter_count=10):
     global_src_up_vec = target["global_src_up_vec"]
     global_src_x_vec = target["global_src_x_vec"]
 
     local_target_axes = joint_cos_map[free_joint_name]
-    if free_joint_name == new_skeleton.root:
-        q = align_root_joint(local_target_axes, global_src_x_vec, max_iter_count)
-    else:
-        q = align_joint(new_skeleton, free_joint_name, local_target_axes, global_src_up_vec, global_src_x_vec, joint_cos_map)
+    #FIXME captury to custom for hybrit needs the align_root method
+    #if free_joint_name == new_skeleton.root:
+    #    q = align_root_joint(local_target_axes,  global_src_x_vec, max_iter_count)
+    #else:
+    q = align_joint(new_skeleton, free_joint_name, local_target_axes, global_src_up_vec, global_src_x_vec, joint_cos_map, apply_spine_fix=apply_spine_fix)
     return to_local_cos(new_skeleton, free_joint_name, frame, q)
 
 
@@ -365,6 +375,7 @@ class Retargeting(object):
         self.create_correction_map()
         self.constant_offset = constant_offset
         self.place_on_ground = place_on_ground
+        self.apply_spine_fix = self.src_skeleton.animated_joints != self.target_skeleton.animated_joints
 
     def create_correction_map(self):
         self.correction_map = dict()
@@ -414,7 +425,7 @@ class Retargeting(object):
 
             target = {"global_src_up_vec": global_src_up_vec,
                       "global_src_x_vec": global_src_x_vec}
-            q = find_rotation_analytically(self.target_skeleton, target_name, target, target_frame, self.target_cos_map)
+            q = find_rotation_analytically(self.target_skeleton, target_name, target, target_frame, self.target_cos_map, self.apply_spine_fix)
         #else:
         #    print("dont map2", src_name, target_name, self.src_child_map[src_name], self.src_child_map[src_name] in self.src_to_target_joint_map)
         return q
@@ -492,9 +503,12 @@ class Retargeting(object):
         return target_frames
 
 
-def generate_joint_map(src_model, target_model):
+def generate_joint_map(src_model, target_model, joint_filter=None):
+    print(target_model.keys())
     joint_map = dict()
     for j in src_model["joints"]:
+        if joint_filter is not None and j not in joint_filter:
+            continue
         if j in target_model["joints"]:
             src = src_model["joints"][j]
             target = target_model["joints"][j]
@@ -502,8 +516,8 @@ def generate_joint_map(src_model, target_model):
     return joint_map
 
 
-def retarget_from_src_to_target(src_skeleton, target_skeleton, src_frames, joint_map=None, additional_rotation_map=None, scale_factor=1.0, frame_range=None, place_on_ground=False):
+def retarget_from_src_to_target(src_skeleton, target_skeleton, src_frames, joint_map=None, additional_rotation_map=None, scale_factor=1.0, frame_range=None, place_on_ground=False, joint_filter=None):
     if joint_map is None:
-        joint_map = generate_joint_map(src_skeleton.skeleton_model, target_skeleton.skeleton_model)
+        joint_map = generate_joint_map(src_skeleton.skeleton_model, target_skeleton.skeleton_model, joint_filter)
     retargeting = Retargeting(src_skeleton, target_skeleton, joint_map, scale_factor, additional_rotation_map=additional_rotation_map, place_on_ground=place_on_ground)
     return retargeting.run(src_frames, frame_range)
