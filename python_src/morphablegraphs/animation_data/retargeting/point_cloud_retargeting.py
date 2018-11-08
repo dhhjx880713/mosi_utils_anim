@@ -237,66 +237,80 @@ class PointCloudRetargeting(object):
         self.target_ball_joints = [target_joints[j] for j in ["left_shoulder", "right_shoulder", "left_hip", "right_hip"] if j in target_joints]# ["thigh_r", "thigh_l", "upperarm_r", "upperarm_l"]
         self.target_ankle_joints = [target_joints[j] for j in ["left_ankle", "right_ankle"] if j in target_joints]
 
+    def estimate_src_joint_cos(self, src_name, child_name, target_name, src_frame):
+        joint_idx = self.src_joints[src_name]["index"]
+        child_idx = self.src_joints[child_name]["index"]
+        global_src_up_vec = src_frame[child_idx] - src_frame[joint_idx]
+        global_src_up_vec /= np.linalg.norm(global_src_up_vec)
+        self.temp_frame_data[src_name] = global_src_up_vec
+        if target_name == self.target_skeleton.skeleton_model["joints"]["pelvis"]:
+            left_hip = self.src_model["joints"]["left_hip"]
+            right_hip = self.src_model["joints"]["right_hip"]
+            left_hip_idx = self.src_joints[left_hip]["index"]
+            right_hip_idx = self.src_joints[right_hip]["index"]
+            global_src_x_vec = src_frame[left_hip_idx] - src_frame[right_hip_idx]
+            global_src_x_vec /= np.linalg.norm(global_src_x_vec)
+        elif target_name in self.target_spine_joints or target_name == "CC_Base_Waist":  # find x vector from shoulders
+            left_shoulder = self.src_model["joints"]["left_shoulder"]
+            right_shoulder = self.src_model["joints"]["right_shoulder"]
+            left_shoulder_idx = self.src_joints[left_shoulder]["index"]
+            right_shoulder_idx = self.src_joints[right_shoulder]["index"]
+            global_src_x_vec = src_frame[left_shoulder_idx] - src_frame[right_shoulder_idx]
+            global_src_x_vec /= np.linalg.norm(global_src_x_vec)
+        elif target_name in self.target_ball_joints:  # use x vector of child
+            child_child_name = self.src_child_map[child_name]
+            child_child_idx = self.src_joints[child_child_name]["index"]
+            child_global_src_up_vec = src_frame[child_child_idx] - src_frame[child_idx]
+            child_global_src_up_vec /= np.linalg.norm(child_global_src_up_vec)
+
+            global_src_x_vec = np.cross(global_src_up_vec, child_global_src_up_vec)
+            global_src_x_vec /= np.linalg.norm(global_src_x_vec)
+        else:  # find x vector by cross product with parent
+            global_src_x_vec = None
+            if src_name in self.src_parent_map:
+                parent_joint = self.src_parent_map[src_name]
+                if parent_joint in self.temp_frame_data:
+                    global_parent_up_vector = self.temp_frame_data[parent_joint]
+                    global_src_x_vec = np.cross(global_src_up_vec, global_parent_up_vector)
+                    global_src_x_vec /= np.linalg.norm(global_src_x_vec)
+                    # print("apply",src_name, parent_joint, global_src_x_vec)
+                    # if target_name in ["calf_l", "calf_r","thigh_r","thigh_l", "spine_03","neck_01","lowerarm_r","lowerarm_l"]:
+                    if target_name not in self.target_ankle_joints:
+                        global_src_x_vec = - global_src_x_vec
+                        # global_src_x_vec = None
+                        # if global_src_x_vec is None:
+                        #    print("did not find vector", target_name, parent_joint, self.target_skeleton.root)
+
+
+        return {"global_src_up_vec": global_src_up_vec,
+                "global_src_x_vec": global_src_x_vec}
+
     def rotate_bone(self, src_name, target_name, src_frame, target_frame, guess):
         q = guess
         if src_name not in self.src_child_map.keys() or self.src_child_map[src_name] is None:
             return q
         if self.src_child_map[src_name] in self.src_to_target_joint_map:#  and or target_name =="neck_01" or target_name.startswith("hand")
-
-            joint_idx = self.src_joints[src_name]["index"]
             child_name = self.src_child_map[src_name]
             if child_name not in self.src_joints.keys():
                 return q
-            child_idx = self.src_joints[child_name]["index"]
-
-            global_src_up_vec = src_frame[child_idx] - src_frame[joint_idx]
-            global_src_up_vec /= np.linalg.norm(global_src_up_vec)
-            self.temp_frame_data[src_name] = global_src_up_vec
-            if target_name == self.target_skeleton.skeleton_model["joints"]["pelvis"]:
-                left_hip = self.src_model["joints"]["left_hip"]
-                right_hip = self.src_model["joints"]["right_hip"]
-                left_hip_idx = self.src_joints[left_hip]["index"]
-                right_hip_idx = self.src_joints[right_hip]["index"]
-                global_src_x_vec = src_frame[left_hip_idx] - src_frame[right_hip_idx]
-                global_src_x_vec /= np.linalg.norm(global_src_x_vec)
-            elif target_name in self.target_spine_joints or target_name == "CC_Base_Waist":# find x vector from shoulders
-                left_shoulder = self.src_model["joints"]["left_shoulder"]
-                right_shoulder = self.src_model["joints"]["right_shoulder"]
-                left_shoulder_idx = self.src_joints[left_shoulder]["index"]
-                right_shoulder_idx = self.src_joints[right_shoulder]["index"]
-                global_src_x_vec = src_frame[left_shoulder_idx] - src_frame[right_shoulder_idx]
-                global_src_x_vec /= np.linalg.norm(global_src_x_vec)
-            elif target_name in self.target_ball_joints: # use x vector of child
-                child_child_name = self.src_child_map[child_name]
-                child_child_idx = self.src_joints[child_child_name]["index"]
-                child_global_src_up_vec = src_frame[child_child_idx] - src_frame[child_idx]
-                child_global_src_up_vec /= np.linalg.norm(child_global_src_up_vec)
-
-                global_src_x_vec = np.cross(global_src_up_vec, child_global_src_up_vec)
-                global_src_x_vec /= np.linalg.norm(global_src_x_vec)
-            else:# find x vector by cross product with parent
-                global_src_x_vec = None
-                if src_name in self.src_parent_map:
-                    parent_joint = self.src_parent_map[src_name]
-                    if parent_joint in self.temp_frame_data:
-                        global_parent_up_vector = self.temp_frame_data[parent_joint]
-                        global_src_x_vec = np.cross(global_src_up_vec, global_parent_up_vector)
-                        global_src_x_vec /= np.linalg.norm(global_src_x_vec)
-                        #print("apply",src_name, parent_joint, global_src_x_vec)
-                        #if target_name in ["calf_l", "calf_r","thigh_r","thigh_l", "spine_03","neck_01","lowerarm_r","lowerarm_l"]:
-                        if target_name not in self.target_ankle_joints:
-                            global_src_x_vec = - global_src_x_vec
-                        #global_src_x_vec = None
-                #if global_src_x_vec is None:
-                #    print("did not find vector", target_name, parent_joint, self.target_skeleton.root)
-
-            target = {"global_src_up_vec": global_src_up_vec,
-                      "global_src_x_vec": global_src_x_vec}
+            src_cos = self.estimate_src_joint_cos(src_name, child_name, target_name, src_frame)
+            #src_cos = self.src_cos_map[target_name]
             is_root = False
             if target_name == self.target_skeleton_root:
                 is_root = True
-            q = find_rotation_analytically(self.target_skeleton, target_name, target, target_frame, self.target_cos_map, is_root)
+            q = find_rotation_analytically(self.target_skeleton, target_name, src_cos, target_frame, self.target_cos_map, is_root)
         return q/np.linalg.norm(q)
+
+    def generate_src_cos_map(self, src_frame):
+        self.src_cos_map = dict()
+        for target_name in self.target_skeleton.animated_joints:
+            if target_name in self.target_to_src_joint_map.keys():
+                src_name = self.target_to_src_joint_map[target_name]
+                if src_name is not None and src_name in self.src_joints.keys():
+                    if self.src_child_map[src_name] in self.src_to_target_joint_map:
+                        child_name = self.src_child_map[src_name]
+                        if child_name in self.src_joints.keys():
+                            self.src_cos_map[target_name] = self.estimate_src_joint_cos(src_name, child_name, target_name, src_frame)
 
     def retarget_frame(self, src_frame, ref_frame):
         target_frame = np.zeros(self.n_params)
