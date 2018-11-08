@@ -1,18 +1,22 @@
 
 class HeightMapInterface(object):
-    def __init__(self, image, width, depth, height_scale):
+    def __init__(self, image, width, depth, scale, height_scale, pixel_is_tuple=False):
         self.height_map_image = image
+        self.scale = scale
         self.height_scale = height_scale
         self.width = width
         self.depth = depth
         self.x_offset = 0
         self.z_offset = 0
+        self.is_tuple = pixel_is_tuple
 
     def to_relative_coordinates(self, center_x, center_z, x, z):
         """ get position relative to upper left
         """
         relative_x = x - center_x
         relative_z = z - center_z
+        relative_x /= self.scale[0]
+        relative_z /= self.scale[1]
         relative_x += self.width / 2
         relative_z += self.depth / 2
 
@@ -29,6 +33,8 @@ class HeightMapInterface(object):
         ix = relative_x * self.height_map_image.size[0]
         iy = relative_z * self.height_map_image.size[1]
         p = self.height_map_image.getpixel((ix, iy))
+        if self.is_tuple:
+            p = p[0]
         return (p / 255) * self.height_scale
 
     def get_height(self, x, z):
