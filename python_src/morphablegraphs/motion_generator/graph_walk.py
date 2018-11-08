@@ -242,8 +242,7 @@ class GraphWalk(object):
             frame_offset = self.steps[start_step].start_frame
             for step in self.steps[start_step: end_step + 1]:
                 time_function = None
-                if self.use_time_parameters and self.motion_state_graph.nodes[
-                    step.node_key].get_n_time_components() > 0:
+                if self.use_time_parameters and self.motion_state_graph.nodes[step.node_key].get_n_time_components() > 0:
                     time_function = self.motion_state_graph.nodes[step.node_key].back_project_time_function(step.parameters)
 
                 step_constraints = step.motion_primitive_constraints.convert_to_ik_constraints(

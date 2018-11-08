@@ -21,7 +21,7 @@ class KeyframeEventList(object):
         self._create_frame_annotation(graph_walk, start_step)
         self._add_event_list_to_frame_annotation(graph_walk)
         self.keyframe_events_dict = {"events": self.get_keyframe_events_dict(),
-                                            "elementaryActionSequence": self.frame_annotation["elementaryActionSequence"]}
+                                     "elementaryActionSequence": self.frame_annotation["elementaryActionSequence"]}
         if self.create_ca_vis_data:
             self._create_collision_data_from_ca_constraints(graph_walk)
             self.keyframe_events_dict["collisionContent"] = self.ca_constraints
@@ -51,23 +51,29 @@ class KeyframeEventList(object):
             self.update_frame_annotation(action.action_name, start_frame, end_frame)
 
     def _create_events_from_keyframe_constraints(self, graph_walk):
-        """ Traverse elementary actions and motion primitives
-        :return:
+        """ convert constraints of the motion primitive sequence into annotations
         """
+        print("create event dict", len(graph_walk.steps))
         self._keyframe_events_dict = dict()
         frame_offset = 0
-        for step in graph_walk.steps:
+        for step_idx, step in enumerate(graph_walk.steps):
             time_function = None
             if graph_walk.use_time_parameters:
                 time_function = graph_walk.motion_state_graph.nodes[step.node_key].back_project_time_function(step.parameters)
+
             if step.motion_primitive_constraints is not None:
-                for keyframe_event in list(step.motion_primitive_constraints.keyframe_event_list.values()):
+                print("check", step_idx, step.motion_primitive_constraints)
+                for keyframe_event in step.motion_primitive_constraints.keyframe_event_list.values():
                     event_keyframe_index = keyframe_event.extract_keyframe_index(time_function, frame_offset)
                     existing_events = None
-                    if event_keyframe_index in list(self._keyframe_events_dict.keys()):
+                    print("check", step_idx, event_keyframe_index)
+                    if event_keyframe_index in self._keyframe_events_dict.keys():
                         existing_events = self._keyframe_events_dict[event_keyframe_index]
                     keyframe_event.merge_event_list(existing_events)
                     self._keyframe_events_dict[event_keyframe_index] = keyframe_event
+
+            else:
+                print("no constraints")
             frame_offset += step.end_frame - step.start_frame + 1
 
     def get_keyframe_events_dict(self):
@@ -84,7 +90,7 @@ class KeyframeEventList(object):
     def _add_empty_rotate_events_for_detach(self, graph_walk):
         """ create events with empty rotation that is later filled after IK"""
         #print "generate empty rotate events"
-        for keyframe in list(self._keyframe_events_dict.keys()):
+        for keyframe in self._keyframe_events_dict.keys():
             if self._keyframe_events_dict[keyframe].constraint is not None:
                 orientation = self._keyframe_events_dict[keyframe].constraint.orientation
                 if orientation is None or orientation == [None, None, None, None]:
