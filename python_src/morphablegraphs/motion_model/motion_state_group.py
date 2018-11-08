@@ -23,7 +23,6 @@ class MotionStateGroup(ElementaryActionMetaInfo):
 
     def set_meta_information(self, meta_information=None):
         super(MotionStateGroup, self).set_meta_information(meta_information)
-
         write_message_to_log("action" + str(self.ea_name), LOG_MODE_DEBUG)
         write_message_to_log("start states" + str(self.start_states), LOG_MODE_DEBUG)
         if len(self.nodes) == 1:

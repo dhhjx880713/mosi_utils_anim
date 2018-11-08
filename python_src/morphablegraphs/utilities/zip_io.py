@@ -43,7 +43,7 @@ class ZipReader(object):
         self.zip_file = zipfile.ZipFile(self.zip_file_path, "r", zipfile.ZIP_DEFLATED)
         graph_data_str = self.zip_file.read(GRAPH_DEFINITION_FILE).decode("utf-8")
         data = json.loads(graph_data_str)
-        if "formatVersion" in list(data.keys()):
+        if "formatVersion" in data.keys():
             self.format_version = float(data["formatVersion"])
         else:
             self.format_version = 1.0
@@ -51,7 +51,7 @@ class ZipReader(object):
         write_message_to_log("Format version " + str(self.format_version), LOG_MODE_DEBUG)
         if self.format_version >= 2.0:
             structure_desc = self._read_elementary_action_file_structure_from_zip_v2()
-            data["handPoseInfo"] = self._read_hand_pose_data()
+            data["hand_pose_info"] = self._read_hand_pose_data()
         else:
             structure_desc = self._read_elementary_action_file_structure_from_zip_v1()
         if self.format_version <= 2.0:

@@ -24,6 +24,7 @@ class MotionStateGraph(object):
         self.nodes = collections.OrderedDict()
         self.hand_pose_generator = None
         self.animated_joints = None
+        self.action_definitions = None
 
     def generate_random_walk(self, start_action, number_of_steps, use_transition_model=True):
         """ Generates a random graph walk

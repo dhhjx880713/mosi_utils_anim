@@ -63,13 +63,14 @@ class MotionStateGraphLoader(object):
         zip_path = self.motion_state_graph_path+".zip"
         zip_reader = ZipReader(zip_path, pickle_objects=True)
         graph_data = zip_reader.get_graph_data()
-        if SKELETON_BVH_STRING_KEY in list(graph_data.keys()):
+        if SKELETON_BVH_STRING_KEY in graph_data.keys():
             bvh_reader = BVHReader("").init_from_string(graph_data[SKELETON_BVH_STRING_KEY])
             ms_graph.skeleton = SkeletonBuilder().load_from_bvh(bvh_reader)
-        elif SKELETON_JSON_KEY in list(graph_data.keys()):
+        elif SKELETON_JSON_KEY in graph_data.keys():
+            #use_all_joints = False
             if self.use_all_joints and "animated_joints" in graph_data[SKELETON_JSON_KEY]:
                 del graph_data[SKELETON_JSON_KEY]["animated_joints"]
-            ms_graph.skeleton = SkeletonBuilder().load_from_json_data(graph_data[SKELETON_JSON_KEY])
+            ms_graph.skeleton = SkeletonBuilder().load_from_json_data(graph_data[SKELETON_JSON_KEY], use_all_joints=self.use_all_joints)
         else:
             raise Exception("There is no skeleton defined in the graph file")
             return
@@ -81,7 +82,7 @@ class MotionStateGraphLoader(object):
         #motion_state_graph.skeleton = Skeleton(BVHReader(skeleton_path))
         transition_dict = graph_data["transitions"]
         actions = graph_data["subgraphs"]
-        for action_name in list(actions.keys()):
+        for action_name in actions.keys():
             node_group = self.mp_node_group_builder.build_from_dict(actions[action_name], ms_graph)
             ms_graph.nodes.update(node_group.nodes)
             ms_graph.node_groups[node_group.ea_name] = node_group
@@ -90,9 +91,12 @@ class MotionStateGraphLoader(object):
 
         self._update_motion_state_stats(ms_graph, recalculate=False)
 
-        if "handPoseInfo" in list(graph_data.keys()):
+        if "hand_pose_info" in graph_data:
             ms_graph.hand_pose_generator = HandPoseGenerator(ms_graph.skeleton)
-            ms_graph.hand_pose_generator.init_from_desc(graph_data["handPoseInfo"])
+            ms_graph.hand_pose_generator.init_from_desc(graph_data["hand_pose_info"])
+
+        if "actionDefinitions" in graph_data:
+            ms_graph.action_definitions = graph_data["actionDefinitions"]
 
     def _build_from_directory(self, ms_graph, recalculate_motion_stats=True):
         """ Initializes the class
