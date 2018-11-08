@@ -164,6 +164,8 @@ class SkeletonBuilder(object):
         else:
             animated_joints = list()
             extract_animated_joints(data["root"], animated_joints)
+            skeleton.animated_joints = animated_joints
+
         if "free_joints_map" in list(data.keys()):
             skeleton.free_joints_map = data["free_joints_map"]
         skeleton.reduced_free_joints_map = ROCKETBOX_REDUCED_FREE_JOINTS_MAP  # data["reduced_free_joints_map"]
