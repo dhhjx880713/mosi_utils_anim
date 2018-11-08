@@ -55,6 +55,7 @@ class GraphWalkPlanner(object):
         self.node_group = None
         self.trajectory = None
         self._n_steps_looking_ahead = 1
+        self._n_option_eval_samples = 10
 
     def set_state(self, graph_walk, mp_generator, action_state, action_constraints, arc_length_of_end):
         self.mp_generator = mp_generator
@@ -185,7 +186,7 @@ class GraphWalkPlanner(object):
             s_vector = self.mp_generator._get_best_fit_sample_using_cluster_tree(motion_primitive_node, mp_constraints,
                                                                              prev_frames, 1)
         else:
-            samples = motion_primitive_node.sample_low_dimensional_vectors(10)
+            samples = motion_primitive_node.sample_low_dimensional_vectors(self._n_option_eval_samples)
             s_vector, error = self.mp_generator.evaluate_samples_using_constraints(samples, motion_primitive_node, mp_constraints,
                                                                              prev_frames)
         write_message_to_log("Evaluated option " + str(node_name) + str(mp_constraints.min_error), LOG_MODE_DEBUG)
