@@ -7,6 +7,7 @@ Created on Mon Jul 27 12:00:15 2015
 import numpy as np
 from .elementary_action_constraints import ElementaryActionConstraints
 from .spatial_constraints import TrajectoryConstraint
+from .spatial_constraints.splines.parameterized_spline import ParameterizedSpline
 from .spatial_constraints import TrajectorySetConstraint
 from ..constraints.mg_input_format_reader import P_KEY, O_KEY, T_KEY
 from . import *
@@ -223,7 +224,7 @@ class ElementaryActionConstraintsBuilder(object):
             self._add_ca_trajectory_constraint_set(action_constraints)
 
     def _add_trajectory_constraint(self, action_constraints, action_index, joint_name):
-        trajectory_constraints = self._create_trajectory_constraints_for_joint(action_index, joint_name)
+        trajectory_constraints = self._create_trajectory_constraints_for_joint(action_index, joint_name, add_tangents=False)
         for c in trajectory_constraints:
             if c is not None:
                 if c.is_collision_avoidance_constraint:
@@ -246,7 +247,7 @@ class ElementaryActionConstraintsBuilder(object):
                                                                                   self.constraint_precision,
                                                                                   self.default_constraint_weight)
 
-    def _create_trajectory_constraints_for_joint(self, action_index, joint_name):
+    def _create_trajectory_constraints_for_joint(self, action_index, joint_name, add_tangents=True):
         """ Create a spline based on a trajectory constraint definition read from the input file.
             Components containing None are set to 0, but marked as ignored in the unconstrained_indices list.
             Note all elements in constraints_list must have the same dimensions constrained and unconstrained.
@@ -257,27 +258,43 @@ class ElementaryActionConstraintsBuilder(object):
         \t The trajectory constraints defined by the control points from the
             trajectory_constraint or an empty list if there is no constraint
         """
-        desc = self.mg_input.extract_trajectory_desc(action_index, joint_name, self.control_point_distance_threshold)
+        distance_threshold = 0.0
+        if add_tangents:
+            distance_threshold = self.control_point_distance_threshold
+        desc = self.mg_input.extract_trajectory_desc(action_index, joint_name, distance_treshold=distance_threshold)
         control_points_list = desc["control_points_list"]
         if len(control_points_list) > 0 and len(control_points_list[0][P_KEY]) > 0:
             control_points = control_points_list[0]
-            #orientations = complete_orientations_from_tangents(control_points[P_KEY], control_points[O_KEY])
-            #orientations = complete_tangents(control_points[P_KEY], control_points[O_KEY])
-            supersampling_size = self.spline_super_sampling_factor*len(control_points)
-            points, orientations = get_tangents(control_points[P_KEY], supersampling_size)
-            if control_points[O_KEY][-1] is not None:
-                orientations[-1] = control_points[O_KEY][-1]
+            if add_tangents:
+                #orientations = complete_orientations_from_tangents(control_points[P_KEY], control_points[O_KEY])
+                #orientations = complete_tangents(control_points[P_KEY], control_points[O_KEY])
 
-            traj_constraint = TrajectoryConstraint(joint_name, points, orientations,
-                                               self.default_spline_type, 0.0,
-                                               desc["unconstrained_indices"],
-                                               self.motion_state_graph.skeleton,
-                                               self.constraint_precision, self.default_constraint_weight,
-                                               self.closest_point_search_accuracy,
-                                               self.closest_point_search_max_iterations,
-                                               self.spline_arc_length_parameter_granularity)
+                supersampling_size = self.spline_super_sampling_factor*len(control_points)
+                points, orientations = get_tangents(control_points[P_KEY], supersampling_size)
+                if control_points[O_KEY][-1] is not None:
+                    orientations[-1] = control_points[O_KEY][-1]
+                traj_constraint = TrajectoryConstraint(joint_name, points, orientations,
+                                                   self.default_spline_type, 0.0,
+                                                   desc["unconstrained_indices"],
+                                                   self.motion_state_graph.skeleton,
+                                                   self.constraint_precision, self.default_constraint_weight,
+                                                   self.closest_point_search_accuracy,
+                                                   self.closest_point_search_max_iterations,
+                                                   self.spline_arc_length_parameter_granularity)
 
-            return [traj_constraint]
+                return [traj_constraint]
+            else:
+                print(joint_name, control_points[P_KEY])
+                traj_constraint = TrajectoryConstraint(joint_name, control_points[P_KEY],None,
+                                                       self.default_spline_type, 0.0,
+                                                       desc["unconstrained_indices"],
+                                                       self.motion_state_graph.skeleton,
+                                                       self.constraint_precision, self.default_constraint_weight,
+                                                       self.closest_point_search_accuracy,
+                                                       self.closest_point_search_max_iterations,
+                                                       self.spline_arc_length_parameter_granularity)
+
+                return [traj_constraint]
         else:
             return []
 
