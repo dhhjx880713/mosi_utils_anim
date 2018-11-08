@@ -148,7 +148,7 @@ class SkeletonBuilder(object):
             skeleton = self.load_from_json_data(data)
             return skeleton
 
-    def load_from_json_data(self, data, animated_joints=None):
+    def load_from_json_data(self, data, animated_joints=None, use_all_joints=False):
         def extract_animated_joints(node, animated_joints):
             animated_joints.append(node["name"])
             for c in node["children"]:
@@ -197,8 +197,13 @@ class SkeletonBuilder(object):
             skeleton.aligning_root_dir = data["aligning_root_dir"]
         else:
             skeleton.aligning_root_dir = ROCKETBOX_ROOT_DIR
-
-        generate_reference_frame(skeleton, skeleton.animated_joints)
+        #skeleton.reference_frame = data["reference_frame"]
+        skeleton.reference_frame = None
+        if "reference_frame" in data:
+            skeleton.reference_frame = data["reference_frame"]
+            skeleton.reference_frame_length = len(skeleton.reference_frame)
+        if skeleton.reference_frame is None or use_all_joints:
+            generate_reference_frame(skeleton, skeleton.animated_joints)
         return skeleton
 
     def load_from_fbx_data(self, data):
