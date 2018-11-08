@@ -59,6 +59,13 @@ class Context(object):
         else:
             return self.target_skeleton
 
+def export_motion_to_json(filename, skeleton_data, motion_data):
+    export_data = copy(skeleton_data)
+    export_data.update(motion_data)
+    #export_data = motion_data
+    export_data["animated_joints"] = motion_data["jointSequence"]
+    with open(filename, "w") as outfile:
+        json.dump(export_data, outfile)
 
 def generate_motion(context, mg_input):
     motion_vector = context.generator.generate_motion(mg_input, False, False, complete_motion_vector=False)
@@ -70,13 +77,23 @@ def generate_motion(context, mg_input):
         target_skeleton = context.get_target_skeleton()
         new_frames = retarget_from_src_to_target(src_skeleton, target_skeleton,
                                                  motion_vector.frames,
+                                                 additional_rotation_map=context.additional_rotation_map,
                                                  scale_factor=scale_factor,
                                                  frame_range=frame_range,
-                                                 place_on_ground=True)
+                                                 place_on_ground=False)
         motion_vector.skeleton = target_skeleton
         motion_vector.frames = new_frames
-    result_object = motion_vector.to_unity_format()
-    return json.dumps(result_object)
+        skeleton_data = target_skeleton.to_json()
+
+    else:
+        skeleton_data = context.generator.get_skeleton().to_json()
+
+    motion_data = motion_vector.to_unity_format()
+    if context.service_config["export_motion_to_file"]:
+        filename = context.service_config["output_dir"] + os.sep + "motion_m.json"
+        export_motion_to_json(filename, skeleton_data, motion_data)
+
+    return json.dumps(motion_data)
 
 
 class GenerateMotionHandler(tornado.web.RequestHandler):
@@ -143,14 +160,18 @@ def set_height_map(context, data):
         image_path = data["image_path"]
         width = data["width"]
         depth = data["depth"]
+        scale = [1.0, 1.0]
+        if "scale" in data:
+            scale = data["scale"]
         height_scale = data["height_scale"]
         if os.path.isfile(image_path):
             with open(image_path, "rb") as input_file:
                 img = Image.open(input_file)
                 img_copy = img.copy()  # work with a copy of the image to close the file
                 img.close()
+                pixel_is_tuple = not image_path.endswith("bmp")
                 print("set height map from file", image_path, "size:",img.size,"mode:", img.mode)
-                scene = HeightMapInterface(img_copy, width, depth, height_scale)
+                scene = HeightMapInterface(img_copy, width, depth, scale, height_scale, pixel_is_tuple)
                 context.generator.scene_interface.set_scene(scene)
                 success = True
     elif "image" in data:
@@ -203,12 +224,13 @@ pool = None
 def main():
     global context, pool
     port = 8888
-
     target_skeleton_file = MODEL_DATA_DIR + os.sep + "iclone_female4.bvh"
+    skeleton_model = "iclone"
+    target_skeleton_file = None
     parser = argparse.ArgumentParser(description="Start the MorphableGraphs REST-interface")
     parser.add_argument("-set", nargs='+', default=[], help="JSONPath expression, e.g. -set $.model_data=path/to/data")
     parser.add_argument("-config_file", nargs='?', default=SERVICE_CONFIG_FILE, help="Path to default config file")
-    parser.add_argument("-target_skeleton", nargs='?', default=None, help="Path to target skeleton file")
+    parser.add_argument("-target_skeleton", nargs='?', default=target_skeleton_file, help="Path to target skeleton file")
     parser.add_argument("-skeleton_scale", nargs='?', default=1.0, help="Scale applied to the target skeleton offsets")
     args = parser.parse_args()
     if os.path.isfile(args.config_file):
@@ -216,13 +238,12 @@ def main():
             algorithm_config_file = "config" + os.sep + service_config["algorithm_settings"] + "_algorithm.config"
             algorithm_config = load_json_file(algorithm_config_file)
             port = service_config["port"]
-
             if args.target_skeleton is not None:
                 # TODO use custom json file instead
                 bvh_reader = BVHReader(args.target_skeleton)
                 animated_joints = list(bvh_reader.get_animated_joints())
                 target_skeleton = SkeletonBuilder().load_from_bvh(bvh_reader, animated_joints=animated_joints)
-                target_skeleton.skeleton_model = SKELETON_MODELS["iclone"]
+                target_skeleton.skeleton_model = SKELETON_MODELS[skeleton_model]
             else:
                 target_skeleton = None
 
