@@ -185,9 +185,9 @@ class GraphWalkPlanner(object):
             s_vector = self.mp_generator._get_best_fit_sample_using_cluster_tree(motion_primitive_node, mp_constraints,
                                                                              prev_frames, 1)
         else:
-            s_vector, error = self.mp_generator._sample_from_gmm_using_constraints(motion_primitive_node,
-                                                             motion_primitive_node.get_gaussian_mixture_model(),
-                                                             mp_constraints, prev_frames, 10)
+            samples = motion_primitive_node.sample_low_dimensional_vectors(10)
+            s_vector, error = self.mp_generator.evaluate_samples_using_constraints(samples, motion_primitive_node, mp_constraints,
+                                                                             prev_frames)
         write_message_to_log("Evaluated option " + str(node_name) + str(mp_constraints.min_error), LOG_MODE_DEBUG)
         return s_vector, mp_constraints.min_error
 
