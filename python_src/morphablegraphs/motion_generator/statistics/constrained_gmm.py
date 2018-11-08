@@ -12,7 +12,7 @@ from operator import itemgetter
 from ...utilities.exceptions import ConstraintError
 
 
-class ConstrainedGMM(mixture.GMM):
+class ConstrainedGMM(mixture.GaussianMixture):
     """ A GMM that has the ability to constraint itself. The GMM is build based
     on a GMM
 
@@ -30,12 +30,12 @@ class ConstrainedGMM(mixture.GMM):
         super(ConstrainedGMM, self).__init__(
             n_components=gmm.n_components,
             covariance_type=gmm.covariance_type,
-            thresh=gmm.thresh,
-            min_covar=gmm.min_covar,
+            #thresh=gmm.thresh,
+            #min_covar=gmm.min_covar,
             random_state=gmm.random_state,
-            n_iter=gmm.n_iter,
+            #n_iter=gmm.n_iter,
             n_init=gmm.n_init,
-            params=gmm.params,
+            #params=gmm.params,
             init_params=gmm.init_params
         )
         self.verbose = algorithm_config["verbose"]
