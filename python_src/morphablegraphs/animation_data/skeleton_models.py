@@ -1063,6 +1063,44 @@ NOIKOM_SKELETON_MODEL["cos_map"] = NOIKOM_SKELETON_COS_MAP
 
 
 
+MO_SKELETON_JOINTS = collections.OrderedDict()
+MO_SKELETON_JOINTS["root"] = None
+MO_SKELETON_JOINTS["pelvis"] = "Hips"
+MO_SKELETON_JOINTS["spine"] = "Spine"
+MO_SKELETON_JOINTS["spine_1"] = "Spine1"
+MO_SKELETON_JOINTS["spine_2"] = "Spine2"
+MO_SKELETON_JOINTS["left_clavicle"] = "LeftShoulder"
+MO_SKELETON_JOINTS["right_clavicle"] = "RightShoulder"
+MO_SKELETON_JOINTS["left_shoulder"] = "LeftArm"
+MO_SKELETON_JOINTS["right_shoulder"] = "RightArm"
+MO_SKELETON_JOINTS["left_elbow"] = "LeftForeArm"
+MO_SKELETON_JOINTS["right_elbow"] = "RightForeArm"
+MO_SKELETON_JOINTS["left_wrist"] = "LeftHand"
+MO_SKELETON_JOINTS["right_wrist"] = "RightHand"
+#MO_SKELETON_JOINTS["left_finger"] = "RightInHandMiddle"
+#MO_SKELETON_JOINTS["right_finger"] = "LeftInHandMiddle"
+MO_SKELETON_JOINTS["left_hip"] = "LeftUpLeg"
+MO_SKELETON_JOINTS["right_hip"] = "RightUpLeg"
+MO_SKELETON_JOINTS["left_knee"] = "LeftLeg"
+MO_SKELETON_JOINTS["right_knee"] = "RightLeg"
+MO_SKELETON_JOINTS["left_ankle"] = "LeftFoot"
+MO_SKELETON_JOINTS["right_ankle"] = "RightFoot"
+MO_SKELETON_JOINTS["left_toe"] = "LeftToeBase"
+MO_SKELETON_JOINTS["right_toe"] = "RightToeBase"
+MO_SKELETON_JOINTS["left_heel"] = None
+MO_SKELETON_JOINTS["right_heel"] = None
+MO_SKELETON_JOINTS["neck"] = "Neck"
+MO_SKELETON_JOINTS["head"] = "Head"
+
+MO_SKELETON_MODEL = collections.OrderedDict()
+MO_SKELETON_MODEL["joints"] = MO_SKELETON_JOINTS
+MO_SKELETON_COS_MAP = collections.defaultdict(dict)
+MO_SKELETON_COS_MAP["LeftHand"]["x"] = [0, -1, 0]
+MO_SKELETON_COS_MAP["LeftHand"]["y"] = [1, 0, 0]
+MO_SKELETON_COS_MAP["RightHand"]["x"] = [0, 1, 0]
+MO_SKELETON_COS_MAP["RightHand"]["y"] = [-1, 0, 0]
+MO_SKELETON_MODEL["cos_map"] = NOIKOM_SKELETON_COS_MAP
+
 
 SKELETON_MODELS = collections.OrderedDict()
 SKELETON_MODELS["rocketbox"] = ROCKETBOX_SKELETON_MODEL
@@ -1084,6 +1122,7 @@ SKELETON_MODELS["mh_cmu_red"] = MH_CMU_RED_SKELETON_MODEL
 SKELETON_MODELS["game_engine_wrong_root"] = GAME_ENGINE_WRONG_ROOT_SKELETON_MODEL
 SKELETON_MODELS["raw2"] = RAW2_SKELETON_MODEL
 SKELETON_MODELS["noikom"] = NOIKOM_SKELETON_MODEL
+SKELETON_MODELS["mo"] = MO_SKELETON_MODEL
 
 JOINT_CHILD_MAP = dict()
 JOINT_CHILD_MAP["root"] = "pelvis"
