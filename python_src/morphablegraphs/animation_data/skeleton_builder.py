@@ -6,6 +6,7 @@ from .skeleton import Skeleton
 from .skeleton_node import SkeletonRootNode, SkeletonJointNode, SkeletonEndSiteNode, SKELETON_NODE_TYPE_JOINT, SKELETON_NODE_TYPE_END_SITE
 from .skeleton_models import ROCKETBOX_ANIMATED_JOINT_LIST, ROCKETBOX_FREE_JOINTS_MAP, ROCKETBOX_REDUCED_FREE_JOINTS_MAP, ROCKETBOX_SKELETON_MODEL, ROCKETBOX_BOUNDS, ROCKETBOX_TOOL_BONES, ROCKETBOX_ROOT_DIR
 from .quaternion_frame import QuaternionFrame
+from .joint_constraints import HingeConstraint2
 
 
 def create_identity_frame(skeleton):
@@ -281,4 +282,64 @@ class SkeletonBuilder(object):
         return node
 
 
+    @classmethod
+    def construct_arm_with_constraints(cls, n_joints, length):
+        skeleton = Skeleton()
+        skeleton.frame_time = 1 / 30
+        animated_joints = []
+        animated_joints.append("root")
+        skeleton.root = "root"
+        channels = ["rotationX", "rotationY", "rotationZ", "rotationW"]
+        node = SkeletonRootNode("root", channels, None, 0)
+        node.fixed = False
+        node.index = 0
+        node.offset = [0, 0, 0]
+        node.rotation = [1, 0, 0, 0]
+        node.quaternion_frame_index = 0
+        skeleton.nodes["root"] = node
+        parent = node
+        swing_axis = np.array([0,0,1])
+        twist_axis = np.array([0, 1, 0])
+
+        angle_range = [0,90]
+        for n in range(1, n_joints + 1):  # start after the root joint and add one endsite
+            if n + 1 < n_joints + 1:
+                node_name = "joint" + str(n)
+                node = SkeletonJointNode(node_name, channels, parent, n)
+                animated_joints.append(node_name)
+                node.fixed = False
+                node.quaternion_frame_index = n
+                node.index = n
+                node.offset = np.array([0, length, 0], dtype=np.float)
+                print("create", node_name, node.offset)
+                if n in [1]:
+                    node.joint_constraint = HingeConstraint2(swing_axis, twist_axis)
+            else:
+                node_name = "joint" + str(n - 1) + "_EndSite"
+                node = SkeletonEndSiteNode(node_name, channels, parent, n)
+                node.fixed = True
+                node.quaternion_frame_index = -1
+                node.index = -1
+                node.offset = np.array([0, 0, 0], dtype=np.float)
+                print("create", node_name, node.offset)
+            parent.children.append(node)
+
+            node.rotation = [1, 0, 0, 0]
+            skeleton.nodes[node_name] = node
+            parent = node
+
+        skeleton.animated_joints = animated_joints
+        skeleton.reference_frame = cls.get_reference_frame(animated_joints)
+        return skeleton
+
+
+    @classmethod
+    def get_reference_frame(cls, animated_joints):
+        n_animated_joints = len(animated_joints)
+        reference_frame = np.zeros(n_animated_joints * 4 + 3)
+        o = 3
+        for n in range(n_animated_joints):
+            reference_frame[o:o + 4] = [1, 0, 0, 0]
+            o += 4
+        return reference_frame
 
