@@ -152,8 +152,9 @@ def swing_twist_decomposition(q, twist_axis):
 
 
 class HingeConstraint2(object):
-    def __init__(self, axis, deg_angle_range=None, verbose=False):
-        self.axis = axis
+    def __init__(self, swing_axis, twist_axis, deg_angle_range=None, verbose=False):
+        self.swing_axis = swing_axis
+        self.twist_axis = twist_axis
         if deg_angle_range is not None:
             self.angle_range = np.radians(deg_angle_range)
         else:
@@ -161,7 +162,7 @@ class HingeConstraint2(object):
         self.verbose = verbose
 
     def apply(self, q):
-        sq, tq = swing_twist_decomposition(q, self.axis)
+        sq, tq = swing_twist_decomposition(q, self.swing_axis)
         tv, ta = quaternion_to_axis_angle(tq)
         if self.verbose:
             print("before", np.degrees(ta), tv)
@@ -171,7 +172,7 @@ class HingeConstraint2(object):
 
         if self.verbose:
             print("after", np.degrees(ta), tv)
-        return quaternion_about_axis(ta, self.axis)
+        return quaternion_about_axis(ta, self.swing_axis)
 
     def apply_global(self, pm, q):
         axis = np.dot(pm, self.axis)
@@ -186,9 +187,14 @@ class HingeConstraint2(object):
 
         if self.verbose:
             print("after", np.degrees(ta), tv)
-        return quaternion_about_axis(ta, self.axis)
+        return quaternion_about_axis(ta, self.swing_axis)
 
     def split(self,q):
-        axis = normalize(self.axis)
+        axis = normalize(self.swing_axis)
+        sq, tq = swing_twist_decomposition(q, axis)
+        return sq, tq
+
+    def split_correct(self,q):
+        axis = normalize(self.twist_axis)
         sq, tq = swing_twist_decomposition(q, axis)
         return sq, tq
