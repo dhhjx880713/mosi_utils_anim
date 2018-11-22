@@ -95,3 +95,100 @@ def apply_spherical_constraint(q, ref_q, axis, k):
         delta_q = quaternion_about_axis(delta_phi, v)
         q = quaternion_multiply(delta_q, q)
     return q
+
+REFERENCE_QUATERNION = [1,0,0,0]
+
+
+class HingeConstraint(object):
+    def __init__(self, axis, deg_angle_range):
+        self.axis = axis
+        self.angle_range = np.radians(deg_angle_range)
+
+    def apply(self, q, parent_q):
+        #axis = rotate_vector_by_quaternion(self.axis, parent_q)
+        return apply_axial_constraint(q, parent_q, self.axis, self.angle_range[0], self.angle_range[1])
+
+
+import math
+
+def normalize(v):
+    return v/np.linalg.norm(v)
+
+def quaternion_to_axis_angle(q):
+    """http://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToAngle/
+
+    """
+    a = 2* math.acos(q[0])
+    s = math.sqrt(1- q[0]*q[0])
+    if s < 0.001:
+        x = q[1]
+        y = q[2]
+        z = q[3]
+    else:
+        x = q[1] / s
+        y = q[2] / s
+        z = q[3] / s
+    v = np.array([x,y,z])
+    if np.sum(v)> 0:
+        return normalize(v),a
+    else:
+        return v, a
+
+
+
+def swing_twist_decomposition(q, twist_axis):
+    """ code by janis sprenger based on
+        Dobrowsolski 2015 Swing-twist decomposition in Clifford algebra. https://arxiv.org/abs/1506.05481
+    """
+    q = normalize(q)
+    #twist_axis = np.array((q * offset))[0]
+    projection = np.dot(twist_axis, np.array([q[1], q[2], q[3]])) * twist_axis
+    twist_q = np.array([q[0], projection[0], projection[1],projection[2]])
+    if np.linalg.norm(twist_q) == 0:
+        twist_q = np.array([1,0,0,0])
+    twist_q = normalize(twist_q)
+    swing_q = quaternion_multiply(q, quaternion_inverse(twist_q))#q * quaternion_inverse(twist)
+    return swing_q, twist_q
+
+
+class HingeConstraint2(object):
+    def __init__(self, axis, deg_angle_range=None, verbose=False):
+        self.axis = axis
+        if deg_angle_range is not None:
+            self.angle_range = np.radians(deg_angle_range)
+        else:
+            self.angle_range = None
+        self.verbose = verbose
+
+    def apply(self, q):
+        sq, tq = swing_twist_decomposition(q, self.axis)
+        tv, ta = quaternion_to_axis_angle(tq)
+        if self.verbose:
+            print("before", np.degrees(ta), tv)
+        if self.angle_range is not None:
+            ta = max(ta, self.angle_range[0])
+            ta = min(ta, self.angle_range[1])
+
+        if self.verbose:
+            print("after", np.degrees(ta), tv)
+        return quaternion_about_axis(ta, self.axis)
+
+    def apply_global(self, pm, q):
+        axis = np.dot(pm, self.axis)
+        axis = normalize(axis)
+        sq, tq = swing_twist_decomposition(q, axis)
+        tv, ta = quaternion_to_axis_angle(tq)
+        if self.verbose:
+            print("before", np.degrees(ta), tv)
+        if self.angle_range is not None:
+            ta = max(ta, self.angle_range[0])
+            ta = min(ta, self.angle_range[1])
+
+        if self.verbose:
+            print("after", np.degrees(ta), tv)
+        return quaternion_about_axis(ta, self.axis)
+
+    def split(self,q):
+        axis = normalize(self.axis)
+        sq, tq = swing_twist_decomposition(q, axis)
+        return sq, tq
