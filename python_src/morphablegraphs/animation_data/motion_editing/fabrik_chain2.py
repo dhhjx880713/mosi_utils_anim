@@ -6,15 +6,23 @@
 """
 import math
 import numpy as np
-from mg_analysis.External.transformations import quaternion_inverse, quaternion_multiply, quaternion_from_matrix
+from mg_analysis.External.transformations import quaternion_inverse, quaternion_multiply, quaternion_from_matrix, euler_from_quaternion
 from mg_analysis.Graphics.Renderer.primitive_shapes import SphereRenderer
 from mg_analysis.Graphics.Renderer.lines import DebugLineRenderer
 from mg_analysis.Graphics import Materials
-from mg_analysis.morphablegraphs.python_src.morphablegraphs.animation_data.motion_editing.analytical_inverse_kinematics import calculate_limb_joint_rotation, calculate_limb_root_rotation
+from mg_analysis.morphablegraphs.python_src.morphablegraphs.animation_data.motion_editing.analytical_inverse_kinematics import calculate_limb_joint_rotation, calculate_limb_root_rotation, to_local_coordinate_system
 
+def sign(x):
+    return 1 if x >= 0 else -1
 
-
-
+def quaternion_to_av(q):
+    """ according to lee 2000
+    the purely imaginary quaternion is identical to the angular velocity
+    the sign of the real part gives the direction
+    Since the unit quaternion space is folded by the antipodal equivalence,
+    the angular velocity is twice as fast
+    """
+    return 2 * np.array(q[1:]) * sign(q[0])
 
 def normalize(v):
     return v/ np.linalg.norm(v)
@@ -79,6 +87,17 @@ def to_local_cos(skeleton, node_name, frame, q):
     return quaternion_multiply(inv_p, q)
 
 
+def orient_joint_to_target(skeleton, node, frame, src_pos, target_pos):
+    if skeleton.nodes[node].parent is None:
+        parent_pos = [0, 0, 0]
+    else:
+        parent_pos = skeleton.nodes[node].parent.get_global_position(frame)
+    src_dir = normalize(src_pos - parent_pos)
+    target_dir = normalize(target_pos - parent_pos)
+    delta_q = quaternion_from_vector_to_vector(src_dir, target_dir)
+    return normalize(delta_q)
+
+
 class FABRIKBone(object):
     def __init__(self, name, child):
         self.name = name
@@ -92,7 +111,7 @@ class FABRIKBone(object):
 ROOT_OFFSET = np.array([0,0,0], np.float)
 
 class FABRIKChain(object):
-    def __init__(self, skeleton, bones, node_order, tolerance=0.01, max_iter=500, root_offset=ROOT_OFFSET, activate_constraints=False):
+    def __init__(self, skeleton, bones, node_order, tolerance=0.01, max_iter=500, frame_offset=3, root_offset=ROOT_OFFSET, activate_constraints=False):
         self.skeleton = skeleton
         self.bones = bones
         self.node_order = node_order
@@ -104,6 +123,7 @@ class FABRIKChain(object):
         self.chain_length = 0
         self.root_offset = root_offset
         self.activate_constraints = activate_constraints
+        self.frame_offset = frame_offset
 
         slices = 20
         stacks = 20
@@ -153,6 +173,18 @@ class FABRIKChain(object):
         self.solve()
         return self.get_joint_parameters()
 
+    def run_partial(self, frame, target):
+        self.target = target
+        self.set_positions_from_frame(frame, 0)
+        self.solve()
+        return self.set_partial_joint_parameters(frame)
+
+    def run_partial_with_constraints(self, frame, target):
+        self.target = target
+        self.set_positions_from_frame(frame, 0)
+        self.solve_partial(frame)
+        return self.set_partial_joint_parameters(frame)
+
     def run_with_constraints(self, frame, target):
         self.target = target
         self.set_positions_from_frame(frame, 0)
@@ -194,7 +226,26 @@ class FABRIKChain(object):
                 distance = self.get_error()
                 print("iter",iter, distance)
 
+    def solve_partial(self, frame):
+        if not self.target_is_reachable():
+            print("unreachable")
+            # if unreachable orient joints to target
+            self.orient_to_target()
+        else:
+            print("reachable")
+            # if reachable perform forward and backward reaching until tolerance is reached
+            iter = 0
+            distance = self.get_error()
+            while distance > self.tolerance and iter < self.max_iter:
+                self.backward()
+                self.forward()
 
+                self.set_partial_joint_parameters(frame)
+                self.set_positions_from_frame(frame, 0)
+
+                iter += 1
+                distance = self.get_error()
+                print("iter", iter, distance)
 
     def get_error(self):
         end_effector = self.node_order[-1]
@@ -234,31 +285,6 @@ class FABRIKChain(object):
                 l = self.bones[node].length / r
                 self.bones[next_node].position = l * self.bones[next_node].position + (1 - l) * self.bones[node].position
 
-
-    def backward_with_constraints(self):
-        end_effector = self.node_order[-1]
-        self.bones[end_effector].position = np.array(self.target)
-        n_points = len(self.node_order)
-        for idx in range(n_points - 2, -1, -1):
-            node = self.node_order[idx]
-            next_node = self.bones[node].child
-            r = np.linalg.norm(self.bones[next_node].position - self.bones[node].position)
-            if r > 0:
-                l = self.bones[node].length / r
-                self.bones[node].position = (1 - l) * self.bones[next_node].position + l * self.bones[node].position
-
-
-    def forward_with_constraitns(self):
-        root_node = self.node_order[0]
-        self.bones[root_node].position = self.root_pos
-        for idx, node in enumerate(self.node_order[:-1]):  # for p_idx in range(0, self.n_points - 1, 1):
-            # next_node = self.node_order[idx + 1]
-            next_node = self.bones[node].child
-            r = np.linalg.norm(self.bones[next_node].position - self.bones[node].position)
-            if r > 0:
-                l = self.bones[node].length / r
-                self.bones[next_node].position = l * self.bones[next_node].position + (1 - l) * self.bones[node].position
-
     def apply_constraints(self):
         frame = self.get_joint_parameters()
         self.set_positions_from_frame(frame, 0)
@@ -275,51 +301,87 @@ class FABRIKChain(object):
             q = self.get_global_rotation(node, next_node)
             frame[o:o + 4] = to_local_cos(self.skeleton, node, frame, q)
             if self.skeleton.nodes[node].joint_constraint is not None and self.activate_constraints:
-                self.apply_constraint_with_swing_and_lee(node, frame, o)
-                parent_node = self.node_order[idx-1]
-                #self.apply_constraint_with_vector(node, parent_node, frame, o)
-                #self.apply_constraint_with_swing2(node, parent_node, frame, o)
-
+                self.apply_constraint_with_swing(node, frame, o)
             prev_point = self.bones[next_node].position
             o += 4
         return frame
 
-    def apply_constraint_with_swing(self, node, frame, o, eps=0.01):
-        old_q = frame[o:o + 4]
-        old_node_pos = self.skeleton.nodes[node].children[0].get_global_position(frame)
-        delta_q, new_q = self.skeleton.nodes[node].joint_constraint.split(old_q)
-        frame[o:o + 4] = new_q
-        new_node_pos = self.skeleton.nodes[node].children[0].get_global_position(frame)
-        diff = np.linalg.norm(new_node_pos-old_node_pos)
-        if diff > eps:
-            # apply change swing to parent
+    def set_partial_joint_parameters(self, frame):
+        o = self.frame_offset
+        for idx, node in enumerate(self.node_order[:-1]):
+            next_node = self.bones[node].child
+            q = self.get_global_rotation_non_cos(node, next_node, frame)
+            frame[o:o + 4] = to_local_coordinate_system(self.skeleton,frame, node,  q)
+            if self.skeleton.nodes[node].joint_constraint is not None and self.activate_constraints:
+                self.apply_constraint_with_swing(node, frame, o)
+            o += 4
+        return frame
 
-            #print("pos1", new_node_pos, old_node_pos, self.target)
-            parent_q = frame[o - 4:o]
-            new_parent_q = quaternion_multiply(parent_q, delta_q)
-            new_parent_q = normalize(new_parent_q)
-            frame[o - 4:o] = new_parent_q
-            new_node_pos = self.skeleton.nodes[node].children[0].get_global_position(frame)
-            diff = np.linalg.norm(new_node_pos -  self.target)
-            if diff > eps:
-                # calculate fix rotation
-                #print("pos2",new_node_pos,old_node_pos, self.target)
-                if self.skeleton.nodes[node].parent is None:
-                    parent_pos = [0,0,0]
-                else:
-                    parent_pos = self.skeleton.nodes[node].parent.get_global_position(frame)
-                desired_offset = normalize(self.target - parent_pos)
-                offset = normalize(new_node_pos - parent_pos)
-                delta_q = quaternion_from_vector_to_vector(offset, desired_offset)
-                delta_q = normalize(delta_q)
-                new_parent_q = quaternion_multiply(delta_q, parent_q)
-                new_parent_q = normalize(new_parent_q)
-                frame[o - 4:o] = new_parent_q
-                new_node_pos = self.skeleton.nodes[node].children[0].get_global_position(frame)
-                #diff = np.linalg.norm(new_node_pos - self.target)
-                #if diff > eps:
+    def apply_constraint_with_swing(self, node, frame, o, eps=0.01):
+        old_q = np.array(frame[o:o + 4])
+
+        #remove twist rotation
+        swing_q, twist_q  = self.skeleton.nodes[node].joint_constraint.split(old_q)
+        frame[o:o + 4] = twist_q
+
+        # apply swing_q to parent
+        parent_q = np.array(frame[o - 4:o])
+        new_parent_q = quaternion_multiply(parent_q, swing_q)
+        new_parent_q = normalize(new_parent_q)
+        frame[o - 4:o] = new_parent_q
+        new_node_pos = self.skeleton.nodes[node].children[0].get_global_position(frame)
+        diff = np.linalg.norm(new_node_pos -  self.target)
+
+        # calculate rotation fix if necessary
+        if diff > eps:
+            delta_q = orient_joint_to_target(self.skeleton, node, frame, new_node_pos, self.target)
+            aligned_parent_q = quaternion_multiply(delta_q, new_parent_q)
+            aligned_parent_q = normalize(aligned_parent_q)
+            frame[o - 4:o] = aligned_parent_q
+
+        if False:
+            # new_node_pos = self.skeleton.nodes[node].children[0].get_global_position(frame)
+            # diff = np.linalg.norm(new_node_pos - self.target)
+            q = np.array(frame[o-4:o])
+            av = quaternion_to_av(q)
+            e = np.degrees(euler_from_quaternion(q))
+            if diff > 1:
+                print("!!!!!!!!!!!!!!!!!!!!!!!!error", av, sign(q[0]), e)
+                #frame[o:o + 4] = old_q
+                #frame[o - 4:o] = old_parent_q
+            else:
+                print("!!!!!!!!!!!!!!!!!!!!!!!!everything fine", av, sign(q[0]), e)
 
                 #print("pos3", new_node_pos, self.target)
+        #frame[o:o + 4] = old_q
+        #frame[o - 4:o] = old_parent_q
+
+    def apply_constraint_with_swing_global(self, node, frame, o, eps=0.01):
+        old_q = np.array(frame[o:o + 4])
+        next_node = self.bones[node].child
+        parent_m = self.skeleton.nodes[node].get_global_matrix(frame)[:3, :3]
+        node_m = self.skeleton.nodes[next_node].get_global_matrix(frame)[:3, :3]
+        node_q = quaternion_from_matrix(node_m)
+        node_q = normalize(node_q)
+        # remove twist rotation
+        swing_q, twist_q = self.skeleton.nodes[node].joint_constraint.split_global(parent_m, node_q)
+        frame[o:o + 4] = twist_q
+
+        # apply swing_q to parent
+        parent_q = np.array(frame[o - 4:o])
+        new_parent_q = quaternion_multiply(parent_q, swing_q)
+        new_parent_q = normalize(new_parent_q)
+        frame[o - 4:o] = new_parent_q
+        new_node_pos = self.skeleton.nodes[node].children[0].get_global_position(frame)
+        diff = np.linalg.norm(new_node_pos - self.target)
+        return
+        # calculate rotation fix if necessary
+        if diff > eps:
+            delta_q = orient_joint_to_target(self.skeleton, node, frame, new_node_pos, self.target)
+            aligned_parent_q = quaternion_multiply(delta_q, new_parent_q)
+            aligned_parent_q = normalize(aligned_parent_q)
+            frame[o - 4:o] = aligned_parent_q
+
 
     def apply_constraint_with_swing_and_lee(self, node, frame, o, eps=0.01):
         old_q = frame[o:o + 4]
@@ -337,7 +399,7 @@ class FABRIKChain(object):
             new_parent_q = normalize(new_parent_q)
             frame[o - 4:o] = new_parent_q
             new_node_pos = self.skeleton.nodes[node].children[0].get_global_position(frame)
-            diff = np.linalg.norm(new_node_pos - self.target)
+            diff = np.linalg.norm(new_node_pos -old_node_pos)
             if diff > eps:
                 parent_q = frame[o - 4:o]
                 root = None
@@ -409,10 +471,12 @@ class FABRIKChain(object):
             print(new_parent_q, local_parent_q, local_delta, delta_q)
 
 
+
     def get_global_rotation(self, node, next_node):
-        print("set", node, next_node)
+        """ FIXME works only when identity frame coordinate system is the same as the offset """
+
+        #print("set", node, next_node)
         target = self.bones[next_node].position - self.bones[node].position
-        print("target", target)
         next_offset = np.array(self.skeleton.nodes[next_node].offset)
         target_len = np.linalg.norm(target)
         if target_len > 0:
@@ -423,14 +487,30 @@ class FABRIKChain(object):
             local_offset = self.get_child_offset(node, next_node)
             actual_offset = next_offset + local_offset
             actual_offset /= np.linalg.norm(actual_offset)  # actual_offset = [0.5, 0.5,0]
-
             # 2. get global rotation
             q = quaternion_from_vector_to_vector(actual_offset, target)
             return q
 
         else:
-            print("skip", target_len, self.bones[next_node].position)
+            #print("skip", target_len, self.bones[next_node].position)
             return [1, 0, 0, 0]
+
+    def get_global_rotation_non_cos(self, node, next_node, frame):
+        target_position = self.bones[next_node].position
+        root_pos = self.skeleton.nodes[node].get_global_position(frame)
+        #src_dir = np.dot(m, offset)
+        end_effector_pos = self.skeleton.nodes[next_node].get_global_position(frame)
+        src_delta = end_effector_pos - root_pos
+        src_dir = src_delta / np.linalg.norm(src_delta)
+
+        target_delta = target_position - root_pos
+        target_dir = target_delta / np.linalg.norm(target_delta)
+
+        #q = quaternion_from_vector_to_vector(offset, target_dir)
+        q = quaternion_from_vector_to_vector2(src_dir, target_dir)
+        q = normalize(q)
+        return q
+
 
     def get_child_offset(self, node, child_node):
         """
@@ -449,7 +529,7 @@ class FABRIKChain(object):
     def get_joint_parameters_global(self):
         n_joints = len(self.node_order)-1
         frame = np.zeros(n_joints*4+3)
-        o = 3
+        o = self.frame_offset
         for idx, node in enumerate(self.node_order[:-1]):
             offset = np.array(self.skeleton.nodes[node].children[0].offset)
             offset /= np.linalg.norm(offset)
