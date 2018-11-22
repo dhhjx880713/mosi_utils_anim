@@ -58,6 +58,61 @@ def damp_angle(orig_angle, target_angle, p=0.1*np.pi, a=0.01):
     return orig_angle + res[0]
 
 
+def to_local_coordinate_system(skeleton, frame, joint_name, q):
+    """ given a global rotation concatenate it with an existing local rotation and bring it to the local coordinate system"""
+    # delta*parent*old_local = parent*new_local
+    # inv_parent*delta*parent*old_local = new_local
+    if skeleton.nodes[joint_name].parent is not None:
+        global_m = quaternion_matrix(q)
+        parent_joint = skeleton.nodes[joint_name].parent.node_name
+        parent_m = skeleton.nodes[parent_joint].get_global_matrix(frame, use_cache=False)
+        old_global = np.dot(parent_m, skeleton.nodes[joint_name].get_local_matrix(frame))
+        new_global = np.dot(global_m, old_global)
+        new_local = np.dot(np.linalg.inv(parent_m), new_global)
+        return quaternion_from_matrix(new_local)
+    else:
+        return q
+
+
+
+
+def calculate_limb_joint_rotation(skeleton, root, joint, end_effector, local_joint_axis, frame, target_position):
+    """ find angle so the distance from root to end effector is equal to the distance from the root to the target"""
+    root_pos = skeleton.nodes[root].get_global_position(frame)
+    joint_pos = skeleton.nodes[joint].get_global_position(frame)
+    end_effector_pos = skeleton.nodes[end_effector].get_global_position(frame)
+
+    upper_limb = np.linalg.norm(root_pos - joint_pos)
+    lower_limb = np.linalg.norm(joint_pos - end_effector_pos)
+    target_length = np.linalg.norm(root_pos - target_position)
+    #current_length = np.linalg.norm(root_pos - end_effector_pos)
+    #current_angle = calculate_angle2(upper_limb, lower_limb, current_length)
+    target_angle = calculate_angle2(upper_limb, lower_limb, target_length)
+
+    joint_delta_angle = np.pi - target_angle
+    joint_delta_q = quaternion_about_axis(joint_delta_angle, local_joint_axis)
+    joint_delta_q = normalize(joint_delta_q)
+    return joint_delta_q
+
+
+def calculate_limb_root_rotation(skeleton, root, end_effector, frame, target_position):
+    """ find angle between the vectors end_effector - root and target- root """
+
+    # align vectors
+    root_pos = skeleton.nodes[root].get_global_position(frame)
+    end_effector_pos = skeleton.nodes[end_effector].get_global_position(frame)
+    src_delta = end_effector_pos - root_pos
+    src_dir = src_delta / np.linalg.norm(src_delta)
+
+    target_delta = target_position - root_pos
+    target_dir = target_delta / np.linalg.norm(target_delta)
+
+    root_delta_q = find_rotation_between_vectors(src_dir, target_dir)
+    root_delta_q = normalize(root_delta_q)
+
+    return to_local_coordinate_system(skeleton, frame, root, root_delta_q)
+
+
 class AnalyticalLimbIK(object):
     def __init__(self, skeleton, limb_root, limb_joint, end_effector, joint_axis, local_end_effector_dir, damp_angle=None, damp_factor=0.01):
         self.skeleton = skeleton
