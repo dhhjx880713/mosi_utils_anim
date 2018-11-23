@@ -88,6 +88,6 @@ def run_ccd(skeleton, frame, joint_name, target_pos, eps=0.01, max_iter=50, verb
         pos = skeleton.nodes[joint_name].get_global_position(frame)
         error = np.linalg.norm(target_pos - pos)
         iter+=1
-        if(verbose):
+        if verbose:
             print("error at", iter, ":", error)
     return frame

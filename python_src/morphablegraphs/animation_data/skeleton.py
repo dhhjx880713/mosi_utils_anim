@@ -14,6 +14,7 @@ from .skeleton_node import SkeletonEndSiteNode, SkeletonJointNode
 from .constants import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER
 from .skeleton_models import ROCKETBOX_ANIMATED_JOINT_LIST, ROCKETBOX_FREE_JOINTS_MAP, ROCKETBOX_REDUCED_FREE_JOINTS_MAP, ROCKETBOX_SKELETON_MODEL, ROCKETBOX_BOUNDS, ROCKETBOX_TOOL_BONES, ROCKETBOX_ROOT_DIR
 from .joint_constraints import apply_conic_constraint, apply_axial_constraint, apply_spherical_constraint
+from .motion_editing.coordinate_cyclic_descent import run_ccd
 try:
     from mgrd import Skeleton as MGRDSkeleton
     from mgrd import SkeletonNode as MGRDSkeletonNode
@@ -421,6 +422,19 @@ class Skeleton(object):
         self.nodes[heel_name] = node
         self.nodes[foot_name].children.append(node)
 
+
+    def apply_joint_constraints(self, frame):
+        for n in self.animated_joints:
+            if self.nodes[n].joint_constraint is not None:
+                idx = self.nodes[n].quaternion_frame_index * 4 + 3
+                q = frame[idx:idx + 4]
+                frame[idx:idx + 4] = self.nodes[n].joint_constraint.apply(q)
+
+    def reach_target_position(self, frame, joint_name, target_pos, eps=0.01, max_iter=50, verbose=False):
+        return run_ccd(self, frame, joint_name, target_pos, eps, max_iter, verbose)
+
+
+"""
     def apply_joint_constraints(self, frame):
         if "joint_constraints" in self.skeleton_model:
             constraints = self.skeleton_model["joint_constraints"]
@@ -447,4 +461,4 @@ class Skeleton(object):
                         ref_q = self.nodes[n].rotation
                         frame[idx:idx + 4] = apply_spherical_constraint(q, ref_q, up_axis, k)
 
-
+    """
