@@ -73,21 +73,34 @@ def apply_joint_constraint(skeleton,frame,node_name):
     frame[o:o + 4] = q
     return frame
 
+def set_global_orientation(skeleton, frame, node_name, orientation):
+    o = skeleton.animated_joints.index(node_name) * 4 + 3
+    q = normalize(orientation)
+    q = to_local_coordinate_system(skeleton, frame, node_name, q)
+    frame[o:o + 4] = q
+    return frame
 
-def run_ccd(skeleton, frame, joint_name, target_pos, eps=0.01, max_iter=50, verbose=False):
+
+def run_ccd(skeleton, frame, joint_name, constraint, eps=0.01, max_iter=50, max_depth=-1, verbose=False):
     pos = skeleton.nodes[joint_name].get_global_position(frame)
-    error = np.linalg.norm(target_pos-pos)
+    error = np.linalg.norm(constraint.position-pos)
     iter = 0
     while error > eps and iter < max_iter:
         node = skeleton.nodes[joint_name].parent
+        depth = 0
         while node is not None and node.node_name != skeleton.root:
-            frame = orient_node_to_target(skeleton,frame, node.node_name, joint_name, target_pos)
+            if depth == 0 and constraint.orientation is not None:
+                frame = set_global_orientation(skeleton, frame, joint_name, constraint.orientation)
+            else:
+                frame = orient_node_to_target(skeleton,frame, node.node_name, joint_name, constraint.position)
+            
             if node.joint_constraint is not None:
                 frame = apply_joint_constraint(skeleton, frame, node.node_name)
             node = node.parent
+            depth+=1
         pos = skeleton.nodes[joint_name].get_global_position(frame)
-        error = np.linalg.norm(target_pos - pos)
+        error = np.linalg.norm(constraint.position - pos)
         iter+=1
         if verbose:
             print("error at", iter, ":", error)
-    return frame
+    return frame, error

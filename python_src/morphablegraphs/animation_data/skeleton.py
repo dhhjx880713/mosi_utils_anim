@@ -9,12 +9,11 @@ import collections
 from copy import copy
 import json
 import numpy as np
-from ..external.transformations import quaternion_matrix
+from ..external.transformations import quaternion_matrix, quaternion_from_matrix
 from .skeleton_node import SkeletonEndSiteNode, SkeletonJointNode
 from .constants import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER
 from .skeleton_models import ROCKETBOX_ANIMATED_JOINT_LIST, ROCKETBOX_FREE_JOINTS_MAP, ROCKETBOX_REDUCED_FREE_JOINTS_MAP, ROCKETBOX_SKELETON_MODEL, ROCKETBOX_BOUNDS, ROCKETBOX_TOOL_BONES, ROCKETBOX_ROOT_DIR
-from .joint_constraints import apply_conic_constraint, apply_axial_constraint, apply_spherical_constraint
-from .motion_editing.coordinate_cyclic_descent import run_ccd
+from .motion_editing.coordinate_cyclic_descent import run_ccd, normalize
 try:
     from mgrd import Skeleton as MGRDSkeleton
     from mgrd import SkeletonNode as MGRDSkeletonNode
@@ -430,8 +429,27 @@ class Skeleton(object):
                 q = frame[idx:idx + 4]
                 frame[idx:idx + 4] = self.nodes[n].joint_constraint.apply(q)
 
-    def reach_target_position(self, frame, joint_name, target_pos, eps=0.01, max_iter=50, verbose=False):
-        return run_ccd(self, frame, joint_name, target_pos, eps, max_iter, verbose)
+    def reach_target_position(self, frame, constraint, eps=0.01, max_iter=50, verbose=False):
+        frame, error = run_ccd(self, frame, constraint.joint_name, constraint, eps, max_iter, -1, verbose)
+        print("reached with error", error)
+        return frame
+
+    def reach_target_positions(self, frame, constraints, eps=0.01, max_iter=150, verbose=False):
+        print("run")
+        error = np.inf
+        iter = 0
+        max_depth = -1
+        prev_error = 0
+        while iter < max_iter and error > eps and abs(prev_error-error) > eps:
+            error = 0
+            print(iter)
+            for c in constraints:
+                frame, joint_error = run_ccd(self, frame, c.joint_name, c, eps, max_iter, max_depth, verbose)
+                error += joint_error
+            prev_error = error
+            iter+=1
+        print("reached with error", error)
+        return frame
 
 
 """
