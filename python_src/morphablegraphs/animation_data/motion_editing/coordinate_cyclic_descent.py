@@ -92,9 +92,8 @@ def run_ccd(skeleton, frame, end_effector_name, constraint, eps=0.01, max_iter=5
         depth = 0
 
         while node is not None and node.node_name != skeleton.root:
-            if  constraint.orientation is not None:
-                parent_joint_name = skeleton.nodes[end_effector_name].parent.node_name
-                frame = set_global_orientation(skeleton, frame, parent_joint_name, constraint.orientation)
+            if constraint.orientation is not None:
+                frame = set_global_orientation(skeleton, frame, end_effector_name, constraint.orientation)
 
             frame = orient_node_to_target(skeleton,frame, node.node_name, end_effector_name, constraint.position)
             
