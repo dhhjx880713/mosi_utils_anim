@@ -448,6 +448,22 @@ class MotionEditing(object):
                 self.interpolate_around_frame(new_frames, frame_idx, self.window)
         return new_frames
 
+    def edit_motion_using_ccd(self, frames, constraints):
+        new_frames = np.array(frames)
+        for frame_idx, frame_constraints in constraints.items():
+            constraints = []
+            for joint_name, c in frame_constraints.items():
+                if c.orientation is not None:
+                    print("use ccd on", joint_name, "at", frame_idx, " with orientation")
+                else:
+                    print("use ccd on", joint_name, "at", frame_idx)
+                constraints.append(c)
+            new_frame = self.skeleton.reach_target_positions(frames[frame_idx], constraints, verbose=False)
+            new_frames[frame_idx] = new_frame
+            if self.window > 0:
+                self.interpolate_around_frame(new_frames, frame_idx, self.window)
+        return new_frames
+
     def interpolate_around_frame(self, frames, keyframe, window):
         print("interpolate around frame", keyframe)
         o = 3
