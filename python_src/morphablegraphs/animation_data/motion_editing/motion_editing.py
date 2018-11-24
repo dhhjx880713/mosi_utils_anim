@@ -1,5 +1,6 @@
 from copy import copy
 import numpy as np
+import collections
 from .numerical_ik_quat import NumericalInverseKinematicsQuat
 from .numerical_ik_exp import NumericalInverseKinematicsExp
 from .cubic_motion_spline import CubicMotionSpline
@@ -8,6 +9,28 @@ from ..motion_blending import smooth_joints_around_transition_using_slerp, creat
 from ...external.transformations import quaternion_matrix, euler_from_matrix, quaternion_multiply
 from ...utilities.log import write_message_to_log, LOG_MODE_DEBUG
 from .utils import convert_exp_frame_to_quat_frame
+from .fabrik_chain2 import FABRIKChain, FABRIKBone
+from ..joint_constraints import HingeConstraint2, BallSocketConstraint, ConeConstraint, ShoulderConstraint
+from ...external.transformations import quaternion_matrix, quaternion_from_matrix
+
+
+def create_fabrik_chain(skeleton, frame, node_order, activate_constraints=False):
+    bones = dict()
+    root = node_order[0]
+    root_offset = skeleton.nodes[root].get_global_position(frame)
+    frame_offset = skeleton.animated_joints.index(root)*4 + 3
+    for idx, j in enumerate(node_order[:-1]):
+        bones[j] = FABRIKBone(j, node_order[idx + 1])
+        if idx == 0:
+            bones[j].is_root = True
+        else:
+            bones[j].is_root = False
+
+    bones[node_order[-1]] = FABRIKBone(node_order[-1], None)
+    max_iter = 50
+    chain = FABRIKChain(skeleton, bones, node_order, max_iter=max_iter, frame_offset=frame_offset, root_offset=root_offset,
+                                                activate_constraints=activate_constraints)
+    return chain
 
 
 def add_frames(skeleton, a, b):
@@ -72,6 +95,45 @@ class MotionEditing(object):
         self.pose = SkeletonPoseModel(self.skeleton, self.use_euler)
         self._ik = NumericalInverseKinematicsQuat(self.pose, self._ik_settings)
         self._ik_exp = NumericalInverseKinematicsExp(self.skeleton, self._ik_settings)
+        self._fabrik_chains = dict()
+
+    def add_fabrik_chain(self, joint_name, node_order, activate_constraints=False):
+        self._fabrik_chains[joint_name] = create_fabrik_chain(self.skeleton, self.skeleton.reference_frame, node_order, activate_constraints)
+
+    def add_constraints_to_skeleton(self, joint_constraints):
+        joint_map = self.skeleton.skeleton_model["joints"]
+        for j in joint_constraints:
+            if j in joint_map:
+                skel_j = joint_map[j]
+            else:
+                continue
+            c = joint_constraints[j]
+            if c["type"] == "hinge":
+                swing_axis = np.array(c["swing_axis"])
+                twist_axis = np.array(c["twist_axis"])
+                print("add hinge constraint to", skel_j)
+                h = HingeConstraint2(swing_axis, twist_axis)
+                self.skeleton.nodes[skel_j].joint_constraint = h
+            elif c["type"] == "ball":
+                axis = np.array(c["axis"])
+                k = c["k"]
+                print("add ball socket constraint to", skel_j)
+                h = BallSocketConstraint(axis, k)
+                self.skeleton.nodes[skel_j].joint_constraint = h
+            elif c["type"] == "cone":
+                axis = np.array(c["axis"])
+                k = c["k"]
+                print("add cone constraint to", skel_j)
+                h = ConeConstraint(axis, k)
+                self.skeleton.nodes[skel_j].joint_constraint = h
+            elif c["type"] == "shoulder":
+                axis = np.array(c["axis"])
+                k = c["k"]
+                k1 = c["k1"]
+                k2 = c["k2"]
+                print("add shoulder socket constraint to", skel_j)
+                h = ShoulderConstraint(axis, k, k1, k2)
+                self.skeleton.nodes[skel_j].joint_constraint = h
 
     def modify_motion_vector(self, motion_vector):
         for idx, action_ik_constraints in enumerate(motion_vector.ik_constraints):
@@ -371,3 +433,25 @@ class MotionEditing(object):
                         self._look_at_in_range(frames, c.position, start, end)
                     print("set hand orientation", c.orientation)
                     self._set_hand_orientation(frames, c.orientation, c.joint_name, c.frame_idx, start, end)
+
+    def edit_motion_using_fabrik(self, frames, constraints):
+        new_frames = np.array(frames)
+        for frame_idx, frame_constraints in constraints.items():
+            joint_names = []
+            for joint_name, c in frame_constraints.items():
+                print("use fabrik on", joint_name, "at", frame_idx)
+                if joint_name in self._fabrik_chains:
+                    joint_names += self._fabrik_chains[joint_name].node_order[:1]
+                    new_frame = self._fabrik_chains[joint_name].run_partial_with_constraints(frames[frame_idx], c.position)
+                    new_frames[frame_idx] = new_frame
+            if self.window:
+                self.interpolate_around_frame(new_frames, frame_idx, self.window)
+        return new_frames
+
+    def interpolate_around_frame(self, frames, keyframe, window):
+        print("interpolate around frame", keyframe)
+        o = 3
+        for joint_name in self.skeleton.animated_joints:
+            indices = list(range(o,o+4))
+            smooth_joints_around_transition_using_slerp(frames, indices, keyframe, window)
+            o += 4
