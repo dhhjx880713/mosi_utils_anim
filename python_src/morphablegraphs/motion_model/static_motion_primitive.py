@@ -12,6 +12,7 @@ class StaticMotionPrimitive(object):
         self.has_time_parameters = False
         self.has_semantic_parameters = False
         self.n_canonical_frames = 0
+        self.animated_joints = []
 
     def _initialize_from_json(self, data):
         self.name = data["name"]
@@ -22,6 +23,8 @@ class StaticMotionPrimitive(object):
         self.motion_spline = MotionSpline([0], self.spatial_coefs, self.time_function, self.knots, None)
         self.gmm = GaussianMixture(n_components=1, covariance_type='full')
         #self.gmm.fit([0])
+        if "skeleton" in data:
+            self.animated_joints = data["skeleton"]["animated_joints"]
 
     def sample_low_dimensional_vector(self, use_time_parameters=True):
         return [0]
@@ -46,3 +49,6 @@ class StaticMotionPrimitive(object):
 
     def get_n_canonical_frames(self):
         return self.n_canonical_frames
+
+    def get_animated_joints(self):
+        return self.animated_joints

@@ -50,6 +50,7 @@ class MotionPrimitive(object):
         self.smooth_time_parameters = False
         self.has_time_parameters = True
         self.has_semantic_parameters = False
+        self.animated_joints = []
         if self.filename is not None:
             self._load(self.filename)
 
@@ -96,6 +97,9 @@ class MotionPrimitive(object):
             self.has_time_parameters = False
             self.t_pca = dict()
             self.t_pca["n_components"] = 0
+
+        if "skeleton" in data:
+            self.animated_joints = data["skeleton"]["animated_joints"]
 
     def _init_gmm_from_json(self, data):
         """ Initialize the Gaussian Mixture model.
@@ -352,3 +356,6 @@ class MotionPrimitive(object):
         d_pos = d_m[row_idx:row_idx+3, :]
         # 1x3 * 3 x n_alpha
         return np.dot(d_error, d_pos)
+
+    def get_animated_joints(self):
+        return self.animated_joints
