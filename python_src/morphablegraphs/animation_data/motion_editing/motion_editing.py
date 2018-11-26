@@ -471,3 +471,21 @@ class MotionEditing(object):
             indices = list(range(o,o+4))
             smooth_joints_around_transition_using_slerp(frames, indices, keyframe, window)
             o += 4
+
+        window = 1000
+        h_window = int(window / 2)
+        start_idx = max(keyframe - h_window, 0)
+        end_idx = min(keyframe + h_window, len(frames))
+        self.apply_joint_constraints(frames, start_idx, end_idx)
+
+    def apply_joint_constraints(self, frames, start_idx, end_idx):
+        print("apply joint constraints in range", start_idx, end_idx)
+        for frame_idx in range(start_idx, end_idx):
+            o = 3
+            for n in self.skeleton.animated_joints:
+                constraint = self.skeleton.nodes[n].joint_constraint
+                if constraint is not None:
+                    q = np.array(frames[frame_idx][o:o+4])
+                    frames[frame_idx][o:o+4] = constraint.apply(q)
+                o+=4
+
