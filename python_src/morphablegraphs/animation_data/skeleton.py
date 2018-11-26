@@ -451,6 +451,17 @@ class Skeleton(object):
         print("reached with error", error)
         return frame
 
+    def set_joint_orientation(self, frame, joint_name, orientation):
+        m = quaternion_matrix(orientation)
+        parent = self.nodes[joint_name].parent
+        if parent is not None:
+            parent_m = parent.get_global_matrix(frame, use_cache=False)
+            local_m = np.dot(np.linalg.inv(parent_m), m)
+            q = quaternion_from_matrix(local_m)
+            offset = self.nodes[joint_name].quaternion_frame_index*4+3
+            frame[offset:offset+4] = normalize(q)
+        return frame
+
 
 """
     def apply_joint_constraints(self, frame):
