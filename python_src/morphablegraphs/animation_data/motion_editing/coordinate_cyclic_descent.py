@@ -34,16 +34,21 @@ def quaternion_from_vector_to_vector(a, b):
         return q
 
 
-def orient_end_effector_to_target(skeleton, root, end_effector, frame, target_position):
+def orient_end_effector_to_target(skeleton, root, end_effector, frame, constraint):
     """ find angle between the vectors end_effector - root and target- root """
 
     # align vectors
     root_pos = skeleton.nodes[root].get_global_position(frame)
-    end_effector_pos = skeleton.nodes[end_effector].get_global_position(frame)
+    if constraint.offset is not None:
+        m = skeleton.nodes[end_effector].get_global_matrix(frame)
+        end_effector_pos = np.dot(m, constraint.offset)[:3]
+    else:
+        end_effector_pos = skeleton.nodes[end_effector].get_global_position(frame)
+
     src_delta = end_effector_pos - root_pos
     src_dir = src_delta / np.linalg.norm(src_delta)
 
-    target_delta = target_position - root_pos
+    target_delta = constraint.position - root_pos
     target_dir = target_delta / np.linalg.norm(target_delta)
 
     root_delta_q = quaternion_from_vector_to_vector(src_dir, target_dir)
@@ -58,9 +63,9 @@ def orient_end_effector_to_target(skeleton, root, end_effector, frame, target_po
     return normalize(q)
 
 
-def orient_node_to_target(skeleton,frame,node_name, end_effector, target):
+def orient_node_to_target(skeleton,frame,node_name, end_effector, constraint):
     o = skeleton.animated_joints.index(node_name) * 4 + 3
-    q = orient_end_effector_to_target(skeleton, node_name, end_effector, frame, target)
+    q = orient_end_effector_to_target(skeleton, node_name, end_effector, frame, constraint)
     q = to_local_coordinate_system(skeleton, frame, node_name, q)
     frame[o:o + 4] = q
     return frame
@@ -95,14 +100,20 @@ def run_ccd(skeleton, frame, end_effector_name, constraint, eps=0.01, max_iter=5
             if constraint.orientation is not None:
                 frame = set_global_orientation(skeleton, frame, end_effector_name, constraint.orientation)
 
-            frame = orient_node_to_target(skeleton,frame, node.node_name, end_effector_name, constraint.position)
+            frame = orient_node_to_target(skeleton,frame, node.node_name, end_effector_name, constraint)
             
             if node.joint_constraint is not None:
                 frame = apply_joint_constraint(skeleton, frame, node.node_name)
             node = node.parent
-            depth+=1
-        pos = skeleton.nodes[end_effector_name].get_global_position(frame)
-        error = np.linalg.norm(constraint.position - pos)
+            depth += 1
+
+        if constraint.offset is not None:
+            m = skeleton.nodes[end_effector_name].get_global_matrix(frame)
+            end_effector_pos = np.dot(m, constraint.offset)[:3]
+        else:
+            end_effector_pos = skeleton.nodes[end_effector_name].get_global_position(frame)
+
+        error = np.linalg.norm(constraint.position - end_effector_pos)
         iter+=1
         if verbose:
             print("error at", iter, ":", error)
