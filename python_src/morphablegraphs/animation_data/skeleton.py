@@ -434,20 +434,28 @@ class Skeleton(object):
         print("reached with error", error)
         return frame
 
-    def reach_target_positions(self, frame, constraints, eps=0.01, max_iter=150, verbose=False):
-        print("run")
+    def reach_target_positions(self, frame, constraints, eps=0.0001, max_iter=500, verbose=False):
         error = np.inf
         iter = 0
         max_depth = -1
         prev_error = 0
-        while iter < max_iter and error > eps and abs(prev_error-error) > eps:
+        is_stuck = False
+        while iter < max_iter and error > eps and not is_stuck:
             error = 0
-            print(iter)
             for c in constraints:
                 frame, joint_error = run_ccd(self, frame, c.joint_name, c, eps, max_iter, max_depth, verbose)
+                if c.offset is not None:
+                    m = self.nodes[c.joint_name].get_global_matrix(frame)
+                    end_effector_pos = np.dot(m, c.offset)[:3]
+                else:
+                    end_effector_pos = self.nodes[c.joint_name].get_global_position(frame)
+                print("error at", iter, ":", error, "c:", c.position, "pos:", end_effector_pos)
                 error += joint_error
+            if abs(prev_error - error) > eps:
+                is_stuck = True
             prev_error = error
             iter+=1
+
         print("reached with error", error)
         return frame
 
