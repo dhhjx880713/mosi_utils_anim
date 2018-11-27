@@ -39,12 +39,14 @@ def apply_conic_constraint(q, ref_q, axis, k):
     """ lee 2000 p. 48"""
     q0 = ref_q
     w = axis
-    rel_q = quaternion_multiply(quaternion_inverse(q0), q)
-    rel_q /np.linalg.norm(rel_q)
-    w_prime = rotate_vector_by_quaternion(w, ref_q)
+    #rel_q = quaternion_multiply(quaternion_inverse(q0), q)
+    #rel_q /np.linalg.norm(rel_q)
+    w_prime = rotate_vector_by_quaternion(w, q)
+    w_prime = normalize(w_prime)
     phi = acos(np.dot(w, w_prime))
     if 0 < phi > k: # apply
         delta_phi = k - phi
+        #print(delta_phi)
         v = np.cross(w, w_prime)
         delta_q = quaternion_about_axis(delta_phi, v)
         q = quaternion_multiply(delta_q, q)
@@ -151,6 +153,33 @@ def swing_twist_decomposition(q, twist_axis):
     return swing_q, twist_q
 
 
+class BallSocketConstraint(object):
+    def __init__(self, axis, k):
+        self.axis = axis
+        self.k = k
+
+    def apply(self, q):
+        ref_q = [1,0,0,0]
+        return apply_spherical_constraint(q, ref_q, self.axis, self.k)
+
+
+    def get_axis(self):
+        return self.axis
+
+
+
+class ConeConstraint(object):
+    def __init__(self, axis, k):
+        self.axis = axis
+        self.k = k
+
+    def apply(self, q):
+        ref_q = [1, 0, 0, 0]
+        return apply_conic_constraint(q, ref_q, self.axis, self.k)
+
+    def get_axis(self):
+        return self.axis
+
 class HingeConstraint2(object):
     def __init__(self, swing_axis, twist_axis, deg_angle_range=None, verbose=False):
         self.swing_axis = swing_axis
@@ -159,7 +188,7 @@ class HingeConstraint2(object):
             self.angle_range = np.radians(deg_angle_range)
         else:
             self.angle_range = None
-        self.verbose = verbose
+        self.verbose = False
 
     def apply(self, q):
         sq, tq = swing_twist_decomposition(q, self.swing_axis)
@@ -198,3 +227,29 @@ class HingeConstraint2(object):
         axis = normalize(self.twist_axis)
         sq, tq = swing_twist_decomposition(q, axis)
         return sq, tq
+
+    def get_axis(self):
+        return self.swing_axis
+
+
+class ShoulderConstraint(object):
+    """ combines conic and axial"""
+    def __init__(self, axis, k1,k2, k):
+        self.axis = axis
+        self.k1 = k1
+        self.k2 = k2
+        self.k = k
+
+    def apply(self, q):
+        ref_q = [1, 0, 0, 0]
+        q = apply_conic_constraint(q, ref_q, self.axis, self.k)
+        q = normalize(q)
+        #q = apply_axial_constraint(q, ref_q, self.axis, self.k1, self.k2)
+        return q
+
+    def get_axis(self):
+        return self.axis
+
+
+
+

@@ -27,6 +27,7 @@ class SkeletonNodeBase(object):
         self.euler_angles = np.array([0.0, 0.0, 0.0])
         self.fixed = True
         self.cached_global_matrix = None
+        self.joint_constraint = None
 
     def clear_cached_global_matrix(self):
         self.cached_global_matrix = None
