@@ -434,21 +434,41 @@ class Skeleton(object):
         print("reached with error", error)
         return frame
 
-    def reach_target_positions(self, frame, constraints, eps=0.01, max_iter=150, verbose=False):
-        print("run")
+    def reach_target_positions(self, frame, constraints, eps=0.0001, max_iter=500, verbose=False):
         error = np.inf
+        prev_error = error
         iter = 0
         max_depth = -1
-        prev_error = 0
-        while iter < max_iter and error > eps and abs(prev_error-error) > eps:
-            error = 0
-            print(iter)
+        is_stuck = False
+        while iter < max_iter and error > eps and not is_stuck:
             for c in constraints:
                 frame, joint_error = run_ccd(self, frame, c.joint_name, c, eps, max_iter, max_depth, verbose)
+            error = 0
+            for c in constraints:
+                if c.offset is not None:
+                    m = self.nodes[c.joint_name].get_global_matrix(frame)
+                    end_effector_pos = np.dot(m, c.offset)[:3]
+                else:
+                    end_effector_pos = self.nodes[c.joint_name].get_global_position(frame)
+                joint_error = np.linalg.norm(end_effector_pos-c.position)
                 error += joint_error
+            if abs(prev_error - error) < eps:
+                is_stuck = True
             prev_error = error
-            iter+=1
+            iter += 1
+
         print("reached with error", error)
+        return frame
+
+    def set_joint_orientation(self, frame, joint_name, orientation):
+        m = quaternion_matrix(orientation)
+        parent = self.nodes[joint_name].parent
+        if parent is not None:
+            parent_m = parent.get_global_matrix(frame, use_cache=False)
+            local_m = np.dot(np.linalg.inv(parent_m), m)
+            q = quaternion_from_matrix(local_m)
+            offset = self.nodes[joint_name].quaternion_frame_index*4+3
+            frame[offset:offset+4] = normalize(q)
         return frame
 
 

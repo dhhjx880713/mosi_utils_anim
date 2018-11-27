@@ -479,3 +479,20 @@ JOINT_CHILD_MAP["right_hip"] = "right_knee"
 JOINT_CHILD_MAP["right_knee"] = "right_ankle"
 
 JOINT_PARENT_MAP = {v: k for k, v in JOINT_CHILD_MAP.items()}
+
+FABRIK_CHAINS = dict()
+FABRIK_CHAINS["right_wrist"] = {"joint_order": ["right_shoulder", "right_elbow", "right_wrist"]}
+FABRIK_CHAINS["left_wrist"] = {"joint_order": ["left_shoulder", "left_elbow", "left_wrist"]}
+
+JOINT_CONSTRAINTS = dict()
+JOINT_CONSTRAINTS["right_elbow"] = {"type":"hinge", "swing_axis": [0,-1,0], "twist_axis": [0,0,1], "k1":-90, "k2":90}
+JOINT_CONSTRAINTS["left_elbow"] = {"type": "hinge", "swing_axis": [0,-1,0], "twist_axis": [0,0,1], "k1":-90, "k2":90}
+#JOINT_CONSTRAINTS["right_shoulder"] = {"type":"cone", "axis": [0,0,1], "k": 0.4}
+#JOINT_CONSTRAINTS["left_shoulder"] = {"type": "cone", "axis": [0,0,1], "k": 0.4}
+JOINT_CONSTRAINTS["spine"] = {"type":"cone", "axis": [0,1,0], "k": np.radians(45)}
+##OINT_CONSTRAINTS["spine"] = {"type":"shoulder", "axis": [0,1,0], "k": np.radians(20), "k1": np.radians(-90), "k2": np.radians(90) }
+JOINT_CONSTRAINTS["left_shoulder"] = {"type":"shoulder", "axis": [0,0,1], "k": 0.4, "k1": np.radians(-180), "k2": np.radians(180) }
+JOINT_CONSTRAINTS["right_shoulder"] = {"type":"shoulder", "axis": [0,0,1], "k": 0.4, "k1": np.radians(-180), "k2": np.radians(180)}
+
+JOINT_CONSTRAINTS["left_wrist"] = {"type":"cone", "axis": [0,0,1], "k": np.radians(90)}
+JOINT_CONSTRAINTS["right_wrist"] = {"type":"cone", "axis": [0,0,1], "k": np.radians(90)}

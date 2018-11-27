@@ -18,6 +18,10 @@ class KeyframeConstraintBase(SpatialConstraintBase):
             self.desired_time = None
         self.event_name = None
         self.event_target = None
+        if "canonical_end_keyframe" in constraint_desc:
+            self.canonical_end_keyframe = constraint_desc["canonical_end_keyframe"]
+        else:
+            self.canonical_end_keyframe = None
 
     def is_generated(self):
         return self.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION and "generated" in list(self.semantic_annotation.keys())
