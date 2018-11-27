@@ -15,31 +15,33 @@ class IKConstraintsBuilder2(object):
     def convert_to_ik_constraints(self, constraints, frame_offset=0, time_function=None, constrain_orientation=True):
         ik_constraints = collections.OrderedDict()
         for c in constraints:
-            if c.constraint_type in SUPPORTED_CONSTRAINT_TYPES and "generated" not in c.semantic_annotation.keys():
-                start_frame_idx = self.get_global_frame_idx(c.canonical_keyframe, frame_offset, time_function)
-                if c.canonical_end_keyframe is not None:
-                    print("apply ik constraint on region")
-                    end_frame_idx = self.get_global_frame_idx(c.canonical_end_keyframe, frame_offset, time_function)
+            if c.constraint_type not in SUPPORTED_CONSTRAINT_TYPES or "generated" in c.semantic_annotation.keys():
+                print("skip unsupported constraint")
+                continue
+            start_frame_idx = self.get_global_frame_idx(c.canonical_keyframe, frame_offset, time_function)
+            if c.canonical_end_keyframe is not None:
+                print("apply ik constraint on region")
+                end_frame_idx = self.get_global_frame_idx(c.canonical_end_keyframe, frame_offset, time_function)
+            else:
+                print("no end keyframe defined")
+                end_frame_idx = start_frame_idx+1
+
+            for frame_idx in range(start_frame_idx, end_frame_idx):
+                ik_constraint = self.convert_mg_constraint_to_ik_constraint(frame_idx, c, constrain_orientation)
+                if frame_idx == start_frame_idx:
+                    ik_constraint.keep_orientation = c.keep_orientation
+
+                if start_frame_idx < frame_idx and frame_idx < end_frame_idx -1:
+                    ik_constraint.inside_region = True
                 else:
-                    print("no end keyframe defined")
-                    end_frame_idx = start_frame_idx+1
-                for frame_idx in range(start_frame_idx, end_frame_idx):
-                    ik_constraint = self.convert_mg_constraint_to_ik_constraint(frame_idx, c, constrain_orientation)
-                    if start_frame_idx < frame_idx or frame_idx < end_frame_idx -1:
-                        ik_constraint.inside_region = True
-                    else:
-                        ik_constraint.inside_region = False
+                    ik_constraint.inside_region = False
 
-                    if ik_constraint is None:
-                        print("Error constraint is none")
-                        continue
-
+                if ik_constraint is not None:
                     if frame_idx not in ik_constraints:
                         ik_constraints[frame_idx] = dict()
                     if c.joint_name not in ik_constraints[frame_idx]:
                         ik_constraints[frame_idx][c.joint_name] = []
                     ik_constraints[frame_idx][c.joint_name] = ik_constraint
-
         return ik_constraints
 
     def get_global_frame_idx(self, mp_frame_idx, frame_offset, time_function):
@@ -58,7 +60,6 @@ class IKConstraintsBuilder2(object):
         else:
             ik_constraint = None
         return ik_constraint
-
 
     def _create_keyframe_ik_constraint(self, constraint, keyframe, constrain_orientation, look_at):
         print("create ik constraint v2", keyframe, constraint.position, constraint.orientation)

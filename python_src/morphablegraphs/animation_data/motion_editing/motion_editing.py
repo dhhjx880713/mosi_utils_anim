@@ -56,6 +56,7 @@ class KeyframeConstraint(object):
         self.look_at = look_at
         self.offset = offset
         self.inside_region = False
+        self.keep_orientation = False
 
     def evaluate(self, skeleton, frame):
         if self.orientation is not None:
@@ -461,13 +462,8 @@ class MotionEditing(object):
             fk_nodes = set()
             apply_ik = False
             for joint_name, c in frame_constraints.items():
-                if joint_name in carry_constraints:
-                    carry_constraints[joint_name][1] = frame_idx
                 if c.orientation is not None:
                     print("use ccd on", joint_name, "at", frame_idx, " with orientation")
-                    if c.keep_orientation:
-                        carry_constraints[joint_name] = [frame_idx, -1, c.orientation]
-
                 else:
                     print("use ccd on", joint_name, "at", frame_idx)
 
@@ -495,6 +491,33 @@ class MotionEditing(object):
                 self.interpolate_around_frame(fk_nodes, new_frames, frame_idx, self.window)
 
         return new_frames
+
+    def apply_carry_constraints(self, frames, constraints):
+        print("generate carry constraints")
+        n_frames = frames.shape[0]
+        active_orientations = dict()
+        for frame_idx in range(0, n_frames):
+            # update active orientations
+            if frame_idx in constraints:
+                for joint_name, c in constraints[frame_idx].items():
+                    if c.keep_orientation and c.orientation is not None:
+                        active_orientations[c.joint_name] = c.orientation
+                    elif c.joint_name in active_orientations:
+                        active_orientations[c.joint_name] = None
+                    else:
+                        print("no constraint on frame", frame_idx, c.keep_orientation)
+            # apply active orientations
+            for joint_name in active_orientations:
+                if active_orientations[joint_name] is not None:
+                    print("set orientation for", joint_name, "at", frame_idx)
+                    frames[frame_idx] = self.skeleton.set_joint_orientation(frames[frame_idx], joint_name, active_orientations[joint_name] )
+        return frames
+
+
+    def set_joint_orientation(self, joint_name, frames, start_idx, end_idx, target_orientation):
+        for frame_idx in range(start_idx, end_idx):
+            frames[frame_idx] = self.skeleton.set_joint_orientation(frames[frame_idx], joint_name, target_orientation)
+
 
     def copy_joint_parameters(self, nodes, frames, src_idx, dst_idx):
         for node in nodes:
