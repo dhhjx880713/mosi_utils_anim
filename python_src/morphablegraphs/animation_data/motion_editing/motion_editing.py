@@ -114,8 +114,11 @@ class MotionEditing(object):
             if c["type"] == "hinge":
                 swing_axis = np.array(c["swing_axis"])
                 twist_axis = np.array(c["twist_axis"])
+                deg_angle_range = None
+                if "k1" in c and "k2" in c:
+                    deg_angle_range = [c["k1"], c["k2"]]
                 print("add hinge constraint to", skel_j)
-                h = HingeConstraint2(swing_axis, twist_axis)
+                h = HingeConstraint2(swing_axis, twist_axis, deg_angle_range)
                 self.skeleton.nodes[skel_j].joint_constraint = h
             elif c["type"] == "ball":
                 axis = np.array(c["axis"])
