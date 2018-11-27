@@ -43,6 +43,9 @@ class GlobalTransformConstraint(KeyframeConstraintBase):
         if "eventName" in constraint_desc and "eventTarget" in constraint_desc:
             self.event_name = constraint_desc["eventName"]
             self.event_target = constraint_desc["eventTarget"]
+        self.keep_orientation = False
+        if "keep_orientation" in constraint_desc:
+            self.keep_orientation = constraint_desc["keep_orientation"]
 
 
     def evaluate_motion_spline(self, aligned_spline):
