@@ -3,7 +3,6 @@ import json
 import numpy as np
 import scipy.interpolate as si
 import collections
-from multiprocessing import Process
 from morphablegraphs.animation_data.bvh import BVHReader
 from morphablegraphs.animation_data import SkeletonBuilder, MotionVector
 from morphablegraphs.construction.motion_model_constructor import MotionModelConstructor
@@ -11,174 +10,6 @@ from morphablegraphs.motion_model.motion_primitive_wrapper import MotionPrimitiv
 from morphablegraphs.animation_data.skeleton_models import SKELETON_MODELS
 from morphablegraphs.utilities import load_json_file
 from morphablegraphs.construction.utils import get_cubic_b_spline_knots
-
-
-ANIMATED_JOINTS = ["root", "pelvis","spine","spine_1","spine_2", "neck", "left_shoulder",
-                   "left_elbow", "left_wrist",
-                   "right_shoulder",
-                   "right_elbow", "right_wrist", "left_hip",
-                   "left_knee", "left_ankle", "right_hip", "right_knee", "right_ankle"]
-ANIMATED_JOINTS = dict()
-ANIMATED_JOINTS["game_engine_wrong_root"] = [
-    "Game_engine",
-    "Root",
-    "pelvis",
-    "spine_01",
-    "spine_02",
-    "spine_03",
-    "clavicle_l",
-    "upperarm_l",
-    "lowerarm_l",
-    "hand_l",
-    "clavicle_r",
-    "upperarm_r",
-    "lowerarm_r",
-    "hand_r",
-    "neck_01",
-    "head",
-    "thigh_l",
-    "calf_l",
-    "foot_l",
-    "ball_l",
-    "thigh_r",
-    "calf_r",
-    "foot_r",
-    "ball_r"
-]
-
-ANIMATED_JOINTS["custom"] = [
-    "FK_back1_jnt",
-    "FK_back2_jnt",
-    "FK_back4_jnt",
-    "head_jnt",
-    "R_shoulder_jnt",
-    "R_upArm_jnt",
-    "R_lowArm_jnt",
-    "R_hand_jnt",
-    "L_shoulder_jnt",
-    "L_upArm_jnt",
-    "L_lowArm_jnt",
-    "L_hand_jnt",
-    "L_upLeg_jnt",
-    "L_lowLeg_jnt",
-    "L_foot_jnt",
-    "R_upLeg_jnt",
-    "R_lowLeg_jnt",
-    "R_foot_jnt"
-]
-
-
-ANIMATED_JOINTS["custom2"] = [
-    "FK_back1_jnt",
-    "FK_back2_jnt",
-    "FK_back4_jnt",
-    "head_jnt",
-    "R_shoulder_jnt",
-    "R_upArm_jnt",
-    "R_lowArm_jnt",
-    "R_hand_jnt",
-    "L_shoulder_jnt",
-    "L_upArm_jnt",
-    "L_lowArm_jnt",
-    "L_hand_jnt",
-    "L_upLeg_jnt",
-    "L_lowLeg_jnt",
-    "L_foot_jnt",
-    "R_upLeg_jnt",
-    "R_lowLeg_jnt",
-    "R_foot_jnt",
-   "R_thumb_base_jnt",
-"R_thumb_mid_jnt",
- "R_thumb_tip_jnt",
- "R_thumb_end_jnt",
-
-  "R_index_root_jnt",
- "R_index_base_jnt",
- "R_index_mid_jnt",
- "R_index_tip_jnt",
- "R_index_end_jnt",
-
-  "R_middle_root_jnt",
-  "R_middle_base_jnt",
-  "R_middle_mid_jnt",
- "R_middle_tip_jnt",
- "R_middle_end_jnt",
-
-  "R_ring_base_jnt",
- "R_ring_root_jnt",
- "R_ring_mid_jnt",
-  "R_ring_tip_jnt",
-  "R_ring_end_jnt",
-  "R_pinky_root_jnt",
- "R_pinky_base_jnt",
-  "R_pinky_mid_jnt",
- "R_pinky_tip_jnt",
-  "R_pinky_end_jnt",
-
-  "L_thumb_base_jnt",
-  "L_thumb_mid_jnt",
-  "L_thumb_tip_jnt",
- "L_thumb_end_jnt",
-
- "L_index_root_jnt",
-  "L_index_base_jnt",
- "L_index_mid_jnt",
-  "L_index_tip_jnt",
- "L_index_end_jnt",
-
-  "L_middle_root_jnt",
-  "L_middle_base_jnt",
-  "L_middle_mid_jnt",
- "L_middle_tip_jnt",
-  "L_middle_end_jnt",
-
- "L_ring_base_jnt",
-  "L_ring_root_jnt",
-  "L_ring_mid_jnt",
-  "L_ring_tip_jnt",
- "L_ring_end_jnt",
-
- "L_pinky_root_jnt",
-  "L_pinky_base_jnt",
- "L_pinky_mid_jnt",
-  "L_pinky_tip_jnt",
- "L_pinky_end_jnt"
-
-]
-
-ANIMATED_JOINTS["custom3"] = [
-    "R_shoulder_jnt",
-    "R_upArm_jnt",
-    "R_lowArm_jnt",
-    "R_hand_jnt",
-   "R_thumb_base_jnt",
-"R_thumb_mid_jnt",
- "R_thumb_tip_jnt",
- "R_thumb_end_jnt",
-
-  "R_index_root_jnt",
- "R_index_base_jnt",
- "R_index_mid_jnt",
- "R_index_tip_jnt",
- "R_index_end_jnt",
-
-  "R_middle_root_jnt",
-  "R_middle_base_jnt",
-  "R_middle_mid_jnt",
- "R_middle_tip_jnt",
- "R_middle_end_jnt",
-
-  "R_ring_base_jnt",
- "R_ring_root_jnt",
- "R_ring_mid_jnt",
-  "R_ring_tip_jnt",
-  "R_ring_end_jnt",
-  "R_pinky_root_jnt",
- "R_pinky_base_jnt",
-  "R_pinky_mid_jnt",
- "R_pinky_tip_jnt",
-  "R_pinky_end_jnt"
-]
 
 
 MM_FILE_ENDING = "_quaternion_mm.json"
@@ -218,14 +49,12 @@ def load_motion_data(motion_folder, max_count=np.inf, animated_joints=None):
 
 def get_standard_config():
     config = dict()
-    config["n_basis_functions_spatial"] = 16#FIXME should be dynamic /n_frames divivded by 5
-    config["n_spatial_basis_factor"] = 1.0/5.0
+    config["n_basis_functions_spatial"] = 16
     config["fraction"] = 0.95
     config["n_basis_functions_temporal"] = 8
     config["npc_temporal"] = 3
     config["n_components"] = None
     config["precision_temporal"] = 0.99
-    config["filter_window"] = 0
     return config
 
 
@@ -243,7 +72,7 @@ def export_motions(skeleton, motions):
 
 
 def define_sections_from_keyframes(motion_names, keyframes):
-    sections = collections.OrderedDict()
+    sections = []
     for key in motion_names:
         if key not in keyframes:
             continue
@@ -257,7 +86,7 @@ def define_sections_from_keyframes(motion_names, keyframes):
         section["start_idx"] = keyframe
         section["end_idx"] = -1
         m_sections.append(section)
-        sections[key] = m_sections
+        sections.append(m_sections)
     return sections
 
 
@@ -281,7 +110,6 @@ def define_sections_from_annotations(motion_folder, motions):
         if os.path.isfile(annotations_file):
             data = load_json_file(annotations_file)
             annotations = data["semantic_annotation"]
-            print("found sections for ", key)
             motion_sections = dict()
             for label in annotations:
                 annotations[label].sort()
@@ -295,7 +123,7 @@ def define_sections_from_annotations(motion_folder, motions):
 
     if len(sections) > 0:
         motions = filtered_motions
-        return motions, sections
+        return motions, list(sections.values())
     else:
         return motions, None
 
@@ -323,53 +151,34 @@ def convert_motion_to_static_motion_primitive(name, motion, skeleton, n_basis=7,
     return data
 
 
-def train_model(out_filename, name, motion_folder, skeleton, max_training_samples=np.inf, animated_joints=None, save_skeleton=False):
+def train_model(out_filename, name, motion_folder, skeleton, max_training_samples=100, animated_joints=None, save_skeleton=False):
     motions = load_motion_data(motion_folder, max_count=max_training_samples, animated_joints=animated_joints)
-    print("train")
+
     ref_frame = None
     for key, m in motions.items():
         if ref_frame is None:
             ref_frame = m[0]
         motions[key] = smooth_quaternion_frames(skeleton, m, ref_frame)
 
-    timewarping = None
-    sections = None
     keyframes_filename = motion_folder+os.sep+"keyframes.json"
-    timewarping_filename = motion_folder + os.sep + "timewarping.json"
     if os.path.isfile(keyframes_filename):
         keyframes = load_json_file(keyframes_filename)
-
-        print("found keyframes file", len(keyframes))
         sections = define_sections_from_keyframes(motions.keys(), keyframes)
-        print("found ",len(motions), "motions")
         filtered_motions = collections.OrderedDict()
         for key in motions.keys():
-            print(key, keyframes.keys())
             if key in keyframes:
                 filtered_motions[key] = motions[key]
         motions = filtered_motions
-    elif os.path.isfile(timewarping_filename):
-        timewarping = load_json_file(timewarping_filename)
-        temp = dict()
-        for key in timewarping.keys():
-            print(key)
-            temp[key[:-4]] = np.array(timewarping[key])
-
-        timewarping = temp
     else:
         motions, sections = define_sections_from_annotations(motion_folder, motions)
 
     if len(motions) > 1:
         constructor = MotionModelConstructor(skeleton, get_standard_config())
-        constructor.set_motions(motions)
-        if timewarping is not None:
-            constructor.set_timewarping(timewarping)
-        elif sections is not None:
-            constructor.set_dtw_sections(sections)
-        #constructor.ground_node = "R_toe_tip_jnt_EndSite"
+        constructor.set_motions(motions.values())
+        constructor.set_dtw_sections(sections)
         model_data = constructor.construct_model(name, version=3, save_skeleton=save_skeleton)
         with open(out_filename, 'w') as outfile:
-            json.dump(model_data, outfile, indent=4)
+            json.dump(model_data, outfile)
 
     elif len(motions) == 1:
         keys = list(motions.keys())
@@ -392,29 +201,102 @@ def load_model(filename, skeleton):
 
 
 def main():
-    elementary_action = "fixScrewsWithToolRight"
-    elementary_action = "fixScrews"
-    data_folder = r"E:\projects\model_data\hybrit\6_modeling\input"
-    data_folder = r"E:\projects\model_data\hybrit\6_modeling\perception_neuron2"
-    #data_folder = r"E:\projects\model_data\hybrit\6_modeling\walk"
-    model_folder = r"E:\projects\model_data\hybrit\6_modeling\output"
-    skeleton_file = r"E:\projects\model_data\hybrit\custom_target.bvh"
-    scale = 2.54
-    max_training_samples = 1000000
-    joint_filter = ANIMATED_JOINTS["custom2"]
-    skeleton = load_skeleton(skeleton_file, joint_filter, scale)
-    animated_joints = skeleton.animated_joints
-    for elementary_action in os.listdir(data_folder):
-        print("construct", elementary_action, "model")
-        motion_folder = data_folder +os.sep+ elementary_action
-        out_filename = model_folder + os.sep + elementary_action + MM_FILE_ENDING
-        train_model(out_filename, elementary_action, motion_folder, skeleton, max_training_samples, animated_joints,
-                    save_skeleton=True)
-        print()
+    skeleton_file = "skeleton.bvh"
+    motion_folder = r"E:\projects\INTERACT\data\1 - MoCap\3 - Cutting\elementary_action_walk\leftStance"
 
+    skeleton_file = "game_engine_target.bvh"
+
+    model_folder = r"E:\projects\model_data\hybrit\modeling"
+    out_filename = model_folder + os.sep + name + MM_FILE_ENDING
+
+    max_training_samples = 10
+    joint_map = SKELETON_MODELS["game_engine"]["joints"]
+    joint_filter = [joint_map[j] for j in ANIMATED_JOINTS]
+    joint_filter += ["Root"]
+    skeleton = load_skeleton(skeleton_file, joint_filter, 10)
+    animated_joints = skeleton.animated_joints
+    train_model(out_filename,name, motion_folder, skeleton, max_training_samples, animated_joints, save_skeleton=True)
+
+    load_model(out_filename, skeleton)
+
+
+    max_training_samples = 100
+    skeleton_file = "game_engine_target.bvh"
+    joint_map = SKELETON_MODELS["game_engine"]["joints"]
+    action_filter = ["pickup-part", "place-part"]
+    joint_filter = [joint_map[j] for j in ANIMATED_JOINTS]
+    joint_filter += ["Root"]
+    skeleton = load_skeleton(skeleton_file, joint_filter, 10)
+    animated_joints = skeleton.animated_joints
+def model_actions(input_folder_names=None, output_file_names=None):
+    animated_joints = [
+        "Game_engine",
+        "Root",
+        "pelvis",
+        "spine_01",
+        "spine_02",
+        "spine_03",
+        "clavicle_l",
+        "upperarm_l",
+        "lowerarm_l",
+        "hand_l",
+        "clavicle_r",
+        "upperarm_r",
+        "lowerarm_r",
+        "hand_r",
+        "neck_01",
+        "head",
+        "thigh_l",
+        "calf_l",
+        "foot_l",
+        "ball_l",
+        "thigh_r",
+        "calf_r",
+        "foot_r",
+        "ball_r"
+    ]
+
+    skeleton_file = "game_engine_target.bvh"
+    scale = 10
+    skeleton_file = "game_engine_target2.bvh"
+    scale = 1
+
+    modeling_folder = r"E:\projects\model_data\hybrit\6_modeling"
+    data_folder = modeling_folder + os.sep + "input"
+    model_folder = modeling_folder + os.sep + "output"
+    max_training_samples = 100
+    if input_folder_names is None:
+        input_folder_names = ["fix-screws-by-hand"]
+    joint_filter = None
+    skeleton = load_skeleton(skeleton_file, joint_filter, scale)
+    skeleton.animated_joints = animated_joints
+    animated_joints = skeleton.animated_joints
+    for elementary_action in next(os.walk(data_folder))[1]:
+        if input_folder_names is not None and elementary_action not in input_folder_names:
+            continue
+        motion_folder = data_folder + os.sep + elementary_action
+        if output_file_names is None:
+            out_filename = model_folder + os.sep + elementary_action + MM_FILE_ENDING
+        else:
+            idx = input_folder_names.index(elementary_action)
+            out_filename = model_folder + os.sep + output_file_names[idx] + MM_FILE_ENDING
+
+        train_model(out_filename, elementary_action, motion_folder, skeleton, max_training_samples, animated_joints, save_skeleton=True)
+
+from multiprocessing import Process
+
+def start_processes():
+    processes = []
+    actions = ["fix-screws-by-hand", "fix-screws-schrauber", "pickup-screws", "place-part", "screws-on-part", "pickup-part"]
+    model_names = ["fixScrews_fixScrews", "fixScrewsSchrauber_fixScrewsSchrauber", "pickupScrew_pickupScrew", "placePart_placePart", "screwsOnPart_screwsOnPart", "pickupPart_pickupPart"]
+    for idx, action in enumerate(actions):
+        p = Process(target=model_actions, args=([action], [model_names[idx]]))
+        p.start()
+
+    for p in processes:
+        p.join()
 
 if __name__ == "__main__":
-    main()
-
-
+    #model_actions()
+    start_processes()
 

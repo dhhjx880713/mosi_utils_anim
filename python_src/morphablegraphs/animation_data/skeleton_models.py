@@ -55,10 +55,6 @@ ROCKETBOX_BOUNDS = {"LeftArm": [],  # {"dim": 1, "min": 0, "max": 90}
 ROCKETBOX_ANIMATED_JOINT_LIST = ["Hips", "Spine", "Spine_1", "Neck", "Head", "LeftShoulder", "LeftArm", "LeftForeArm",
                                "LeftHand", "RightShoulder", "RightArm", "RightForeArm", "RightHand", "LeftUpLeg",
                                "LeftLeg", "LeftFoot", "RightUpLeg", "RightLeg", "RightFoot"]
-IK_CHAINS_DEFAULT_SKELETON = dict()
-IK_CHAINS_DEFAULT_SKELETON["right_ankle"] = {"root": "right_hip", "joint": "right_knee", "joint_axis": [1, 0, 0], "end_effector_dir": [0,0,1]}
-IK_CHAINS_DEFAULT_SKELETON["left_ankle"] = {"root": "left_hip", "joint": "left_knee", "joint_axis": [1, 0, 0], "end_effector_dir": [0,0,1]}
-
 
 
 IK_CHAINS_RAW_SKELETON = dict()
@@ -84,14 +80,6 @@ IK_CHAINS_GAME_ENGINE_SKELETON["foot_l"] = {"root": "thigh_l", "joint": "calf_l"
 IK_CHAINS_GAME_ENGINE_SKELETON["foot_r"] = {"root": "thigh_r", "joint": "calf_r", "joint_axis": [1, 0, 0], "end_effector_dir": [0,0,1]}
 IK_CHAINS_GAME_ENGINE_SKELETON["hand_r"] = {"root": "upperarm_r", "joint": "lowerarm_r", "joint_axis": [1, 0, 0], "end_effector_dir": [1,0,0]}
 IK_CHAINS_GAME_ENGINE_SKELETON["hand_l"] = {"root": "upperarm_l", "joint": "lowerarm_l", "joint_axis": [1, 0, 0], "end_effector_dir": [1,0,0]}
-
-
-
-IK_CHAINS_CUSTOM_SKELETON = dict()
-IK_CHAINS_CUSTOM_SKELETON["L_foot_jnt"] = {"root": "L_upLeg_jnt", "joint": "L_lowLeg_jnt", "joint_axis": [1, 0, 0], "end_effector_dir": [0,0,1]}
-IK_CHAINS_CUSTOM_SKELETON["R_foot_jnt"] = {"root": "R_upLeg_jnt", "joint": "R_lowLeg_jnt", "joint_axis": [1, 0, 0], "end_effector_dir": [0,0,1]}
-IK_CHAINS_CUSTOM_SKELETON["R_hand_jnt"] = {"root": "R_upArm_jnt", "joint": "R_lowArm_jnt", "joint_axis": [1, 0, 0], "end_effector_dir": [1,0,0]}
-IK_CHAINS_CUSTOM_SKELETON["L_hand_jnt"] = {"root": "L_upArm_jnt", "joint": "L_lowArm_jnt", "joint_axis": [1, 0, 0], "end_effector_dir": [1,0,0]}
 
 
 RIGHT_SHOULDER = "RightShoulder"
@@ -144,8 +132,9 @@ RAW_SKELETON_MODEL["ik_chains"] = IK_CHAINS_RAW_SKELETON
 
 
 
+
 GAME_ENGINE_JOINTS = collections.OrderedDict()
-GAME_ENGINE_JOINTS["root"] = "Root"
+GAME_ENGINE_JOINTS["root"] = "Game_engine"
 GAME_ENGINE_JOINTS["pelvis"] = "pelvis"
 GAME_ENGINE_JOINTS["spine"] = "spine_01"
 GAME_ENGINE_JOINTS["spine_1"] = "spine_02"
@@ -173,63 +162,16 @@ GAME_ENGINE_JOINTS["right_heel"] = "heel_r"
 GAME_ENGINE_JOINTS["neck"] = "neck_01"
 GAME_ENGINE_JOINTS["head"] = "head"
 
+GAME_ENGINE_SKELETON_COS_MAP = collections.defaultdict(dict)
+GAME_ENGINE_SKELETON_COS_MAP["Game_engine"] = dict()
+GAME_ENGINE_SKELETON_COS_MAP["Game_engine"]["y"] = [0, 1, 0]
+GAME_ENGINE_SKELETON_COS_MAP["Game_engine"]["x"] = [1, 0, 0]
 GAME_ENGINE_SKELETON_MODEL = collections.OrderedDict()
 GAME_ENGINE_SKELETON_MODEL["joints"] = GAME_ENGINE_JOINTS
 GAME_ENGINE_SKELETON_MODEL["foot_joints"] = ["foot_l", "foot_r", "ball_r", "ball_l", "heel_r", "heel_l"]
 GAME_ENGINE_SKELETON_MODEL["heel_offset"] = (np.array([0, 2.45, 3.480602]) * 2.5).tolist()
 GAME_ENGINE_SKELETON_MODEL["ik_chains"] = IK_CHAINS_GAME_ENGINE_SKELETON
-
-GAME_ENGINE_SKELETON_COS_MAP = collections.defaultdict(dict)
-GAME_ENGINE_SKELETON_COS_MAP["Game_engine"]["y"] = [0, 1, 0]
-GAME_ENGINE_SKELETON_COS_MAP["Game_engine"]["x"] = [1, 0, 0]
-GAME_ENGINE_SKELETON_COS_MAP["head"]["y"] = [0, 1, 0]
-GAME_ENGINE_SKELETON_COS_MAP["head"]["x"] = [1, 0, 0]
 GAME_ENGINE_SKELETON_MODEL["cos_map"] = GAME_ENGINE_SKELETON_COS_MAP
-
-
-
-GAME_ENGINE_WRONG_ROOT_JOINTS = collections.OrderedDict()
-GAME_ENGINE_WRONG_ROOT_JOINTS["root"] = "Game_engine"
-GAME_ENGINE_WRONG_ROOT_JOINTS["pelvis"] = "pelvis"
-GAME_ENGINE_WRONG_ROOT_JOINTS["spine"] = "spine_01"
-GAME_ENGINE_WRONG_ROOT_JOINTS["spine_1"] = "spine_02"
-GAME_ENGINE_WRONG_ROOT_JOINTS["spine_2"] = "spine_03"
-GAME_ENGINE_WRONG_ROOT_JOINTS["left_clavicle"] = "clavicle_l"
-GAME_ENGINE_WRONG_ROOT_JOINTS["right_clavicle"] = "clavicle_r"
-GAME_ENGINE_WRONG_ROOT_JOINTS["left_shoulder"] = "upperarm_l"
-GAME_ENGINE_WRONG_ROOT_JOINTS["right_shoulder"] = "upperarm_r"
-GAME_ENGINE_WRONG_ROOT_JOINTS["left_elbow"] = "lowerarm_l"
-GAME_ENGINE_WRONG_ROOT_JOINTS["right_elbow"] = "lowerarm_r"
-GAME_ENGINE_WRONG_ROOT_JOINTS["left_wrist"] = "hand_l"
-GAME_ENGINE_WRONG_ROOT_JOINTS["right_wrist"] = "hand_r"
-GAME_ENGINE_WRONG_ROOT_JOINTS["left_finger"] = "middle_03_l"
-GAME_ENGINE_WRONG_ROOT_JOINTS["right_finger"] = "middle_03_r"
-GAME_ENGINE_WRONG_ROOT_JOINTS["left_hip"] = "thigh_l"
-GAME_ENGINE_WRONG_ROOT_JOINTS["right_hip"] = "thigh_r"
-GAME_ENGINE_WRONG_ROOT_JOINTS["left_knee"] = "calf_l"
-GAME_ENGINE_WRONG_ROOT_JOINTS["right_knee"] = "calf_r"
-GAME_ENGINE_WRONG_ROOT_JOINTS["left_ankle"] = "foot_l"
-GAME_ENGINE_WRONG_ROOT_JOINTS["right_ankle"] = "foot_r"
-GAME_ENGINE_WRONG_ROOT_JOINTS["left_toe"] = "ball_l"
-GAME_ENGINE_WRONG_ROOT_JOINTS["right_toe"] = "ball_r"
-GAME_ENGINE_WRONG_ROOT_JOINTS["left_heel"] = "heel_l"
-GAME_ENGINE_WRONG_ROOT_JOINTS["right_heel"] = "heel_r"
-GAME_ENGINE_WRONG_ROOT_JOINTS["neck"] = "neck_01"
-GAME_ENGINE_WRONG_ROOT_JOINTS["head"] = "head"
-
-GAME_ENGINE_WRONG_ROOT_SKELETON_MODEL = collections.OrderedDict()
-GAME_ENGINE_WRONG_ROOT_SKELETON_MODEL["joints"] = GAME_ENGINE_WRONG_ROOT_JOINTS
-GAME_ENGINE_WRONG_ROOT_SKELETON_MODEL["foot_joints"] = ["foot_l", "foot_r", "ball_r", "ball_l", "heel_r", "heel_l"]
-GAME_ENGINE_WRONG_ROOT_SKELETON_MODEL["heel_offset"] = (np.array([0, 2.45, 3.480602]) * 2.5).tolist()
-GAME_ENGINE_WRONG_ROOT_SKELETON_MODEL["ik_chains"] = IK_CHAINS_GAME_ENGINE_SKELETON
-
-GAME_ENGINE_WRONG_ROOT_SKELETON_COS_MAP = collections.defaultdict(dict)
-GAME_ENGINE_WRONG_ROOT_SKELETON_COS_MAP["Game_engine"]["y"] = [0, 1, 0]
-GAME_ENGINE_WRONG_ROOT_SKELETON_COS_MAP["Game_engine"]["x"] = [0, 0, -1]
-GAME_ENGINE_WRONG_ROOT_SKELETON_COS_MAP["head"]["y"] = [0, 1, 0]
-GAME_ENGINE_WRONG_ROOT_SKELETON_COS_MAP["head"]["x"] = [1, 0, 0]
-GAME_ENGINE_WRONG_ROOT_SKELETON_MODEL["cos_map"] = GAME_ENGINE_WRONG_ROOT_SKELETON_COS_MAP
-
 
 ROCKETBOX_JOINTS = collections.OrderedDict()
 ROCKETBOX_JOINTS["root"] = "Hips"
@@ -244,16 +186,14 @@ ROCKETBOX_JOINTS["left_elbow"] = "LeftForeArm"
 ROCKETBOX_JOINTS["right_elbow"] = "RightForeArm"
 ROCKETBOX_JOINTS["left_wrist"] = "LeftHand"
 ROCKETBOX_JOINTS["right_wrist"] = "RightHand"
-ROCKETBOX_JOINTS["left_finger"] = "Bip01_L_Finger2"
-ROCKETBOX_JOINTS["right_finger"] = "Bip01_R_Finger2"
 ROCKETBOX_JOINTS["left_hip"] = "LeftUpLeg"
 ROCKETBOX_JOINTS["right_hip"] = "RightUpLeg"
 ROCKETBOX_JOINTS["left_knee"] = "LeftLeg"
 ROCKETBOX_JOINTS["right_knee"] = "RightLeg"
 ROCKETBOX_JOINTS["left_ankle"] = "LeftFoot"
 ROCKETBOX_JOINTS["right_ankle"] = "RightFoot"
-ROCKETBOX_JOINTS["left_toe"] = "Bip01_L_Toe0"
-ROCKETBOX_JOINTS["right_toe"] = "Bip01_R_Toe0"
+ROCKETBOX_JOINTS["left_toe"] = "LeftToeBase"
+ROCKETBOX_JOINTS["right_toe"] = "RightToeBase"
 ROCKETBOX_JOINTS["left_heel"] = "LeftHeel"
 ROCKETBOX_JOINTS["right_heel"] = "RightHeel"
 ROCKETBOX_JOINTS["neck"] = "Neck"
@@ -264,19 +204,7 @@ ROCKETBOX_SKELETON_MODEL["joints"] = ROCKETBOX_JOINTS
 ROCKETBOX_SKELETON_MODEL["heel_offset"] = [0, -6.480602, 0]
 ROCKETBOX_SKELETON_MODEL["foot_joints"] = RAW_SKELETON_FOOT_JOINTS
 ROCKETBOX_SKELETON_MODEL["ik_chains"] = IK_CHAINS_RAW_SKELETON
-ROCKETBOX_SKELETON_COS_MAP = collections.defaultdict(dict)
-ROCKETBOX_SKELETON_COS_MAP["LeftHand"]["y"] = [0.99969438, -0.01520068, -0.01949593]
-ROCKETBOX_SKELETON_COS_MAP["LeftHand"]["x"] = [-1.52006822e-02,  -9.99884452e-01,   1.48198341e-04]
-ROCKETBOX_SKELETON_COS_MAP["RightHand"]["y"] = [0.99969439,  0.01520077, -0.01949518]
-ROCKETBOX_SKELETON_COS_MAP["RightHand"]["x"] = [ 1.52007742e-02,  -9.99884451e-01,  -1.48193551e-04]
 
-ROCKETBOX_SKELETON_COS_MAP["LeftHand"]["y"] = [1,  0,  0]
-ROCKETBOX_SKELETON_COS_MAP["RightHand"]["y"] = [1,  0,  0]
-ROCKETBOX_SKELETON_COS_MAP["LeftHand"]["x"] = [0,  0,  1]
-ROCKETBOX_SKELETON_COS_MAP["RightHand"]["x"] = [0,  0,  -1]
-
-
-ROCKETBOX_SKELETON_MODEL["cos_map"] = ROCKETBOX_SKELETON_COS_MAP
 
 
 CMU_SKELETON_JOINTS = collections.OrderedDict()
@@ -307,7 +235,6 @@ CMU_SKELETON_JOINTS["head"] = "head"
 CMU_SKELETON_MODEL = collections.OrderedDict()
 CMU_SKELETON_MODEL["joints"] = CMU_SKELETON_JOINTS
 CMU_SKELETON_MODEL["foot_joints"] = []
-CMU_SKELETON_MODEL["foot_correction"] = {"x":-22, "y":3}
 
 MOVIEMATION_SKELETON_JOINTS = collections.OrderedDict()
 MOVIEMATION_SKELETON_JOINTS["root"] = "Hips"
@@ -371,11 +298,10 @@ MCS_SKELETON_MODEL["foot_joints"] = []
 
 
 MH_CMU_SKELETON_JOINTS = collections.OrderedDict()
-MH_CMU_SKELETON_JOINTS["root"] = None#"CMU compliant skeleton"
+MH_CMU_SKELETON_JOINTS["root"] = "CMU compliant skeleton"
 MH_CMU_SKELETON_JOINTS["pelvis"] = "Hips"
-MH_CMU_SKELETON_JOINTS["spine"] = "LowerBack"
-MH_CMU_SKELETON_JOINTS["spine_1"] = "Spine"
-MH_CMU_SKELETON_JOINTS["spine_2"] = "Spine1"
+MH_CMU_SKELETON_JOINTS["spine"] = "Spine"
+MH_CMU_SKELETON_JOINTS["spine_1"] = "Spine1"
 MH_CMU_SKELETON_JOINTS["left_clavicle"] = "LeftShoulder"
 MH_CMU_SKELETON_JOINTS["right_clavicle"] = "RightShoulder"
 MH_CMU_SKELETON_JOINTS["left_shoulder"] = "LeftArm"
@@ -384,8 +310,6 @@ MH_CMU_SKELETON_JOINTS["left_elbow"] = "LeftForeArm"
 MH_CMU_SKELETON_JOINTS["right_elbow"] = "RightForeArm"
 MH_CMU_SKELETON_JOINTS["left_wrist"] = "LeftHand"
 MH_CMU_SKELETON_JOINTS["right_wrist"] = "RightHand"
-MH_CMU_SKELETON_JOINTS["left_finger"] = "LeftHandFinger1"
-MH_CMU_SKELETON_JOINTS["right_finger"] = "RightHandFinger1"
 MH_CMU_SKELETON_JOINTS["left_hip"] = "LeftUpLeg"
 MH_CMU_SKELETON_JOINTS["right_hip"] = "RightUpLeg"
 MH_CMU_SKELETON_JOINTS["left_knee"] = "LeftLeg"
@@ -402,55 +326,14 @@ MH_CMU_SKELETON_JOINTS["head"] = "Head"
 MH_CMU_SKELETON_MODEL = collections.OrderedDict()
 MH_CMU_SKELETON_MODEL["joints"] = MH_CMU_SKELETON_JOINTS
 MH_CMU_SKELETON_MODEL["foot_joints"] = []
-MH_CMU_SKELETON_MODEL["foot_correction"] = {"x":-22, "y":3}
-MH_CMU_SKELETON_MODEL["flip_x_axis"] = False
 
-MH_CMU_2_SKELETON_JOINTS = collections.OrderedDict()
-MH_CMU_2_SKELETON_JOINTS["root"] = None#"CMU compliant skeleton"
-MH_CMU_2_SKELETON_JOINTS["pelvis"] = "Hips"
-MH_CMU_2_SKELETON_JOINTS["spine"] = "LowerBack"
-MH_CMU_2_SKELETON_JOINTS["spine_1"] = "Spine"
-MH_CMU_2_SKELETON_JOINTS["spine_2"] = "Spine1"
-MH_CMU_2_SKELETON_JOINTS["left_clavicle"] = "LeftShoulder"
-MH_CMU_2_SKELETON_JOINTS["right_clavicle"] = "RightShoulder"
-MH_CMU_2_SKELETON_JOINTS["left_shoulder"] = "LeftArm"
-MH_CMU_2_SKELETON_JOINTS["right_shoulder"] = "RightArm"
-MH_CMU_2_SKELETON_JOINTS["left_elbow"] = "LeftForeArm"
-MH_CMU_2_SKELETON_JOINTS["right_elbow"] = "RightForeArm"
-MH_CMU_2_SKELETON_JOINTS["left_wrist"] = "LeftHand"
-MH_CMU_2_SKELETON_JOINTS["right_wrist"] = "RightHand"
-MH_CMU_2_SKELETON_JOINTS["left_hip"] = "LeftUpLeg"
-MH_CMU_2_SKELETON_JOINTS["right_hip"] = "RightUpLeg"
-MH_CMU_2_SKELETON_JOINTS["left_knee"] = "LeftLeg"
-MH_CMU_2_SKELETON_JOINTS["right_knee"] = "RightLeg"
-MH_CMU_2_SKELETON_JOINTS["left_ankle"] = "LeftFoot"
-MH_CMU_2_SKELETON_JOINTS["right_ankle"] = "RightFoot"
-MH_CMU_2_SKELETON_JOINTS["left_toe"] = "LeftToeBase"
-MH_CMU_2_SKELETON_JOINTS["right_toe"] = "RightToeBase"
-MH_CMU_2_SKELETON_JOINTS["left_heel"] = None
-MH_CMU_2_SKELETON_JOINTS["right_heel"] = None
-MH_CMU_2_SKELETON_JOINTS["neck"] = "Neck"
-MH_CMU_2_SKELETON_JOINTS["head"] = "Head"
-
-MH_CMU_2_SKELETON_MODEL = collections.OrderedDict()
-MH_CMU_2_SKELETON_MODEL["joints"] = MH_CMU_2_SKELETON_JOINTS
-MH_CMU_2_SKELETON_MODEL["foot_joints"] = []
-MH_CMU_2_SKELETON_MODEL["foot_correction"] = {"x":-22, "y":3}
-MH_CMU_2_SKELETON_MODEL["flip_x_axis"] = False
-#MH_CMU_2_SKELETON_MODEL["foot_joints"] = []
-#MH_CMU_2_SKELETON_MODEL["x_cos_fixes"] = ["Neck", "Pelvis", "Spine", "Spine1", "LowerBack", "LeftArm"]
-#MH_CMU_2_SKELETON_COS_MAP = collections.defaultdict(dict)
-#MH_CMU_2_SKELETON_COS_MAP["Hips"]["y"] = [0, 1,0]
-#MH_CMU_2_SKELETON_COS_MAP["Hips"]["x"] = [1, 0, 0]
-#MH_CMU_2_SKELETON_MODEL["cos_map"] = MH_CMU_2_SKELETON_COS_MAP
 
 
 ICLONE_SKELETON_JOINTS = collections.OrderedDict()
 ICLONE_SKELETON_JOINTS["root"] = "CC_Base_BoneRoot"
-ICLONE_SKELETON_JOINTS["pelvis"] = "CC_Base_Hip"#CC_Base_Pelvis
+ICLONE_SKELETON_JOINTS["pelvis"] = "CC_Base_Pelvis"
 ICLONE_SKELETON_JOINTS["spine"] = "CC_Base_Waist"
-ICLONE_SKELETON_JOINTS["spine_1"] = "CC_Base_Spine01"
-ICLONE_SKELETON_JOINTS["spine_2"] = "CC_Base_Spine02"
+ICLONE_SKELETON_JOINTS["spine_1"] = "CC_Base_Spine02"
 ICLONE_SKELETON_JOINTS["left_clavicle"] = "CC_Base_L_Clavicle"
 ICLONE_SKELETON_JOINTS["right_clavicle"] = "CC_Base_R_Clavicle"
 ICLONE_SKELETON_JOINTS["left_shoulder"] = "CC_Base_L_Upperarm"
@@ -475,19 +358,11 @@ ICLONE_SKELETON_JOINTS["head"] = "CC_Base_Head"
 ICLONE_SKELETON_MODEL = collections.OrderedDict()
 ICLONE_SKELETON_MODEL["joints"] = ICLONE_SKELETON_JOINTS
 ICLONE_SKELETON_MODEL["foot_joints"] = []
-ICLONE_SKELETON_MODEL["x_cos_fixes"] = ["CC_Base_L_Thigh", "CC_Base_R_Thigh", "CC_Base_L_Calf", "CC_Base_R_Calf"]
-ICLONE_SKELETON_COS_MAP = collections.defaultdict(dict)
-ICLONE_SKELETON_COS_MAP["CC_Base_L_Foot"]["y"] = [0, 0.4, 0.6]
-ICLONE_SKELETON_COS_MAP["CC_Base_L_Foot"]["x"] = [-1, 0, 0]
-ICLONE_SKELETON_COS_MAP["CC_Base_R_Foot"]["y"] = [0, 0.4, 0.6]
-ICLONE_SKELETON_COS_MAP["CC_Base_R_Foot"]["x"] = [-1, 0, 0]
-ICLONE_SKELETON_MODEL["cos_map"] = ICLONE_SKELETON_COS_MAP
-ICLONE_SKELETON_MODEL["foot_correction"] = {"x":-40, "y":3}
-ICLONE_SKELETON_MODEL["flip_x_axis"] = True
+ICLONE_SKELETON_MODEL["x_cos_fixes"] = ["CC_Base_L_Thigh", "CC_Base_R_Thigh", "CC_Base_L_Calf", "CC_Base_R_Calf", "CC_Base_L_Foot", "CC_Base_R_Foot"]
 
 
 CUSTOM_SKELETON_JOINTS = collections.OrderedDict()
-CUSTOM_SKELETON_JOINTS["root"] = None
+CUSTOM_SKELETON_JOINTS["root"] = "FK_back1_jnt"
 CUSTOM_SKELETON_JOINTS["pelvis"] = "FK_back1_jnt"
 CUSTOM_SKELETON_JOINTS["spine"] = "FK_back2_jnt"
 CUSTOM_SKELETON_JOINTS["spine_1"] = "FK_back3_jnt"
@@ -499,8 +374,6 @@ CUSTOM_SKELETON_JOINTS["left_elbow"] = "L_lowArm_jnt"
 CUSTOM_SKELETON_JOINTS["right_elbow"] = "R_lowArm_jnt"
 CUSTOM_SKELETON_JOINTS["left_wrist"] = "L_hand_jnt"
 CUSTOM_SKELETON_JOINTS["right_wrist"] = "R_hand_jnt"
-#CUSTOM_SKELETON_JOINTS["left_finger"] = "L_middle_root_jnt"
-#CUSTOM_SKELETON_JOINTS["right_finger"] = "R_middle_root_jnt"
 CUSTOM_SKELETON_JOINTS["left_hip"] = "L_upLeg_jnt"
 CUSTOM_SKELETON_JOINTS["right_hip"] = "R_upLeg_jnt"
 CUSTOM_SKELETON_JOINTS["left_knee"] = "L_lowLeg_jnt"
@@ -514,127 +387,9 @@ CUSTOM_SKELETON_JOINTS["right_heel"] = None
 CUSTOM_SKELETON_JOINTS["neck"] = "FK_back4_jnt"
 CUSTOM_SKELETON_JOINTS["head"] = "head_jnt"
 
-
-CUSTOM_SKELETON_JOINTS["right_thumb_base"] = "R_thumb_base_jnt"
-CUSTOM_SKELETON_JOINTS["right_thumb_mid"] = "R_thumb_mid_jnt"
-CUSTOM_SKELETON_JOINTS["right_thumb_tip"] = "R_thumb_tip_jnt"
-CUSTOM_SKELETON_JOINTS["right_thumb_end"] = "R_thumb_end_jnt"
-
-CUSTOM_SKELETON_JOINTS["right_index_finger_root"] = "R_index_root_jnt"
-CUSTOM_SKELETON_JOINTS["right_index_finger_base"] = "R_index_base_jnt"
-CUSTOM_SKELETON_JOINTS["right_index_finger_mid"] = "R_index_mid_jnt"
-CUSTOM_SKELETON_JOINTS["right_index_finger_tip"] = "R_index_tip_jnt"
-CUSTOM_SKELETON_JOINTS["right_index_finger_end"] = "R_index_end_jnt"
-
-CUSTOM_SKELETON_JOINTS["right_middle_finger_root"] = "R_middle_root_jnt"
-CUSTOM_SKELETON_JOINTS["right_middle_finger_base"] = "R_middle_base_jnt"
-CUSTOM_SKELETON_JOINTS["right_middle_finger_mid"] = "R_middle_mid_jnt"
-CUSTOM_SKELETON_JOINTS["right_middle_finger_tip"] = "R_middle_tip_jnt"
-CUSTOM_SKELETON_JOINTS["right_middle_finger_end"] = "R_middle_end_jnt"
-
-CUSTOM_SKELETON_JOINTS["right_ring_finger_root"] = "R_ring_base_jnt"
-CUSTOM_SKELETON_JOINTS["right_ring_finger_base"] = "R_ring_root_jnt"
-CUSTOM_SKELETON_JOINTS["right_ring_finger_mid"] = "R_ring_mid_jnt"
-CUSTOM_SKELETON_JOINTS["right_ring_finger_tip"] = "R_ring_tip_jnt"
-CUSTOM_SKELETON_JOINTS["right_ring_finger_end"] = "R_ring_end_jnt"
-
-CUSTOM_SKELETON_JOINTS["right_pinky_finger_root"] = "R_pinky_root_jnt"
-CUSTOM_SKELETON_JOINTS["right_pinky_finger_base"] = "R_pinky_base_jnt"
-CUSTOM_SKELETON_JOINTS["right_pinky_finger_mid"] = "R_pinky_mid_jnt"
-CUSTOM_SKELETON_JOINTS["right_pinky_finger_tip"] = "R_pinky_tip_jnt"
-CUSTOM_SKELETON_JOINTS["right_pinky_finger_end"] = "R_pinky_end_jnt"
-
-CUSTOM_SKELETON_JOINTS["left_thumb_base"] = "L_thumb_base_jnt"
-CUSTOM_SKELETON_JOINTS["left_thumb_mid"] = "L_thumb_mid_jnt"
-CUSTOM_SKELETON_JOINTS["left_thumb_tip"] = "L_thumb_tip_jnt"
-CUSTOM_SKELETON_JOINTS["left_thumb_end"] = "L_thumb_end_jnt"
-
-CUSTOM_SKELETON_JOINTS["left_index_finger_root"] = "L_index_root_jnt"
-CUSTOM_SKELETON_JOINTS["left_index_finger_base"] = "L_index_base_jnt"
-CUSTOM_SKELETON_JOINTS["left_index_finger_mid"] = "L_index_mid_jnt"
-CUSTOM_SKELETON_JOINTS["left_index_finger_tip"] = "L_index_tip_jnt"
-CUSTOM_SKELETON_JOINTS["left_index_finger_end"] = "L_index_end_jnt"
-
-CUSTOM_SKELETON_JOINTS["left_middle_finger_root"] = "L_middle_root_jnt"
-CUSTOM_SKELETON_JOINTS["left_middle_finger_base"] = "L_middle_base_jnt"
-CUSTOM_SKELETON_JOINTS["left_middle_finger_mid"] = "L_middle_mid_jnt"
-CUSTOM_SKELETON_JOINTS["left_middle_finger_tip"] = "L_middle_tip_jnt"
-CUSTOM_SKELETON_JOINTS["left_middle_finger_end"] = "L_middle_end_jnt"
-
-CUSTOM_SKELETON_JOINTS["left_ring_finger_root"] = "L_ring_base_jnt"
-CUSTOM_SKELETON_JOINTS["left_ring_finger_base"] = "L_ring_root_jnt"
-CUSTOM_SKELETON_JOINTS["left_ring_finger_mid"] = "L_ring_mid_jnt"
-CUSTOM_SKELETON_JOINTS["left_ring_finger_tip"] = "L_ring_tip_jnt"
-CUSTOM_SKELETON_JOINTS["left_ring_finger_end"] = "L_ring_end_jnt"
-
-CUSTOM_SKELETON_JOINTS["left_pinky_finger_root"] = "L_pinky_root_jnt"
-CUSTOM_SKELETON_JOINTS["left_pinky_finger_base"] = "L_pinky_base_jnt"
-CUSTOM_SKELETON_JOINTS["left_pinky_finger_mid"] = "L_pinky_mid_jnt"
-CUSTOM_SKELETON_JOINTS["left_pinky_finger_tip"] = "L_pinky_tip_jnt"
-CUSTOM_SKELETON_JOINTS["left_pinky_finger_end"] = "L_pinky_end_jnt"
-
-
-
-
 CUSTOM_SKELETON_MODEL = collections.OrderedDict()
 CUSTOM_SKELETON_MODEL["joints"] = CUSTOM_SKELETON_JOINTS
 CUSTOM_SKELETON_MODEL["foot_joints"] = []
-CUSTOM_SKELETON_COS_MAP = collections.defaultdict(dict)
-CUSTOM_SKELETON_COS_MAP["R_foot_jnt"]["y"] = [1, 0, 0]
-#CUSTOM_SKELETON_COS_MAP["R_foot_jnt"]["y"] = [0.4, 0.6, 0]
-CUSTOM_SKELETON_COS_MAP["R_foot_jnt"]["x"] = [0, 0, 1]
-CUSTOM_SKELETON_COS_MAP["L_foot_jnt"]["y"] = [1, 0, 0]
-#CUSTOM_SKELETON_COS_MAP["L_foot_jnt"]["y"] = [0.4, 0.6, 0]
-CUSTOM_SKELETON_COS_MAP["L_foot_jnt"]["x"] = [0, 0, 1]
-
-CUSTOM_SKELETON_COS_MAP["L_upLeg_jnt"]["y"] = [1, 0, 0]
-CUSTOM_SKELETON_COS_MAP["L_upLeg_jnt"]["x"] = [0, 0, 1]
-CUSTOM_SKELETON_COS_MAP["L_lowLeg_jnt"]["y"] = [1, 0, 0]
-CUSTOM_SKELETON_COS_MAP["L_lowLeg_jnt"]["x"] = [0, 0, 1]
-
-
-CUSTOM_SKELETON_COS_MAP["R_upLeg_jnt"]["y"] = [1, 0, 0]
-CUSTOM_SKELETON_COS_MAP["R_upLeg_jnt"]["x"] = [0, 0, 1]
-CUSTOM_SKELETON_COS_MAP["R_lowLeg_jnt"]["y"] = [1, 0, 0]
-CUSTOM_SKELETON_COS_MAP["R_lowLeg_jnt"]["x"] = [0, 0, 1]
-
-CUSTOM_SKELETON_COS_MAP["FK_back2_jnt"]["y"] = [0, 1, 0]
-CUSTOM_SKELETON_COS_MAP["FK_back2_jnt"]["x"] = [1, 0, 0]
-
-CUSTOM_SKELETON_COS_MAP["R_shoulder_jnt"]["y"] = [0, 0, -1]
-CUSTOM_SKELETON_COS_MAP["R_shoulder_jnt"]["x"] = [0, -1, 0]
-CUSTOM_SKELETON_COS_MAP["R_upArm_jnt"]["y"] = [0, 0, -1]
-CUSTOM_SKELETON_COS_MAP["R_upArm_jnt"]["x"] = [0, -1, 0]
-CUSTOM_SKELETON_COS_MAP["R_lowArm_jnt"]["y"] = [0, 0, -1]
-CUSTOM_SKELETON_COS_MAP["R_lowArm_jnt"]["x"] = [0, -1, 0]
-
-CUSTOM_SKELETON_COS_MAP["L_shoulder_jnt"]["y"] = [0, 0, 1]
-CUSTOM_SKELETON_COS_MAP["L_shoulder_jnt"]["x"] = [0, -1, 0]
-CUSTOM_SKELETON_COS_MAP["L_upArm_jnt"]["y"] = [0, 0, 1]
-CUSTOM_SKELETON_COS_MAP["L_upArm_jnt"]["x"] = [0, -1, 0]
-CUSTOM_SKELETON_COS_MAP["L_lowArm_jnt"]["y"] = [0, 0, 1]
-CUSTOM_SKELETON_COS_MAP["L_lowArm_jnt"]["x"] = [0, -1, 0]
-
-CUSTOM_SKELETON_COS_MAP["R_hand_jnt"]["y"] = [0, 0, -1]
-CUSTOM_SKELETON_COS_MAP["R_hand_jnt"]["x"] = [0, -1, 0]
-
-CUSTOM_SKELETON_COS_MAP["L_hand_jnt"]["y"] = [0, 0, 1]
-CUSTOM_SKELETON_COS_MAP["L_hand_jnt"]["x"] = [0, -1, 0]
-if False:
-    CUSTOM_SKELETON_COS_MAP["FK_back3_jnt"]["y"] = [0, 0.7, -0.3]
-    CUSTOM_SKELETON_COS_MAP["FK_back3_jnt"]["x"] = [1, 0, 0]
-    CUSTOM_SKELETON_COS_MAP["head_jnt"]["y"] = [0.6, 0.4, 0]
-    CUSTOM_SKELETON_COS_MAP["head_jnt"]["x"] = [0, 0, -1]
-
-CUSTOM_SKELETON_MODEL["cos_map"] = CUSTOM_SKELETON_COS_MAP
-CUSTOM_SKELETON_MODEL["foot_joints"] = []
-CUSTOM_SKELETON_MODEL["heel_offset"] = [0, -6.480602, 0]
-CUSTOM_SKELETON_MODEL["ik_chains"] = IK_CHAINS_CUSTOM_SKELETON
-CUSTOM_SKELETON_MODEL["aligning_root_node"] = "FK_back1_jnt"
-CUSTOM_SKELETON_MODEL["free_joints_map"] = {"R_hand_jnt_hold_point":["FK_back2_jnt", "R_upArm_jnt", "R_lowArm_jnt"], "L_hand_jnt_hold_point": ["FK_back2_jnt", "L_upArm_jnt", "L_lowArm_jnt"]}
-CUSTOM_SKELETON_MODEL["relative_head_dir"] = [0.0, -1.0, 0.0]
-CUSTOM_SKELETON_MODEL["flip_x_axis"] = True
-
 
 
 CAPTURY_SKELETON_JOINTS = collections.OrderedDict()
@@ -690,439 +445,17 @@ CAPTURY_SKELETON_MODEL = collections.OrderedDict()
 CAPTURY_SKELETON_MODEL["joints"] = CAPTURY_SKELETON_JOINTS
 CAPTURY_SKELETON_MODEL["foot_joints"] = []
 CAPTURY_SKELETON_MODEL["cos_map"] = CAPTURY_SKELETON_COS_MAP
-
-
-HOLDEN_SKELETON_JOINTS = collections.OrderedDict()
-HOLDEN_SKELETON_JOINTS["root"] = None
-HOLDEN_SKELETON_JOINTS["pelvis"] = "Hips"
-HOLDEN_SKELETON_JOINTS["spine"] = "Spine"
-HOLDEN_SKELETON_JOINTS["spine_1"] = "Spine1"
-HOLDEN_SKELETON_JOINTS["spine_2"] = None
-HOLDEN_SKELETON_JOINTS["left_clavicle"] = "LeftShoulder"
-HOLDEN_SKELETON_JOINTS["right_clavicle"] = "RightShoulder"
-HOLDEN_SKELETON_JOINTS["left_shoulder"] = "LeftArm"
-HOLDEN_SKELETON_JOINTS["right_shoulder"] = "RightArm"
-HOLDEN_SKELETON_JOINTS["left_elbow"] = "LeftForeArm"
-HOLDEN_SKELETON_JOINTS["right_elbow"] = "RightForeArm"
-HOLDEN_SKELETON_JOINTS["left_wrist"] = "LeftHand"
-HOLDEN_SKELETON_JOINTS["right_wrist"] = "RightHand"
-HOLDEN_SKELETON_JOINTS["left_finger"] = None
-HOLDEN_SKELETON_JOINTS["right_finger"] = None
-HOLDEN_SKELETON_JOINTS["left_hip"] = "LeftUpLeg"
-HOLDEN_SKELETON_JOINTS["right_hip"] = "RightUpLeg"
-HOLDEN_SKELETON_JOINTS["left_knee"] = "LeftLeg"
-HOLDEN_SKELETON_JOINTS["right_knee"] = "RightLeg"
-HOLDEN_SKELETON_JOINTS["left_ankle"] = "LeftFoot"
-HOLDEN_SKELETON_JOINTS["right_ankle"] = "RightFoot"
-HOLDEN_SKELETON_JOINTS["left_toe"] = "LeftToeBase"
-HOLDEN_SKELETON_JOINTS["right_toe"] = "RightToeBase"
-HOLDEN_SKELETON_JOINTS["left_heel"] = None
-HOLDEN_SKELETON_JOINTS["right_heel"] = None
-HOLDEN_SKELETON_JOINTS["neck"] = "Neck1"
-HOLDEN_SKELETON_JOINTS["head"] = "Head"
-HOLDEN_SKELETON_COS_MAP = collections.defaultdict(dict)
-HOLDEN_SKELETON_MODEL = collections.OrderedDict()
-HOLDEN_SKELETON_MODEL["joints"] = HOLDEN_SKELETON_JOINTS
-HOLDEN_SKELETON_MODEL["foot_joints"] = []
-HOLDEN_SKELETON_MODEL["cos_map"] = HOLDEN_SKELETON_COS_MAP
-
-MIXAMO_SKELETON_JOINTS = collections.OrderedDict()
-MIXAMO_SKELETON_JOINTS["root"] = None
-MIXAMO_SKELETON_JOINTS["pelvis"] = "mixamorig:Hips"
-MIXAMO_SKELETON_JOINTS["spine"] = "mixamorig:Spine"
-MIXAMO_SKELETON_JOINTS["spine_1"] = "mixamorig:Spine1"
-MIXAMO_SKELETON_JOINTS["spine_2"] = "mixamorig:Spine2"
-MIXAMO_SKELETON_JOINTS["left_clavicle"] = "mixamorig:LeftShoulder"
-MIXAMO_SKELETON_JOINTS["right_clavicle"] = "mixamorig:RightShoulder"
-MIXAMO_SKELETON_JOINTS["left_shoulder"] = "mixamorig:LeftArm"
-MIXAMO_SKELETON_JOINTS["right_shoulder"] = "mixamorig:RightArm"
-MIXAMO_SKELETON_JOINTS["left_elbow"] = "mixamorig:LeftForeArm"
-MIXAMO_SKELETON_JOINTS["right_elbow"] = "mixamorig:RightForeArm"
-MIXAMO_SKELETON_JOINTS["left_wrist"] = "mixamorig:LeftHand"
-MIXAMO_SKELETON_JOINTS["right_wrist"] = "mixamorig:RightHand"
-MIXAMO_SKELETON_JOINTS["left_finger"] = None
-MIXAMO_SKELETON_JOINTS["right_finger"] = None
-MIXAMO_SKELETON_JOINTS["left_hip"] = "mixamorig:LeftUpLeg"
-MIXAMO_SKELETON_JOINTS["right_hip"] = "mixamorig:RightUpLeg"
-MIXAMO_SKELETON_JOINTS["left_knee"] = "mixamorig:LeftLeg"
-MIXAMO_SKELETON_JOINTS["right_knee"] = "mixamorig:RightLeg"
-MIXAMO_SKELETON_JOINTS["left_ankle"] = "mixamorig:LeftFoot"
-MIXAMO_SKELETON_JOINTS["right_ankle"] = "mixamorig:RightFoot"
-MIXAMO_SKELETON_JOINTS["left_toe"] = "mixamorig:LeftToeBase"
-MIXAMO_SKELETON_JOINTS["right_toe"] = "mixamorig:RightToeBase"
-MIXAMO_SKELETON_JOINTS["left_heel"] = None
-MIXAMO_SKELETON_JOINTS["right_heel"] = None
-MIXAMO_SKELETON_JOINTS["neck"] = "mixamorig:Neck"
-MIXAMO_SKELETON_JOINTS["head"] = "mixamorig:Head"
-MIXAMO_SKELETON_COS_MAP = collections.defaultdict(dict)
-MIXAMO_SKELETON_COS_MAP["mixamorig:LeftUpLeg"]["x"] = [-1, 0, 0]
-MIXAMO_SKELETON_COS_MAP["mixamorig:LeftUpLeg"]["y"] = [0, 1, 0]
-MIXAMO_SKELETON_COS_MAP["mixamorig:RightUpLeg"]["x"] = [-1, 0, 0]
-MIXAMO_SKELETON_COS_MAP["mixamorig:RightUpLeg"]["y"] = [0, 1, 0]
-MIXAMO_SKELETON_COS_MAP["mixamorig:LeftLeg"]["x"] = [-1, 0, 0]
-MIXAMO_SKELETON_COS_MAP["mixamorig:LeftLeg"]["y"] = [0, 1, 0]
-MIXAMO_SKELETON_COS_MAP["mixamorig:RightLeg"]["x"] = [-1, 0, 0]
-MIXAMO_SKELETON_COS_MAP["mixamorig:RightLeg"]["y"] = [0, 1, 0]
-MIXAMO_SKELETON_COS_MAP["mixamorig:LeftFoot"]["x"] = [-1, 0, 0]
-MIXAMO_SKELETON_COS_MAP["mixamorig:LeftFoot"]["y"] = [0, 1, 0]
-MIXAMO_SKELETON_COS_MAP["mixamorig:RightFoot"]["x"] = [-1, 0, 0]
-MIXAMO_SKELETON_COS_MAP["mixamorig:RightFoot"]["y"] = [0, 1, 0]
-
-MIXAMO_SKELETON_MODEL = collections.OrderedDict()
-MIXAMO_SKELETON_MODEL["joints"] = MIXAMO_SKELETON_JOINTS
-MIXAMO_SKELETON_MODEL["foot_joints"] = []
-MIXAMO_SKELETON_MODEL["cos_map"] = MIXAMO_SKELETON_COS_MAP
-MIXAMO_SKELETON_MODEL["foot_correction"] = {"x":22, "y":3}
-MIXAMO_SKELETON_MODEL["flip_x_axis"] = True
-MIXAMO_SKELETON_MODEL["fixed_joint_corrections"] = dict()
-MIXAMO_SKELETON_MODEL["fixed_joint_corrections"]["RightClavicle"] = -90
-MIXAMO_SKELETON_MODEL["fixed_joint_corrections"]["LeftClavicle"] = 90
-
-MAX_SKELETON_JOINTS = collections.OrderedDict()
-MAX_SKELETON_JOINTS["root"] = None
-MAX_SKELETON_JOINTS["pelvis"] = "Hips"
-MAX_SKELETON_JOINTS["spine"] = None
-MAX_SKELETON_JOINTS["spine_1"] = None
-MAX_SKELETON_JOINTS["spine_2"] = "Chest"
-MAX_SKELETON_JOINTS["left_clavicle"] = "LeftCollar"
-MAX_SKELETON_JOINTS["right_clavicle"] = "RightCollar"
-MAX_SKELETON_JOINTS["left_shoulder"] = "LeftShoulder"
-MAX_SKELETON_JOINTS["right_shoulder"] = "RightShoulder"
-MAX_SKELETON_JOINTS["left_elbow"] = "LeftElbow"
-MAX_SKELETON_JOINTS["right_elbow"] = "RightElbow"
-MAX_SKELETON_JOINTS["left_wrist"] = "LeftWrist"
-MAX_SKELETON_JOINTS["right_wrist"] = "RightWrist"
-MAX_SKELETON_JOINTS["left_finger"] = "LeftWrist_EndSite"
-MAX_SKELETON_JOINTS["right_finger"] = "RightWrist_EndSite"
-MAX_SKELETON_JOINTS["left_hip"] = "LeftHip"
-MAX_SKELETON_JOINTS["right_hip"] = "RightHip"
-MAX_SKELETON_JOINTS["left_knee"] = "LeftKnee"
-MAX_SKELETON_JOINTS["right_knee"] = "RightKnee"
-MAX_SKELETON_JOINTS["left_ankle"] = "LeftAnkle"
-MAX_SKELETON_JOINTS["right_ankle"] = "RightAnkle"
-MAX_SKELETON_JOINTS["left_toe"] = None
-MAX_SKELETON_JOINTS["right_toe"] = None
-MAX_SKELETON_JOINTS["left_heel"] = None
-MAX_SKELETON_JOINTS["right_heel"] = None
-MAX_SKELETON_JOINTS["neck"] = "Neck"
-MAX_SKELETON_JOINTS["head"] = "Head"
-MAX_SKELETON_COS_MAP = collections.defaultdict(dict)
-
-MAX_SKELETON_COS_MAP["LeftShoulder"]["y"] = [0, -1, 0]
-MAX_SKELETON_COS_MAP["RightShoulder"]["y"] = [0, -1, 0]
-MAX_SKELETON_COS_MAP["LeftShoulder"]["x"] = [-1, 0, 0]
-MAX_SKELETON_COS_MAP["RightShoulder"]["x"] = [-1, 0, 0]
-
-MAX_SKELETON_COS_MAP["LeftElbow"]["y"] = [0, -1, 0]
-MAX_SKELETON_COS_MAP["RightElbow"]["y"] = [0, -1, 0]
-MAX_SKELETON_COS_MAP["LeftElbow"]["x"] = [-1, 0, 0]
-MAX_SKELETON_COS_MAP["RightElbow"]["x"] = [-1, 0, 0]
-
-MAX_SKELETON_COS_MAP["LeftWrist"]["y"] = [0, -1, 0]
-MAX_SKELETON_COS_MAP["RightWrist"]["y"] = [0, -1, 0]
-MAX_SKELETON_COS_MAP["LeftWrist"]["x"] = [-1, 0, 0]
-MAX_SKELETON_COS_MAP["RightWrist"]["x"] = [-1, 0, 0]
-
-
-MAX_SKELETON_MODEL = collections.OrderedDict()
-MAX_SKELETON_MODEL["joints"] = MAX_SKELETON_JOINTS
-MAX_SKELETON_MODEL["foot_joints"] = []
-MAX_SKELETON_MODEL["cos_map"] = MAX_SKELETON_COS_MAP
-
-AACHEN_SKELETON_JOINTS = collections.OrderedDict()
-AACHEN_SKELETON_JOINTS["root"] = None#"reference"
-AACHEN_SKELETON_JOINTS["pelvis"] = "Hips"
-AACHEN_SKELETON_JOINTS["spine"] = "LowerBack"
-AACHEN_SKELETON_JOINTS["spine_1"] = "Spine"
-AACHEN_SKELETON_JOINTS["spine_2"] = "Spine1"
-AACHEN_SKELETON_JOINTS["left_clavicle"] = "LeftShoulder"
-AACHEN_SKELETON_JOINTS["right_clavicle"] = "RightShoulder"
-AACHEN_SKELETON_JOINTS["left_shoulder"] = "LeftArm"
-AACHEN_SKELETON_JOINTS["right_shoulder"] = "RightArm"
-AACHEN_SKELETON_JOINTS["left_elbow"] = "LeftForeArm"
-AACHEN_SKELETON_JOINTS["right_elbow"] = "RightForeArm"
-AACHEN_SKELETON_JOINTS["left_wrist"] = "LeftHand"
-AACHEN_SKELETON_JOINTS["right_wrist"] = "RightHand"
-AACHEN_SKELETON_JOINTS["left_finger"] = "LeftFingerBase"
-AACHEN_SKELETON_JOINTS["right_finger"] = "RightFingerBase"
-AACHEN_SKELETON_JOINTS["left_hip"] = "LeftUpLeg"
-AACHEN_SKELETON_JOINTS["right_hip"] = "RightUpLeg"
-AACHEN_SKELETON_JOINTS["left_knee"] = "LeftLeg"
-AACHEN_SKELETON_JOINTS["right_knee"] = "RightLeg"
-AACHEN_SKELETON_JOINTS["left_ankle"] = "LeftFoot"
-AACHEN_SKELETON_JOINTS["right_ankle"] = "RightFoot"
-AACHEN_SKELETON_JOINTS["left_toe"] = "LeftToeBase"
-AACHEN_SKELETON_JOINTS["right_toe"] = "RightToeBase"
-AACHEN_SKELETON_JOINTS["left_heel"] = None
-AACHEN_SKELETON_JOINTS["right_heel"] = None
-AACHEN_SKELETON_JOINTS["neck"] = "Neck"
-AACHEN_SKELETON_JOINTS["head"] = "Head"
-AACHEN_SKELETON_MODEL = collections.OrderedDict()
-AACHEN_SKELETON_MODEL["joints"] = AACHEN_SKELETON_JOINTS
-AACHEN_SKELETON_MODEL["foot_joints"] = []
-
-AACHEN_SKELETON_COS_MAP = collections.defaultdict(dict)
-AACHEN_SKELETON_COS_MAP["Hips"]["y"] = [0, 1, 0]
-AACHEN_SKELETON_COS_MAP["Hips"]["x"] = [1, 0, 0]
-AACHEN_SKELETON_MODEL["cos_map"] = AACHEN_SKELETON_COS_MAP
-
-
-MH_CMU_RED_SKELETON_JOINTS = collections.OrderedDict()
-MH_CMU_RED_SKELETON_JOINTS["root"] = "root"
-MH_CMU_RED_SKELETON_JOINTS["pelvis"] = "pelvis"
-MH_CMU_RED_SKELETON_JOINTS["thorax"] = "Spine"
-MH_CMU_RED_SKELETON_JOINTS["left_clavicle"] = "lclavicle"
-MH_CMU_RED_SKELETON_JOINTS["right_clavicle"] = "rclavicle"
-MH_CMU_RED_SKELETON_JOINTS["left_shoulder"] = "lhumerus"
-MH_CMU_RED_SKELETON_JOINTS["right_shoulder"] = "rhumerus"
-MH_CMU_RED_SKELETON_JOINTS["left_elbow"] = "lradius"
-MH_CMU_RED_SKELETON_JOINTS["right_elbow"] = "rradius"
-MH_CMU_RED_SKELETON_JOINTS["left_wrist"] = "lhand"
-MH_CMU_RED_SKELETON_JOINTS["right_wrist"] = "rhand"
-MH_CMU_RED_SKELETON_JOINTS["left_hip"] = "lfemur"
-MH_CMU_RED_SKELETON_JOINTS["right_hip"] = "rfemur"
-MH_CMU_RED_SKELETON_JOINTS["left_knee"] = "ltibia"
-MH_CMU_RED_SKELETON_JOINTS["right_knee"] = "rtibia"
-MH_CMU_RED_SKELETON_JOINTS["left_ankle"] = "lfoot"
-MH_CMU_RED_SKELETON_JOINTS["right_ankle"] = "rfoot"
-MH_CMU_RED_SKELETON_JOINTS["left_toe"] = "ltoes"
-MH_CMU_RED_SKELETON_JOINTS["right_toe"] = "rtoes"
-MH_CMU_RED_SKELETON_JOINTS["left_heel"] = None
-MH_CMU_RED_SKELETON_JOINTS["right_heel"] = None
-MH_CMU_RED_SKELETON_JOINTS["neck"] = "head"
-MH_CMU_RED_SKELETON_JOINTS["head"] = "head_EndSite"
-MH_CMU_RED_SKELETON_MODEL = collections.OrderedDict()
-MH_CMU_RED_SKELETON_MODEL["joints"] = MH_CMU_RED_SKELETON_JOINTS
-MH_CMU_RED_SKELETON_MODEL["foot_joints"] = []
-
-RAW2_SKELETON_FOOT_JOINTS = [RIGHT_TOE, LEFT_TOE, RIGHT_HEEL,LEFT_HEEL]
-
-RAW2_SKELETON_JOINTS = collections.OrderedDict()
-RAW2_SKELETON_JOINTS["root"] = "Hips"
-RAW2_SKELETON_JOINTS["pelvis"] = "ToSpine"
-RAW2_SKELETON_JOINTS["spine"] = "Spine"
-RAW2_SKELETON_JOINTS["spine_1"] = "Spine1"
-RAW2_SKELETON_JOINTS["spine_2"] = "Neck"
-RAW2_SKELETON_JOINTS["left_clavicle"] = "LeftShoulder"
-RAW2_SKELETON_JOINTS["right_clavicle"] = "RightShoulder"
-RAW2_SKELETON_JOINTS["left_shoulder"] = "LeftArm"
-RAW2_SKELETON_JOINTS["right_shoulder"] = "RightArm"
-RAW2_SKELETON_JOINTS["left_elbow"] = "LeftForeArm"
-RAW2_SKELETON_JOINTS["right_elbow"] = "RightForeArm"
-RAW2_SKELETON_JOINTS["left_wrist"] = "LeftHand"
-RAW2_SKELETON_JOINTS["right_wrist"] = "RightHand"
-RAW2_SKELETON_JOINTS["left_hip"] = "LeftUpLeg"
-RAW2_SKELETON_JOINTS["right_hip"] = "RightUpLeg"
-RAW2_SKELETON_JOINTS["left_knee"] = "LeftLeg"
-RAW2_SKELETON_JOINTS["right_knee"] = "RightLeg"
-RAW2_SKELETON_JOINTS["left_ankle"] = "LeftFoot"
-RAW2_SKELETON_JOINTS["right_ankle"] = "RightFoot"
-RAW2_SKELETON_JOINTS["left_toe"] = "LeftToeBase"
-RAW2_SKELETON_JOINTS["right_toe"] = "RightToeBase"
-RAW2_SKELETON_JOINTS["left_heel"] = "LeftHeel"
-RAW2_SKELETON_JOINTS["right_heel"] = "RightHeel"
-RAW2_SKELETON_JOINTS["neck"] = "Neck"
-RAW2_SKELETON_JOINTS["head"] = "Head"
-
-RAW2_SKELETON_COS_MAP = collections.defaultdict(dict)
-RAW2_SKELETON_COS_MAP["Neck"]["x"] = [1, 0, 0]
-RAW2_SKELETON_COS_MAP["Neck"]["y"] = [0, 1, 0]
-RAW2_SKELETON_COS_MAP["Head"]["x"] = [-1, 0, 0]
-RAW2_SKELETON_COS_MAP["Head"]["y"] = [0, 1, 0]
-
-"""
-RAW2_SKELETON_COS_MAP["LeftShoulder"]["x"] = [0, 1, 0]
-RAW2_SKELETON_COS_MAP["LeftShoulder"]["y"] = [-1, 0, 0]
-RAW2_SKELETON_COS_MAP["LeftForeArm"]["x"] = [-1, 0, 0]
-RAW2_SKELETON_COS_MAP["LeftForeArm"]["y"] = [0, 1, 0]
-RAW2_SKELETON_COS_MAP["LeftArm"]["x"] = [-1, 0, 0]
-RAW2_SKELETON_COS_MAP["LeftArm"]["y"] = [0, 1, 0]
-RAW2_SKELETON_COS_MAP["LeftHand"]["x"] = [-1, 0, 0]
-RAW2_SKELETON_COS_MAP["LeftHand"]["y"] = [0, 1, 0]
-RAW2_SKELETON_COS_MAP["RightShoulder"]["x"] = [0, 1, 0]
-RAW2_SKELETON_COS_MAP["RightShoulder"]["y"] = [-1, 0, 0]
-RAW2_SKELETON_COS_MAP["RightArm"]["x"] = [-1, 0, 0]
-RAW2_SKELETON_COS_MAP["RightArm"]["y"] = [0, 1, 0]
-RAW2_SKELETON_COS_MAP["RightForeArm"]["x"] = [-1, 0, 0]
-RAW2_SKELETON_COS_MAP["RightForeArm"]["y"] = [0, 1, 0]
-RAW2_SKELETON_COS_MAP["RightHand"]["x"] = [-1, 0, 0]
-RAW2_SKELETON_COS_MAP["RightHand"]["y"] = [0, 1, 0]
-"""
-RAW2_SKELETON_MODEL = collections.OrderedDict()
-RAW2_SKELETON_MODEL["joints"] = RAW2_SKELETON_JOINTS
-RAW2_SKELETON_MODEL["foot_joints"] = RAW2_SKELETON_FOOT_JOINTS
-RAW2_SKELETON_MODEL["heel_offset"] = [0, -6.480602, 0]
-RAW2_SKELETON_MODEL["ik_chains"] = IK_CHAINS_RAW_SKELETON
-RAW2_SKELETON_MODEL["cos_map"] = RAW2_SKELETON_COS_MAP
-
-
-
-
-NOIKOM_SKELETON_JOINTS = collections.OrderedDict()
-NOIKOM_SKELETON_JOINTS["root"] = None
-NOIKOM_SKELETON_JOINTS["pelvis"] = "Hips"
-NOIKOM_SKELETON_JOINTS["spine"] = "Spine"
-NOIKOM_SKELETON_JOINTS["spine_1"] = "Spine1"
-NOIKOM_SKELETON_JOINTS["spine_2"] = "Spine2"
-NOIKOM_SKELETON_JOINTS["left_clavicle"] = "LeftShoulder"
-NOIKOM_SKELETON_JOINTS["right_clavicle"] = "RightShoulder"
-NOIKOM_SKELETON_JOINTS["left_shoulder"] = "LeftArm"
-NOIKOM_SKELETON_JOINTS["right_shoulder"] = "RightArm"
-NOIKOM_SKELETON_JOINTS["left_elbow"] = "LeftForeArm"
-NOIKOM_SKELETON_JOINTS["right_elbow"] = "RightForeArm"
-NOIKOM_SKELETON_JOINTS["left_wrist"] = "LeftHand"
-NOIKOM_SKELETON_JOINTS["right_wrist"] = "RightHand"
-#NOIKOM_SKELETON_JOINTS["left_finger"] = "RightInHandMiddle"
-#NOIKOM_SKELETON_JOINTS["right_finger"] = "LeftInHandMiddle"
-NOIKOM_SKELETON_JOINTS["left_hip"] = "LeftUpLeg"
-NOIKOM_SKELETON_JOINTS["right_hip"] = "RightUpLeg"
-NOIKOM_SKELETON_JOINTS["left_knee"] = "LeftLeg"
-NOIKOM_SKELETON_JOINTS["right_knee"] = "RightLeg"
-NOIKOM_SKELETON_JOINTS["left_ankle"] = "LeftFoot"
-NOIKOM_SKELETON_JOINTS["right_ankle"] = "RightFoot"
-NOIKOM_SKELETON_JOINTS["left_toe"] = "LeftFoot_EndSite"
-NOIKOM_SKELETON_JOINTS["right_toe"] = "RightFoot_EndSite"
-NOIKOM_SKELETON_JOINTS["left_heel"] = None
-NOIKOM_SKELETON_JOINTS["right_heel"] = None
-NOIKOM_SKELETON_JOINTS["neck"] = "Neck"
-NOIKOM_SKELETON_JOINTS["head"] = "Head"
-
-NOIKOM_SKELETON_JOINTS["right_thumb_base"] = "RightHandThumb1"
-NOIKOM_SKELETON_JOINTS["right_thumb_mid"] = "RightHandThumb2"
-NOIKOM_SKELETON_JOINTS["right_thumb_tip"] = "RightHandThumb3"
-NOIKOM_SKELETON_JOINTS["right_thumb_end"] = "RightHandThumb3_EndSite"
-
-NOIKOM_SKELETON_JOINTS["right_index_finger_root"] = "RightInHandIndex"
-NOIKOM_SKELETON_JOINTS["right_index_finger_base"] = "RightHandIndex1"
-NOIKOM_SKELETON_JOINTS["right_index_finger_mid"] = "RightHandIndex2"
-NOIKOM_SKELETON_JOINTS["right_index_finger_tip"] = "RightHandIndex3"
-NOIKOM_SKELETON_JOINTS["right_index_finger_end"] = "RightHandIndex3_EndSite"
-
-NOIKOM_SKELETON_JOINTS["right_middle_finger_root"] = "RightInHandMiddle"
-NOIKOM_SKELETON_JOINTS["right_middle_finger_base"] = "RightHandMiddle1"
-NOIKOM_SKELETON_JOINTS["right_middle_finger_mid"] = "RightHandMiddle2"
-NOIKOM_SKELETON_JOINTS["right_middle_finger_tip"] = "RightHandMiddle3"
-NOIKOM_SKELETON_JOINTS["right_middle_finger_end"] = "RightHandMiddle3_EndSite"
-
-NOIKOM_SKELETON_JOINTS["right_ring_finger_root"] = "RightInHandRing"
-NOIKOM_SKELETON_JOINTS["right_ring_finger_base"] = "RightHandRing1"
-NOIKOM_SKELETON_JOINTS["right_ring_finger_mid"] = "RightHandRing2"
-NOIKOM_SKELETON_JOINTS["right_ring_finger_tip"] = "RightHandRing3"
-NOIKOM_SKELETON_JOINTS["right_ring_finger_end"] = "RightHandRing3_EndSite"
-
-NOIKOM_SKELETON_JOINTS["right_pinky_finger_root"] = "RightInHandPinky"
-NOIKOM_SKELETON_JOINTS["right_pinky_finger_base"] = "RightHandPinky1"
-NOIKOM_SKELETON_JOINTS["right_pinky_finger_mid"] = "RightHandPinky2"
-NOIKOM_SKELETON_JOINTS["right_pinky_finger_tip"] = "RightHandPinky3"
-NOIKOM_SKELETON_JOINTS["right_pinky_finger_end"] = "RightHandPinky3_EndSite"
-
-
-NOIKOM_SKELETON_JOINTS["left_thumb_base"] = "LeftHandThumb1"
-NOIKOM_SKELETON_JOINTS["left_thumb_mid"] = "LeftHandThumb2"
-NOIKOM_SKELETON_JOINTS["left_thumb_tip"] = "LeftHandThumb3"
-NOIKOM_SKELETON_JOINTS["left_thumb_end"] = "LeftHandThumb3_EndSite"
-
-NOIKOM_SKELETON_JOINTS["left_index_finger_root"] = "LeftInHandIndex"
-NOIKOM_SKELETON_JOINTS["left_index_finger_base"] = "LeftHandIndex1"
-NOIKOM_SKELETON_JOINTS["left_index_finger_mid"] = "LeftHandIndex2"
-NOIKOM_SKELETON_JOINTS["left_index_finger_tip"] = "LeftHandIndex3"
-NOIKOM_SKELETON_JOINTS["left_index_finger_end"] = "LeftHandIndex3_EndSite"
-
-NOIKOM_SKELETON_JOINTS["left_middle_finger_root"] = "LeftInHandMiddle"
-NOIKOM_SKELETON_JOINTS["left_middle_finger_base"] = "LeftHandMiddle1"
-NOIKOM_SKELETON_JOINTS["left_middle_finger_mid"] = "LeftHandMiddle2"
-NOIKOM_SKELETON_JOINTS["left_middle_finger_tip"] = "LeftHandMiddle3"
-NOIKOM_SKELETON_JOINTS["left_middle_finger_end"] = "LeftHandMiddle3_EndSite"
-
-NOIKOM_SKELETON_JOINTS["left_ring_finger_root"] = "LeftInHandRing"
-NOIKOM_SKELETON_JOINTS["left_ring_finger_base"] = "LeftHandRing1"
-NOIKOM_SKELETON_JOINTS["left_ring_finger_mid"] = "LeftHandRing2"
-NOIKOM_SKELETON_JOINTS["left_ring_finger_tip"] = "LeftHandRing3"
-NOIKOM_SKELETON_JOINTS["left_ring_finger_end"] = "LeftHandRing3_EndSite"
-
-NOIKOM_SKELETON_JOINTS["left_pinky_finger_root"] = "LeftInHandPinky"
-NOIKOM_SKELETON_JOINTS["left_pinky_finger_base"] = "LeftHandPinky1"
-NOIKOM_SKELETON_JOINTS["left_pinky_finger_mid"] = "LeftHandPinky2"
-NOIKOM_SKELETON_JOINTS["left_pinky_finger_tip"] = "LeftHandPinky3"
-NOIKOM_SKELETON_JOINTS["left_pinky_finger_end"] = "LeftHandPinky3_EndSite"
-
-
-NOIKOM_SKELETON_MODEL = collections.OrderedDict()
-NOIKOM_SKELETON_MODEL["joints"] = NOIKOM_SKELETON_JOINTS
-NOIKOM_SKELETON_COS_MAP = collections.defaultdict(dict)
-NOIKOM_SKELETON_COS_MAP["LeftHand"]["x"] = [0, -1, 0]
-NOIKOM_SKELETON_COS_MAP["LeftHand"]["y"] = [1, 0, 0]
-NOIKOM_SKELETON_COS_MAP["RightHand"]["x"] = [0, 1, 0]
-NOIKOM_SKELETON_COS_MAP["RightHand"]["y"] = [-1, 0, 0]
-NOIKOM_SKELETON_MODEL["cos_map"] = NOIKOM_SKELETON_COS_MAP
-
-
-
-
-
-
-
-
-MO_SKELETON_JOINTS = collections.OrderedDict()
-MO_SKELETON_JOINTS["root"] = None
-MO_SKELETON_JOINTS["pelvis"] = "Hips"
-MO_SKELETON_JOINTS["spine"] = "Spine"
-MO_SKELETON_JOINTS["spine_1"] = "Spine1"
-MO_SKELETON_JOINTS["spine_2"] = "Spine2"
-MO_SKELETON_JOINTS["left_clavicle"] = "LeftShoulder"
-MO_SKELETON_JOINTS["right_clavicle"] = "RightShoulder"
-MO_SKELETON_JOINTS["left_shoulder"] = "LeftArm"
-MO_SKELETON_JOINTS["right_shoulder"] = "RightArm"
-MO_SKELETON_JOINTS["left_elbow"] = "LeftForeArm"
-MO_SKELETON_JOINTS["right_elbow"] = "RightForeArm"
-MO_SKELETON_JOINTS["left_wrist"] = "LeftHand"
-MO_SKELETON_JOINTS["right_wrist"] = "RightHand"
-#MO_SKELETON_JOINTS["left_finger"] = "RightInHandMiddle"
-#MO_SKELETON_JOINTS["right_finger"] = "LeftInHandMiddle"
-MO_SKELETON_JOINTS["left_hip"] = "LeftUpLeg"
-MO_SKELETON_JOINTS["right_hip"] = "RightUpLeg"
-MO_SKELETON_JOINTS["left_knee"] = "LeftLeg"
-MO_SKELETON_JOINTS["right_knee"] = "RightLeg"
-MO_SKELETON_JOINTS["left_ankle"] = "LeftFoot"
-MO_SKELETON_JOINTS["right_ankle"] = "RightFoot"
-MO_SKELETON_JOINTS["left_toe"] = "LeftToeBase"
-MO_SKELETON_JOINTS["right_toe"] = "RightToeBase"
-MO_SKELETON_JOINTS["left_heel"] = None
-MO_SKELETON_JOINTS["right_heel"] = None
-MO_SKELETON_JOINTS["neck"] = "Neck"
-MO_SKELETON_JOINTS["head"] = "Head"
-
-MO_SKELETON_MODEL = collections.OrderedDict()
-MO_SKELETON_MODEL["joints"] = MO_SKELETON_JOINTS
-MO_SKELETON_COS_MAP = collections.defaultdict(dict)
-MO_SKELETON_COS_MAP["LeftHand"]["x"] = [0, -1, 0]
-MO_SKELETON_COS_MAP["LeftHand"]["y"] = [1, 0, 0]
-MO_SKELETON_COS_MAP["RightHand"]["x"] = [0, 1, 0]
-MO_SKELETON_COS_MAP["RightHand"]["y"] = [-1, 0, 0]
-MO_SKELETON_MODEL["cos_map"] = NOIKOM_SKELETON_COS_MAP
-
-
-SKELETON_MODELS = collections.OrderedDict()
+SKELETON_MODELS = dict()
 SKELETON_MODELS["rocketbox"] = ROCKETBOX_SKELETON_MODEL
 SKELETON_MODELS["game_engine"] = GAME_ENGINE_SKELETON_MODEL
 SKELETON_MODELS["raw"] = RAW_SKELETON_MODEL
 SKELETON_MODELS["cmu"] = CMU_SKELETON_MODEL
 SKELETON_MODELS["mcs"] = MCS_SKELETON_MODEL
 SKELETON_MODELS["mh_cmu"] = MH_CMU_SKELETON_MODEL
-SKELETON_MODELS["mh_cmu2"] = MH_CMU_2_SKELETON_MODEL
 SKELETON_MODELS["iclone"] = ICLONE_SKELETON_MODEL
 SKELETON_MODELS["moviemation"] = MOVIEMATION_SKELETON_MODEL
 SKELETON_MODELS["custom"] = CUSTOM_SKELETON_MODEL
 SKELETON_MODELS["captury"] = CAPTURY_SKELETON_MODEL
-SKELETON_MODELS["holden"] = HOLDEN_SKELETON_MODEL
-SKELETON_MODELS["mixamo"] = MIXAMO_SKELETON_MODEL
-SKELETON_MODELS["max"] = MAX_SKELETON_MODEL
-SKELETON_MODELS["aachen"] = AACHEN_SKELETON_MODEL
-SKELETON_MODELS["mh_cmu_red"] = MH_CMU_RED_SKELETON_MODEL
-SKELETON_MODELS["game_engine_wrong_root"] = GAME_ENGINE_WRONG_ROOT_SKELETON_MODEL
-SKELETON_MODELS["raw2"] = RAW2_SKELETON_MODEL
-SKELETON_MODELS["noikom"] = NOIKOM_SKELETON_MODEL
-SKELETON_MODELS["mo"] = MO_SKELETON_MODEL
 
 JOINT_CHILD_MAP = dict()
 JOINT_CHILD_MAP["root"] = "pelvis"
@@ -1144,7 +477,5 @@ JOINT_CHILD_MAP["left_knee"] = "left_ankle"
 JOINT_CHILD_MAP["right_elbow"] = "right_wrist"
 JOINT_CHILD_MAP["right_hip"] = "right_knee"
 JOINT_CHILD_MAP["right_knee"] = "right_ankle"
-JOINT_CHILD_MAP["left_ankle"] = "left_toe"
-JOINT_CHILD_MAP["right_ankle"] = "right_toe"
 
 JOINT_PARENT_MAP = {v: k for k, v in JOINT_CHILD_MAP.items()}
