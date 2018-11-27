@@ -56,6 +56,7 @@ class KeyframeConstraint(object):
         self.look_at = look_at
         self.offset = offset
         self.inside_region = False
+        self.inside_region_orientation = False
         self.keep_orientation = False
 
     def evaluate(self, skeleton, frame):
@@ -462,11 +463,6 @@ class MotionEditing(object):
             fk_nodes = set()
             apply_ik = False
             for joint_name, c in frame_constraints.items():
-                if c.orientation is not None:
-                    print("use ccd on", joint_name, "at", frame_idx, " with orientation")
-                else:
-                    print("use ccd on", joint_name, "at", frame_idx)
-
                 if joint_name not in joint_chain_buffer:
                     joint_fk_nodes = self.skeleton.nodes[joint_name].get_fk_chain_list()
                     joint_chain_buffer[joint_name] = joint_fk_nodes
@@ -476,6 +472,10 @@ class MotionEditing(object):
                     self.copy_joint_parameters(joint_chain_buffer[joint_name], frames, frame_idx - 1, frame_idx)
                     new_frames[frame_idx] = frames[frame_idx]
                 else:
+                    if c.orientation is not None:
+                        print("use ccd on", joint_name, "at", frame_idx, " with orientation")
+                    else:
+                        print("use ccd on", joint_name, "at", frame_idx)
                     #print("use ik")
                     constraints.append(c)
                     fk_nodes.update(joint_chain_buffer[joint_name])
@@ -487,9 +487,9 @@ class MotionEditing(object):
 
             #  interpolate outside of region constraints
             if self.window > 0 and len(fk_nodes) > 0:
+                print("interpolate at frame", frame_idx, fk_nodes)
                 fk_nodes = list(fk_nodes)
                 self.interpolate_around_frame(fk_nodes, new_frames, frame_idx, self.window)
-
         return new_frames
 
     def apply_carry_constraints(self, frames, constraints):
@@ -504,15 +504,14 @@ class MotionEditing(object):
                         active_orientations[c.joint_name] = c.orientation
                     elif c.joint_name in active_orientations:
                         active_orientations[c.joint_name] = None
-                    else:
-                        print("no constraint on frame", frame_idx, c.keep_orientation)
+                    #else:
+                    #    print("no constraint on frame", frame_idx, c.keep_orientation)
             # apply active orientations
             for joint_name in active_orientations:
                 if active_orientations[joint_name] is not None:
-                    print("set orientation for", joint_name, "at", frame_idx)
+                    #print("set orientation for", joint_name, "at", frame_idx)
                     frames[frame_idx] = self.skeleton.set_joint_orientation(frames[frame_idx], joint_name, active_orientations[joint_name] )
         return frames
-
 
     def set_joint_orientation(self, joint_name, frames, start_idx, end_idx, target_orientation):
         for frame_idx in range(start_idx, end_idx):
@@ -531,14 +530,14 @@ class MotionEditing(object):
             indices = list(range(o,o+4))
             smooth_joints_around_transition_using_slerp(frames, indices, keyframe, window)
 
-        window = 1000
-        h_window = int(window / 2)
-        start_idx = max(keyframe - h_window, 0)
-        end_idx = min(keyframe + h_window, len(frames))
-        self.apply_joint_constraints(frames, start_idx, end_idx)
+        #window = 1000
+        #h_window = int(window / 2)
+        #start_idx = max(keyframe - h_window, 0)
+        #end_idx = min(keyframe + h_window, len(frames))
+        #self.apply_joint_constraints(frames, start_idx, end_idx)
 
     def apply_joint_constraints(self, frames, start_idx, end_idx):
-        print("apply joint constraints in range", start_idx, end_idx)
+        #print("apply joint constraints in range", start_idx, end_idx)
         for frame_idx in range(start_idx, end_idx):
             o = 3
             for n in self.skeleton.animated_joints:
