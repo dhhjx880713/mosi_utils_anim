@@ -455,37 +455,42 @@ class MotionEditing(object):
 
     def edit_motion_using_ccd(self, frames, constraints):
         new_frames = np.array(frames)
-        n_frames = new_frames.shape[0]
-        active_regions = dict()
+        joint_chain_buffer = dict()
         for frame_idx, frame_constraints in constraints.items():
-            inside_constraint_region = False
             constraints = []
             fk_nodes = set()
+            apply_ik = False
             for joint_name, c in frame_constraints.items():
+                if joint_name in carry_constraints:
+                    carry_constraints[joint_name][1] = frame_idx
                 if c.orientation is not None:
                     print("use ccd on", joint_name, "at", frame_idx, " with orientation")
+                    if c.keep_orientation:
+                        carry_constraints[joint_name] = [frame_idx, -1, c.orientation]
+
                 else:
                     print("use ccd on", joint_name, "at", frame_idx)
-                joint_fk_nodes = self.skeleton.nodes[joint_name].get_fk_chain_list()
 
-                if c.joint_name in active_regions and active_regions[c.joint_name]:
+                if joint_name not in joint_chain_buffer:
+                    joint_fk_nodes = self.skeleton.nodes[joint_name].get_fk_chain_list()
+                    joint_chain_buffer[joint_name] = joint_fk_nodes
+                if c.inside_region:
+                    #print("copy", len(joint_chain_buffer[joint_name]))
                     #copy guess from previous frame if it is part of a region
-                    inside_constraint_region = True
-                    self.copy_joint_parameters(joint_fk_nodes, frames, frame_idx - 1, frame_idx)
+                    self.copy_joint_parameters(joint_chain_buffer[joint_name], frames, frame_idx - 1, frame_idx)
+                    new_frames[frame_idx] = frames[frame_idx]
                 else:
+                    #print("use ik")
                     constraints.append(c)
-                    fk_nodes.update(joint_fk_nodes)
+                    fk_nodes.update(joint_chain_buffer[joint_name])
+                    apply_ik = True
 
-            new_frame = self.skeleton.reach_target_positions(frames[frame_idx], constraints, verbose=False)
-            new_frames[frame_idx] = new_frame
-
-            # update active regions which is used to determine wether to recaluclate or copy frame parameters
-            for c in constraints:
-                active_regions[c.joint_name] = c.inside_region
+            if apply_ik:
+                new_frame = self.skeleton.reach_target_positions(frames[frame_idx], constraints, verbose=False)
+                new_frames[frame_idx] = new_frame
 
             #  interpolate outside of region constraints
-            if not inside_constraint_region and self.window > 0:
-                #print("interpolate")
+            if self.window > 0 and len(fk_nodes) > 0:
                 fk_nodes = list(fk_nodes)
                 self.interpolate_around_frame(fk_nodes, new_frames, frame_idx, self.window)
 
