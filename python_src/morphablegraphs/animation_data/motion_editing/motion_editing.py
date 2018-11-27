@@ -55,6 +55,7 @@ class KeyframeConstraint(object):
         self.orientation = orientation
         self.look_at = look_at
         self.offset = offset
+        self.inside_region = False
 
     def evaluate(self, skeleton, frame):
         if self.orientation is not None:
@@ -438,39 +439,63 @@ class MotionEditing(object):
         new_frames = np.array(frames)
         for frame_idx, frame_constraints in constraints.items():
             joint_names = []
+            fk_nodes = set()
             for joint_name, c in frame_constraints.items():
                 print("use fabrik on", joint_name, "at", frame_idx)
                 if joint_name in self._fabrik_chains:
                     joint_names += self._fabrik_chains[joint_name].node_order[:1]
                     new_frame = self._fabrik_chains[joint_name].run_partial_with_constraints(frames[frame_idx], c.position)
                     new_frames[frame_idx] = new_frame
-            if self.window:
-                self.interpolate_around_frame(new_frames, frame_idx, self.window)
+                    joint_fk_nodes = self.skeleton.nodes[joint_name].get_fk_chain_list()
+                    fk_nodes.update(joint_fk_nodes)
+
+            if self.window > 0:
+                self.interpolate_around_frame(fk_nodes, new_frames, frame_idx, self.window)
         return new_frames
 
     def edit_motion_using_ccd(self, frames, constraints):
         new_frames = np.array(frames)
+        n_frames = new_frames.shape[0]
         for frame_idx, frame_constraints in constraints.items():
+            inside_constraint_region = False
             constraints = []
+            fk_nodes = set()
             for joint_name, c in frame_constraints.items():
                 if c.orientation is not None:
                     print("use ccd on", joint_name, "at", frame_idx, " with orientation")
                 else:
                     print("use ccd on", joint_name, "at", frame_idx)
+                joint_fk_nodes = self.skeleton.nodes[joint_name].get_fk_chain_list()
+
+                if c.inside_region and frame_idx > 0:
+                    # set initial guess from previous frame if it is part of a region
+                    inside_constraint_region = True
+                    self.copy_joint_parameters(joint_fk_nodes, frames, frame_idx - 1, frame_idx)
+
                 constraints.append(c)
+                fk_nodes.update(joint_fk_nodes)
+
             new_frame = self.skeleton.reach_target_positions(frames[frame_idx], constraints, verbose=False)
             new_frames[frame_idx] = new_frame
-            if self.window > 0:
-                self.interpolate_around_frame(new_frames, frame_idx, self.window)
+
+            # do not interpolate for region constraints
+            if not inside_constraint_region and self.window > 0:
+                fk_nodes = list(fk_nodes)
+                self.interpolate_around_frame(fk_nodes, new_frames, frame_idx, self.window)
+
         return new_frames
 
-    def interpolate_around_frame(self, frames, keyframe, window):
+    def copy_joint_parameters(self, nodes, frames, src_idx, dst_idx):
+        for node in nodes:
+            o = self.skeleton.nodes[node].quaternion_frame_index * 4 + 3
+            frames[dst_idx][o:o+4] = frames[src_idx][o:o+4]
+
+    def interpolate_around_frame(self, fk_nodes, frames, keyframe, window):
         print("interpolate around frame", keyframe)
-        o = 3
-        for joint_name in self.skeleton.animated_joints:
+        for node in fk_nodes:
+            o = self.skeleton.nodes[node].quaternion_frame_index * 4 + 3
             indices = list(range(o,o+4))
             smooth_joints_around_transition_using_slerp(frames, indices, keyframe, window)
-            o += 4
 
         window = 1000
         h_window = int(window / 2)
