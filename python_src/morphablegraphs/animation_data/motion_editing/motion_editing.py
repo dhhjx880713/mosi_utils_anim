@@ -456,6 +456,7 @@ class MotionEditing(object):
     def edit_motion_using_ccd(self, frames, constraints):
         new_frames = np.array(frames)
         n_frames = new_frames.shape[0]
+        active_regions = dict()
         for frame_idx, frame_constraints in constraints.items():
             inside_constraint_region = False
             constraints = []
@@ -467,19 +468,24 @@ class MotionEditing(object):
                     print("use ccd on", joint_name, "at", frame_idx)
                 joint_fk_nodes = self.skeleton.nodes[joint_name].get_fk_chain_list()
 
-                if c.inside_region and frame_idx > 0:
-                    # set initial guess from previous frame if it is part of a region
+                if c.joint_name in active_regions and active_regions[c.joint_name]:
+                    #copy guess from previous frame if it is part of a region
                     inside_constraint_region = True
                     self.copy_joint_parameters(joint_fk_nodes, frames, frame_idx - 1, frame_idx)
-
-                constraints.append(c)
-                fk_nodes.update(joint_fk_nodes)
+                else:
+                    constraints.append(c)
+                    fk_nodes.update(joint_fk_nodes)
 
             new_frame = self.skeleton.reach_target_positions(frames[frame_idx], constraints, verbose=False)
             new_frames[frame_idx] = new_frame
 
-            # do not interpolate for region constraints
+            # update active regions which is used to determine wether to recaluclate or copy frame parameters
+            for c in constraints:
+                active_regions[c.joint_name] = c.inside_region
+
+            #  interpolate outside of region constraints
             if not inside_constraint_region and self.window > 0:
+                #print("interpolate")
                 fk_nodes = list(fk_nodes)
                 self.interpolate_around_frame(fk_nodes, new_frames, frame_idx, self.window)
 
