@@ -472,8 +472,7 @@ class MotionEditing(object):
                 if c.inside_region:
                     #print("copy", len(joint_chain_buffer[joint_name]))
                     #copy guess from previous frame if it is part of a region
-                    self.copy_joint_parameters(joint_chain_buffer[joint_name], frames, frame_idx - 1, frame_idx)
-                    new_frames[frame_idx] = frames[frame_idx]
+                    self.copy_joint_parameters(joint_chain_buffer[joint_name], new_frames, frame_idx - 1, frame_idx)
                 else:
                     if c.orientation is not None:
                         print("use ccd on", joint_name, "at", frame_idx, " with orientation")
