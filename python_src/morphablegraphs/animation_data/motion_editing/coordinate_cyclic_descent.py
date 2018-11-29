@@ -1,5 +1,6 @@
 import numpy as np
-from mg_analysis.External.transformations import quaternion_from_matrix, quaternion_matrix
+from ...external.transformations import quaternion_from_matrix, quaternion_matrix
+from ..joint_constraints import quaternion_to_axis_angle
 
 
 def normalize(v):
@@ -73,7 +74,7 @@ def orient_node_to_target(skeleton,frame,node_name, end_effector, constraint):
 
 
 def apply_joint_constraint(skeleton,frame,node_name):
-    #o = skeleton.nodes.index(node_name) * 4 + 3
+    #o = skeleton.animated_joints.index(node_name) * 4 + 3
     o = skeleton.nodes[node_name].quaternion_frame_index * 4 + 3
     q = np.array(frame[o:o + 4])
     q = skeleton.nodes[node_name].joint_constraint.apply(q)
@@ -91,11 +92,11 @@ def set_global_orientation(skeleton, frame, node_name, orientation):
     return frame
 
 
-def run_ccd(skeleton, frame, end_effector_name, constraint, eps=0.01, max_iter=50, max_depth=-1, verbose=False):
+def run_ccd(skeleton, frame, end_effector_name, constraint, eps=0.01, n_max_iter=50, max_depth=-1, verbose=False):
     pos = skeleton.nodes[end_effector_name].get_global_position(frame)
     error = np.linalg.norm(constraint.position-pos)
-    iter = 0
-    while error > eps and iter < max_iter:
+    n_iters = 0
+    while error > eps and n_iters < n_max_iter:
         node = skeleton.nodes[end_effector_name].parent
         depth = 0
 
@@ -117,8 +118,85 @@ def run_ccd(skeleton, frame, end_effector_name, constraint, eps=0.01, max_iter=5
             end_effector_pos = skeleton.nodes[end_effector_name].get_global_position(frame)
 
         error = np.linalg.norm(constraint.position - end_effector_pos)
-        iter+=1
+        n_iters += 1
 
     if verbose:
-            print("error at", iter, ":", error, "c:",constraint.position,"pos:", pos)
+            print("error at", n_iters, ":", error, "c:",constraint.position,"pos:", pos)
     return frame, error
+
+LOOK_AT_DIR = [0, -1,0] # works really
+
+
+def look_at_target(skeleton, root, end_effector, frame, position, local_dir=LOOK_AT_DIR):
+    """ find angle between the look direction and direction between end effector and target"""
+    #direction of endeffector
+    m = skeleton.nodes[end_effector].get_global_matrix(frame)
+    #offset = skeleton.nodes[end_effector].offset
+    end_effector_dir = np.dot(m[:3,:3], local_dir)
+    end_effector_dir = end_effector_dir / np.linalg.norm(end_effector_dir)
+
+    # direction from endeffector to target
+    end_effector_pos = m[:3, 3]
+    target_delta = position - end_effector_pos
+    target_dir = target_delta / np.linalg.norm(target_delta)
+
+    # find rotation to align vectors
+    root_delta_q = quaternion_from_vector_to_vector(end_effector_dir, target_dir)
+    root_delta_q = normalize(root_delta_q)
+
+    #apply global delta to get new global matrix of joint
+    global_m = quaternion_matrix(root_delta_q)
+    parent_joint = skeleton.nodes[root].parent.node_name
+    parent_m = skeleton.nodes[parent_joint].get_global_matrix(frame, use_cache=False)
+    old_global = np.dot(parent_m, skeleton.nodes[root].get_local_matrix(frame))
+    new_global = np.dot(global_m, old_global)
+    q = quaternion_from_matrix(new_global)
+    return normalize(q)
+
+
+
+def orient_node_to_target_look_at(skeleton,frame,node_name, end_effector, position):
+    o = skeleton.nodes[node_name].quaternion_frame_index * 4 + 3
+    q = look_at_target(skeleton, node_name, end_effector, frame, position)
+    q = to_local_coordinate_system(skeleton, frame, node_name, q)
+    frame[o:o + 4] = q
+    return frame
+
+
+
+def run_ccd_look_at(skeleton, frame, end_effector_name, position, eps=0.01, n_max_iter=1, max_depth=-1, verbose=False):
+    error = np.inf
+    n_iter = 0
+    while error > eps and n_iter < n_max_iter:
+        node = skeleton.nodes[end_effector_name].parent
+        depth = 0
+        while node is not None and node.node_name != skeleton.root:
+            frame = orient_node_to_target_look_at(skeleton,frame, node.node_name, end_effector_name, position)
+            if node.joint_constraint is not None:
+                frame = apply_joint_constraint(skeleton, frame, node.node_name)
+            node = node.parent
+            depth += 1
+
+        m = skeleton.nodes[end_effector_name].get_global_matrix(frame)
+        local_dir = LOOK_AT_DIR
+        end_effector_dir = np.dot(m[:3, :3], local_dir)
+        end_effector_dir = end_effector_dir / np.linalg.norm(end_effector_dir)
+
+        # direction from endeffector to target
+        end_effector_pos = m[:3,3]
+        target_delta = position - end_effector_pos
+        target_dir = target_delta / np.linalg.norm(target_delta)
+        root_delta_q = quaternion_from_vector_to_vector(end_effector_dir, target_dir)
+        root_delta_q = normalize(root_delta_q)
+        v, a = quaternion_to_axis_angle(root_delta_q)
+        error = abs(a)
+        #error = np.linalg.norm(target_dir-end_effector_dir)
+        print(error)
+        n_iter+=1
+
+    #if verbose:
+    print("error at", n_iter, ":", error, "c:",position,"pos:")
+
+    return frame, error
+
+

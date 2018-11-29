@@ -13,7 +13,7 @@ from ..external.transformations import quaternion_matrix, quaternion_from_matrix
 from .skeleton_node import SkeletonEndSiteNode, SkeletonJointNode
 from .constants import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER
 from .skeleton_models import ROCKETBOX_ANIMATED_JOINT_LIST, ROCKETBOX_FREE_JOINTS_MAP, ROCKETBOX_REDUCED_FREE_JOINTS_MAP, ROCKETBOX_SKELETON_MODEL, ROCKETBOX_BOUNDS, ROCKETBOX_TOOL_BONES, ROCKETBOX_ROOT_DIR
-from .motion_editing.coordinate_cyclic_descent import run_ccd, normalize
+from .motion_editing.coordinate_cyclic_descent import run_ccd, normalize, set_global_orientation, run_ccd_look_at, orient_node_to_target_look_at
 try:
     from mgrd import Skeleton as MGRDSkeleton
     from mgrd import SkeletonNode as MGRDSkeletonNode
@@ -434,7 +434,8 @@ class Skeleton(object):
         print("reached with error", error)
         return frame
 
-    def reach_target_positions(self, frame, constraints, eps=0.0001, max_iter=500, verbose=False):
+
+    def reach_target_positions(self, frame, constraints, eps=0.0001, n_max_iter=500, verbose=False):
         error = np.inf
         prev_error = error
         iter = 0
@@ -469,6 +470,13 @@ class Skeleton(object):
             q = quaternion_from_matrix(local_m)
             offset = self.nodes[joint_name].quaternion_frame_index*4+3
             frame[offset:offset+4] = normalize(q)
+        return frame
+
+    def look_at(self, frame, joint_name, position, eps=0.0001, n_max_iter=1, verbose=False):
+        frame, error = run_ccd_look_at(self, frame, joint_name, position, eps, n_max_iter, -1, verbose)
+        #frame = orient_node_to_target_look_at(self,frame,joint_name, joint_name, position)
+        #error =0
+        print("reached with error", error)
         return frame
 
 
