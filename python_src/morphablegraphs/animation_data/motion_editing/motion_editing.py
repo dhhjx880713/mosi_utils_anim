@@ -48,14 +48,16 @@ def add_frames(skeleton, a, b):
 
 
 class KeyframeConstraint(object):
-    def __init__(self, frame_idx, joint_name, position, orientation=None, look_at=False, offset=None):
+    def __init__(self, frame_idx, joint_name, position, orientation=None, look_at=False, offset=None, look_at_pos=None):
         self.frame_idx = frame_idx
         self.joint_name = joint_name
         self.position = position
         self.orientation = orientation
         self.look_at = look_at
+        self.look_at_pos = look_at_pos
         self.offset = offset
         self.inside_region = False
+        self.end_of_region = False
         self.inside_region_orientation = False
         self.keep_orientation = False
 
@@ -457,6 +459,12 @@ class MotionEditing(object):
             if self.window > 0:
                 self.interpolate_around_frame(fk_nodes, new_frames, frame_idx, self.window)
         return new_frames
+
+    def edit_motion_to_look_at_target(self, frames, position, start_idx, end_idx):
+        joint_name = self.skeleton.skeleton_model["joints"]["head"]
+        for frame_idx in range(start_idx, end_idx):
+            frames[frame_idx] = self.skeleton.look_at(frames[frame_idx], joint_name, position, n_max_iter=1)
+        return frames
 
     def edit_motion_using_ccd(self, frames, constraints):
         new_frames = np.array(frames)
