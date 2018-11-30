@@ -61,6 +61,16 @@ class KeyframeConstraint(object):
         self.inside_region_orientation = False
         self.keep_orientation = False
 
+        # set in case it is a relative constraint
+        self.relative_parent_joint_name = None # joint the offsets points from to the target
+        self.relative_offset = None
+
+    def instantiate_relative_constraint(self, skeleton, frame):
+        """ turn relative constraint into a normal constraint"""
+        ppos = skeleton.nodes[self.relative_parent_joint_name].get_global_position(frame)
+        pos = ppos + self.relative_offset
+        return KeyframeConstraint(self.frame_idx, self.joint_name, pos)
+
     def evaluate(self, skeleton, frame):
         if self.orientation is not None:
             parent_joint = skeleton.nodes[self.joint_name].parent

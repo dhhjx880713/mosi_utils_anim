@@ -448,11 +448,16 @@ class Skeleton(object):
                 joint_error = 0
                 if c.look_at and c.look_at_pos is not None:
                     frame, joint_error = run_ccd_look_at(self, frame, c.joint_name, c.look_at_pos, eps, n_max_iter, max_depth, verbose)
-                if c.position is not None:
+                if c.position is not None and c.relative_parent_joint_name is None:
                     frame, _joint_error = run_ccd(self, frame, c.joint_name, c, eps, n_max_iter, max_depth, verbose)
                     joint_error += _joint_error
                 elif c.orientation is not None:
                     frame = set_global_orientation(self, frame, c.joint_name, c.orientation)
+                elif c.relative_parent_joint_name is not None: # run ccd on relative constraint
+                    #turn relative constraint into a normal constraint
+                    _c = c.instantiate_relative_constraint(self, frame)
+                    frame, _joint_error = run_ccd(self, frame, _c.joint_name, _c, eps, n_max_iter, max_depth, verbose)
+                    joint_error += _joint_error
                 error += joint_error
             if abs(prev_error - error) < eps:
                 is_stuck = True
