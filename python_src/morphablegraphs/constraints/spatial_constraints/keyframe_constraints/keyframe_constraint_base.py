@@ -22,6 +22,12 @@ class KeyframeConstraintBase(SpatialConstraintBase):
             self.canonical_end_keyframe = constraint_desc["canonical_end_keyframe"]
         else:
             self.canonical_end_keyframe = None
+        self.keep_orientation = False
+        if "keep_orientation" in constraint_desc:
+            self.keep_orientation = constraint_desc["keep_orientation"]
+        self.relative_joint_name = None
+        if "relative_joint_name" in constraint_desc:
+            self.relative_joint_name = constraint_desc["relative_joint_name"]
 
     def is_generated(self):
         return self.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION and "generated" in list(self.semantic_annotation.keys())
