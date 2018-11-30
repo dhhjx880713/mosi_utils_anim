@@ -438,27 +438,28 @@ class Skeleton(object):
     def reach_target_positions(self, frame, constraints, eps=0.0001, n_max_iter=500, verbose=False):
         error = np.inf
         prev_error = error
-        iter = 0
+        n_iters = 0
         max_depth = -1
         is_stuck = False
-        while iter < max_iter and error > eps and not is_stuck:
-            for c in constraints:
-                frame, joint_error = run_ccd(self, frame, c.joint_name, c, eps, max_iter, max_depth, verbose)
+        while n_iters < n_max_iter and error > eps and not is_stuck:
             error = 0
+            print("iter", n_iters)
             for c in constraints:
-                if c.offset is not None:
-                    m = self.nodes[c.joint_name].get_global_matrix(frame)
-                    end_effector_pos = np.dot(m, c.offset)[:3]
-                else:
-                    end_effector_pos = self.nodes[c.joint_name].get_global_position(frame)
-                joint_error = np.linalg.norm(end_effector_pos-c.position)
+                joint_error = 0
+                if c.look_at and c.look_at_pos is not None:
+                    frame, joint_error = run_ccd_look_at(self, frame, c.joint_name, c.look_at_pos, eps, n_max_iter, max_depth, verbose)
+                if c.position is not None:
+                    frame, _joint_error = run_ccd(self, frame, c.joint_name, c, eps, n_max_iter, max_depth, verbose)
+                    joint_error += _joint_error
+                elif c.orientation is not None:
+                    frame = set_global_orientation(self, frame, c.joint_name, c.orientation)
                 error += joint_error
             if abs(prev_error - error) < eps:
                 is_stuck = True
+            #print("iter", is_stuck, max_iter, error,eps, prev_error)
             prev_error = error
-            iter += 1
-
-        print("reached with error", error)
+            n_iters += 1
+        print("reached with error", error, n_iters)
         return frame
 
     def set_joint_orientation(self, frame, joint_name, orientation):
