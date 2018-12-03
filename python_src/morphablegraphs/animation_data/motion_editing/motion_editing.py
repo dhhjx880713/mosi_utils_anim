@@ -13,7 +13,7 @@ from .fabrik_chain2 import FABRIKChain, FABRIKBone
 from ..joint_constraints import HingeConstraint2, BallSocketConstraint, ConeConstraint, ShoulderConstraint
 from ...external.transformations import quaternion_matrix, quaternion_from_matrix
 from ..skeleton import LOOK_AT_DIR, SPINE_LOOK_AT_DIR
-
+from ..motion_blending import smooth_quaternion_frames
 
 def create_fabrik_chain(skeleton, frame, node_order, activate_constraints=False):
     bones = dict()
@@ -512,7 +512,8 @@ class MotionEditing(object):
         joint_chain_buffer = dict()
         n_frames = len(frames)
         prev_static_joints = set()
-        static_joints = set()
+
+        region_overlaps = []
         for frame_idx, frame_constraints in constraints.items():
             constraints = []
             fk_nodes = set()
@@ -535,10 +536,15 @@ class MotionEditing(object):
                     constraints.append(c)
                     fk_nodes.update(joint_chain_buffer[joint_name])
                     apply_ik = True
+                    if c.inside_region and prev_static_joints != static_joints:
+                        region_overlaps.append(frame_idx)
 
             if apply_ik:
                 #print("find free joints at", frame_idx)
-                chain_end_joints = self.find_free_root_joints(constraints, joint_chain_buffer)
+                if len(static_joints) > 0:
+                    chain_end_joints = self.find_free_root_joints(constraints, joint_chain_buffer)
+                else:
+                    chain_end_joints = None
                 new_frame = self.skeleton.reach_target_positions(new_frames[frame_idx], constraints, chain_end_joints, verbose=False)
                 new_frames[frame_idx] = new_frame
 
@@ -554,14 +560,22 @@ class MotionEditing(object):
                 next_frame_unconstrained = True
 
             outside_of_region = next_frame_unconstrained or prev_frame_unconstrained or apply_ik
-            #print("outside of region", outside_of_region, frame_idx)
 
             if outside_of_region and self.window > 0 and len(fk_nodes) > 0:
-
+                print("outside of region", list(prev_static_joints), list(static_joints))
                 fk_nodes = list(fk_nodes)
+                #fk_nodes = self.skeleton.animated_joints
                 self.interpolate_around_frame(fk_nodes, new_frames, frame_idx, self.window)
+                #new_frames = smooth_quaternion_frames(new_frames, frame_idx,
+                #                                      self.window, False)
+
 
             prev_static_joints = static_joints
+
+        for frame_idx in region_overlaps:
+            print("apply transition smoothing", frame_idx)
+            new_frames = smooth_quaternion_frames(new_frames, frame_idx,
+                                                  self.window, False)
         return new_frames
 
     def apply_carry_constraints(self, frames, constraints):
