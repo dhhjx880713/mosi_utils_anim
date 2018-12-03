@@ -92,7 +92,7 @@ def set_global_orientation(skeleton, frame, node_name, orientation):
     return frame
 
 
-def run_ccd(skeleton, frame, end_effector_name, constraint, eps=0.01, n_max_iter=50, max_depth=-1, verbose=False):
+def run_ccd(skeleton, frame, end_effector_name, constraint, eps=0.01, n_max_iter=50, chain_end_joint=None, verbose=False):
     pos = skeleton.nodes[end_effector_name].get_global_position(frame)
     error = np.linalg.norm(constraint.position-pos)
     n_iters = 0
@@ -100,7 +100,7 @@ def run_ccd(skeleton, frame, end_effector_name, constraint, eps=0.01, n_max_iter
         node = skeleton.nodes[end_effector_name].parent
         depth = 0
 
-        while node is not None and node.node_name != skeleton.root:
+        while node is not None and node.node_name != chain_end_joint and node.parent is not None:
             if constraint.orientation is not None:
                 frame = set_global_orientation(skeleton, frame, end_effector_name, constraint.orientation)
 
