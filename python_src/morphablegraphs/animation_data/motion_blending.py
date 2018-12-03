@@ -29,8 +29,13 @@ def smooth_joints_around_transition_using_slerp(quat_frames, joint_param_indices
     h_window = int(window/2)
     start_frame = max(discontinuity-h_window, 0)
     end_frame = min(discontinuity+h_window, quat_frames.shape[0]-1)
-    create_transition_for_joints_using_slerp(quat_frames, joint_param_indices, start_frame, discontinuity, h_window, BLEND_DIRECTION_FORWARD)
-    create_transition_for_joints_using_slerp(quat_frames, joint_param_indices, discontinuity, end_frame, h_window, BLEND_DIRECTION_BACKWARD)
+    start_window = discontinuity-start_frame
+    end_window = end_frame-discontinuity
+    if start_window > 0:
+        create_transition_for_joints_using_slerp(quat_frames, joint_param_indices, start_frame, discontinuity, start_window, BLEND_DIRECTION_FORWARD)
+    if end_window > 0:
+        create_transition_for_joints_using_slerp(quat_frames, joint_param_indices, discontinuity, end_frame, end_window, BLEND_DIRECTION_BACKWARD)
+
 
 
 def create_transition_for_joints_using_slerp(quat_frames, joint_param_indices, start_frame, end_frame, steps, direction=BLEND_DIRECTION_FORWARD):
