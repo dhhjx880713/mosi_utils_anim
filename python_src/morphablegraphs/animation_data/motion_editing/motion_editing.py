@@ -12,6 +12,7 @@ from .utils import convert_exp_frame_to_quat_frame
 from .fabrik_chain2 import FABRIKChain, FABRIKBone
 from ..joint_constraints import HingeConstraint2, BallSocketConstraint, ConeConstraint, ShoulderConstraint
 from ...external.transformations import quaternion_matrix, quaternion_from_matrix
+from ..skeleton import LOOK_AT_DIR, SPINE_LOOK_AT_DIR
 
 
 def create_fabrik_chain(skeleton, frame, node_order, activate_constraints=False):
@@ -471,9 +472,14 @@ class MotionEditing(object):
         return new_frames
 
     def edit_motion_to_look_at_target(self, frames, position, start_idx, end_idx):
-        joint_name = self.skeleton.skeleton_model["joints"]["head"]
+        spine_joint_name = self.skeleton.skeleton_model["joints"]["spine_1"]
+        head_joint_name = self.skeleton.skeleton_model["joints"]["head"]
         for frame_idx in range(start_idx, end_idx):
-            frames[frame_idx] = self.skeleton.look_at(frames[frame_idx], joint_name, position, n_max_iter=1)
+            frames[frame_idx] = self.skeleton.look_at(frames[frame_idx], spine_joint_name, position, n_max_iter=1, local_dir=SPINE_LOOK_AT_DIR)
+            frames[frame_idx] = self.skeleton.look_at(frames[frame_idx], head_joint_name, position, n_max_iter=1, local_dir=LOOK_AT_DIR)
+            fk_nodes = self.skeleton.nodes[head_joint_name].get_fk_chain_list()
+        self.interpolate_around_frame(fk_nodes, frames, start_idx, self.window)
+        self.interpolate_around_frame(fk_nodes, frames, end_idx, self.window)
         return frames
 
     def edit_motion_using_ccd(self, frames, constraints):

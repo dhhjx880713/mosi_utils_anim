@@ -125,7 +125,7 @@ def run_ccd(skeleton, frame, end_effector_name, constraint, eps=0.01, n_max_iter
     return frame, error
 
 LOOK_AT_DIR = [0, -1,0] # works really
-
+SPINE_LOOK_AT_DIR = [0,0,1]
 
 def look_at_target(skeleton, root, end_effector, frame, position, local_dir=LOOK_AT_DIR):
     """ find angle between the look direction and direction between end effector and target"""
@@ -155,30 +155,30 @@ def look_at_target(skeleton, root, end_effector, frame, position, local_dir=LOOK
 
 
 
-def orient_node_to_target_look_at(skeleton,frame,node_name, end_effector, position):
+def orient_node_to_target_look_at(skeleton,frame,node_name, end_effector, position,  local_dir=LOOK_AT_DIR):
     o = skeleton.nodes[node_name].quaternion_frame_index * 4 + 3
-    q = look_at_target(skeleton, node_name, end_effector, frame, position)
+    q = look_at_target(skeleton, node_name, end_effector, frame, position, local_dir)
     q = to_local_coordinate_system(skeleton, frame, node_name, q)
     frame[o:o + 4] = q
     return frame
 
 
 
-def run_ccd_look_at(skeleton, frame, end_effector_name, position, eps=0.01, n_max_iter=1, max_depth=-1, verbose=False):
+def run_ccd_look_at(skeleton, frame, end_effector_name, position, eps=0.01, n_max_iter=1, local_dir=LOOK_AT_DIR):
     error = np.inf
     n_iter = 0
     while error > eps and n_iter < n_max_iter:
         node = skeleton.nodes[end_effector_name].parent
         depth = 0
         while node is not None and node.node_name != skeleton.root:
-            frame = orient_node_to_target_look_at(skeleton,frame, node.node_name, end_effector_name, position)
+            frame = orient_node_to_target_look_at(skeleton,frame, node.node_name, end_effector_name, position, local_dir)
             if node.joint_constraint is not None:
                 frame = apply_joint_constraint(skeleton, frame, node.node_name)
             node = node.parent
             depth += 1
 
         m = skeleton.nodes[end_effector_name].get_global_matrix(frame)
-        local_dir = LOOK_AT_DIR
+
         end_effector_dir = np.dot(m[:3, :3], local_dir)
         end_effector_dir = end_effector_dir / np.linalg.norm(end_effector_dir)
 

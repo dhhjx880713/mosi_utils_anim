@@ -478,8 +478,8 @@ class Skeleton(object):
             frame[offset:offset+4] = normalize(q)
         return frame
 
-    def look_at(self, frame, joint_name, position, eps=0.0001, n_max_iter=1, verbose=False):
-        frame, error = run_ccd_look_at(self, frame, joint_name, position, eps, n_max_iter, -1, verbose)
+    def look_at(self, frame, joint_name, position, eps=0.0001, n_max_iter=1, local_dir=LOOK_AT_DIR):
+        frame, error = run_ccd_look_at(self, frame, joint_name, position, eps, n_max_iter, local_dir)
         #frame = orient_node_to_target_look_at(self,frame,joint_name, joint_name, position)
         #error =0
         print("reached with error", error)
