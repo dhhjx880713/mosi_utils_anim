@@ -361,7 +361,7 @@ class MotionPrimitiveConstraints(object):
         if version == 1:
             builder = IKConstraintsBuilder(self.action_name, self.motion_primitive_name, motion_state_graph, self.skeleton)
         else:
-            builder = IKConstraintsBuilder2(self.action_name, self.motion_primitive_name, motion_state_graph, self.skeleton)
+            builder = IKConstraintsBuilder2(self.skeleton)
         return builder.convert_to_ik_constraints(self.constraints, frame_offset, time_function, constrain_orientation)
 
     def get_ca_constraints(self):

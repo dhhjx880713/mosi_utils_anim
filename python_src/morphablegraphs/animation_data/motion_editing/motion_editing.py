@@ -12,7 +12,8 @@ from .utils import convert_exp_frame_to_quat_frame
 from .fabrik_chain2 import FABRIKChain, FABRIKBone
 from ..joint_constraints import HingeConstraint2, BallSocketConstraint, ConeConstraint, ShoulderConstraint
 from ...external.transformations import quaternion_matrix, quaternion_from_matrix
-
+from ..skeleton import LOOK_AT_DIR, SPINE_LOOK_AT_DIR
+from ..motion_blending import smooth_quaternion_frames
 
 def create_fabrik_chain(skeleton, frame, node_order, activate_constraints=False):
     bones = dict()
@@ -48,15 +49,28 @@ def add_frames(skeleton, a, b):
 
 
 class KeyframeConstraint(object):
-    def __init__(self, frame_idx, joint_name, position, orientation=None, look_at=False, offset=None):
+    def __init__(self, frame_idx, joint_name, position, orientation=None, look_at=False, offset=None, look_at_pos=None):
         self.frame_idx = frame_idx
         self.joint_name = joint_name
         self.position = position
         self.orientation = orientation
         self.look_at = look_at
+        self.look_at_pos = look_at_pos
         self.offset = offset
         self.inside_region = False
+        self.end_of_region = False
+        self.inside_region_orientation = False
         self.keep_orientation = False
+
+        # set in case it is a relative constraint
+        self.relative_parent_joint_name = None # joint the offsets points from to the target
+        self.relative_offset = None
+
+    def instantiate_relative_constraint(self, skeleton, frame):
+        """ turn relative constraint into a normal constraint"""
+        ppos = skeleton.nodes[self.relative_parent_joint_name].get_global_position(frame)
+        pos = ppos + self.relative_offset
+        return KeyframeConstraint(self.frame_idx, self.joint_name, pos)
 
     def evaluate(self, skeleton, frame):
         if self.orientation is not None:
@@ -113,8 +127,11 @@ class MotionEditing(object):
             if c["type"] == "hinge":
                 swing_axis = np.array(c["swing_axis"])
                 twist_axis = np.array(c["twist_axis"])
+                deg_angle_range = None
+                if "k1" in c and "k2" in c:
+                    deg_angle_range = [c["k1"], c["k2"]]
                 print("add hinge constraint to", skel_j)
-                h = HingeConstraint2(swing_axis, twist_axis)
+                h = HingeConstraint2(swing_axis, twist_axis, deg_angle_range)
                 self.skeleton.nodes[skel_j].joint_constraint = h
             elif c["type"] == "ball":
                 axis = np.array(c["axis"])
@@ -454,42 +471,111 @@ class MotionEditing(object):
                 self.interpolate_around_frame(fk_nodes, new_frames, frame_idx, self.window)
         return new_frames
 
+    def edit_motion_to_look_at_target(self, frames, position, start_idx, end_idx):
+        spine_joint_name = self.skeleton.skeleton_model["joints"]["spine_1"]
+        head_joint_name = self.skeleton.skeleton_model["joints"]["head"]
+        for frame_idx in range(start_idx, end_idx):
+            frames[frame_idx] = self.skeleton.look_at(frames[frame_idx], spine_joint_name, position, n_max_iter=1, local_dir=SPINE_LOOK_AT_DIR)
+            frames[frame_idx] = self.skeleton.look_at(frames[frame_idx], head_joint_name, position, n_max_iter=1, local_dir=LOOK_AT_DIR)
+            fk_nodes = self.skeleton.nodes[head_joint_name].get_fk_chain_list()
+        self.interpolate_around_frame(fk_nodes, frames, start_idx, self.window)
+        self.interpolate_around_frame(fk_nodes, frames, end_idx, self.window)
+        return frames
+
+    def get_static_joints(self, frame_constraints):
+        static_joints = set()
+        for joint_name, c in frame_constraints.items():
+            if c.inside_region:
+                static_joints.add(joint_name)
+        return static_joints
+
+    def find_free_root_joints(self, constraints, joint_chains):
+        """ check for each joint in the joint if it is free"""
+        root_joints = dict()
+        for c in constraints:
+            root_joints[c.joint_name] = None
+            for free_joint in joint_chains[c.joint_name]:
+                is_free = True
+                for joint_name in joint_chains:
+                    if joint_name == c.joint_name:
+                        continue
+                    if free_joint in joint_chains[joint_name]:
+                        is_free = False
+                if not is_free:
+                    root_joints[c.joint_name] = free_joint
+                    print("set root joint for ", c.joint_name, "to", free_joint)
+                    break
+        return root_joints
+
     def edit_motion_using_ccd(self, frames, constraints):
         new_frames = np.array(frames)
         joint_chain_buffer = dict()
+        n_frames = len(frames)
+        prev_static_joints = set()
+
+        region_overlaps = []
         for frame_idx, frame_constraints in constraints.items():
             constraints = []
             fk_nodes = set()
             apply_ik = False
+            static_joints = self.get_static_joints(frame_constraints)
             for joint_name, c in frame_constraints.items():
-                if c.orientation is not None:
-                    print("use ccd on", joint_name, "at", frame_idx, " with orientation")
-                else:
-                    print("use ccd on", joint_name, "at", frame_idx)
-
                 if joint_name not in joint_chain_buffer:
                     joint_fk_nodes = self.skeleton.nodes[joint_name].get_fk_chain_list()
                     joint_chain_buffer[joint_name] = joint_fk_nodes
-                if c.inside_region:
-                    #print("copy", len(joint_chain_buffer[joint_name]))
+                if c.inside_region and prev_static_joints == static_joints:
+                    #print("copy parameters for", joint_name, len(joint_chain_buffer[joint_name]))
                     #copy guess from previous frame if it is part of a region
-                    self.copy_joint_parameters(joint_chain_buffer[joint_name], frames, frame_idx - 1, frame_idx)
-                    new_frames[frame_idx] = frames[frame_idx]
+
+                    self.copy_joint_parameters(joint_chain_buffer[joint_name], new_frames, frame_idx - 1, frame_idx)
                 else:
-                    #print("use ik")
+                    if c.orientation is not None:
+                        print("use ccd on", joint_name, "at", frame_idx, " with orientation")
+                    else:
+                        print("use ccd on", joint_name, "at", frame_idx)
                     constraints.append(c)
                     fk_nodes.update(joint_chain_buffer[joint_name])
                     apply_ik = True
+                    if c.inside_region and prev_static_joints != static_joints:
+                        region_overlaps.append(frame_idx)
 
             if apply_ik:
-                new_frame = self.skeleton.reach_target_positions(frames[frame_idx], constraints, verbose=False)
+                #print("find free joints at", frame_idx)
+                if len(static_joints) > 0:
+                    chain_end_joints = self.find_free_root_joints(constraints, joint_chain_buffer)
+                else:
+                    chain_end_joints = None
+                new_frame = self.skeleton.reach_target_positions(new_frames[frame_idx], constraints, chain_end_joints, verbose=False)
                 new_frames[frame_idx] = new_frame
 
             #  interpolate outside of region constraints
-            if self.window > 0 and len(fk_nodes) > 0:
-                fk_nodes = list(fk_nodes)
-                self.interpolate_around_frame(fk_nodes, new_frames, frame_idx, self.window)
 
+            if frame_idx + 1 in constraints:
+                prev_frame_unconstrained = len(constraints[frame_idx+1])==0
+            else:
+                prev_frame_unconstrained = True
+            if frame_idx-1 in constraints:
+                next_frame_unconstrained = len(constraints[frame_idx-1]) == 0
+            else:
+                next_frame_unconstrained = True
+
+            outside_of_region = next_frame_unconstrained or prev_frame_unconstrained or apply_ik
+
+            if outside_of_region and self.window > 0 and len(fk_nodes) > 0:
+                print("outside of region", list(prev_static_joints), list(static_joints))
+                fk_nodes = list(fk_nodes)
+                #fk_nodes = self.skeleton.animated_joints
+                self.interpolate_around_frame(fk_nodes, new_frames, frame_idx, self.window)
+                #new_frames = smooth_quaternion_frames(new_frames, frame_idx,
+                #                                      self.window, False)
+
+
+            prev_static_joints = static_joints
+
+        for frame_idx in region_overlaps:
+            print("apply transition smoothing", frame_idx)
+            new_frames = smooth_quaternion_frames(new_frames, frame_idx,
+                                                  self.window, False)
         return new_frames
 
     def apply_carry_constraints(self, frames, constraints):
@@ -504,15 +590,14 @@ class MotionEditing(object):
                         active_orientations[c.joint_name] = c.orientation
                     elif c.joint_name in active_orientations:
                         active_orientations[c.joint_name] = None
-                    else:
-                        print("no constraint on frame", frame_idx, c.keep_orientation)
+                    #else:
+                    #    print("no constraint on frame", frame_idx, c.keep_orientation)
             # apply active orientations
             for joint_name in active_orientations:
                 if active_orientations[joint_name] is not None:
-                    print("set orientation for", joint_name, "at", frame_idx)
+                    #print("set orientation for", joint_name, "at", frame_idx)
                     frames[frame_idx] = self.skeleton.set_joint_orientation(frames[frame_idx], joint_name, active_orientations[joint_name] )
         return frames
-
 
     def set_joint_orientation(self, joint_name, frames, start_idx, end_idx, target_orientation):
         for frame_idx in range(start_idx, end_idx):
@@ -531,14 +616,14 @@ class MotionEditing(object):
             indices = list(range(o,o+4))
             smooth_joints_around_transition_using_slerp(frames, indices, keyframe, window)
 
-        window = 1000
-        h_window = int(window / 2)
-        start_idx = max(keyframe - h_window, 0)
-        end_idx = min(keyframe + h_window, len(frames))
-        self.apply_joint_constraints(frames, start_idx, end_idx)
+        #window = 1000
+        #h_window = int(window / 2)
+        #start_idx = max(keyframe - h_window, 0)
+        #end_idx = min(keyframe + h_window, len(frames))
+        #self.apply_joint_constraints(frames, start_idx, end_idx)
 
     def apply_joint_constraints(self, frames, start_idx, end_idx):
-        print("apply joint constraints in range", start_idx, end_idx)
+        #print("apply joint constraints in range", start_idx, end_idx)
         for frame_idx in range(start_idx, end_idx):
             o = 3
             for n in self.skeleton.animated_joints:

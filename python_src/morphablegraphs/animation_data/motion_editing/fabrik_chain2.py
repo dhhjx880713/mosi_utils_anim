@@ -6,11 +6,8 @@
 """
 import math
 import numpy as np
-from mg_analysis.External.transformations import quaternion_inverse, quaternion_multiply, quaternion_from_matrix, euler_from_quaternion
-from mg_analysis.Graphics.Renderer.primitive_shapes import SphereRenderer
-from mg_analysis.Graphics.Renderer.lines import DebugLineRenderer
-from mg_analysis.Graphics import Materials
-from mg_analysis.morphablegraphs.python_src.morphablegraphs.animation_data.motion_editing.analytical_inverse_kinematics import calculate_limb_joint_rotation, calculate_limb_root_rotation, to_local_coordinate_system
+from ...external.transformations import quaternion_inverse, quaternion_multiply, quaternion_from_matrix, euler_from_quaternion
+from ...animation_data.motion_editing.analytical_inverse_kinematics import calculate_limb_joint_rotation, calculate_limb_root_rotation, to_local_coordinate_system
 
 def sign(x):
     return 1 if x >= 0 else -1
@@ -111,7 +108,7 @@ class FABRIKBone(object):
 ROOT_OFFSET = np.array([0,0,0], np.float)
 
 class FABRIKChain(object):
-    def __init__(self, skeleton, bones, node_order, tolerance=0.01, max_iter=500, frame_offset=3, root_offset=ROOT_OFFSET, activate_constraints=False):
+    def __init__(self, skeleton, bones, node_order, tolerance=0.01, delta_tolerance=0.0001, max_iter=500, frame_offset=3, root_offset=ROOT_OFFSET, activate_constraints=False, visualize=False):
         self.skeleton = skeleton
         self.bones = bones
         self.node_order = node_order
@@ -124,14 +121,16 @@ class FABRIKChain(object):
         self.root_offset = root_offset
         self.activate_constraints = activate_constraints
         self.frame_offset = frame_offset
-
-        slices = 20
-        stacks = 20
-        radius = 1
-        self.sphere_renderer = SphereRenderer(slices, stacks, radius, material=Materials.blue)
-        self.root_render = SphereRenderer(slices, stacks, 2*radius, material=Materials.red)
-        self.line_renderer = DebugLineRenderer([0,0,0], [0,1,0])
-        self.lights = []
+        self.delta_tolerance = delta_tolerance
+        self.visualize = visualize
+        if self.visualize:
+            slices = 20
+            stacks = 20
+            radius = 1
+            self.sphere_renderer = SphereRenderer(slices, stacks, radius, material=Materials.blue)
+            self.root_render = SphereRenderer(slices, stacks, 2*radius, material=Materials.red)
+            self.line_renderer = DebugLineRenderer([0,0,0], [0,1,0])
+            self.lights = []
 
     def draw(self, m, v, pr, l):
         #print(self.node_order)

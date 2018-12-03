@@ -17,7 +17,7 @@ try:
 except ImportError:
     pass
 from .mgrd_motion_primitive_sample_filter import MGRDMotionPrimitiveSampleFilter as MGRDFilter
-from ..utilities import write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_ERROR
+from ..utilities import write_message_to_log, LOG_MODE_DEBUG, LOG_MODE_ERROR, LOG_MODE_INFO
 SAMPLING_MODE_RANDOM = "random_discrete"
 SAMPLING_MODE_CLUSTER_TREE_SEARCH = "cluster_tree_search"
 SAMPLING_MODE_RANDOM_SPLINE = "random_spline"
@@ -39,7 +39,6 @@ class MotionPrimitiveGenerator(object):
         self.prev_action_name = action_constraints.prev_action_name
         self._motion_state_graph = self._action_constraints.motion_state_graph
         self.skeleton = self._motion_state_graph.skeleton
-        self._constrained_gmm_builder = None
         self.numerical_minimizer = OptimizerBuilder(self._algorithm_config).build_spatial_and_naturalness_error_minimizer()
         self.mgrd_filter = MGRDFilter()
 
@@ -169,25 +168,20 @@ class MotionPrimitiveGenerator(object):
             return initial_guess
 
     def _get_best_fit_sample_using_gmm(self, graph_node, mp_constraints, prev_mp_name, prev_frames, prev_parameters):
-        #  1) get gaussian_mixture_model and modify it based on the current state and settings
-        if self._constrained_gmm_builder is not None:
-            gmm = self._constrained_gmm_builder.build(self.action_name, mp_constraints.motion_primitive_name, mp_constraints,
-                                                      self.prev_action_name, prev_mp_name,
-                                                      prev_frames, prev_parameters)
-            samples = gmm.sample(self.n_random_samples)
 
-        elif self.use_transition_model and prev_parameters is not None:
+        #  1) get gaussian_mixture_model and modify it based on the current state and settings
+        if self.use_transition_model and prev_parameters is not None:
             gmm = self._predict_gmm(mp_constraints.motion_primitive_name, prev_mp_name, prev_parameters)
             samples = gmm.sample(self.n_random_samples)
         else:
             samples = graph_node.sample_low_dimensional_vectors(self.n_random_samples)
-        #  2) sample parameters  from the Gaussian Mixture Model based on constraints and make sure
-        #     the resulting motion is valid
+            #samples = [graph_node.sample_low_dimensional_vector()]
 
-        parameters, min_error = self.evaluate_samples_using_constraints(samples, graph_node, mp_constraints, prev_frames)
+        #  2) sample parameters  from the Gaussian Mixture Model based on constraints
+        best_sample, min_error = self.evaluate_samples_using_constraints(samples, graph_node, mp_constraints, prev_frames)
 
         write_message_to_log("Found best sample with distance: "+ str(min_error), LOG_MODE_DEBUG)
-        return parameters
+        return best_sample
 
     def generate_random_sample(self, node_key, prev_mp_name="", prev_parameters=None):
         if self.use_transition_model and prev_parameters is not None and self._motion_state_graph.nodes[(self.prev_action_name, prev_mp_name)].has_transition_model(node_key):
@@ -231,14 +225,16 @@ class MotionPrimitiveGenerator(object):
         * error : bool
             the error of the best sample
         """
-        best_sample = None
+        obj_params = mp_node, constraints, prev_frames
+        best_idx = 0
         min_error = np.inf
         for idx, s_vector in enumerate(samples):
-            object_function_params = mp_node, constraints, prev_frames
-            error = obj_spatial_error_sum(s_vector, object_function_params)
+            error = obj_spatial_error_sum(s_vector, obj_params)
             if min_error > error:
                 min_error = error
-                best_sample = s_vector
+                best_idx = idx
+
+        print("best sample", best_idx, min_error)
         constraints.min_error = min_error
-        return best_sample, min_error
+        return samples[best_idx], min_error
 

@@ -5,10 +5,7 @@
  https://project.dke.maastrichtuniversity.nl/robotlab/wp-content/uploads/Bachelor-thesis-Renzo-Poddighe.pdf
 """
 import numpy as np
-from mg_analysis.External.transformations import quaternion_inverse, quaternion_multiply, quaternion_from_matrix
-from ......Graphics.Renderer.primitive_shapes import SphereRenderer
-from ......Graphics.Renderer.lines import DebugLineRenderer
-from ......Graphics import Materials
+from ...external.transformations import quaternion_inverse, quaternion_multiply, quaternion_from_matrix
 
 
 def quaternion_from_vector_to_vector(a, b):
@@ -45,29 +42,7 @@ class FABRIKChain(object):
         self.distances = []
         self.target = None
         self.root_pos = None
-        slices = 20
-        stacks = 20
-        radius = 1
-        self.sphere_renderer = SphereRenderer(slices, stacks, radius, material=Materials.blue)
-        self.root_render = SphereRenderer(slices, stacks, 2*radius, material=Materials.red)
-        self.line_renderer = DebugLineRenderer([0,0,0], [0,1,0])
-        self.lights = []
 
-    def draw(self, m, v, pr, l):
-        for idx, p in enumerate(self.positions):
-            m[3, :3] = p
-            if idx >0:
-                self.sphere_renderer.draw(m,v,pr, l)
-            else:
-                self.root_render.draw(m,v,pr, l)
-            if idx < len(self.joints) and False:
-                joint_name = self.joints[idx]
-                constraint = self.skeleton.nodes[joint_name].joint_constraint
-                if constraint is not None:
-                    a = [0,0,0]
-                    b = constraint.axis*10
-                    self.line_renderer.set_line(a,b, [1,0,0])
-                    self.line_renderer.draw(m, v, pr)
 
     def set_positions_from_frame(self, frame, parent_length):
         self.skeleton.clear_cached_global_matrices()

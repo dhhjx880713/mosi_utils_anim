@@ -45,6 +45,7 @@ class GlobalTransformConstraint(KeyframeConstraintBase):
             self.event_target = constraint_desc["eventTarget"]
 
 
+
     def evaluate_motion_spline(self, aligned_spline):
         error = 0
         frame = aligned_spline.evaluate(self.canonical_keyframe)
