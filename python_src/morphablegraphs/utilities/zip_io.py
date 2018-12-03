@@ -51,7 +51,6 @@ class ZipReader(object):
         write_message_to_log("Format version " + str(self.format_version), LOG_MODE_DEBUG)
         if self.format_version >= 2.0:
             structure_desc = self._read_elementary_action_file_structure_from_zip_v2()
-            data["hand_pose_info"] = self._read_hand_pose_data()
         else:
             structure_desc = self._read_elementary_action_file_structure_from_zip_v1()
         if self.format_version <= 2.0:
@@ -61,7 +60,6 @@ class ZipReader(object):
             data[SKELETON_JSON_KEY] = json.loads(skeleton_data_str)
         self._construct_graph_data(structure_desc)
         data["subgraphs"] = self.graph_data
-        self.zip_file.close()
         return data
 
     def _read_elementary_action_file_structure_from_zip_v1(self):
