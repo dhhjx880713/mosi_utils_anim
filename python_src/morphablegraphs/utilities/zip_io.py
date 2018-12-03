@@ -48,6 +48,10 @@ class ZipReader(object):
         else:
             self.format_version = 1.0
 
+        self.use_pickle = False
+        if "usePickle" in data:
+            self.use_pickle = data["usePickle"]
+
         write_message_to_log("Format version " + str(self.format_version), LOG_MODE_DEBUG)
         if self.format_version >= 2.0:
             structure_desc = self._read_elementary_action_file_structure_from_zip_v2()
@@ -152,7 +156,7 @@ class ZipReader(object):
         if space_partition_file in self.zip_file.namelist():
             data = self.zip_file.read(space_partition_file)
             self.graph_data[action_data_key]["nodes"][mp_data_key]["space_partition"] = None
-            if self.pickle_objects and self.format_version < 4.0:
+            if self.pickle_objects and self.format_version < 4.0 or self.use_pickle:
                 self.graph_data[action_data_key]["nodes"][mp_data_key]["space_partition_pickle"] = pickle.loads(data)
             elif self.format_version >= 4.0:
                 self.graph_data[action_data_key]["nodes"][mp_data_key]["space_partition_json"] = json.loads(data.decode("utf-8"))
@@ -164,8 +168,8 @@ class ZipReader(object):
             return structure_key + "/" + motion_primitive_name + "_mm.json"
 
     def _get_space_partitioning_file_path(self, structure_key, motion_primitive_name):
-        if self.format_version >= 4.0:
-            return self.elementary_action_directory + "/" + structure_key + "/" + motion_primitive_name + "_cluster_tree.json"
+        if self.format_version >= 4.0 or self.use_pickle:
+            return self.elementary_action_directory + "/" + structure_key + "/" + motion_primitive_name + "_cluster_tree.pck"
         elif self.format_version >= 2.0:
             return self.elementary_action_directory + "/" + structure_key + "/" + motion_primitive_name + "_cluster_tree.pck"
         else:
