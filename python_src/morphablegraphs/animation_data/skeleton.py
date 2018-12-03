@@ -13,7 +13,7 @@ from ..external.transformations import quaternion_matrix, quaternion_from_matrix
 from .skeleton_node import SkeletonEndSiteNode, SkeletonJointNode
 from .constants import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER
 from .skeleton_models import ROCKETBOX_ANIMATED_JOINT_LIST, ROCKETBOX_FREE_JOINTS_MAP, ROCKETBOX_REDUCED_FREE_JOINTS_MAP, ROCKETBOX_SKELETON_MODEL, ROCKETBOX_BOUNDS, ROCKETBOX_TOOL_BONES, ROCKETBOX_ROOT_DIR
-from .motion_editing.coordinate_cyclic_descent import run_ccd, normalize, set_global_orientation, run_ccd_look_at, orient_node_to_target_look_at
+from .motion_editing.coordinate_cyclic_descent import run_ccd, normalize, set_global_orientation, run_ccd_look_at, orient_node_to_target_look_at, LOOK_AT_DIR, SPINE_LOOK_AT_DIR
 try:
     from mgrd import Skeleton as MGRDSkeleton
     from mgrd import SkeletonNode as MGRDSkeletonNode
@@ -434,29 +434,31 @@ class Skeleton(object):
         print("reached with error", error)
         return frame
 
-
-    def reach_target_positions(self, frame, constraints, eps=0.0001, n_max_iter=500, verbose=False):
+    def reach_target_positions(self, frame, constraints, chain_end_joints=None, eps=0.0001, n_max_iter=500, verbose=False):
         error = np.inf
         prev_error = error
         n_iters = 0
-        max_depth = -1
         is_stuck = False
+        if chain_end_joints is None:
+            chain_end_joints = dict()
+            for c in constraints:
+                chain_end_joints[c.joint_name] = self.root
         while n_iters < n_max_iter and error > eps and not is_stuck:
             error = 0
             print("iter", n_iters)
             for c in constraints:
                 joint_error = 0
                 if c.look_at and c.look_at_pos is not None:
-                    frame, joint_error = run_ccd_look_at(self, frame, c.joint_name, c.look_at_pos, eps, n_max_iter, max_depth, verbose)
+                    frame, joint_error = run_ccd_look_at(self, frame, c.joint_name, c.look_at_pos, eps, n_max_iter)
                 if c.position is not None and c.relative_parent_joint_name is None:
-                    frame, _joint_error = run_ccd(self, frame, c.joint_name, c, eps, n_max_iter, max_depth, verbose)
+                    frame, _joint_error = run_ccd(self, frame, c.joint_name, c, eps, n_max_iter, chain_end_joints[c.joint_name], verbose)
                     joint_error += _joint_error
                 elif c.orientation is not None:
                     frame = set_global_orientation(self, frame, c.joint_name, c.orientation)
                 elif c.relative_parent_joint_name is not None: # run ccd on relative constraint
                     #turn relative constraint into a normal constraint
                     _c = c.instantiate_relative_constraint(self, frame)
-                    frame, _joint_error = run_ccd(self, frame, _c.joint_name, _c, eps, n_max_iter, max_depth, verbose)
+                    frame, _joint_error = run_ccd(self, frame, _c.joint_name, _c, eps, n_max_iter, chain_end_joints[c.joint_name], verbose)
                     joint_error += _joint_error
                 error += joint_error
             if abs(prev_error - error) < eps:

@@ -482,40 +482,86 @@ class MotionEditing(object):
         self.interpolate_around_frame(fk_nodes, frames, end_idx, self.window)
         return frames
 
+    def get_static_joints(self, frame_constraints):
+        static_joints = set()
+        for joint_name, c in frame_constraints.items():
+            if c.inside_region:
+                static_joints.add(joint_name)
+        return static_joints
+
+    def find_free_root_joints(self, constraints, joint_chains):
+        """ check for each joint in the joint if it is free"""
+        root_joints = dict()
+        for c in constraints:
+            root_joints[c.joint_name] = None
+            for free_joint in joint_chains[c.joint_name]:
+                is_free = True
+                for joint_name in joint_chains:
+                    if joint_name == c.joint_name:
+                        continue
+                    if free_joint in joint_chains[joint_name]:
+                        is_free = False
+                if not is_free:
+                    root_joints[c.joint_name] = free_joint
+                    print("set root joint for ", c.joint_name, "to", free_joint)
+                    break
+        return root_joints
+
     def edit_motion_using_ccd(self, frames, constraints):
         new_frames = np.array(frames)
         joint_chain_buffer = dict()
+        n_frames = len(frames)
+        prev_static_joints = set()
+        static_joints = set()
         for frame_idx, frame_constraints in constraints.items():
             constraints = []
             fk_nodes = set()
             apply_ik = False
+            static_joints = self.get_static_joints(frame_constraints)
             for joint_name, c in frame_constraints.items():
                 if joint_name not in joint_chain_buffer:
                     joint_fk_nodes = self.skeleton.nodes[joint_name].get_fk_chain_list()
                     joint_chain_buffer[joint_name] = joint_fk_nodes
-                if c.inside_region:
-                    #print("copy", len(joint_chain_buffer[joint_name]))
+                if c.inside_region and prev_static_joints == static_joints:
+                    #print("copy parameters for", joint_name, len(joint_chain_buffer[joint_name]))
                     #copy guess from previous frame if it is part of a region
+
                     self.copy_joint_parameters(joint_chain_buffer[joint_name], new_frames, frame_idx - 1, frame_idx)
                 else:
                     if c.orientation is not None:
                         print("use ccd on", joint_name, "at", frame_idx, " with orientation")
                     else:
                         print("use ccd on", joint_name, "at", frame_idx)
-                    #print("use ik")
                     constraints.append(c)
                     fk_nodes.update(joint_chain_buffer[joint_name])
                     apply_ik = True
 
             if apply_ik:
-                new_frame = self.skeleton.reach_target_positions(frames[frame_idx], constraints, verbose=False)
+                #print("find free joints at", frame_idx)
+                chain_end_joints = self.find_free_root_joints(constraints, joint_chain_buffer)
+                new_frame = self.skeleton.reach_target_positions(new_frames[frame_idx], constraints, chain_end_joints, verbose=False)
                 new_frames[frame_idx] = new_frame
 
             #  interpolate outside of region constraints
-            if self.window > 0 and len(fk_nodes) > 0:
-                print("interpolate at frame", frame_idx, fk_nodes)
+
+            if frame_idx + 1 in constraints:
+                prev_frame_unconstrained = len(constraints[frame_idx+1])==0
+            else:
+                prev_frame_unconstrained = True
+            if frame_idx-1 in constraints:
+                next_frame_unconstrained = len(constraints[frame_idx-1]) == 0
+            else:
+                next_frame_unconstrained = True
+
+            outside_of_region = next_frame_unconstrained or prev_frame_unconstrained or apply_ik
+            #print("outside of region", outside_of_region, frame_idx)
+
+            if outside_of_region and self.window > 0 and len(fk_nodes) > 0:
+
                 fk_nodes = list(fk_nodes)
                 self.interpolate_around_frame(fk_nodes, new_frames, frame_idx, self.window)
+
+            prev_static_joints = static_joints
         return new_frames
 
     def apply_carry_constraints(self, frames, constraints):
