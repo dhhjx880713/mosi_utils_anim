@@ -168,9 +168,9 @@ class ZipReader(object):
             return structure_key + "/" + motion_primitive_name + "_mm.json"
 
     def _get_space_partitioning_file_path(self, structure_key, motion_primitive_name):
-        if self.format_version >= 4.0 or self.use_pickle:
-            return self.elementary_action_directory + "/" + structure_key + "/" + motion_primitive_name + "_cluster_tree.pck"
-        elif self.format_version >= 2.0:
+        if self.format_version >= 4.0 and not self.use_pickle:
+            return self.elementary_action_directory + "/" + structure_key + "/" + motion_primitive_name + "_cluster_tree.json"
+        elif self.format_version >= 2.0 or self.use_pickle:
             return self.elementary_action_directory + "/" + structure_key + "/" + motion_primitive_name + "_cluster_tree.pck"
         else:
             return structure_key + "/" + motion_primitive_name + "_cluster_tree.pck"
