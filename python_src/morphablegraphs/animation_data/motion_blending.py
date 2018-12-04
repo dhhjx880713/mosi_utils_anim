@@ -28,7 +28,7 @@ def blend_quaternion(a, b, w):
 def smooth_joints_around_transition_using_slerp(quat_frames, joint_param_indices, discontinuity, window):
     h_window = int(window/2)
     start_frame = max(discontinuity-h_window, 0)
-    end_frame = min(discontinuity+h_window, quat_frames.shape[0]-1)
+    end_frame = min(discontinuity+h_window, len(quat_frames)-1)
     start_window = discontinuity-start_frame
     end_window = end_frame-discontinuity
     if start_window > 0:
