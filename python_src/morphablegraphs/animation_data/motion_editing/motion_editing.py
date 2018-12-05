@@ -508,7 +508,7 @@ class MotionEditing(object):
                     break
         return root_joints
 
-    def edit_motion_using_ccd(self, frames, constraints, n_max_iter=100):
+    def edit_motion_using_ccd(self, frames, constraints, n_max_iter=100, root_joint=None):
         new_frames = np.array(frames)
         joint_chain_buffer = dict()
         n_frames = len(frames)
@@ -544,6 +544,10 @@ class MotionEditing(object):
                 #print("find free joints at", frame_idx)
                 if len(static_joints) > 0:
                     chain_end_joints = self.find_free_root_joints(constraints, joint_chain_buffer)
+                elif root_joint is not None:
+                    chain_end_joints = dict()
+                    for c in constraints:
+                        chain_end_joints[c.joint_name] = root_joint
                 else:
                     chain_end_joints = None
                 new_frame = self.skeleton.reach_target_positions(new_frames[frame_idx], constraints, chain_end_joints, n_max_iter=n_max_iter, verbose=False)
