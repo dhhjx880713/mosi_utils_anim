@@ -98,8 +98,8 @@ class MotionPrimitive(object):
             self.t_pca = dict()
             self.t_pca["n_components"] = 0
 
-        if "skeleton" in data:
-            self.animated_joints = data["skeleton"]["animated_joints"]
+        if "animated_joints" in data:
+            self.animated_joints = data["animated_joints"]
 
     def _init_gmm_from_json(self, data):
         """ Initialize the Gaussian Mixture model.
