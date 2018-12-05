@@ -69,7 +69,7 @@ class KeyframeConstraint(object):
     def instantiate_relative_constraint(self, skeleton, frame):
         """ turn relative constraint into a normal constraint"""
         ppos = skeleton.nodes[self.relative_parent_joint_name].get_global_position(frame)
-        pos = ppos + self.relative_offset
+        pos = ppos #+ self.relative_offset
         return KeyframeConstraint(self.frame_idx, self.joint_name, pos)
 
     def evaluate(self, skeleton, frame):
