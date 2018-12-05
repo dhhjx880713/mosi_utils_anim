@@ -471,11 +471,12 @@ class MotionEditing(object):
                 self.interpolate_around_frame(fk_nodes, new_frames, frame_idx, self.window)
         return new_frames
 
-    def edit_motion_to_look_at_target(self, frames, position, start_idx, end_idx):
+    def edit_motion_to_look_at_target(self, frames, position, start_idx, end_idx, orient_spine=False):
         spine_joint_name = self.skeleton.skeleton_model["joints"]["spine_1"]
         head_joint_name = self.skeleton.skeleton_model["joints"]["head"]
         for frame_idx in range(start_idx, end_idx):
-            frames[frame_idx] = self.skeleton.look_at(frames[frame_idx], spine_joint_name, position, n_max_iter=1, local_dir=SPINE_LOOK_AT_DIR)
+            if orient_spine:
+                frames[frame_idx] = self.skeleton.look_at(frames[frame_idx], spine_joint_name, position, n_max_iter=1, local_dir=SPINE_LOOK_AT_DIR)
             frames[frame_idx] = self.skeleton.look_at(frames[frame_idx], head_joint_name, position, n_max_iter=1, local_dir=LOOK_AT_DIR)
             fk_nodes = self.skeleton.nodes[head_joint_name].get_fk_chain_list()
         self.interpolate_around_frame(fk_nodes, frames, start_idx, self.window)
