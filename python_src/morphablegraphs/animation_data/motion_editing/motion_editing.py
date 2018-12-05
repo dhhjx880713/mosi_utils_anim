@@ -562,7 +562,7 @@ class MotionEditing(object):
             outside_of_region = next_frame_unconstrained or prev_frame_unconstrained or apply_ik
 
             if outside_of_region and self.window > 0 and len(fk_nodes) > 0:
-                print("outside of region", list(prev_static_joints), list(static_joints))
+                #print("outside of region", list(prev_static_joints), list(static_joints))
                 fk_nodes = list(fk_nodes)
                 #fk_nodes = self.skeleton.animated_joints
                 self.interpolate_around_frame(fk_nodes, new_frames, frame_idx, self.window)
@@ -573,7 +573,7 @@ class MotionEditing(object):
             prev_static_joints = static_joints
 
         for frame_idx in region_overlaps:
-            print("apply transition smoothing", frame_idx)
+            #print("apply transition smoothing", frame_idx)
             new_frames = smooth_quaternion_frames(new_frames, frame_idx,
                                                   self.window, False)
         return new_frames
