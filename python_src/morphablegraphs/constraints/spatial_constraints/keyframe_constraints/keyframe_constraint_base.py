@@ -28,6 +28,9 @@ class KeyframeConstraintBase(SpatialConstraintBase):
         self.relative_joint_name = None
         if "relative_joint_name" in constraint_desc:
             self.relative_joint_name = constraint_desc["relative_joint_name"]
+        self.mirror_joint_name = None
+        if "mirror_joint_name" in constraint_desc:
+            self.mirror_joint_name = constraint_desc["mirror_joint_name"]
 
     def is_generated(self):
         return self.constraint_type == SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION and "generated" in list(self.semantic_annotation.keys())

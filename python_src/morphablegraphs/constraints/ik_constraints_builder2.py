@@ -79,6 +79,19 @@ class IKConstraintsBuilder2(object):
         ik_constraint.relative_offset = rel_joint_pos - joint_pos
         return ik_constraint
 
+    def generate_mirror_constraint(self, keyframe, ref_frame, frame, mirror_joint_name):
+        """ generate a constraint on the mirror joint with the similar offset to the root as in the reference frame"""
+        ref_mirror_joint_pos = self.skeleton.nodes[mirror_joint_name].get_global_position(ref_frame)
+        ref_root_joint_pos = self.skeleton.nodes[self.skeleton.root].get_global_position(ref_frame)
+        ref_offset_from_root = ref_mirror_joint_pos-ref_root_joint_pos
+
+        target_root_joint_pos = self.skeleton.nodes[self.skeleton.root].get_global_position(frame)
+        mirror_joint_pos = ref_offset_from_root + target_root_joint_pos
+        print("generate mirror constraint on",mirror_joint_name, mirror_joint_pos, ref_mirror_joint_pos)
+        #create a keyframe constraint and set the original position as constraint
+        ik_constraint = KeyframeConstraint(keyframe, mirror_joint_name, mirror_joint_pos, None, None)
+        return ik_constraint
+
     def convert_to_ik_constraints_with_relative(self, frames, constraints, frame_offset=0, time_function=None,
                                                  constrain_orientation=True):
         ik_constraints = collections.OrderedDict()
@@ -120,5 +133,10 @@ class IKConstraintsBuilder2(object):
                                                                           c.joint_name,
                                                                           c.relative_joint_name)
                         ik_constraints[frame_idx][c.relative_joint_name] = ik_constraint
+                    # add also a mirror constraint
+                    if c.mirror_joint_name is not None and len(frames) > 0:
+                        ik_constraint = self.generate_mirror_constraint(frame_idx, frames[0], frames[frame_idx],
+                                                                          c.mirror_joint_name)
+                        ik_constraints[frame_idx][c.mirror_joint_name] = ik_constraint
 
         return ik_constraints
