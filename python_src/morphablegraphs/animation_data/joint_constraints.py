@@ -152,9 +152,22 @@ def swing_twist_decomposition(q, twist_axis):
     swing_q = quaternion_multiply(q, quaternion_inverse(twist_q))#q * quaternion_inverse(twist)
     return swing_q, twist_q
 
+OPENGL_UP = np.array([0,1,0])
 
-class BallSocketConstraint(object):
+
+class JointConstraint(object):
+    def __init__(self):
+        self.is_static = False
+
+    def get_axis(self):
+        return OPENGL_UP
+
+    def apply(self, q):
+        return q
+
+class BallSocketConstraint(JointConstraint):
     def __init__(self, axis, k):
+        JointConstraint.__init__(self)
         self.axis = axis
         self.k = k
 
@@ -167,9 +180,9 @@ class BallSocketConstraint(object):
         return self.axis
 
 
-
-class ConeConstraint(object):
+class ConeConstraint(JointConstraint):
     def __init__(self, axis, k):
+        JointConstraint.__init__(self)
         self.axis = axis
         self.k = k
 
@@ -180,8 +193,9 @@ class ConeConstraint(object):
     def get_axis(self):
         return self.axis
 
-class HingeConstraint2(object):
+class HingeConstraint2(JointConstraint):
     def __init__(self, swing_axis, twist_axis, deg_angle_range=None, verbose=False):
+        JointConstraint.__init__(self)
         self.swing_axis = swing_axis
         self.twist_axis = twist_axis
         if deg_angle_range is not None:
@@ -232,9 +246,10 @@ class HingeConstraint2(object):
         return self.swing_axis
 
 
-class ShoulderConstraint(object):
+class ShoulderConstraint(JointConstraint):
     """ combines conic and axial"""
     def __init__(self, axis, k1,k2, k):
+        JointConstraint.__init__(self)
         self.axis = axis
         self.k1 = k1
         self.k2 = k2
