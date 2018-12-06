@@ -10,7 +10,7 @@ from ...external.transformations import quaternion_matrix, euler_from_matrix, qu
 from ...utilities.log import write_message_to_log, LOG_MODE_DEBUG
 from .utils import convert_exp_frame_to_quat_frame
 from .fabrik_chain2 import FABRIKChain, FABRIKBone
-from ..joint_constraints import HingeConstraint2, BallSocketConstraint, ConeConstraint, ShoulderConstraint
+from ..joint_constraints import JointConstraint, HingeConstraint2, BallSocketConstraint, ConeConstraint, ShoulderConstraint
 from ...external.transformations import quaternion_matrix, quaternion_from_matrix
 from ..skeleton import LOOK_AT_DIR, SPINE_LOOK_AT_DIR
 from ..motion_blending import smooth_quaternion_frames
@@ -124,7 +124,11 @@ class MotionEditing(object):
             else:
                 continue
             c = joint_constraints[j]
-            if c["type"] == "hinge":
+            if c["type"] == "static":
+                h = JointConstraint()
+                h.is_static = True
+                self.skeleton.nodes[skel_j].joint_constraint = h
+            elif c["type"] == "hinge":
                 swing_axis = np.array(c["swing_axis"])
                 twist_axis = np.array(c["twist_axis"])
                 deg_angle_range = None

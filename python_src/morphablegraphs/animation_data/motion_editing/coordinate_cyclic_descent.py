@@ -101,13 +101,17 @@ def run_ccd(skeleton, frame, end_effector_name, constraint, eps=0.01, n_max_iter
         depth = 0
 
         while node is not None and node.node_name != chain_end_joint and node.parent is not None:
-            if constraint.orientation is not None:
-                frame = set_global_orientation(skeleton, frame, end_effector_name, constraint.orientation)
+            static = False
+            if node.joint_constraint is not None and node.joint_constraint.is_static:
+                static = True
 
-            frame = orient_node_to_target(skeleton,frame, node.node_name, end_effector_name, constraint)
-            
-            if node.joint_constraint is not None:
-                frame = apply_joint_constraint(skeleton, frame, node.node_name)
+            if not static:
+                frame = orient_node_to_target(skeleton,frame, node.node_name, end_effector_name, constraint)
+                if constraint.orientation is not None:
+                    frame = set_global_orientation(skeleton, frame, end_effector_name, constraint.orientation)
+
+                if node.joint_constraint is not None:
+                    frame = apply_joint_constraint(skeleton, frame, node.node_name)
             node = node.parent
             depth += 1
 
@@ -124,7 +128,8 @@ def run_ccd(skeleton, frame, end_effector_name, constraint, eps=0.01, n_max_iter
             print("error at", n_iters, ":", error, "c:",constraint.position,"pos:", pos)
     return frame, error
 
-LOOK_AT_DIR = [0, -1,0] # works really
+
+LOOK_AT_DIR = [0, -1,0]
 SPINE_LOOK_AT_DIR = [0,0,1]
 
 def look_at_target(skeleton, root, end_effector, frame, position, local_dir=LOOK_AT_DIR):
