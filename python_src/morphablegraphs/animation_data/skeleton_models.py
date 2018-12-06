@@ -514,6 +514,8 @@ CUSTOM_SKELETON_JOINTS["right_heel"] = None
 CUSTOM_SKELETON_JOINTS["neck"] = "FK_back4_jnt"
 CUSTOM_SKELETON_JOINTS["head"] = "head_jnt"
 
+CUSTOM_SKELETON_JOINTS["left_hold_point"] = "L_hand_jnt_hold_point"
+CUSTOM_SKELETON_JOINTS["right_hold_point"] = "R_hand_jnt_hold_point"
 
 CUSTOM_SKELETON_JOINTS["right_thumb_base"] = "R_thumb_base_jnt"
 CUSTOM_SKELETON_JOINTS["right_thumb_mid"] = "R_thumb_mid_jnt"
@@ -1166,3 +1168,13 @@ JOINT_CONSTRAINTS["right_shoulder"] = {"type":"shoulder", "axis": [0,0,1], "k": 
 JOINT_CONSTRAINTS["left_wrist"] = {"type":"cone", "axis": [0,0,1], "k": np.radians(90)}
 JOINT_CONSTRAINTS["right_wrist"] = {"type":"cone", "axis": [0,0,1], "k": np.radians(90)}
 #JOINT_CONSTRAINTS["head"] = {"type":"cone", "axis": [0,1,0], "k": np.radians(0)}
+
+STANDARD_MIRROR_MAP = {"left_hip": "right_hip",
+                       "left_ankle":"right_ankle",
+                    "left_wrist": "right_wrist",
+                    "left_hold_point": "right_hold_point"
+              }
+
+keys = list(STANDARD_MIRROR_MAP.keys())
+for k in keys:
+    STANDARD_MIRROR_MAP[STANDARD_MIRROR_MAP[k]] = k
