@@ -628,6 +628,24 @@ if False:
     CUSTOM_SKELETON_COS_MAP["head_jnt"]["y"] = [0.6, 0.4, 0]
     CUSTOM_SKELETON_COS_MAP["head_jnt"]["x"] = [0, 0, -1]
 
+for k, j in CUSTOM_SKELETON_JOINTS.items():
+    if j is None:
+        continue
+    if "finger" in k:
+        if "L_" in j:
+            CUSTOM_SKELETON_COS_MAP[j]["x"] = [0, 1, 0]
+            CUSTOM_SKELETON_COS_MAP[j]["y"] = [0, 0, 1]
+        elif "R_" in j:
+            CUSTOM_SKELETON_COS_MAP[j]["x"] = [0, -1, 0]
+            CUSTOM_SKELETON_COS_MAP[j]["y"] = [0, 0, -1]
+    elif "thumb" in k:
+        if "L_" in j:
+            CUSTOM_SKELETON_COS_MAP[j]["x"] = [1, 0, 0]
+            CUSTOM_SKELETON_COS_MAP[j]["y"] = [0, 0, 1]
+        elif "R_" in j:
+            CUSTOM_SKELETON_COS_MAP[j]["x"] = [-1, 0, 0]
+            CUSTOM_SKELETON_COS_MAP[j]["y"] = [0, 0, -1]
+
 CUSTOM_SKELETON_MODEL["cos_map"] = CUSTOM_SKELETON_COS_MAP
 CUSTOM_SKELETON_MODEL["foot_joints"] = []
 CUSTOM_SKELETON_MODEL["heel_offset"] = [0, -6.480602, 0]
@@ -1056,8 +1074,17 @@ NOIKOM_SKELETON_COS_MAP["LeftHand"]["x"] = [0, -1, 0]
 NOIKOM_SKELETON_COS_MAP["LeftHand"]["y"] = [1, 0, 0]
 NOIKOM_SKELETON_COS_MAP["RightHand"]["x"] = [0, 1, 0]
 NOIKOM_SKELETON_COS_MAP["RightHand"]["y"] = [-1, 0, 0]
+for k, j in NOIKOM_SKELETON_JOINTS.items():
+    if j is None:
+        continue
+    if "finger" in k or "thumb" in k:
+        if "Left" in j:
+            NOIKOM_SKELETON_COS_MAP[j]["x"] = [0, 1, 0]
+            NOIKOM_SKELETON_COS_MAP[j]["y"] = [1, 0, 0]
+        elif "Right" in j:
+            NOIKOM_SKELETON_COS_MAP[j]["x"] = [0, 1, 0]
+            NOIKOM_SKELETON_COS_MAP[j]["y"] = [-1, 0, 0]
 NOIKOM_SKELETON_MODEL["cos_map"] = NOIKOM_SKELETON_COS_MAP
-
 
 
 
