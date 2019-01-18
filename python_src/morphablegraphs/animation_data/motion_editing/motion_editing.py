@@ -4,34 +4,15 @@ import collections
 from .numerical_ik_quat import NumericalInverseKinematicsQuat
 from .numerical_ik_exp import NumericalInverseKinematicsExp
 from .cubic_motion_spline import CubicMotionSpline
-from .skeleton_pose_model import SkeletonPoseModel
 from ..motion_blending import smooth_joints_around_transition_using_slerp, create_transition_using_slerp
-from ...external.transformations import quaternion_matrix, euler_from_matrix, quaternion_multiply
+from ...external.transformations import euler_from_matrix, quaternion_multiply
 from ...utilities.log import write_message_to_log, LOG_MODE_DEBUG
 from .utils import convert_exp_frame_to_quat_frame
-from .fabrik_chain2 import FABRIKChain, FABRIKBone
 from ..joint_constraints import JointConstraint, HingeConstraint2, BallSocketConstraint, ConeConstraint, ShoulderConstraint
 from ...external.transformations import quaternion_matrix, quaternion_from_matrix
 from ..skeleton import LOOK_AT_DIR, SPINE_LOOK_AT_DIR
 from ..motion_blending import smooth_quaternion_frames
 
-def create_fabrik_chain(skeleton, frame, node_order, activate_constraints=False):
-    bones = dict()
-    root = node_order[0]
-    root_offset = skeleton.nodes[root].get_global_position(frame)
-    frame_offset = skeleton.animated_joints.index(root)*4 + 3
-    for idx, j in enumerate(node_order[:-1]):
-        bones[j] = FABRIKBone(j, node_order[idx + 1])
-        if idx == 0:
-            bones[j].is_root = True
-        else:
-            bones[j].is_root = False
-
-    bones[node_order[-1]] = FABRIKBone(node_order[-1], None)
-    max_iter = 50
-    chain = FABRIKChain(skeleton, bones, node_order, max_iter=max_iter, frame_offset=frame_offset, root_offset=root_offset,
-                                                activate_constraints=activate_constraints)
-    return chain
 
 
 def add_frames(skeleton, a, b):
@@ -111,10 +92,6 @@ class MotionEditing(object):
         self.pose = SkeletonPoseModel(self.skeleton, self.use_euler)
         self._ik = NumericalInverseKinematicsQuat(self.pose, self._ik_settings)
         self._ik_exp = NumericalInverseKinematicsExp(self.skeleton, self._ik_settings)
-        self._fabrik_chains = dict()
-
-    def add_fabrik_chain(self, joint_name, node_order, activate_constraints=False):
-        self._fabrik_chains[joint_name] = create_fabrik_chain(self.skeleton, self.skeleton.reference_frame, node_order, activate_constraints)
 
     def add_constraints_to_skeleton(self, joint_constraints):
         joint_map = self.skeleton.skeleton_model["joints"]
@@ -398,6 +375,7 @@ class MotionEditing(object):
     def generate_delta_frames(self, frames, constraints, influence_range=40):
         n_frames = frames.shape[0]
         zero_frame = self.generate_zero_frame()
+        constrained_frames = list(constraints.keys())
         delta_frames = collections.OrderedDict()
         delta_frames[0] = zero_frame
         delta_frames[1] = zero_frame
@@ -457,24 +435,6 @@ class MotionEditing(object):
                     print("set hand orientation", c.orientation)
                     self._set_hand_orientation(frames, c.orientation, c.joint_name, c.frame_idx, start, end)
 
-    def edit_motion_using_fabrik(self, frames, constraints):
-        new_frames = np.array(frames)
-        for frame_idx, frame_constraints in constraints.items():
-            joint_names = []
-            fk_nodes = set()
-            for joint_name, c in frame_constraints.items():
-                print("use fabrik on", joint_name, "at", frame_idx)
-                if joint_name in self._fabrik_chains:
-                    joint_names += self._fabrik_chains[joint_name].node_order[:1]
-                    new_frame = self._fabrik_chains[joint_name].run_partial_with_constraints(frames[frame_idx], c.position)
-                    new_frames[frame_idx] = new_frame
-                    joint_fk_nodes = self.skeleton.nodes[joint_name].get_fk_chain_list()
-                    fk_nodes.update(joint_fk_nodes)
-
-            if self.window > 0:
-                self.interpolate_around_frame(fk_nodes, new_frames, frame_idx, self.window)
-        return new_frames
-
     def edit_motion_to_look_at_target(self, frames, position, start_idx, end_idx, orient_spine=False):
         spine_joint_name = self.skeleton.skeleton_model["joints"]["spine_1"]
         head_joint_name = self.skeleton.skeleton_model["joints"]["head"]
@@ -483,8 +443,8 @@ class MotionEditing(object):
                 frames[frame_idx] = self.skeleton.look_at(frames[frame_idx], spine_joint_name, position, n_max_iter=1, local_dir=SPINE_LOOK_AT_DIR)
             frames[frame_idx] = self.skeleton.look_at(frames[frame_idx], head_joint_name, position, n_max_iter=1, local_dir=LOOK_AT_DIR)
             fk_nodes = self.skeleton.nodes[head_joint_name].get_fk_chain_list()
-        self.interpolate_around_frame(fk_nodes, frames, start_idx, self.window)
-        self.interpolate_around_frame(fk_nodes, frames, end_idx, self.window)
+            self.interpolate_around_frame(fk_nodes, frames, start_idx, self.window)
+            self.interpolate_around_frame(fk_nodes, frames, end_idx, self.window)
         return frames
 
     def get_static_joints(self, frame_constraints):

@@ -4,7 +4,6 @@ from .morphablegraphs.external.transformations import quaternion_from_euler
 from .morphablegraphs.animation_data.retargeting import get_targets_from_motion, ROCKETBOX_TO_GAME_ENGINE_MAP, ADDITIONAL_ROTATION_MAP,GAME_ENGINE_TO_ROCKETBOX_MAP
 from .morphablegraphs.animation_data.retargeting import get_new_frames_from_direction_constraints as get_new_frames_using_quaternion, retarget_from_src_to_target
 from .morphablegraphs.animation_data.retargeting import get_new_euler_frames_from_direction_constraints as get_new_frames_using_euler
-from .morphablegraphs.animation_data.fbx_io import load_skeleton_and_animations_from_fbx, export_motion_vector_to_fbx_file
 
 
 def convert_euler_to_quat_frame(skeleton, frame):
@@ -55,9 +54,7 @@ def retarget(src_skeleton, src_motion, target_skeleton, inv_joint_map=ROCKETBOX_
 
 def load_target_skeleton(file_path):
     skeleton = None
-    if file_path.lower().endswith("fbx"):
-        skeleton, mvs = load_skeleton_and_animations_from_fbx(file_path)
-    elif file_path.lower().endswith("bvh"):
+    if file_path.lower().endswith("bvh"):
         target_bvh = BVHReader(file_path)
         animated_joints = list(target_bvh.get_animated_joints())
         skeleton = SkeletonBuilder().load_from_bvh(target_bvh, animated_joints, add_tool_joints=False)
@@ -74,8 +71,6 @@ def export(skeleton, frames, out_file, use_euler=False, format="bvh"):
 
     if format == "bvh":
         mv.export(target_skeleton, ".", out_file, add_time_stamp=False)
-    else:
-        export_motion_vector_to_fbx_file(skeleton, mv, out_file+".fbx")
 
 def scale_skeleton(skeleton, scale_factor):
     for node in list(skeleton.nodes.values()):
