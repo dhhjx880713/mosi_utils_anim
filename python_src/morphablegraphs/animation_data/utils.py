@@ -109,41 +109,9 @@ def euler_to_quaternion_rad(euler_angles, rotation_order=DEFAULT_ROTATION_ORDER,
     # convert euler angles into rotation matrix, then convert rotation matrix
     # into quaternion
     assert len(euler_angles) == 3, ('The length of euler angles should be 3!')
-    if rotation_order[0] == 'Xrotation':
-        if rotation_order[1] == 'Yrotation':
-            R = euler_matrix(euler_angles[0],
-                             euler_angles[1],
-                             euler_angles[2],
-                             axes='rxyz')
-        elif rotation_order[1] == 'Zrotation':
-            R = euler_matrix(euler_angles[0],
-                             euler_angles[1],
-                             euler_angles[2],
-                             axes='rxzy')
-    elif rotation_order[0] == 'Yrotation':
-        if rotation_order[1] == 'Xrotation':
-            R = euler_matrix(euler_angles[0],
-                             euler_angles[1],
-                             euler_angles[2],
-                             axes='ryxz')
-        elif rotation_order[1] == 'Zrotation':
-            R = euler_matrix(euler_angles[0],
-                             euler_angles[1],
-                             euler_angles[2],
-                             axes='ryzx')
-    elif rotation_order[0] == 'Zrotation':
-        if rotation_order[1] == 'Xrotation':
-            R = euler_matrix(euler_angles[0],
-                             euler_angles[1],
-                             euler_angles[2],
-                             axes='rzxy')
-        elif rotation_order[1] == 'Yrotation':
-            R = euler_matrix(euler_angles[0],
-                             euler_angles[1],
-                             euler_angles[2],
-                             axes='rzyx')
-    # convert rotation matrix R into quaternion vector (qw, qx, qy, qz)
-    q = quaternion_from_matrix(R)
+
+    rotmat = euler_to_matrix(euler_angles, rotation_order)
+    q = quaternion_from_matrix(rotmat)
     # filter the quaternion http://physicsforgames.blogspot.de/2010/02/quaternions.html
     if filter_value:
         dot = np.sum(q)
@@ -236,6 +204,47 @@ def convert_euler_frames_to_quaternion_frames(bvhreader, euler_frames, filter_jo
     return quat_frames
 
 
+def euler_to_matrix(euler_angles, rotation_order):
+    # convert euler angles into rotation matrix
+    assert len(euler_angles) == 3, ('The length of euler angles should be 3!')
+    rotmat = None
+    if rotation_order[0] == 'Xrotation':
+        if rotation_order[1] == 'Yrotation':
+            rotmat = euler_matrix(euler_angles[0],
+                                  euler_angles[1],
+                                  euler_angles[2],
+                                  axes='rxyz')
+        elif rotation_order[1] == 'Zrotation':
+            rotmat = euler_matrix(euler_angles[0],
+                                  euler_angles[1],
+                                  euler_angles[2],
+                                  axes='rxzy')
+    elif rotation_order[0] == 'Yrotation':
+        if rotation_order[1] == 'Xrotation':
+            rotmat = euler_matrix(euler_angles[0],
+                                  euler_angles[1],
+                                  euler_angles[2],
+                                  axes='ryxz')
+        elif rotation_order[1] == 'Zrotation':
+            rotmat = euler_matrix(euler_angles[0],
+                                  euler_angles[1],
+                                  euler_angles[2],
+                                  axes='ryzx')
+    elif rotation_order[0] == 'Zrotation':
+        if rotation_order[1] == 'Xrotation':
+            rotmat = euler_matrix(euler_angles[0],
+                                  euler_angles[1],
+                                  euler_angles[2],
+                                  axes='rzxy')
+        elif rotation_order[1] == 'Yrotation':
+            rotmat = euler_matrix(euler_angles[0],
+                                  euler_angles[1],
+                                  euler_angles[2],
+                                  axes='rzyx')
+    else:
+        raise ValueError('Unknown rotation order')
+    return rotmat
+
 def convert_quat_frame_value_to_array(quat_frame_values):
     n_channels = len(quat_frame_values)
     quat_frame_value_array = []
@@ -247,7 +256,7 @@ def convert_quat_frame_value_to_array(quat_frame_values):
 
 
 def check_quat(test_quat, ref_quat):
-    """check test quat needs to be filpped or not
+    """check if quat needs to be flipped or not
     """
     test_quat = np.asarray(test_quat)
     ref_quat = np.asarray(ref_quat)
