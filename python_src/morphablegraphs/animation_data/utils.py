@@ -180,7 +180,7 @@ def quaternion_to_euler(q, rotation_order=DEFAULT_ROTATION_ORDER):
     return np.rad2deg(quaternion_to_euler_rad(q, rotation_order)).tolist()
 
 
-def convert_euler_frames_to_quaternion_frames(bvhreader, euler_frames, filter_joints=True, animated_joints=None):
+def convert_euler_frames_to_quaternion_frames_legacy(bvhreader, euler_frames, filter_joints=True, animated_joints=None):
     """
     :param bvhreader: a BVHReader instance to store skeleton information
     :param euler_frames: a list of euler frames
@@ -273,6 +273,22 @@ def convert_euler_frame_to_quat_frame(bvh_reader, euler_frame, prev_quat_frame, 
         quat_frame[dst:dst + 4] = q
         dst+=4
     return quat_frame
+
+
+def convert_euler_frames_to_quaternion_frames(bvh_reader, euler_frames, animated_joints=None):
+    """
+    :param bvh_reader: a BVHReader instance to store skeleton information
+    :param euler_frames: a list of euler frames
+    :return: a list of quaternion frames
+    """
+    quat_frames = []
+    prev_quat_frame = None
+    for frame in euler_frames:
+        quat_frame = convert_euler_frame_to_quat_frame(bvh_reader, frame, prev_quat_frame, animated_joints)
+        quat_frames.append(quat_frame)
+        prev_quat_frame = quat_frame
+    return quat_frames
+
 
 def convert_quat_frame_value_to_array(quat_frame_values):
     n_channels = len(quat_frame_values)
