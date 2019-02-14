@@ -23,10 +23,6 @@ except ImportError:
     pass
 
 
-def project_vector_on_vector(a, b):
-    return np.dot(np.dot(b, a), b)
-
-
 class Skeleton(object):
     """ Data structure that stores the skeleton hierarchy information
         extracted from a BVH file with additional meta information.
@@ -44,7 +40,6 @@ class Skeleton(object):
         self.reference_frame = None
         self.reference_frame_length = None
         self.nodes = collections.OrderedDict()
-        self.tool_nodes = []
         self.max_level = -1
         self.parent_dict = dict()
         self._chain_names = []
@@ -87,7 +82,6 @@ class Skeleton(object):
         data["frame_time"] = self.frame_time
         data["root"] = self._get_node_desc(self.root)
         data["reference_frame"] = self.reference_frame.tolist()
-        data["tool_nodes"] = self.tool_nodes
         return data
 
     def save_to_json(self, file_name):
@@ -487,32 +481,3 @@ class Skeleton(object):
         print("reached with error", error)
         return frame
 
-
-"""
-    def apply_joint_constraints(self, frame):
-        if "joint_constraints" in self.skeleton_model:
-            constraints = self.skeleton_model["joint_constraints"]
-            for n in self.nodes.keys():
-                if n in constraints:
-                    idx = self.nodes[n].quaternion_frame_index * 4 + 3
-                    if "cone" in constraints[n]:
-                        q = frame[idx:idx + 4]
-                        k = constraints[n]["cone"]["k"]
-                        up_axis = constraints[n]["axis"]
-                        ref_q = self.nodes[n].rotation
-                        frame[idx:idx + 4] = apply_conic_constraint(q, ref_q, up_axis, k)
-                    if "axial" in constraints:
-                        q = frame[idx:idx + 4]
-                        k1 = constraints[n]["axial"]["k1"]
-                        k2 = constraints[n]["axial"]["k2"]
-                        up_axis = constraints[n]["axis"]
-                        ref_q = self.nodes[n].rotation
-                        frame[idx:idx + 4] = apply_axial_constraint(q, ref_q, up_axis, k1, k2)
-                    if "spherical" in constraints:
-                        q = frame[idx:idx + 4]
-                        k = constraints[n]["spherical"]["k"]
-                        up_axis = constraints[n]["axis"]
-                        ref_q = self.nodes[n].rotation
-                        frame[idx:idx + 4] = apply_spherical_constraint(q, ref_q, up_axis, k)
-
-    """
