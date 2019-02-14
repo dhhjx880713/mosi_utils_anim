@@ -20,39 +20,61 @@ from morphablegraphs.animation_data.motion_vector import MotionVector
 from morphablegraphs.animation_data.utils import convert_quaternion_frame_to_cartesian_frame, convert_euler_frames_to_quaternion_frames
 
 
+def load_data_bak(filename):
+	bvhreader = BVHReader(filename)
+	animated_joints = list(bvhreader.get_animated_joints())
+	skelBuild = SkeletonBuilder()
+	skel = skelBuild.load_from_bvh(bvhreader, animated_joints)
+	mv = MotionVector()
+	mv.from_bvh_reader(bvhreader)
+	mv.skeleton = skel
+	return mv
 
-data = "LocomotionFlat01_000.bvh"
+def load_src_motion(filename):
+	bvh_reader = BVHReader(filename)
+	motion_vector = MotionVector()
+	motion_vector.from_bvh_reader(bvh_reader, False)
+	animated_joints = list(bvh_reader.get_animated_joints())
+	motion_vector.skeleton = SkeletonBuilder().load_from_bvh(bvh_reader, animated_joints=animated_joints)
+	return motion_vector
 
-anim, names, _ = BVH.load(data)
-globals = Animation.transforms_global(anim)
-print("Holden loaded")
 
-bvhreader = BVHReader(data)
-skelBuild = SkeletonBuilder()
-skel = skelBuild.load_from_bvh(bvhreader)
-print("skel loaded")
 
-assert(skel.get_joint_names() == names)
 
-mv = MotionVector()
-mv.from_bvh_reader(bvhreader)
-print("MV loaded")
+#quatFrames = convert_euler_frames_to_quaternion_frames(bvhreader, mv.frames)
+def run_test():
+	data = "LocomotionFlat01_000.bvh"
 
-quatFrames = convert_euler_frames_to_quaternion_frames(bvhreader, mv.frames)
+	anim, names, _ = BVH.load(data)
+	globals = Animation.transforms_global(anim)
+	print("Holden loaded")
 
-globtransf = []
-globeul = []
-for bone_name in skel.get_joint_names():
-	globtransf.append(skel.nodes[bone_name].get_global_matrix(quatFrames[0]))
-	globeul.append(skel.nodes[bone_name].get_global_matrix_from_euler_frame(mv.frames[0]))
+	mv = load_src_motion(data)
+	skel = mv.skeleton
+	print("skel loaded")
 
-# check global positions
-for i in range(0, len(globtransf)):
-	print(globals[0][i][:,3], globtransf[i][:,3], globeul[i][:,3])
+	# assert(skel.get_joint_names() == names)
+	if skel.get_joint_names() != names:
+		print("names do not match")
+		return
 
-#assert(locpos[i] == anim.positions[0][i])
+	print("MV loaded")
+	globtransf = []
+	#globeul = []
+	for bone_name in skel.get_joint_names():
+		globtransf.append(skel.nodes[bone_name].get_global_matrix(mv.frames[0]))
+		#globeul.append(skel.nodes[bone_name].get_global_matrix_from_euler_frame(mv.frames[0]))
 
-#cart_frame = convert_quaternion_frame_to_cartesian_frame()
+	# check global positions
+	for i in range(0, len(globtransf)):
+		print(globals[0][i][:,3], globtransf[i][:,3])#, globeul[i][:,3])
 
-#qf = QuaternionFrame(bvhreader)
-print(skel)
+	#assert(locpos[i] == anim.positions[0][i])
+
+	#cart_frame = convert_quaternion_frame_to_cartesian_frame()
+
+	#qf = QuaternionFrame(bvhreader)
+	print(skel)
+
+if __name__ =="__main__":
+	run_test()
