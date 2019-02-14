@@ -1,10 +1,9 @@
 __author__ = 'erhe01'
 
 from datetime import datetime
-import os
 import numpy as np
 from .utils import  convert_euler_frames_to_quaternion_frames
-from .motion_concatenation import align_and_concatenate_frames, smooth_root_positions#, align_frames_and_fix_feet
+from .motion_concatenation import align_and_concatenate_frames, smooth_root_positions
 from .constants import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER
 from .bvh import BVHWriter
 import imp
@@ -251,7 +250,7 @@ class MotionVector(object):
                         {"x": -float(r[1]), "y": float(r[2]), "z": float(r[3]), "w": -float(r[0])})
         return unity_frame
 
-    def  from_custom_unity_format(self, data):
+    def from_custom_unity_format(self, data):
         self.frames = []
         for f in data["frames"]:
             t = f["rootTranslation"]
