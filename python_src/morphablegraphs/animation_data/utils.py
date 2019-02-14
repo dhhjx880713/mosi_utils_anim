@@ -245,6 +245,35 @@ def euler_to_matrix(euler_angles, rotation_order):
         raise ValueError('Unknown rotation order')
     return rotmat
 
+
+def extract_euler_angles(bvh_reader, euler_frame, node_name):
+    channels = bvh_reader.node_names[node_name]["channels"]
+    euler_angles = []
+    rotation_order = []
+    for ch in channels:
+        if ch.lower().endswith("rotation"):
+            idx = bvh_reader.node_channels.index((node_name, ch))
+            rotation_order.append(ch)
+            euler_angles.append(euler_frame[idx])
+    return euler_angles, rotation_order
+
+
+def convert_euler_frame_to_quat_frame(bvh_reader, euler_frame, prev_quat_frame, animated_joints=None):
+    if animated_joints is None:
+        animated_joints = list(bvh_reader.get_animated_joints())
+    n_dims = len(animated_joints)* 4 +3
+    quat_frame = np.zeros(n_dims)
+    quat_frame[:3] = euler_frame[:3]
+    dst = 3
+    for node_name in animated_joints:
+        euler_angles, rotation_order = extract_euler_angles(bvh_reader, euler_frame, node_name)
+        q = euler_to_quaternion(euler_angles, rotation_order, True)
+        if prev_quat_frame is not None:
+            q = check_quat(q, prev_quat_frame[dst:dst + 4])
+        quat_frame[dst:dst + 4] = q
+        dst+=4
+    return quat_frame
+
 def convert_quat_frame_value_to_array(quat_frame_values):
     n_channels = len(quat_frame_values)
     quat_frame_value_array = []
