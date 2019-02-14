@@ -69,7 +69,7 @@ class SkeletonBuilder(object):
     def load_from_bvh(self, bvh_reader, animated_joints=None, add_tool_joints=True, reference_frame=None, skeleton_model=None):
         skeleton = Skeleton()
         if animated_joints is None:
-            animated_joints = ROCKETBOX_ANIMATED_JOINT_LIST
+            animated_joints = list(bvh_reader.get_animated_joints())
         skeleton.animated_joints = animated_joints
         skeleton.frame_time = deepcopy(bvh_reader.frame_time)
         skeleton.root = deepcopy(bvh_reader.root)
