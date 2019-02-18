@@ -6,7 +6,7 @@
 
 
 import morphablegraphs.animation_data.holden_preprocess.motion.BVH as BVH
-import morphablegraphs.animation_data.holden_preprocess.motion.Animation as Animation
+import morphablegraphs.animation_data.holden_preprocess.motion.Animation as AnimationHolden
 from morphablegraphs.animation_data.holden_preprocess.motion.Quaternions import Quaternions
 from morphablegraphs.animation_data.holden_preprocess.motion.Pivots import Pivots
 
@@ -18,6 +18,10 @@ from morphablegraphs.animation_data.quaternion_frame import QuaternionFrame
 from morphablegraphs.animation_data.motion_vector import MotionVector
 
 from morphablegraphs.animation_data.utils import convert_quaternion_frame_to_cartesian_frame, convert_euler_frames_to_quaternion_frames
+
+from morphablegraphs.animation_data.SkeletonWrapper import Animation
+
+import numpy as np
 
 
 def load_data_bak(filename):
@@ -40,41 +44,83 @@ def load_src_motion(filename):
 
 
 
+#import cProfile, pstats
+import json
+
 
 #quatFrames = convert_euler_frames_to_quaternion_frames(bvhreader, mv.frames)
 def run_test():
-	data = "LocomotionFlat01_000.bvh"
+	data = "LocomotionFlat04_000.bvh"
 
-	anim, names, _ = BVH.load(data)
-	globals = Animation.transforms_global(anim)
+	# pr = cProfile.Profile()
+	# pr.enable()
+
+	animHolden, names, _ = BVH.load(data)
+	globalsHolden = AnimationHolden.transforms_global(animHolden)
+
+	# pr.disable()
+	# sortby = 'cumulative'
+	# ps = pstats.Stats(pr).sort_stats(sortby)
+	# print(ps.print_stats())
+
+	global_rotations = Quaternions.from_transforms(globalsHolden)
 	print("Holden loaded")
 
-	mv = load_src_motion(data)
-	skel = mv.skeleton
-	print("skel loaded")
+	# pr = cProfile.Profile()
+	# pr.enable()
 
-	# assert(skel.get_joint_names() == names)
-	if skel.get_joint_names() != names:
-		print("names do not match")
-		return
+	anim = Animation(data)
+	globals = anim.get_global_transforms()
 
-	print("MV loaded")
-	globtransf = []
-	#globeul = []
-	for bone_name in skel.get_joint_names():
-		globtransf.append(skel.nodes[bone_name].get_global_matrix(mv.frames[0]))
-		#globeul.append(skel.nodes[bone_name].get_global_matrix_from_euler_frame(mv.frames[0]))
+	# pr.disable()
+	# sortby = 'cumulative'
+	# ps = pstats.Stats(pr).sort_stats(sortby)
+	# print(ps.print_stats())
 
-	# check global positions
-	for i in range(0, len(globtransf)):
-		print(globals[0][i][:,3], globtransf[i][:,3])#, globeul[i][:,3])
+
+	if not np.all(np.fabs(globals - globalsHolden) < 0.00001):
+		print("not equal global matrices")
+
+
+	with open(data.replace(".bvh",".panim")) as f:
+		d = json.load(f)
+		frames = d["frames"]
+		if not len(frames) == len(globalsHolden):
+			print("not same frames with panim")
+
+		for i in range(len(frames)):
+			posPanim = [frames[i]["WorldPos"][0]["x"], frames[i]["WorldPos"][0]["y"], frames[i]["WorldPos"][0]["z"]]
+			posAnim = globalsHolden[i][0][:3,3]
+			if np.all(np.fabs(posPanim - posAnim) < 0.00001):
+				print("not equal positions with panim: ", posPanim, posAnim)
+
+
+	# mv = load_src_motion(data)
+	# skel = mv.skeleton
+	# print("skel loaded")
+	#
+	# # assert(skel.get_joint_names() == names)
+	# if skel.get_joint_names() != names:
+	# 	print("names do not match")
+	# 	return
+	#
+	# print("MV loaded")
+	# globtransf = []
+	# #globeul = []
+	# for bone_name in skel.get_joint_names():
+	# 	globtransf.append(skel.nodes[bone_name].get_global_matrix(mv.frames[0]))
+	# 	#globeul.append(skel.nodes[bone_name].get_global_matrix_from_euler_frame(mv.frames[0]))
+	#
+	# # check global positions
+	# for i in range(0, len(globtransf)):
+	# 	print(globals[0][i][:,3], globtransf[i][:,3])#, globeul[i][:,3])
 
 	#assert(locpos[i] == anim.positions[0][i])
 
 	#cart_frame = convert_quaternion_frame_to_cartesian_frame()
 
 	#qf = QuaternionFrame(bvhreader)
-	print(skel)
+	print(anim)
 
 if __name__ =="__main__":
 	run_test()
