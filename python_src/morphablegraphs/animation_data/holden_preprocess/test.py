@@ -69,8 +69,17 @@ def run_test():
 	# pr = cProfile.Profile()
 	# pr.enable()
 
-	anim = Animation(data)
-	globals = anim.get_global_transforms()
+	# anim = Animation(data)
+	# globals = anim.get_global_transforms()
+	mv = load_src_motion(data)
+	skel = mv.skeleton
+	globals = []
+	for f in range(len(mv.frames)):
+		globals.append([])
+		for bone_name in skel.get_joint_names():
+			globals[f].append(skel.nodes[bone_name].get_global_matrix(mv.frames[f]))
+
+
 
 	# pr.disable()
 	# sortby = 'cumulative'
