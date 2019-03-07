@@ -145,6 +145,22 @@ def test_compare_holden_SkeletonWrapper():
 	else:
 		success ("success: equal root rotations")
 
+	i = 120
+	window = 60
+	rootposs = root_rotation[i:i + 1, 0] * (global_positions[i - window:i + window:10, 0] - global_positions[i:i + 1, 0])
+	rootdirs = root_rotation[i:i + 1, 0] * forward[i - window:i + window:10]
+
+	rposs, rdirs = anim.get_trajectory(i)
+
+	if not np.all(np.fabs(rootposs - rposs) < 0.001):
+		fail("error: not equal trajectory positions")
+	else:
+		success("success: equal trajectory positions")
+	if not np.all(np.fabs(rootdirs - rdirs) < 0.001):
+		fail("error: not equal trajectory directions")
+	else:
+		success("success: equal trajectory directions")
+
 
 	""" Local Space """
 
@@ -220,6 +236,8 @@ def test_compare_holden_SkeletonWrapper():
 		fail ("error: not equal root rvel")
 	else:
 		success("success: equal root rvel")
+
+
 
 
 

@@ -338,5 +338,14 @@ class Animation():
 		vel = np.matmul(r[:-1], np.reshape(self.get_global_joint_positions()[1:, 0] - self.get_global_joint_positions()[:-1, 0], (r.shape[0]-1, 3, 1)))
 		return np.reshape(vel, (-1, 1, 3))
 
-
-
+	def get_trajectory(self, frame, window = 60):
+		"""
+		Generate trajectory information (pos, dir) local to current frame
+		:param frame:int current frame
+		:param window:int window around current frame
+		:return: pos: np.array(window // 10 * 2, 3), dir: np.array(window // 10 * 2, 3)
+		"""
+		f, r = self.get_forward_directions_rotations()
+		root_positions = np.matmul(r[frame], np.reshape(self.get_root_pos()[frame - window:frame + window:10] - self.get_root_pos()[frame], (-1, 3, 1)))
+		root_dirs = np.matmul(r[frame], np.reshape(f[frame-window:frame+window:10], (-1, 3, 1)))
+		return (np.reshape(root_positions, (-1, 3)), np.reshape(root_dirs, (-1,3)))
