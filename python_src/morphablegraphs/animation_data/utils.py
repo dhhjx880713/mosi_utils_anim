@@ -119,6 +119,20 @@ def euler_to_quaternion_rad(euler_angles, rotation_order=DEFAULT_ROTATION_ORDER,
             q = -q
     return q[0], q[1], q[2], q[3]
 
+def matrix_3x3_to_4x4(m):
+    """
+    Transforms a list of matrices from 3x3 rotational matrix to 4x4 homogeneous transformation matrix
+    :param m: np.array(n, 3, 3)
+    :return: np.array(n, 4, 4)
+    """
+    shape = list(m.shape)
+    shape[-1] = 4
+    shape[-2] = 4
+    s = np.zeros(shape)
+    s[:, :3,:3] = m
+    s[:, 3,3] = 1
+    return s
+
 
 def quaternion_to_euler_smooth(q, euler_ref, rotation_order=DEFAULT_ROTATION_ORDER):
     """
@@ -1517,6 +1531,66 @@ def quaternion_from_vector_to_vector(a, b):
         q[1 + ((idx + 1) % 2)] = 1 # [0, 0, 1, 0] for a rotation of 180 around y axis
         return q
 
+def quaternion_rotation_from_vector_to_vector_frames(a,b):
+    """
+    Generates quaternions for a set of vectors to a single vector.
+
+    :param a: np.array( n, 3)
+    :param b: np.array( 3)
+    :return: quaternion rotations: np.array(n, 4)
+    """
+    v = np.cross(a, [b])
+    w = np.sqrt((np.linalg.norm(a, axis=-1) ** 2) * (np.linalg.norm(b) ** 2)) + np.dot(a, b)
+    q = np.append( np.reshape(w, (-1, 1)), v, axis=1)
+
+    dotted = lambda q: np.dot(q,q) != 0
+
+    # np.dot(q,q) != 0 condition:
+    condition = list(map(dotted, q))
+
+    # if np.dot(q, q) != 0:
+    q[condition] = q[condition] / np.reshape(np.linalg.norm(q, axis=1), (-1,1))
+
+    # else:
+    nonzeros = lambda a: np.nonzero(a)[0][0]
+    not_conditions = list(map(lambda q: not q, condition))
+    idx = list(map(nonzeros, a[not_conditions]))
+
+
+    elseCases = np.zeros((len(idx), 4))
+    for i in range(len(idx)):
+        elseCases[i][int(1 + ((idx[i] + 1) % 2))] = 1
+    q[not_conditions] = elseCases
+
+    return q
+
+def matrix_rotation_from_vector_to_vector_frames(a, b):
+    """
+    Generates rotation matrices for a set of vectors to a single vector.
+
+    :param a: np.array( n, 3)
+    :param b: np.array( 3)
+    :return: homogeneous rotation matrices: np.array(n, 4, 4)
+    """
+    q = quaternion_rotation_from_vector_to_vector_frames(a, b)
+    qm = np.array(list(map(quaternion_matrix, q)))
+    return qm
+
+def quaternion_angle_axis_frames(q):
+    """
+    Transforms a set of quaternion rotations to angle axis representation.
+
+    :param q: np.array(n, 4, 4)
+    :return: angles: np.array(n, 1)
+    :return: axis: np.array(n, 3,3)
+    """
+    q /= np.reshape(np.linalg.norm(q, axis=1), (-1,1))
+    s = np.sqrt(1 - (q[:,0] ** 2))
+    s[s==0] = 0.001
+    angles = 2.0 * np.arccos(q[:,0])
+    axis = q[:,1:] / s[..., np.newaxis]
+    return (angles, axis)
+
 
 def convert_euler_frame_to_reduced_euler_frame(bvhreader, euler_frame):
     if type(euler_frame) != list:
@@ -1546,3 +1620,70 @@ def point_rotation_by_quaternion(point, q):
     r = [0, point[0], point[1], point[2]]
     q_conj = [q[0], -1*q[1], -1*q[2], -1*q[3]]
     return quaternion_multiply(quaternion_multiply(q, r), q_conj)[1:]
+
+def quaternion_normalized(q):
+	"""
+	normalizes a set of quaternions
+	:param q: np.array(n, 4)
+	:return: np.array(n, 4)
+	"""
+	sqs = np.sum(q**2, axis=-1)
+	q[sqs > 0.0001] =q[sqs > 0.0001] * 1 / sqs[sqs > 0.0001]
+	q[sqs <= 0.0001] = [1.0, 0.0, 0.0, 0.0]
+	#q = q / np.linalg.norm(q, axis=-1)
+	#if np.sum(q) < 0:
+	#	q = -q
+	return q
+
+
+def quaternions_from_matrix(ts):
+    """
+	Transforms a set of quaternions from a matrix. This code was taken from holdens implementation.
+
+	Remark: For some reason, this code does not accurately transform quaternions from matrices. For some reason, the singularity (q = -q) is not accurately solved.
+
+    :param ts: np.array(n, d, 3, 3)
+    :return: np.array(n, d, 4)
+    """
+    d0, d1, d2 = ts[..., 0,0], ts[..., 1,1], ts[..., 2,2]
+
+    q0 = (d0 + d1 + d2 + 1.0) / 4.0
+    q1 = (d0 - d1 - d2 + 1.0) / 4.0
+    q2 = (-d0 + d1 - d2 + 1.0) / 4.0
+    q3 = (-d0 - d1 + d2 + 1.0) / 4.0
+
+    q0 = np.sqrt(q0.clip(0, None))
+    q1 = np.sqrt(q1.clip(0, None))
+    q2 = np.sqrt(q2.clip(0, None))
+    q3 = np.sqrt(q3.clip(0, None))
+
+    c0 = (q0 >= q1) & (q0 >= q2) & (q0 >= q3)
+    c1 = (q1 >= q0) & (q1 >= q2) & (q1 >= q3)
+    c2 = (q2 >= q0) & (q2 >= q1) & (q2 >= q3)
+    c3 = (q3 >= q0) & (q3 >= q1) & (q3 >= q2)
+
+    q1[c0] *= np.sign(ts[c0, 2, 1] - ts[c0, 1, 2])
+    q2[c0] *= np.sign(ts[c0, 0, 2] - ts[c0, 2, 0])
+    q3[c0] *= np.sign(ts[c0, 1, 0] - ts[c0, 0, 1])
+
+    q0[c1] *= np.sign(ts[c1, 2, 1] - ts[c1, 1, 2])
+    q2[c1] *= np.sign(ts[c1, 1, 0] + ts[c1, 0, 1])
+    q3[c1] *= np.sign(ts[c1, 0, 2] + ts[c1, 2, 0])
+
+    q0[c2] *= np.sign(ts[c2, 0, 2] - ts[c2, 2, 0])
+    q1[c2] *= np.sign(ts[c2, 1, 0] + ts[c2, 0, 1])
+    q3[c2] *= np.sign(ts[c2, 2, 1] + ts[c2, 1, 2])
+
+    q0[c3] *= np.sign(ts[c3, 1, 0] - ts[c3, 0, 1])
+    q1[c3] *= np.sign(ts[c3, 2, 0] + ts[c3, 0, 2])
+    q2[c3] *= np.sign(ts[c3, 2, 1] + ts[c3, 1, 2])
+
+    qs = np.empty((ts.shape[0], ts.shape[1], 4))
+    qs[..., 0] = q0
+    qs[..., 1] = q1
+    qs[..., 2] = q2
+    qs[..., 3] = q3
+
+    #qs = np.reshape(qs, (qs.shape[0], qs.shape[1], 4))
+
+    return qs
