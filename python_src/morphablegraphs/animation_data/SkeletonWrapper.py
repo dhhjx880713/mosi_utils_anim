@@ -102,17 +102,18 @@ class Animation():
 			globaltransf.append(self._motion_vector.skeleton.nodes[bone_name].get_global_matrix(self._motion_vector.frames[frame]))
 		return np.array(globaltransf)
 
-	def get_global_transforms(self):
+	def get_global_transforms(self, steplength=1):
 		"""
 		Generates global transformation matrices for all frames.
 
-		:return: np.array [frames, joints, 4, 4]
+		:param steplength:int set to > 1 to scale down frames (steplength = 2 reduces the frames by 2)
+		:return: np.array [frames / steplength, joints, 4, 4]
 		"""
 
 		if len(self._global_transformations) == 0:
 			# recompute transforms
 			globaltransf = []
-			for f in range(0, self._motion_vector.n_frames):
+			for f in range(0, self._motion_vector.n_frames, steplength):
 				globaltransf.append(self.get_global_transform(f))
 			self._global_transformations = np.array(globaltransf)
 
