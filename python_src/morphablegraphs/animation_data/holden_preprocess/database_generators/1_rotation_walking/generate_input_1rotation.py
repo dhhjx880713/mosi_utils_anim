@@ -108,7 +108,7 @@ class Participant():
 
 		""" Extract Forward Direction """
 
-		sdr_l, sdr_r, hip_r, hip_l = 36, 13, 1, 4  # 18, 25, 2, 7
+		sdr_l, sdr_r, hip_l, hip_r = 36, 13, 1, 4  # 18, 25, 2, 7 ??
 		across = (
 				(global_positions[:, sdr_l] - global_positions[:, sdr_r]) +
 				(global_positions[:, hip_l] - global_positions[:, hip_r]))
@@ -204,7 +204,7 @@ class Participant():
 		for f in range(len(global_rotations)):
 			for b in range(len(global_rotations[f])):
 				q = Quaternions(global_rotations[f][b])
-				base_direction = np.array(anim.directions[b])
+				base_direction = q * np.array(anim.directions[b])
 				(swing, twist) = q.swing_twist_decomposition(base_direction)
 				twist_angle = twist.angle_axis()[0][0]
 				twists[f][b] = twist_angle

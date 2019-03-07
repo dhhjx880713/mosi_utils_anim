@@ -505,8 +505,8 @@ class Quaternions:
 		e = 0.00001
 		epsilon = np.array([e,e,e])
 
-		#if np.all(np.abs(twist.angle_axis()[1][0] + twist_axis) <= epsilon):
-		#	twist = twist.inverted()
+		if np.all(np.fabs(twist.angle_axis()[1][0] + twist_axis) <= epsilon):
+			twist = twist.inverted()
 
 		swing = q * twist.inverted()
 
