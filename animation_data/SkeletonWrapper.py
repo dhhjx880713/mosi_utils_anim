@@ -1,8 +1,7 @@
-from morphablegraphs.animation_data.bvh import BVHReader
-from morphablegraphs.animation_data.skeleton_builder import SkeletonBuilder
-from morphablegraphs.animation_data.motion_vector import MotionVector
-
-import morphablegraphs.animation_data.utils as utils
+from .bvh import BVHReader
+from .skeleton_builder import SkeletonBuilder
+from .motion_vector import MotionVector
+import animation_data.utils as utils
 
 import scipy.ndimage.filters as filters
 
