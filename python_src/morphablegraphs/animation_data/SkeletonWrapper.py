@@ -48,7 +48,7 @@ holden_directions = np.array([
 
 class Animation():
 
-	def __init__(self, filename, directions = holden_directions, holden_corrected = False):
+	def __init__(self, filename, includes, directions = holden_directions, holden_corrected = False):
 		""" Animation is a Wrapper function for the skeleton definitions in morphable-graphs.
 
 		The functions provided with this class enable the data loading and preprocessing of
@@ -88,6 +88,8 @@ class Animation():
 		self.directions = holden_directions
 		self.twists = []
 
+		self.includes = includes
+
 	def get_global_transform(self, frame):
 		"""
 		Generates global transformation matrices for a single frame.
@@ -123,7 +125,8 @@ class Animation():
 				for f in range(len(self._global_transformations)):
 					for b in range(len(self._global_transformations[f])):
 						self._global_transformations[f][b][:3, 3] -= posUpdate
-
+			if len(self.includes > 0):
+				self._global_transformations = self._global_transformations[self.includes]
 		return self._global_transformations
 
 	def get_global_joint_positions(self):
@@ -350,3 +353,25 @@ class Animation():
 		root_positions = np.matmul(r[frame], np.reshape(self.get_root_pos()[frame - window:frame + window:10] - self.get_root_pos()[frame], (-1, 3, 1)))
 		root_dirs = np.matmul(r[frame], np.reshape(f[frame-window:frame+window:10], (-1, 3, 1)))
 		return (np.reshape(root_positions, (-1, 3)), np.reshape(root_dirs, (-1,3)))
+
+	def get_root_local_end_joint_pos(self, bone_name, forwards):
+		bone_id = self._motion_vector.skeleton.get_joint_names().index(bone_name)
+
+		g = self.get_global_joint_rotations().copy()
+		bone_transforms = g[:, bone_id]
+		end_joint_dir = np.matmul(bone_transforms, forwards)
+
+		gl = self.get_global_joint_positions()
+		end_joint_pos = gl[:, bone_id] + end_joint_dir
+		vel = end_joint_pos[1:] - end_joint_pos[:-1]
+
+		end_joint_pos[:, 0] -= gl[:, 0, 0]
+		end_joint_pos[:, 2] -= gl[:, 0, 2]
+
+
+
+		f, r = self.get_forward_directions_rotations()
+		vel = np.matmul(r[:-1], np.reshape(vel, (-1, 3,1)))
+		end_joint_pos = np.matmul(r, np.reshape(end_joint_pos, (-1, 3, 1)))[:-1]
+
+		return (bone_id, end_joint_pos, vel)
