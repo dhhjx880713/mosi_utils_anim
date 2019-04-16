@@ -19,9 +19,9 @@ sys.path.insert(0, os.path.abspath('.'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'TEST'
-copyright = '2019, ASR'
-author = 'ASR'
+project = 'MOSI_UTILS_ANIM'
+copyright = '2019, DFKI ASR'
+author = 'DFKI ASR'
 
 # The short X.Y version
 version = ''
