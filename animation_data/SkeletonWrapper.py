@@ -1,7 +1,8 @@
 from .bvh import BVHReader
 from .skeleton_builder import SkeletonBuilder
 from .motion_vector import MotionVector
-import animation_data.utils as utils
+
+import .utils
 
 import scipy.ndimage.filters as filters
 
