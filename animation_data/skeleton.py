@@ -9,11 +9,11 @@ import collections
 from copy import copy
 import json
 import numpy as np
-from ..external.transformations import quaternion_matrix, quaternion_from_matrix
-from .skeleton_node import SkeletonEndSiteNode, SkeletonJointNode
-from .constants import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER
+from ..external.transformations import quaternion_matrix
+from .skeleton_node import SkeletonEndSiteNode
+from .constants import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER, LEN_EULER, LEN_ROOT_POS, LEN_QUAT
 from .skeleton_models import ROCKETBOX_ANIMATED_JOINT_LIST, ROCKETBOX_FREE_JOINTS_MAP, ROCKETBOX_REDUCED_FREE_JOINTS_MAP, ROCKETBOX_SKELETON_MODEL, ROCKETBOX_BOUNDS, ROCKETBOX_TOOL_BONES, ROCKETBOX_ROOT_DIR
-from .motion_editing.coordinate_cyclic_descent import run_ccd, normalize, set_global_orientation, run_ccd_look_at, orient_node_to_target_look_at, LOOK_AT_DIR, SPINE_LOOK_AT_DIR
+from .joint_constraints import apply_conic_constraint, apply_axial_constraint, apply_spherical_constraint
 try:
     from mgrd import Skeleton as MGRDSkeleton
     from mgrd import SkeletonNode as MGRDSkeletonNode
@@ -23,12 +23,16 @@ except ImportError:
     pass
 
 
+def project_vector_on_vector(a, b):
+    return np.dot(np.dot(b, a), b)
+
+
 class Skeleton(object):
     """ Data structure that stores the skeleton hierarchy information
         extracted from a BVH file with additional meta information.
     """
     def __init__(self):
-        self.animated_joints = ROCKETBOX_ANIMATED_JOINT_LIST
+        self.animated_joints = []
         self.free_joints_map = ROCKETBOX_FREE_JOINTS_MAP
         self.reduced_free_joints_map = ROCKETBOX_REDUCED_FREE_JOINTS_MAP
         self.skeleton_model = ROCKETBOX_SKELETON_MODEL
@@ -40,6 +44,7 @@ class Skeleton(object):
         self.reference_frame = None
         self.reference_frame_length = None
         self.nodes = collections.OrderedDict()
+        self.tool_nodes = []
         self.max_level = -1
         self.parent_dict = dict()
         self._chain_names = []
@@ -82,6 +87,7 @@ class Skeleton(object):
         data["frame_time"] = self.frame_time
         data["root"] = self._get_node_desc(self.root)
         data["reference_frame"] = self.reference_frame.tolist()
+        data["tool_nodes"] = self.tool_nodes
         return data
 
     def save_to_json(self, file_name):
@@ -132,34 +138,6 @@ class Skeleton(object):
                         new_frame[dest_start: dest_start+4] = reduced_frame[src_start: src_start + 4]
 
                 joint_index += 1
-        return new_frame
-
-
-    def add_fixed_joint_parameters_to_other_frame(self, reduced_frame, other_animated_joints):
-        """
-        Takes parameters from the reduced frame for each joint of the complete skeleton found in the reduced skeleton
-        otherwise it takes parameters from the reference frame
-        :param reduced_frame:
-        :return:
-        """
-        new_frame = np.zeros(self.reference_frame_length)
-        src_joint_index = 0
-        dest_joint_index = 0
-        for joint_name in list(self.nodes.keys()):
-            if len(self.nodes[joint_name].children) > 0 and "EndSite" not in joint_name:
-                if joint_name == self.root:
-                    new_frame[:7] = reduced_frame[:7]
-                    src_joint_index += 1
-                else:
-                    dest_start = dest_joint_index * 4 + 3
-                    if joint_name in other_animated_joints:
-                        src_start = other_animated_joints.index(joint_name) * 4 + 3
-                        new_frame[dest_start: dest_start + 4] = reduced_frame[src_start: src_start + 4]
-                        src_joint_index+=1
-                    else:
-                        new_frame[dest_start: dest_start + 4] = self.nodes[joint_name].rotation
-
-                dest_joint_index += 1
         return new_frame
 
     def _get_max_level(self):
@@ -328,14 +306,12 @@ class Skeleton(object):
                 channels[node.node_name] = node_channels
         return channels
 
-
-    def to_unity_format(self, joint_name_map=None, animated_joints=None, scale=1):
+    def to_unity_format(self, joint_name_map=None, scale=1):
         """ Converts the skeleton into a custom json format and applies a coordinate transform to the left-handed coordinate system of Unity.
             src: http://answers.unity3d.com/questions/503407/need-to-convert-to-right-handed-coordinates.html
         """
-        if animated_joints is None:
-            animated_joints = [j for j, n in list(self.nodes.items()) if
-                               "EndSite" not in j and len(n.children) > 0]  # self.animated_joints
+
+        animated_joints = [j for j, n in list(self.nodes.items()) if "EndSite" not in j and len(n.children) > 0]#self.animated_joints
         joint_descs = []
         self.nodes[self.root].to_unity_format(joint_descs, animated_joints, joint_name_map=joint_name_map)
 
@@ -346,24 +322,21 @@ class Skeleton(object):
         default_pose = dict()
         default_pose["rotations"] = []
         for node in list(self.nodes.values()):
-            if node.node_name in animated_joints:
-                q = node.rotation
-                if len(q) == 4:
-                    r = {"x": -float(q[1]), "y": float(q[2]), "z": float(q[3]), "w": -float(q[0])}
-                else:
-                    r = {"x": 0.0, "y": 0.0, "z": 0.0, "w": 1.0}
-                default_pose["rotations"].append(r)
+              if node.node_name in animated_joints:
+                  q = node.rotation
+                  if len(q) ==4:
+                      r = {"x":-q[1], "y":q[2], "z":q[3], "w":-q[0]}
+                  else:
+                      r = {"x":0, "y":0, "z":0, "w":1}
+                  default_pose["rotations"].append(r)
 
-        default_pose["translations"] = [
-            {"x": -float(scale * node.offset[0]), "y": float(scale * node.offset[1]), "z": float(scale * node.offset[2])}
-            for node in
-            list(self.nodes.values()) if node.node_name in animated_joints and len(node.children) > 0]
+        default_pose["translations"] = [{"x":-scale*node.offset[0], "y":scale*node.offset[1], "z":scale*node.offset[2]} for node in list(self.nodes.values()) if node.node_name in animated_joints and len(node.children) > 0]
 
         data["referencePose"] = default_pose
         return data
 
     def get_reduced_reference_frame(self):
-        frame = list(self.reference_frame[:3])
+        frame = [0, 0, 0]
         for joint_name in self.animated_joints:
             frame += list(self.nodes[joint_name].rotation)
         return frame
@@ -415,69 +388,101 @@ class Skeleton(object):
         self.nodes[heel_name] = node
         self.nodes[foot_name].children.append(node)
 
+    def get_reduced_euler_frames(self, euler_frames, has_root=True):
+        '''
+        create reduced size of euler frames based on animated joints
+        :param euler_frames: n_frames * n_dims
+        :return:
+        '''
+        nonEndSite_joints = self.get_joints_without_EndSite()
+        euler_frames = np.asarray(euler_frames)
+        if has_root:
+            assert euler_frames.shape[1] == LEN_ROOT_POS + LEN_EULER * len(nonEndSite_joints)
+            new_euler_frames = np.zeros([euler_frames.shape[0], LEN_ROOT_POS + LEN_EULER * len(self.animated_joints)])
+        else:
+            assert euler_frames.shape[1] == LEN_EULER * len(nonEndSite_joints)
+            new_euler_frames = np.zeros([euler_frames.shape[0], LEN_EULER * len(self.animated_joints)])
+        for i in range(euler_frames.shape[0]):
+            new_euler_frames[i] = self.get_reduced_euler_frame(euler_frames[i], has_root=has_root)
+        return new_euler_frames
 
     def apply_joint_constraints(self, frame):
-        for n in self.animated_joints:
-            if self.nodes[n].joint_constraint is not None:
-                idx = self.nodes[n].quaternion_frame_index * 4 + 3
-                q = frame[idx:idx + 4]
-                frame[idx:idx + 4] = self.nodes[n].joint_constraint.apply(q)
+        if "joint_constraints" in self.skeleton_model:
+            constraints = self.skeleton_model["joint_constraints"]
+            for n in self.nodes.keys():
+                if n in constraints:
+                    idx = self.nodes[n].quaternion_frame_index * 4 + 3
+                    if "cone" in constraints[n]:
+                        q = frame[idx:idx + 4]
+                        k = constraints[n]["cone"]["k"]
+                        up_axis = constraints[n]["axis"]
+                        ref_q = self.nodes[n].rotation
+                        frame[idx:idx + 4] = apply_conic_constraint(q, ref_q, up_axis, k)
+                    if "axial" in constraints:
+                        q = frame[idx:idx + 4]
+                        k1 = constraints[n]["axial"]["k1"]
+                        k2 = constraints[n]["axial"]["k2"]
+                        up_axis = constraints[n]["axis"]
+                        ref_q = self.nodes[n].rotation
+                        frame[idx:idx + 4] = apply_axial_constraint(q, ref_q, up_axis, k1, k2)
+                    if "spherical" in constraints:
+                        q = frame[idx:idx + 4]
+                        k = constraints[n]["spherical"]["k"]
+                        up_axis = constraints[n]["axis"]
+                        ref_q = self.nodes[n].rotation
+                        frame[idx:idx + 4] = apply_spherical_constraint(q, ref_q, up_axis, k)
 
-    def reach_target_position(self, frame, constraint, eps=0.01, max_iter=50, verbose=False):
-        frame, error = run_ccd(self, frame, constraint.joint_name, constraint, eps, max_iter, -1, verbose)
-        print("reached with error", error)
-        return frame
+    def get_reduced_euler_frame(self, euler_frame, has_root=True):
+        '''
+        create a reduced size of euler frame based on animated joints
+        :param euler_frames: n_frames * n_dims
+        :return:
+        '''
+        if has_root:
+            new_euler_frame = np.zeros(LEN_ROOT_POS + LEN_EULER * len(self.animated_joints))
+            new_euler_frame[:LEN_ROOT_POS] = euler_frame[:LEN_ROOT_POS]
+            i = 0
+            for joint in self.animated_joints:
+                if joint == self.root:
+                    new_euler_frame[LEN_ROOT_POS+i*LEN_EULER: LEN_ROOT_POS+(i+1)*LEN_EULER] = euler_frame[self.nodes[joint].channel_indices[LEN_ROOT_POS:]]
+                else:
+                    new_euler_frame[LEN_ROOT_POS+i*LEN_EULER: LEN_ROOT_POS+(i+1)*LEN_EULER] = euler_frame[self.nodes[joint].channel_indices]
+                i += 1
+        else:
+            new_euler_frame = np.zeros(LEN_EULER * len(self.animated_joints))
+            i = 0
+            for joint in self.animated_joints:
+                if joint == self.root:
+                    new_euler_frame[LEN_ROOT_POS + i * LEN_EULER: LEN_ROOT_POS + (i + 1) * LEN_EULER] = euler_frame[
+                        self.nodes[joint].channel_indices[LEN_ROOT_POS:]]
+                else:
+                    new_euler_frame[LEN_ROOT_POS + i * LEN_EULER: LEN_ROOT_POS + (i + 1) * LEN_EULER] = euler_frame[
+                        self.nodes[joint].channel_indices]
+                i += 1
+        return new_euler_frame
 
-    def reach_target_positions(self, frame, constraints, chain_end_joints=None, eps=0.0001, n_max_iter=500, verbose=False):
-        error = np.inf
-        prev_error = error
-        n_iters = 0
-        is_stuck = False
-        if chain_end_joints is None:
-            chain_end_joints = dict()
-            for c in constraints:
-                chain_end_joints[c.joint_name] = self.root
-        while n_iters < n_max_iter and error > eps and not is_stuck:
-            error = 0
-            print("iter", n_iters)
-            for c in constraints:
-                joint_error = 0
-                if c.look_at and c.look_at_pos is not None:
-                    frame, joint_error = run_ccd_look_at(self, frame, c.joint_name, c.look_at_pos, eps, n_max_iter)
-                if c.position is not None and c.relative_parent_joint_name is None:
-                    frame, _joint_error = run_ccd(self, frame, c.joint_name, c, eps, n_max_iter, chain_end_joints[c.joint_name], verbose)
-                    joint_error += _joint_error
-                elif c.orientation is not None:
-                    frame = set_global_orientation(self, frame, c.joint_name, c.orientation)
-                elif c.relative_parent_joint_name is not None: # run ccd on relative constraint
-                    #turn relative constraint into a normal constraint
-                    _c = c.instantiate_relative_constraint(self, frame)
-                    frame, _joint_error = run_ccd(self, frame, _c.joint_name, _c, eps, n_max_iter, chain_end_joints[c.joint_name], verbose)
-                    joint_error += _joint_error
-                error += joint_error
-            if abs(prev_error - error) < eps:
-                is_stuck = True
-            #print("iter", is_stuck, max_iter, error,eps, prev_error)
-            prev_error = error
-            n_iters += 1
-        print("reached with error", error, n_iters)
-        return frame
+    def get_joints_without_EndSite(self):
+        joints = []
+        for joint in self.nodes.keys():
+            if 'EndSite' not in joint:
+                joints.append(joint)
+        return joints
 
-    def set_joint_orientation(self, frame, joint_name, orientation):
-        m = quaternion_matrix(orientation)
-        parent = self.nodes[joint_name].parent
-        if parent is not None:
-            parent_m = parent.get_global_matrix(frame, use_cache=False)
-            local_m = np.dot(np.linalg.inv(parent_m), m)
-            q = quaternion_from_matrix(local_m)
-            offset = self.nodes[joint_name].quaternion_frame_index*4+3
-            frame[offset:offset+4] = normalize(q)
-        return frame
-
-    def look_at(self, frame, joint_name, position, eps=0.0001, n_max_iter=1, local_dir=LOOK_AT_DIR):
-        frame, error = run_ccd_look_at(self, frame, joint_name, position, eps, n_max_iter, local_dir)
-        #frame = orient_node_to_target_look_at(self,frame,joint_name, joint_name, position)
-        #error =0
-        print("reached with error", error)
-        return frame
-
+    def generate_bone_list_description(self):
+        '''
+        Generate a list of bone description for point cloud visualization
+        :return:
+        '''
+        bones = []
+        index = 0
+        for node_name, node in self.nodes.items():
+            if self.animated_joints is not None:
+                if node_name in self.animated_joints:
+                    parent_joint_name = node.get_parent_name(self.animated_joints)
+                    bone_desc = {'name': node_name, 'parent': parent_joint_name, 'index': index}
+                    index += 1
+                    bones.append(bone_desc)
+            else:
+                bone_desc = {'name': node_name, 'parent': node.get_parent_name(), 'index': node.index}
+                bones.append(bone_desc)
+        return bones

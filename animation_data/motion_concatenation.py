@@ -115,6 +115,7 @@ def transform_quaternion_frames_legacy(quat_frames, angles, offset, rotation_ord
         frame[3:7] = quaternion_multiply(rotation_q, oq)
     return quat_frames
 
+
 def pose_orientation_quat(quaternion_frame):
     """Estimate pose orientation from root orientation
     """
@@ -124,6 +125,7 @@ def pose_orientation_quat(quaternion_frame):
     dir_vec = np.array([rotated_point[0], rotated_point[2]])
     dir_vec /= np.linalg.norm(dir_vec)
     return dir_vec
+
 
 def fast_quat_frames_transformation(quaternion_frames_a,
                                     quaternion_frames_b):
@@ -172,6 +174,7 @@ def get_node_aligning_2d_transform(skeleton, node_name, prev_frames, new_frames,
     m[2, 3] = delta[2]
     return m
 
+
 def get_transform_from_point_cloud_alignment(skeleton, prev_frames, new_frames):
     weights = skeleton.get_joint_weights()
     p_a = convert_quat_frame_to_point_cloud(skeleton, prev_frames[-1])
@@ -184,6 +187,7 @@ def get_transform_from_point_cloud_alignment(skeleton, prev_frames, new_frames):
     m[2,3] = offset_z
     print("run point cloud alignment", theta, offset_x, offset_z, m)
     return m
+
 
 def transform_quaternion_frames(frames, m,
                                 translation_param_range=(0, 3),
@@ -269,6 +273,8 @@ def get_transform_from_start_pose(start_pose):
     return m
 
 
+
+
 def align_and_concatenate_frames(skeleton, joint_name, new_frames, prev_frames=None, start_pose=None, smoothing_window=0,
                                  blending_method='smoothing'):
     new_frames = align_quaternion_frames(skeleton, joint_name, new_frames, prev_frames, start_pose)
@@ -326,12 +332,10 @@ def align_frames_and_fix_foot_to_prev(skeleton, aligning_joint, new_frames, prev
         transition_start = d
         c = create_grounding_constraint_from_frame(skeleton, frames, d-1, foot_joint)
         ik = AnalyticalLimbIK.init_from_dict(skeleton, c.joint_name, ik_chain)
-        before = skeleton.nodes[foot_joint].get_global_position(frames[transition_start])
-
         frames[transition_start] = ik.apply2(frames[transition_start], c.position, c.orientation)
 
         transition_end = d+ik_window
-        print("allign frames", c.position, foot_joint, d-1, transition_end, before, skeleton.nodes[foot_joint].get_global_position(frames[transition_start]))
+        #print("allign frames", c.position, foot_joint, d-1, transition_end, skeleton.nodes[foot_joint].get_global_position(frames[transition_start]))
         print(skeleton.nodes[foot_joint].get_global_position(frames[d]))
 
         chain_joints =  [ik_chain["root"], ik_chain["joint"], foot_joint]#[skeleton.root] +
@@ -532,7 +536,7 @@ def align_frames_using_forward_blending(skeleton, aligning_joint, new_frames, pr
         if pelvis != skeleton.root:
             leg_joint_list.append(pelvis)
 
-        frames = blend_towards_next_step_linear_with_original(skeleton, frames, blend_start, blend_end, leg_joint_list)
+        # frames = blend_towards_next_step_linear_with_original(skeleton, frames, blend_start, blend_end, leg_joint_list)
         joint_list = [j for j in skeleton.animated_joints if j not in leg_joint_list]
 
         if smoothing_window > 0:

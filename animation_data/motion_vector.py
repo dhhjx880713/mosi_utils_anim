@@ -1,9 +1,10 @@
 __author__ = 'erhe01'
 
 from datetime import datetime
+import os
 import numpy as np
-from .utils import  convert_euler_frames_to_quaternion_frames
-from .motion_concatenation import align_and_concatenate_frames, smooth_root_positions
+from .utils import align_frames,transform_euler_frames, convert_euler_frames_to_quaternion_frames
+from .motion_concatenation import align_and_concatenate_frames, smooth_root_positions#, align_frames_and_fix_feet
 from .constants import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER
 from .bvh import BVHWriter
 import imp
@@ -71,7 +72,7 @@ class MotionVector(object):
 
     def from_bvh_reader(self, bvh_reader, filter_joints=True, animated_joints=None):
         if self.rotation_type == ROTATION_TYPE_QUATERNION:
-            self.frames = np.array(convert_euler_frames_to_quaternion_frames(bvh_reader, bvh_reader.frames, animated_joints))
+            self.frames = np.array(convert_euler_frames_to_quaternion_frames(bvh_reader, bvh_reader.frames, filter_joints, animated_joints))
         elif self.rotation_type == ROTATION_TYPE_EULER:
             self.frames = bvh_reader.frames
         self.n_frames = len(self.frames)
@@ -169,9 +170,7 @@ class MotionVector(object):
 
     def translate_root(self, offset):
         for idx in range(self.n_frames):
-            print("before", self.frames[idx, :3])
             self.frames[idx][:3] += offset
-            print("after",self.frames[idx,:3])
 
     def scale_root(self, scale_factor):
         for idx in range(self.n_frames):
