@@ -1,10 +1,6 @@
-__author__ = 'hadu01'
-
 import glob
-from ..animation_data.bvh import BVHReader
-from ..animation_data.skeleton import Skeleton
-from ..animation_data.motion_editing import get_step_length, \
-                                            get_cartesian_coordinates_from_euler_full_skeleton, \
+from morphablegraphs.animation_data import BVHReader, SkeletonBuilder
+from morphablegraphs.animation_data.utils import get_step_length, \
                                             pose_orientation_quat
 import numpy as np
 import os
@@ -41,7 +37,7 @@ class MocapDataStats(object):
         for item in bvh_files:
             bvh_reader = BVHReader(item)
             self.bvhreaders.append(bvh_reader)
-        self.skeleton = Skeleton(bvh_reader)
+        self.skeleton = SkeletonBuilder().load_from_bvh(bvh_reader)
         # self.calculate_step_len()
 
     def calculate_step_len(self):
@@ -78,12 +74,13 @@ class MocapDataStats(object):
         joint_positions = []
         for bvhreader in self.bvhreaders:
             frame = bvhreader.frames[frame_idx]
-            pos = get_cartesian_coordinates_from_euler_full_skeleton(bvhreader,
-                                                                     self.skeleton,
-                                                                     joint_name,
-                                                                     frame)
+            pos = self.skeleton.nodes[joint_name].get_global_position_from_euler_frame(frame,
+                                                                                       rotation_order=['Xrotation',
+                                                                                                       'Yrotation',
+                                                                                                       'Zrotation'])
             joint_positions.append(pos)
         return joint_positions
+
 
 class MotionPrimitiveStats(object):
     def __init__(self, mm_file):

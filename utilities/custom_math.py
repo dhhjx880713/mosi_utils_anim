@@ -1,10 +1,8 @@
 # encoding: UTF-8
-__author__ = 'hadu01'
-
 import numpy as np
-from ..external.transformations import _AXES2TUPLE, _TUPLE2AXES, _NEXT_AXIS
+import numpy as np
+from ..external.transformations import _AXES2TUPLE, _TUPLE2AXES, _NEXT_AXIS, quaternion_from_euler
 import math
-# from morphablegraphs.animation_data.prepare_data import convert_quaternion_frames_to_cartesian_frames
 LEN_CARTESIAN = 3
 LEN_QUATERNION = 4
 
@@ -350,8 +348,30 @@ def quat_to_expmap(q):
     vx = q[1] * auxillary
     vy = q[2] * auxillary
     vz = q[3] * auxillary
-    v = np.array([vx, vy, vz])
-    return np.exp(v)
+    return np.array([vx, vy, vz])
+
+def euler_to_expmap(euler_angles):
+    '''
+    convert euler angles to exponential map
+    :param euler_angles: degree
+    :return:
+    '''
+    euler_angles_rad = np.deg2rad(euler_angles)
+    quat = quaternion_from_euler(*euler_angles)
+    return quat_to_expmap(quat)
+
+
+def angle_axis_from_quaternion(q):
+    q = q/np.linalg.norm(q)
+    theta = 2 * np.arccos(q[0])
+    if theta < 1e-3:
+        axis = np.array([0, 0, 0])
+    else:
+        x = q[1] / np.sin(0.5 * theta)
+        y = q[2] / np.sin(0.5 * theta)
+        z = q[3] / np.sin(0.5 * theta)
+        axis = np.array([x, y, z])
+    return theta, axis
 
 
 def quat_to_logmap(q):
@@ -368,17 +388,16 @@ def quat_to_logmap(q):
 
 
 def expmap_to_quat(exp_map):
-    v = np.log(exp_map)
-    theta = np.linalg.norm(v)
-    print(('theta is: ', theta))
-    if theta < 1e-3:
+    theta = np.linalg.norm(exp_map)
+    print('theta is: ', theta)
+    if np.abs(theta) < 1e-3:
         auxillary = 0.5 + theta ** 2 / 48
     else:
         auxillary = np.sin(0.5*theta) / theta
     qw = np.cos(theta/2)
-    qx = v[0]*auxillary
-    qy = v[1]*auxillary
-    qz = v[2]*auxillary
+    qx = exp_map[0]*auxillary
+    qy = exp_map[1]*auxillary
+    qz = exp_map[2]*auxillary
     return [qw, qx, qy, qz]
 
 
@@ -443,6 +462,14 @@ def angle_between_vectors(v1, v2):
     return theta
 
 
+def angle_between_2d_vector(v1, v2):
+    v1 = np.asarray(v1)
+    v2 = np.asarray(v2)
+    theta = np.arccos(np.dot(v1, v2)/np.linalg.norm(v1) * np.linalg.norm(v2))
+    return theta
+
+
+
 def find_local_maximum(signal, neighbor_size):
     '''
     find local maximums of a signal in a given beighbor size
@@ -455,6 +482,31 @@ def find_local_maximum(signal, neighbor_size):
     localMax = []
     k = int(np.floor(neighbor_size/2))
     extendedSignal = np.zeros(signal_len + 2*k)
+    extendedSignal[k: -k] = signal
+    for i in range(k):
+        extendedSignal[i] = signal[0]
+        extendedSignal[-i-1] = signal[-1]
+    for j in range(0, signal_len):
+        searchArea = extendedSignal[j: j+neighbor_size]
+        maximum = np.max(searchArea)
+        if maximum == extendedSignal[j+k]:
+            localMax.append(j)
+
+    return localMax
+
+
+def find_local_minimum(signal, neighbor_size):
+    '''
+    find local maximums of a signal in a given beighbor size
+    :param signal:
+    :param neighbor_size:
+    :return:
+    '''
+    # mirror the signal on the boundary with k = stepsize/2
+    signal_len = len(signal)
+    localMin = []
+    k = int(np.floor(neighbor_size/2))
+    extendedSignal = np.zeros(signal_len + 2*k)
     for i in range(signal_len):
         extendedSignal[i+k] = signal[i]
     for i in range(k):
@@ -462,8 +514,124 @@ def find_local_maximum(signal, neighbor_size):
         extendedSignal[-i-1] = signal[-1]
     for j in range(1, signal_len-1):
         searchArea = extendedSignal[j: j+neighbor_size]
-        maximum = np.max(searchArea)
-        if maximum == extendedSignal[j+k]:
-            localMax.append(j)
+        minimum = np.min(searchArea)
+        if minimum == extendedSignal[j+k]:
+            localMin.append(j)
 
-    return localMax
+    return localMin
+
+
+def linear_weights_curve(window_size):
+    '''
+    create a linear weight curve, the starting and ending points are zero, and the peak is in the middle
+    :param window_size:
+    :return:
+    '''
+    middle_point = window_size/2.0
+    weights = np.zeros(window_size)
+    for i in range(0, int(np.floor(middle_point))+1):
+        weights[i] = (1.0/middle_point) * i
+    for i in range(int(np.ceil(middle_point)), window_size):
+        weights[i] = -(1.0/middle_point) * i + 2.0
+    return weights
+
+
+def sin_weights_curve(window_size):
+    '''
+    create a sine weight curve, the starting and ending points are zero, and the peak is in the middle
+    :param window_size:
+    :return:
+    '''
+    return np.sin(np.arange(0, window_size) * np.pi / (window_size - 1))
+
+
+def power_weights_curve(window_size):
+    '''
+    create a power function weight curve, the starting and ending points are zero, and the peak is in the middle
+    :param window_size:
+    :return:
+    '''
+    middle_point = window_size/2.0
+    weights = np.zeros(window_size)
+    a = (1.0/middle_point) ** 2
+    for i in range(0, int(np.floor(middle_point))+1):
+        weights[i] = a * (i**2)
+    for i in range(int(np.ceil(middle_point)), window_size):
+        weights[i] = a * (i-window_size + 1) ** 2
+    return weights
+
+
+def tdot_mat(mat, out=None):
+    '''
+    a copy of implementation of M*M_T from GPy
+    :param mat:
+    :param out:
+    :return:
+    '''
+    from scipy.linalg import blas
+    """returns np.dot(mat, mat.T), but faster for large 2D arrays of doubles."""
+    if (mat.dtype != 'float64') or (len(mat.shape) != 2):
+        return np.dot(mat, mat.T)
+    nn = mat.shape[0]
+    if out is None:
+        out = np.zeros((nn, nn))
+    else:
+        assert(out.dtype == 'float64')
+        assert(out.shape == (nn, nn))
+        # FIXME: should allow non-contiguous out, and copy output into it:
+        assert(8 in out.strides)
+        # zeroing needed because of dumb way I copy across triangular answer
+        out[:] = 0.0
+
+    # # Call to DSYRK from BLAS
+    mat = np.asfortranarray(mat)
+    out = blas.dsyrk(alpha=1.0, a=mat, beta=0.0, c=out, overwrite_c=1,
+                     trans=0, lower=0)
+
+    symmetrify(out, upper=True)
+    return np.ascontiguousarray(out)
+
+
+def symmetrify(A, upper=False):
+    """
+    Take the square matrix A and make it symmetrical by copting elements from
+    the lower half to the upper
+
+    works IN PLACE.
+
+    note: tries to use cython, falls back to a slower numpy version
+    """
+    _symmetrify_numpy(A, upper)
+
+
+def _symmetrify_numpy(A, upper=False):
+    triu = np.triu_indices_from(A,k=1)
+    if upper:
+        A.T[triu] = A[triu]
+    else:
+        A[triu] = A.T[triu]
+
+
+def quaternion_from_vectors(vec1, vec2):
+    vec1 = vec1/np.linalg.norm(vec1)
+    vec2 = vec2/np.linalg.norm(vec2)
+    inner_prod = np.dot(vec1, vec2)
+    cross_prod = np.cross(vec1, vec2)
+    cross_prod = cross_prod / np.linalg.norm(cross_prod)
+    theta = np.arccos(inner_prod)
+    sin_half = np.sin(theta/2.0)
+    w = np.cos(theta/2.0)
+    print(w)
+    x = cross_prod[0] * sin_half
+    y = cross_prod[1] * sin_half
+    z = cross_prod[2] * sin_half
+    return np.array([w, x, y, z])
+
+
+def quaternion_from_vectors2(vec1, vec2):
+    from morphablegraphs.animation_data.quaternion import Quaternion
+    axis = np.cross(vec1, vec2)
+    axis = axis/np.linalg.norm(axis)
+    angle = np.arccos(np.dot(vec1, vec2)/(np.linalg.norm(vec1) * np.linalg.norm(vec2)))
+    q = Quaternion.fromAngleAxis(angle, axis)
+    return q

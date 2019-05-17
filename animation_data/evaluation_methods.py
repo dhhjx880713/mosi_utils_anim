@@ -576,3 +576,9 @@ def evaluate_motion_primitive_model(test_model_file, save_data_path):
         #           transformed_frames,
         #           ref_bvhreader.frame_time,
         #           is_quaternion=True)
+
+if __name__ == "__main__":
+    test_model_file = r'C:\repo\data\3 - Motion primitives\motion_primitives_quaternion_PCA95\elementary_action_pickBoth\pickBoth_first_quaternion_mm.json'
+    save_data_path = r'C:\experiment data\tmp1'
+    evaluate_motion_primitive_model(test_model_file,
+                                    save_data_path)

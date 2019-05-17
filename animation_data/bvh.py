@@ -14,7 +14,7 @@ BVH Writer by Erik Herrmann
 from collections import OrderedDict
 import numpy as np
 from ..external.transformations import quaternion_matrix,\
-    euler_from_matrix
+    euler_from_matrix, euler_matrix
 import os
 
 EULER_LEN = 3
@@ -48,6 +48,7 @@ class BVHReader(object):
             self.process_lines(lines)
             infile.close()
         self.filename = os.path.split(infilename)[-1]
+        self.animated_joints = None
 
     @classmethod
     def init_from_string(cls, skeleton_string):
@@ -88,18 +89,19 @@ class BVHReader(object):
                         name = line_split[1]
                         self.root = name
                         self.node_names[name] = {
-                            "children": [], "level": level, "channels": []}
+                            "children": [], "level": level, "channels": [], "channel_indices": []}
 
                     elif line_split[0] == "JOINT":
                         name = line_split[1]
                         self.node_names[name] = {
-                            "children": [], "level": level, "channels": []}
+                            "children": [], "level": level, "channels": [], "channel_indices": []}
                         self.node_names[parents[-1]]["children"].append(name)
 
                     elif line_split[0] == "CHANNELS":
                         for channel in line_split[2:]:
                             self.node_channels.append((name, channel))
                             self.node_names[name]["channels"].append(channel)
+                            self.node_names[name]["channel_indices"].append(len(self.node_channels) - 1)
 
                     elif line_split == ["End", "Site"]:
                         name += "_" + "".join(line_split)
@@ -181,9 +183,147 @@ class BVHReader(object):
 
     def get_animated_joints(self):
         """Returns an ordered list of joints which have animation channels"""
-        for name, node in self.node_names.items():
-            if "channels" in list(node.keys()) and len(node["channels"]) > 0:
-                yield name
+        if self.animated_joints is not None:
+            for joint in self.animated_joints:
+                yield joint
+        else:
+            for name, node in self.node_names.items():
+                if "channels" in node.keys() and len(node["channels"]) > 0:
+                    yield name
+
+    def set_animated_joints(self, animated_joints):
+        self.animated_joints = animated_joints
+
+    def get_animated_frames(self):
+        channel_indices = []
+        for joint in self.get_animated_joints():
+            channel_indices += self.node_names[joint]["channel_indices"]
+        return self.frames[:, channel_indices]
+
+    def get_rotation_order(self, rotation_list):
+        if rotation_list[0] == 'Xrotation':
+            if rotation_list[1] == 'Yrotation':
+                rotation_order = 'rxyz'
+            elif rotation_list[1] == 'Zrotation':
+                rotation_order = 'rxzy'
+        elif rotation_list[0] == 'Yrotation':
+            if rotation_list[1] == 'Xrotation':
+                rotation_order = 'ryxz'
+            elif rotation_list[1] == 'Zrotation':
+                rotation_order = 'ryzx'
+        elif rotation_list[0] == 'Zrotation':
+            if rotation_list[1] == 'Xrotation':
+                rotation_order = 'rzxy'
+            elif rotation_list[1] == 'Yrotation':
+                rotation_order = 'rzyx'
+        else:
+            raise ValueError('Unknown rotation order!')
+        return rotation_order
+
+    def convert_to_XYZ_rotation_order(self):
+        self.convert_skeleton_to_XYZ()
+        self.convert_motion_data_to_XYZ()
+
+    def convert_to_ZYX_rotation_order(self):
+        self.convert_skeleton_to_ZYX()
+        self.convert_motion_data_to_ZYX()
+
+    def convert_to_YXZ_rotation_order(self):
+        self.convert_skeleton_to_YXZ()
+        self.convert_motion_data_to_YXZ()
+
+    def convert_skeleton_to_XYZ(self):
+        # update channel indices
+        rotation_list = self.node_names[self.root]["channels"][3:]
+        new_indices = sorted(range(len(rotation_list)), key=lambda k : rotation_list[k])
+        for node_name, node in self.node_names.items():
+            if 'End' not in node_name:
+                if len(node['channels']) == 6:
+                    rotation_list = node['channels'][3:]
+                    node['channels'][3:] = ['Xrotation', 'Yrotation', 'Zrotation']
+                    node['rotation_order'] = self.get_rotation_order(rotation_list)
+                else:
+                    rotation_list = node['channels']
+                    node['channels'] = ['Xrotation', 'Yrotation', 'Zrotation']
+                    node['rotation_order'] = self.get_rotation_order(rotation_list)
+
+    def convert_skeleton_to_ZYX(self):
+        # update channel indices
+        rotation_list = self.node_names[self.root]["channels"][3:]
+        new_indices = sorted(range(len(rotation_list)), key=lambda k : rotation_list[k])
+        for node_name, node in self.node_names.items():
+            if 'End' not in node_name:
+                if len(node['channels']) == 6:
+                    rotation_list = node['channels'][3:]
+                    node['channels'][3:] = ['Zrotation', 'Yrotation', 'Xrotation']
+                    node['rotation_order'] = self.get_rotation_order(rotation_list)
+                else:
+                    rotation_list = node['channels']
+                    node['channels'] = ['Zrotation', 'Yrotation', 'Xrotation']
+                    node['rotation_order'] = self.get_rotation_order(rotation_list)
+
+    def convert_skeleton_to_YXZ(self):
+        # update channel indices
+        rotation_list = self.node_names[self.root]["channels"][3:]
+        new_indices = sorted(range(len(rotation_list)), key=lambda k : rotation_list[k])
+        for node_name, node in self.node_names.items():
+            if 'End' not in node_name:
+                if len(node['channels']) == 6:
+                    rotation_list = node['channels'][3:]
+                    node['channels'][3:] = ['Yrotation', 'Xrotation', 'Zrotation']
+                    node['rotation_order'] = self.get_rotation_order(rotation_list)
+                else:
+                    rotation_list = node['channels']
+                    node['channels'] = ['Yrotation', 'Xrotation', 'Zrotation']
+                    node['rotation_order'] = self.get_rotation_order(rotation_list)
+
+    def convert_motion_data_to_XYZ(self):
+        new_frames = np.zeros(self.frames.shape)
+        for i in range(len(new_frames)):
+            for node_name, node in self.node_names.items():
+                if 'End' not in node_name:
+                    if len(node['channels']) == 6:
+                        rot_mat = euler_matrix(*np.deg2rad(self.frames[i, node['channel_indices'][3:]]),
+                                               axes=node['rotation_order'])
+                        new_frames[i, node['channel_indices'][:3]] = self.frames[i, node['channel_indices'][:3]]
+                        new_frames[i, node['channel_indices'][3:]] = np.rad2deg(euler_from_matrix(rot_mat, 'rxyz'))
+                    else:
+                        rot_mat = euler_matrix(*np.deg2rad(self.frames[i, node['channel_indices']]),
+                                               axes=node['rotation_order'])
+                        new_frames[i, node['channel_indices']] = np.rad2deg(euler_from_matrix(rot_mat, 'rxyz'))
+        self.frames = new_frames
+
+    def convert_motion_data_to_ZYX(self):
+        new_frames = np.zeros(self.frames.shape)
+        for i in range(len(new_frames)):
+            for node_name, node in self.node_names.items():
+                if 'End' not in node_name:
+                    if len(node['channels']) == 6:
+                        rot_mat = euler_matrix(*np.deg2rad(self.frames[i, node['channel_indices'][3:]]),
+                                               axes=node['rotation_order'])
+                        new_frames[i, node['channel_indices'][:3]] = self.frames[i, node['channel_indices'][:3]]
+                        new_frames[i, node['channel_indices'][3:]] = np.rad2deg(euler_from_matrix(rot_mat, 'rzyx'))
+                    else:
+                        rot_mat = euler_matrix(*np.deg2rad(self.frames[i, node['channel_indices']]),
+                                               axes=node['rotation_order'])
+                        new_frames[i, node['channel_indices']] = np.rad2deg(euler_from_matrix(rot_mat, 'rzyx'))
+        self.frames = new_frames
+
+    def convert_motion_data_to_YXZ(self):
+        new_frames = np.zeros(self.frames.shape)
+        for i in range(len(new_frames)):
+            for node_name, node in self.node_names.items():
+                if 'End' not in node_name:
+                    if len(node['channels']) == 6:
+                        rot_mat = euler_matrix(*np.deg2rad(self.frames[i, node['channel_indices'][3:]]),
+                                               axes=node['rotation_order'])
+                        new_frames[i, node['channel_indices'][:3]] = self.frames[i, node['channel_indices'][:3]]
+                        new_frames[i, node['channel_indices'][3:]] = np.rad2deg(euler_from_matrix(rot_mat, 'ryxz'))
+                    else:
+                        rot_mat = euler_matrix(*np.deg2rad(self.frames[i, node['channel_indices']]),
+                                               axes=node['rotation_order'])
+                        new_frames[i, node['channel_indices']] = np.rad2deg(euler_from_matrix(rot_mat, 'ryxz'))
+        self.frames = new_frames
 
     def scale(self, scale):
         for node in self.node_names:
@@ -321,17 +461,14 @@ class BVHWriter(object):
                         rotation_order.append(ch)
                         if rotation_offset is None:
                             rotation_offset = idx
-                if len(rotation_order) == 3:
-                    if skeleton.nodes[joint_name].fixed:
-                        q = skeleton.nodes[joint_name].rotation
-                    else:
-                        q = quat_frame[src:src+QUAT_LEN]
-                    e = BVHWriter._quaternion_to_euler(q, rotation_order)
-                    params_start = dst + rotation_offset
-                    params_end = params_start + EULER_LEN
-                    euler_frames[frame_idx, params_start:params_end] = e
-                    dst += n_channels
-                    src += QUAT_LEN
+
+                q = quat_frame[src:src+QUAT_LEN]
+                e = BVHWriter._quaternion_to_euler(q, rotation_order)
+                params_start = dst + rotation_offset
+                params_end = params_start + EULER_LEN
+                euler_frames[frame_idx, params_start:params_end] = e
+                dst += n_channels
+                src += QUAT_LEN
         return euler_frames
 
     def _generate_bvh_frame_string(self,euler_frames, frame_time):
