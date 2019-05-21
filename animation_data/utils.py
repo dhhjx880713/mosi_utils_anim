@@ -14,8 +14,11 @@ from .skeleton_builder import SkeletonBuilder
 from scipy import stats  # linear regression
 from .quaternion_frame import QuaternionFrame
 from collections import OrderedDict
-from ..motion_analysis.motion_plane import Plane
-from . import LEN_EULER, LEN_ROOT, LEN_QUAT
+from ..utilities.motion_plane import Plane
+#from . import LEN_EULER, LEN_ROOT, LEN_QUAT
+LEN_EULER = 3
+LEN_ROOT = 3
+LEN_QUAT = 4
 from .quaternion import Quaternion
 from ..external.transformations import quaternion_matrix, euler_from_matrix, \
     quaternion_from_matrix, euler_matrix, \
