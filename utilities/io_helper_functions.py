@@ -4,8 +4,6 @@ Created on Wed Feb 04 12:56:39 2015
 
 @author: Han Du, Martin Manns, Erik Herrmann
 """
-
-
 import os
 import sys
 import glob
@@ -18,7 +16,7 @@ from ..animation_data.utils import transform_euler_frames, \
     transform_quaternion_frames, convert_euler_frames_to_cartesian_frames
 from ..animation_data.bvh import BVHWriter, BVHReader
 sys.path.append(os.path.dirname(__file__))
-from ..constraints.spatial_constraints.splines import ParameterizedSpline
+from ..splines import ParameterizedSpline
 
 
 def write_to_logfile(path, time_string, data):

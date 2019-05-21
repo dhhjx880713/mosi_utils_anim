@@ -3,13 +3,71 @@ import math
 from matplotlib import pyplot as plt
 import json
 from scipy.interpolate import UnivariateSpline
-from ..utils import euler_to_quaternion
+from ..constants import DEFAULT_ROTATION_ORDER
 from ...external.transformations import quaternion_multiply, quaternion_inverse, quaternion_matrix, quaternion_from_matrix, euler_from_quaternion
 from ..skeleton_node import SkeletonEndSiteNode
 
 LEN_QUATERNION = 4
 LEN_TRANSLATION = 3
 
+
+def euler_to_quaternion_rad(euler_angles, rotation_order=DEFAULT_ROTATION_ORDER, filter_value=True):
+    """Convert euler angles to quaternion vector [qw, qx, qy, qz]
+
+    Parameters
+    ----------
+    * euler_angles: list of floats
+    \tA list of ordered euler angles in radian
+    * rotation_order: Iteratable
+    \t a list that specifies the rotation axis corresponding to the values in euler_angles
+    * filter_values: Bool
+    \t enforce a unique rotation representation
+
+    """
+    # convert euler angles into rotation matrix, then convert rotation matrix
+    # into quaternion
+    assert len(euler_angles) == 3, ('The length of euler angles should be 3!')
+    if rotation_order[0] == 'Xrotation':
+        if rotation_order[1] == 'Yrotation':
+            R = euler_matrix(euler_angles[0],
+                             euler_angles[1],
+                             euler_angles[2],
+                             axes='rxyz')
+        elif rotation_order[1] == 'Zrotation':
+            R = euler_matrix(euler_angles[0],
+                             euler_angles[1],
+                             euler_angles[2],
+                             axes='rxzy')
+    elif rotation_order[0] == 'Yrotation':
+        if rotation_order[1] == 'Xrotation':
+            R = euler_matrix(euler_angles[0],
+                             euler_angles[1],
+                             euler_angles[2],
+                             axes='ryxz')
+        elif rotation_order[1] == 'Zrotation':
+            R = euler_matrix(euler_angles[0],
+                             euler_angles[1],
+                             euler_angles[2],
+                             axes='ryzx')
+    elif rotation_order[0] == 'Zrotation':
+        if rotation_order[1] == 'Xrotation':
+            R = euler_matrix(euler_angles[0],
+                             euler_angles[1],
+                             euler_angles[2],
+                             axes='rzxy')
+        elif rotation_order[1] == 'Yrotation':
+            R = euler_matrix(euler_angles[0],
+                             euler_angles[1],
+                             euler_angles[2],
+                             axes='rzyx')
+    # convert rotation matrix R into quaternion vector (qw, qx, qy, qz)
+    q = quaternion_from_matrix(R)
+    # filter the quaternion http://physicsforgames.blogspot.de/2010/02/quaternions.html
+    if filter_value:
+        dot = np.sum(q)
+        if dot < 0:
+            q = -q
+    return q[0], q[1], q[2], q[3]
 
 def normalize(v):
     return v/np.linalg.norm(v)

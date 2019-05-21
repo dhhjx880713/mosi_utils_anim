@@ -14,8 +14,8 @@ from .skeleton_builder import SkeletonBuilder
 from scipy import stats  # linear regression
 from .quaternion_frame import QuaternionFrame
 from collections import OrderedDict
-from ..motion_analysis.motion_plane import Plane
-from . import LEN_EULER, LEN_ROOT, LEN_QUAT
+from .body_plane import BodyPlane
+from .constants import LEN_EULER, LEN_ROOT, LEN_QUAT
 from .quaternion import Quaternion
 from ..external.transformations import quaternion_matrix, euler_from_matrix, \
     quaternion_from_matrix, euler_matrix, \
@@ -1855,7 +1855,7 @@ def pose_orientation_general(euler_frame, joints, skeleton, rotation_order=['Xro
     for joint in joints:
         points.append(skeleton.nodes[joint].get_global_position_from_euler(euler_frame, rotation_order))
     points = np.asarray(points)
-    body_plane = Plane(points)
+    body_plane = BodyPlane(points)
     normal_vec = body_plane.normal_vector
     dir_vec = np.array([normal_vec[0], normal_vec[2]])
     return dir_vec/np.linalg.norm(dir_vec)
@@ -1867,7 +1867,7 @@ def pose_orientation_from_point_cloud(point_cloud, body_plane_joint_indices):
     for index in body_plane_joint_indices:
         points.append(point_cloud[index])
     points = np.asarray(points)
-    body_plane = Plane(points)
+    body_plane = BodyPlane(points)
     normal_vec = body_plane.normal_vector
     dir_vec = np.array([normal_vec[0], normal_vec[2]])
     return dir_vec/np.linalg.norm(dir_vec)
@@ -2202,17 +2202,6 @@ def point_rotation_by_quaternion(point, q):
     return quaternion_multiply(quaternion_multiply(q, r), q_conj)[1:]
 
 
-def quaternion_from_vector_to_vector(a, b):
-    "src: http://stackoverflow.com/questions/1171849/finding-quaternion-representing-the-rotation-from-one-vector-to-another"
-    v = np.cross(a, b)
-    w = np.sqrt((np.linalg.norm(a) ** 2) * (np.linalg.norm(b) ** 2)) + np.dot(a, b)
-    q = np.array([w, v[0], v[1], v[2]])
-    if np.linalg.norm(q) == 0:
-        return np.array([1.0, 0.0, 0.0, 0.0])
-    else:
-        return q/ np.linalg.norm(q)
-
-
 def convert_euler_frame_to_reduced_euler_frame(bvhreader, euler_frame):
     if type(euler_frame) != list:
         euler_frame = list(euler_frame)
@@ -2389,7 +2378,7 @@ def rotate_cartesian_frames_to_ref_dir(cartesian_frames, ref_dir, body_plane_ind
 def cartesian_pose_orientation(cartesian_pose, body_plane_index, up_axis):
     assert len(cartesian_pose.shape) == 2
     points = cartesian_pose[body_plane_index, :]
-    body_plane = Plane(points)
+    body_plane = BodyPlane(points)
     normal_vec = body_plane.normal_vector
     normal_vec[np.where(up_axis == 1)] = 0  ### only consider forward direction on the ground
     return normal_vec/np.linalg.norm(normal_vec)
