@@ -10,8 +10,7 @@ from ...utilities.log import write_message_to_log, LOG_MODE_DEBUG
 from .utils import convert_exp_frame_to_quat_frame
 from ..joint_constraints import JointConstraint, HingeConstraint2, BallSocketConstraint, ConeConstraint, ShoulderConstraint
 from ...external.transformations import quaternion_matrix, quaternion_from_matrix
-#from ..skeleton import LOOK_AT_DIR, SPINE_LOOK_AT_DIR
-# Warning! Both values are currently not in the skeleton file for some reason. 
+from .coordinate_cyclic_descent import LOOK_AT_DIR, SPINE_LOOK_AT_DIR
 from ..motion_blending import smooth_quaternion_frames
 
 
