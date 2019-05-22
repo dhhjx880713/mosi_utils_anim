@@ -45,6 +45,46 @@ def patchfunc(P, Xp, to_meters, hscale=3.937007874, vscale=3.0, scale=False, ): 
 
 
 
+def PREPROCESS_FOLDER(bvh_folder_path, output_file_name, base_handler, process_data_function, terrain_fitting = True, terrain_xslice = [], terrain_yslice = [], patches_path = "", split_files = False):
+    P, X, Y = [], [], []
+    bvhfiles = glob.glob(os.path.join(bvh_folder_path, '*.bvh'))
+    data_folder = bvh_folder_path
+    print(bvhfiles, os.path.join(bvh_folder_path, '*.bvh'))
+    for data in bvhfiles:
+        filename = os.path.split(data)[-1]
+        data = os.path.join(data_folder, filename)
+
+        handler = base_handler.copy()
+        handler.bvh_file_path = data
+        handler.load_motion()
+        
+        Pc, Xc, Yc = process_data_function(handler)
+        Ptmp, Xtmp, Ytmp = handler.terrain_fitting(data.replace(".bvh", '_footsteps.txt'), patches_path, Pc, Xc, Yc, terrain_xslice, terrain_yslice)
+
+        P.extend(Ptmp)
+        X.extend(Xtmp)
+        Y.extend(Ytmp)
+
+    """ Clip Statistics """
+
+    print('Total Clips: %i' % len(X))
+    print('Shortest Clip: %i' % min(map(len,X)))
+    print('Longest Clip: %i' % max(map(len,X)))
+    print('Average Clip: %i' % np.mean(list(map(len,X))))
+
+    """ Merge Clips """
+
+    print('Merging Clips...')
+
+    Xun = np.concatenate(X, axis=0)
+    Yun = np.concatenate(Y, axis=0)
+    Pun = np.concatenate(P, axis=0)
+
+    print(Xun.shape, Yun.shape, Pun.shape)
+        
+    #np.savez_compressed(output_file_name, Xun=Xun, Yun=Yun, Pun=Pun)
+    return Xun, Yun, Pun
+
 
 class Preprocessing_Handler():
     """
@@ -80,7 +120,7 @@ class Preprocessing_Handler():
        
     def copy(self):
         tmp = Preprocessing_Handler(self.bvh_file_path, self.type, self.to_meters, self.__ref_dir, self.shoulder_joints, self.hip_joints, self.foot_left, self.foot_right)
-        tmp.__global_positions = self.__global_positions
+        tmp.__global_positions = np.array(self.__global_positions)
         return tmp
         
     def set_holden_parameters(self):
@@ -296,6 +336,14 @@ class Preprocessing_Handler():
 
                 Xh[:,xslice.start:xslice.stop:xslice.step] -= hmean[...,np.newaxis]
                 Yh[:,yslice.start:yslice.stop:yslice.step] -= hmean[...,np.newaxis]
+                # xo_s, xo_e = ((self.window * 2) // 10) * 10 + 1, ((self.window * 2) // 10) * 10 + self.n_joints * 3 + 1
+                # yo_s, yo_e = 8 + (self.window // 10) * 4 + 1, 8 + (self.window // 10) * 4 + self.n_joints * 3 + 1
+
+                # Xh[:,xo_s:xo_e:3] -= hmean[...,np.newaxis]
+                # Yh[:,yo_s:yo_e:3] -= hmean[...,np.newaxis]
+
+                #Xh[:,xslice[0]:xslice[1]:xslice[2]] -= hmean[...,np.newaxis]
+                #Yh[:,yslice[0]:yslice[1]:yslice[2]] -= hmean[...,np.newaxis]
                 Xh = np.concatenate([Xh, h - hmean[...,np.newaxis]], axis=-1)
 
                 """ Append to Data """
