@@ -46,6 +46,87 @@ def patchfunc(P, Xp, to_meters, hscale=3.937007874, vscale=3.0, scale=False, ): 
 
 
 def PREPROCESS_FOLDER(bvh_folder_path, output_file_name, base_handler, process_data_function, terrain_fitting = True, terrain_xslice = [], terrain_yslice = [], patches_path = "", split_files = False):
+    """
+    This function processes a whole folder of BVH files. The "process_data_function" is called for each file and creates the actual training data (x,y,p). 
+    process_data_function(handler : Preprocessing_handler) -> [P, X, Y]
+    The handler starts as a copy from base_handler
+
+    Pseudo-Code: 
+        for bvh_file in folder:
+            handler = base_handler.copy()
+            handler.bvh_file = bvh_file
+            handler.load_data()
+
+            Pc, Xc, Yc = process_data_function(handler)
+            merge (P,X,Y) (Pc, Xc, Yc)
+        
+        save file
+        return X, Y, P
+
+        :param bvh_folder_path: path to folder containing bvh files and labels
+        :param output_file_name: output file to which the processed data should be written
+        :param base_handler: base-handler containing configuration information (e.g. window size, # joints, etc.)
+        :param process_data_function: process data function to create a single x-y pair (+p)
+        :param terrain_fitting=True: If true, terrain fitting is applied
+        :param terrain_xslice=[]: xslice definining joint positions in X that are affected by terrain fitting
+        :param terrain_yslice=[]: yslice definining joint positions in Y that are affected by terrain fitting
+        :param patches_path="": path to compressed patches file. 
+        :param split_files=False: not yet implemented
+
+
+    Example process_data: 
+        def process_data(handler):
+            bvh_path = handler.bvh_file_path
+            phase_path = bvh_path.replace('.bvh', '.phase')
+            gait_path = bvh_path.replace(".bvh", ".gait")
+
+            Pc, Xc, Yc = [], [], []
+
+
+            gait = handler.load_gait(gait_path, adjust_crouch=True)
+            phase, dphase = handler.load_phase(phase_path)
+
+            local_positions = handler.get_root_local_joint_positions()
+            local_velocities = handler.get_root_local_joint_velocities()
+
+            root_velocity = handler.get_root_velocity()
+            root_rvelocity = handler.get_rotational_velocity()
+
+            feet_l, feet_r = handler.get_foot_concats()
+
+            for i in range(handler.window, handler.n_frames - handler.window - 1, 1):
+                rootposs,rootdirs = handler.get_trajectory(i)
+                rootgait = gait[i - handler.window:i+handler.window:10]
+
+                Pc.append(phase[i])
+
+                Xc.append(np.hstack([
+                        rootposs[:,0].ravel(), rootposs[:,2].ravel(), # Trajectory Pos
+                        rootdirs[:,0].ravel(), rootdirs[:,2].ravel(), # Trajectory Dir
+                        rootgait[:,0].ravel(), rootgait[:,1].ravel(), # Trajectory Gait
+                        rootgait[:,2].ravel(), rootgait[:,3].ravel(), 
+                        rootgait[:,4].ravel(), rootgait[:,5].ravel(), 
+                        local_positions[i-1].ravel(),  # Joint Pos
+                        local_velocities[i-1].ravel(), # Joint Vel
+                    ]))
+
+                rootposs_next, rootdirs_next = handler.get_trajectory(i + 1, i + 1)
+
+                Yc.append(np.hstack([
+                    root_velocity[i,0,0].ravel(), # Root Vel X
+                    root_velocity[i,0,2].ravel(), # Root Vel Y
+                    root_rvelocity[i].ravel(),    # Root Rot Vel
+                    dphase[i],                    # Change in Phase
+                    np.concatenate([feet_l[i], feet_r[i]], axis=-1), # Contacts
+                    rootposs_next[:,0].ravel(), rootposs_next[:,2].ravel(), # Next Trajectory Pos
+                    rootdirs_next[:,0].ravel(), rootdirs_next[:,2].ravel(), # Next Trajectory Dir
+                    local_positions[i].ravel(),  # Joint Pos
+                    local_velocities[i].ravel(), # Joint Vel
+                    ]))
+
+            return np.array(Pc), np.array(Xc), np.array(Yc)
+    """
+
     P, X, Y = [], [], []
     bvhfiles = glob.glob(os.path.join(bvh_folder_path, '*.bvh'))
     data_folder = bvh_folder_path
@@ -87,11 +168,77 @@ def PREPROCESS_FOLDER(bvh_folder_path, output_file_name, base_handler, process_d
 
 
 class Preprocessing_Handler():
-    """
-    This class provides functionality to preprocess raw bvh data into a deep-learning favored format. 
-    """
-
     def __init__(self, bvh_file_path, type = "flat", to_meters = 1, forward_dir = np.array([0,0,1]), shoulder_joints = [10, 20], hip_joints = [2, 27], fid_l = [4, 5], fid_r = [29, 30]):#, phase_label_file, footstep_label_file):
+             """
+
+        This class provides functionality to preprocess raw bvh data into a deep-learning favored format. 
+        It does not actually transfer the data, but provides the possibilitie to create these. An additional, lightweight process_data function is required. 
+
+        Default configurations can be loaded using set_holden_parameters and set_makehuman_parameters. Other default configurations may be added later. 
+
+            :param bvh_file_path: 
+            :param type="flat": 
+            :param to_meters=1: 
+            :param forward_dir = [0,0,1]:
+            :param shoulder_joints = [10, 20] (left, right):
+            :param hip_joints = [2, 27] (left, right):
+            :param fid_l = [4,5] (heel, toe):
+            :param fid_r = [29, 30] (heel, toe):
+
+        Example process_data:
+            def process_data(handler):
+                bvh_path = handler.bvh_file_path
+                phase_path = bvh_path.replace('.bvh', '.phase')
+                gait_path = bvh_path.replace(".bvh", ".gait")
+
+                Pc, Xc, Yc = [], [], []
+
+
+                gait = handler.load_gait(gait_path, adjust_crouch=True)
+                phase, dphase = handler.load_phase(phase_path)
+
+                local_positions = handler.get_root_local_joint_positions()
+                local_velocities = handler.get_root_local_joint_velocities()
+
+                root_velocity = handler.get_root_velocity()
+                root_rvelocity = handler.get_rotational_velocity()
+
+                feet_l, feet_r = handler.get_foot_concats()
+
+                for i in range(handler.window, handler.n_frames - handler.window - 1, 1):
+                    rootposs,rootdirs = handler.get_trajectory(i)
+                    rootgait = gait[i - handler.window:i+handler.window:10]
+
+                    Pc.append(phase[i])
+
+                    Xc.append(np.hstack([
+                            rootposs[:,0].ravel(), rootposs[:,2].ravel(), # Trajectory Pos
+                            rootdirs[:,0].ravel(), rootdirs[:,2].ravel(), # Trajectory Dir
+                            rootgait[:,0].ravel(), rootgait[:,1].ravel(), # Trajectory Gait
+                            rootgait[:,2].ravel(), rootgait[:,3].ravel(), 
+                            rootgait[:,4].ravel(), rootgait[:,5].ravel(), 
+                            local_positions[i-1].ravel(),  # Joint Pos
+                            local_velocities[i-1].ravel(), # Joint Vel
+                        ]))
+
+                    rootposs_next, rootdirs_next = handler.get_trajectory(i + 1, i + 1)
+
+                    Yc.append(np.hstack([
+                        root_velocity[i,0,0].ravel(), # Root Vel X
+                        root_velocity[i,0,2].ravel(), # Root Vel Y
+                        root_rvelocity[i].ravel(),    # Root Rot Vel
+                        dphase[i],                    # Change in Phase
+                        np.concatenate([feet_l[i], feet_r[i]], axis=-1), # Contacts
+                        rootposs_next[:,0].ravel(), rootposs_next[:,2].ravel(), # Next Trajectory Pos
+                        rootdirs_next[:,0].ravel(), rootdirs_next[:,2].ravel(), # Next Trajectory Dir
+                        local_positions[i].ravel(),  # Joint Pos
+                        local_velocities[i].ravel(), # Joint Vel
+                        ]))
+
+                return np.array(Pc), np.array(Xc), np.array(Yc)
+
+        """   
+        
         self.bvh_file_path = bvh_file_path
         self.__global_positions = []
         
@@ -114,16 +261,27 @@ class Preprocessing_Handler():
         self.type = type
 
     def reset_computations(self):
+        """
+        Resets computation buffers (__forwards, __root_rotations, __local_positions, __local_velocities). Usefull, if global_rotations are changed. 
+        """   
         self.__forwards = []
         self.__root_rotations = []
         self.__local_positions, self.__local_velocities = [],[]
        
     def copy(self):
+        """
+        Produces a copy of the current handler. 
+
+        :return Preprocessing_handler:
+        """
         tmp = Preprocessing_Handler(self.bvh_file_path, self.type, self.to_meters, self.__ref_dir, self.shoulder_joints, self.hip_joints, self.foot_left, self.foot_right)
         tmp.__global_positions = np.array(self.__global_positions)
         return tmp
         
     def set_holden_parameters(self):
+        """
+        Set parameters for holden-skeleton
+        """
         self.shoulder_joints = [18, 25]
         self.hip_joints = [2, 7]
         self.foot_left = [4,5]
@@ -132,6 +290,9 @@ class Preprocessing_Handler():
         self.head = 16 # check this!
 
     def set_makehuman_parameters(self):
+        """
+        Set parameters for makehuman skeleton
+        """
         self.shoulder_joints = [10, 20]
         self.hip_joints = [2, 27]
         self.foot_left = [4, 5]
@@ -142,6 +303,12 @@ class Preprocessing_Handler():
         
 
     def load_motion(self, scale = 10, frame_rate_divisor = 2):
+             """
+        loads the bvh-file, sets the global_coordinates, n_joints and n_frames. Has to be called before any of the other functions are used. 
+
+            :param scale=10: spatial scale of skeleton. 
+            :param frame_rate_divisor=2: frame-rate divisor (e.g. reducing framerat from 120 -> 60 fps)
+        """   
         print('Processing Clip %s' % self.bvh_file_path)
         
         bvhreader = BVHReader(self.bvh_file_path)
@@ -153,6 +320,15 @@ class Preprocessing_Handler():
         self.n_frames, self.n_joints, _ = self.__global_positions.shape
 
     def load_gait (self, gait_file, frame_rate_divisor = 2, adjust_crouch = False):
+             """
+        Loads gait information from a holden-style gait-file. 
+
+            :param gait_file: 
+            :param frame_rate_divisor=2: 
+            :param adjust_crouch=False: 
+
+            :return gait-vector (np.array(n_frames, 8))
+        """   
         # bvh_file.replace('.bvh', '.gait')
         gait = np.loadtxt(gait_file)[::frame_rate_divisor]
         """ Merge Jog / Run and Crouch / Crawl """
@@ -164,6 +340,7 @@ class Preprocessing_Handler():
             gait[:,5:6],
             gait[:,7:8]
         ], axis=-1)
+        # Todo: adjust dynamically to file information
 
         global_positions = self.__global_positions
 
@@ -174,7 +351,16 @@ class Preprocessing_Handler():
             gait[-1,3] = gait[-2,3]
         return gait
 
+
     def load_phase(self, phase_file, frame_rate_divisor = 2):
+             """
+        Load phase data from a holden-style phase file. 
+
+            :param phase_file: 
+            :param frame_rate_divisor=2: 
+
+            :return phase (np.array(n_frames, 1)), dphase (np.array(n_frames - 1, 1))
+        """   
         # phase_file = data.replace('.bvh', '.phase')
         phase = np.loadtxt(phase_file)[::frame_rate_divisor]
         dphase = phase[1:] - phase[:-1]
@@ -184,7 +370,12 @@ class Preprocessing_Handler():
 
 
     def get_forward_directions(self):
-        sdr_l, sdr_r = self.shoulder_joints[0], self.shoulder_joints[1]
+             """
+        Computes forward directions. Results are stored internally to reduce future computation time. 
+
+            :return forward_dirs (np.array(n_frames, 3))
+
+        """   sdr_l, sdr_r = self.shoulder_joints[0], self.shoulder_joints[1]
         hip_l, hip_r = self.hip_joints[0], self.hip_joints[1]
         global_positions = self.__global_positions
 
@@ -202,6 +393,11 @@ class Preprocessing_Handler():
         return self.__forwards
 
     def get_root_rotations(self):
+             """
+        Returns root rotations. Results are stored internally to reduce future computation time. 
+
+            :return root_rotations (List(Quaternion), n_frames length)
+        """   
         ref_dir = self.__ref_dir
         forward = self.get_forward_directions()
 
@@ -211,7 +407,10 @@ class Preprocessing_Handler():
         return self.__root_rotations
 
     def __root_local_transform(self):
-        if len(self.__local_positions) == 0:
+             """
+        Helper function to compute and store local transformations. 
+            
+        """   if len(self.__local_positions) == 0:
             local_positions = self.__global_positions.copy()
             local_velocities = np.zeros(local_positions.shape)
 
@@ -231,14 +430,29 @@ class Preprocessing_Handler():
 
 
     def get_root_local_joint_positions(self):
+             """
+        Computes and returns root_local joint positions in cartesian space. 
+            
+            :return joint positions (np.array(n_frames, n_joints, 3))
+        """   
         lp, _ = self.__root_local_transform()
         return lp
 
     def get_root_local_joint_velocities(self):
+             """
+        Computes and returns root_local joint velocities in cartesian space. 
+            
+            :return joint velocities (np.array(n_frames, n_joints, 3))
+        """   
         _, lv = self.__root_local_transform()
         return lv
 
     def get_root_velocity(self):
+             """
+        Returns root velocity in root local cartesian space. 
+            
+            : return np.array(n_frames, 1, 3)
+        """   
         global_positions = self.__global_positions
         root_rotations = self.get_root_rotations()
         root_velocity = (global_positions[1:, 0:1] - global_positions[:-1, 0:1]).copy()
@@ -248,6 +462,11 @@ class Preprocessing_Handler():
         return root_velocity
 
     def get_rotational_velocity(self):
+             """
+        Returns root rotational velocitie in root local space. 
+            
+            :return root_rvel (np.array(n_frames, 1, Quaternion))
+        """   
         root_rvelocity = np.zeros(self.n_frames - 1)
         root_rotations = self.get_root_rotations()
 
@@ -258,6 +477,14 @@ class Preprocessing_Handler():
         return root_rvelocity
 
     def get_foot_concats(self, velfactor = np.array([0.05, 0.05])):
+             """
+
+        Performs a simple heuristical foot_step detection
+
+            :param velfactor=np.array([0.05, 0.05])
+
+            :return feet_l, feet_r  (np.array(n_frames, 1), dtype = np.float)
+        """   
         fid_l, fid_r = self.foot_left, self.foot_right
         velfactor = velfactor / self.to_meters
 
@@ -277,9 +504,11 @@ class Preprocessing_Handler():
 
     def get_trajectory(self, frame, start_from = -1):
         """
-        
-        Args: 
-            start_from (int): -1 if whole window should be considered, value if specific start frame should be considered (e.g. i+1)
+        Computes the trajectory string for the input frame (12 surrounding points with a distance of 10 frames each)
+
+        :param start_from (int): -1 if whole window should be considered, value if specific start frame should be considered (e.g. i+1)
+
+        :return rootposs, rootdirs (np.array(12, 3))
         """
         window = self.window
         global_positions = self.__global_positions
@@ -289,6 +518,7 @@ class Preprocessing_Handler():
         if start_from < 0:
             start_from = frame - self.window
 
+        # Todo: expose frame-step
         rootposs = (global_positions[start_from:frame+self.window:10,0] - global_positions[frame:frame+1,0]) ### 12*3
         rootdirs = forward[start_from:frame+self.window:10]
         for j in range(len(rootposs)):
@@ -298,10 +528,28 @@ class Preprocessing_Handler():
         return rootposs, rootdirs
 
     def terrain_fitting(self, foot_step_path, patches_path, Pc, Xc, Yc, xslice, yslice):
-        """
-            xslice = slice((window*2)//10)*10+1, ((window*2)//10)*10+njoints*3+1, 3)
-            yslice = slice(8+(window//10)*4+1, 8+(window//10)*4+njoints*3+1, 3)
-        """
+             """
+
+        Performs terrain fitting algorithm. Footsteps are loaded from foot_step_path and iterated. Patches are loaded from patches_path. 
+        The single steps are matched to the patches. 
+        The best patches are considered and trajectory heights are sampled. 
+
+        PC, Xc, Yc are the configuration as before, xslice denotes the slice of joint positions in Xc, yslice the slice of joint positions in Yc. 
+        Joint positions are change to match each patch. 
+
+        Joint heights are appended to Xc and results are returned.
+
+            :param self: 
+            :param foot_step_path: 
+            :param patches_path: 
+            :param Pc: 
+            :param Xc: 
+            :param Yc: 
+            :param xslice = slice((window*2)//10)*10+1, ((window*2)//10)*10+njoints*3+1, 3):
+            :param yslice = slice(8+(window//10)*4+1, 8+(window//10)*4+njoints*3+1, 3):
+
+            :returns P, X, Y (adapted data):
+        """   
         P, X, Y = [], [], []
         with open(foot_step_path, 'r') as f:
             footsteps = f.readlines()
@@ -325,7 +573,7 @@ class Preprocessing_Handler():
             """ Fit Heightmaps """
             slc = slice(int(curr[0])//2-self.window, int(next[0])//2+self.window+1)
 
-            H, Hmean = self.process_heights(slc, patches)
+            H, Hmean = self.__process_heights(slc, patches)
 
             for h, hmean in zip(H, Hmean):
 
@@ -353,7 +601,15 @@ class Preprocessing_Handler():
                 Y.append(Yh.astype(np.float32))
         return P, X, Y
 
-    def process_heights(self, slice, patches, nsamples = 10):
+    def __process_heights(self, slice, patches, nsamples = 10):
+             """
+        Helper function to process a single step. 
+
+            :param slice: 
+            :param patches: 
+            :param nsamples=10: 
+        """   
+        
         tmp_handler = self.copy()
         tmp_handler.__global_positions = self.__global_positions[slice]
         tmp_handler.n_frames = len(tmp_handler.__global_positions)
