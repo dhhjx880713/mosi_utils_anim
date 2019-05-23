@@ -131,7 +131,8 @@ def PREPROCESS_FOLDER(bvh_folder_path, output_file_name, base_handler, process_d
         data_folder = "./test_files"
         patches_path = "./test_files/patches.npz"
         
-        handler = Preprocessing_Handler(bvh_path)
+        handler = FeatureExtractor
+    (bvh_path)
         handler.load_motion()
         Pc, Xc, Yc = process_data(handler)
         
@@ -181,7 +182,7 @@ def PREPROCESS_FOLDER(bvh_folder_path, output_file_name, base_handler, process_d
     return Xun, Yun, Pun
 
 
-class Preprocessing_Handler():
+class FeatureExtractor():
     def __init__(self, bvh_file_path, type = "flat", to_meters = 1, forward_dir = np.array([0,0,1]), shoulder_joints = [10, 20], hip_joints = [2, 27], fid_l = [4, 5], fid_r = [29, 30]):#, phase_label_file, footstep_label_file):
              """
 
@@ -288,7 +289,8 @@ class Preprocessing_Handler():
 
         :return Preprocessing_handler:
         """
-        tmp = Preprocessing_Handler(self.bvh_file_path, self.type, self.to_meters, self.__ref_dir, self.shoulder_joints, self.hip_joints, self.foot_left, self.foot_right)
+        tmp = FeatureExtractor
+    (self.bvh_file_path, self.type, self.to_meters, self.__ref_dir, self.shoulder_joints, self.hip_joints, self.foot_left, self.foot_right)
         tmp.__global_positions = np.array(self.__global_positions)
         return tmp
         
