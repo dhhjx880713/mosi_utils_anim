@@ -74,7 +74,8 @@ def PREPROCESS_FOLDER(bvh_folder_path, output_file_name, base_handler, process_d
         :param split_files=False: not yet implemented
 
 
-    Example process_data: 
+    Example for a single file: 
+
         def process_data(handler):
             bvh_path = handler.bvh_file_path
             phase_path = bvh_path.replace('.bvh', '.phase')
@@ -125,6 +126,19 @@ def PREPROCESS_FOLDER(bvh_folder_path, output_file_name, base_handler, process_d
                     ]))
 
             return np.array(Pc), np.array(Xc), np.array(Yc)
+
+        bvh_path = "./test_files/LocomotionFlat04_000.bvh"
+        data_folder = "./test_files"
+        patches_path = "./test_files/patches.npz"
+        
+        handler = Preprocessing_Handler(bvh_path)
+        handler.load_motion()
+        Pc, Xc, Yc = process_data(handler)
+        
+        xslice = slice(((handler.window*2)//10)*10+1, ((handler.window*2)//10)*10+handler.n_joints*3+1, 3)
+        yslice = slice(8+(handler.window//10)*4+1, 8+(handler.window//10)*4+handler.n_joints*3+1, 3)
+        P, X, Y = handler.terrain_fitting(bvh_path.replace(".bvh", '_footsteps.txt'), patches_path, Pc, Xc, Yc, xslice, yslice)
+
     """
 
     P, X, Y = [], [], []
