@@ -5,9 +5,9 @@ From a parent folder, you can directly import parts of the model.
 
 E.g. 
 
-/my_experiment/
-/my_experiment/experiment_file.py
-/my_experiment/mosi_utils_anim/...
+/my_experiment/<br/>
+/my_experiment/experiment_file.py</br>
+/my_experiment/mosi_utils_anim/...</br>
 
 
 --- experiment_file.py ----
