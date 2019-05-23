@@ -7,13 +7,15 @@ import sys
 import scipy.interpolate as interpolate
 import scipy.ndimage.filters as filters
 
-from ..animation_data import BVHReader, Skeleton, SkeletonBuilder
-from ..animation_data.utils import convert_euler_frames_to_cartesian_frames, \
-    convert_quat_frames_to_cartesian_frames, rotate_cartesian_frames_to_ref_dir, get_rotation_angles_for_vectors, \
-    rotation_cartesian_frames, cartesian_pose_orientation, pose_orientation_euler, rotate_around_y_axis
-from ..utilities import write_to_json_file, load_json_file 
-from ..animation_data.quaternion import Quaternion
+from ..animation_data.utils import convert_euler_frames_to_cartesian_frames
+#from ..animation_data.utils import convert_euler_frames_to_cartesian_frames, \
+#    convert_quat_frames_to_cartesian_frames, rotate_cartesian_frames_to_ref_dir, get_rotation_angles_for_vectors, \
+#    rotation_cartesian_frames, cartesian_pose_orientation, pose_orientation_euler, rotate_around_y_axis
+from ..utilities import write_to_json_file, load_json_file
 from ..utilities.motion_plane import Plane
+
+from ..animation_data import BVHReader, Skeleton, SkeletonBuilder
+from ..animation_data.quaternion import Quaternion
 from .Learning import RBF
 
 def get_rotation_to_ref_direction(dir_vecs, ref_dir):
@@ -184,7 +186,7 @@ def PREPROCESS_FOLDER(bvh_folder_path, output_file_name, base_handler, process_d
 
 class FeatureExtractor():
     def __init__(self, bvh_file_path, type = "flat", to_meters = 1, forward_dir = np.array([0,0,1]), shoulder_joints = [10, 20], hip_joints = [2, 27], fid_l = [4, 5], fid_r = [29, 30]):#, phase_label_file, footstep_label_file):
-             """
+        """
 
         This class provides functionality to preprocess raw bvh data into a deep-learning favored format. 
         It does not actually transfer the data, but provides the possibilitie to create these. An additional, lightweight process_data function is required. 
@@ -253,7 +255,7 @@ class FeatureExtractor():
                 return np.array(Pc), np.array(Xc), np.array(Yc)
 
         """   
-        
+
         self.bvh_file_path = bvh_file_path
         self.__global_positions = []
         
@@ -289,8 +291,7 @@ class FeatureExtractor():
 
         :return Preprocessing_handler:
         """
-        tmp = FeatureExtractor
-    (self.bvh_file_path, self.type, self.to_meters, self.__ref_dir, self.shoulder_joints, self.hip_joints, self.foot_left, self.foot_right)
+        tmp = FeatureExtractor(self.bvh_file_path, self.type, self.to_meters, self.__ref_dir, self.shoulder_joints, self.hip_joints, self.foot_left, self.foot_right)
         tmp.__global_positions = np.array(self.__global_positions)
         return tmp
         
@@ -319,7 +320,7 @@ class FeatureExtractor():
         
 
     def load_motion(self, scale = 10, frame_rate_divisor = 2):
-             """
+        """
         loads the bvh-file, sets the global_coordinates, n_joints and n_frames. Has to be called before any of the other functions are used. 
 
             :param scale=10: spatial scale of skeleton. 
@@ -336,7 +337,7 @@ class FeatureExtractor():
         self.n_frames, self.n_joints, _ = self.__global_positions.shape
 
     def load_gait (self, gait_file, frame_rate_divisor = 2, adjust_crouch = False):
-             """
+        """
         Loads gait information from a holden-style gait-file. 
 
             :param gait_file: 
@@ -369,7 +370,7 @@ class FeatureExtractor():
 
 
     def load_phase(self, phase_file, frame_rate_divisor = 2):
-             """
+        """
         Load phase data from a holden-style phase file. 
 
             :param phase_file: 
@@ -386,12 +387,13 @@ class FeatureExtractor():
 
 
     def get_forward_directions(self):
-             """
+        """
         Computes forward directions. Results are stored internally to reduce future computation time. 
 
             :return forward_dirs (np.array(n_frames, 3))
 
-        """   sdr_l, sdr_r = self.shoulder_joints[0], self.shoulder_joints[1]
+        """   
+        sdr_l, sdr_r = self.shoulder_joints[0], self.shoulder_joints[1]
         hip_l, hip_r = self.hip_joints[0], self.hip_joints[1]
         global_positions = self.__global_positions
 
@@ -409,7 +411,7 @@ class FeatureExtractor():
         return self.__forwards
 
     def get_root_rotations(self):
-             """
+        """
         Returns root rotations. Results are stored internally to reduce future computation time. 
 
             :return root_rotations (List(Quaternion), n_frames length)
@@ -423,10 +425,11 @@ class FeatureExtractor():
         return self.__root_rotations
 
     def __root_local_transform(self):
-             """
+        """
         Helper function to compute and store local transformations. 
             
-        """   if len(self.__local_positions) == 0:
+        """   
+        if len(self.__local_positions) == 0:
             local_positions = self.__global_positions.copy()
             local_velocities = np.zeros(local_positions.shape)
 
@@ -446,7 +449,7 @@ class FeatureExtractor():
 
 
     def get_root_local_joint_positions(self):
-             """
+        """
         Computes and returns root_local joint positions in cartesian space. 
             
             :return joint positions (np.array(n_frames, n_joints, 3))
@@ -455,7 +458,7 @@ class FeatureExtractor():
         return lp
 
     def get_root_local_joint_velocities(self):
-             """
+        """
         Computes and returns root_local joint velocities in cartesian space. 
             
             :return joint velocities (np.array(n_frames, n_joints, 3))
@@ -464,7 +467,7 @@ class FeatureExtractor():
         return lv
 
     def get_root_velocity(self):
-             """
+        """
         Returns root velocity in root local cartesian space. 
             
             : return np.array(n_frames, 1, 3)
@@ -478,7 +481,7 @@ class FeatureExtractor():
         return root_velocity
 
     def get_rotational_velocity(self):
-             """
+        """
         Returns root rotational velocitie in root local space. 
             
             :return root_rvel (np.array(n_frames, 1, Quaternion))
@@ -493,7 +496,7 @@ class FeatureExtractor():
         return root_rvelocity
 
     def get_foot_concats(self, velfactor = np.array([0.05, 0.05])):
-             """
+        """
 
         Performs a simple heuristical foot_step detection
 
@@ -544,7 +547,7 @@ class FeatureExtractor():
         return rootposs, rootdirs
 
     def terrain_fitting(self, foot_step_path, patches_path, Pc, Xc, Yc, xslice, yslice):
-             """
+        """
 
         Performs terrain fitting algorithm. Footsteps are loaded from foot_step_path and iterated. Patches are loaded from patches_path. 
         The single steps are matched to the patches. 
@@ -618,7 +621,7 @@ class FeatureExtractor():
         return P, X, Y
 
     def __process_heights(self, slice, patches, nsamples = 10):
-             """
+        """
         Helper function to process a single step. 
 
             :param slice: 
