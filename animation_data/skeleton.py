@@ -468,7 +468,7 @@ class Skeleton(object):
                 joints.append(joint)
         return joints
 
-    def generate_bone_list_description(self):
+    def generate_bone_list_description(self, animated_joints=None):
         '''
         Generate a list of bone description for point cloud visualization
         :return:
@@ -476,9 +476,9 @@ class Skeleton(object):
         bones = []
         index = 0
         for node_name, node in self.nodes.items():
-            if self.animated_joints is not None:
-                if node_name in self.animated_joints:
-                    parent_joint_name = node.get_parent_name(self.animated_joints)
+            if animated_joints is not None:
+                if node_name in animated_joints:
+                    parent_joint_name = node.get_parent_name(animated_joints)
                     bone_desc = {'name': node_name, 'parent': parent_joint_name, 'index': index}
                     index += 1
                     bones.append(bone_desc)

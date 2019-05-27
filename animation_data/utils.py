@@ -1055,7 +1055,7 @@ def transform_point(point, euler_angles, offset, origin=None, rotation_order=DEF
         origin = np.asarray(origin)
         point = point - origin
     point = np.insert(point, len(point), 1)
-    R = euler_angles_to_rotation_matrix(euler_angles, rotation_order)
+    R = euler_angles_to_rotation_matrix(euler_angles, rotation_order=rotation_order)
     rotated_point = np.dot(R, point)
     if origin is not None:
         rotated_point[:3] += origin
@@ -1064,7 +1064,7 @@ def transform_point(point, euler_angles, offset, origin=None, rotation_order=DEF
     return transformed_point
 
 
-def transform_euler_frame(euler_frame, angles, offset, rotation_order=None):
+def transform_euler_frame(euler_frame, angles, offset, rotation_order=None, global_rotation=True):
     """
     Calls transform_point for the root parameters and adds theta to the y rotation
     channel of the frame.
@@ -1084,13 +1084,13 @@ def transform_euler_frame(euler_frame, angles, offset, rotation_order=None):
     if rotation_order is None:
         rotation_order = ["Xrotation", "Yrotation", "Zrotation"]
     transformed_frame = deepcopy(euler_frame)
-    transformed_frame[:3] = transform_point(euler_frame[:3], angles, offset)
+    if global_rotation:
+        transformed_frame[:3] = transform_point(euler_frame[:3], angles, offset, rotation_order=rotation_order)
+    else:
+        transformed_frame[:3] = transform_point(euler_frame[:3], np.zeros(3), offset, rotation_order=rotation_order)
+    R = euler_matrix(np.deg2rad(angles[0]), np.deg2rad(angles[1]), np.deg2rad(angles[2]), axes='rxyz')
     if rotation_order[0] == 'Xrotation':
         if rotation_order[1] == 'Yrotation':
-            R = euler_matrix(np.deg2rad(angles[0]),
-                             np.deg2rad(angles[1]),
-                             np.deg2rad(angles[2]),
-                             axes='rxyz')
             OR = euler_matrix(np.deg2rad(euler_frame[3]),
                               np.deg2rad(euler_frame[4]),
                               np.deg2rad(euler_frame[5]),
@@ -1098,10 +1098,6 @@ def transform_euler_frame(euler_frame, angles, offset, rotation_order=None):
             rotmat = np.dot(R, OR)
             eul_angles = np.rad2deg(euler_from_matrix(rotmat, 'rxyz'))
         elif rotation_order[1] == 'Zrotation':
-            R = euler_matrix(np.deg2rad(angles[0]),
-                             np.deg2rad(angles[1]),
-                             np.deg2rad(angles[2]),
-                             axes='rxzy')
             OR = euler_matrix(np.deg2rad(euler_frame[3]),
                               np.deg2rad(euler_frame[4]),
                               np.deg2rad(euler_frame[5]),
@@ -1110,10 +1106,6 @@ def transform_euler_frame(euler_frame, angles, offset, rotation_order=None):
             eul_angles = np.rad2deg(euler_from_matrix(rotmat, 'rxzy'))
     elif rotation_order[0] == 'Yrotation':
         if rotation_order[1] == 'Xrotation':
-            R = euler_matrix(np.deg2rad(angles[0]),
-                             np.deg2rad(angles[1]),
-                             np.deg2rad(angles[2]),
-                             axes='ryxz')
             OR = euler_matrix(np.deg2rad(euler_frame[3]),
                               np.deg2rad(euler_frame[4]),
                               np.deg2rad(euler_frame[5]),
@@ -1121,10 +1113,6 @@ def transform_euler_frame(euler_frame, angles, offset, rotation_order=None):
             rotmat = np.dot(R, OR)
             eul_angles = np.rad2deg(euler_from_matrix(rotmat, 'ryxz'))
         elif rotation_order[1] == 'Zrotation':
-            R = euler_matrix(np.deg2rad(angles[0]),
-                             np.deg2rad(angles[1]),
-                             np.deg2rad(angles[2]),
-                             axes='ryzx')
             OR = euler_matrix(np.deg2rad(euler_frame[3]),
                               np.deg2rad(euler_frame[4]),
                               np.deg2rad(euler_frame[5]),
@@ -1133,10 +1121,6 @@ def transform_euler_frame(euler_frame, angles, offset, rotation_order=None):
             eul_angles = np.rad2deg(euler_from_matrix(rotmat, 'ryzx'))
     elif rotation_order[0] == 'Zrotation':
         if rotation_order[1] == 'Xrotation':
-            R = euler_matrix(np.deg2rad(angles[0]),
-                             np.deg2rad(angles[1]),
-                             np.deg2rad(angles[2]),
-                             axes='rzxy')
             OR = euler_matrix(np.deg2rad(euler_frame[3]),
                               np.deg2rad(euler_frame[4]),
                               np.deg2rad(euler_frame[5]),
@@ -1144,10 +1128,6 @@ def transform_euler_frame(euler_frame, angles, offset, rotation_order=None):
             rotmat = np.dot(R, OR)
             eul_angles = np.rad2deg(euler_from_matrix(rotmat, 'rzxy'))
         elif rotation_order[1] == 'Yrotation':
-            R = euler_matrix(np.deg2rad(angles[0]),
-                             np.deg2rad(angles[1]),
-                             np.deg2rad(angles[2]),
-                             axes='rzyx')
             OR = euler_matrix(np.deg2rad(euler_frame[3]),
                               np.deg2rad(euler_frame[4]),
                               np.deg2rad(euler_frame[5]),
@@ -1158,7 +1138,7 @@ def transform_euler_frame(euler_frame, angles, offset, rotation_order=None):
     return transformed_frame
 
 
-def transform_euler_frames(euler_frames, angles, offset):
+def transform_euler_frames(euler_frames, angles, offset, rotation_order=None):
     """ Applies a transformation on the root joint of a list euler frames.
     Parameters
     ----------
@@ -1172,7 +1152,7 @@ def transform_euler_frames(euler_frames, angles, offset):
     transformed_euler_frames = []
     for frame in euler_frames:
         transformed_euler_frames.append(
-            transform_euler_frame(frame, angles, offset))
+            transform_euler_frame(frame, angles, offset, rotation_order))
     return np.array(transformed_euler_frames)
 
 '''
@@ -2049,9 +2029,9 @@ def translate_euler_frames(euler_frames,
 
 def rotate_euler_frame(euler_frame,
                        ref_orientation,
-                       body_plane,
+                       body_plane_joints,
                        skeleton):
-    forward = pose_orientation_general(euler_frame, body_plane, skeleton)
+    forward = pose_orientation_general(euler_frame, body_plane_joints, skeleton)
     rot_angle = get_rotation_angle(ref_orientation, forward)
     translation = np.array([0, 0, 0])
     return transform_euler_frame(euler_frame, [0, rot_angle, 0], translation)
@@ -2060,24 +2040,27 @@ def rotate_euler_frame(euler_frame,
 def rotate_euler_frames(euler_frames,
                         frame_idx,
                         ref_orientation,
-                        body_plane,
-                        skeleton):
+                        body_plane_joints,
+                        skeleton,
+                        rotation_order=None):
     """
     Rotate a list of euler frames using the same rotation angle
     :param euler_frames: a list of euler frames to be rotated
     :param frame_idx: frame which uses to calculate rotation anlge
     :param ref_orientation: reference orientation for alignment
+    :param rotation_order: define the rotation order for euler angles to calculate rotation matrix
+    :global_rotation: if true, the rotation is also applied to the global position. If false, the rotation will not be applied to global position 
     :return rotated_frames: a list of rotated euler frames
     """
-    # test_ori = pose_orientation_euler(euler_frames[frame_idx])
     forward = pose_orientation_general(euler_frames[frame_idx],
-                                       body_plane,
+                                       body_plane_joints,
                                        skeleton)
     rot_angle = get_rotation_angle(ref_orientation, forward)
     translation = np.array([0, 0, 0])
     rotated_frames = transform_euler_frames(euler_frames,
                                             [0, rot_angle, 0],
-                                            translation)
+                                            translation,
+                                            rotation_order)
     return rotated_frames
 
 
