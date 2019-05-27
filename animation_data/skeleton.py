@@ -14,13 +14,6 @@ from .skeleton_node import SkeletonEndSiteNode
 from .constants import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER, LEN_EULER, LEN_ROOT_POS, LEN_QUAT
 from .skeleton_models import ROCKETBOX_ANIMATED_JOINT_LIST, ROCKETBOX_FREE_JOINTS_MAP, ROCKETBOX_REDUCED_FREE_JOINTS_MAP, ROCKETBOX_SKELETON_MODEL, ROCKETBOX_BOUNDS, ROCKETBOX_TOOL_BONES, ROCKETBOX_ROOT_DIR
 from .joint_constraints import apply_conic_constraint, apply_axial_constraint, apply_spherical_constraint
-try:
-    from mgrd import Skeleton as MGRDSkeleton
-    from mgrd import SkeletonNode as MGRDSkeletonNode
-    has_mgrd = True
-except ImportError:
-    has_mgrd = False
-    pass
 
 
 def project_vector_on_vector(a, b):
@@ -253,25 +246,6 @@ class Skeleton(object):
     def clear_cached_global_matrices(self):
         for joint in list(self.nodes.values()):
             joint.clear_cached_global_matrix()
-
-    def convert_to_mgrd_skeleton(self):
-        if not has_mgrd:
-            return None
-
-        def create_mgrd_node(mg_node, parent):
-            mgrd_node = MGRDSkeletonNode(mg_node.node_name, parent, mg_node.offset, mg_node.rotation)
-            mgrd_node.fixed = mg_node.fixed
-            return mgrd_node
-
-        def populate(skeleton, mgrd_node):
-            node = skeleton.nodes[mgrd_node.name]
-            for child in node.children:
-                child_node = create_mgrd_node(child, mgrd_node)
-                mgrd_node.add_child(child_node)
-                populate(skeleton, child_node)
-        root_node = create_mgrd_node(self.nodes[self.root], None)
-        populate(self, root_node)
-        return MGRDSkeleton(root_node)
 
     def get_root_reference_orientation(self):
         # reference orientation from BVH: 179.477078182 3.34148613293 -87.6482840381 x y z euler angles

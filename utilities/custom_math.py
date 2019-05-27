@@ -626,12 +626,3 @@ def quaternion_from_vectors(vec1, vec2):
     y = cross_prod[1] * sin_half
     z = cross_prod[2] * sin_half
     return np.array([w, x, y, z])
-
-
-def quaternion_from_vectors2(vec1, vec2):
-    from morphablegraphs.animation_data.quaternion import Quaternion
-    axis = np.cross(vec1, vec2)
-    axis = axis/np.linalg.norm(axis)
-    angle = np.arccos(np.dot(vec1, vec2)/(np.linalg.norm(vec1) * np.linalg.norm(vec2)))
-    q = Quaternion.fromAngleAxis(angle, axis)
-    return q
