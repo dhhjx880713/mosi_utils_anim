@@ -10,7 +10,7 @@ from math import sqrt, radians, sin, cos, isnan
 from copy import deepcopy
 import glob
 from .bvh import BVHReader, BVHWriter
-from .skeleton_builder import SkeletonBuilder
+#from .skeleton_builder import SkeletonBuilder # deprecated
 from scipy import stats  # linear regression
 from .quaternion_frame import QuaternionFrame
 from collections import OrderedDict
@@ -27,36 +27,36 @@ from ..external.transformations import quaternion_matrix, euler_from_matrix, \
     rotation_from_matrix, \
     quaternion_slerp, \
     quaternion_conjugate,  quaternion_inverse, rotation_from_matrix
-use_euler_fk = False
-try:
-    import fk3
-    use_euler_fk = True
-except:
-    print("Could not find euler FK-Extension")
+# use_euler_fk = False
+# try:
+#     import fk3
+#     use_euler_fk = True
+# except:
+#     print("Could not find euler FK-Extension")
 
 from .constants import *
 
-if use_euler_fk:
-    FK_FUNCS = [
-        fk3.one_joint_fk,
-        fk3.two_joints_fk,
-        fk3.three_joints_fk,
-        fk3.four_joints_fk,
-        fk3.five_joints_fk,
-        fk3.six_joints_fk,
-        fk3.seven_joints_fk,
-        fk3.eight_joints_fk,
-    ]
-    FK_FUNC_JACS = [
-        fk3.one_joint_fk_jacobian,
-        fk3.two_joints_fk_jacobian,
-        fk3.three_joints_fk_jacobian,
-        fk3.four_joints_fk_jacobian,
-        fk3.five_joints_fk_jacobian,
-        fk3.six_joints_fk_jacobian,
-        fk3.seven_joints_fk_jacobian,
-        fk3.eight_joints_fk_jacobian,
-    ]
+# if use_euler_fk:
+#     FK_FUNCS = [
+#         fk3.one_joint_fk,
+#         fk3.two_joints_fk,
+#         fk3.three_joints_fk,
+#         fk3.four_joints_fk,
+#         fk3.five_joints_fk,
+#         fk3.six_joints_fk,
+#         fk3.seven_joints_fk,
+#         fk3.eight_joints_fk,
+#     ]
+#     FK_FUNC_JACS = [
+#         fk3.one_joint_fk_jacobian,
+#         fk3.two_joints_fk_jacobian,
+#         fk3.three_joints_fk_jacobian,
+#         fk3.four_joints_fk_jacobian,
+#         fk3.five_joints_fk_jacobian,
+#         fk3.six_joints_fk_jacobian,
+#         fk3.seven_joints_fk_jacobian,
+#         fk3.eight_joints_fk_jacobian,
+#     ]
 
 
 def rotation_order_to_string(rotation_order):
@@ -79,15 +79,17 @@ def extract_root_positions_from_frames(frames):
     return np.array(roots)
 
 def quaternion_inv(q):
-    """
-    Inverse of quaternion q
-    Args:
-            q: (qw, qx, qy, qz)
-    """
-    w, x, y, z = q
-    d = w*w + x*x + y*y + z*z
-    q_inv = (w/d, -x/d, -y/d, -z/d)
-    return q_inv
+    print("Deprecation Warning: Function marked as Deprecated!")
+    pass
+    # """
+    # Inverse of quaternion q
+    # Args:
+    #         q: (qw, qx, qy, qz)
+    # """
+    # w, x, y, z = q
+    # d = w*w + x*x + y*y + z*z
+    # q_inv = (w/d, -x/d, -y/d, -z/d)
+    # return q_inv
 
 def get_arc_length_from_points(points):
     """
@@ -270,20 +272,22 @@ def quaternion_to_euler_smooth(q, euler_ref, rotation_order=DEFAULT_ROTATION_ORD
     :param rotation_order: list of str
     :return: euler angles in degree
     """
-    len_angle = len(euler_ref)
-    euler_angles = quaternion_to_euler(q, rotation_order)
-    for i in range(len_angle):
-        if euler_ref[i] < 0:
-            diff1 = abs(euler_ref[i] - euler_angles[i])
-            diff2 = abs(euler_angles[i] - 360 - euler_ref[i])
-            if diff2 < diff1:
-                euler_angles[i] -= 360
-        else:
-            diff1 = abs(euler_ref[i] - euler_angles[i])
-            diff2 = abs(euler_angles[i] + 360 -euler_ref[i])
-            if diff2 < diff1:
-                euler_angles[i] += 360
-    return euler_angles
+    print("Deprecation Warning: Function marked as Deprecated!")
+    pass
+    # len_angle = len(euler_ref)
+    # euler_angles = quaternion_to_euler(q, rotation_order)
+    # for i in range(len_angle):
+    #     if euler_ref[i] < 0:
+    #         diff1 = abs(euler_ref[i] - euler_angles[i])
+    #         diff2 = abs(euler_angles[i] - 360 - euler_ref[i])
+    #         if diff2 < diff1:
+    #             euler_angles[i] -= 360
+    #     else:
+    #         diff1 = abs(euler_ref[i] - euler_angles[i])
+    #         diff2 = abs(euler_angles[i] + 360 -euler_ref[i])
+    #         if diff2 < diff1:
+    #             euler_angles[i] += 360
+    # return euler_angles
 
 
 def quaternion_to_euler_rad(q, rotation_order=DEFAULT_ROTATION_ORDER):
@@ -570,62 +574,64 @@ def get_cartesian_coordinates_for_plam_quaternion(
     global_matrix = np.dot(global_matrix, transmat_finger21)
     return global_matrix[:3, 3]
 
-if use_euler_fk:
-    def get_cartesian_coordinates_from_euler_full_skeleton(bvh_reader,
-                                                           skeleton,
-                                                           node_name,
-                                                           euler_frame):
-        """Return cartesian coordinates for one node at one frame, include the
-           skipped joints starting with "Bip"
-        """
-        if bvh_reader.node_names[node_name]["level"] == 0:
-            root_frame_position = euler_frame[:3]
-            root_node_offset = bvh_reader.node_names[node_name]["offset"]
+# if use_euler_fk:
+#     def get_cartesian_coordinates_from_euler_full_skeleton(bvh_reader,
+#                                                            skeleton,
+#                                                            node_name,
+#                                                            euler_frame):
+#         """Return cartesian coordinates for one node at one frame, include the
+#            skipped joints starting with "Bip"
+#         """
+#         print("Deprecation Warning: Function marked as Deprecated!")
+#         pass
+#         # if bvh_reader.node_names[node_name]["level"] == 0:
+#         #     root_frame_position = euler_frame[:3]
+#         #     root_node_offset = bvh_reader.node_names[node_name]["offset"]
 
-            return [t + o for t, o in
-                    zip(root_frame_position, root_node_offset)]
+#         #     return [t + o for t, o in
+#         #             zip(root_frame_position, root_node_offset)]
 
-        else:
-            # Names are generated bottom to up --> reverse
-            chain_names = list(skeleton.gen_all_parents(node_name))
-            chain_names.reverse()
-            chain_names += [node_name]  # Node is not in its parent list
+#         # else:
+#         #     # Names are generated bottom to up --> reverse
+#         #     chain_names = list(skeleton.gen_all_parents(node_name))
+#         #     chain_names.reverse()
+#         #     chain_names += [node_name]  # Node is not in its parent list
 
-            eul_angles = []
-            index = 0
-            for nodename in chain_names:
-                indeces = []
-                for channel in bvh_reader.node_names[nodename]["channels"]:
-                    if channel.endswith("rotation"):
-                        indeces.append(
-                            bvh_reader.node_channels.index((nodename, channel)))
-                eul_angles.append(euler_frame[indeces])
-                index += 1
+#         #     eul_angles = []
+#         #     index = 0
+#         #     for nodename in chain_names:
+#         #         indeces = []
+#         #         for channel in bvh_reader.node_names[nodename]["channels"]:
+#         #             if channel.endswith("rotation"):
+#         #                 indeces.append(
+#         #                     bvh_reader.node_channels.index((nodename, channel)))
+#         #         eul_angles.append(euler_frame[indeces])
+#         #         index += 1
 
-            # bvh_reader.node_names.keys().index("RightShoulder")*3 +
-            # 3,len(euler_frame)
-            rad_angles = (list(map(radians, eul_angle)) for eul_angle in eul_angles)
+#         #     # bvh_reader.node_names.keys().index("RightShoulder")*3 +
+#         #     # 3,len(euler_frame)
+#         #     rad_angles = (list(map(radians, eul_angle)) for eul_angle in eul_angles)
 
-            thx, thy, thz = list(map(list, list(zip(*rad_angles))))
+#         #     thx, thy, thz = list(map(list, list(zip(*rad_angles))))
 
-            offsets = [bvh_reader.node_names[nodename]["offset"]
-                       for nodename in chain_names]
+#         #     offsets = [bvh_reader.node_names[nodename]["offset"]
+#         #                for nodename in chain_names]
 
-            # Add root offset to frame offset list
-            root_position = euler_frame[:3]
-            offsets[0] = [r + o for r, o in zip(root_position, offsets[0])]
+#         #     # Add root offset to frame offset list
+#         #     root_position = euler_frame[:3]
+#         #     offsets[0] = [r + o for r, o in zip(root_position, offsets[0])]
 
-            ax, ay, az = list(map(list, zip(*offsets)))
+#         #     ax, ay, az = list(map(list, zip(*offsets)))
 
-        # f_idx identifies the kinematic forward transform function
-        # This does not lead to a negative index because the root is
-        # handled separately
+#         # # f_idx identifies the kinematic forward transform function
+#         # # This does not lead to a negative index because the root is
+#         # # handled separately
 
-        f_idx = len(ax) - 2
-        if len(ax) - 2 < len(FK_FUNCS):
-            return FK_FUNCS[f_idx](ax, ay, az, thx, thy, thz)
-        else:
-            return [0, 0, 0]
+#         # f_idx = len(ax) - 2
+#         # if len(ax) - 2 < len(FK_FUNCS):
+#         #     return FK_FUNCS[f_idx](ax, ay, az, thx, thy, thz)
+#         # else:
+#         #     return [0, 0, 0]
 
 def get_cartesian_coordinates_for_plam_euler(
         skeleton,
@@ -680,61 +686,62 @@ def get_cartesian_coordinates_for_plam_euler(
         global_trans = np.dot(global_trans, rotmat)
     return global_trans[:3, 3]
 
-if use_euler_fk:
-    def get_cartesian_coordinates_from_euler(skeleton, node_name, euler_frame):
-        """Returns cartesian coordinates for one node at one frame. Modified to
-         handle frames with omitted values for joints starting with "Bip"
+# if use_euler_fk:
+#     def get_cartesian_coordinates_from_euler(skeleton, node_name, euler_frame):
+#         """Returns cartesian coordinates for one node at one frame. Modified to
+#          handle frames with omitted values for joints starting with "Bip"
 
-        Parameters
-        ----------
+#         Parameters
+#         ----------
 
-        * node_name: String
-        \tName of node
-         * skeleton: Skeleton
-        \t skeleton structure read from a file
-        * frame_number: Integer
-        \tAnimation frame number that gets extracted
+#         * node_name: String
+#         \tName of node
+#          * skeleton: Skeleton
+#         \t skeleton structure read from a file
+#         * frame_number: Integer
+#         \tAnimation frame number that gets extracted
 
-        """
+#         """
+#         print("Deprecation Warning: Function marked as Deprecated!")
+#         pass
+#         # if skeleton.node_names[node_name]["level"] == 0:
+#         #     root_frame_position = euler_frame[:3]
+#         #     root_node_offset = skeleton.node_names[node_name]["offset"]
 
-        if skeleton.node_names[node_name]["level"] == 0:
-            root_frame_position = euler_frame[:3]
-            root_node_offset = skeleton.node_names[node_name]["offset"]
+#         #     return [t + o for t, o in
+#         #             zip(root_frame_position, root_node_offset)]
 
-            return [t + o for t, o in
-                    zip(root_frame_position, root_node_offset)]
+#         # else:
+#         #     # Names are generated bottom to up --> reverse
+#         #     chain_names = list(skeleton.gen_all_parents(node_name))
+#         #     chain_names.reverse()
+#         #     chain_names += [node_name]  # Node is not in its parent list
+#         #     eul_angles = []
+#         #     for nodename in chain_names:
+#         #         index = skeleton.node_name_frame_map[nodename] * 3 + 3
+#         #         eul_angles.append(euler_frame[index:index + 3])
+#         #     rad_angles = (list(map(radians, eul_angle)) for eul_angle in eul_angles)
 
-        else:
-            # Names are generated bottom to up --> reverse
-            chain_names = list(skeleton.gen_all_parents(node_name))
-            chain_names.reverse()
-            chain_names += [node_name]  # Node is not in its parent list
-            eul_angles = []
-            for nodename in chain_names:
-                index = skeleton.node_name_frame_map[nodename] * 3 + 3
-                eul_angles.append(euler_frame[index:index + 3])
-            rad_angles = (list(map(radians, eul_angle)) for eul_angle in eul_angles)
+#         #     thx, thy, thz = list(map(list, list(zip(*rad_angles))))
 
-            thx, thy, thz = list(map(list, list(zip(*rad_angles))))
+#         #     offsets = [skeleton.node_names[nodename]["offset"]
+#         #                for nodename in chain_names]
 
-            offsets = [skeleton.node_names[nodename]["offset"]
-                       for nodename in chain_names]
+#         #     # Add root offset to frame offset list
+#         #     root_position = euler_frame[:3]
+#         #     offsets[0] = [r + o for r, o in zip(root_position, offsets[0])]
 
-            # Add root offset to frame offset list
-            root_position = euler_frame[:3]
-            offsets[0] = [r + o for r, o in zip(root_position, offsets[0])]
+#         #     ax, ay, az = list(map(list, zip(*offsets)))
 
-            ax, ay, az = list(map(list, zip(*offsets)))
+#         #     # f_idx identifies the kinematic forward transform function
+#         #     # This does not lead to a negative index because the root is
+#         #     # handled separately
 
-            # f_idx identifies the kinematic forward transform function
-            # This does not lead to a negative index because the root is
-            # handled separately
-
-            f_idx = len(ax) - 2
-            if len(ax) - 2 < len(FK_FUNCS):
-                return FK_FUNCS[f_idx](ax, ay, az, thx, thy, thz)
-            else:
-                return [0, 0, 0]
+#         #     f_idx = len(ax) - 2
+#         #     if len(ax) - 2 < len(FK_FUNCS):
+#         #         return FK_FUNCS[f_idx](ax, ay, az, thx, thy, thz)
+#         #     else:
+#         #         return [0, 0, 0]
 
 
 def convert_euler_frame_to_cartesian_frame(skeleton, euler_frame, animated_joints=None):
@@ -755,29 +762,33 @@ def convert_euler_frame_to_cartesian_frame(skeleton, euler_frame, animated_joint
 
 
 def get_global_trans_from_euler_frames(skeleton, euler_frames, animated_joints=None):
-    if animated_joints is None:
-        animated_joints = skeleton.animated_joints
-    n_joints = len(animated_joints)
-    n_frames = len(euler_frames)
-    global_trans = np.zeros([n_frames, n_joints, 4, 4])
-    for i in range(n_frames):
-        for j in range(n_joints):
-            global_trans[i, j] = skeleton.nodes[animated_joints[j]].get_global_matrix_from_euler_frame(euler_frames[i])
-    return global_trans
+    print("Deprecation Warning: Function marked as Deprecated!")
+    pass
+    # if animated_joints is None:
+    #     animated_joints = skeleton.animated_joints
+    # n_joints = len(animated_joints)
+    # n_frames = len(euler_frames)
+    # global_trans = np.zeros([n_frames, n_joints, 4, 4])
+    # for i in range(n_frames):
+    #     for j in range(n_joints):
+    #         global_trans[i, j] = skeleton.nodes[animated_joints[j]].get_global_matrix_from_euler_frame(euler_frames[i])
+    # return global_trans
 
 
 def convert_quat_frame_to_cartesian_frame(skeleton, quat_frame, animated_joints=None):
-    if animated_joints is None:
-        n_joints = len(skeleton.animated_joints)
-        cartesian_frame = np.zeros([n_joints, LEN_ROOT_POS])
-        for i in range(n_joints):
-            cartesian_frame[i] = skeleton.nodes[skeleton.animated_joints[i]].get_global_position(quat_frame)
-    else:
-        n_joints = len(animated_joints)
-        cartesian_frame = np.zeros([n_joints, LEN_ROOT_POS])
-        for i in range(n_joints):
-            cartesian_frame[i] = skeleton.nodes[animated_joints[i]].get_global_position(quat_frame)
-    return cartesian_frame
+    print("Deprecation Warning: Function marked as Deprecated!")
+    pass
+    # if animated_joints is None:
+    #     n_joints = len(skeleton.animated_joints)
+    #     cartesian_frame = np.zeros([n_joints, LEN_ROOT_POS])
+    #     for i in range(n_joints):
+    #         cartesian_frame[i] = skeleton.nodes[skeleton.animated_joints[i]].get_global_position(quat_frame)
+    # else:
+    #     n_joints = len(animated_joints)
+    #     cartesian_frame = np.zeros([n_joints, LEN_ROOT_POS])
+    #     for i in range(n_joints):
+    #         cartesian_frame[i] = skeleton.nodes[animated_joints[i]].get_global_position(quat_frame)
+    # return cartesian_frame
 
 
 def convert_quaternion_frame_to_cartesian_frame(skeleton, quat_frame):
@@ -890,11 +901,13 @@ def convert_euler_frames_to_cartesian_frames(skeleton, euler_frames, animated_jo
 
 
 def convert_quat_frames_to_cartesian_frames(skeleton, quat_frames, animated_joints=None):
-    cartesian_frames = []
-    for quat_frame in quat_frames:
-        cartesian_frames.append(
-            convert_quat_frame_to_cartesian_frame(skeleton, quat_frame, animated_joints))
-    return np.array(cartesian_frames)
+    print("Deprecation Warning: Function marked as Deprecated!")
+    pass
+    # cartesian_frames = []
+    # for quat_frame in quat_frames:
+    #     cartesian_frames.append(
+    #         convert_quat_frame_to_cartesian_frame(skeleton, quat_frame, animated_joints))
+    # return np.array(cartesian_frames)
 
 
 def convert_quat_coeffs_to_cartesian_coeffs(elementary_action,
@@ -908,22 +921,24 @@ def convert_quat_coeffs_to_cartesian_coeffs(elementary_action,
     :param quat_coeffs_mat (numpy.array<3d>): n_samples * n_basis * n_dims
     :return cartesian_coeffs_mat (numpy.array<3d>): n_samples * n_basis * n_dims
     """
-    from morphablegraphs.utilities import get_semantic_motion_primitive_path
-    from morphablegraphs.construction.preprocessing.quat_spline_constructor import QuatSplineConstructor
-    semantic_motion_primitive_file = get_semantic_motion_primitive_path(elementary_action,
-                                                                        motion_primitive,
-                                                                        data_repo)
-    quat_spline_constructor = QuatSplineConstructor(semantic_motion_primitive_file,
-                                                    skeleton_json)
-    quat_coeffs_mat = np.asarray(quat_coeffs_mat)
-    n_samples, n_basis, n_dims = quat_coeffs_mat.shape
-    cartesian_coeffs_mat = []
-    for i in range(n_samples):
-        quat_spline = quat_spline_constructor.create_quat_spline_from_functional_data(quat_coeffs_mat[i],
-                                                                                      knots)
-        cartesian_spline = quat_spline.to_cartesian()
-        cartesian_coeffs_mat.append(cartesian_spline.coeffs)
-    return np.asarray(cartesian_coeffs_mat)
+    print("Deprecation Warning: Function marked as Deprecated!")
+    pass
+    # from morphablegraphs.utilities import get_semantic_motion_primitive_path
+    # from morphablegraphs.construction.preprocessing.quat_spline_constructor import QuatSplineConstructor
+    # semantic_motion_primitive_file = get_semantic_motion_primitive_path(elementary_action,
+    #                                                                     motion_primitive,
+    #                                                                     data_repo)
+    # quat_spline_constructor = QuatSplineConstructor(semantic_motion_primitive_file,
+    #                                                 skeleton_json)
+    # quat_coeffs_mat = np.asarray(quat_coeffs_mat)
+    # n_samples, n_basis, n_dims = quat_coeffs_mat.shape
+    # cartesian_coeffs_mat = []
+    # for i in range(n_samples):
+    #     quat_spline = quat_spline_constructor.create_quat_spline_from_functional_data(quat_coeffs_mat[i],
+    #                                                                                   knots)
+    #     cartesian_spline = quat_spline.to_cartesian()
+    #     cartesian_coeffs_mat.append(cartesian_spline.coeffs)
+    # return np.asarray(cartesian_coeffs_mat)
 
 
 def find_aligning_transformation(skeleton, euler_frames_a, euler_frames_b):
@@ -952,10 +967,12 @@ def rotate_around_y_axis(point, theta):
     *theta: float
     \t angle in radians
     """
-    transfomed_point = point[:]
-    transfomed_point[0] = point[0] * cos(theta) - point[2] * sin(theta)
-    transfomed_point[2] = point[2] * cos(theta) + point[0] * sin(theta)
-    return transfomed_point
+    print("Deprecation Warning: Function marked as Deprecated!")
+    pass
+    # transfomed_point = point[:]
+    # transfomed_point[0] = point[0] * cos(theta) - point[2] * sin(theta)
+    # transfomed_point[2] = point[2] * cos(theta) + point[0] * sin(theta)
+    # return transfomed_point
 
 
 def transform_point_by_quaternion(point, quaternion, offset, origin=None):
@@ -1195,25 +1212,29 @@ def transform_quaternion_frame(quat_frame,
 
 
 def copy_joint_rotation(src_file, target_file, target_joints, save_folder):
-    src_bvhreader = BVHReader(src_file)
-    target_bvhreader = BVHReader(target_file)
-    src_skeleton = SkeletonBuilder().load_from_bvh(src_bvhreader)
-    filename = os.path.split(target_file)[-1]
-    target_skeleton = SkeletonBuilder().load_from_bvh(target_bvhreader)
-    for i in range(len(target_bvhreader.frames)):
-        for joint in target_joints:
-            target_joint_index = target_skeleton.nodes[joint].euler_frame_index
-            src_joint_index = src_skeleton.nodes[joint].euler_frame_index
-            target_bvhreader.frames[i][3+3*target_joint_index: 3+3*(target_joint_index+1)] = src_bvhreader.frames[0][3+3*src_joint_index: 3+3*(src_joint_index+1)]
-    BVHWriter(os.path.join(save_folder, filename), target_skeleton, target_bvhreader.frames,
-              target_skeleton.frame_time, is_quaternion=False)
+    print("Deprecation Warning: Function marked as Deprecated!")
+    pass
+    # src_bvhreader = BVHReader(src_file)
+    # target_bvhreader = BVHReader(target_file)
+    # src_skeleton = SkeletonBuilder().load_from_bvh(src_bvhreader)
+    # filename = os.path.split(target_file)[-1]
+    # target_skeleton = SkeletonBuilder().load_from_bvh(target_bvhreader)
+    # for i in range(len(target_bvhreader.frames)):
+    #     for joint in target_joints:
+    #         target_joint_index = target_skeleton.nodes[joint].euler_frame_index
+    #         src_joint_index = src_skeleton.nodes[joint].euler_frame_index
+    #         target_bvhreader.frames[i][3+3*target_joint_index: 3+3*(target_joint_index+1)] = src_bvhreader.frames[0][3+3*src_joint_index: 3+3*(src_joint_index+1)]
+    # BVHWriter(os.path.join(save_folder, filename), target_skeleton, target_bvhreader.frames,
+    #           target_skeleton.frame_time, is_quaternion=False)
 
 
 def get_children(joint_node, children_list=[]):
-    if joint_node.children != []:
-        for child in joint_node.children:
-            children_list.append(child.node_name)
-            get_children(child, children_list)
+    print("Deprecation Warning: Function marked as Deprecated!")
+    pass
+    # if joint_node.children != []:
+    #     for child in joint_node.children:
+    #         children_list.append(child.node_name)
+    #         get_children(child, children_list)
 
 
 def transform_quaternion_frames(quat_frames, angles, offset, rotation_order=None):
@@ -1442,25 +1463,30 @@ def shift_quat_frames_to_ground(quat_frames, ground_contact_joints, skeleton, al
 
 
 def lock_contact_joint(quat_frames, skeleton, contact_joint):
-    import copy
-    # ref_point = get_cartesian_coordinates_from_euler(skeleton, contact_joint, euler_frames[0])
-    ref_point = skeleton.nodes[contact_joint].get_global_position(quat_frames[0])
-    # ref_point[1] = 0.0
-    new_frames = copy.deepcopy(quat_frames)
-    for i in range(1, len(quat_frames)):
-        # contact_pos = get_cartesian_coordinates_from_euler_full_skeleton(bvhreader, skeleton, contact_joint, euler_frames[i])
-        contact_pos = skeleton.nodes[contact_joint].get_global_position(quat_frames[i])
-        offset = np.asarray(ref_point) - np.asarray(contact_pos)
-        new_frames[i][:3] += offset
-    return new_frames
+    print("Deprecation Warning: Function marked as Deprecated!")
+    pass
+
+    # import copy
+    # # ref_point = get_cartesian_coordinates_from_euler(skeleton, contact_joint, euler_frames[0])
+    # ref_point = skeleton.nodes[contact_joint].get_global_position(quat_frames[0])
+    # # ref_point[1] = 0.0
+    # new_frames = copy.deepcopy(quat_frames)
+    # for i in range(1, len(quat_frames)):
+    #     # contact_pos = get_cartesian_coordinates_from_euler_full_skeleton(bvhreader, skeleton, contact_joint, euler_frames[i])
+    #     contact_pos = skeleton.nodes[contact_joint].get_global_position(quat_frames[i])
+    #     offset = np.asarray(ref_point) - np.asarray(contact_pos)
+    #     new_frames[i][:3] += offset
+    # return new_frames
 
 
 def get_rest_pose(bvhreader, save_path):
-    from morphablegraphs.animation_data import Skeleton
-    rest_pose = np.zeros(len(bvhreader.frames[0]))
-    skeleton = SkeletonBuilder().load_from_bvh(bvhreader)
-    BVHWriter(save_path, skeleton, [rest_pose], bvhreader.frame_time,
-              is_quaternion=False)
+    print("Deprecation Warning: Function marked as Deprecated!")
+    pass
+    # from morphablegraphs.animation_data import Skeleton
+    # rest_pose = np.zeros(len(bvhreader.frames[0]))
+    # skeleton = SkeletonBuilder().load_from_bvh(bvhreader)
+    # BVHWriter(save_path, skeleton, [rest_pose], bvhreader.frame_time,
+    #           is_quaternion=False)
 
 
 def align_frames(skeleton, euler_frames_a, euler_frames_b, smooth=True):
@@ -1499,11 +1525,13 @@ def align_frames(skeleton, euler_frames_a, euler_frames_b, smooth=True):
 
 
 def get_2d_pose_transform(quaternion_frames, frame_number, param_range=(3,7)):
-    dir_vec = pose_orientation_quat(quaternion_frames[frame_number], param_range)
-    angle = get_rotation_angle(dir_vec, [0, -1])
-    offset_x = quaternion_frames[frame_number][0]
-    offset_z = quaternion_frames[frame_number][2]
-    return [offset_x, 0.0, offset_z], [0,angle,0]
+    print("Deprecation Warning: Function marked as Deprecated!")
+    pass
+    # dir_vec = pose_orientation_quat(quaternion_frames[frame_number], param_range)
+    # angle = get_rotation_angle(dir_vec, [0, -1])
+    # offset_x = quaternion_frames[frame_number][0]
+    # offset_z = quaternion_frames[frame_number][2]
+    # return [offset_x, 0.0, offset_z], [0,angle,0]
 
 
 def fast_quat_frames_transformation(quaternion_frames_a,
@@ -1535,15 +1563,17 @@ def get_quat_frame_transformation(quaternion_frame_a,
     :param param_range:
     :return:
     '''
-    dir_vec_a = pose_orientation_quat(quaternion_frame_a, param_range)
-    dir_vec_b = pose_orientation_quat(quaternion_frame_b, param_range)
-    angle = get_rotation_angle(dir_vec_a, dir_vec_b)
-    offset_x = quaternion_frame_a[0] - quaternion_frame_b[0]
-    offset_z = quaternion_frame_a[2] - quaternion_frame_b[2]
-    lh = skeleton.nodes[feet_contact_joints[0]].get_global_position(quaternion_frame_b)[1]
-    rh = skeleton.nodes[feet_contact_joints[1]].get_global_position(quaternion_frame_b)[1]
-    offset = [offset_x, -(lh + rh)/2.0, offset_z]
-    return angle, offset
+    print("Deprecation Warning: Function marked as Deprecated!")
+    pass
+    # dir_vec_a = pose_orientation_quat(quaternion_frame_a, param_range)
+    # dir_vec_b = pose_orientation_quat(quaternion_frame_b, param_range)
+    # angle = get_rotation_angle(dir_vec_a, dir_vec_b)
+    # offset_x = quaternion_frame_a[0] - quaternion_frame_b[0]
+    # offset_z = quaternion_frame_a[2] - quaternion_frame_b[2]
+    # lh = skeleton.nodes[feet_contact_joints[0]].get_global_position(quaternion_frame_b)[1]
+    # rh = skeleton.nodes[feet_contact_joints[1]].get_global_position(quaternion_frame_b)[1]
+    # offset = [offset_x, -(lh + rh)/2.0, offset_z]
+    # return angle, offset
 
 
 def fast_euler_frames_transformation(euler_frames_a,
@@ -1587,16 +1617,6 @@ def point_to_euler_angle(vec):
     vec = np.array(vec)
     theta = np.rad2deg(np.arctan2(vec[1], vec[0]))
     return theta
-
-
-def get_rotation_angles_between_ref_direction(dirs, ref_dir, plane='xz'):
-    '''
-
-    :param dirs:
-    :param ref_dir:
-    :return:
-    '''
-    pass
 
 
 def fast_quat_frames_alignment(quaternion_frames_a,
@@ -1767,17 +1787,19 @@ def calculate_pose_distances_from_low_dim(skeleton, mm_models, X, Y):
     * Y: List
     \tList of low dimensional vectors
     """
-    assert len(X) == len(Y)
-    n = len(X)
-    errors = []
-    for i in range(n):
-        euler_frames_a = mm_models["X"].back_project(X[i]).get_motion_vector()
-        euler_frames_b = mm_models["Y"].back_project(Y[i]).get_motion_vector()
-        error = calculate_pose_distance(
-            skeleton, euler_frames_a, euler_frames_b)
-        errors.append(error)
+    print("Deprecation Warning: Function marked as Deprecated!")
+    pass
+    # assert len(X) == len(Y)
+    # n = len(X)
+    # errors = []
+    # for i in range(n):
+    #     euler_frames_a = mm_models["X"].back_project(X[i]).get_motion_vector()
+    #     euler_frames_b = mm_models["Y"].back_project(Y[i]).get_motion_vector()
+    #     error = calculate_pose_distance(
+    #         skeleton, euler_frames_a, euler_frames_b)
+    #     errors.append(error)
 
-    return errors
+    # return errors
 
 
 def extract_root_positions(frames):
@@ -1854,21 +1876,25 @@ def pose_orientation_from_point_cloud(point_cloud, body_plane_joint_indices):
 
 
 def get_rotation_to_ref_direction(dir_vecs, ref_dir):
-    rotations = []
-    for dir_vec in dir_vecs:
-        rotations.append(Quaternion.between(dir_vec, ref_dir))
-    return rotations
+    print("Deprecation Warning: Function marked as Deprecated!")
+    pass
+    # rotations = []
+    # for dir_vec in dir_vecs:
+    #     rotations.append(Quaternion.between(dir_vec, ref_dir))
+    # return rotations
 
 
 def pose_orientation_game_engine_skeleton(euler_frame, skeleton):
-    forward_joints = ['Game_engine', 'Root']
-    forward_points = []
-    for joint in forward_joints:
-        forward_points.append(skeleton.nodes[joint].get_global_position_from_euler(euler_frame))
-    forward_points = np.asarray(forward_points)
-    forward_dir = forward_points[1] - forward_points[0]
-    forward_dir[1] = 0
-    return forward_dir/np.linalg.norm(forward_dir)
+    print("Deprecation Warning: Function marked as Deprecated!")
+    pass
+    # forward_joints = ['Game_engine', 'Root']
+    # forward_points = []
+    # for joint in forward_joints:
+    #     forward_points.append(skeleton.nodes[joint].get_global_position_from_euler(euler_frame))
+    # forward_points = np.asarray(forward_points)
+    # forward_dir = forward_points[1] - forward_points[0]
+    # forward_dir[1] = 0
+    # return forward_dir/np.linalg.norm(forward_dir)
 
 
 def get_trajectory_dir_from_2d_points(points):
@@ -1926,19 +1952,21 @@ def align_quaternion_frames_only_last_frame(quat_frames, prev_frames=None, trans
         transformed to fit to prev_frames.
 
     """
-    # find alignment transformation or use given transformation
-    if prev_frames is not None:
-        angle, offset = fast_quat_frames_transformation(prev_frames, quat_frames)
-        transformed_frames = transform_quaternion_frames([quat_frames[-1]],
-                                                         [0, angle, 0],
-                                                         offset)
-        return transformed_frames
-    elif prev_frames is None and transformation is not None:
-        # align frames
-        transformed_frames = transform_quaternion_frames([quat_frames[-1]], transformation["orientation"], transformation["position"])
-        return transformed_frames
-    else:
-        return [quat_frames[-1]]
+    print("Deprecation Warning: Function marked as Deprecated!")
+    pass
+    # # find alignment transformation or use given transformation
+    # if prev_frames is not None:
+    #     angle, offset = fast_quat_frames_transformation(prev_frames, quat_frames)
+    #     transformed_frames = transform_quaternion_frames([quat_frames[-1]],
+    #                                                      [0, angle, 0],
+    #                                                      offset)
+    #     return transformed_frames
+    # elif prev_frames is None and transformation is not None:
+    #     # align frames
+    #     transformed_frames = transform_quaternion_frames([quat_frames[-1]], transformation["orientation"], transformation["position"])
+    #     return transformed_frames
+    # else:
+    #     return [quat_frames[-1]]
 
 
 def align_quaternion_frames(quat_frames, prev_frames=None, transformation=None, param_range=(3,7)):
@@ -1985,22 +2013,24 @@ def fast_quat_frames_transformation(quaternion_frames_a,
 def align_euler_frames(euler_frames,
                        frame_idx,
                        ref_orientation_euler):
-    new_euler_frames = deepcopy(euler_frames)
-    ref_quat = euler_to_quaternion(ref_orientation_euler)
-    root_rot_angles = euler_frames[frame_idx][3:6]
-    root_rot_quat = euler_to_quaternion(root_rot_angles)
-    quat_diff = quaternion_multiply(ref_quat, quaternion_inv(root_rot_quat))
-    for euler_frame in new_euler_frames:
-        root_trans = euler_frame[:3]
-        new_root_trans = point_rotation_by_quaternion(root_trans, quat_diff)
-        euler_frame[:3] = new_root_trans
-        root_rot_angles = euler_frame[3:6]
-        root_rot_quat = euler_to_quaternion(root_rot_angles)
+    print("Deprecation Warning: Function marked as Deprecated!")
+    pass
+    # new_euler_frames = deepcopy(euler_frames)
+    # ref_quat = euler_to_quaternion(ref_orientation_euler)
+    # root_rot_angles = euler_frames[frame_idx][3:6]
+    # root_rot_quat = euler_to_quaternion(root_rot_angles)
+    # quat_diff = quaternion_multiply(ref_quat, quaternion_inv(root_rot_quat))
+    # for euler_frame in new_euler_frames:
+    #     root_trans = euler_frame[:3]
+    #     new_root_trans = point_rotation_by_quaternion(root_trans, quat_diff)
+    #     euler_frame[:3] = new_root_trans
+    #     root_rot_angles = euler_frame[3:6]
+    #     root_rot_quat = euler_to_quaternion(root_rot_angles)
 
-        new_root_quat = quaternion_multiply(quat_diff, root_rot_quat)
-        new_root_euler = quaternion_to_euler(new_root_quat)
-        euler_frame[3:6] = new_root_euler
-    return new_euler_frames
+    #     new_root_quat = quaternion_multiply(quat_diff, root_rot_quat)
+    #     new_root_euler = quaternion_to_euler(new_root_quat)
+    #     euler_frame[3:6] = new_root_euler
+    # return new_euler_frames
 
 
 def translate_euler_frames(euler_frames,
@@ -2101,28 +2131,32 @@ def rotate_euler_frames_about_x_axis(euler_frames,
 
 
 def is_vertical_pose_euler(euler_frame):
-    ref_vec = np.array([1, 0, 0, 1])
-    rot_angles = np.deg2rad(euler_frame[3:6])
-    rotmat = euler_matrix(rot_angles[0],
-                          rot_angles[1],
-                          rot_angles[2],
-                          'rxyz')
-    rotated_vec = np.dot(rotmat, ref_vec)
-    if rotated_vec[1] > 0.99:
-        return True
-    else:
-        return False
+    print("Deprecation Warning: Function marked as Deprecated!")
+    pass
+    # ref_vec = np.array([1, 0, 0, 1])
+    # rot_angles = np.deg2rad(euler_frame[3:6])
+    # rotmat = euler_matrix(rot_angles[0],
+    #                       rot_angles[1],
+    #                       rot_angles[2],
+    #                       'rxyz')
+    # rotated_vec = np.dot(rotmat, ref_vec)
+    # if rotated_vec[1] > 0.99:
+    #     return True
+    # else:
+    #     return False
 
 
 def is_vertical_pose_quat(quat_frame):
-    quat_hip = np.asarray(quat_frame[3:7])
-    ref_vec = np.array([1, 0, 0, 1])
-    rotmat = quaternion_matrix(quat_hip)
-    rotated_vec = np.dot(rotmat, ref_vec)
-    if rotated_vec[1] > 0.99:
-        return True
-    else:
-        return False
+    print("Deprecation Warning: Function marked as Deprecated!")
+    pass
+    # quat_hip = np.asarray(quat_frame[3:7])
+    # ref_vec = np.array([1, 0, 0, 1])
+    # rotmat = quaternion_matrix(quat_hip)
+    # rotated_vec = np.dot(rotmat, ref_vec)
+    # if rotated_vec[1] > 0.99:
+    #     return True
+    # else:
+    #     return False
 
 
 def pose_up_vector_euler(euler_frame):
@@ -2152,12 +2186,14 @@ def pose_up_vector_quat(quat_frame):
     :param quat_frame:
     :return:
     """
-    ref_offset = np.array([1, 0, 0, 1])
-    rotmat = quaternion_matrix(quat_frame[3:7])
-    rotated_point = np.dot(rotmat, ref_offset)
-    up_vec = np.array([rotated_point[0], rotated_point[2]])
-    up_vec /= np.linalg.norm(up_vec)
-    return up_vec
+    print("Deprecation Warning: Function marked as Deprecated!")
+    pass
+    # ref_offset = np.array([1, 0, 0, 1])
+    # rotmat = quaternion_matrix(quat_frame[3:7])
+    # rotated_point = np.dot(rotmat, ref_offset)
+    # up_vec = np.array([rotated_point[0], rotated_point[2]])
+    # up_vec /= np.linalg.norm(up_vec)
+    # return up_vec
 
 
 def quaternion_rotate_vector(q, vector):
@@ -2224,18 +2260,20 @@ def get_lookAt_direction(bvh_analyzer, frame_index):
 
 
 def interpolate_concatenation_euler_frames(euler_frames_a, euler_frames_b, n_interpolated_frames):
-    assert n_interpolated_frames%2 == 1, ("The number of intepolated frames should be odd")
-    fractions = np.linspace(0, 1, n_interpolated_frames + 2)
-    interpolated_frames = []
-    for fraction in fractions[1: -1]:
-        new_euler_frame = quat_interpolate_euler_frames(euler_frames_a[-1],
-                                                        euler_frames_b[0],
-                                                        fraction)
-        interpolated_frames.append(new_euler_frame)
-    interpolated_frames = np.asarray(interpolated_frames)
-    concatenated_frames = np.concatenate((euler_frames_a, interpolated_frames), axis=0)
-    concatenated_frames = np.concatenate((concatenated_frames, euler_frames_b), axis=0)
-    return concatenated_frames
+    print("Deprecation Warning: Function marked as Deprecated!")
+    pass
+    # assert n_interpolated_frames%2 == 1, ("The number of intepolated frames should be odd")
+    # fractions = np.linspace(0, 1, n_interpolated_frames + 2)
+    # interpolated_frames = []
+    # for fraction in fractions[1: -1]:
+    #     new_euler_frame = quat_interpolate_euler_frames(euler_frames_a[-1],
+    #                                                     euler_frames_b[0],
+    #                                                     fraction)
+    #     interpolated_frames.append(new_euler_frame)
+    # interpolated_frames = np.asarray(interpolated_frames)
+    # concatenated_frames = np.concatenate((euler_frames_a, interpolated_frames), axis=0)
+    # concatenated_frames = np.concatenate((concatenated_frames, euler_frames_b), axis=0)
+    # return concatenated_frames
 
 
 def quat_interpolate_euler_frames(euler_frame_a, euler_frame_b, fraction):
@@ -2247,31 +2285,35 @@ def quat_interpolate_euler_frames(euler_frame_a, euler_frame_b, fraction):
     :param euler_frame_b: numpy array
     :return:
     """
-    assert len(euler_frame_a) == len(euler_frame_b), ("The euler frames should have same length!")
-    assert (len(euler_frame_a) - LEN_ROOT)%LEN_EULER == 0, ("The lenght of euler frame is not correct!")
-    new_frame = np.zeros(len(euler_frame_a))
-    new_frame[:LEN_ROOT] = (1-fraction)*euler_frame_a[:LEN_ROOT] + fraction*euler_frame_b[:LEN_ROOT]
-    n_joints = (len(euler_frame_a) - LEN_ROOT)/LEN_EULER
-    for i in range(n_joints):
-        joint_euler_a = euler_frame_a[i * LEN_EULER + LEN_ROOT : (i + 1) * LEN_EULER + LEN_ROOT]
-        joint_euler_b = euler_frame_b[i * LEN_EULER + LEN_ROOT : (i + 1) * LEN_EULER + LEN_ROOT]
-        joint_quat_a = euler_to_quaternion(joint_euler_a)
-        joint_quat_b = euler_to_quaternion(joint_euler_b)
-        joint_quat_new = quaternion_slerp(joint_quat_a, joint_quat_b, fraction)
-        joint_euler_new = quaternion_to_euler(joint_quat_new)
-        new_frame[i * LEN_EULER + LEN_ROOT : (i + 1) * LEN_EULER + LEN_ROOT] = joint_euler_new
-    return new_frame
+    print("Deprecation Warning: Function marked as Deprecated!")
+    pass
+    # assert len(euler_frame_a) == len(euler_frame_b), ("The euler frames should have same length!")
+    # assert (len(euler_frame_a) - LEN_ROOT)%LEN_EULER == 0, ("The lenght of euler frame is not correct!")
+    # new_frame = np.zeros(len(euler_frame_a))
+    # new_frame[:LEN_ROOT] = (1-fraction)*euler_frame_a[:LEN_ROOT] + fraction*euler_frame_b[:LEN_ROOT]
+    # n_joints = (len(euler_frame_a) - LEN_ROOT)/LEN_EULER
+    # for i in range(n_joints):
+    #     joint_euler_a = euler_frame_a[i * LEN_EULER + LEN_ROOT : (i + 1) * LEN_EULER + LEN_ROOT]
+    #     joint_euler_b = euler_frame_b[i * LEN_EULER + LEN_ROOT : (i + 1) * LEN_EULER + LEN_ROOT]
+    #     joint_quat_a = euler_to_quaternion(joint_euler_a)
+    #     joint_quat_b = euler_to_quaternion(joint_euler_b)
+    #     joint_quat_new = quaternion_slerp(joint_quat_a, joint_quat_b, fraction)
+    #     joint_euler_new = quaternion_to_euler(joint_quat_new)
+    #     new_frame[i * LEN_EULER + LEN_ROOT : (i + 1) * LEN_EULER + LEN_ROOT] = joint_euler_new
+    # return new_frame
 
 
 def convert_quat_spline_to_euler_frames(quat_spline, n_frames):
-    from mgrd import SkeletonMotionBVHExporter
-    bvh_exporter = SkeletonMotionBVHExporter(quat_spline)
-    # evaluation_times = np.arange(start=quat_spline.knots[0], stop=quat_spline.knots[-1], n_frames)
-    evaluation_times = np.linspace(quat_spline.knots[0], quat_spline.knots[-1], n_frames)
-    euler_frames = []
-    for frame_time in evaluation_times:
-        euler_frames.append(bvh_exporter.generate_complete_euler_frame(frame_time))
-    return np.asarray(euler_frames)
+    print("Deprecation Warning: Function marked as Deprecated!")
+    pass
+    # from mgrd import SkeletonMotionBVHExporter
+    # bvh_exporter = SkeletonMotionBVHExporter(quat_spline)
+    # # evaluation_times = np.arange(start=quat_spline.knots[0], stop=quat_spline.knots[-1], n_frames)
+    # evaluation_times = np.linspace(quat_spline.knots[0], quat_spline.knots[-1], n_frames)
+    # euler_frames = []
+    # for frame_time in evaluation_times:
+    #     euler_frames.append(bvh_exporter.generate_complete_euler_frame(frame_time))
+    # return np.asarray(euler_frames)
 
 
 def remove_xz_translation(cartesian_frames):
@@ -2280,9 +2322,11 @@ def remove_xz_translation(cartesian_frames):
     :param cartesian_frames (ndarray): n_frames * n_joints * n_dims
     :return:
     '''
-    cartesian_frames[:, 0, 0] = cartesian_frames[:, 0, 0] - cartesian_frames[0, 0, 0]
-    cartesian_frames[:, 0, 2] = cartesian_frames[:, 0, 2] - cartesian_frames[0, 0, 2]
-    return cartesian_frames
+    print("Deprecation Warning: Function marked as Deprecated!")
+    pass
+    # cartesian_frames[:, 0, 0] = cartesian_frames[:, 0, 0] - cartesian_frames[0, 0, 0]
+    # cartesian_frames[:, 0, 2] = cartesian_frames[:, 0, 2] - cartesian_frames[0, 0, 2]
+    # return cartesian_frames
 
 
 def find_rotation_angle_between_two_vector(v1, v2):
@@ -2314,13 +2358,15 @@ def get_rotation_velocity(skeleton, euler_frames, body_plane):
     :param euler_frames:
     :return:
     '''
-    n_frames = len(euler_frames)
-    r_v = np.zeros(n_frames)
-    for i in range(n_frames-1):
-        dir_0 = pose_orientation_general(euler_frames[i], body_plane, skeleton)
-        dir_1 = pose_orientation_general(euler_frames[i+1], body_plane, skeleton)
-        r_v[i+1] = find_rotation_angle_between_two_vector(dir_0, dir_1)
-    return r_v
+    print("Deprecation Warning: Function marked as Deprecated!")
+    pass
+    # n_frames = len(euler_frames)
+    # r_v = np.zeros(n_frames)
+    # for i in range(n_frames-1):
+    #     dir_0 = pose_orientation_general(euler_frames[i], body_plane, skeleton)
+    #     dir_1 = pose_orientation_general(euler_frames[i+1], body_plane, skeleton)
+    #     r_v[i+1] = find_rotation_angle_between_two_vector(dir_0, dir_1)
+    # return r_v
 
 
 def get_xz_translational_velocity(cartesian_frames):
@@ -2329,12 +2375,14 @@ def get_xz_translational_velocity(cartesian_frames):
     :param cartesian_frames (ndarray): n_frames * n_joints * n_dims
     :return:
     '''
-    n_frames = len(cartesian_frames)
-    v = np.zeros((n_frames, 2))
-    for i in range(n_frames-1):
-        v[i+1, 0] = cartesian_frames[i+1, 0, 0] - cartesian_frames[i, 0, 0]
-        v[i+1, 1] = cartesian_frames[i+1, 0, 2] - cartesian_frames[i, 0, 2]
-    return v
+    print("Deprecation Warning: Function marked as Deprecated!")
+    pass
+    # n_frames = len(cartesian_frames)
+    # v = np.zeros((n_frames, 2))
+    # for i in range(n_frames-1):
+    #     v[i+1, 0] = cartesian_frames[i+1, 0, 0] - cartesian_frames[i, 0, 0]
+    #     v[i+1, 1] = cartesian_frames[i+1, 0, 2] - cartesian_frames[i, 0, 2]
+    # return v
 
 
 def rotate_cartesian_frames_to_ref_dir(cartesian_frames, ref_dir, body_plane_indices, up_axis):
@@ -2346,25 +2394,29 @@ def rotate_cartesian_frames_to_ref_dir(cartesian_frames, ref_dir, body_plane_ind
     :param up_axis: 3d array
     :return:
     '''
-    n_frames, n_joints, n_dims = cartesian_frames.shape
-    forward_dir = cartesian_pose_orientation(cartesian_frames[0], body_plane_indices, up_axis)
-    axis_indice = np.where(up_axis==0)
-    angle = np.deg2rad(get_rotation_angle(forward_dir[axis_indice], ref_dir[axis_indice]))
-    rotmat = euler_matrix(0, -angle, 0, 'rxyz')
-    ones = np.ones((n_frames, n_joints, 1))
-    extended_cartesian_frames = np.concatenate((cartesian_frames, ones), axis=-1)
-    extended_cartesian_frames = np.transpose(extended_cartesian_frames, (0, 2, 1))
-    rotated_cartesian_frames = np.matmul(rotmat, extended_cartesian_frames)
-    return np.transpose(rotated_cartesian_frames, (0, 2, 1))[:, :, :-1]
+    print("Deprecation Warning: Function marked as Deprecated!")
+    pass
+    # n_frames, n_joints, n_dims = cartesian_frames.shape
+    # forward_dir = cartesian_pose_orientation(cartesian_frames[0], body_plane_indices, up_axis)
+    # axis_indice = np.where(up_axis==0)
+    # angle = np.deg2rad(get_rotation_angle(forward_dir[axis_indice], ref_dir[axis_indice]))
+    # rotmat = euler_matrix(0, -angle, 0, 'rxyz')
+    # ones = np.ones((n_frames, n_joints, 1))
+    # extended_cartesian_frames = np.concatenate((cartesian_frames, ones), axis=-1)
+    # extended_cartesian_frames = np.transpose(extended_cartesian_frames, (0, 2, 1))
+    # rotated_cartesian_frames = np.matmul(rotmat, extended_cartesian_frames)
+    # return np.transpose(rotated_cartesian_frames, (0, 2, 1))[:, :, :-1]
 
 
 def cartesian_pose_orientation(cartesian_pose, body_plane_index, up_axis):
-    assert len(cartesian_pose.shape) == 2
-    points = cartesian_pose[body_plane_index, :]
-    body_plane = BodyPlane(points)
-    normal_vec = body_plane.normal_vector
-    normal_vec[np.where(up_axis == 1)] = 0  ### only consider forward direction on the ground
-    return normal_vec/np.linalg.norm(normal_vec)
+    print("Deprecation Warning: Function marked as Deprecated!")
+    pass
+    # assert len(cartesian_pose.shape) == 2
+    # points = cartesian_pose[body_plane_index, :]
+    # body_plane = BodyPlane(points)
+    # normal_vec = body_plane.normal_vector
+    # normal_vec[np.where(up_axis == 1)] = 0  ### only consider forward direction on the ground
+    # return normal_vec/np.linalg.norm(normal_vec)
 
 
 def get_rotation_angles_for_vectors(dir_vecs, ref_dir, up_axis):
@@ -2389,19 +2441,21 @@ def rotation_cartesian_frames(cartesian_frames, angles):
     :param angles: n_frames * 1
     :return:
     '''
-    n_frames, n_joints, n_dims = cartesian_frames.shape
-    sin_theta = np.sin(angles)
-    cos_theta = np.cos(angles)
-    rotmat = np.array([cos_theta, np.zeros(n_frames), sin_theta, np.zeros(n_frames), np.zeros(n_frames),
-                       np.ones(n_frames), np.zeros(n_frames), np.zeros(n_frames), -sin_theta, np.zeros(n_frames),
-                       cos_theta, np.zeros(n_frames), np.zeros(n_frames), np.zeros(n_frames), np.zeros(n_frames),
-                       np.ones(n_frames)]).T
-    rotmat = np.reshape(rotmat, (n_frames, 4, 4))
-    ones = np.ones((n_frames, n_joints, 1))
-    extended_cartesian_frames = np.concatenate((cartesian_frames, ones), axis=-1)
-    swapped_cartesian_frames = np.transpose(extended_cartesian_frames, (0, 2, 1))
-    rotated_cartesian_frames = np.matmul(rotmat, swapped_cartesian_frames)
-    return np.transpose(rotated_cartesian_frames, (0, 2, 1))[:, :, :-1]
+    print("Deprecation Warning: Function marked as Deprecated!")
+    pass
+    # n_frames, n_joints, n_dims = cartesian_frames.shape
+    # sin_theta = np.sin(angles)
+    # cos_theta = np.cos(angles)
+    # rotmat = np.array([cos_theta, np.zeros(n_frames), sin_theta, np.zeros(n_frames), np.zeros(n_frames),
+    #                    np.ones(n_frames), np.zeros(n_frames), np.zeros(n_frames), -sin_theta, np.zeros(n_frames),
+    #                    cos_theta, np.zeros(n_frames), np.zeros(n_frames), np.zeros(n_frames), np.zeros(n_frames),
+    #                    np.ones(n_frames)]).T
+    # rotmat = np.reshape(rotmat, (n_frames, 4, 4))
+    # ones = np.ones((n_frames, n_joints, 1))
+    # extended_cartesian_frames = np.concatenate((cartesian_frames, ones), axis=-1)
+    # swapped_cartesian_frames = np.transpose(extended_cartesian_frames, (0, 2, 1))
+    # rotated_cartesian_frames = np.matmul(rotmat, swapped_cartesian_frames)
+    # return np.transpose(rotated_cartesian_frames, (0, 2, 1))[:, :, :-1]
 
 
 def smooth_quat_frames(quat_frames):
@@ -2433,11 +2487,13 @@ def print_dict_key(input_dict, level=0):
     :param level:
     :return:
     '''
-    for key, value in input_dict.items():
-        print('  ' * level + key)
-        if isinstance(value, dict):
+    print("Deprecation Warning: Function marked as Deprecated!")
+    pass
+    # for key, value in input_dict.items():
+    #     print('  ' * level + key)
+    #     if isinstance(value, dict):
 
-            print_dict_key(value, level+1)
+    #         print_dict_key(value, level+1)
 
 
 def max_smoothing(x, window_size):
@@ -2447,21 +2503,23 @@ def max_smoothing(x, window_size):
     :param window_size:
     :return:
     '''
-    if window_size % 2 == 0:
-        window_size += 1
-    half_window = window_size // 2
-    extented_x = np.zeros(2 * half_window + len(x))
-    extented_x[:half_window] = x[0]
-    extented_x[-half_window:] = x[-1]
-    extented_x[half_window: -half_window] = x
-    new_x = np.zeros(len(x))
-    for i in range(len(x)):
-        vs = np.average(extented_x[i: i+window_size])
-        if vs >= 0.5:
-            new_x[i] = 1
-        else:
-            new_x[i] = 0
-    return new_x
+    print("Deprecation Warning: Function marked as Deprecated!")
+    pass
+    # if window_size % 2 == 0:
+    #     window_size += 1
+    # half_window = window_size // 2
+    # extented_x = np.zeros(2 * half_window + len(x))
+    # extented_x[:half_window] = x[0]
+    # extented_x[-half_window:] = x[-1]
+    # extented_x[half_window: -half_window] = x
+    # new_x = np.zeros(len(x))
+    # for i in range(len(x)):
+    #     vs = np.average(extented_x[i: i+window_size])
+    #     if vs >= 0.5:
+    #         new_x[i] = 1
+    #     else:
+    #         new_x[i] = 0
+    # return new_x
 
 
 def combine_motion_clips(clips, motion_len, window_step):
