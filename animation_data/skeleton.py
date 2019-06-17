@@ -457,6 +457,6 @@ class Skeleton(object):
                     index += 1
                     bones.append(bone_desc)
             else:
-                bone_desc = {'name': node_name, 'parent': node.get_parent_name(), 'index': node.index}
+                bone_desc = {'name': node_name, 'parent': node.get_parent_name(self.animated_joints), 'index': node.index}
                 bones.append(bone_desc)
         return bones

@@ -1,3 +1,4 @@
+import numpy as np
 from ..utilities import load_json_file, write_to_json_file
 
 
@@ -48,7 +49,8 @@ class Panim(object):
         Arguments:
             motion_data {numpy.array3d} -- n_frames * n_joints * 3
         """
-        self.motion_data = motion_data
+        self.motion_data = np.asarray(motion_data).tolist()
+        print(type(self.motion_data))
 
     def convert_to_unity_format(self, scale=1.0):
         """ 

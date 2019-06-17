@@ -119,7 +119,7 @@ class SkeletonNodeBase(object):
                 joint_desc["children"].append(c.node_name)
                 c.to_unity_format(joints, animated_joint_list, joint_name_map=joint_name_map)
 
-    def get_parent_name(self, animated_joint_list):
+    def get_parent_name(self, animated_joint_list=None):
         '''
 
         :return: string, the name of parent node. If parent node is None, return None
