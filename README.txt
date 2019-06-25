@@ -17,3 +17,4 @@ E.g.
 from mosi_utils_anim.preprocessing.feature_extractor import FeatureExtractor
 ...
 
+test
