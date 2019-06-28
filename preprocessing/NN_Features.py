@@ -7,7 +7,7 @@ import sys
 import scipy.interpolate as interpolate
 import scipy.ndimage.filters as filters
 
-from ..animation_data.utils import convert_euler_frames_to_cartesian_frames, quaternion_from_matrix, quaternion_inverse, quaternion_multiply, quaternion_matrix, quaternion_multiply
+from ..animation_data.utils import convert_euler_frames_to_cartesian_frames, quaternion_from_matrix, quaternion_inverse, quaternion_multiply, quaternion_matrix
 #from ..animation_data.utils import convert_euler_frames_to_cartesian_frames, \
 #    convert_quat_frames_to_cartesian_frames, rotate_cartesian_frames_to_ref_dir, get_rotation_angles_for_vectors, \
 #    rotation_cartesian_frames, cartesian_pose_orientation, pose_orientation_euler, rotate_around_y_axis
@@ -22,7 +22,8 @@ import json
 def get_rotation_to_ref_direction(dir_vecs, ref_dir):
     rotations = []
     for dir_vec in dir_vecs:
-        rotations.append(Quaternion.between(dir_vec, ref_dir))
+        q = Quaternion.between(dir_vec, ref_dir)
+        rotations.append(q)
     return rotations
 
 """ Sampling Patch Heightmap """    
@@ -190,7 +191,7 @@ def PREPROCESS_FOLDER(bvh_folder_path, output_file_name, base_handler, process_d
 
 
 class FeatureExtractor():
-    def __init__(self, bvh_file_path, type = "flat", to_meters = 1, forward_dir = np.array([0,0,1]), shoulder_joints = [10, 20], hip_joints = [2, 27], fid_l = [4, 5], fid_r = [29, 30]):#, phase_label_file, footstep_label_file):
+    def __init__(self, bvh_file_path, type = "flat", to_meters = 1, forward_dir = np.array([0.0,0.0,1.0]), shoulder_joints = [10, 20], hip_joints = [2, 27], fid_l = [4, 5], fid_r = [29, 30]):#, phase_label_file, footstep_label_file):
         """
 
         This class provides functionality to preprocess raw bvh data into a deep-learning favored format. 
@@ -310,7 +311,7 @@ class FeatureExtractor():
         self.hip_joints = [2, 7]
         self.foot_left = [4,5]
         self.foot_right = [9, 10]
-        self.to_meters = 5.6444
+        self.to_meters = 1#5.6444
         self.head = 16 # check this!
 
     def set_makehuman_parameters(self):
@@ -457,7 +458,7 @@ class FeatureExtractor():
         ], axis=-1)
         # Todo: adjust dynamically to file information
 
-        global_positions = self.__global_positions
+        global_positions = np.array(self.__global_positions)
 
         if adjust_crouch:
             crouch_low, crouch_high = 80, 130
@@ -493,7 +494,7 @@ class FeatureExtractor():
         """   
         sdr_l, sdr_r = self.shoulder_joints[0], self.shoulder_joints[1]
         hip_l, hip_r = self.hip_joints[0], self.hip_joints[1]
-        global_positions = self.__global_positions
+        global_positions = np.array(self.__global_positions)
 
         if len(self.__forwards) == 0:
             across = (
@@ -528,7 +529,7 @@ class FeatureExtractor():
             
         """   
         if len(self.__local_positions) == 0:
-            local_positions = self.__global_positions.copy()
+            local_positions = np.array(self.__global_positions)
             local_velocities = np.zeros(local_positions.shape)
 
             local_positions[:,:,0] = local_positions[:,:,0] - local_positions[:,0:1,0]
@@ -570,11 +571,13 @@ class FeatureExtractor():
             
             : return np.array(n_frames, 1, 3)
         """   
-        global_positions = self.__global_positions
+        global_positions = np.array(self.__global_positions)
         root_rotations = self.get_root_rotations()
         root_velocity = (global_positions[1:, 0:1] - global_positions[:-1, 0:1]).copy()
 
         for i in range(self.n_frames - 1):
+            root_velocity[i,0][1] = 0
+            root_velocity[i,0] /= np.linalg.norm(root_velocity[i,0])
             root_velocity[i, 0] = root_rotations[i+1] * root_velocity[i, 0]
         return root_velocity
 
@@ -586,10 +589,12 @@ class FeatureExtractor():
         """   
         root_rvelocity = np.zeros(self.n_frames - 1)
         root_rotations = self.get_root_rotations()
-
+        
         for i in range(self.n_frames - 1):
             q = root_rotations[i+1] * (-root_rotations[i])
-            root_rvelocity[i] = Quaternion.get_angle_from_quaternion(q, self.__ref_dir)
+            td = q * self.__ref_dir
+            rvel = np.arctan2(td[0], td[2])
+            root_rvelocity[i] = rvel #Quaternion.get_angle_from_quaternion(q, self.__ref_dir)
 
         return root_rvelocity
 
@@ -605,7 +610,7 @@ class FeatureExtractor():
         fid_l, fid_r = self.foot_left, self.foot_right
         velfactor = velfactor / self.to_meters
 
-        global_positions = self.__global_positions
+        global_positions = np.array(self.__global_positions)
 
         feet_l_x = (global_positions[1:,fid_l,0] - global_positions[:-1,fid_l,0])**2
         feet_l_y = (global_positions[1:,fid_l,1] - global_positions[:-1,fid_l,1])**2
@@ -627,8 +632,7 @@ class FeatureExtractor():
 
         :return rootposs, rootdirs (np.array(12, 3))
         """
-        window = self.window
-        global_positions = self.__global_positions
+        global_positions = np.array(self.__global_positions)
         forward = self.get_forward_directions()
         root_rotations = self.get_root_rotations()
         
@@ -728,7 +732,7 @@ class FeatureExtractor():
         """   
         
         tmp_handler = self.copy()
-        tmp_handler.__global_positions = self.__global_positions[slice]
+        tmp_handler.__global_positions = np.array(self.__global_positions[slice])
         tmp_handler.n_frames = len(tmp_handler.__global_positions)
 
 
