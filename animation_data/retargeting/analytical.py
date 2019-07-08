@@ -329,21 +329,18 @@ def align_joint(new_skeleton, free_joint_name, local_target_axes, global_src_up_
     return q
 
 
-def find_rotation_analytically(new_skeleton, free_joint_name, target, frame, joint_cos_map, apply_spine_fix=False, max_iter_count=10):
-    global_src_up_vec = target["global_src_up_vec"]
-    global_src_x_vec = target["global_src_x_vec"]
-
+def find_rotation_analytically(new_skeleton, free_joint_name, global_src_up_vec, global_src_x_vec, frame, joint_cos_map, apply_spine_fix=False, apply_root_fix=False, max_iter_count=10):
     local_target_axes = joint_cos_map[free_joint_name]
     #FIXME captury to custom for hybrit needs the align_root method
-    #if free_joint_name == new_skeleton.root:
-    #    q = align_root_joint(local_target_axes,  global_src_x_vec, max_iter_count)
-    #else:
-    q = align_joint(new_skeleton, free_joint_name, local_target_axes, global_src_up_vec, global_src_x_vec, joint_cos_map, apply_spine_fix=apply_spine_fix)
+    if free_joint_name == new_skeleton.root and apply_root_fix:
+        q = align_root_joint(local_target_axes,  global_src_x_vec, max_iter_count)
+    else:
+        q = align_joint(new_skeleton, free_joint_name, local_target_axes, global_src_up_vec, global_src_x_vec, joint_cos_map, apply_spine_fix=apply_spine_fix)
     return to_local_cos(new_skeleton, free_joint_name, frame, q)
 
 
 class Retargeting(object):
-    def __init__(self, src_skeleton, target_skeleton, target_to_src_joint_map, scale_factor=1.0, additional_rotation_map=None, constant_offset=None, place_on_ground=False, ground_height=0):
+    def __init__(self, src_skeleton, target_skeleton, target_to_src_joint_map, scale_factor=1.0, additional_rotation_map=None, constant_offset=None, place_on_ground=False, force_root_translation=False, ground_height=0):
         self.src_skeleton = src_skeleton
         self.target_skeleton = target_skeleton
         self.target_to_src_joint_map = target_to_src_joint_map
@@ -376,6 +373,8 @@ class Retargeting(object):
         self.constant_offset = constant_offset
         self.place_on_ground = place_on_ground
         self.apply_spine_fix = self.src_skeleton.animated_joints != self.target_skeleton.animated_joints
+        self.apply_root_fix = self.target_skeleton.skeleton_model["joints"]["root"] is not None # aligns root up axis with src skeleton up axis
+        self.force_root_translation = force_root_translation
 
     def create_correction_map(self):
         self.correction_map = dict()
@@ -422,10 +421,7 @@ class Retargeting(object):
             global_m = self.src_skeleton.nodes[src_name].get_global_matrix(src_frame)[:3, :3]
             global_src_up_vec = normalize(np.dot(global_m, src_up_axis))
             global_src_x_vec = normalize(np.dot(global_m, src_x_axis))
-
-            target = {"global_src_up_vec": global_src_up_vec,
-                      "global_src_x_vec": global_src_x_vec}
-            q = find_rotation_analytically(self.target_skeleton, target_name, target, target_frame, self.target_cos_map, self.apply_spine_fix)
+            q = find_rotation_analytically(self.target_skeleton, target_name, global_src_up_vec, global_src_x_vec, target_frame, self.target_cos_map, self.apply_spine_fix, self.apply_root_fix)
         #else:
         #    print("dont map2", src_name, target_name, self.src_child_map[src_name], self.src_child_map[src_name] in self.src_to_target_joint_map)
         return q
@@ -475,8 +471,9 @@ class Retargeting(object):
             target_offset += 4
 
         # apply offset on the root taking the orientation into account
-        aligning_root = self.target_skeleton.skeleton_model["joints"]["pelvis"]
-        target_frame = align_root_translation(self.target_skeleton, target_frame, src_frame, aligning_root, self.scale_factor)
+        if self.force_root_translation:
+            aligning_root = self.target_skeleton.skeleton_model["joints"]["pelvis"]
+            target_frame = align_root_translation(self.target_skeleton, target_frame, src_frame, aligning_root, self.scale_factor)
         return target_frame
 
     def run(self, src_frames, frame_range):
@@ -516,8 +513,8 @@ def generate_joint_map(src_model, target_model, joint_filter=None):
     return joint_map
 
 
-def retarget_from_src_to_target(src_skeleton, target_skeleton, src_frames, joint_map=None, additional_rotation_map=None, scale_factor=1.0, frame_range=None, place_on_ground=False, joint_filter=None):
+def retarget_from_src_to_target(src_skeleton, target_skeleton, src_frames, joint_map=None, additional_rotation_map=None, scale_factor=1.0, frame_range=None, place_on_ground=False, joint_filter=None, force_root_translation=False):
     if joint_map is None:
         joint_map = generate_joint_map(src_skeleton.skeleton_model, target_skeleton.skeleton_model, joint_filter)
-    retargeting = Retargeting(src_skeleton, target_skeleton, joint_map, scale_factor, additional_rotation_map=additional_rotation_map, place_on_ground=place_on_ground)
+    retargeting = Retargeting(src_skeleton, target_skeleton, joint_map, scale_factor, additional_rotation_map=additional_rotation_map, place_on_ground=place_on_ground, force_root_translation=force_root_translation)
     return retargeting.run(src_frames, frame_range)
