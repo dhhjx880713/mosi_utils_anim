@@ -280,12 +280,15 @@ class Skeleton(object):
                 channels[node.node_name] = node_channels
         return channels
 
-    def to_unity_format(self, joint_name_map=None, scale=1):
+
+    def to_unity_format(self, joint_name_map=None, animated_joints=None, scale=1):
         """ Converts the skeleton into a custom json format and applies a coordinate transform to the left-handed coordinate system of Unity.
             src: http://answers.unity3d.com/questions/503407/need-to-convert-to-right-handed-coordinates.html
         """
+        if animated_joints is None:
+            animated_joints = [j for j, n in self.nodes.items() if "EndSite" not in j and len(n.children) > 0]  # self.animated_joints
 
-        animated_joints = [j for j, n in list(self.nodes.items()) if "EndSite" not in j and len(n.children) > 0]#self.animated_joints
+        #print("animated joints", len(animated_joints))
         joint_descs = []
         self.nodes[self.root].to_unity_format(joint_descs, animated_joints, joint_name_map=joint_name_map)
 
@@ -295,17 +298,35 @@ class Skeleton(object):
         data["jointSequence"] = animated_joints
         default_pose = dict()
         default_pose["rotations"] = []
-        for node in list(self.nodes.values()):
-              if node.node_name in animated_joints:
-                  q = node.rotation
-                  if len(q) ==4:
-                      r = {"x":-q[1], "y":q[2], "z":q[3], "w":-q[0]}
-                  else:
-                      r = {"x":0, "y":0, "z":0, "w":1}
-                  default_pose["rotations"].append(r)
+        default_pose["translations"] = []
+        for node_name in animated_joints:
+            node = self.nodes[node_name]
+            q = node.rotation
+            if len(q) == 4:
+                r = {"x": -float(q[1]), "y": float(q[2]), "z": float(q[3]), "w": -float(q[0])}
+            else:
+                r = {"x": 0.0, "y": 0.0, "z": 0.0, "w": 1.0}
+            default_pose["rotations"].append(r)
+            o = node.offset
+            t = {"x": -float(scale * o[0]), "y": float(scale * o[1]), "z": float(scale * o[2])}
+            default_pose["translations"].append(t)
 
-        default_pose["translations"] = [{"x":-scale*node.offset[0], "y":scale*node.offset[1], "z":scale*node.offset[2]} for node in list(self.nodes.values()) if node.node_name in animated_joints and len(node.children) > 0]
-
+        default_pose["endSiteOffsets"] = []
+        for node_name in animated_joints:
+            has_end_site = False
+            for c in self.nodes[node_name].children:
+                has_end_site = True
+                if c.node_name in animated_joints:
+                    has_end_site = False # child nodes are animated
+                    break
+            if has_end_site:
+                c_node = self.nodes[node_name].children[0]
+                o = c_node.offset
+            else:
+                o = np.array([0,0,0])
+            t = {"x": -float(scale * o[0]), "y": float(scale * o[1]), "z": float(scale * o[2])}
+            default_pose["endSiteOffsets"].append(t)
+                    
         data["referencePose"] = default_pose
         return data
 
