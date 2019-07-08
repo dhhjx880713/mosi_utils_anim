@@ -119,7 +119,9 @@ class SkeletonNodeBase(object):
                 joint_desc["children"].append(c.node_name)
                 c.to_unity_format(joints, animated_joint_list, joint_name_map=joint_name_map)
 
-    def get_parent_name(self, animated_joint_list=None):
+    def get_fk_chain_list(self):
+        pass
+    def get_parent_name(self, animated_joint_list):
         '''
 
         :return: string, the name of parent node. If parent node is None, return None
@@ -197,6 +199,8 @@ class SkeletonRootNode(SkeletonNodeBase):
         else:
             return 6
 
+    def get_fk_chain_list(self):
+        return [self.node_name]
 
 class SkeletonJointNode(SkeletonNodeBase):
     def __init__(self, node_name, channels, parent=None, level=0, channel_indices=None):
@@ -264,6 +268,11 @@ class SkeletonJointNode(SkeletonNodeBase):
         else:
             return 3
 
+    def get_fk_chain_list(self):
+        fk_chain = [self.node_name]
+        if self.parent is not None:
+            fk_chain += self.parent.get_fk_chain_list()
+        return fk_chain
 
 class SkeletonEndSiteNode(SkeletonNodeBase):
     def __init__(self, node_name, channels, parent=None, level=0):
@@ -285,3 +294,9 @@ class SkeletonEndSiteNode(SkeletonNodeBase):
 
     def get_number_of_frame_parameters(self, rotation_type):
         return 0
+
+    def get_fk_chain_list(self):
+        fk_chain = []
+        if self.parent is not None:
+            fk_chain += self.parent.get_fk_chain_list()
+        return fk_chain
