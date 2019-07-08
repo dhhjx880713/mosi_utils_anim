@@ -98,7 +98,7 @@ class Skeleton(object):
 
     def get_number_of_frame_parameters(self, rotation_type):
         n_parameters = 0
-        for node_name in list(self.nodes.keys()):
+        for node_name in self.nodes.keys():
             local_parameters = self.nodes[node_name].get_number_of_frame_parameters(rotation_type)
             n_parameters += local_parameters
         return n_parameters
@@ -118,7 +118,7 @@ class Skeleton(object):
         """
         new_frame = np.zeros(self.reference_frame_length)
         joint_index = 0
-        for joint_name in list(self.nodes.keys()):
+        for joint_name in self.nodes.keys():
             if len(self.nodes[joint_name].children) > 0 and "EndSite" not in joint_name:
                 if joint_name == self.root:
                     new_frame[:7] = reduced_frame[:7]
@@ -244,7 +244,7 @@ class Skeleton(object):
         return cartesian_frame
 
     def clear_cached_global_matrices(self):
-        for joint in list(self.nodes.values()):
+        for joint in self.nodes.values():
             joint.clear_cached_global_matrix()
 
     def get_root_reference_orientation(self):
@@ -310,7 +310,7 @@ class Skeleton(object):
         return data
 
     def get_reduced_reference_frame(self):
-        frame = [0, 0, 0]
+        frame = list(self.reference_frame[:3])
         for joint_name in self.animated_joints:
             frame += list(self.nodes[joint_name].rotation)
         return frame
