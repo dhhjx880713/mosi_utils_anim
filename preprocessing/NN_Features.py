@@ -327,7 +327,7 @@ class FeatureExtractor():
 
         
 
-    def load_motion(self, scale = 10, frame_rate_divisor = 2):
+    def load_motion(self, scale = 10, frame_rate_divisor = 2, frame_rate_offset = 0):
         """
         loads the bvh-file, sets the global_coordinates, n_joints and n_frames. Has to be called before any of the other functions are used. 
 
@@ -425,17 +425,17 @@ class FeatureExtractor():
             self.reference_skeleton[-1]["local_position"] = loc_pos.tolist()
 
             lr = self.reference_skeleton[-1]["local_rotation"]
-            print(b, "\n\tpos: ", self.reference_skeleton[-1]["local_position"], 
-                "\n\tloc rot: ", lr[1], lr[2], lr[3], lr[0],
-                "\n\tglob rot: ", self.reference_skeleton[-1]["rotation"])
+            # print(b, "\n\tpos: ", self.reference_skeleton[-1]["local_position"], 
+            #     "\n\tloc rot: ", lr[1], lr[2], lr[3], lr[0],
+            #     "\n\tglob rot: ", self.reference_skeleton[-1]["rotation"])
 
         cartesian_frames = convert_euler_frames_to_cartesian_frames(skeleton, bvhreader.frames)
         global_positions = cartesian_frames * scale
 
-        self.__global_positions = global_positions[::frame_rate_divisor]
+        self.__global_positions = global_positions[frame_rate_offset::frame_rate_divisor]
         self.n_frames, self.n_joints, _ = self.__global_positions.shape
 
-    def load_gait (self, gait_file, frame_rate_divisor = 2, adjust_crouch = False):
+    def load_gait (self, gait_file, frame_rate_divisor = 2, frame_rate_offset = 0, adjust_crouch = False):
         """
         Loads gait information from a holden-style gait-file. 
 
@@ -446,7 +446,7 @@ class FeatureExtractor():
             :return gait-vector (np.array(n_frames, 8))
         """   
         # bvh_file.replace('.bvh', '.gait')
-        gait = np.loadtxt(gait_file)[::frame_rate_divisor]
+        gait = np.loadtxt(gait_file)[frame_rate_offset::frame_rate_divisor]
         """ Merge Jog / Run and Crouch / Crawl """
         gait = np.concatenate([
             gait[:,0:1],
@@ -468,7 +468,7 @@ class FeatureExtractor():
         return gait
 
 
-    def load_phase(self, phase_file, frame_rate_divisor = 2):
+    def load_phase(self, phase_file, frame_rate_divisor = 2, frame_rate_offset=0):
         """
         Load phase data from a holden-style phase file. 
 
@@ -478,7 +478,7 @@ class FeatureExtractor():
             :return phase (np.array(n_frames, 1)), dphase (np.array(n_frames - 1, 1))
         """   
         # phase_file = data.replace('.bvh', '.phase')
-        phase = np.loadtxt(phase_file)[::frame_rate_divisor]
+        phase = np.loadtxt(phase_file)[frame_rate_offset::frame_rate_divisor]
         dphase = phase[1:] - phase[:-1]
         dphase[dphase < 0] = (1.0-phase[:-1]+phase[1:])[dphase < 0]
 
@@ -577,8 +577,8 @@ class FeatureExtractor():
 
         for i in range(self.n_frames - 1):
             root_velocity[i,0][1] = 0
-            root_velocity[i,0] /= np.linalg.norm(root_velocity[i,0])
-            root_velocity[i, 0] = root_rotations[i+1] * root_velocity[i, 0]
+            #root_velocity[i,0] /= np.linalg.norm(root_velocity[i,0])
+            root_velocity[i, 0] = root_rotations[i] * root_velocity[i, 0]
         return root_velocity
 
     def get_rotational_velocity(self):
@@ -640,8 +640,8 @@ class FeatureExtractor():
             start_from = frame - self.window
 
         # Todo: expose frame-step
-        rootposs = (global_positions[start_from:frame+self.window:10,0] - global_positions[frame:frame+1,0]) ### 12*3
-        rootdirs = forward[start_from:frame+self.window:10]
+        rootposs = np.array(global_positions[start_from:frame+self.window:10,0] - global_positions[frame:frame+1,0]) ### 12*3
+        rootdirs = np.array(forward[start_from:frame+self.window:10])
         for j in range(len(rootposs)):
             rootposs[j] = root_rotations[frame] * rootposs[j]
             rootdirs[j] = root_rotations[frame] * rootdirs[j]
