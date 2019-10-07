@@ -45,6 +45,12 @@ class BVHReader(object):
         if infilename != "":
             infile = open(infilename, "r")
             lines = infile.readlines()
+            lines2 = []
+            for l in lines:
+                if l.strip() != "":
+                    lines2.append(l)
+            lines = lines2
+
             self.process_lines(lines)
             infile.close()
         self.filename = os.path.split(infilename)[-1]

@@ -313,6 +313,15 @@ class FeatureExtractor():
         self.foot_right = [9, 10]
         self.to_meters = 1#5.6444
         self.head = 16 # check this!
+    
+    def set_neuron_parameters(self):
+        self.shoulder_joints = [36, 13]
+        self.hip_joints = [4, 1]
+        self.foot_left = [6, 6]
+        self.foot_right = [3, 3]
+        self.head = 12
+        self.n_joints = 59
+        self.to_meters = 100
 
     def set_makehuman_parameters(self):
         """
@@ -327,15 +336,15 @@ class FeatureExtractor():
 
         
 
-    def load_motion(self, scale = 10, frame_rate_divisor = 2, frame_rate_offset = 0):
+    def load_motion(self, frame_rate_divisor = 2, frame_rate_offset = 0):
         """
         loads the bvh-file, sets the global_coordinates, n_joints and n_frames. Has to be called before any of the other functions are used. 
 
             :param scale=10: spatial scale of skeleton. 
             :param frame_rate_divisor=2: frame-rate divisor (e.g. reducing framerat from 120 -> 60 fps)
         """   
-        print('Processing Clip %s' % self.bvh_file_path)
-        
+        print('Processing Clip %s' % self.bvh_file_path, frame_rate_divisor, frame_rate_offset)
+        scale = 1 / self.to_meters
         bvhreader = BVHReader(self.bvh_file_path)
         skeleton = SkeletonBuilder().load_from_bvh(bvhreader)
         zero_rotations = np.zeros(bvhreader.frames.shape[1])
@@ -401,7 +410,8 @@ class FeatureExtractor():
             if np.linalg.norm(target_dir) < 0.0001:
                 rotation = np.array([1.0, 0.0, 0.0, 0.0])
             else:
-                rotation = rotation_to_target(forward, target_dir)# - (parent_dir))
+                rotation = np.array([1.0, 0.0, 0.0, 0.0])
+                #rotation = rotation_to_target(forward, target_dir)# - (parent_dir))
             self.reference_skeleton[-1]["rotation"] = rotation.tolist()
 
             # local rotation:
@@ -448,14 +458,14 @@ class FeatureExtractor():
         # bvh_file.replace('.bvh', '.gait')
         gait = np.loadtxt(gait_file)[frame_rate_offset::frame_rate_divisor]
         """ Merge Jog / Run and Crouch / Crawl """
-        gait = np.concatenate([
-            gait[:,0:1],
-            gait[:,1:2],
-            gait[:,2:3] + gait[:,3:4],
-            gait[:,4:5] + gait[:,6:7],
-            gait[:,5:6],
-            gait[:,7:8]
-        ], axis=-1)
+        # gait = np.concatenate([
+        #     gait[:,0:1],
+        #     gait[:,1:2],
+        #     gait[:,2:3] + gait[:,3:4],
+        #     gait[:,4:5] + gait[:,6:7],
+        #     gait[:,5:6],
+        #     gait[:,7:8]
+        # ], axis=-1)
         # Todo: adjust dynamically to file information
 
         global_positions = np.array(self.__global_positions)
