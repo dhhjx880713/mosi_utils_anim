@@ -7,7 +7,7 @@ import sys
 import scipy.interpolate as interpolate
 import scipy.ndimage.filters as filters
 
-from ..animation_data.utils import convert_euler_frames_to_cartesian_frames
+from ..animation_data.utils import convert_euler_frames_to_cartesian_frames, quaternion_from_matrix, quaternion_inverse, quaternion_multiply, quaternion_matrix
 #from ..animation_data.utils import convert_euler_frames_to_cartesian_frames, \
 #    convert_quat_frames_to_cartesian_frames, rotate_cartesian_frames_to_ref_dir, get_rotation_angles_for_vectors, \
 #    rotation_cartesian_frames, cartesian_pose_orientation, pose_orientation_euler, rotate_around_y_axis
@@ -17,11 +17,13 @@ from ..utilities.motion_plane import Plane
 from ..animation_data import BVHReader, Skeleton, SkeletonBuilder
 from ..animation_data.quaternion import Quaternion
 from .Learning import RBF
+import json
 
 def get_rotation_to_ref_direction(dir_vecs, ref_dir):
     rotations = []
     for dir_vec in dir_vecs:
-        rotations.append(Quaternion.between(dir_vec, ref_dir))
+        q = Quaternion.between(dir_vec, ref_dir)
+        rotations.append(q)
     return rotations
 
 """ Sampling Patch Heightmap """    
@@ -148,6 +150,7 @@ def PREPROCESS_FOLDER(bvh_folder_path, output_file_name, base_handler, process_d
     bvhfiles = glob.glob(os.path.join(bvh_folder_path, '*.bvh'))
     data_folder = bvh_folder_path
     print(bvhfiles, os.path.join(bvh_folder_path, '*.bvh'))
+    config = {}
     for data in bvhfiles:
         filename = os.path.split(data)[-1]
         data = os.path.join(data_folder, filename)
@@ -156,13 +159,14 @@ def PREPROCESS_FOLDER(bvh_folder_path, output_file_name, base_handler, process_d
         handler.bvh_file_path = data
         handler.load_motion()
         
-        Pc, Xc, Yc = process_data_function(handler)
+        Pc, Xc, Yc, config = process_data_function(handler)
         Ptmp, Xtmp, Ytmp = handler.terrain_fitting(data.replace(".bvh", '_footsteps.txt'), patches_path, Pc, Xc, Yc, terrain_xslice, terrain_yslice)
 
         P.extend(Ptmp)
         X.extend(Xtmp)
         Y.extend(Ytmp)
 
+    
     """ Clip Statistics """
 
     print('Total Clips: %i' % len(X))
@@ -180,12 +184,14 @@ def PREPROCESS_FOLDER(bvh_folder_path, output_file_name, base_handler, process_d
 
     print(Xun.shape, Yun.shape, Pun.shape)
         
-    #np.savez_compressed(output_file_name, Xun=Xun, Yun=Yun, Pun=Pun)
-    return Xun, Yun, Pun
+    np.savez_compressed(output_file_name, Xun=Xun, Yun=Yun, Pun=Pun)
+    with open(output_file_name + ".json", "w") as f:
+        json.dump(config, f)
+    return Xun, Yun, Pun, config
 
 
 class FeatureExtractor():
-    def __init__(self, bvh_file_path, type = "flat", to_meters = 1, forward_dir = np.array([0,0,1]), shoulder_joints = [10, 20], hip_joints = [2, 27], fid_l = [4, 5], fid_r = [29, 30]):#, phase_label_file, footstep_label_file):
+    def __init__(self, bvh_file_path, type = "flat", to_meters = 1, forward_dir = np.array([0.0,0.0,1.0]), shoulder_joints = [10, 20], hip_joints = [2, 27], fid_l = [4, 5], fid_r = [29, 30]):#, phase_label_file, footstep_label_file):
         """
 
         This class provides functionality to preprocess raw bvh data into a deep-learning favored format. 
@@ -277,6 +283,8 @@ class FeatureExtractor():
         self.to_meters = to_meters
         self.type = type
 
+        self.reference_skeleton = []
+
     def reset_computations(self):
         """
         Resets computation buffers (__forwards, __root_rotations, __local_positions, __local_velocities). Usefull, if global_rotations are changed. 
@@ -303,8 +311,17 @@ class FeatureExtractor():
         self.hip_joints = [2, 7]
         self.foot_left = [4,5]
         self.foot_right = [9, 10]
-        self.to_meters = 5.6444
+        self.to_meters = 1#5.6444
         self.head = 16 # check this!
+    
+    def set_neuron_parameters(self):
+        self.shoulder_joints = [36, 13]
+        self.hip_joints = [4, 1]
+        self.foot_left = [6, 6]
+        self.foot_right = [3, 3]
+        self.head = 12
+        self.n_joints = 59
+        self.to_meters = 100
 
     def set_makehuman_parameters(self):
         """
@@ -319,24 +336,116 @@ class FeatureExtractor():
 
         
 
-    def load_motion(self, scale = 10, frame_rate_divisor = 2):
+    def load_motion(self, frame_rate_divisor = 2, frame_rate_offset = 0):
         """
         loads the bvh-file, sets the global_coordinates, n_joints and n_frames. Has to be called before any of the other functions are used. 
 
             :param scale=10: spatial scale of skeleton. 
             :param frame_rate_divisor=2: frame-rate divisor (e.g. reducing framerat from 120 -> 60 fps)
         """   
-        print('Processing Clip %s' % self.bvh_file_path)
-        
+        print('Processing Clip %s' % self.bvh_file_path, frame_rate_divisor, frame_rate_offset)
+        scale = 1 / self.to_meters
         bvhreader = BVHReader(self.bvh_file_path)
         skeleton = SkeletonBuilder().load_from_bvh(bvhreader)
+        zero_rotations = np.zeros(bvhreader.frames.shape[1])
+        zero_posture = convert_euler_frames_to_cartesian_frames(skeleton, np.array([zero_rotations]))[0]
+        zero_posture[:,0] *= -1
+        
+        def rotation_to_target(vecA, vecB):
+            vecA = vecA / np.linalg.norm(vecA)
+            vecB = vecB / np.linalg.norm(vecB)
+            dt = np.dot(vecA, vecB)
+            cross = np.linalg.norm(np.cross(vecA, vecB))
+            G = np.array([[dt, -cross, 0],[cross, dt, 0], [0,0,1]])
+
+            v = (vecB - dt * vecA)
+            v = v / np.linalg.norm(v)
+            w = np.cross(vecB, vecA)
+            #F = np.array([[vecA[0], vecA[1], vecA[2]], [v[0], v[1], v[2]], [w[0], w[1], w[2]]])
+            F = np.array([vecA, v, w])
+
+            #U = np.matmul(np.linalg.inv(F), np.matmul(G, F))
+            U = np.matmul(np.matmul(np.linalg.inv(F), G), F)
+            # U = np.zeros((4,4))
+            # U[3,3] = 1
+            # U[:3,:3] = b
+
+            test = np.matmul(U, vecA)
+            if np.linalg.norm(test - vecB) > 0.0001:
+                print("error: ", test, vecB)
+            
+            #b = np.matmul(np.linalg.inv(F), np.matmul(G, F))
+            b = np.matmul(np.matmul(np.linalg.inv(F), G), F)
+            U = np.zeros((4,4))
+            U[3,3] = 1
+            U[:3,:3] = b
+            q = quaternion_from_matrix(U)
+            #q[3] = -q[3]
+            return q
+
+        self.reference_skeleton = []
+        mapping = {}
+        for b in skeleton.animated_joints:
+            node_desc = skeleton._get_node_desc(b)
+            self.reference_skeleton.append({"name" : b})
+            mapping[b] = int(node_desc["index"])
+            self.reference_skeleton[-1]["parent"] = "" if node_desc["parent"] is None else node_desc["parent"]
+            children = []
+            for c in node_desc["children"]:
+                if "EndSite" in c["name"]:
+                    continue
+                else:
+                    children.append(c["name"])
+            self.reference_skeleton[-1]["children"] = children
+            self.reference_skeleton[-1]["index"] = node_desc["index"]
+            self.reference_skeleton[-1]["position"] = zero_posture[int(node_desc["index"])].tolist()
+            child_id = 0
+
+            forward = np.array([0.0, 1.0, 0.0])
+            
+            target_pos = np.array(zero_posture[int(node_desc["children"][child_id]["index"])])
+            my_pos = np.array(self.reference_skeleton[-1]["position"] )
+            target_dir = (target_pos - my_pos)
+            
+            if np.linalg.norm(target_dir) < 0.0001:
+                rotation = np.array([1.0, 0.0, 0.0, 0.0])
+            else:
+                rotation = np.array([1.0, 0.0, 0.0, 0.0])
+                #rotation = rotation_to_target(forward, target_dir)# - (parent_dir))
+            self.reference_skeleton[-1]["rotation"] = rotation.tolist()
+
+            # local rotation:
+            if node_desc["parent"] is not None:
+                parent_rot = np.array(self.reference_skeleton[mapping[node_desc["parent"]]]["rotation"])
+            else:
+                parent_rot = np.array([1.0,0.0,0.0,0.0])
+            #inv_parent = quaternion_inverse(parent_rot)
+            #loc_rot = quaternion_multiply(inv_parent, rotation)
+            inv_parent = np.linalg.inv(quaternion_matrix(parent_rot))
+            loc_rot = quaternion_from_matrix(np.matmul(quaternion_matrix(rotation), inv_parent))
+
+
+
+            self.reference_skeleton[-1]["local_rotation"] = (loc_rot).tolist()
+
+            # local position: 
+            loc_pos = np.array([0.0,0.0,0.0])
+            if node_desc["parent"] is not None:
+                loc_pos[1] = np.linalg.norm(my_pos - zero_posture[mapping[node_desc["parent"]]])
+            self.reference_skeleton[-1]["local_position"] = loc_pos.tolist()
+
+            lr = self.reference_skeleton[-1]["local_rotation"]
+            # print(b, "\n\tpos: ", self.reference_skeleton[-1]["local_position"], 
+            #     "\n\tloc rot: ", lr[1], lr[2], lr[3], lr[0],
+            #     "\n\tglob rot: ", self.reference_skeleton[-1]["rotation"])
+
         cartesian_frames = convert_euler_frames_to_cartesian_frames(skeleton, bvhreader.frames)
         global_positions = cartesian_frames * scale
 
-        self.__global_positions = global_positions[::frame_rate_divisor]
+        self.__global_positions = global_positions[frame_rate_offset::frame_rate_divisor]
         self.n_frames, self.n_joints, _ = self.__global_positions.shape
 
-    def load_gait (self, gait_file, frame_rate_divisor = 2, adjust_crouch = False):
+    def load_gait (self, gait_file, frame_rate_divisor = 2, frame_rate_offset = 0, adjust_crouch = False):
         """
         Loads gait information from a holden-style gait-file. 
 
@@ -347,19 +456,19 @@ class FeatureExtractor():
             :return gait-vector (np.array(n_frames, 8))
         """   
         # bvh_file.replace('.bvh', '.gait')
-        gait = np.loadtxt(gait_file)[::frame_rate_divisor]
+        gait = np.loadtxt(gait_file)[frame_rate_offset::frame_rate_divisor]
         """ Merge Jog / Run and Crouch / Crawl """
-        gait = np.concatenate([
-            gait[:,0:1],
-            gait[:,1:2],
-            gait[:,2:3] + gait[:,3:4],
-            gait[:,4:5] + gait[:,6:7],
-            gait[:,5:6],
-            gait[:,7:8]
-        ], axis=-1)
+        # gait = np.concatenate([
+        #     gait[:,0:1],
+        #     gait[:,1:2],
+        #     gait[:,2:3] + gait[:,3:4],
+        #     gait[:,4:5] + gait[:,6:7],
+        #     gait[:,5:6],
+        #     gait[:,7:8]
+        # ], axis=-1)
         # Todo: adjust dynamically to file information
 
-        global_positions = self.__global_positions
+        global_positions = np.array(self.__global_positions)
 
         if adjust_crouch:
             crouch_low, crouch_high = 80, 130
@@ -369,7 +478,7 @@ class FeatureExtractor():
         return gait
 
 
-    def load_phase(self, phase_file, frame_rate_divisor = 2):
+    def load_phase(self, phase_file, frame_rate_divisor = 2, frame_rate_offset=0):
         """
         Load phase data from a holden-style phase file. 
 
@@ -379,7 +488,7 @@ class FeatureExtractor():
             :return phase (np.array(n_frames, 1)), dphase (np.array(n_frames - 1, 1))
         """   
         # phase_file = data.replace('.bvh', '.phase')
-        phase = np.loadtxt(phase_file)[::frame_rate_divisor]
+        phase = np.loadtxt(phase_file)[frame_rate_offset::frame_rate_divisor]
         dphase = phase[1:] - phase[:-1]
         dphase[dphase < 0] = (1.0-phase[:-1]+phase[1:])[dphase < 0]
 
@@ -395,7 +504,7 @@ class FeatureExtractor():
         """   
         sdr_l, sdr_r = self.shoulder_joints[0], self.shoulder_joints[1]
         hip_l, hip_r = self.hip_joints[0], self.hip_joints[1]
-        global_positions = self.__global_positions
+        global_positions = np.array(self.__global_positions)
 
         if len(self.__forwards) == 0:
             across = (
@@ -430,7 +539,7 @@ class FeatureExtractor():
             
         """   
         if len(self.__local_positions) == 0:
-            local_positions = self.__global_positions.copy()
+            local_positions = np.array(self.__global_positions)
             local_velocities = np.zeros(local_positions.shape)
 
             local_positions[:,:,0] = local_positions[:,:,0] - local_positions[:,0:1,0]
@@ -472,12 +581,14 @@ class FeatureExtractor():
             
             : return np.array(n_frames, 1, 3)
         """   
-        global_positions = self.__global_positions
+        global_positions = np.array(self.__global_positions)
         root_rotations = self.get_root_rotations()
         root_velocity = (global_positions[1:, 0:1] - global_positions[:-1, 0:1]).copy()
 
         for i in range(self.n_frames - 1):
-            root_velocity[i, 0] = root_rotations[i+1] * root_velocity[i, 0]
+            root_velocity[i,0][1] = 0
+            #root_velocity[i,0] /= np.linalg.norm(root_velocity[i,0])
+            root_velocity[i, 0] = root_rotations[i] * root_velocity[i, 0]
         return root_velocity
 
     def get_rotational_velocity(self):
@@ -488,10 +599,31 @@ class FeatureExtractor():
         """   
         root_rvelocity = np.zeros(self.n_frames - 1)
         root_rotations = self.get_root_rotations()
-
+        
         for i in range(self.n_frames - 1):
             q = root_rotations[i+1] * (-root_rotations[i])
-            root_rvelocity[i] = Quaternion.get_angle_from_quaternion(q, self.__ref_dir)
+            td = q * self.__ref_dir
+            rvel = np.arctan2(td[0], td[2])
+            root_rvelocity[i] = rvel #Quaternion.get_angle_from_quaternion(q, self.__ref_dir)
+
+        return root_rvelocity
+    
+    def get_new_forward_dirs(self):
+        """
+        Returns the new forward direction relative to the last position. 
+        Alternative to rotational velocity, as this can be computed out of the new forward direction with np.arctan2(new_dir[0], new_dir[1])
+            
+            :return root_rvel (np.array(n_frames, 1, 2))
+        """   
+        root_rvelocity = np.zeros((self.n_frames - 1, 2))
+        root_rotations = self.get_root_rotations()
+        
+        for i in range(self.n_frames - 1):
+            q = root_rotations[i+1] * (-root_rotations[i])
+            td = q * self.__ref_dir
+            root_rvelocity[i] = np.array([td[0], td[2]])
+            #rvel = np.arctan2(td[0], td[2])
+            #root_rvelocity[i] = rvel #Quaternion.get_angle_from_quaternion(q, self.__ref_dir)
 
         return root_rvelocity
 
@@ -507,7 +639,7 @@ class FeatureExtractor():
         fid_l, fid_r = self.foot_left, self.foot_right
         velfactor = velfactor / self.to_meters
 
-        global_positions = self.__global_positions
+        global_positions = np.array(self.__global_positions)
 
         feet_l_x = (global_positions[1:,fid_l,0] - global_positions[:-1,fid_l,0])**2
         feet_l_y = (global_positions[1:,fid_l,1] - global_positions[:-1,fid_l,1])**2
@@ -529,8 +661,7 @@ class FeatureExtractor():
 
         :return rootposs, rootdirs (np.array(12, 3))
         """
-        window = self.window
-        global_positions = self.__global_positions
+        global_positions = np.array(self.__global_positions)
         forward = self.get_forward_directions()
         root_rotations = self.get_root_rotations()
         
@@ -538,8 +669,8 @@ class FeatureExtractor():
             start_from = frame - self.window
 
         # Todo: expose frame-step
-        rootposs = (global_positions[start_from:frame+self.window:10,0] - global_positions[frame:frame+1,0]) ### 12*3
-        rootdirs = forward[start_from:frame+self.window:10]
+        rootposs = np.array(global_positions[start_from:frame+self.window:10,0] - global_positions[frame:frame+1,0]) ### 12*3
+        rootdirs = np.array(forward[start_from:frame+self.window:10])
         for j in range(len(rootposs)):
             rootposs[j] = root_rotations[frame] * rootposs[j]
             rootdirs[j] = root_rotations[frame] * rootdirs[j]
@@ -630,7 +761,7 @@ class FeatureExtractor():
         """   
         
         tmp_handler = self.copy()
-        tmp_handler.__global_positions = self.__global_positions[slice]
+        tmp_handler.__global_positions = np.array(self.__global_positions[slice])
         tmp_handler.n_frames = len(tmp_handler.__global_positions)
 
 

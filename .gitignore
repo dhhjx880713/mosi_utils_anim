@@ -9,6 +9,7 @@
 *.data-00000-of-00001
 *.gz
 *.bin
+.vscode/*
 tornado_test*
 data*
 texdoc*
