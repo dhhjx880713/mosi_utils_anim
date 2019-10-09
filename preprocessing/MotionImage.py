@@ -1,6 +1,6 @@
 from mosi_utils_anim.animation_data import BVHReader, Skeleton, SkeletonBuilder
 from mosi_utils_anim.animation_data.utils import convert_euler_frames_to_cartesian_frames
-from scipy.misc import imresize
+from pilutil import imresize
 import numpy as np
 
 class MotionImage():
