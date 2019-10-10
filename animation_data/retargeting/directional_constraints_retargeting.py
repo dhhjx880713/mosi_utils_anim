@@ -987,6 +987,8 @@ def retarget_folder(src_folder, ref_file, save_folder, joint_mapping, joints_dof
     :return:
     '''
     print(src_folder)
+    if not os.path.exists(save_folder):
+        os.makedirs(save_folder)
     ref_bvhreader = BVHReader(ref_file)
     ref_skeleton = SkeletonBuilder().load_from_bvh(ref_bvhreader)
     bvhfiles = glob.glob(os.path.join(src_folder, '*.bvh'))
@@ -1030,7 +1032,7 @@ def retarget_folder(src_folder, ref_file, save_folder, joint_mapping, joints_dof
 
 
 def retarget_single_motion(input_file, ref_file, rest_pose, save_dir, root_joint, src_body_plane, target_body_plane,
-                           joint_mapping, joints_dofs=None, constrained_joints=None):
+                           joint_mapping, n_frames=None, skeleton_scale_factor=None, joints_dofs=None, constrained_joints=None):
     '''
 
     :param input_file: contains source motion
@@ -1042,13 +1044,13 @@ def retarget_single_motion(input_file, ref_file, rest_pose, save_dir, root_joint
     ref_skeleton = SkeletonBuilder().load_from_bvh(ref_bvhreader)
     bvhreader = BVHReader(input_file)
     skeleton = SkeletonBuilder().load_from_bvh(bvhreader)
-    skeleton_scale_factor = estimate_scale_factor(rest_pose, root_joint, ref_file, joint_mapping)
-    print('skeleton scale factor: ', skeleton_scale_factor)
-    # skeleton_scale_factor = 0.05
-
+    if skeleton_scale_factor is None:
+        skeleton_scale_factor = estimate_scale_factor(rest_pose, root_joint, ref_file, joint_mapping)
+        print('skeleton scale factor: ', skeleton_scale_factor)
     out_frames = []
     targets = []
-    n_frames = len(bvhreader.frames)
+    if n_frames is None:
+        n_frames = len(bvhreader.frames)
     for i in range(n_frames):
         if i > 0:
             targets.append(

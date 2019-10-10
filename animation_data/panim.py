@@ -50,7 +50,6 @@ class Panim(object):
             motion_data {numpy.array3d} -- n_frames * n_joints * 3
         """
         self.motion_data = np.asarray(motion_data).tolist()
-        print(type(self.motion_data))
 
     def convert_to_unity_format(self, scale=1.0):
         """ 
@@ -66,4 +65,50 @@ class Panim(object):
                 output_frame = {'WorldPos': world_pos}
         output_frames.append(output_frame)
         ## update motion_data
-        self.motion_data = output_frames                     
+        self.motion_data = output_frames     
+
+    def get_joint_index(self, joint_name):
+        for i in range(len(self.skeleton)):
+            if self.skeleton[i]['name'] == joint_name:
+                return self.skeleton[i]['index']
+        return None
+
+    def mirror(self, joint_mapping=None):
+        """[summary]
+        
+        Arguments:
+            joint_mapping {[type]} -- [description]
+        """
+        assert self.skeleton is not None
+        motion_data = np.asarray(self.motion_data)
+        mirrored_data = np.zeros(motion_data.shape)
+        if joint_mapping is None: 
+            for i in range(len(self.skeleton)):
+                if 'Left' in self.skeleton[i]['name']:
+                    mirrored_joint_name = self.skeleton[i]['name'].replace("Left", "Right")
+                    mirrored_joint_index = self.get_joint_index(mirrored_joint_name)
+
+                    mirrored_data[:, self.skeleton[i]['index'], :] = motion_data[:, mirrored_joint_index, :]
+                    mirrored_data[:, self.skeleton[i]['index'], 0] = - mirrored_data[:, self.skeleton[i]['index'], 0]
+                elif 'Right' in self.skeleton[i]['name']:
+                    mirrored_joint_name = self.skeleton[i]['name'].replace("Right", "Left")
+                    mirrored_joint_index = self.get_joint_index(mirrored_joint_name)
+                    mirrored_data[:, self.skeleton[i]['index'], :] = motion_data[:, mirrored_joint_index, :]
+                    mirrored_data[:, self.skeleton[i]['index'], 0] = - mirrored_data[:, self.skeleton[i]['index'], 0]
+                ### handle special 
+                elif self.skeleton[i]['name'] == "RThumb":
+                    mirrored_joint_name = "LThumb"
+                    mirrored_joint_index = self.get_joint_index(mirrored_joint_name)
+                    mirrored_data[:, self.skeleton[i]['index'], :] = motion_data[:, mirrored_joint_index, :]
+                    mirrored_data[:, self.skeleton[i]['index'], 0] = - mirrored_data[:, self.skeleton[i]['index'], 0]  
+                elif self.skeleton[i]['name'] == "LThumb":
+                    mirrored_joint_name = "RThumb"
+                    mirrored_joint_index = self.get_joint_index(mirrored_joint_name)
+                    mirrored_data[:, self.skeleton[i]['index'], :] = motion_data[:, mirrored_joint_index, :]
+                    mirrored_data[:, self.skeleton[i]['index'], 0] = - mirrored_data[:, self.skeleton[i]['index'], 0]                                        
+                else:
+                    mirrored_data[:, self.skeleton[i]['index'], :] = motion_data[:, self.skeleton[i]['index'], :]
+                    mirrored_data[:, self.skeleton[i]['index'], 0] = - mirrored_data[:, self.skeleton[i]['index'], 0]
+        else:
+            pass
+        return mirrored_data
