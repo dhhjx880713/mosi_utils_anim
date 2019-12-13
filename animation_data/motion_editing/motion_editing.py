@@ -8,7 +8,7 @@ from ..motion_blending import smooth_joints_around_transition_using_slerp, creat
 from ...external.transformations import quaternion_matrix, euler_from_matrix, quaternion_multiply
 from ...utilities.log import write_message_to_log, LOG_MODE_DEBUG
 from .utils import convert_exp_frame_to_quat_frame
-from ..joint_constraints import JointConstraint, HingeConstraint2, BallSocketConstraint, ConeConstraint, ShoulderConstraint, HeadConstraint
+from ..joint_constraints import JointConstraint, HingeConstraint2, BallSocketConstraint, ConeConstraint, ShoulderConstraint, HeadConstraint, SpineConstraint
 from ...external.transformations import quaternion_matrix, quaternion_from_matrix
 from ..skeleton import LOOK_AT_DIR, SPINE_LOOK_AT_DIR
 from ..motion_blending import smooth_quaternion_frames
@@ -33,6 +33,35 @@ def add_frames(skeleton, a, b):
         c[o:o + 4] = q_prod / np.linalg.norm(q_prod)
     return c
 
+def add_reduced_frames(skeleton, a, delta, joints):
+    """ returns c = a + delta where delta are the parameters of the joints list"""
+    c = np.array(a)
+    o = 0
+    for idx, j in enumerate(skeleton.animated_joints):
+        if j not in joints:
+            continue
+        if j == skeleton.root:
+            dest = 0
+            c[:3] = a[dest:dest+3] + delta[o:o+3]
+            q_dest = dest+3
+            q_o = o+3
+            q_a = a[q_dest:q_dest + 4]
+            q_delta = delta[q_o:q_o + 4]
+
+            q_prod = quaternion_multiply(q_a, q_delta)
+            c[q_dest:q_dest + 4] = q_prod / np.linalg.norm(q_prod)
+            o += 7
+        else:
+            dest = idx* 4 + 3
+
+            q_a = a[dest:dest + 4]
+            q_delta = delta[o:o + 4]
+
+            q_prod = quaternion_multiply(q_a, q_delta)
+            c[dest:dest + 4] = q_prod / np.linalg.norm(q_prod)
+            o += 4
+    return c
+
 def substract_frames(skeleton, a, b):
     """ returns c = a - b"""
     c = np.zeros(len(a))
@@ -41,13 +70,16 @@ def substract_frames(skeleton, a, b):
         o = idx*4 + 3
         q_a = a[o:o+4]
         q_b = b[o:o+4]
+        if np.dot(q_a, q_b) < 0:
+            q_a *= -1
         q_delta = get_quaternion_delta(q_a, q_b)
         q_delta = q_delta / np.linalg.norm(q_delta)
-        dot = np.sum(q_delta)
-        if dot < 0:
-            q_delta = -q_delta
+        #dot = np.sum(q_delta)
+        #if dot < 0:
+        #    q_delta = -q_delta
         c[o:o+4] = q_delta
     return c
+
 
 class KeyframeConstraint(object):
     def __init__(self, frame_idx, joint_name, position, orientation=None, look_at=False, offset=None, look_at_pos=None):
@@ -127,7 +159,12 @@ class MotionEditing(object):
                 skel_j = joint_map[j]
             else:
                 continue
+            if skel_j not in self.skeleton.nodes:
+                continue
             c = joint_constraints[j]
+            if "stiffness" in c:
+                self.skeleton.nodes[skel_j].stiffness = c["stiffness"]
+
             if c["type"] == "static":
                 h = JointConstraint()
                 h.is_static = True
@@ -163,19 +200,34 @@ class MotionEditing(object):
                 h = ShoulderConstraint(axis, k, k1, k2)
                 self.skeleton.nodes[skel_j].joint_constraint = h
             elif c["type"] == "head":
-                if len(self.skeleton.nodes[skel_j].children) > 0:
-                    child_node = self.skeleton.nodes[skel_j].children[0]
-                    if len(child_node.channels) > 0:
-                        skel_j = child_node.node_name
+                skel_j = self.skeleton.nodes[skel_j].parent.node_name
+                #if len(self.skeleton.nodes[skel_j].children) > 0:
+                #    child_node = self.skeleton.nodes[skel_j].children[0]
+                #    if len(child_node.channels) > 0:
+                #        skel_j = child_node.node_name
                 axis = np.array(c["axis"])
                 #axis = self.skeleton.skeleton_model["cos_map"][skel_j]["y"]
-                k1 = c["k1"]
-                k2 = c["k2"]
+                tk1 = c["tk1"]
+                tk2 = c["tk2"]
+                sk1 = c["sk1"]
+                sk2 = c["sk2"]
                 print("add head constraint to", skel_j)
                 ref_q = [1,0,0,0] #  TODO get reference and axis from skeleton
-                h = HeadConstraint(ref_q, axis, k1, k2)
+                h = HeadConstraint(ref_q, axis, tk1, tk2, sk1, sk2)
+                h.joint_name = skel_j
                 self.skeleton.nodes[skel_j].joint_constraint = h
-
+            elif c["type"] == "spine":
+                skel_j = self.skeleton.nodes[skel_j].parent.node_name
+                axis = np.array(c["axis"])
+                tk1 = c["tk1"]
+                tk2 = c["tk2"]
+                sk1 = c["sk1"]
+                sk2 = c["sk2"]
+                print("add spine constraint to", skel_j)
+                ref_q = [1,0,0,0] #  TODO get reference and axis from skeleton
+                h = SpineConstraint(ref_q, axis, tk1, tk2, sk1, sk2)
+                h.joint_name = skel_j
+                self.skeleton.nodes[skel_j].joint_constraint = h
 
     def modify_motion_vector(self, motion_vector):
         for idx, action_ik_constraints in enumerate(motion_vector.ik_constraints):
@@ -455,30 +507,83 @@ class MotionEditing(object):
         """
         d_times, delta_frames = self.generate_delta_frames(frames, constraints, influence_range)
         return self.add_delta_curve(frames, d_times, delta_frames, plot=plot)
+
+    def get_reduced_frame(self, frame, joint_list):
+        n_dims = len(joint_list)*4
+        if self.skeleton.root in joint_list:
+            n_dims += 3
+        rf = np.zeros(n_dims)
+        o = 0
+        for idx, j in enumerate(self.skeleton.animated_joints):
+            if j not in joint_list:
+                continue
+            if j == self.skeleton.root:
+                src = 0
+                rf[o:o+7] = frame[src:src+7]
+                o+=7
+            else:
+                src = idx * 4 + 3
+                rf[o:o+4] = frame[src:src+4]
+                o+=4
+        return rf
     
     def add_delta_curve(self, frames, d_times, delta_frames, plot=False):
-        print("dtimes", d_times)
-        print("d frames", delta_frames.tolist())
+        #print("dtimes", d_times)
+        #print("d frames", delta_frames.tolist())
         n_frames = len(frames)
         times = list(range(n_frames))
         d_curve = CubicMotionSpline.fit_frames(self.skeleton, d_times, delta_frames)
-        if plot:
-            t = np.linspace(0, n_frames - 1, num=100, endpoint=True)
-            d_curve.plot(t)
         new_frames = []
         for t in times:
             d_frame = d_curve.evaluate(t)
             f = add_frames(self.skeleton, frames[t], d_frame)
             new_frames.append(f)
+        if plot:
+            t = np.linspace(0, n_frames - 1, num=100, endpoint=True)
+            d_curve.plot(t)
+        return np.array(new_frames)
+    def add_reduced_delta_curve(self, frames, d_times, delta_frames, joint_list=None, plot=False):
+        #print("dtimes", d_times)
+        #print("d frames", delta_frames.tolist())
+        n_frames = len(frames)
+        times = list(range(n_frames))
+        if joint_list is not None:
+            reduced_delta_frames = []
+            for f in delta_frames:
+                rf = self.get_reduced_frame(f, joint_list)
+                reduced_delta_frames.append(rf)
+            reduced_delta_frames = np.array(reduced_delta_frames)
+        else:
+            reduced_delta_frames = delta_frames
+        d_curve = CubicMotionSpline.fit_frames(self.skeleton, d_times, reduced_delta_frames)
+        new_frames = []
+        if joint_list is None:
+            joint_list = self.skeleton.animated_joints
+        for t in times:
+            d_frame = d_curve.evaluate(t)
+            f = add_reduced_frames(self.skeleton, frames[t], d_frame, joint_list)
+            new_frames.append(f)
+        
+        if plot:
+            t = np.linspace(0, n_frames - 1, num=100, endpoint=True)
+            d_curve.plot(t)
         return np.array(new_frames)
 
-    def generate_delta_frames_using_ccd(self, frames, constraints, influence_range=40):
+    def generate_delta_frames_using_ccd(self, frames, constraints, n_max_iter=25, root_joint=None, influence_range=40):
         n_frames = frames.shape[0]
         zero_frame = self.generate_zero_frame()
         constrained_frames = list(constraints.keys())
         delta_frames = collections.OrderedDict()
         delta_frames[0] = zero_frame
         delta_frames[1] = zero_frame
+        joint_list = set()
+        chain_end_joints = dict()
+        for frame_idx, frame_constraints in constraints.items():
+            for joint_name in frame_constraints:
+                if joint_name not in chain_end_joints:
+                    chain_end_joints[joint_name] = root_joint
+                    for j in self.get_fk_chain(joint_name, root_joint):
+                        joint_list.add(j)
         for f in range(0, n_frames, influence_range):
             delta_frames[f] = zero_frame
             delta_frames[f+1] = zero_frame
@@ -493,23 +598,23 @@ class MotionEditing(object):
                     del delta_frames[i]
 
             frame_constraints = list(frame_constraints.values())
-            n_max_iter = 25
-            chain_end_joints = None
             frame_copy = np.array(frames[frame_idx])
             new_frame = self.skeleton.reach_target_positions(frame_copy, frame_constraints, chain_end_joints, n_max_iter=n_max_iter, verbose=False)
-        
             delta_frames[frame_idx] = substract_frames(self.skeleton, new_frame, frames[frame_idx])
         delta_frames = collections.OrderedDict(sorted(delta_frames.items(), key=lambda x: x[0]))
-        return list(delta_frames.keys()), np.array(list(delta_frames.values()))
+        return list(delta_frames.keys()), np.array(list(delta_frames.values())), list(joint_list)
 
-    def edit_motion_using_displacement_map_and_ccd(self, frames, constraints, influence_range=40, plot=False):
+    def edit_motion_using_displacement_map_and_ccd(self, frames, constraints, n_max_iter=100, root_joint=None, influence_range=40, plot=False):
         """ References
                 Witkin and Popovic: Motion Warping, 1995.
                 Bruderlin and Williams: Motion Signal Processing, 1995.
                 Lee and Shin: A Hierarchical Approach to Interactive Motion Editing for Human-like Figures, 1999.
         """
-        d_times, delta_frames = self.generate_delta_frames_using_ccd(frames, constraints, influence_range)
-        return self.add_delta_curve(frames, d_times, delta_frames, plot=plot)
+        d_times, delta_frames, joint_list = self.generate_delta_frames_using_ccd(frames, constraints, n_max_iter, root_joint, influence_range)
+        joint_name = self.skeleton.skeleton_model["joints"]["neck"]
+        if joint_name is not None:
+            joint_list.append(joint_name)
+        return self.add_reduced_delta_curve(frames, d_times, delta_frames, joint_list, plot=plot)
 
     def apply_orientation_constraints(self, frames, constraints):
         for frame_idx, frame_constraints in constraints.items():
@@ -523,19 +628,23 @@ class MotionEditing(object):
                     self._set_hand_orientation(frames, c.orientation, c.joint_name, c.frame_idx, start, end)
 
 
-    def edit_motion_to_look_at_target(self, frames, position, start_idx, end_idx, orient_spine=False, look_at_dir=LOOK_AT_DIR, spine_look_at_dir=SPINE_LOOK_AT_DIR):
+    def edit_motion_to_look_at_target(self, frames, look_at_target, spine_target, start_idx, end_idx, orient_spine=False, look_at_dir=LOOK_AT_DIR, spine_look_at_dir=SPINE_LOOK_AT_DIR):
+        if look_at_target is None:
+            return frames
         spine_joint_name = self.skeleton.skeleton_model["joints"]["spine_1"]
         head_joint_name = self.skeleton.skeleton_model["joints"]["head"]
         self.skeleton.clear_cached_global_matrices()
+        fk_nodes = None
         for frame_idx in range(start_idx, end_idx):
-            if orient_spine:
-                frames[frame_idx] = self.skeleton.look_at(frames[frame_idx], spine_joint_name, position, n_max_iter=1, local_dir=spine_look_at_dir)
-            frames[frame_idx] = self.skeleton.look_at(frames[frame_idx], head_joint_name, position, n_max_iter=1, local_dir=look_at_dir)
+            if orient_spine and spine_target is not None:
+                frames[frame_idx] = self.skeleton.look_at_projected(frames[frame_idx], spine_joint_name, spine_target, local_dir=spine_look_at_dir)
+            frames[frame_idx] = self.skeleton.look_at(frames[frame_idx], head_joint_name, look_at_target, n_max_iter=2, local_dir=look_at_dir, chain_end_joint=spine_joint_name)
             n_joints = len(self.skeleton.animated_joints)
             fk_nodes = self.skeleton.nodes[head_joint_name].get_fk_chain_list()
-        self.interpolate_around_frame(fk_nodes, frames, start_idx, self.window)
-        if end_idx < len(frames):
-            self.interpolate_around_frame(fk_nodes, frames, end_idx, self.window)
+        if fk_nodes is not None:
+            self.interpolate_around_frame(fk_nodes, frames, start_idx, self.window)
+            if end_idx < len(frames):
+                self.interpolate_around_frame(fk_nodes, frames, end_idx, self.window)
         return frames
 
     def get_static_joints(self, frame_constraints):
@@ -596,14 +705,14 @@ class MotionEditing(object):
             if c.inside_region_position and prev_static_joints == static_joints:
                 #print("copy parameters for", joint_name, len(joint_chain_buffer[joint_name]))
                 #copy guess from previous frame if it is part of a region
-                print("copy parameters", frame_idx)
+                #print("copy parameters", frame_idx)
                 self.copy_joint_parameters(joint_chain_buffer[joint_name], new_frames, frame_idx - 1, frame_idx)
                 copied_joints = True
             if not copied_joints or not keep_static_joints:
-                if c.orientation is not None:
-                    print("use ccd on", joint_name, "at", frame_idx, " with orientation")
-                else:
-                    print("use ccd on", joint_name, "at", frame_idx)
+                #if c.orientation is not None:
+                #    print("use ccd on", joint_name, "at", frame_idx, " with orientation")
+                #else:
+                #    print("use ccd on", joint_name, "at", frame_idx)
                 active_constraints.append(c)
                 fk_nodes.update(joint_chain_buffer[joint_name])
                 if c.inside_region_position and prev_static_joints != static_joints:
