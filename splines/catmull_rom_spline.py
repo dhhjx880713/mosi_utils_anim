@@ -8,7 +8,37 @@ Created on Wed Feb 25 14:54:37 2015
 import numpy as np
 import scipy.interpolate as si
 import math
-from .utils import closestLowerValueBinarySearch
+
+
+#COPIED from http://stackoverflow.com/questions/4257838/how-to-find-closest-value-in-sorted-array
+def closestLowerValueBinarySearch(A,left,right,value,getter= lambda A,i : A[i]):   
+    '''
+    - left smallest index of the searched range
+    - right largest index of the searched range
+    - A array to be searched
+    - parameter is an optional lambda function for accessing the array
+    - returns a tuple (index of lower bound in the array, flag: 0 = exact value was found, 1 = lower bound was returned, 2 = value is lower than the minimum in the array and the minimum index was returned, 3= value exceeds the array and the maximum index was returned)
+    '''
+    delta = int(right -left)
+    if (delta> 1) :#or (left ==0 and (delta> 0) ):# or (right == len(A)-1 and ()):#test if there are more than two elements to explore
+        iMid = int(left+((right-left)/2))
+        testValue = getter(A,iMid)
+        if testValue>value:
+            return closestLowerValueBinarySearch(A, left, iMid, value,getter)
+        elif testValue<value:
+            return closestLowerValueBinarySearch(A, iMid, right, value,getter)
+        else:
+            return (iMid,0)
+    else:#always return the lowest closest value if no value was found, see flags for the cases
+        leftValue = getter(A,left)
+        rightValue = getter(A,right)
+        if value >= leftValue:
+            if value <= rightValue:
+                return (left,1)
+            else:
+                return (right,2)
+        else:
+            return(left,3)
 
 
 class CatmullRomSpline():
