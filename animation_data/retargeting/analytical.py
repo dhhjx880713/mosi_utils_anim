@@ -191,7 +191,7 @@ def get_child_joint(skeleton, inv_joint_map, node_name):
             if child_joint_name in skeleton.skeleton_model["joints"]:
                 joint_key = skeleton.skeleton_model["joints"][child_joint_name]
 
-            if joint_key is not None: # return child joint
+            if joint_key is not None and joint_key in skeleton.nodes: # return child joint
                 child_node = skeleton.nodes[joint_key]
                 return child_node
             else: #keep traversing until end of child map is reached
@@ -333,7 +333,7 @@ def find_rotation_analytically(new_skeleton, free_joint_name, global_src_up_vec,
     local_target_axes = joint_cos_map[free_joint_name]
     #FIXME captury to custom for hybrit needs the align_root method
     if free_joint_name == new_skeleton.root and apply_root_fix:
-        q = align_root_joint(local_target_axes,  global_src_x_vec, max_iter_count)
+        q = align_root_joint(local_target_axes, global_src_x_vec, max_iter_count)
     else:
         q = align_joint(new_skeleton, free_joint_name, local_target_axes, global_src_up_vec, global_src_x_vec, joint_cos_map, apply_spine_fix=apply_spine_fix)
     return to_local_cos(new_skeleton, free_joint_name, frame, q)
@@ -362,18 +362,22 @@ class Retargeting(object):
 
         if "cos_map" in target_skeleton.skeleton_model:
             self.target_cos_map.update(target_skeleton.skeleton_model["cos_map"])
-        if "x_cos_fixes" in target_skeleton.skeleton_model:
-            apply_manual_fixes(self.target_cos_map, target_skeleton.skeleton_model["x_cos_fixes"])
+        #if "x_cos_fixes" in target_skeleton.skeleton_model:
+        #    apply_manual_fixes(self.target_cos_map, target_skeleton.skeleton_model["x_cos_fixes"])
         if "cos_map" in src_skeleton.skeleton_model:
             self.src_cos_map.update(src_skeleton.skeleton_model["cos_map"])
-        if "x_cos_fixes" in src_skeleton.skeleton_model:
-            apply_manual_fixes(self.src_cos_map, src_skeleton.skeleton_model["x_cos_fixes"])
+        #if "x_cos_fixes" in src_skeleton.skeleton_model:
+        #    apply_manual_fixes(self.src_cos_map, src_skeleton.skeleton_model["x_cos_fixes"])
         self.correction_map = dict()
         self.create_correction_map()
         self.constant_offset = constant_offset
         self.place_on_ground = place_on_ground
         self.apply_spine_fix = self.src_skeleton.animated_joints != self.target_skeleton.animated_joints
         self.apply_root_fix = self.target_skeleton.skeleton_model["joints"]["root"] is not None # aligns root up axis with src skeleton up axis
+        # make sure the src root joint in the target is not None
+        target_root = self.target_skeleton.skeleton_model["joints"]["root"]
+        if self.apply_root_fix and target_to_src_joint_map[target_root] is None:
+            target_to_src_joint_map[target_root] = self.src_skeleton.root
         self.force_root_translation = force_root_translation
 
     def create_correction_map(self):
