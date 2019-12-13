@@ -1,7 +1,7 @@
 import numpy as np
 import math
 from ...external.transformations import quaternion_from_matrix, euler_matrix, quaternion_matrix, quaternion_multiply, euler_from_quaternion, quaternion_from_euler, quaternion_inverse, euler_from_matrix
-
+from ..utils import quaternion_from_vector_to_vector
 
 AXES = [[1,0,0],[0,1,0],[0,0,1], [-1,0,0],[0,-1,0],[0,0,-1]]
 
@@ -13,17 +13,6 @@ def get_angle_between_vectors(v1, v2):
     sin_theta = min(sin_theta, 1.0)
     abs_angle = 2 * math.asin(sin_theta)
     return abs_angle
-
-
-def quaternion_from_vector_to_vector(a, b):
-    "src: http://stackoverflow.com/questions/1171849/finding-quaternion-representing-the-rotation-from-one-vector-to-another"
-    v = np.cross(a, b)
-    w = np.sqrt((np.linalg.norm(a) ** 2) * (np.linalg.norm(b) ** 2)) + np.dot(a, b)
-    q = np.array([w, v[0], v[1], v[2]])
-    if np.linalg.norm(q) == 0:
-        return np.array([1.0, 0.0, 0.0, 0.0])
-    else:
-        return q/ np.linalg.norm(q)
 
 
 def project_vector_on_axis(v):
