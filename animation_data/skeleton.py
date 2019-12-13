@@ -13,7 +13,7 @@ from ..external.transformations import quaternion_matrix
 from .skeleton_node import SkeletonEndSiteNode
 from .constants import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER, LEN_EULER, LEN_ROOT_POS, LEN_QUAT
 from .skeleton_models import ROCKETBOX_ANIMATED_JOINT_LIST, ROCKETBOX_FREE_JOINTS_MAP, ROCKETBOX_REDUCED_FREE_JOINTS_MAP, ROCKETBOX_SKELETON_MODEL, ROCKETBOX_BOUNDS, ROCKETBOX_TOOL_BONES, ROCKETBOX_ROOT_DIR
-from .joint_constraints import apply_conic_constraint, apply_axial_constraint, apply_spherical_constraint
+from .motion_editing.coordinate_cyclic_descent import run_ccd, normalize, set_global_orientation, run_ccd_look_at, orient_node_to_target_look_at, LOOK_AT_DIR, SPINE_LOOK_AT_DIR, orient_node_to_target_look_at_projected
 
 
 def project_vector_on_vector(a, b):
@@ -131,6 +131,34 @@ class Skeleton(object):
                         new_frame[dest_start: dest_start+4] = reduced_frame[src_start: src_start + 4]
 
                 joint_index += 1
+        return new_frame
+
+
+    def add_fixed_joint_parameters_to_other_frame(self, reduced_frame, other_animated_joints):
+        """
+        Takes parameters from the reduced frame for each joint of the complete skeleton found in the reduced skeleton
+        otherwise it takes parameters from the reference frame
+        :param reduced_frame:
+        :return:
+        """
+        new_frame = np.zeros(self.reference_frame_length)
+        src_joint_index = 0
+        dest_joint_index = 0
+        for joint_name in list(self.nodes.keys()):
+            if len(self.nodes[joint_name].children) > 0 and "EndSite" not in joint_name:
+                if joint_name == self.root:
+                    new_frame[:7] = reduced_frame[:7]
+                    src_joint_index += 1
+                else:
+                    dest_start = dest_joint_index * 4 + 3
+                    if joint_name in other_animated_joints:
+                        src_start = other_animated_joints.index(joint_name) * 4 + 3
+                        new_frame[dest_start: dest_start + 4] = reduced_frame[src_start: src_start + 4]
+                        src_joint_index+=1
+                    else:
+                        new_frame[dest_start: dest_start + 4] = self.nodes[joint_name].rotation
+
+                dest_joint_index += 1
         return new_frame
 
     def _get_max_level(self):
@@ -290,7 +318,7 @@ class Skeleton(object):
 
         #print("animated joints", len(animated_joints))
         joint_descs = []
-        self.nodes[self.root].to_unity_format(joint_descs, animated_joints, joint_name_map=joint_name_map)
+        self.nodes[self.root].to_unity_format(joint_descs, scale, joint_name_map=joint_name_map)
 
         data = dict()
         data["root"] = self.aligning_root_node
@@ -308,24 +336,10 @@ class Skeleton(object):
                 r = {"x": 0.0, "y": 0.0, "z": 0.0, "w": 1.0}
             default_pose["rotations"].append(r)
             o = node.offset
+            if node_name == self.root:
+                o = self.reference_frame[:3]
             t = {"x": -float(scale * o[0]), "y": float(scale * o[1]), "z": float(scale * o[2])}
             default_pose["translations"].append(t)
-
-        default_pose["endSiteOffsets"] = []
-        for node_name in animated_joints:
-            has_end_site = False
-            for c in self.nodes[node_name].children:
-                has_end_site = True
-                if c.node_name in animated_joints:
-                    has_end_site = False # child nodes are animated
-                    break
-            if has_end_site:
-                c_node = self.nodes[node_name].children[0]
-                o = c_node.offset
-            else:
-                o = np.array([0,0,0])
-            t = {"x": -float(scale * o[0]), "y": float(scale * o[1]), "z": float(scale * o[2])}
-            default_pose["endSiteOffsets"].append(t)
                     
         data["referencePose"] = default_pose
         return data
@@ -383,24 +397,6 @@ class Skeleton(object):
         self.nodes[heel_name] = node
         self.nodes[foot_name].children.append(node)
 
-    def get_reduced_euler_frames(self, euler_frames, has_root=True):
-        '''
-        create reduced size of euler frames based on animated joints
-        :param euler_frames: n_frames * n_dims
-        :return:
-        '''
-        nonEndSite_joints = self.get_joints_without_EndSite()
-        euler_frames = np.asarray(euler_frames)
-        if has_root:
-            assert euler_frames.shape[1] == LEN_ROOT_POS + LEN_EULER * len(nonEndSite_joints)
-            new_euler_frames = np.zeros([euler_frames.shape[0], LEN_ROOT_POS + LEN_EULER * len(self.animated_joints)])
-        else:
-            assert euler_frames.shape[1] == LEN_EULER * len(nonEndSite_joints)
-            new_euler_frames = np.zeros([euler_frames.shape[0], LEN_EULER * len(self.animated_joints)])
-        for i in range(euler_frames.shape[0]):
-            new_euler_frames[i] = self.get_reduced_euler_frame(euler_frames[i], has_root=has_root)
-        return new_euler_frames
-
     def apply_joint_constraints(self, frame):
         if "joint_constraints" in self.skeleton_model:
             constraints = self.skeleton_model["joint_constraints"]
@@ -426,6 +422,113 @@ class Skeleton(object):
                         up_axis = constraints[n]["axis"]
                         ref_q = self.nodes[n].rotation
                         frame[idx:idx + 4] = apply_spherical_constraint(q, ref_q, up_axis, k)
+
+    def apply_joint_constraints(self, frame):
+        for n in self.animated_joints:
+            if self.nodes[n].joint_constraint is not None:
+                idx = self.nodes[n].quaternion_frame_index * 4 + 3
+                q = frame[idx:idx + 4]
+                frame[idx:idx + 4] = self.nodes[n].joint_constraint.apply(q)
+        return frame
+
+    def reach_target_position(self, frame, constraint, eps=0.01, max_iter=50, verbose=False, chain_end_joint=None):
+        frame, error = run_ccd(self, frame, constraint.joint_name, constraint, eps, max_iter, chain_end_joint, verbose)
+        print("reached with error", error)
+        return frame
+
+    def reach_target_positions(self, frame, constraints, chain_end_joints=None, eps=0.0001, n_max_iter=500, ccd_iters=20, verbose=False):
+        error = np.inf
+        prev_error = error
+        n_iters = 0
+        is_stuck = False
+        if chain_end_joints is None:
+            chain_end_joints = dict()
+            for c in constraints:
+                chain_end_joints[c.joint_name] = self.root
+        while n_iters < n_max_iter and error > eps and not is_stuck:
+            error = 0
+            #print("iter", n_iters)
+            for c in constraints:
+                joint_error = 0
+                if c.look_at:
+                    pos = c.look_at_pos
+                    if pos is None:
+                        pos = c.position
+                    joint_name = self.skeleton_model["joints"]["head"]
+                    if joint_name is not None:
+                        local_dir = LOOK_AT_DIR
+                        if "look_at_dir" in self.skeleton_model:
+                            local_dir = self.skeleton_model["look_at_dir"]
+                        parent_node = self.nodes[joint_name].parent
+                        if parent_node is not None:
+                            frame = orient_node_to_target_look_at(self, frame, parent_node.node_name, joint_name, pos, local_dir=local_dir)
+                if c.position is not None and c.relative_parent_joint_name is None:
+                    frame, _joint_error = run_ccd(self, frame, c.joint_name, c, eps, ccd_iters, chain_end_joints[c.joint_name], verbose)
+                    joint_error += _joint_error
+                elif c.relative_parent_joint_name is not None: # run ccd on relative constraint
+                    #turn relative constraint into a normal constraint
+                    _c = c.instantiate_relative_constraint(self, frame)
+                    #print("create relative constraint", _c.joint_name, c.relative_offset)
+                    frame, _joint_error = run_ccd(self, frame, _c.joint_name, _c, eps, ccd_iters, chain_end_joints[c.joint_name], verbose)
+                    joint_error += _joint_error
+                elif c.orientation is not None:
+                    frame = set_global_orientation(self, frame, c.joint_name, c.orientation)
+                else:
+                    print("ignore constraint on", c.joint_name, c.position)
+                error += joint_error
+            if abs(prev_error - error) < eps:
+                is_stuck = True
+            #print("iter", is_stuck, error,eps, prev_error, len(constraints))
+            prev_error = error
+            n_iters += 1
+        print("reached with error", error, n_iters)
+        return frame
+
+    def set_joint_orientation(self, frame, joint_name, orientation):
+        m = quaternion_matrix(orientation)
+        parent = self.nodes[joint_name].parent
+        if parent is not None:
+            parent_m = parent.get_global_matrix(frame, use_cache=False)
+            local_m = np.dot(np.linalg.inv(parent_m), m)
+            q = quaternion_from_matrix(local_m)
+            offset = self.nodes[joint_name].quaternion_frame_index*4+3
+            frame[offset:offset+4] = normalize(q)
+        return frame
+
+    def look_at(self, frame, joint_name, position, eps=0.0001, n_max_iter=1, local_dir=LOOK_AT_DIR, chain_end_joint=None):
+        #self.clear_cached_global_matrices()
+        frame, error = run_ccd_look_at(self, frame, joint_name, position, eps, n_max_iter, local_dir, chain_end_joint)
+        #frame = orient_node_to_target_look_at(self,frame,joint_name, joint_name, position)
+        return frame
+
+    def look_at_projected(self, frame, joint_name, position, local_dir=LOOK_AT_DIR):
+        """ apply a 2d rotation around global y """
+        twist_axis = None
+        max_angle = None
+        p_name = self.nodes[joint_name].parent.node_name
+        if self.nodes[p_name ].joint_constraint is not None:
+            twist_axis = self.nodes[p_name ].joint_constraint.axis
+            max_angle = np.rad2deg(self.nodes[p_name ].joint_constraint.twist_max)
+        frame = orient_node_to_target_look_at_projected(self, frame, self.nodes[joint_name].parent.node_name, joint_name, position, local_dir, twist_axis, max_angle)
+        return frame
+
+    def get_reduced_euler_frames(self, euler_frames, has_root=True):
+        '''
+        create reduced size of euler frames based on animated joints
+        :param euler_frames: n_frames * n_dims
+        :return:
+        '''
+        nonEndSite_joints = self.get_joints_without_EndSite()
+        euler_frames = np.asarray(euler_frames)
+        if has_root:
+            assert euler_frames.shape[1] == LEN_ROOT_POS + LEN_EULER * len(nonEndSite_joints)
+            new_euler_frames = np.zeros([euler_frames.shape[0], LEN_ROOT_POS + LEN_EULER * len(self.animated_joints)])
+        else:
+            assert euler_frames.shape[1] == LEN_EULER * len(nonEndSite_joints)
+            new_euler_frames = np.zeros([euler_frames.shape[0], LEN_EULER * len(self.animated_joints)])
+        for i in range(euler_frames.shape[0]):
+            new_euler_frames[i] = self.get_reduced_euler_frame(euler_frames[i], has_root=has_root)
+        return new_euler_frames
 
     def get_reduced_euler_frame(self, euler_frame, has_root=True):
         '''
