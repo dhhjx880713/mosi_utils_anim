@@ -350,7 +350,7 @@ class SkeletonBuilder(object):
                 return data["jointDescs"][idx]
         return None
 
-    def _create_node_from_unity_desc(self, skeleton, node_name, data, parent, level, add_extra_end_site=True):
+    def _create_node_from_unity_desc(self, skeleton, node_name, data, parent, level, add_extra_end_site=False):
         node_data = self.get_joint_desc(data, node_name)
         if node_data is None:
             return
