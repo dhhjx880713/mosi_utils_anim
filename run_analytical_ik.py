@@ -1,7 +1,7 @@
 import os
 from .animation_data import BVHReader, SkeletonBuilder, MotionVector
 from .animation_data.skeleton_models import RAW_SKELETON_MODEL
-from .animation_data.motion_editing.motion_grounding import MotionGrounding
+from .motion_editing.motion_grounding import MotionGrounding
 
 LEFT_FOOT = "LeftFoot"
 RIGHT_FOOT = "RightFoot"
