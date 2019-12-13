@@ -9,6 +9,7 @@ from ..motion_blending import smooth_joints_around_transition_using_slerp, creat
 from ...external.transformations import quaternion_matrix, euler_from_matrix, quaternion_multiply
 from ...utilities.log import write_message_to_log, LOG_MODE_DEBUG
 from .utils import convert_exp_frame_to_quat_frame
+from .fabrik_chain import FABRIKChain, FABRIKBone
 from ..joint_constraints import JointConstraint, HingeConstraint2, BallSocketConstraint, ConeConstraint, ShoulderConstraint, HeadConstraint, SpineConstraint
 from ...external.transformations import quaternion_matrix, quaternion_from_matrix
 from ..skeleton import LOOK_AT_DIR, SPINE_LOOK_AT_DIR
@@ -18,6 +19,25 @@ SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION = "keyframe_position"
 SPATIAL_CONSTRAINT_TYPE_KEYFRAME_RELATIVE_POSITION = "keyframe_relative_position"
 SUPPORTED_CONSTRAINT_TYPES = [SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_RELATIVE_POSITION]
 
+
+
+def create_fabrik_chain(skeleton, frame, node_order, activate_constraints=False):
+    bones = dict()
+    root = node_order[0]
+    root_offset = skeleton.nodes[root].get_global_position(frame)
+    frame_offset = skeleton.animated_joints.index(root)*4 + 3
+    for idx, j in enumerate(node_order[:-1]):
+        bones[j] = FABRIKBone(j, node_order[idx + 1])
+        if idx == 0:
+            bones[j].is_root = True
+        else:
+            bones[j].is_root = False
+
+    bones[node_order[-1]] = FABRIKBone(node_order[-1], None)
+    max_iter = 50
+    chain = FABRIKChain(skeleton, bones, node_order, max_iter=max_iter, frame_offset=frame_offset, root_offset=root_offset,
+                                                activate_constraints=activate_constraints)
+    return chain
 
 def add_frames(skeleton, a, b):
     """ returns c = a + b"""
@@ -149,6 +169,10 @@ class MotionEditing(object):
         self.pose = SkeletonPoseModel(self.skeleton, self.use_euler)
         self._ik = NumericalInverseKinematicsQuat(self.pose, self._ik_settings)
         self._ik_exp = NumericalInverseKinematicsExp(self.skeleton, self._ik_settings)
+        self._fabrik_chains = dict()
+
+    def add_fabrik_chain(self, joint_name, node_order, activate_constraints=False):
+        self._fabrik_chains[joint_name] = create_fabrik_chain(self.skeleton, self.skeleton.reference_frame, node_order, activate_constraints)
         
     def add_constraints_to_skeleton(self, joint_constraints):
         joint_map = self.skeleton.skeleton_model["joints"]
@@ -535,6 +559,7 @@ class MotionEditing(object):
             t = np.linspace(0, n_frames - 1, num=100, endpoint=True)
             d_curve.plot(t)
         return np.array(new_frames)
+
     def add_reduced_delta_curve(self, frames, d_times, delta_frames, joint_list=None, plot=False):
         #print("dtimes", d_times)
         #print("d frames", delta_frames.tolist())
@@ -582,6 +607,8 @@ class MotionEditing(object):
             delta_frames[f+1] = zero_frame
         delta_frames[n_frames - 2] = zero_frame
         delta_frames[n_frames - 1] = zero_frame
+
+
         for frame_idx, frame_constraints in constraints.items():
             # delete zero frames in range around constraint
             start = max(frame_idx - influence_range, min(frame_idx, 2))
@@ -620,6 +647,23 @@ class MotionEditing(object):
                     print("set hand orientation", c.orientation)
                     self._set_hand_orientation(frames, c.orientation, c.joint_name, c.frame_idx, start, end)
 
+    def edit_motion_using_fabrik(self, frames, constraints):
+        new_frames = np.array(frames)
+        for frame_idx, frame_constraints in constraints.items():
+            joint_names = []
+            fk_nodes = set()
+            for joint_name, c in frame_constraints.items():
+                print("use fabrik on", joint_name, "at", frame_idx)
+                if joint_name in self._fabrik_chains:
+                    joint_names += self._fabrik_chains[joint_name].node_order[:1]
+                    new_frame = self._fabrik_chains[joint_name].run_partial_with_constraints(frames[frame_idx], c.position)
+                    new_frames[frame_idx] = new_frame
+                    joint_fk_nodes = self.skeleton.nodes[joint_name].get_fk_chain_list()
+                    fk_nodes.update(joint_fk_nodes)
+
+            if self.window > 0:
+                self.interpolate_around_frame(fk_nodes, new_frames, frame_idx, self.window)
+        return new_frames
 
     def edit_motion_to_look_at_target(self, frames, look_at_target, spine_target, start_idx, end_idx, orient_spine=False, look_at_dir=LOOK_AT_DIR, spine_look_at_dir=SPINE_LOOK_AT_DIR):
         if look_at_target is None:
