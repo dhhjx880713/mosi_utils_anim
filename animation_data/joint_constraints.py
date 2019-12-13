@@ -1,7 +1,7 @@
 import numpy as np
 import math
 from math import acos, cos, sin, atan
-from ..external.transformations import quaternion_about_axis, quaternion_inverse, quaternion_multiply
+from ..external.transformations import quaternion_about_axis, quaternion_inverse, quaternion_multiply, euler_from_quaternion
 
 
 def normalize(v):
@@ -159,7 +159,7 @@ def apply_axial_constraint2(q, ref_q, axis, min_angle, max_angle):
     return q
 
 
-def apply_head_constraint(q, ref_q, axis, min_angle, max_angle):
+def apply_head_constraint(q, ref_q, axis, t_min_angle, t_max_angle, s_min_angle, s_max_angle):
     """ get delta orientation
         do axis decomposition
         restrict angle between min and max
@@ -178,21 +178,21 @@ def apply_head_constraint(q, ref_q, axis, min_angle, max_angle):
         sign = -1
     a *= sign
     v*=sign
-    print("apply axial", q)
+    #print("apply axial", q)
     v2, a2 = quaternion_to_axis_angle(swing_q)
     sign = 1
     if np.sum(v2) < 0:
         sign = -1
     a2 *= sign
     v2*= sign
-    print("twist swing", v, np.degrees(a), v2, np.degrees(a2))
-    print("boundary", min_angle, max_angle)
-    a = max(a, min_angle)
-    a = min(a, max_angle)
+    #print("twist swing", v, np.degrees(a), v2, np.degrees(a2))
+    #print("boundary", min_angle, max_angle)
+    a = max(a, t_min_angle)
+    a = min(a, t_max_angle)
     new_twist_q = quaternion_about_axis(a, axis)
     new_twist_q = normalize(new_twist_q)
-    a2 = max(a2, min_angle)
-    a2 = min(a2, max_angle)
+    a2 = max(a2, s_min_angle)
+    a2 = min(a2, s_max_angle)
     new_swing_q = quaternion_about_axis(a2, v2)
     new_swing_q = normalize(new_swing_q)
     delta_q = quaternion_multiply(new_swing_q, new_twist_q)
@@ -271,17 +271,39 @@ class ConeConstraint(JointConstraint):
     def get_axis(self):
         return self.axis
 
-
-class HeadConstraint(JointConstraint):
-    def __init__(self, ref_q, axis, k1, k2):
+class SpineConstraint(JointConstraint):
+    def __init__(self, ref_q, axis, twist_min, twist_max, swing_min, swing_max):
         JointConstraint.__init__(self)
         self.ref_q = ref_q
         self.axis = axis
-        self.k1 = k1
-        self.k2 = k2
+        self.twist_min = twist_min
+        self.twist_max = twist_max
+        self.swing_min = swing_min
+        self.swing_max = swing_max
+        self.joint_name = ""
 
     def apply(self, q):
-        q = apply_head_constraint(q, self.ref_q, self.axis, self.k1, self.k2)
+        #print("apply spine constraint",self.joint_name, q)
+        #q = apply_spine_constraint(q, self.ref_q, self.axis, self.twist_min, self.twist_max, self.swing_min, self.swing_max)
+        #print()
+        return q
+
+    def get_axis(self):
+        return self.axis
+
+class HeadConstraint(JointConstraint):
+    def __init__(self, ref_q, axis, twist_min, twist_max, swing_min, swing_max):
+        JointConstraint.__init__(self)
+        self.ref_q = ref_q
+        self.axis = axis
+        self.twist_min = twist_min
+        self.twist_max = twist_max
+        self.swing_min = swing_min
+        self.swing_max = swing_max
+        self.joint_name = ""
+
+    def apply(self, q):
+        q = apply_head_constraint(q, self.ref_q, self.axis, self.twist_min, self.twist_max, self.swing_min, self.swing_max)
         return q
 
     def get_axis(self):
