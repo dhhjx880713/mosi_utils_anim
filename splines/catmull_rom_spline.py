@@ -6,9 +6,9 @@ Created on Wed Feb 25 14:54:37 2015
 """
 
 import numpy as np
-from . import GenericAlgorithms
 import scipy.interpolate as si
 import math
+from .utils import closestLowerValueBinarySearch
 
 
 class CatmullRomSpline():
@@ -180,7 +180,7 @@ class CatmullRomSpline():
         - returns floor parameter, ceiling parameter, floor arc length, ceiling arc length and a bool if the exact value was found
         '''
         foundExactValue = True
-        result = GenericAlgorithms.closestLowerValueBinarySearch(self.arcLengthMap,0,len(self.arcLengthMap)-1,relativeArcLength, getter = lambda A,i: A[i][1])#returns the index and a flag value, requires a getter for the array
+        result = closestLowerValueBinarySearch(self.arcLengthMap,0,len(self.arcLengthMap)-1,relativeArcLength, getter = lambda A,i: A[i][1])#returns the index and a flag value, requires a getter for the array
         #print result
         index = result[0]
 
