@@ -495,7 +495,9 @@ ICLONE_SKELETON_MODEL["flip_x_axis"] = True
 
 
 CUSTOM_SKELETON_JOINTS = collections.OrderedDict()
+
 CUSTOM_SKELETON_JOINTS["root"] = None
+CUSTOM_SKELETON_JOINTS = dict()
 CUSTOM_SKELETON_JOINTS["pelvis"] = "FK_back1_jnt"
 CUSTOM_SKELETON_JOINTS["spine"] = "FK_back2_jnt"
 CUSTOM_SKELETON_JOINTS["spine_1"] = "FK_back3_jnt"
@@ -507,8 +509,6 @@ CUSTOM_SKELETON_JOINTS["left_elbow"] = "L_lowArm_jnt"
 CUSTOM_SKELETON_JOINTS["right_elbow"] = "R_lowArm_jnt"
 CUSTOM_SKELETON_JOINTS["left_wrist"] = "L_hand_jnt"
 CUSTOM_SKELETON_JOINTS["right_wrist"] = "R_hand_jnt"
-#CUSTOM_SKELETON_JOINTS["left_finger"] = "L_middle_root_jnt"
-#CUSTOM_SKELETON_JOINTS["right_finger"] = "R_middle_root_jnt"
 CUSTOM_SKELETON_JOINTS["left_hip"] = "L_upLeg_jnt"
 CUSTOM_SKELETON_JOINTS["right_hip"] = "R_upLeg_jnt"
 CUSTOM_SKELETON_JOINTS["left_knee"] = "L_lowLeg_jnt"
@@ -517,8 +517,6 @@ CUSTOM_SKELETON_JOINTS["left_ankle"] = "L_foot_jnt"
 CUSTOM_SKELETON_JOINTS["right_ankle"] = "R_foot_jnt"
 CUSTOM_SKELETON_JOINTS["left_toe"] = "L_toe_jnt"
 CUSTOM_SKELETON_JOINTS["right_toe"] = "R_toe_jnt"
-CUSTOM_SKELETON_JOINTS["left_heel"] = None
-CUSTOM_SKELETON_JOINTS["right_heel"] = None
 CUSTOM_SKELETON_JOINTS["neck"] = "FK_back4_jnt"
 CUSTOM_SKELETON_JOINTS["head"] = "head_jnt"
 
@@ -1172,6 +1170,10 @@ SKELETON_MODELS["raw2"] = RAW2_SKELETON_MODEL
 SKELETON_MODELS["noitom"] = NOITOM_SKELETON_MODEL
 SKELETON_MODELS["mo"] = MO_SKELETON_MODEL
 
+STANDARD_JOINTS = ["root","pelvis", "spine_1", "spine_2", "neck", "left_clavicle", "head", "left_shoulder", "left_elbow", "left_wrist", "right_clavicle", "right_shoulder",
+                    "left_hip", "left_knee", "left_ankle", "right_elbow", "right_hip", "right_knee", "left_ankle", "right_ankle", "left_toe", "right_toe"]
+
+
 JOINT_CHILD_MAP = dict()
 JOINT_CHILD_MAP["root"] = "pelvis"
 JOINT_CHILD_MAP["pelvis"] = "spine"
@@ -1182,11 +1184,11 @@ JOINT_CHILD_MAP["neck"] = "head"
 JOINT_CHILD_MAP["left_clavicle"] = "left_shoulder"
 JOINT_CHILD_MAP["left_shoulder"] = "left_elbow"
 JOINT_CHILD_MAP["left_elbow"] = "left_wrist"
-JOINT_CHILD_MAP["left_wrist"] = "left_finger"
+JOINT_CHILD_MAP["left_wrist"] = "left_finger"  # TODO rename to hand center
 JOINT_CHILD_MAP["right_clavicle"] = "right_shoulder"
 JOINT_CHILD_MAP["right_shoulder"] = "right_elbow"
 JOINT_CHILD_MAP["right_elbow"] = "right_wrist"
-JOINT_CHILD_MAP["right_wrist"] = "right_finger"
+JOINT_CHILD_MAP["right_wrist"] = "right_finger"  # TODO rename to hand center
 JOINT_CHILD_MAP["left_hip"] = "left_knee"
 JOINT_CHILD_MAP["left_knee"] = "left_ankle"
 JOINT_CHILD_MAP["right_elbow"] = "right_wrist"
@@ -1206,15 +1208,17 @@ JOINT_CONSTRAINTS["right_elbow"] = {"type":"hinge", "swing_axis": [0,-1,0], "twi
 JOINT_CONSTRAINTS["left_elbow"] = {"type": "hinge", "swing_axis": [0,-1,0], "twist_axis": [0,0,1], "k1":-90, "k2":90}
 #JOINT_CONSTRAINTS["right_shoulder"] = {"type":"cone", "axis": [0,0,1], "k": 0.4}
 #JOINT_CONSTRAINTS["left_shoulder"] = {"type": "cone", "axis": [0,0,1], "k": 0.4}
-JOINT_CONSTRAINTS["spine"] = {"type":"cone", "axis": [0,1,0], "k": np.radians(45)}
+#JOINT_CONSTRAINTS["spine"] = {"type":"cone", "axis": [0,1,0], "k": np.radians(45)}
+JOINT_CONSTRAINTS["spine_1"] = {"type":"spine", "axis": [0,1,0], "tk1": -np.radians(90), "tk2": np.radians(90), "sk1": -np.radians(0), "sk2": np.radians(0)}
 ##OINT_CONSTRAINTS["spine"] = {"type":"shoulder", "axis": [0,1,0], "k": np.radians(20), "k1": np.radians(-90), "k2": np.radians(90) }
-JOINT_CONSTRAINTS["left_shoulder"] = {"type":"shoulder", "axis": [0,0,1], "k": 0.4, "k1": np.radians(-180), "k2": np.radians(180) }
-JOINT_CONSTRAINTS["right_shoulder"] = {"type":"shoulder", "axis": [0,0,1], "k": 0.4, "k1": np.radians(-180), "k2": np.radians(180)}
+JOINT_CONSTRAINTS["left_shoulder"] = {"type":"shoulder", "axis": [0,0,1], "k": 0.4, "k1": np.radians(-180), "k2": np.radians(180) , "stiffness":0.9}
+JOINT_CONSTRAINTS["right_shoulder"] = {"type":"shoulder", "axis": [0,0,1], "k": 0.4, "k1": np.radians(-180), "k2": np.radians(180), "stiffness":0.9}
 
 JOINT_CONSTRAINTS["left_wrist"] = {"type":"cone", "axis": [0,0,1], "k": np.radians(90)}
 JOINT_CONSTRAINTS["right_wrist"] = {"type":"cone", "axis": [0,0,1], "k": np.radians(90)}
 #JOINT_CONSTRAINTS["head"] = {"type":"cone", "axis": [0,1,0], "k": np.radians(0)}
-JOINT_CONSTRAINTS["neck"] = {"type":"head", "axis": [0,1,0], "k1": -np.radians(65), "k2": np.radians(65)}
+#JOINT_CONSTRAINTS["neck"] = {"type":"head", "axis": [0,1,0], "k1": -np.radians(65), "k2": np.radians(65)}
+JOINT_CONSTRAINTS["head"] = {"type":"head", "axis": [0,1,0], "tk1": -np.radians(85), "tk2": np.radians(85), "sk1": -np.radians(45), "sk2": np.radians(45)}
 JOINT_CONSTRAINTS["left_hold_point"] = {"type":"static"}
 JOINT_CONSTRAINTS["right_hold_point"] = {"type":"static"}
 
