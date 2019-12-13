@@ -6,8 +6,8 @@
 """
 import math
 import numpy as np
-from ...external.transformations import quaternion_inverse, quaternion_multiply, quaternion_from_matrix, euler_from_quaternion
-from anim_utils.animation_data.motion_editing.analytical_inverse_kinematics import calculate_limb_joint_rotation, calculate_limb_root_rotation, to_local_coordinate_system
+from ..external.transformations import quaternion_inverse, quaternion_multiply, quaternion_from_matrix, euler_from_quaternion
+from anim_utils.motion_editing.analytical_inverse_kinematics import calculate_limb_joint_rotation, calculate_limb_root_rotation, to_local_coordinate_system
 
 def sign(x):
     return 1 if x >= 0 else -1

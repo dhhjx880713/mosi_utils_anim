@@ -1,7 +1,7 @@
 import numpy as np
 import math
-from ...external.transformations import quaternion_from_matrix, euler_matrix, quaternion_matrix, quaternion_multiply, euler_from_quaternion, quaternion_from_euler, quaternion_inverse, euler_from_matrix
-from ..utils import quaternion_from_vector_to_vector
+from ..external.transformations import quaternion_from_matrix, euler_matrix, quaternion_matrix, quaternion_multiply, euler_from_quaternion, quaternion_from_euler, quaternion_inverse, euler_from_matrix
+from ..animation_data.utils import quaternion_from_vector_to_vector
 
 AXES = [[1,0,0],[0,1,0],[0,0,1], [-1,0,0],[0,-1,0],[0,0,-1]]
 

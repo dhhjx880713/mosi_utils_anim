@@ -1,9 +1,9 @@
 import numpy as np
-from ...external.transformations import quaternion_from_matrix, quaternion_matrix, quaternion_slerp, quaternion_about_axis, quaternion_multiply, quaternion_inverse
-from ..joint_constraints import quaternion_to_axis_angle
+from ..external.transformations import quaternion_from_matrix, quaternion_matrix, quaternion_slerp, quaternion_about_axis, quaternion_multiply, quaternion_inverse
+from ..animation_data.joint_constraints import quaternion_to_axis_angle
 from math import acos
 import math
-from ..utils import get_rotation_angle
+from ..animation_data.utils import get_rotation_angle
 
 
 def normalize(v):

@@ -2,11 +2,11 @@ import time
 from copy import copy
 import numpy as np
 from scipy.optimize import minimize
-from ..motion_blending import smooth_joints_around_transition_using_slerp, create_transition_using_slerp
+from ..animation_data.motion_blending import smooth_joints_around_transition_using_slerp, create_transition_using_slerp
 from .skeleton_pose_model import SkeletonPoseModel
-from ..constants import ROTATION_TYPE_EULER
-from ...external.transformations import quaternion_matrix, euler_from_matrix
-from ...utilities.log import write_log, write_message_to_log, LOG_MODE_DEBUG
+from ..animation_data.constants import ROTATION_TYPE_EULER
+from ..external.transformations import quaternion_matrix, euler_from_matrix
+from ..utilities.log import write_log, write_message_to_log, LOG_MODE_DEBUG
 
 LEN_QUATERNION = 4
 LEN_TRANSLATION = 3

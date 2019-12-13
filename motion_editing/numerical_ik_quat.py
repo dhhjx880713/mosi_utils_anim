@@ -2,7 +2,7 @@
 import time
 import numpy as np
 from scipy.optimize import minimize
-from ...utilities.log import write_log, write_message_to_log, LOG_MODE_DEBUG
+from ..utilities.log import write_log, write_message_to_log, LOG_MODE_DEBUG
 
 
 def obj_inverse_kinematics(s, data):
