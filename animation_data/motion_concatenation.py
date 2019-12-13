@@ -2,9 +2,9 @@ import numpy as np
 from .utils import euler_substraction, point_to_euler_angle, euler_to_quaternion, euler_angles_to_rotation_matrix, get_rotation_angle, DEFAULT_ROTATION_ORDER, LEN_QUAT, LEN_EULER, LEN_ROOT_POS
 from ..external.transformations import quaternion_matrix, quaternion_about_axis, quaternion_multiply, quaternion_from_matrix, quaternion_from_euler, quaternion_slerp, euler_matrix
 from .motion_blending import smooth_quaternion_frames_with_slerp, smooth_quaternion_frames, blend_quaternion_frames_linearly, smooth_quaternion_frames_with_slerp2
-from .motion_editing.motion_grounding import create_grounding_constraint_from_frame, generate_ankle_constraint_from_toe, interpolate_constraints
-from .motion_editing.analytical_inverse_kinematics import AnalyticalLimbIK
-from .motion_editing.utils import normalize, generate_root_constraint_for_two_feet, smooth_root_translation_at_start, smooth_root_translation_at_end
+from ..motion_editing.motion_grounding import create_grounding_constraint_from_frame, generate_ankle_constraint_from_toe, interpolate_constraints
+from ..motion_editing.analytical_inverse_kinematics import AnalyticalLimbIK
+from ..motion_editing.utils import normalize, generate_root_constraint_for_two_feet, smooth_root_translation_at_start, smooth_root_translation_at_end
 from .motion_blending import blend_between_frames, smooth_translation_in_quat_frames, generate_blended_frames, interpolate_frames, smooth_root_translation_around_transition, blend_quaternions_to_next_step, smooth_quaternion_frames_joint_filter, blend_towards_next_step_linear_with_original, smooth_root_positions
 
 ALIGNMENT_MODE_FAST = 0
@@ -153,7 +153,8 @@ def get_global_node_orientation_vector(skeleton, node_name, frame, v=[0, 0, 1]):
     return dir_vec
 
 
-def get_node_aligning_2d_transform(skeleton, node_name, prev_frames, new_frames, ref_vector=[0,0,1]):
+REF_VECTOR = np.array([0,0,1])
+def get_node_aligning_2d_transform(skeleton, node_name, prev_frames, new_frames, ref_vector=REF_VECTOR):
     """from last of prev frames to first of new frames"""
 
     m_a = skeleton.nodes[node_name].get_global_matrix(prev_frames[-1])

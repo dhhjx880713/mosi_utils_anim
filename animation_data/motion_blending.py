@@ -48,6 +48,7 @@ def create_transition_for_joints_using_slerp(quat_frames, joint_param_indices, s
         old_quat = quat_frames[start_frame+i, joint_param_indices]
         blended_quat = blend_quaternion(old_quat, new_quats[i], t)
         quat_frames[start_frame + i, joint_param_indices] = blended_quat
+    return quat_frames
 
 
 def smooth_quaternion_frames_using_slerp_(quat_frames, joint_parameter_indices, event_frame, window):
@@ -159,10 +160,12 @@ def smooth_quaternion_frames(frames, discontinuity, window=20, include_root=True
     n_frames = len(frames)
     for i in range(n_joints):
         for j in range(n_frames - 1):
-            q1 = np.array(frames[j][3 + i * 4: 3 + (i + 1) * 4])
-            q2 = np.array(frames[j + 1][3 + i * 4:3 + (i + 1) * 4])
+            start = 3 + i * 4
+            end = 3 + (i + 1) * 4
+            q1 = np.array(frames[j][start: end])
+            q2 = np.array(frames[j + 1][start:end])
             if np.dot(q1, q2) < 0:
-                frames[j + 1][3 + i * 4:3 + (i + 1) * 4] = -frames[j + 1][3 + i * 4:3 + (i + 1) * 4]
+                frames[j + 1][start:end] = -frames[j + 1][start:end]
 
     smoothing_factors = generate_smoothing_factors(discontinuity, window, n_frames)
     d = int(discontinuity)
@@ -348,20 +351,18 @@ def smooth_translation_in_quat_frames(frames, discontinuity, window=20, only_hei
 
     n_frames = len(frames)
     # generate curve of smoothing factors
-    d = discontinuity
+    d = int(discontinuity)
     smoothing_factors = generate_smoothing_factors(d, window, n_frames)
     if only_height:
         dofs = [1]
     else:
         dofs = [0, 1, 2]
-
-    new_frames = np.array(frames)
     for dof_idx in dofs:
         current_curve = np.array(frames[:, dof_idx])  # extract dof curve
         magnitude = current_curve[d] - current_curve[d - 1]
         new_curve = current_curve + (magnitude * smoothing_factors)
-        new_frames[:, dof_idx] = new_curve
-    return new_frames
+        frames[:, dof_idx] = new_curve
+    return frames
 
 
 def smooth_root_translation_around_transition(frames, d, window):

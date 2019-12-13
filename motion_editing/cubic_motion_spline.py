@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.interpolate import interp1d
-from ...external.transformations import quaternion_multiply, quaternion_inverse
+from ..external.transformations import quaternion_multiply, quaternion_inverse
 
 
 def get_quaternion_delta(a, b):

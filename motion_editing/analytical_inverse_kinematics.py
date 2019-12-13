@@ -9,8 +9,8 @@ import math
 import numpy as np
 from .utils import normalize, to_local_cos, project_vec3
 from ..retargeting.utils import find_rotation_between_vectors
-from .utils import quaternion_from_vector_to_vector
-from ...external.transformations import quaternion_multiply, quaternion_about_axis, quaternion_matrix, quaternion_from_matrix, quaternion_inverse
+from ..animation_data.utils import quaternion_from_vector_to_vector
+from ..external.transformations import quaternion_multiply, quaternion_about_axis, quaternion_matrix, quaternion_from_matrix, quaternion_inverse
 import scipy.integrate as integrate
 
 

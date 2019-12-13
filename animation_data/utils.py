@@ -10,7 +10,6 @@ from math import sqrt, radians, sin, cos, isnan
 from copy import deepcopy
 import glob
 from .bvh import BVHReader, BVHWriter
-#from .skeleton_builder import SkeletonBuilder # deprecated
 from scipy import stats  # linear regression
 from .quaternion_frame import QuaternionFrame
 from collections import OrderedDict
@@ -27,36 +26,9 @@ from ..external.transformations import quaternion_matrix, euler_from_matrix, \
     rotation_from_matrix, \
     quaternion_slerp, \
     quaternion_conjugate,  quaternion_inverse, rotation_from_matrix
-# use_euler_fk = False
-# try:
-#     import fk3
-#     use_euler_fk = True
-# except:
-#     print("Could not find euler FK-Extension")
 
 from .constants import *
 
-# if use_euler_fk:
-#     FK_FUNCS = [
-#         fk3.one_joint_fk,
-#         fk3.two_joints_fk,
-#         fk3.three_joints_fk,
-#         fk3.four_joints_fk,
-#         fk3.five_joints_fk,
-#         fk3.six_joints_fk,
-#         fk3.seven_joints_fk,
-#         fk3.eight_joints_fk,
-#     ]
-#     FK_FUNC_JACS = [
-#         fk3.one_joint_fk_jacobian,
-#         fk3.two_joints_fk_jacobian,
-#         fk3.three_joints_fk_jacobian,
-#         fk3.four_joints_fk_jacobian,
-#         fk3.five_joints_fk_jacobian,
-#         fk3.six_joints_fk_jacobian,
-#         fk3.seven_joints_fk_jacobian,
-#         fk3.eight_joints_fk_jacobian,
-#     ]
 
 
 def rotation_order_to_string(rotation_order):
@@ -574,65 +546,6 @@ def get_cartesian_coordinates_for_plam_quaternion(
     global_matrix = np.dot(global_matrix, transmat_finger21)
     return global_matrix[:3, 3]
 
-# if use_euler_fk:
-#     def get_cartesian_coordinates_from_euler_full_skeleton(bvh_reader,
-#                                                            skeleton,
-#                                                            node_name,
-#                                                            euler_frame):
-#         """Return cartesian coordinates for one node at one frame, include the
-#            skipped joints starting with "Bip"
-#         """
-#         print("Deprecation Warning: Function marked as Deprecated!")
-#         pass
-#         # if bvh_reader.node_names[node_name]["level"] == 0:
-#         #     root_frame_position = euler_frame[:3]
-#         #     root_node_offset = bvh_reader.node_names[node_name]["offset"]
-
-#         #     return [t + o for t, o in
-#         #             zip(root_frame_position, root_node_offset)]
-
-#         # else:
-#         #     # Names are generated bottom to up --> reverse
-#         #     chain_names = list(skeleton.gen_all_parents(node_name))
-#         #     chain_names.reverse()
-#         #     chain_names += [node_name]  # Node is not in its parent list
-
-#         #     eul_angles = []
-#         #     index = 0
-#         #     for nodename in chain_names:
-#         #         indeces = []
-#         #         for channel in bvh_reader.node_names[nodename]["channels"]:
-#         #             if channel.endswith("rotation"):
-#         #                 indeces.append(
-#         #                     bvh_reader.node_channels.index((nodename, channel)))
-#         #         eul_angles.append(euler_frame[indeces])
-#         #         index += 1
-
-#         #     # bvh_reader.node_names.keys().index("RightShoulder")*3 +
-#         #     # 3,len(euler_frame)
-#         #     rad_angles = (list(map(radians, eul_angle)) for eul_angle in eul_angles)
-
-#         #     thx, thy, thz = list(map(list, list(zip(*rad_angles))))
-
-#         #     offsets = [bvh_reader.node_names[nodename]["offset"]
-#         #                for nodename in chain_names]
-
-#         #     # Add root offset to frame offset list
-#         #     root_position = euler_frame[:3]
-#         #     offsets[0] = [r + o for r, o in zip(root_position, offsets[0])]
-
-#         #     ax, ay, az = list(map(list, zip(*offsets)))
-
-#         # # f_idx identifies the kinematic forward transform function
-#         # # This does not lead to a negative index because the root is
-#         # # handled separately
-
-#         # f_idx = len(ax) - 2
-#         # if len(ax) - 2 < len(FK_FUNCS):
-#         #     return FK_FUNCS[f_idx](ax, ay, az, thx, thy, thz)
-#         # else:
-#         #     return [0, 0, 0]
-
 def get_cartesian_coordinates_for_plam_euler(
         skeleton,
         euler_frame,
@@ -685,63 +598,6 @@ def get_cartesian_coordinates_for_plam_euler(
         global_trans = np.dot(global_trans, transmat)
         global_trans = np.dot(global_trans, rotmat)
     return global_trans[:3, 3]
-
-# if use_euler_fk:
-#     def get_cartesian_coordinates_from_euler(skeleton, node_name, euler_frame):
-#         """Returns cartesian coordinates for one node at one frame. Modified to
-#          handle frames with omitted values for joints starting with "Bip"
-
-#         Parameters
-#         ----------
-
-#         * node_name: String
-#         \tName of node
-#          * skeleton: Skeleton
-#         \t skeleton structure read from a file
-#         * frame_number: Integer
-#         \tAnimation frame number that gets extracted
-
-#         """
-#         print("Deprecation Warning: Function marked as Deprecated!")
-#         pass
-#         # if skeleton.node_names[node_name]["level"] == 0:
-#         #     root_frame_position = euler_frame[:3]
-#         #     root_node_offset = skeleton.node_names[node_name]["offset"]
-
-#         #     return [t + o for t, o in
-#         #             zip(root_frame_position, root_node_offset)]
-
-#         # else:
-#         #     # Names are generated bottom to up --> reverse
-#         #     chain_names = list(skeleton.gen_all_parents(node_name))
-#         #     chain_names.reverse()
-#         #     chain_names += [node_name]  # Node is not in its parent list
-#         #     eul_angles = []
-#         #     for nodename in chain_names:
-#         #         index = skeleton.node_name_frame_map[nodename] * 3 + 3
-#         #         eul_angles.append(euler_frame[index:index + 3])
-#         #     rad_angles = (list(map(radians, eul_angle)) for eul_angle in eul_angles)
-
-#         #     thx, thy, thz = list(map(list, list(zip(*rad_angles))))
-
-#         #     offsets = [skeleton.node_names[nodename]["offset"]
-#         #                for nodename in chain_names]
-
-#         #     # Add root offset to frame offset list
-#         #     root_position = euler_frame[:3]
-#         #     offsets[0] = [r + o for r, o in zip(root_position, offsets[0])]
-
-#         #     ax, ay, az = list(map(list, zip(*offsets)))
-
-#         #     # f_idx identifies the kinematic forward transform function
-#         #     # This does not lead to a negative index because the root is
-#         #     # handled separately
-
-#         #     f_idx = len(ax) - 2
-#         #     if len(ax) - 2 < len(FK_FUNCS):
-#         #         return FK_FUNCS[f_idx](ax, ay, az, thx, thy, thz)
-#         #     else:
-#         #         return [0, 0, 0]
 
 
 def convert_euler_frame_to_cartesian_frame(skeleton, euler_frame, animated_joints=None):
@@ -2208,7 +2064,21 @@ def quaternion_rotate_vector(q, vector):
     tmp_result = quaternion_multiply(q, vector)
     return quaternion_multiply(tmp_result, quaternion_conjugate(q))[1:]
 
+def quaternion_from_vector_to_vector(a, b):
+    """src: http://stackoverflow.com/questions/1171849/finding-quaternion-representing-the-rotation-from-one-vector-to-another
+    http://wiki.ogre3d.org/Quaternion+and+Rotation+Primer"""
 
+    v = np.cross(a, b)
+    w = np.sqrt((np.linalg.norm(a) ** 2) * (np.linalg.norm(b) ** 2)) + np.dot(a, b)
+    q = np.array([w, v[0], v[1], v[2]])
+    if np.dot(q,q) != 0:
+        return q/ np.linalg.norm(q)
+    else:
+        idx = np.nonzero(a)[0]
+        q = np.array([0, 0, 0, 0])
+        q[1 + ((idx + 1) % 2)] = 1 # [0, 0, 1, 0] for a rotation of 180 around y axis
+        return q
+ 
 def point_rotation_by_quaternion(point, q):
     """
     Rotate a 3D point by quaternion

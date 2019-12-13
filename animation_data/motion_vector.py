@@ -3,7 +3,7 @@ __author__ = 'erhe01'
 from datetime import datetime
 import os
 import numpy as np
-from .utils import align_frames,transform_euler_frames, convert_euler_frames_to_quaternion_frames
+from .utils import convert_euler_frames_to_quaternion_frames
 from .motion_concatenation import align_and_concatenate_frames, smooth_root_positions#, align_frames_and_fix_feet
 from .constants import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER
 from .bvh import BVHWriter
@@ -224,6 +224,45 @@ class MotionVector(object):
         result_object["jointSequence"] = animated_joints
         return result_object
 
+    def to_db_format(self, scale=1.0, animated_joints=None):
+        """ Converts the frames into a custom json format for use in a Unity client"""
+        if animated_joints is None:
+            animated_joints = [j for j, n in list(self.skeleton.nodes.items()) if
+                               "EndSite" not in j and len(n.children) > 0]  # self.animated_joints
+        poses = []
+        for frame in self.frames:
+            pose = self._convert_frame_to_db_format(frame, animated_joints, scale)
+            poses.append(pose)
+
+        result_object = dict()
+        result_object["poses"] = poses
+        result_object["frame_time"] = self.frame_time
+        result_object["joint_sequence"] = animated_joints
+        return result_object
+
+    def _convert_frame_to_db_format(self, frame, animated_joints, scale=1.0):
+        """ Converts the frame into a custom json format and converts the transformations
+            to the left-handed coordinate system of Unity.
+            src: http://answers.unity3d.com/questions/503407/need-to-convert-to-right-handed-coordinates.html
+        """
+        
+        t = frame[:3] * scale
+        pose = [-t[0], t[1], t[2]]
+        for node_name in self.skeleton.nodes.keys():
+            if node_name in animated_joints:
+                node = self.skeleton.nodes[node_name]
+                if node_name in self.skeleton.animated_joints:  # use rotation from frame
+                    # TODO fix: the animated_joints is ordered differently than the nodes list for the latest model
+                    index = self.skeleton.animated_joints.index(node_name)
+                    offset = index * 4 + 3
+                    r = frame[offset:offset + 4]
+                    pose += [-r[0], -r[1],  r[2], r[3]]
+                else:  # use fixed joint rotation
+                    r = node.rotation
+                    pose += [-float(r[0]), -float(r[1]), float(r[2]), float(r[3])]
+        return pose
+
+
     def _convert_frame_to_unity_format(self, frame, animated_joints, scale=1.0):
         """ Converts the frame into a custom json format and converts the transformations
             to the left-handed coordinate system of Unity.
@@ -248,6 +287,24 @@ class MotionVector(object):
                     unity_frame["rotations"].append(
                         {"x": -float(r[1]), "y": float(r[2]), "z": float(r[3]), "w": -float(r[0])})
         return unity_frame
+
+    def from_custom_db_format(self, data):
+        self.frames = []
+        for f in data["poses"]:
+            t = f[:3]
+            o = 3
+            new_f = [-t[0], t[1], t[2]]
+            for i in data["joint_sequence"]:
+                new_f.append(-f[o])
+                new_f.append(-f[o+1])
+                new_f.append(f[o+2])
+                new_f.append(f[o+3])
+                o+=4
+
+            self.frames.append(new_f)
+        self.frames = np.array(self.frames)
+        self.n_frames = len(self.frames)
+        self.frame_time = data["frame_time"]
 
     def from_custom_unity_format(self, data):
         self.frames = []
