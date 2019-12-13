@@ -12,10 +12,9 @@ from .joint_constraints import HingeConstraint2
 def create_identity_frame(skeleton):
     skeleton.identity_frame = np.zeros(skeleton.reference_frame_length)
     offset = 3
-    for j in list(skeleton.nodes.keys()):
-        if skeleton.nodes[j].index > 0:
-            skeleton.identity_frame[offset:offset + 4] = [1, 0, 0, 0]
-            offset += 4
+    for j in skeleton.animated_joints:
+        skeleton.identity_frame[offset:offset + 4] = [1, 0, 0, 0]
+        offset += 4
 
 
 def create_euler_frame_indices(skeleton):
@@ -47,6 +46,7 @@ def add_new_end_site(skeleton, node_names, parent_node_name, offset):
 def reference_frame_from_unity(data):
     n_j = len(data["rotations"])
     q_frame = np.zeros(n_j*4+3)
+    q_frame[:3] = arr_from_unity_t(data["translations"][0])
     o = 3
     for q in data["rotations"]:
         q_frame[o:o+4] = arr_from_unity_q(q)
@@ -174,15 +174,14 @@ class SkeletonBuilder(object):
             skeleton = self.load_from_custom_unity_format(data)
             return skeleton
 
-    def load_from_custom_unity_format(self, data):
-
+    def load_from_custom_unity_format(self, data, frame_time=1.0/30, add_extra_end_site=False):
         skeleton = Skeleton()
         animated_joints = data["jointSequence"]
-        print("load from json", len(animated_joints), animated_joints)
-        skeleton.animated_joints = animated_joints
 
-        skeleton.reduced_free_joints_map = ROCKETBOX_REDUCED_FREE_JOINTS_MAP  # data["reduced_free_joints_map"]
-        skeleton.bounds = ROCKETBOX_BOUNDS  # data["bounds"]
+        print("load from json", len(animated_joints))
+        skeleton.animated_joints = animated_joints
+        skeleton.reduced_free_joints_map = ROCKETBOX_REDUCED_FREE_JOINTS_MAP
+        skeleton.bounds = ROCKETBOX_BOUNDS
 
         skeleton.skeleton_model = collections.OrderedDict()
         skeleton.skeleton_model["joints"] = dict()
@@ -191,16 +190,21 @@ class SkeletonBuilder(object):
         if "neck_joint" in list(data.keys()):
             skeleton.skeleton_model["joints"]["neck"] = data["neck_joint"]
 
-        skeleton.frame_time = 1/30
+        skeleton.frame_time = frame_time
         skeleton.nodes = collections.OrderedDict()
         skeleton.root = data["root"]
-        root = self._create_node_from_unity_desc(skeleton, skeleton.root, data, None, 0)
+        if skeleton.root is None:
+            skeleton.root = animated_joints[0]
+        root = self._create_node_from_unity_desc(skeleton, skeleton.root, data, None, 0, add_extra_end_site)
+
         skeleton.max_level = skeleton._get_max_level()
         skeleton._set_joint_weights()
         skeleton.parent_dict = skeleton._get_parent_dict()
         skeleton._chain_names = skeleton._generate_chain_names()
         create_euler_frame_indices(skeleton)
+        skeleton.aligning_root_node = skeleton.root
         skeleton.aligning_root_dir = ROCKETBOX_ROOT_DIR
+
         skeleton.reference_frame = reference_frame_from_unity(data["referencePose"])
         skeleton.reference_frame_length = len(skeleton.reference_frame)
         create_identity_frame(skeleton)
@@ -340,11 +344,16 @@ class SkeletonBuilder(object):
         
         return node
 
-    def _create_node_from_unity_desc(self, skeleton, node_name, data, parent, level):
-        #print("add ", node_name)
-        node_idx = data["jointSequence"].index(node_name)
-        node_data = data["jointDescs"][node_idx]
-        ref_pose = data["referencePose"]
+    def get_joint_desc(self, data, name):
+        for idx in range(len(data["jointDescs"])):
+            if data["jointDescs"][idx]["name"] == name:
+                return data["jointDescs"][idx]
+        return None
+
+    def _create_node_from_unity_desc(self, skeleton, node_name, data, parent, level, add_extra_end_site=True):
+        node_data = self.get_joint_desc(data, node_name)
+        if node_data is None:
+            return
 
         if parent is None:
             channels = ["Xposition","Yposition","Zposition", "Xrotation","Yrotation","Zrotation"]
@@ -355,12 +364,12 @@ class SkeletonBuilder(object):
             node = SkeletonRootNode(node_name, channels, parent, level)
         else:# len(node_data["children"]) > 0:
             node = SkeletonJointNode(node_name, channels, parent, level)
+        node.offset = np.array(node_data["offset"])
+        node.offset[0] *= -1
+        node.rotation = np.array(node_data["rotation"])
+        node.rotation[0] *= -1
+        node.rotation[1] *= -1
        
-        # node.fixed = data["fixed"]
-        node.index = node_idx
-        
-        node.offset =  arr_from_unity_t(ref_pose["translations"][node_idx])
-        node.rotation = arr_from_unity_q(ref_pose["rotations"][node_idx])
         if node_name in skeleton.animated_joints:
             node.quaternion_frame_index = skeleton.animated_joints.index(node_name)
             node.fixed = False
@@ -371,19 +380,21 @@ class SkeletonBuilder(object):
         skeleton.nodes[node_name] = node
         skeleton.nodes[node_name].children = []
         if len(node_data["children"]) > 0:
+            node.index = node.quaternion_frame_index
             for c_name in node_data["children"]:
                 c_node = self._create_node_from_unity_desc(skeleton, c_name, data, node, level+1)
-                skeleton.nodes[node_name].children.append(c_node)
-        else:
+                if c_node is not None:
+                    skeleton.nodes[node_name].children.append(c_node)
+        if add_extra_end_site:
+            print("add extra end site")
+            node.index = -1
             channels = []
             c_name = node_name+"_EndSite"
             c_node = SkeletonEndSiteNode(c_name, channels, node,  level+1)
-            if "endSiteOffsets" in ref_pose:
-                c_node.offset =  arr_from_unity_t(ref_pose["endSiteOffsets"][node_idx])
             skeleton.nodes[node_name].children.append(c_node)
             skeleton.nodes[c_name] = c_node
-
         return node
+
 
     @classmethod
     def construct_arm_with_constraints(cls, n_joints, length):
