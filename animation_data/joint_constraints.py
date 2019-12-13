@@ -1,7 +1,7 @@
 import numpy as np
 import math
 from math import acos, cos, sin, atan
-from ..external.transformations import quaternion_about_axis, quaternion_inverse, quaternion_multiply, euler_from_quaternion
+from transformations import quaternion_about_axis, quaternion_inverse, quaternion_multiply, euler_from_quaternion
 
 
 def normalize(v):

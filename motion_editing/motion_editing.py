@@ -1,17 +1,16 @@
 from copy import copy
 import numpy as np
 import collections
+from transformations import quaternion_matrix, euler_from_matrix, quaternion_multiply, quaternion_matrix, quaternion_from_matrix
 from .numerical_ik_quat import NumericalInverseKinematicsQuat
 from .numerical_ik_exp import NumericalInverseKinematicsExp
 from .cubic_motion_spline import CubicMotionSpline, get_quaternion_delta
 from .skeleton_pose_model import SkeletonPoseModel
 from ..animation_data.motion_blending import smooth_joints_around_transition_using_slerp, create_transition_using_slerp, smooth_quaternion_frames
-from ..external.transformations import quaternion_matrix, euler_from_matrix, quaternion_multiply
 from ..utilities.log import write_message_to_log, LOG_MODE_DEBUG
 from .utils import convert_exp_frame_to_quat_frame
 from .fabrik_chain import FABRIKChain, FABRIKBone
 from ..animation_data.joint_constraints import JointConstraint, HingeConstraint2, BallSocketConstraint, ConeConstraint, ShoulderConstraint, HeadConstraint, SpineConstraint
-from ..external.transformations import quaternion_matrix, quaternion_from_matrix
 from ..animation_data.skeleton import LOOK_AT_DIR, SPINE_LOOK_AT_DIR
 
 SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION = "keyframe_position"

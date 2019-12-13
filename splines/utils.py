@@ -1,7 +1,7 @@
 from .parameterized_spline import ParameterizedSpline
 import numpy as np
 import math
-from ..external.transformations import quaternion_from_euler, euler_from_quaternion
+from transformations import quaternion_from_euler, euler_from_quaternion
 
 REF_VECTOR = [0.0,1.0]
 

@@ -7,10 +7,10 @@ Proceedings of the 26th annual conference on Computer graphics and interactive t
 """
 import math
 import numpy as np
+from transformations import quaternion_multiply, quaternion_about_axis, quaternion_matrix, quaternion_from_matrix, quaternion_inverse
 from .utils import normalize, to_local_cos, project_vec3
 from ..retargeting.utils import find_rotation_between_vectors
 from ..animation_data.utils import quaternion_from_vector_to_vector
-from ..external.transformations import quaternion_multiply, quaternion_about_axis, quaternion_matrix, quaternion_from_matrix, quaternion_inverse
 import scipy.integrate as integrate
 
 

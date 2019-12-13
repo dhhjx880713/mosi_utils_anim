@@ -1,4 +1,4 @@
-from ..external.transformations import quaternion_slerp
+from transformations import quaternion_slerp
 import numpy as np
 from copy import deepcopy
 from .constants import LEN_QUAT, LEN_ROOT_POS

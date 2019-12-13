@@ -1,6 +1,6 @@
 import numpy as np
 from math import sqrt
-from ..external.transformations import euler_matrix
+from transformations import euler_matrix
 
 
 def _align_point_clouds_2D(a, b, weights):

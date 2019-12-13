@@ -1,11 +1,11 @@
 import collections
 import numpy as np
 from copy import copy
+from transformations import quaternion_from_matrix, quaternion_matrix, quaternion_multiply, quaternion_slerp
 from .analytical_inverse_kinematics import AnalyticalLimbIK
 from .numerical_ik_exp import NumericalInverseKinematicsExp
 from .utils import normalize, project_on_intersection_circle, smooth_root_positions, quaternion_from_vector_to_vector
 from ..animation_data.motion_blending import create_transition_for_joints_using_slerp, BLEND_DIRECTION_FORWARD, BLEND_DIRECTION_BACKWARD, smooth_translation_in_quat_frames
-from ..external.transformations import quaternion_from_matrix, quaternion_matrix, quaternion_multiply, quaternion_slerp
 from ..animation_data.skeleton_models import IK_CHAINS_DEFAULT_SKELETON
 
 FOOT_STATE_GROUNDED = 0

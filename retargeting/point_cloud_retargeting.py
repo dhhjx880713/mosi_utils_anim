@@ -6,8 +6,8 @@ See: http://www.vis.uni-stuttgart.de/plain/vdl/vdl_upload/91_35_retargeting%20mo
 import numpy as np
 import math
 from .constants import OPENGL_UP_AXIS, GAME_ENGINE_SPINE_OFFSET_LIST
+from transformations import quaternion_matrix, quaternion_multiply, quaternion_about_axis, quaternion_inverse, quaternion_from_matrix
 from .utils import normalize, align_axis, find_rotation_between_vectors, align_root_translation, to_local_cos, get_quaternion_rotation_by_name, apply_additional_rotation_on_frames, project_vector_on_axis, quaternion_from_vector_to_vector
-from ..external.transformations import quaternion_matrix, quaternion_multiply, quaternion_about_axis, quaternion_inverse, quaternion_from_matrix
 from ..animation_data.skeleton_models import JOINT_CHILD_MAP
 from .analytical import create_local_cos_map_from_skeleton_axes_with_map, apply_manual_fixes
 

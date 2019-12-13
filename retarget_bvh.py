@@ -1,6 +1,6 @@
 import numpy as np
+from transformations import quaternion_from_euler
 from .animation_data import SkeletonBuilder, MotionVector, BVHReader, BVHWriter
-from .external.transformations import quaternion_from_euler
 from .retargeting import get_targets_from_motion, ROCKETBOX_TO_GAME_ENGINE_MAP, ADDITIONAL_ROTATION_MAP,GAME_ENGINE_TO_ROCKETBOX_MAP
 from .retargeting import get_new_frames_from_direction_constraints as get_new_frames_using_quaternion, retarget_from_src_to_target
 from .retargeting import get_new_euler_frames_from_direction_constraints as get_new_frames_using_euler

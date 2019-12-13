@@ -14,9 +14,9 @@ from scipy import stats  # linear regression
 from .quaternion_frame import QuaternionFrame
 from collections import OrderedDict
 from .body_plane import BodyPlane
-from .constants import LEN_EULER, LEN_ROOT, LEN_QUAT
+from .constants import *
 from .quaternion import Quaternion
-from ..external.transformations import quaternion_matrix, euler_from_matrix, \
+from transformations import quaternion_matrix, euler_from_matrix, \
     quaternion_from_matrix, euler_matrix, \
     quaternion_multiply, \
     quaternion_about_axis, \
@@ -27,7 +27,6 @@ from ..external.transformations import quaternion_matrix, euler_from_matrix, \
     quaternion_slerp, \
     quaternion_conjugate,  quaternion_inverse, rotation_from_matrix
 
-from .constants import *
 
 
 
