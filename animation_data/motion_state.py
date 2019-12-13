@@ -7,7 +7,6 @@ def get_random_color():
     if np.sum(random_color) < 0.5:
         random_color += np.array([0, 0, 1])
     return random_color.tolist()
-
 class MotionStateInterface(object):
     def update(self, dt):
         pass
@@ -40,6 +39,9 @@ class MotionStateInterface(object):
         pass
 
     def set_color_annotation(self, semantic_annotation, color_map):
+        pass
+
+    def set_time_function(self, time_function):
         pass
 
     def set_color_annotation_legacy(self, annotation, color_map):
@@ -79,6 +81,7 @@ class MotionState(MotionStateInterface):
         self.paused = False
         self.interpolate = False
         self.tick = None
+        self._time_function = None
 
     def update(self, dt):
         if self.play and not self.paused:
@@ -200,11 +203,24 @@ class MotionState(MotionStateInterface):
         self._frame_annotation = []
         for idx in range(self.n_annotations):
             self._frame_annotation.append({"label": "none", "color": [1,1,1]})
-        for label in list(semantic_annotation.keys()):
-            if label in list(color_map.keys()):
-                for idx in semantic_annotation[label]:
-                    self._frame_annotation[idx] = {"label": label,
-                                                   "color": color_map[label]}
+        for label in semantic_annotation.keys():
+            if label in color_map.keys():
+                entry = {"label": label, "color": color_map[label]}
+                if len(semantic_annotation[label]) > 0 and type(semantic_annotation[label][0]) == list:
+                    for indices in semantic_annotation[label]:
+                        for i in indices:
+                            if i < self.n_annotations:
+                                self._frame_annotation[i] = entry
+                else:
+                    for idx in semantic_annotation[label]:
+                        if idx < self.n_annotations:
+                            self._frame_annotation[idx] = entry
+                        else:
+                            print("warning", idx, self.n_annotations)
+
+
+    def set_time_function(self, time_function):
+        self._time_function = time_function
 
     def set_color_annotation_legacy(self, annotation, color_map):
         self._semantic_annotation = collections.OrderedDict()
@@ -249,7 +265,6 @@ class MotionState(MotionStateInterface):
 
     def set_position(self, position):
         delta = position - self.mv.frames[self.frame_idx, :3]
-        #print("delta", delta)
         self.mv.frames[:, :3] += delta
 
     def set_orientation(self, orientation):
@@ -308,5 +323,4 @@ class MotionSplineState(MotionStateInterface):
 
     def set_time(self, t):
         self.time = t
-
 
