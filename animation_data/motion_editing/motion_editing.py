@@ -4,6 +4,7 @@ import collections
 from .numerical_ik_quat import NumericalInverseKinematicsQuat
 from .numerical_ik_exp import NumericalInverseKinematicsExp
 from .cubic_motion_spline import CubicMotionSpline, get_quaternion_delta
+from .skeleton_pose_model import SkeletonPoseModel
 from ..motion_blending import smooth_joints_around_transition_using_slerp, create_transition_using_slerp
 from ...external.transformations import quaternion_matrix, euler_from_matrix, quaternion_multiply
 from ...utilities.log import write_message_to_log, LOG_MODE_DEBUG
@@ -16,9 +17,6 @@ from ..motion_blending import smooth_quaternion_frames
 SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION = "keyframe_position"
 SPATIAL_CONSTRAINT_TYPE_KEYFRAME_RELATIVE_POSITION = "keyframe_relative_position"
 SUPPORTED_CONSTRAINT_TYPES = [SPATIAL_CONSTRAINT_TYPE_KEYFRAME_POSITION, SPATIAL_CONSTRAINT_TYPE_KEYFRAME_RELATIVE_POSITION]
-
-
-
 
 
 def add_frames(skeleton, a, b):
@@ -151,7 +149,7 @@ class MotionEditing(object):
         self.pose = SkeletonPoseModel(self.skeleton, self.use_euler)
         self._ik = NumericalInverseKinematicsQuat(self.pose, self._ik_settings)
         self._ik_exp = NumericalInverseKinematicsExp(self.skeleton, self._ik_settings)
-
+        
     def add_constraints_to_skeleton(self, joint_constraints):
         joint_map = self.skeleton.skeleton_model["joints"]
         for j in joint_constraints:
@@ -201,12 +199,7 @@ class MotionEditing(object):
                 self.skeleton.nodes[skel_j].joint_constraint = h
             elif c["type"] == "head":
                 skel_j = self.skeleton.nodes[skel_j].parent.node_name
-                #if len(self.skeleton.nodes[skel_j].children) > 0:
-                #    child_node = self.skeleton.nodes[skel_j].children[0]
-                #    if len(child_node.channels) > 0:
-                #        skel_j = child_node.node_name
                 axis = np.array(c["axis"])
-                #axis = self.skeleton.skeleton_model["cos_map"][skel_j]["y"]
                 tk1 = c["tk1"]
                 tk2 = c["tk2"]
                 sk1 = c["sk1"]
