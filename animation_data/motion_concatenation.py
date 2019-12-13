@@ -153,7 +153,8 @@ def get_global_node_orientation_vector(skeleton, node_name, frame, v=[0, 0, 1]):
     return dir_vec
 
 
-def get_node_aligning_2d_transform(skeleton, node_name, prev_frames, new_frames, ref_vector=[0,0,1]):
+REF_VECTOR = np.array([0,0,1])
+def get_node_aligning_2d_transform(skeleton, node_name, prev_frames, new_frames, ref_vector=REF_VECTOR):
     """from last of prev frames to first of new frames"""
 
     m_a = skeleton.nodes[node_name].get_global_matrix(prev_frames[-1])
