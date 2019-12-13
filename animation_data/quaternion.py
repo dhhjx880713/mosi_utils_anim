@@ -1,6 +1,5 @@
 # encoding: UTF-8
 import numpy as np
-from ..external.transformations import *
 
 
 class Quaternion(object):
