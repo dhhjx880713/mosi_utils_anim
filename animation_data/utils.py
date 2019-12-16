@@ -95,7 +95,7 @@ def get_smoothed_quaternion_motions_from_euler_motions(euler_motions, ref_bvh):
 def quaternion_data_smoothing(quat_frames):
     smoothed_quat_frames = {}
     filenames = quat_frames.keys()
-    smoothed_quat_frames_data = np.asarray(copy.deepcopy(quat_frames.values()))
+    smoothed_quat_frames_data = np.asarray(deepcopy(quat_frames.values()))
     print('quaternion frame data shape: ', smoothed_quat_frames_data.shape)
     assert len(smoothed_quat_frames_data.shape) == 3, ('The shape of quaternion frames is not correct!')
     n_samples, n_frames, n_dims = smoothed_quat_frames_data.shape
