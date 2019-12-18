@@ -9,7 +9,7 @@ import glob
 import numpy as np
 import copy
 from transformations import euler_from_quaternion, quaternion_from_euler, quaternion_matrix, quaternion_from_matrix, quaternion_multiply
-from morphablegraphs.animation_data import BVHReader, MotionVector, SkeletonBuilder
+from .animation_data import BVHReader, MotionVector, SkeletonBuilder
 
 
 def flip_coordinate_system(q):
