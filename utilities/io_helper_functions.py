@@ -12,8 +12,8 @@ import collections
 import math
 import numpy as np
 from datetime import datetime
-from ..animation_data.utils import transform_euler_frames, \
-    transform_quaternion_frames, convert_euler_frames_to_cartesian_frames
+from ..animation_data.utils import convert_euler_frames_to_cartesian_frames
+from ..animation_data.motion_concatenation import transform_euler_frames, transform_quaternion_frames
 from ..animation_data.bvh import BVHWriter, BVHReader
 sys.path.append(os.path.dirname(__file__))
 from ..splines import ParameterizedSpline

@@ -14,9 +14,9 @@ from scipy import stats  # linear regression
 from .quaternion_frame import QuaternionFrame
 from collections import OrderedDict
 from .body_plane import BodyPlane
-from .constants import LEN_EULER, LEN_ROOT, LEN_QUAT
+from .constants import *
 from .quaternion import Quaternion
-from ..external.transformations import quaternion_matrix, euler_from_matrix, \
+from transformations import quaternion_matrix, euler_from_matrix, \
     quaternion_from_matrix, euler_matrix, \
     quaternion_multiply, \
     quaternion_about_axis, \
@@ -27,7 +27,6 @@ from ..external.transformations import quaternion_matrix, euler_from_matrix, \
     quaternion_slerp, \
     quaternion_conjugate,  quaternion_inverse, rotation_from_matrix
 
-from .constants import *
 
 
 
@@ -42,13 +41,6 @@ def rotation_order_to_string(rotation_order):
             r_order_string += "z"
     return r_order_string
 
-
-def extract_root_positions_from_frames(frames):
-    roots = []
-    for i in range(len(frames)):
-        position = np.array([frames[i][0], frames[i][1], frames[i][2]])
-        roots.append(position)
-    return np.array(roots)
 
 def quaternion_inv(q):
     print("Deprecation Warning: Function marked as Deprecated!")
@@ -96,7 +88,7 @@ def get_smoothed_quaternion_motions_from_euler_motions(euler_motions, ref_bvh):
 def quaternion_data_smoothing(quat_frames):
     smoothed_quat_frames = {}
     filenames = quat_frames.keys()
-    smoothed_quat_frames_data = np.asarray(copy.deepcopy(quat_frames.values()))
+    smoothed_quat_frames_data = np.asarray(deepcopy(quat_frames.values()))
     print('quaternion frame data shape: ', smoothed_quat_frames_data.shape)
     assert len(smoothed_quat_frames_data.shape) == 3, ('The shape of quaternion frames is not correct!')
     n_samples, n_frames, n_dims = smoothed_quat_frames_data.shape
@@ -152,12 +144,6 @@ def get_step_length(frames):
     root_points = extract_root_positions(frames)
     step_len = get_arc_length_from_points(root_points)
     return step_len
-
-
-def inverse_pose_transform(translation, euler_angles):
-    inv_translation = -translation[0],-translation[1],-translation[2]
-    inv_euler_angles = -euler_angles[0],-euler_angles[1],-euler_angles[2]
-    return inv_translation, inv_euler_angles
 
 
 def euler_to_quaternion(euler_angles, rotation_order=DEFAULT_ROTATION_ORDER, filter_value=True):
@@ -797,38 +783,7 @@ def convert_quat_coeffs_to_cartesian_coeffs(elementary_action,
     # return np.asarray(cartesian_coeffs_mat)
 
 
-def find_aligning_transformation(skeleton, euler_frames_a, euler_frames_b):
-    """
-    performs alignment of the point clouds based on the poses at the end of
-    euler_frames_a and the start of euler_frames_b
-    Returns the rotation around y axis in radians, x offset and z offset
-    """
-    point_cloud_a = convert_euler_frame_to_cartesian_frame(
-        skeleton, euler_frames_a[-1])
-    point_cloud_b = convert_euler_frame_to_cartesian_frame(
-        skeleton, euler_frames_b[0])
-    weights = skeleton.get_joint_weights()
-    theta, offset_x, offset_z = align_point_clouds_2D(
-        point_cloud_a, point_cloud_b, weights)
-    return theta, offset_x, offset_z
 
-
-def rotate_around_y_axis(point, theta):
-    """
-    source https://www.siggraph.org/education/materials/HyperGraph/modeling/mod_tran/2drota.htm
-    Parameters
-    ---------
-    *point: list
-    \t coordinates
-    *theta: float
-    \t angle in radians
-    """
-    print("Deprecation Warning: Function marked as Deprecated!")
-    pass
-    # transfomed_point = point[:]
-    # transfomed_point[0] = point[0] * cos(theta) - point[2] * sin(theta)
-    # transfomed_point[2] = point[2] * cos(theta) + point[0] * sin(theta)
-    # return transfomed_point
 
 
 def transform_point_by_quaternion(point, quaternion, offset, origin=None):
@@ -937,189 +892,6 @@ def transform_point(point, euler_angles, offset, origin=None, rotation_order=DEF
     return transformed_point
 
 
-def transform_euler_frame(euler_frame, angles, offset, rotation_order=None, global_rotation=True):
-    """
-    Calls transform_point for the root parameters and adds theta to the y rotation
-    channel of the frame.
-
-    The offset of root is transformed by transform_point
-    The orientation of root is rotated by Rotation matrix
-
-    Parameters
-    ---------
-    *euler_frame: np.ndarray
-    \t the parameters of a single frame
-    *angles: list of floats
-    \tRotation angles in degrees
-    *offset: np.ndarray
-    \tTranslation
-    """
-    if rotation_order is None:
-        rotation_order = ["Xrotation", "Yrotation", "Zrotation"]
-    transformed_frame = deepcopy(euler_frame)
-    if global_rotation:
-        transformed_frame[:3] = transform_point(euler_frame[:3], angles, offset, rotation_order=rotation_order)
-    else:
-        transformed_frame[:3] = transform_point(euler_frame[:3], np.zeros(3), offset, rotation_order=rotation_order)
-    R = euler_matrix(np.deg2rad(angles[0]), np.deg2rad(angles[1]), np.deg2rad(angles[2]), axes='rxyz')
-    if rotation_order[0] == 'Xrotation':
-        if rotation_order[1] == 'Yrotation':
-            OR = euler_matrix(np.deg2rad(euler_frame[3]),
-                              np.deg2rad(euler_frame[4]),
-                              np.deg2rad(euler_frame[5]),
-                              axes='rxyz')
-            rotmat = np.dot(R, OR)
-            eul_angles = np.rad2deg(euler_from_matrix(rotmat, 'rxyz'))
-        elif rotation_order[1] == 'Zrotation':
-            OR = euler_matrix(np.deg2rad(euler_frame[3]),
-                              np.deg2rad(euler_frame[4]),
-                              np.deg2rad(euler_frame[5]),
-                              axes='rxzy')
-            rotmat = np.dot(R, OR)
-            eul_angles = np.rad2deg(euler_from_matrix(rotmat, 'rxzy'))
-    elif rotation_order[0] == 'Yrotation':
-        if rotation_order[1] == 'Xrotation':
-            OR = euler_matrix(np.deg2rad(euler_frame[3]),
-                              np.deg2rad(euler_frame[4]),
-                              np.deg2rad(euler_frame[5]),
-                              axes='ryxz')
-            rotmat = np.dot(R, OR)
-            eul_angles = np.rad2deg(euler_from_matrix(rotmat, 'ryxz'))
-        elif rotation_order[1] == 'Zrotation':
-            OR = euler_matrix(np.deg2rad(euler_frame[3]),
-                              np.deg2rad(euler_frame[4]),
-                              np.deg2rad(euler_frame[5]),
-                              axes='ryzx')
-            rotmat = np.dot(R, OR)
-            eul_angles = np.rad2deg(euler_from_matrix(rotmat, 'ryzx'))
-    elif rotation_order[0] == 'Zrotation':
-        if rotation_order[1] == 'Xrotation':
-            OR = euler_matrix(np.deg2rad(euler_frame[3]),
-                              np.deg2rad(euler_frame[4]),
-                              np.deg2rad(euler_frame[5]),
-                              axes='rzxy')
-            rotmat = np.dot(R, OR)
-            eul_angles = np.rad2deg(euler_from_matrix(rotmat, 'rzxy'))
-        elif rotation_order[1] == 'Yrotation':
-            OR = euler_matrix(np.deg2rad(euler_frame[3]),
-                              np.deg2rad(euler_frame[4]),
-                              np.deg2rad(euler_frame[5]),
-                              axes='rzyx')
-            rotmat = np.dot(R, OR)
-            eul_angles = np.rad2deg(euler_from_matrix(rotmat, 'rzyx'))
-    transformed_frame[3:6] = eul_angles
-    return transformed_frame
-
-
-def transform_euler_frames(euler_frames, angles, offset, rotation_order=None):
-    """ Applies a transformation on the root joint of a list euler frames.
-    Parameters
-    ----------
-    *euler_frames: np.ndarray
-    \tList of frames where the rotation is represented as euler angles in degrees.
-    *angles: list of floats
-    \tRotation angles in degrees
-    *offset:  np.ndarray
-    \tTranslation
-    """
-    transformed_euler_frames = []
-    for frame in euler_frames:
-        transformed_euler_frames.append(
-            transform_euler_frame(frame, angles, offset, rotation_order))
-    return np.array(transformed_euler_frames)
-
-'''
-def transform_quaternion_frame(quat_frame,
-                               angles,
-                               offset,
-                               origin=None,
-                               rotation_order=None):
-    """
-    Calls transform_point for the root parameters and adds theta to the y
-    rotation channel of the frame.
-    Parameters
-    ---------
-    *quat_frame: np.ndarray
-    \t the parameters of a single frame
-    *angles: list of floats
-    \tRotation angles in degrees
-    *offset: np.ndarray
-    \tTranslation
-    """
-
-    if rotation_order is None:
-        rotation_order = ["Xrotation", "Yrotation", "Zrotation"]
-    transformed_frame = quat_frame[:]
-    #    original_point_copy = deepcopy(original_point)
-    #    transformed_frame[:3] = transform_point(quat_frame[:3], [0, 0, 0], offset)
-    # q = euler_to_quaternion(angles, rotation_order) # replace
-    if round(angles[0], 3) == 0 and round(angles[2], 3) == 0:
-        q = quaternion_about_axis(np.deg2rad(angles[1]), [0, 1, 0])
-    else:
-        q = euler_to_quaternion(angles, rotation_order)
-
-    transformed_frame[:3] = transform_point(quat_frame[:3], angles, offset, origin)
-    #transformed_frame[:3] = transform_point_by_quaternion_faster2(quat_frame[:3], q, offset, origin)
-    oq = quat_frame[3:7]
-    rotated_q = quaternion_multiply(q, oq)
-    transformed_frame[3:7] = rotated_q
-    return transformed_frame
-'''
-
-
-def copy_joint_rotation(src_file, target_file, target_joints, save_folder):
-    print("Deprecation Warning: Function marked as Deprecated!")
-    pass
-    # src_bvhreader = BVHReader(src_file)
-    # target_bvhreader = BVHReader(target_file)
-    # src_skeleton = SkeletonBuilder().load_from_bvh(src_bvhreader)
-    # filename = os.path.split(target_file)[-1]
-    # target_skeleton = SkeletonBuilder().load_from_bvh(target_bvhreader)
-    # for i in range(len(target_bvhreader.frames)):
-    #     for joint in target_joints:
-    #         target_joint_index = target_skeleton.nodes[joint].euler_frame_index
-    #         src_joint_index = src_skeleton.nodes[joint].euler_frame_index
-    #         target_bvhreader.frames[i][3+3*target_joint_index: 3+3*(target_joint_index+1)] = src_bvhreader.frames[0][3+3*src_joint_index: 3+3*(src_joint_index+1)]
-    # BVHWriter(os.path.join(save_folder, filename), target_skeleton, target_bvhreader.frames,
-    #           target_skeleton.frame_time, is_quaternion=False)
-
-
-def get_children(joint_node, children_list=[]):
-    print("Deprecation Warning: Function marked as Deprecated!")
-    pass
-    # if joint_node.children != []:
-    #     for child in joint_node.children:
-    #         children_list.append(child.node_name)
-    #         get_children(child, children_list)
-
-
-def transform_quaternion_frames(quat_frames, angles, offset, rotation_order=None):
-    """ Applies a transformation on the root joint of a list quaternion frames.
-    Parameters
-    ----------
-    *quat_frames: np.ndarray
-    \tList of frames where the rotation is represented as euler angles in degrees.
-    *angles: list of floats
-    \tRotation angles in degrees
-    *offset:  np.ndarray
-    \tTranslation
-    """
-    if rotation_order is None:
-        rotation_order = DEFAULT_ROTATION_ORDER
-    offset = np.array(offset)
-    if round(angles[0], 3) == 0 and round(angles[2], 3) == 0:
-        rotation_q = quaternion_about_axis(np.deg2rad(angles[1]), [0, 1, 0])
-    else:
-        rotation_q = euler_to_quaternion(angles, rotation_order)
-    rotation_matrix = euler_angles_to_rotation_matrix(angles, rotation_order)[:3, :3]
-    for frame in quat_frames:
-        ot = frame[:3]
-        oq = frame[3:7]
-        frame[:3] = np.dot(rotation_matrix, ot) + offset
-        frame[3:7] = quaternion_multiply(rotation_q, oq)
-    return quat_frames
-
-
 def smooth_quaternion_frames(quaternion_frames, discontinuity, window=20):
     """ Smooth quaternion frames given discontinuity frame
 
@@ -1218,19 +990,6 @@ def smooth_quaternion_frames_partially(quaternion_frames, joint_parameter_indice
         joint_parameter_index = i*4+3
         for frame_index in range(n_frames):
             quaternion_frames[frame_index][joint_parameter_index] = quaternion_frames[frame_index][joint_parameter_index]+magnitude_vector[joint_parameter_index] * smoothing_factors[frame_index]
-    #
-    # for i in xrange(len(quaternion_frames[0])):
-    #     joint_parameter_value = quaternion_frames[:, i]
-    #     if i in joint_parameter_indices:
-    #
-    #         magnitude = joint_parameter_value[transition_frame] - joint_parameter_value[transition_frame - 1]
-    #         print "smooth", i, magnitude, smoothing_factors
-    #         new_value = joint_parameter_value + (magnitude * smoothing_factors)
-    #         new_quaternion_frames.append(new_value)
-    #     else:
-    #         new_quaternion_frames.append(joint_parameter_value)
-    # new_quaternion_frames = np.array(new_quaternion_frames).T
-    #return quaternion_frames
 
 
 def smooth_motion(euler_frames, discontinuity, window=20):
@@ -1285,37 +1044,6 @@ def smoothly_concatenate(euler_frames_a, euler_frames_b, window_size=20):
     return euler_frames
 
 
-def shift_euler_frames_to_ground(euler_frames, ground_contact_joints, skeleton, align_index=0):
-    """
-    shift all euler frames of motion to ground, which means the y-axis for
-    gound contact joint should be 0
-    Step 1: apply forward kinematic to compute global position for ground
-            contact joint for each frame
-    Setp 2: find the offset from ground contact joint to ground, and shift
-            corresponding frame based on offset
-    """
-    # tmp_frames = deepcopy(euler_frames)
-    # for frame in tmp_frames:
-    #     contact_point_position = get_cartesian_coordinates_from_euler(skeleton, ground_contact_joint, frame)
-    #     offset_y = contact_point_position[1]
-    #     # shift root position by offset_y
-    #     frame[1] = frame[1] - offset_y
-    # return tmp_frames
-    foot_contact_heights = []
-    for joint in ground_contact_joints:
-        foot_contact_heights.append(skeleton.nodes[joint].get_global_position_from_euler(euler_frames[align_index])[1])
-    return transform_euler_frames(euler_frames,
-                                  [0.0, 0.0, 0.0],
-                                  np.array([0, -np.average(foot_contact_heights), 0]))
-
-
-def shift_quat_frames_to_ground(quat_frames, ground_contact_joints, skeleton, align_index=0):
-    foot_contact_heights = []
-    for joint in ground_contact_joints:
-        foot_contact_heights.append(skeleton.nodes[joint].get_global_position(quat_frames[align_index])[1])
-    return transform_quaternion_frames(quat_frames,
-                                       [0.0, 0.0, 0.0],
-                                       np.array([0, -np.average(foot_contact_heights), 0]))
 
 
 def lock_contact_joint(quat_frames, skeleton, contact_joint):
@@ -1333,103 +1061,6 @@ def lock_contact_joint(quat_frames, skeleton, contact_joint):
     #     offset = np.asarray(ref_point) - np.asarray(contact_pos)
     #     new_frames[i][:3] += offset
     # return new_frames
-
-
-def get_rest_pose(bvhreader, save_path):
-    print("Deprecation Warning: Function marked as Deprecated!")
-    pass
-    # from morphablegraphs.animation_data import Skeleton
-    # rest_pose = np.zeros(len(bvhreader.frames[0]))
-    # skeleton = SkeletonBuilder().load_from_bvh(bvhreader)
-    # BVHWriter(save_path, skeleton, [rest_pose], bvhreader.frame_time,
-    #           is_quaternion=False)
-
-
-def align_frames(skeleton, euler_frames_a, euler_frames_b, smooth=True):
-    """
-    calls find_aligning_transformation and concatenates the frames based on the
-    resulting transformation
-     Parameters
-    ----------
-    *skeleton: Skeleton
-    \tUsed to extract hierarchy information.
-    *euler_frames_a: np.ndarray
-    \List of frames where the rotation is represented as euler angles in degrees.
-    *euler_frames_b: np.ndarray
-    \List of frames where the rotation is represented as euler angles in degrees.
-    *smooth: bool
-    \t Sets whether or not smoothing is supposed to be applied on the at the transition.
-     Returns
-    -------
-    *aligned_frames : np.ndarray
-    \tAligned and optionally smoothed motion
-    """
-    theta, offset_x, offset_z = find_aligning_transformation(skeleton, euler_frames_a, euler_frames_b)
-
-    # apply 2d transformation
-    offset = np.array([offset_x, 0, offset_z])
-    angles = [0, np.degrees(theta), 0]
-    euler_frames_b = transform_euler_frames(euler_frames_b, angles,
-                                            offset)
-
-    # concatenate frames and optionally apply smoothing
-    if smooth:
-        euler_frames = smoothly_concatenate(euler_frames_a, euler_frames_b)
-    else:
-        euler_frames = np.concatenate((euler_frames_a, euler_frames_b), axis=0)
-    return euler_frames
-
-
-def get_2d_pose_transform(quaternion_frames, frame_number, param_range=(3,7)):
-    print("Deprecation Warning: Function marked as Deprecated!")
-    pass
-    # dir_vec = pose_orientation_quat(quaternion_frames[frame_number], param_range)
-    # angle = get_rotation_angle(dir_vec, [0, -1])
-    # offset_x = quaternion_frames[frame_number][0]
-    # offset_z = quaternion_frames[frame_number][2]
-    # return [offset_x, 0.0, offset_z], [0,angle,0]
-
-
-def fast_quat_frames_transformation(quaternion_frames_a,
-                                    quaternion_frames_b, param_range=(3,7)):
-    #param_range = (7,11)
-    dir_vec_a = pose_orientation_quat(quaternion_frames_a[-1],param_range)
-    dir_vec_b = pose_orientation_quat(quaternion_frames_b[0],param_range)
-    #print "dir_vector a", dir_vec_a
-
-    #print "dir_vector b", dir_vec_b
-
-    #find_aligning_transformation
-    angle = get_rotation_angle(dir_vec_a, dir_vec_b)
-    offset_x = quaternion_frames_a[-1][0] - quaternion_frames_b[0][0]
-    offset_z = quaternion_frames_a[-1][2] - quaternion_frames_b[0][2]
-    offset = [offset_x, 0.0, offset_z]
-    return angle, offset
-
-
-def get_quat_frame_transformation(quaternion_frame_a,
-                                  quaternion_frame_b,
-                                  skeleton,
-                                  param_range=(3, 7),
-                                  feet_contact_joints=['ball_l', 'ball_r']):
-    '''
-    calculate the transformation from quaternion_frame_a to quaternion_frame_b
-    :param quaternion_frame_a:
-    :param quaternion_frame_b:
-    :param param_range:
-    :return:
-    '''
-    print("Deprecation Warning: Function marked as Deprecated!")
-    pass
-    # dir_vec_a = pose_orientation_quat(quaternion_frame_a, param_range)
-    # dir_vec_b = pose_orientation_quat(quaternion_frame_b, param_range)
-    # angle = get_rotation_angle(dir_vec_a, dir_vec_b)
-    # offset_x = quaternion_frame_a[0] - quaternion_frame_b[0]
-    # offset_z = quaternion_frame_a[2] - quaternion_frame_b[2]
-    # lh = skeleton.nodes[feet_contact_joints[0]].get_global_position(quaternion_frame_b)[1]
-    # rh = skeleton.nodes[feet_contact_joints[1]].get_global_position(quaternion_frame_b)[1]
-    # offset = [offset_x, -(lh + rh)/2.0, offset_z]
-    # return angle, offset
 
 
 def fast_euler_frames_transformation(euler_frames_a,
@@ -1473,31 +1104,6 @@ def point_to_euler_angle(vec):
     vec = np.array(vec)
     theta = np.rad2deg(np.arctan2(vec[1], vec[0]))
     return theta
-
-
-def fast_quat_frames_alignment(quaternion_frames_a,
-                               quaternion_frames_b,
-                               smooth=True,
-                               smoothing_window=DEFAULT_SMOOTHING_WINDOW_SIZE,
-                               param_range=(3, 7)):
-    """implement a fast frame alignment based on orientation and offset of root
-       of last frame of first motion and first frame of second motion
-    """
-
-    angle, offset = fast_quat_frames_transformation(quaternion_frames_a, quaternion_frames_b, param_range)
-    transformed_frames = transform_quaternion_frames(quaternion_frames_b,
-                                                     [0, angle, 0],
-                                                     offset)
-    # concatenate the quaternion_frames_a and transformed_framess
-    if smooth:
-        quaternion_frames = smoothly_concatenate_quaternion_frames(
-            quaternion_frames_a,
-            transformed_frames,
-            window_size=smoothing_window)
-    else:
-        quaternion_frames = np.concatenate((quaternion_frames_a,
-                                            transformed_frames))
-    return quaternion_frames
 
 
 def fast_euler_frames_alignment(euler_frames_a,
@@ -1624,38 +1230,6 @@ def calculate_weighted_frame_distance_quat(quat_frame_a,
         diff += tmp
     return diff
 
-
-def calculate_pose_distances_from_low_dim(skeleton, mm_models, X, Y):
-    """
-    Converts low dimensional vectors to euler vectors and calculates the
-    pose distance error by calling calculate_pose_distance
-    Parameters
-    ----------
-    * skeleton: BVHReader
-    \tContains the skeleton definition needed for the point cloud conversion
-
-    * mm_models: Dict of MotionPrimitives
-    \tContains the motion primitives for X and Y data
-
-     * X: List
-    \tList of low dimensional vectors
-
-    * Y: List
-    \tList of low dimensional vectors
-    """
-    print("Deprecation Warning: Function marked as Deprecated!")
-    pass
-    # assert len(X) == len(Y)
-    # n = len(X)
-    # errors = []
-    # for i in range(n):
-    #     euler_frames_a = mm_models["X"].back_project(X[i]).get_motion_vector()
-    #     euler_frames_b = mm_models["Y"].back_project(Y[i]).get_motion_vector()
-    #     error = calculate_pose_distance(
-    #         skeleton, euler_frames_a, euler_frames_b)
-    #     errors.append(error)
-
-    # return errors
 
 
 def extract_root_positions(frames):
@@ -1787,42 +1361,6 @@ def get_dir_from_2d_points(points):
     dir = points[-1] - points[2]
     dir = dir/np.linalg.norm(dir)
     return dir
-
-
-def align_quaternion_frames_only_last_frame(quat_frames, prev_frames=None, transformation=None):
-    """Concatenate and align quaternion frames based on previous frames or
-        given transformation
-
-    Parameters
-    ----------
-    * new_frames: list
-         A list of quaternion frames
-    * prev_frames: list
-        A list of quaternion frames
-   *  transformation: dict
-       Contains translation and orientation in Euler angles
-    Returns:
-    --------
-    * transformed_frames: np.ndarray
-        Quaternion frames resulting from the back projection of s,
-        transformed to fit to prev_frames.
-
-    """
-    print("Deprecation Warning: Function marked as Deprecated!")
-    pass
-    # # find alignment transformation or use given transformation
-    # if prev_frames is not None:
-    #     angle, offset = fast_quat_frames_transformation(prev_frames, quat_frames)
-    #     transformed_frames = transform_quaternion_frames([quat_frames[-1]],
-    #                                                      [0, angle, 0],
-    #                                                      offset)
-    #     return transformed_frames
-    # elif prev_frames is None and transformation is not None:
-    #     # align frames
-    #     transformed_frames = transform_quaternion_frames([quat_frames[-1]], transformation["orientation"], transformation["position"])
-    #     return transformed_frames
-    # else:
-    #     return [quat_frames[-1]]
 
 
 def align_quaternion_frames(quat_frames, prev_frames=None, transformation=None, param_range=(3,7)):

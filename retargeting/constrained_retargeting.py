@@ -1,7 +1,7 @@
 import numpy as np
+from transformations import quaternion_from_matrix, quaternion_matrix
 from .analytical import Retargeting, generate_joint_map, apply_additional_rotation_on_frames
 from ..motion_editing.hybrit_ik import HybritIK
-from ..external.transformations import quaternion_from_matrix, quaternion_matrix
 
 IK_SETTINGS = {
     "tolerance": 0.05,

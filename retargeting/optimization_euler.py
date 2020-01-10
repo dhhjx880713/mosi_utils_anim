@@ -1,9 +1,8 @@
 # encoding: UTF-8
 import numpy as np
 from scipy.optimize import minimize
-#from python_src.morphablegraphs.animation_data.retargeting import *
+from transformations import quaternion_from_matrix, euler_matrix, quaternion_matrix, quaternion_multiply, euler_from_quaternion, quaternion_from_euler, quaternion_inverse, euler_from_matrix
 from .constants import ROCKETBOX_TO_GAME_ENGINE_MAP, GAME_ENGINE_ROOT_JOINT, GAME_ENGINE_REFERENCE_POSE_EULER, EXTRA_ROOT_NAME, OPENGL_UP_AXIS, ROCKETBOX_ROOT_OFFSET
-from ..external.transformations import quaternion_from_matrix, euler_matrix, quaternion_matrix, quaternion_multiply, euler_from_quaternion, quaternion_from_euler, quaternion_inverse, euler_from_matrix
 from ..animation_data.constants import ROTATION_TYPE_EULER, ROTATION_TYPE_QUATERNION, LEN_EULER, LEN_ROOT, LEN_QUAT
 
 

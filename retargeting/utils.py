@@ -1,6 +1,6 @@
 import numpy as np
 import math
-from ..external.transformations import quaternion_from_matrix, euler_matrix, quaternion_matrix, quaternion_multiply, euler_from_quaternion, quaternion_from_euler, quaternion_inverse, euler_from_matrix
+from transformations import quaternion_from_matrix, euler_matrix, quaternion_matrix, quaternion_multiply, euler_from_quaternion, quaternion_from_euler, quaternion_inverse, euler_from_matrix
 from ..animation_data.utils import quaternion_from_vector_to_vector
 
 AXES = [[1,0,0],[0,1,0],[0,0,1], [-1,0,0],[0,-1,0],[0,0,-1]]
@@ -127,7 +127,7 @@ def find_rotation_between_vectors(a, b):
 
 def to_local_cos_old(skeleton, node_name, frame, q):
     # bring into parent coordinate system
-    pm = skeleton.nodes[node_name].get_global_matrix(frame)[:3,:3]
+    pm = skeleton.nodes[node_name].get_global_matrix(frame)#[:3,:3]
     inv_pm = np.linalg.inv(pm)
     r = quaternion_matrix(q)[:3,:3]
     lr = np.dot(inv_pm, r)[:3,:3]
@@ -137,14 +137,14 @@ def to_local_cos_old(skeleton, node_name, frame, q):
 
 def to_local_cos(skeleton, node_name, frame, q):
     # bring into parent coordinate system
-    pm = skeleton.nodes[node_name].get_global_matrix(frame)[:3,:3]
+    pm = skeleton.nodes[node_name].get_global_matrix(frame)#[:3,:3]
     inv_p = quaternion_inverse(quaternion_from_matrix(pm))
     normalize(inv_p)
     return quaternion_multiply(inv_p, q)
 
 
 def to_global_cos(skeleton, node_name, frame, q):
-    pm = skeleton.nodes[node_name].get_global_matrix(frame)[:3,:3]
+    pm = skeleton.nodes[node_name].get_global_matrix(frame)#[:3,:3]
     r = quaternion_matrix(q)[:3, :3]
     lr = np.dot(pm, r)[:3, :3]
     q = quaternion_from_matrix(lr)

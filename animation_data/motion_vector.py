@@ -3,12 +3,12 @@ __author__ = 'erhe01'
 from datetime import datetime
 import os
 import numpy as np
+import imp
+from transformations import quaternion_inverse, quaternion_multiply, quaternion_slerp
 from .utils import convert_euler_frames_to_quaternion_frames
 from .motion_concatenation import align_and_concatenate_frames, smooth_root_positions#, align_frames_and_fix_feet
 from .constants import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER
 from .bvh import BVHWriter
-import imp
-from ..external.transformations import quaternion_inverse, quaternion_multiply, quaternion_slerp
 
 
 

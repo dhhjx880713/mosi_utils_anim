@@ -1,10 +1,10 @@
 import collections
 import numpy as np
+from transformations import quaternion_from_matrix, quaternion_multiply, quaternion_matrix, quaternion_slerp, quaternion_inverse
 from ..animation_data.skeleton_models import *
 from .motion_grounding import MotionGroundingConstraint, FOOT_STATE_SWINGING
 from .utils import get_average_joint_position, get_average_joint_direction, get_joint_height, normalize, get_average_direction_from_target, \
     quaternion_from_vector_to_vector
-from ..external.transformations import quaternion_from_matrix, quaternion_multiply, quaternion_matrix, quaternion_slerp, quaternion_inverse
 
 
 def get_quat_delta(qa, qb):

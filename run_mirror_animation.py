@@ -8,8 +8,8 @@ import os
 import glob
 import numpy as np
 import copy
-from morphablegraphs.animation_data import BVHReader, MotionVector, SkeletonBuilder
-from morphablegraphs.external.transformations import euler_from_quaternion, quaternion_from_euler, quaternion_matrix, quaternion_from_matrix, quaternion_multiply
+from transformations import euler_from_quaternion, quaternion_from_euler, quaternion_matrix, quaternion_from_matrix, quaternion_multiply
+from .animation_data import BVHReader, MotionVector, SkeletonBuilder
 
 
 def flip_coordinate_system(q):

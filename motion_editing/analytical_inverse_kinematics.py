@@ -7,10 +7,10 @@ Proceedings of the 26th annual conference on Computer graphics and interactive t
 """
 import math
 import numpy as np
+from transformations import quaternion_multiply, quaternion_about_axis, quaternion_matrix, quaternion_from_matrix, quaternion_inverse
 from .utils import normalize, to_local_cos, project_vec3
 from ..retargeting.utils import find_rotation_between_vectors
 from ..animation_data.utils import quaternion_from_vector_to_vector
-from ..external.transformations import quaternion_multiply, quaternion_about_axis, quaternion_matrix, quaternion_from_matrix, quaternion_inverse
 import scipy.integrate as integrate
 
 
@@ -257,7 +257,7 @@ class AnalyticalLimbIK(object):
     def to_local_cos2(self, joint_name, frame, q):
         # bring into parent coordinate system
         parent_joint = self.skeleton.nodes[joint_name].parent.node_name
-        pm = self.skeleton.nodes[parent_joint].get_global_matrix(frame)[:3, :3]
+        pm = self.skeleton.nodes[parent_joint].get_global_matrix(frame)#[:3, :3]
         inv_p = quaternion_inverse(quaternion_from_matrix(pm))
         normalize(inv_p)
         return quaternion_multiply(inv_p, q)

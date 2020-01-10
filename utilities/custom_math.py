@@ -1,8 +1,8 @@
 # encoding: UTF-8
 import numpy as np
-import numpy as np
-from ..external.transformations import _AXES2TUPLE, _TUPLE2AXES, _NEXT_AXIS, quaternion_from_euler
 import math
+from transformations import _AXES2TUPLE, _TUPLE2AXES, _NEXT_AXIS, quaternion_from_euler
+
 LEN_CARTESIAN = 3
 LEN_QUATERNION = 4
 

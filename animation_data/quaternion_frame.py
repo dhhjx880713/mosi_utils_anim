@@ -7,7 +7,7 @@ Created on Fri Nov 24 14:10:21 2014
 """
 import collections
 import numpy as np
-from ..external.transformations import euler_matrix, quaternion_from_matrix
+from transformations import euler_matrix, quaternion_from_matrix
 
 
 class QuaternionFrame(collections.OrderedDict):

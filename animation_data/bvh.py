@@ -13,8 +13,7 @@ BVH Writer by Erik Herrmann
 
 from collections import OrderedDict
 import numpy as np
-from ..external.transformations import quaternion_matrix,\
-    euler_from_matrix, euler_matrix
+from transformations import quaternion_matrix, euler_from_matrix, euler_matrix
 import os
 
 EULER_LEN = 3

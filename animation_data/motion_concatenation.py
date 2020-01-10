@@ -1,6 +1,6 @@
 import numpy as np
+from transformations import quaternion_matrix, quaternion_about_axis, quaternion_multiply, quaternion_from_matrix, quaternion_from_euler, quaternion_slerp, euler_matrix
 from .utils import euler_substraction, point_to_euler_angle, euler_to_quaternion, euler_angles_to_rotation_matrix, get_rotation_angle, DEFAULT_ROTATION_ORDER, LEN_QUAT, LEN_EULER, LEN_ROOT_POS
-from ..external.transformations import quaternion_matrix, quaternion_about_axis, quaternion_multiply, quaternion_from_matrix, quaternion_from_euler, quaternion_slerp, euler_matrix
 from .motion_blending import smooth_quaternion_frames_with_slerp, smooth_quaternion_frames, blend_quaternion_frames_linearly, smooth_quaternion_frames_with_slerp2
 from ..motion_editing.motion_grounding import create_grounding_constraint_from_frame, generate_ankle_constraint_from_toe, interpolate_constraints
 from ..motion_editing.analytical_inverse_kinematics import AnalyticalLimbIK
@@ -9,7 +9,6 @@ from .motion_blending import blend_between_frames, smooth_translation_in_quat_fr
 
 ALIGNMENT_MODE_FAST = 0
 ALIGNMENT_MODE_PCL = 1
-
 
 def concatenate_frames(prev_frames, new_frames):
     frames = prev_frames.tolist()
@@ -566,3 +565,209 @@ def blend_towards_next_step3(skeleton, frames, start, end, plant_side, swing_sid
     new_frames = generate_blended_frames(skeleton, frames, middle, end, joint_list, end-middle)
     frames = interpolate_frames(skeleton, frames, new_frames, joint_list, middle, end)
     return frames
+
+
+
+def transform_euler_frame(euler_frame, angles, offset, rotation_order=None, global_rotation=True):
+    """
+    Calls transform_point for the root parameters and adds theta to the y rotation
+    channel of the frame.
+
+    The offset of root is transformed by transform_point
+    The orientation of root is rotated by Rotation matrix
+
+    Parameters
+    ---------
+    *euler_frame: np.ndarray
+    \t the parameters of a single frame
+    *angles: list of floats
+    \tRotation angles in degrees
+    *offset: np.ndarray
+    \tTranslation
+    """
+    if rotation_order is None:
+        rotation_order = ["Xrotation", "Yrotation", "Zrotation"]
+    transformed_frame = deepcopy(euler_frame)
+    if global_rotation:
+        transformed_frame[:3] = transform_point(euler_frame[:3], angles, offset, rotation_order=rotation_order)
+    else:
+        transformed_frame[:3] = transform_point(euler_frame[:3], np.zeros(3), offset, rotation_order=rotation_order)
+    R = euler_matrix(np.deg2rad(angles[0]), np.deg2rad(angles[1]), np.deg2rad(angles[2]), axes='rxyz')
+    if rotation_order[0] == 'Xrotation':
+        if rotation_order[1] == 'Yrotation':
+            OR = euler_matrix(np.deg2rad(euler_frame[3]),
+                              np.deg2rad(euler_frame[4]),
+                              np.deg2rad(euler_frame[5]),
+                              axes='rxyz')
+            rotmat = np.dot(R, OR)
+            eul_angles = np.rad2deg(euler_from_matrix(rotmat, 'rxyz'))
+        elif rotation_order[1] == 'Zrotation':
+            OR = euler_matrix(np.deg2rad(euler_frame[3]),
+                              np.deg2rad(euler_frame[4]),
+                              np.deg2rad(euler_frame[5]),
+                              axes='rxzy')
+            rotmat = np.dot(R, OR)
+            eul_angles = np.rad2deg(euler_from_matrix(rotmat, 'rxzy'))
+    elif rotation_order[0] == 'Yrotation':
+        if rotation_order[1] == 'Xrotation':
+            OR = euler_matrix(np.deg2rad(euler_frame[3]),
+                              np.deg2rad(euler_frame[4]),
+                              np.deg2rad(euler_frame[5]),
+                              axes='ryxz')
+            rotmat = np.dot(R, OR)
+            eul_angles = np.rad2deg(euler_from_matrix(rotmat, 'ryxz'))
+        elif rotation_order[1] == 'Zrotation':
+            OR = euler_matrix(np.deg2rad(euler_frame[3]),
+                              np.deg2rad(euler_frame[4]),
+                              np.deg2rad(euler_frame[5]),
+                              axes='ryzx')
+            rotmat = np.dot(R, OR)
+            eul_angles = np.rad2deg(euler_from_matrix(rotmat, 'ryzx'))
+    elif rotation_order[0] == 'Zrotation':
+        if rotation_order[1] == 'Xrotation':
+            OR = euler_matrix(np.deg2rad(euler_frame[3]),
+                              np.deg2rad(euler_frame[4]),
+                              np.deg2rad(euler_frame[5]),
+                              axes='rzxy')
+            rotmat = np.dot(R, OR)
+            eul_angles = np.rad2deg(euler_from_matrix(rotmat, 'rzxy'))
+        elif rotation_order[1] == 'Yrotation':
+            OR = euler_matrix(np.deg2rad(euler_frame[3]),
+                              np.deg2rad(euler_frame[4]),
+                              np.deg2rad(euler_frame[5]),
+                              axes='rzyx')
+            rotmat = np.dot(R, OR)
+            eul_angles = np.rad2deg(euler_from_matrix(rotmat, 'rzyx'))
+    transformed_frame[3:6] = eul_angles
+    return transformed_frame
+
+
+def transform_euler_frames(euler_frames, angles, offset, rotation_order=None):
+    """ Applies a transformation on the root joint of a list euler frames.
+    Parameters
+    ----------
+    *euler_frames: np.ndarray
+    \tList of frames where the rotation is represented as euler angles in degrees.
+    *angles: list of floats
+    \tRotation angles in degrees
+    *offset:  np.ndarray
+    \tTranslation
+    """
+    transformed_euler_frames = []
+    for frame in euler_frames:
+        transformed_euler_frames.append(
+            transform_euler_frame(frame, angles, offset, rotation_order))
+    return np.array(transformed_euler_frames)
+
+
+
+
+def shift_euler_frames_to_ground(euler_frames, ground_contact_joints, skeleton, align_index=0):
+    """
+    shift all euler frames of motion to ground, which means the y-axis for
+    gound contact joint should be 0
+    Step 1: apply forward kinematic to compute global position for ground
+            contact joint for each frame
+    Setp 2: find the offset from ground contact joint to ground, and shift
+            corresponding frame based on offset
+    """
+    foot_contact_heights = []
+    for joint in ground_contact_joints:
+        foot_contact_heights.append(skeleton.nodes[joint].get_global_position_from_euler(euler_frames[align_index])[1])
+    return transform_euler_frames(euler_frames,
+                                  [0.0, 0.0, 0.0],
+                                  np.array([0, -np.average(foot_contact_heights), 0]))
+
+
+def shift_quat_frames_to_ground(quat_frames, ground_contact_joints, skeleton, align_index=0):
+    foot_contact_heights = []
+    for joint in ground_contact_joints:
+        foot_contact_heights.append(skeleton.nodes[joint].get_global_position(quat_frames[align_index])[1])
+    return transform_quaternion_frames(quat_frames,
+                                       [0.0, 0.0, 0.0],
+                                       np.array([0, -np.average(foot_contact_heights), 0]))
+
+
+
+def find_aligning_transformation(skeleton, euler_frames_a, euler_frames_b):
+    """
+    performs alignment of the point clouds based on the poses at the end of
+    euler_frames_a and the start of euler_frames_b
+    Returns the rotation around y axis in radians, x offset and z offset
+    """
+    point_cloud_a = convert_euler_frame_to_cartesian_frame(
+        skeleton, euler_frames_a[-1])
+    point_cloud_b = convert_euler_frame_to_cartesian_frame(
+        skeleton, euler_frames_b[0])
+    weights = skeleton.get_joint_weights()
+    theta, offset_x, offset_z = align_point_clouds_2D(
+        point_cloud_a, point_cloud_b, weights)
+    return theta, offset_x, offset_z
+
+
+def align_frames(skeleton, euler_frames_a, euler_frames_b, smooth=True):
+    """
+    calls find_aligning_transformation and concatenates the frames based on the
+    resulting transformation
+     Parameters
+    ----------
+    *skeleton: Skeleton
+    \tUsed to extract hierarchy information.
+    *euler_frames_a: np.ndarray
+    \List of frames where the rotation is represented as euler angles in degrees.
+    *euler_frames_b: np.ndarray
+    \List of frames where the rotation is represented as euler angles in degrees.
+    *smooth: bool
+    \t Sets whether or not smoothing is supposed to be applied on the at the transition.
+     Returns
+    -------
+    *aligned_frames : np.ndarray
+    \tAligned and optionally smoothed motion
+    """
+    theta, offset_x, offset_z = find_aligning_transformation(skeleton, euler_frames_a, euler_frames_b)
+
+    # apply 2d transformation
+    offset = np.array([offset_x, 0, offset_z])
+    angles = [0, np.degrees(theta), 0]
+    euler_frames_b = transform_euler_frames(euler_frames_b, angles,
+                                            offset)
+
+    # concatenate frames and optionally apply smoothing
+    if smooth:
+        euler_frames = smoothly_concatenate(euler_frames_a, euler_frames_b)
+    else:
+        euler_frames = np.concatenate((euler_frames_a, euler_frames_b), axis=0)
+    return euler_frames
+
+
+
+def generate_root_constraint_for_two_feet(skeleton, frame, constraint1, constraint2, length_offset=1.0):
+    """ Set the root position to the projection on the intersection of two spheres """
+    root = skeleton.aligning_root_node
+    # root = self.skeleton.root
+    p = skeleton.nodes[root].get_global_position(frame)
+    offset = skeleton.nodes[root].get_global_position(skeleton.identity_frame)#[0, skeleton.nodes[root].offset[0], -skeleton.nodes[root].offset[1]]
+    print(p, offset)
+
+    t1 = np.linalg.norm(constraint1.position - p)
+    t2 = np.linalg.norm(constraint2.position - p)
+
+    c1 = constraint1.position
+    r1 = get_limb_length(skeleton, constraint1.joint_name)- length_offset
+    # p1 = c1 + r1 * normalize(p-c1)
+    c2 = constraint2.position
+    r2 = get_limb_length(skeleton, constraint2.joint_name) - length_offset
+    # p2 = c2 + r2 * normalize(p-c2)
+    if r1 > t1 and r2 > t2:
+        #print "no root constraint", t1,t2, r1, r2
+        return None
+    #print "adapt root for two constraints", t1, t2,  r1, r2
+
+    p_c = project_on_intersection_circle(p, c1, r1, c2, r2)
+    p = global_position_to_root_translation(skeleton, frame, root, p_c)
+    tframe = np.array(frame)
+    tframe[:3] = p
+    new_p = skeleton.nodes[root].get_global_position(tframe)
+    #print "compare",p_c, new_p
+    return p#p_c - offset
+

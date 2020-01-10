@@ -1,7 +1,8 @@
 import numpy as np
+from transformations import quaternion_matrix, quaternion_from_matrix
 from .utils import LEN_QUATERNION, LEN_TRANSLATION, convert_euler_to_quat, quaternion_from_vector_to_vector
 from ..animation_data.utils import convert_quaternion_frames_to_euler_frames as convert_quat_to_euler, euler_to_quaternion, quaternion_to_euler
-from ..external.transformations import quaternion_matrix, quaternion_from_matrix
+
 
 
 class SkeletonPoseModel(object):
