@@ -457,3 +457,62 @@ class SkeletonBuilder(object):
             o += 4
         return reference_frame
 
+
+
+    def load_from_asf_data(self, data, frame_time=1.0/30):
+        skeleton = Skeleton()
+        animated_joints = ["root"]+list(data["bones"].keys())
+
+        print("load from asf", len(animated_joints))
+        skeleton.animated_joints =animated_joints
+        skeleton.skeleton_model = collections.OrderedDict()
+        skeleton.skeleton_model["joints"] = dict()
+
+        skeleton.frame_time = frame_time
+        skeleton.nodes = collections.OrderedDict()
+        skeleton.root = "root"
+        if skeleton.root is None:
+            skeleton.root = animated_joints[0]
+        root = self._create_node_from_asf_data(skeleton, skeleton.root, data, None, 0)
+
+        skeleton.max_level = skeleton._get_max_level()
+        skeleton._set_joint_weights()
+        skeleton.parent_dict = skeleton._get_parent_dict()
+        skeleton._chain_names = skeleton._generate_chain_names()
+        skeleton.aligning_root_node = skeleton.root
+        skeleton.reference_frame = self.get_reference_frame(animated_joints)
+        return skeleton
+
+    
+    
+    def _create_node_from_asf_data(self, skeleton, node_name, data, parent, level):
+        if parent is None:
+            channels = ["Xposition","Yposition","Zposition", "Xrotation","Yrotation","Zrotation"]
+        else:# len(node_data["children"]) > 0:
+            channels = ["Xrotation","Yrotation","Zrotation"]
+
+        if parent is None:
+            node = SkeletonRootNode(node_name, channels, parent, level)
+        else:
+            node = SkeletonJointNode(node_name, channels, parent, level)
+            if node_name in data["bones"]:
+                node.offset = np.array(data["bones"][node_name]["direction"])
+                node.offset *= data["bones"][node_name]["length"]
+
+        if node_name in skeleton.animated_joints:
+            node.quaternion_frame_index = skeleton.animated_joints.index(node_name)
+            node.fixed = False
+        else:
+            node.quaternion_frame_index = -1
+            node.fixed = True
+
+        skeleton.nodes[node_name] = node
+        skeleton.nodes[node_name].children = []
+        if node_name in data["children"] and len(data["children"][node_name]) > 0:
+            node.index = node.quaternion_frame_index
+            for c_name in data["children"][node_name]:
+                c_node = self._create_node_from_asf_data(skeleton, c_name, data, node, level+1)
+                if c_node is not None:
+                    skeleton.nodes[node_name].children.append(c_node)
+
+        return node
