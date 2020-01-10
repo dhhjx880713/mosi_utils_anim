@@ -257,7 +257,7 @@ class AnalyticalLimbIK(object):
     def to_local_cos2(self, joint_name, frame, q):
         # bring into parent coordinate system
         parent_joint = self.skeleton.nodes[joint_name].parent.node_name
-        pm = self.skeleton.nodes[parent_joint].get_global_matrix(frame)[:3, :3]
+        pm = self.skeleton.nodes[parent_joint].get_global_matrix(frame)#[:3, :3]
         inv_p = quaternion_inverse(quaternion_from_matrix(pm))
         normalize(inv_p)
         return quaternion_multiply(inv_p, q)
