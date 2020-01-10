@@ -301,6 +301,54 @@ class MotionGrounding(object):
         p_c -= self.skeleton.nodes[root].offset
         return p_c
 
+
+    def generate_root_constraint_for_two_feet2(self, current_root_pos, constraint1, constraint2, limb_length_offset=0.0):
+        """ Set the root position to the projection on the intersection of two spheres """
+        root = self.skeleton.skeleton_model["joints"]["pelvis"]
+        # print("root position", root, p)
+        t1 = np.linalg.norm(constraint1.position - current_root_pos)
+        t2 = np.linalg.norm(constraint2.position - current_root_pos)
+
+        c1 = constraint1.position
+        r1 = self.get_limb_length(constraint1.joint_name) + limb_length_offset
+        # p1 = c1 + r1 * normalize(p-c1)
+        c2 = constraint2.position
+        r2 = self.get_limb_length(constraint2.joint_name) + limb_length_offset
+        # (r1, r2, t1,t2)
+        # p2 = c2 + r2 * normalize(p-c2)
+        if t1 < r1 and t2 < r2:
+            return None
+        # print("adapt root for two constraints", constraint1.position, r1, constraint2.position, r2)
+        p_c = project_on_intersection_circle(current_root_pos, c1, r1, c2, r2)
+        # if self.skeleton.root != root:
+        # p_c -= [0, self.skeleton.nodes[root].offset[0], -self.skeleton.nodes[root].offset[1]]
+        p_c -= self.skeleton.nodes[root].offset
+        return p_c
+
+    def generate_root_constraint_for_two_feet3(self, current_root_pos, constraint1, constraint2,
+                                               limb_length_offset=0.0):
+        """ Set the root position to the projection on the intersection of two spheres """
+        root = self.skeleton.skeleton_model["joints"]["pelvis"]
+        # print("root position", root, p)
+        t1 = np.linalg.norm(constraint1.position - current_root_pos)
+        t2 = np.linalg.norm(constraint2.position - current_root_pos)
+
+        c1 = constraint1.position
+        r1 = self.get_limb_length(constraint1.joint_name) + limb_length_offset
+        # p1 = c1 + r1 * normalize(p-c1)
+        c2 = constraint2.position
+        r2 = self.get_limb_length(constraint2.joint_name) + limb_length_offset
+        # (r1, r2, t1,t2)
+        # p2 = c2 + r2 * normalize(p-c2)
+        if t1 < r1 and t2 < r2:
+            return None
+        # print("adapt root for two constraints", constraint1.position, r1, constraint2.position, r2)
+        p_c = project_on_intersection_circle(current_root_pos, c1, r1, c2, r2)
+        # if self.skeleton.root != root:
+        # p_c -= [0, self.skeleton.nodes[root].offset[0], -self.skeleton.nodes[root].offset[1]]
+        #p_c -= self.skeleton.nodes[root].offset
+        return p_c
+
     def get_limb_length(self, joint_name):
         limb_length = np.linalg.norm(self.skeleton.nodes[joint_name].offset)
         limb_length += np.linalg.norm(self.skeleton.nodes[joint_name].parent.offset)
@@ -322,6 +370,13 @@ class MotionGrounding(object):
             else:
                 print("could not find ik chain definition for ", c.joint_name)
                 frame = self._ik.modify_frame(frame, constraints)
+        return frame
+
+    def apply_orientation_constraints_on_frame(self, frame, constraints):
+        for c in constraints:
+            data = self._ik_chains[c.joint_name]
+            ik = AnalyticalLimbIK.init_from_dict(self.skeleton, c.joint_name, data, damp_angle=self.damp_angle, damp_factor=self.damp_factor)
+            ik.set_end_effector_rotation2(frame, c.orientation)
         return frame
 
     def blend_at_transitions(self, frames):
