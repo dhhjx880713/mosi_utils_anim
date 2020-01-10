@@ -345,12 +345,7 @@ class MotionVector(object):
             m = create_euler_matrix(angles, dofs)
             m=np.dot(Cinv, m)
             m=np.dot(m,C)
-            # convert rotation matrix m into quaternion vector (qw, qx, qy, qz)
             q = quaternion_from_matrix(m)
-            if filter_value:
-                dot = np.sum(q)
-                if dot < 0:
-                    q = -q
             return [q[0], q[1], q[2], q[3]]
 
         self.frames = []
@@ -361,12 +356,12 @@ class MotionVector(object):
                     bone_data = asf_data["root"]
                     new_f += f["root"][:3]
                     #q = quaternion_from_euler(*f["root"][3:]).tolist()
-                    dof = asf_data["root"]["order"][:3]
-                    values = euler_to_quaternion( [*f[key]], dof, bone_data["C"], bone_data["Cinv"])
+                    dof = asf_data["root"]["order"][3:]
+                    values = euler_to_quaternion( f[key][3:], dof, bone_data["C"], bone_data["Cinv"])
                     new_f += values
                 elif key in f:
                     bone_data = asf_data["bones"][key]
-                    new_f += euler_to_quaternion( [*f[key]], bone_data["dof"], bone_data["C"], bone_data["Cinv"])
+                    new_f += euler_to_quaternion( f[key], bone_data["dof"], bone_data["C"], bone_data["Cinv"])
                 else:
                     new_f += [1,0,0,0]
             self.frames.append(new_f)
