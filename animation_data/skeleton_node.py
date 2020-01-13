@@ -227,11 +227,11 @@ class SkeletonJointNode(SkeletonNodeBase):
     def get_local_matrix(self, quaternion_frame):
         if not self.fixed:
             frame_index = self.quaternion_frame_index * 4 + 3
-            local_matrix = quaternion_matrix(quaternion_frame[frame_index: frame_index + 4])
+            m = quaternion_matrix(quaternion_frame[frame_index: frame_index + 4])
         else:
-            local_matrix = quaternion_matrix(self.rotation)
-        local_matrix[:3, 3] = self.offset
-        return local_matrix
+            m = quaternion_matrix(self.rotation)
+        m[:3, 3] = self.offset
+        return m
 
     def get_local_matrix_from_euler(self, euler_frame):
         if not self.fixed:

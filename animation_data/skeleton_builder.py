@@ -483,8 +483,6 @@ class SkeletonBuilder(object):
         skeleton.reference_frame = self.get_reference_frame(animated_joints)
         return skeleton
 
-    
-    
     def _create_node_from_asf_data(self, skeleton, node_name, data, parent, level):
         if parent is None:
             channels = ["Xposition","Yposition","Zposition", "Xrotation","Yrotation","Zrotation"]
@@ -495,9 +493,9 @@ class SkeletonBuilder(object):
             node = SkeletonRootNode(node_name, channels, parent, level)
         else:
             node = SkeletonJointNode(node_name, channels, parent, level)
-            if node_name in data["bones"]:
-                node.offset = np.array(data["bones"][node_name]["direction"])
-                node.offset *= data["bones"][node_name]["length"]
+            if node_name in data["bones"] and parent.node_name is not "root":
+                node.offset = np.array(data["bones"][parent.node_name]["direction"])
+                node.offset *= data["bones"][parent.node_name]["length"]
 
         if node_name in skeleton.animated_joints:
             node.quaternion_frame_index = skeleton.animated_joints.index(node_name)

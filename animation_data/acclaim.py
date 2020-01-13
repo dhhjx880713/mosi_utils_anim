@@ -2,8 +2,58 @@
     https://research.cs.wisc.edu/graphics/Courses/cs-838-1999/Jeff/ASF-AMC.html
  """  
 import sys
+import math
 import numpy as np
 from transformations import euler_matrix
+
+def rotate_around_x(alpha):
+    #Note vectors represent columns
+    cx = math.cos(alpha)
+    sx = math.sin(alpha)
+    m = np.array([[1.0 , 0.0, 0.0, 0.0],
+                             [0.0, cx ,  sx,0.0],
+                              [0.0, -sx,  cx,0.0],
+                             [0.0,0.0,0.0,1.0]],np.float32)
+    return m.T
+
+
+def rotate_around_y(beta):
+    #Note vectors represent columns
+    cy = math.cos(beta)
+    sy = math.sin(beta)
+    m = np.array([[ cy,0.0,-sy ,0.0],
+                                  [0.0,1.0,0.0,0.0],
+                                  [ sy,0.0,cy,0.0],
+                                   [0.0,0.0,0.0,1.0]],np.float32)
+    return m.T
+
+
+def rotate_around_z(gamma):
+    #Note vectors represent columns
+    cz = math.cos(gamma)
+    sz = math.sin(gamma)
+    m = np.array([[ cz, sz,0.0,0.0],
+                    [ -sz, cz,0.0,0.0],
+                    [0.0,0.0,1.0,0.0],
+                    [0.0,0.0,0.0,1.0]],np.float32)
+    return m.T
+
+
+AXES = "rxyz"
+def create_euler_matrix2(angles, order):
+    m = np.eye(4)
+    for idx, d in enumerate(order):
+        a = np.radians(angles[idx])
+        d = d[-1].lower()
+        local_rot = np.eye(4)
+        if d =="x":
+            local_rot = euler_matrix(a,0,0, AXES)
+        elif d =="y":
+            local_rot = euler_matrix(0,a,0, AXES)
+        elif d =="z":
+            local_rot = euler_matrix(0,0,a, AXES)
+        m = np.dot(local_rot, m)
+    return m
 
 def create_euler_matrix(angles, order):
     m = np.eye(4)
@@ -12,14 +62,13 @@ def create_euler_matrix(angles, order):
         d = d[-1].lower()
         local_rot = np.eye(4)
         if d =="x":
-            local_rot = euler_matrix(a,0,0)
+            local_rot = rotate_around_x(a)
         elif d =="y":
-            local_rot = euler_matrix(0,a,0)
+            local_rot = rotate_around_y(a)
         elif d =="z":
-            local_rot = euler_matrix(0,0,a)
-        m = np.dot(m, local_rot)
+            local_rot = rotate_around_z(a)
+        m = np.dot(local_rot, m)
     return m
-
 
 def create_c_matrices(data):
     angles = data["root"]["orientation"]
@@ -31,11 +80,21 @@ def create_c_matrices(data):
     for key in data["bones"]:
         if "axis" in data["bones"][key]:
             angles, order = data["bones"][key]["axis"]
-            C = create_euler_matrix(angles, order)
-            data["bones"][key]["C"] = C
-            data["bones"][key]["Cinv"] = np.linalg.inv(C)
+            data["bones"][key]["C"] = create_euler_matrix(angles, order)
+            data["bones"][key]["Cinv"] =np.linalg.inv(data["bones"][key]["C"] ) #create_euler_matrix(-np.array(angles), order)
+       
     return data
 
+def set_parents(data):
+    for key in data["bones"]:
+        data["bones"][key]["parent"] = "root"
+        
+    for key in data["bones"]:
+        if key in data["children"]:
+            for c_key in data["children"][key]:
+                data["bones"][c_key]["parent"] = key
+    return data
+    
 def parse_asf_file(filepath):
     with open(filepath, "rb") as in_file:
         lines = in_file.readlines()
@@ -72,6 +131,7 @@ def parse_asf_file(filepath):
         else:
             print("ignore", next_line)
             idx+=1
+    print("read", len(data["bones"]), "bones")
     data = create_c_matrices(data)
     return data
 
@@ -103,7 +163,7 @@ def read_root_data(lines, idx):
 def read_bone_data(lines, idx):
     idx +=1 #skip begin
     data = dict()
-    print("start bone", idx)
+    #print("start bone", idx)
     next_line = lines[idx].strip()
     while not next_line.startswith("end") and idx+1 < len(lines):
         values = next_line.split(" ")
@@ -115,7 +175,9 @@ def read_bone_data(lines, idx):
             elif key == "name":
                 data["name"] = values[1]
             elif key == "direction":
-                data["direction"] =   [float(v) for v in values if v != "direction"]
+                direction =  np.array([float(v) for v in values if v != "direction"])
+                direction /= np.linalg.norm(direction)
+                data["direction"] = direction.tolist()
             elif key == "length":
                 print(values)
                 data["length"] =  float(values[1])
@@ -129,7 +191,7 @@ def read_bone_data(lines, idx):
             idx+=1
             next_line = lines[idx].strip() # remove empty lines
     idx +=1 #skip end
-    print("end", idx, lines[idx])
+    #print("end", idx, lines[idx])
     return data, idx
 
 

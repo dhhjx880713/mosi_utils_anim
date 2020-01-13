@@ -341,13 +341,13 @@ class MotionVector(object):
 
     
     def from_amc_data(self, asf_data, amc_frames, animated_joints):
-        def euler_to_quaternion(angles, dofs, C, Cinv, filter_value=True):
-            m = create_euler_matrix(angles, dofs)
-            m=np.dot(Cinv, m)
-            m=np.dot(m,C)
-            q = quaternion_from_matrix(m)
-            return [q[0], q[1], q[2], q[3]]
 
+        def euler_to_quaternion(angles, dofs, c, c_inv, filter_value=True):
+            m = create_euler_matrix(angles, dofs)
+            #C_inv x M x C
+            m = np.dot(c, np.dot(m, c_inv)) 
+            q = quaternion_from_matrix(m)
+            return q.tolist()
         self.frames = []
         for f in amc_frames:
             new_f = []
