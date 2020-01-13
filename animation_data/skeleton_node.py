@@ -1,16 +1,37 @@
 __author__ = 'erhe01'
 
 import numpy as np
-from transformations import quaternion_matrix, euler_matrix, euler_from_matrix, quaternion_from_matrix
+from transformations import quaternion_matrix, euler_matrix, euler_from_matrix, quaternion_from_matrix, quaternion_about_axis
 from .constants import ROTATION_TYPE_EULER, ROTATION_TYPE_QUATERNION
 
 SKELETON_NODE_TYPE_ROOT = 0
 SKELETON_NODE_TYPE_JOINT = 1
 SKELETON_NODE_TYPE_END_SITE = 2
+ORIGIN = point = np.array([0, 0, 0, 1])
 
+
+def create_euler_matrix(angles, order):
+    angles = np.radians(angles)
+    if order[0] == 'Xrotation':
+        if order[1] == 'Yrotation':
+            local_matrix = euler_matrix(*angles, axes='rxyz')
+        elif order[1] == 'Zrotation':
+            local_matrix = euler_matrix(*angles, axes='rxzy')
+    elif order[0] == 'Yrotation':
+        if order[1] == 'Xrotation':
+            local_matrix = euler_matrix(*angles, axes='ryxz')
+        elif order[1] == 'Zrotation':
+            local_matrix = euler_matrix(*angles, axes='ryzx')
+    elif order[0] == 'Zrotation':
+        if order[1] == 'Xrotation':
+            local_matrix = euler_matrix(*angles, axes='rzxy')
+        elif order[1] == 'Yrotation':
+            local_matrix = euler_matrix(*angles, axes='rzyx')
+    else:
+        raise ValueError("Unknown rotation order")
+    return local_matrix
 
 class SkeletonNodeBase(object):
-    ORIGIN = point = np.array([0, 0, 0, 1])
     def __init__(self, node_name, channels, parent=None, level=0, channel_indices=None):
         self.parent = parent
         self.node_name = node_name
@@ -41,12 +62,12 @@ class SkeletonNodeBase(object):
 
     def get_global_position(self, quaternion_frame, use_cache=False):
         global_matrix = self.get_global_matrix(quaternion_frame, use_cache)
-        point = np.dot(global_matrix, self.ORIGIN)
-        return point[:3]#.tolist()
+        point = np.dot(global_matrix, ORIGIN)
+        return point[:3]
 
     def get_global_position_from_euler(self, euler_frame, use_cache=False):
         global_matrix = self.get_global_matrix_from_euler_frame(euler_frame, use_cache)
-        point = np.dot(global_matrix, self.ORIGIN)
+        point = np.dot(global_matrix, ORIGIN)
         return point[:3]
 
     def get_global_orientation_quaternion(self, quaternion_frame, use_cache=False):
@@ -138,9 +159,9 @@ class SkeletonNodeBase(object):
 
     def get_fk_chain_list(self):
         pass
+
     def get_parent_name(self, animated_joint_list):
         '''
-
         :return: string, the name of parent node. If parent node is None, return None
         '''
         if self.parent is None:
@@ -167,32 +188,10 @@ class SkeletonRootNode(SkeletonNodeBase):
 
     def get_local_matrix_from_euler(self, euler_frame):
         if not self.rotation_order is None and not self.rotation_channel_indices is None:
-            if self.rotation_order[0] == 'Xrotation':
-                if self.rotation_order[1] == 'Yrotation':
-                    local_matrix = euler_matrix(*np.radians(euler_frame[self.rotation_channel_indices]), axes='rxyz')
-                elif self.rotation_order[1] == 'Zrotation':
-                    local_matrix = euler_matrix(*np.radians(euler_frame[self.rotation_channel_indices]), axes='rxzy')
-                else:
-                    raise ValueError('Unknown Rotation Type!')
-            elif self.rotation_order[0] == 'Yrotation':
-                if self.rotation_order[1] == 'Xrotation':
-                    local_matrix = euler_matrix(*np.radians(euler_frame[self.rotation_channel_indices]), axes='ryxz')
-                elif self.rotation_order[1] == 'Zrotation':
-                    local_matrix = euler_matrix(*np.radians(euler_frame[self.rotation_channel_indices]), axes='ryzx')
-                else:
-                    raise ValueError('Unknown Rotation Type!')
-            elif self.rotation_order[0] == 'Zrotation':
-                if self.rotation_order[1] == 'Xrotation':
-                    local_matrix = euler_matrix(*np.radians(euler_frame[self.rotation_channel_indices]), axes='rzxy')
-                elif self.rotation_order[1] == 'Yrotation':
-                    local_matrix = euler_matrix(*np.radians(euler_frame[self.rotation_channel_indices]), axes='rzyx')
-                else:
-                    raise ValueError('Unknown Rotation Type!')
-            else:
-                raise ValueError('Unknown Rotation Type!')
+            local_matrix = create_euler_matrix(euler_frame[self.rotation_channel_indices], self.rotation_order)
         else:
             raise ValueError("no rotation order!")
-        if self.translation_channel_indices != []:
+        if len(self.translation_channel_indices)> 0:
             local_matrix[:3, 3] = [t + o for t, o in zip(euler_frame[self.translation_channel_indices], self.offset)]
         else:
             local_matrix[:3, 3] = self.offset
@@ -236,26 +235,9 @@ class SkeletonJointNode(SkeletonNodeBase):
     def get_local_matrix_from_euler(self, euler_frame):
         if not self.fixed:
             if not self.rotation_order is None:
-                # frame_index = self.animated_joint_index * 3 + 3
-                if self.rotation_order[0] == 'Xrotation':
-                    if self.rotation_order[1] == 'Yrotation':
-                        local_matrix = euler_matrix(*np.radians(euler_frame[self.rotation_channel_indices]), axes='rxyz')
-                    elif self.rotation_order[1] == 'Zrotation':
-                        local_matrix = euler_matrix(*np.radians(euler_frame[self.rotation_channel_indices]), axes='rxzy')
-                elif self.rotation_order[0] == 'Yrotation':
-                    if self.rotation_order[1] == 'Xrotation':
-                        local_matrix = euler_matrix(*np.radians(euler_frame[self.rotation_channel_indices]), axes='ryxz')
-                    elif self.rotation_order[1] == 'Zrotation':
-                        local_matrix = euler_matrix(*np.radians(euler_frame[self.rotation_channel_indices]), axes='ryzx')
-                elif self.rotation_order[0] == 'Zrotation':
-                    if self.rotation_order[1] == 'Xrotation':
-                        local_matrix = euler_matrix(*np.radians(euler_frame[self.rotation_channel_indices]), axes='rzxy')
-                    elif self.rotation_order[1] == 'Yrotation':
-                        local_matrix = euler_matrix(*np.radians(euler_frame[self.rotation_channel_indices]), axes='rzyx')
-                else:
-                    raise ValueError("Unknown rotation order")
+                local_matrix = create_euler_matrix(euler_frame[self.rotation_channel_indices], self.rotation_order)
             else:
-                    raise ValueError("no rotation order!")
+                raise ValueError("no rotation order!")
         else:
             local_matrix = euler_matrix(*np.radians(self.euler_angles), axes='rxyz')
         # local_matrix[:3, 3] = self.offset
