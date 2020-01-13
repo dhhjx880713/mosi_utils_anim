@@ -4,11 +4,12 @@ from datetime import datetime
 import os
 import numpy as np
 import imp
-from transformations import quaternion_inverse, quaternion_multiply, quaternion_slerp
+from transformations import quaternion_inverse, quaternion_multiply, quaternion_slerp, quaternion_from_euler, euler_matrix, quaternion_from_matrix
 from .utils import convert_euler_frames_to_quaternion_frames
 from .motion_concatenation import align_and_concatenate_frames, smooth_root_positions#, align_frames_and_fix_feet
 from .constants import ROTATION_TYPE_QUATERNION, ROTATION_TYPE_EULER
 from .bvh import BVHWriter
+from .acclaim import create_euler_matrix
 
 
 
@@ -337,3 +338,34 @@ class MotionVector(object):
             end_q = self.frames[end_idx][i:i+4]
             new_frame[i:i+4] = quaternion_slerp(start_q, end_q, t, spin=0, shortestpath=True)
         return new_frame
+
+    
+    def from_amc_data(self, asf_data, amc_frames, animated_joints):
+
+        def euler_to_quaternion(angles, dofs, c, c_inv, filter_value=True):
+            m = create_euler_matrix(angles, dofs)
+            #C_inv x M x C
+            m = np.dot(c, np.dot(m, c_inv)) 
+            q = quaternion_from_matrix(m)
+            return q.tolist()
+        self.frames = []
+        for f in amc_frames:
+            new_f = []
+            for key in animated_joints:
+                if key == "root":
+                    bone_data = asf_data["root"]
+                    new_f += f["root"][:3]
+                    #q = quaternion_from_euler(*f["root"][3:]).tolist()
+                    dof = asf_data["root"]["order"][3:]
+                    values = euler_to_quaternion( f[key][3:], dof, bone_data["C"], bone_data["Cinv"])
+                    new_f += values
+                elif key in f:
+                    bone_data = asf_data["bones"][key]
+                    new_f += euler_to_quaternion( f[key], bone_data["dof"], bone_data["C"], bone_data["Cinv"])
+                else:
+                    new_f += [1,0,0,0]
+            self.frames.append(new_f)
+        self.frames = np.array(self.frames)
+        self.n_frames = len(self.frames)
+        #self.frame_time = data["frameTime"]
+
