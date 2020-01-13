@@ -398,32 +398,6 @@ class Skeleton(object):
         self.nodes[foot_name].children.append(node)
 
     def apply_joint_constraints(self, frame):
-        if "joint_constraints" in self.skeleton_model:
-            constraints = self.skeleton_model["joint_constraints"]
-            for n in self.nodes.keys():
-                if n in constraints:
-                    idx = self.nodes[n].quaternion_frame_index * 4 + 3
-                    if "cone" in constraints[n]:
-                        q = frame[idx:idx + 4]
-                        k = constraints[n]["cone"]["k"]
-                        up_axis = constraints[n]["axis"]
-                        ref_q = self.nodes[n].rotation
-                        frame[idx:idx + 4] = apply_conic_constraint(q, ref_q, up_axis, k)
-                    if "axial" in constraints:
-                        q = frame[idx:idx + 4]
-                        k1 = constraints[n]["axial"]["k1"]
-                        k2 = constraints[n]["axial"]["k2"]
-                        up_axis = constraints[n]["axis"]
-                        ref_q = self.nodes[n].rotation
-                        frame[idx:idx + 4] = apply_axial_constraint(q, ref_q, up_axis, k1, k2)
-                    if "spherical" in constraints:
-                        q = frame[idx:idx + 4]
-                        k = constraints[n]["spherical"]["k"]
-                        up_axis = constraints[n]["axis"]
-                        ref_q = self.nodes[n].rotation
-                        frame[idx:idx + 4] = apply_spherical_constraint(q, ref_q, up_axis, k)
-
-    def apply_joint_constraints(self, frame):
         for n in self.animated_joints:
             if self.nodes[n].joint_constraint is not None:
                 idx = self.nodes[n].quaternion_frame_index * 4 + 3
@@ -581,7 +555,6 @@ class Skeleton(object):
                 bone_desc = {'name': node_name, 'parent': parent_joint_name, 'index': index}
                 index += 1
                 bones.append(bone_desc)
-
-
-        
         return bones
+
+    
