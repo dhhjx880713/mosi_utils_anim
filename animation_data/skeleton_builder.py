@@ -6,15 +6,15 @@ from .skeleton import Skeleton
 from .skeleton_node import SkeletonRootNode, SkeletonJointNode, SkeletonEndSiteNode, SKELETON_NODE_TYPE_JOINT, SKELETON_NODE_TYPE_END_SITE
 from .skeleton_models import ROCKETBOX_ANIMATED_JOINT_LIST, ROCKETBOX_FREE_JOINTS_MAP, ROCKETBOX_REDUCED_FREE_JOINTS_MAP, ROCKETBOX_SKELETON_MODEL, ROCKETBOX_BOUNDS, ROCKETBOX_TOOL_BONES, ROCKETBOX_ROOT_DIR
 from .quaternion_frame import QuaternionFrame
-from .joint_constraints import HingeConstraint2
 
 
 def create_identity_frame(skeleton):
     skeleton.identity_frame = np.zeros(skeleton.reference_frame_length)
     offset = 3
-    for j in skeleton.animated_joints:
-        skeleton.identity_frame[offset:offset + 4] = [1, 0, 0, 0]
-        offset += 4
+    for j in list(skeleton.nodes.keys()):
+        if skeleton.nodes[j].index > 0:
+            skeleton.identity_frame[offset:offset + 4] = [1, 0, 0, 0]
+            offset += 4
 
 
 def create_euler_frame_indices(skeleton):
@@ -43,16 +43,6 @@ def add_new_end_site(skeleton, node_names, parent_node_name, offset):
         node_desc["level"] = level
         node_desc["offset"] = offset
 
-def reference_frame_from_unity(data):
-    n_j = len(data["rotations"])
-    q_frame = np.zeros(n_j*4+3)
-    q_frame[:3] = arr_from_unity_t(data["translations"][0])
-    o = 3
-    for q in data["rotations"]:
-        q_frame[o:o+4] = arr_from_unity_q(q)
-        o+=4
-    return q_frame
-
 
 def generate_reference_frame(skeleton, animated_joints):
     identity_frame = [0,0,0]
@@ -73,28 +63,12 @@ def generate_reference_frame(skeleton, animated_joints):
     skeleton.identity_frame = np.array(identity_frame)
 
 
-def arr_from_unity_q(_q):
-    q = np.zeros(4)
-    q[0] = - _q["w"]
-    q[1] = - _q["x"]
-    q[2] = _q["y"]
-    q[3] = _q["z"]
-    return q
-
-
-def arr_from_unity_t(_t):
-    t = np.zeros(3)
-    t[0] = - _t["x"]
-    t[1] = _t["y"]
-    t[2] = _t["z"]
-    return t
-
 class SkeletonBuilder(object):
 
     def load_from_bvh(self, bvh_reader, animated_joints=None, add_tool_joints=True, reference_frame=None, skeleton_model=None):
         skeleton = Skeleton()
         if animated_joints is None:
-            animated_joints = ROCKETBOX_ANIMATED_JOINT_LIST
+            animated_joints = [joint for joint in bvh_reader.get_animated_joints()]
         skeleton.animated_joints = animated_joints
         skeleton.frame_time = deepcopy(bvh_reader.frame_time)
         skeleton.root = deepcopy(bvh_reader.root)
@@ -124,7 +98,7 @@ class SkeletonBuilder(object):
         create_identity_frame(skeleton)
         if skeleton_model is not None:
             skeleton.skeleton_model = skeleton_model
-            #skeleton.add_heels(skeleton_model)
+            skeleton.add_heels(skeleton_model)
         return skeleton
 
     def construct_hierarchy_from_bvh(self, skeleton, joint_list, node_info, node_name, level):
@@ -132,12 +106,16 @@ class SkeletonBuilder(object):
             channels = node_info[node_name]["channels"]
         else:
             channels = []
+        if "channel_indices" in node_info[node_name]:
+            channel_indices = node_info[node_name]["channel_indices"]
+        else:
+            channel_indices = []
         if node_name in joint_list:
             joint_index = joint_list.index(node_name)
         else:
             joint_index = -1
         if node_name == skeleton.root:
-            node = SkeletonRootNode(node_name, channels, None, level)
+            node = SkeletonRootNode(node_name, channels, None, level, channel_indices)
             if node_name in skeleton.animated_joints:
                 node.fixed = False
                 node.quaternion_frame_index = skeleton.animated_joints.index(node_name)
@@ -145,7 +123,7 @@ class SkeletonBuilder(object):
                 node.fixed = True
             node.index = joint_index
         elif "children" in list(node_info[node_name].keys()) and len(node_info[node_name]["children"]) > 0:
-            node = SkeletonJointNode(node_name, channels, None, level)
+            node = SkeletonJointNode(node_name, channels, None, level, channel_indices)
             if node_name in skeleton.animated_joints:
                 node.fixed = False
                 node.quaternion_frame_index = skeleton.animated_joints.index(node_name)
@@ -171,50 +149,14 @@ class SkeletonBuilder(object):
     def load_from_json_file(self, filename):
         with open(filename) as infile:
             data = json.load(infile)
-            skeleton = self.load_from_custom_unity_format(data)
+            skeleton = self.load_from_json_data(data)
             return skeleton
 
-    def load_from_custom_unity_format(self, data, frame_time=1.0/30, add_extra_end_site=False):
-        skeleton = Skeleton()
-        animated_joints = data["jointSequence"]
-
-        print("load from json", len(animated_joints))
-        skeleton.animated_joints = animated_joints
-        skeleton.reduced_free_joints_map = ROCKETBOX_REDUCED_FREE_JOINTS_MAP
-        skeleton.bounds = ROCKETBOX_BOUNDS
-
-        skeleton.skeleton_model = collections.OrderedDict()
-        skeleton.skeleton_model["joints"] = dict()
-        if "head_joint" in list(data.keys()):
-            skeleton.skeleton_model["joints"]["head"] = data["head_joint"]
-        if "neck_joint" in list(data.keys()):
-            skeleton.skeleton_model["joints"]["neck"] = data["neck_joint"]
-
-        skeleton.frame_time = frame_time
-        skeleton.nodes = collections.OrderedDict()
-        skeleton.root = data["root"]
-        if skeleton.root is None:
-            skeleton.root = animated_joints[0]
-        root = self._create_node_from_unity_desc(skeleton, skeleton.root, data, None, 0, add_extra_end_site)
-
-        skeleton.max_level = skeleton._get_max_level()
-        skeleton._set_joint_weights()
-        skeleton.parent_dict = skeleton._get_parent_dict()
-        skeleton._chain_names = skeleton._generate_chain_names()
-        create_euler_frame_indices(skeleton)
-        skeleton.aligning_root_node = skeleton.root
-        skeleton.aligning_root_dir = ROCKETBOX_ROOT_DIR
-
-        skeleton.reference_frame = reference_frame_from_unity(data["referencePose"])
-        skeleton.reference_frame_length = len(skeleton.reference_frame)
-        create_identity_frame(skeleton)
-        return skeleton
-
-    def load_from_json_data(self, data, animated_joints=None, use_all_joints=False):
+    def load_from_json_data(self, data, animated_joints=None):
         def extract_animated_joints(node, animated_joints):
             animated_joints.append(node["name"])
             for c in node["children"]:
-                if c["index"] >= 0 and len(c["children"]) > 0:
+                if c["index"] >= 0:
                     extract_animated_joints(c, animated_joints)
 
         skeleton = Skeleton()
@@ -226,8 +168,6 @@ class SkeletonBuilder(object):
         else:
             animated_joints = list()
             extract_animated_joints(data["root"], animated_joints)
-            skeleton.animated_joints = animated_joints
-
         if "free_joints_map" in list(data.keys()):
             skeleton.free_joints_map = data["free_joints_map"]
         skeleton.reduced_free_joints_map = ROCKETBOX_REDUCED_FREE_JOINTS_MAP  # data["reduced_free_joints_map"]
@@ -261,14 +201,8 @@ class SkeletonBuilder(object):
             skeleton.aligning_root_dir = data["aligning_root_dir"]
         else:
             skeleton.aligning_root_dir = ROCKETBOX_ROOT_DIR
-        #skeleton.reference_frame = data["reference_frame"]
-        skeleton.reference_frame = None
-        if "reference_frame" in data:
-            skeleton.reference_frame = data["reference_frame"]
-            skeleton.reference_frame_length = len(skeleton.reference_frame)
-        if skeleton.reference_frame is None or use_all_joints:
-            generate_reference_frame(skeleton, skeleton.animated_joints)
-        create_identity_frame(skeleton)
+
+        generate_reference_frame(skeleton, skeleton.animated_joints)
         return skeleton
 
     def load_from_fbx_data(self, data):
@@ -341,176 +275,5 @@ class SkeletonBuilder(object):
         for c_name in node_data["children"]:
             c_node = self._create_node_from_desc2(skeleton, data, c_name, node, level+1)
             node.children.append(c_node)
-        
         return node
 
-    def get_joint_desc(self, data, name):
-        for idx in range(len(data["jointDescs"])):
-            if data["jointDescs"][idx]["name"] == name:
-                return data["jointDescs"][idx]
-        return None
-
-    def _create_node_from_unity_desc(self, skeleton, node_name, data, parent, level, add_extra_end_site=False):
-        node_data = self.get_joint_desc(data, node_name)
-        if node_data is None:
-            return
-
-        if parent is None:
-            channels = ["Xposition","Yposition","Zposition", "Xrotation","Yrotation","Zrotation"]
-        else:# len(node_data["children"]) > 0:
-            channels = ["Xrotation","Yrotation","Zrotation"]
-
-        if parent is None:
-            node = SkeletonRootNode(node_name, channels, parent, level)
-        else:# len(node_data["children"]) > 0:
-            node = SkeletonJointNode(node_name, channels, parent, level)
-        node.offset = np.array(node_data["offset"])
-        node.offset[0] *= -1
-        node.rotation = np.array(node_data["rotation"])
-        node.rotation[0] *= -1
-        node.rotation[1] *= -1
-       
-        if node_name in skeleton.animated_joints:
-            node.quaternion_frame_index = skeleton.animated_joints.index(node_name)
-            node.fixed = False
-        else:
-            node.quaternion_frame_index = -1
-            node.fixed = True
-
-        skeleton.nodes[node_name] = node
-        skeleton.nodes[node_name].children = []
-        if len(node_data["children"]) > 0:
-            node.index = node.quaternion_frame_index
-            for c_name in node_data["children"]:
-                c_node = self._create_node_from_unity_desc(skeleton, c_name, data, node, level+1)
-                if c_node is not None:
-                    skeleton.nodes[node_name].children.append(c_node)
-        if add_extra_end_site:
-            print("add extra end site")
-            node.index = -1
-            channels = []
-            c_name = node_name+"_EndSite"
-            c_node = SkeletonEndSiteNode(c_name, channels, node,  level+1)
-            skeleton.nodes[node_name].children.append(c_node)
-            skeleton.nodes[c_name] = c_node
-        return node
-
-
-    @classmethod
-    def construct_arm_with_constraints(cls, n_joints, length):
-        skeleton = Skeleton()
-        skeleton.frame_time = 1 / 30
-        animated_joints = []
-        animated_joints.append("root")
-        skeleton.root = "root"
-        channels = ["rotationX", "rotationY", "rotationZ", "rotationW"]
-        node = SkeletonRootNode("root", channels, None, 0)
-        node.fixed = False
-        node.index = 0
-        node.offset = [0, 0, 0]
-        node.rotation = [1, 0, 0, 0]
-        node.quaternion_frame_index = 0
-        skeleton.nodes["root"] = node
-        parent = node
-        swing_axis = np.array([0,0,1])
-        twist_axis = np.array([0, 1, 0])
-
-        angle_range = [0,90]
-        for n in range(1, n_joints + 1):  # start after the root joint and add one endsite
-            if n + 1 < n_joints + 1:
-                node_name = "joint" + str(n)
-                node = SkeletonJointNode(node_name, channels, parent, n)
-                animated_joints.append(node_name)
-                node.fixed = False
-                node.quaternion_frame_index = n
-                node.index = n
-                node.offset = np.array([0, length, 0], dtype=np.float)
-                print("create", node_name, node.offset)
-                if n in [1]:
-                    node.joint_constraint = HingeConstraint2(swing_axis, twist_axis)
-            else:
-                node_name = "joint" + str(n - 1) + "_EndSite"
-                node = SkeletonEndSiteNode(node_name, channels, parent, n)
-                node.fixed = True
-                node.quaternion_frame_index = -1
-                node.index = -1
-                node.offset = np.array([0, 0, 0], dtype=np.float)
-                print("create", node_name, node.offset)
-            parent.children.append(node)
-
-            node.rotation = [1, 0, 0, 0]
-            skeleton.nodes[node_name] = node
-            parent = node
-
-        skeleton.animated_joints = animated_joints
-        skeleton.reference_frame = cls.get_reference_frame(animated_joints)
-        return skeleton
-
-
-    @classmethod
-    def get_reference_frame(cls, animated_joints):
-        n_animated_joints = len(animated_joints)
-        reference_frame = np.zeros(n_animated_joints * 4 + 3)
-        o = 3
-        for n in range(n_animated_joints):
-            reference_frame[o:o + 4] = [1, 0, 0, 0]
-            o += 4
-        return reference_frame
-
-
-
-    def load_from_asf_data(self, data, frame_time=1.0/30):
-        skeleton = Skeleton()
-        animated_joints = ["root"]+list(data["bones"].keys())
-
-        print("load from asf", len(animated_joints))
-        skeleton.animated_joints =animated_joints
-        skeleton.skeleton_model = collections.OrderedDict()
-        skeleton.skeleton_model["joints"] = dict()
-
-        skeleton.frame_time = frame_time
-        skeleton.nodes = collections.OrderedDict()
-        skeleton.root = "root"
-        if skeleton.root is None:
-            skeleton.root = animated_joints[0]
-        root = self._create_node_from_asf_data(skeleton, skeleton.root, data, None, 0)
-
-        skeleton.max_level = skeleton._get_max_level()
-        skeleton._set_joint_weights()
-        skeleton.parent_dict = skeleton._get_parent_dict()
-        skeleton._chain_names = skeleton._generate_chain_names()
-        skeleton.aligning_root_node = skeleton.root
-        skeleton.reference_frame = self.get_reference_frame(animated_joints)
-        return skeleton
-
-    def _create_node_from_asf_data(self, skeleton, node_name, data, parent, level):
-        if parent is None:
-            channels = ["Xposition","Yposition","Zposition", "Xrotation","Yrotation","Zrotation"]
-        else:# len(node_data["children"]) > 0:
-            channels = ["Xrotation","Yrotation","Zrotation"]
-
-        if parent is None:
-            node = SkeletonRootNode(node_name, channels, parent, level)
-        else:
-            node = SkeletonJointNode(node_name, channels, parent, level)
-            if node_name in data["bones"] and parent.node_name is not "root":
-                node.offset = np.array(data["bones"][parent.node_name]["direction"])
-                node.offset *= data["bones"][parent.node_name]["length"]
-
-        if node_name in skeleton.animated_joints:
-            node.quaternion_frame_index = skeleton.animated_joints.index(node_name)
-            node.fixed = False
-        else:
-            node.quaternion_frame_index = -1
-            node.fixed = True
-
-        skeleton.nodes[node_name] = node
-        skeleton.nodes[node_name].children = []
-        if node_name in data["children"] and len(data["children"][node_name]) > 0:
-            node.index = node.quaternion_frame_index
-            for c_name in data["children"][node_name]:
-                c_node = self._create_node_from_asf_data(skeleton, c_name, data, node, level+1)
-                if c_node is not None:
-                    skeleton.nodes[node_name].children.append(c_node)
-
-        return node
