@@ -618,19 +618,18 @@ def get_global_trans_from_euler_frames(skeleton, euler_frames, animated_joints=N
 
 
 def convert_quat_frame_to_cartesian_frame(skeleton, quat_frame, animated_joints=None):
-    print("Deprecation Warning: Function marked as Deprecated!")
-    pass
-    # if animated_joints is None:
-    #     n_joints = len(skeleton.animated_joints)
-    #     cartesian_frame = np.zeros([n_joints, LEN_ROOT_POS])
-    #     for i in range(n_joints):
-    #         cartesian_frame[i] = skeleton.nodes[skeleton.animated_joints[i]].get_global_position(quat_frame)
-    # else:
-    #     n_joints = len(animated_joints)
-    #     cartesian_frame = np.zeros([n_joints, LEN_ROOT_POS])
-    #     for i in range(n_joints):
-    #         cartesian_frame[i] = skeleton.nodes[animated_joints[i]].get_global_position(quat_frame)
-    # return cartesian_frame
+
+    if animated_joints is None:
+        n_joints = len(skeleton.animated_joints)
+        cartesian_frame = np.zeros([n_joints, LEN_ROOT_POS])
+        for i in range(n_joints):
+            cartesian_frame[i] = skeleton.nodes[skeleton.animated_joints[i]].get_global_position(quat_frame)
+    else:
+        n_joints = len(animated_joints)
+        cartesian_frame = np.zeros([n_joints, LEN_ROOT_POS])
+        for i in range(n_joints):
+            cartesian_frame[i] = skeleton.nodes[animated_joints[i]].get_global_position(quat_frame)
+    return cartesian_frame
 
 
 def convert_quaternion_frame_to_cartesian_frame(skeleton, quat_frame):
@@ -743,13 +742,12 @@ def convert_euler_frames_to_cartesian_frames(skeleton, euler_frames, animated_jo
 
 
 def convert_quat_frames_to_cartesian_frames(skeleton, quat_frames, animated_joints=None):
-    print("Deprecation Warning: Function marked as Deprecated!")
-    pass
-    # cartesian_frames = []
-    # for quat_frame in quat_frames:
-    #     cartesian_frames.append(
-    #         convert_quat_frame_to_cartesian_frame(skeleton, quat_frame, animated_joints))
-    # return np.array(cartesian_frames)
+
+    cartesian_frames = []
+    for quat_frame in quat_frames:
+        cartesian_frames.append(
+            convert_quat_frame_to_cartesian_frame(skeleton, quat_frame, animated_joints))
+    return np.array(cartesian_frames)
 
 
 def convert_quat_coeffs_to_cartesian_coeffs(elementary_action,
