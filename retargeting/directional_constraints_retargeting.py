@@ -4,11 +4,14 @@ from scipy.optimize import minimize
 import copy
 import os
 import glob
-from transformations import euler_matrix, euler_from_matrix           
-from anim_utils.utilities.custom_math import euler_matrix_jac
-from anim_utils.animation_data.utils import get_rotation_angle, transform_euler_frame, pose_orientation_general, \
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.absolute()) + r'/../..')
+from transformations import euler_matrix, euler_from_matrix        
+from mosi_utils_anim.utilities.custom_math import euler_matrix_jac
+from mosi_utils_anim.animation_data.utils import get_rotation_angle, transform_euler_frame, pose_orientation_general, \
     convert_euler_frames_to_quaternion_frames, pose_orientation_from_point_cloud
-from anim_utils.animation_data import LEN_ROOT, LEN_EULER, BVHReader, BVHWriter, SkeletonBuilder
+from mosi_utils_anim.animation_data import LEN_ROOT, LEN_EULER, BVHReader, BVHWriter, SkeletonBuilder
 
 
 def get_kinematic_chain(start_joint, end_joint, skeleton):
