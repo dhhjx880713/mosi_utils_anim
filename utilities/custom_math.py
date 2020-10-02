@@ -1,8 +1,6 @@
 # encoding: UTF-8
 import numpy as np
 import math
-from transformations import quaternion_from_euler
-
 LEN_CARTESIAN = 3
 LEN_QUATERNION = 4
 

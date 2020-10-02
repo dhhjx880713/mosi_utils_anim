@@ -1571,6 +1571,7 @@ def rotate_euler_frames(euler_frames,
     forward = pose_orientation_general(euler_frames[frame_idx],
                                        body_plane_joints,
                                        skeleton)
+
     rot_angle = get_rotation_angle(ref_orientation, forward)
     translation = np.array([0, 0, 0])
     rotated_frames = transform_euler_frames(euler_frames,
@@ -2057,3 +2058,117 @@ def combine_motion_clips(clips, motion_len, window_step):
         right_index = window_size - (window_size - residue_frames) // 2
         combined_frames = np.concatenate((combined_frames, clips[-2, left_index:right_index]), axis=0)
         return combined_frames
+
+def shift_euler_frames_to_ground(euler_frames, ground_contact_joints, skeleton, align_index=0):
+    """
+    shift all euler frames of motion to ground, which means the y-axis for
+    gound contact joint should be 0
+    Step 1: apply forward kinematic to compute global position for ground
+            contact joint for each frame
+    Setp 2: find the offset from ground contact joint to ground, and shift
+            corresponding frame based on offset
+    """
+    # tmp_frames = deepcopy(euler_frames)
+    # for frame in tmp_frames:
+    #     contact_point_position = get_cartesian_coordinates_from_euler(skeleton, ground_contact_joint, frame)
+    #     offset_y = contact_point_position[1]
+    #     # shift root position by offset_y
+    #     frame[1] = frame[1] - offset_y
+    # return tmp_frames
+    foot_contact_heights = []
+    for joint in ground_contact_joints:
+        foot_contact_heights.append(skeleton.nodes[joint].get_global_position_from_euler(euler_frames[align_index])[1])
+    return transform_euler_frames(euler_frames,
+                                  [0.0, 0.0, 0.0],
+                                  np.array([0, -np.min(foot_contact_heights), 0]))
+
+def transform_euler_frames(euler_frames, angles, offset, rotation_order=None):
+    """ Applies a transformation on the root joint of a list euler frames.
+    Parameters
+    ----------
+    *euler_frames: np.ndarray
+    \tList of frames where the rotation is represented as euler angles in degrees.
+    *angles: list of floats
+    \tRotation angles in degrees
+    *offset:  np.ndarray
+    \tTranslation
+    """
+    transformed_euler_frames = []
+    for frame in euler_frames:
+        transformed_euler_frames.append(
+            transform_euler_frame(frame, angles, offset, rotation_order))
+    return np.array(transformed_euler_frames)         
+
+
+def transform_euler_frame(euler_frame, angles, offset, rotation_order=None, global_rotation=True):
+    """
+    Calls transform_point for the root parameters and adds theta to the y rotation
+    channel of the frame.
+
+    The offset of root is transformed by transform_point
+    The orientation of root is rotated by Rotation matrix
+
+    Parameters
+    ---------
+    *euler_frame: np.ndarray
+    \t the parameters of a single frame
+    *angles: list of floats
+    \tRotation angles in degrees
+    *offset: np.ndarray
+    \tTranslation
+    """
+    if rotation_order is None:
+        rotation_order = ["Xrotation", "Yrotation", "Zrotation"]
+    transformed_frame = deepcopy(euler_frame)
+    if global_rotation:
+        transformed_frame[:3] = transform_point(euler_frame[:3], angles, offset, rotation_order=rotation_order)
+    else:
+        transformed_frame[:3] = transform_point(euler_frame[:3], np.zeros(3), offset, rotation_order=rotation_order)
+    R = euler_matrix(np.deg2rad(angles[0]), np.deg2rad(angles[1]), np.deg2rad(angles[2]), axes='rxyz')
+    if rotation_order[0] == 'Xrotation':
+        if rotation_order[1] == 'Yrotation':
+            OR = euler_matrix(np.deg2rad(euler_frame[3]),
+                              np.deg2rad(euler_frame[4]),
+                              np.deg2rad(euler_frame[5]),
+                              axes='rxyz')
+            rotmat = np.dot(R, OR)
+            eul_angles = np.rad2deg(euler_from_matrix(rotmat, 'rxyz'))
+        elif rotation_order[1] == 'Zrotation':
+            OR = euler_matrix(np.deg2rad(euler_frame[3]),
+                              np.deg2rad(euler_frame[4]),
+                              np.deg2rad(euler_frame[5]),
+                              axes='rxzy')
+            rotmat = np.dot(R, OR)
+            eul_angles = np.rad2deg(euler_from_matrix(rotmat, 'rxzy'))
+    elif rotation_order[0] == 'Yrotation':
+        if rotation_order[1] == 'Xrotation':
+            OR = euler_matrix(np.deg2rad(euler_frame[3]),
+                              np.deg2rad(euler_frame[4]),
+                              np.deg2rad(euler_frame[5]),
+                              axes='ryxz')
+            rotmat = np.dot(R, OR)
+            eul_angles = np.rad2deg(euler_from_matrix(rotmat, 'ryxz'))
+        elif rotation_order[1] == 'Zrotation':
+            OR = euler_matrix(np.deg2rad(euler_frame[3]),
+                              np.deg2rad(euler_frame[4]),
+                              np.deg2rad(euler_frame[5]),
+                              axes='ryzx')
+            rotmat = np.dot(R, OR)
+            eul_angles = np.rad2deg(euler_from_matrix(rotmat, 'ryzx'))
+    elif rotation_order[0] == 'Zrotation':
+        if rotation_order[1] == 'Xrotation':
+            OR = euler_matrix(np.deg2rad(euler_frame[3]),
+                              np.deg2rad(euler_frame[4]),
+                              np.deg2rad(euler_frame[5]),
+                              axes='rzxy')
+            rotmat = np.dot(R, OR)
+            eul_angles = np.rad2deg(euler_from_matrix(rotmat, 'rzxy'))
+        elif rotation_order[1] == 'Yrotation':
+            OR = euler_matrix(np.deg2rad(euler_frame[3]),
+                              np.deg2rad(euler_frame[4]),
+                              np.deg2rad(euler_frame[5]),
+                              axes='rzyx')
+            rotmat = np.dot(R, OR)
+            eul_angles = np.rad2deg(euler_from_matrix(rotmat, 'rzyx'))
+    transformed_frame[3:6] = eul_angles
+    return transformed_frame
