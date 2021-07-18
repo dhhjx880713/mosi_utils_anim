@@ -75,7 +75,7 @@ class SkeletonNodeBase(object):
         return quaternion_from_matrix(global_matrix)
 
     def get_global_orientation_euler(self, euler_frame, use_cache=False):
-        global_matrix = self.get_global_matrix(euler_frame, use_cache)
+        global_matrix = self.get_global_matrix_from_euler_frame(euler_frame, use_cache)
         return euler_from_matrix(global_matrix)
 
     def get_global_matrix(self, quaternion_frame, use_cache=False):
@@ -96,7 +96,7 @@ class SkeletonNodeBase(object):
             self.cached_global_matrix = np.dot(parent_matrix, self.get_local_matrix_from_euler(euler_frame))
             return self.cached_global_matrix
         else:
-            self.cached_global_matrix = self.get_local_matrix_from_euler(euler_frame)
+            self.cached_global_matrix = self.get_local_matrix_get_local_from_euler(euler_frame)
             return self.cached_global_matrix
 
     def get_global_matrix_from_anim_frame(self, frame, use_cache=False):
@@ -122,40 +122,6 @@ class SkeletonNodeBase(object):
 
     def get_number_of_frame_parameters(self, rotation_type):
         pass
-
-    # def to_unity_format(self, joints, scale=1.0, joint_name_map=None):
-    #     joint_desc = dict()
-    #     joint_desc["name"] = self.node_name
-    #     if type(self.offset) == list:
-    #         offset = self.offset
-    #     else:
-    #         offset = self.offset.tolist()
-    #     offset[0] *= -scale
-    #     offset[1] *= scale
-    #     offset[2] *= scale
-    #     joint_desc["offset"] = offset
-       
-    #     if type(self.rotation) == list:
-    #         rotation = self.rotation
-    #     else:
-    #         rotation = self.rotation.tolist()
-    #     rotation[0] *= -scale
-    #     rotation[1] *= -scale
-    #     rotation[2] *= scale
-    #     rotation[3] *= scale
-    #     joint_desc["rotation"] = rotation
-    #     if joint_name_map is not None:
-    #         if self.node_name in joint_name_map:
-    #             joint_desc["targetName"] = joint_name_map[self.node_name]
-    #         else:
-    #             joint_desc["targetName"] = "none"
-    #     else:
-    #         joint_desc["targetName"] = self.node_name
-    #     joint_desc["children"] = []
-    #     joints.append(joint_desc)
-    #     for c in self.children:
-    #         joint_desc["children"].append(c.node_name)
-    #         c.to_unity_format(joints, scale, joint_name_map=joint_name_map)
     
     def to_unity_format(self, joints, animated_joint_list, joint_name_map=None):
         joint_desc = dict()
