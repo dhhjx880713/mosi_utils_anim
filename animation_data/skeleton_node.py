@@ -96,7 +96,7 @@ class SkeletonNodeBase(object):
             self.cached_global_matrix = np.dot(parent_matrix, self.get_local_matrix_from_euler(euler_frame))
             return self.cached_global_matrix
         else:
-            self.cached_global_matrix = self.get_local_matrix_get_local_from_euler(euler_frame)
+            self.cached_global_matrix = self.get_local_matrix_from_euler(euler_frame)
             return self.cached_global_matrix
 
     def get_global_matrix_from_anim_frame(self, frame, use_cache=False):
@@ -171,6 +171,7 @@ class SkeletonRootNode(SkeletonNodeBase):
         return local_matrix
 
     def get_local_matrix_from_euler(self, euler_frame):
+        euler_frame = np.asarray(euler_frame)
         if not self.rotation_order is None and not self.rotation_channel_indices is None:
             local_matrix = create_euler_matrix(euler_frame[self.rotation_channel_indices], self.rotation_order)
         else:
