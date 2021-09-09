@@ -24,7 +24,7 @@ def get_kinematic_chain(start_joint, end_joint, skeleton):
         if current_joint.node_name == start_joint:
             break
     if start_joint not in kinematic_chain:
-        raise ValueError("two joints are not in the same kinematic chain!")
+        raise ValueError(start_joint + " and " + end_joint + " are not in the same kinematic chain!")
     kinematic_chain.reverse()
     return kinematic_chain
 
@@ -326,7 +326,6 @@ def object_bone_rotation_multi_targets(delta_angles, data):
     for target_joint, target_dir in targets.items():
         err += object_bone_rotation_one_target(delta_angles, [target_dir, src_joint, skeleton, target_joint,
                                                               euler_frame, dofs, rotation_order])
-    # print(err)
     return err
 
 
@@ -674,7 +673,7 @@ def recursive_retarget_motion(targets, target_skeleton, ref_euler_frame, joints_
         recursive_retarget_motion(targets, target_skeleton, ref_euler_frame, joints_dofs, joint_name=child.node_name)
 
 
-def retarget_motion(joint_name, targets, target_skeleton, ref_euler_frame, joints_dofs=None):
+def retarget_motion(joint_name, targets, target_skeleton, ref_euler_frame, joints_dofs=None, delta_angles={}, debug=False):
     '''
     recursively optimization joint orientation
 
@@ -685,16 +684,19 @@ def retarget_motion(joint_name, targets, target_skeleton, ref_euler_frame, joint
 
     targets shouold only contain joints from target skeleton: the target direction from target joints
 
-    :param joint_name:
-    :param targets:
-    :param skeleton:
+    :param joint_name: joint name in target skeleton
+    :param targets: rotation targets
+    :param skeleton: Skeleton class
+    :param delta_angles: dictionary, records rotation angles for each joint (angular speed)
     :return:
     '''
-    # print("joint name: ", joint_name)
+    if debug:
+        print("joint name: ", joint_name)
     if joints_dofs is None:
         joints_dofs = {}
     euler_index = target_skeleton.nodes[joint_name].quaternion_frame_index
-    # print("euler index: ", euler_index)
+    if debug:
+        print("euler angle index: ", euler_index)
     rotation_order = target_skeleton.nodes[joint_name].rotation_order
     assert rotation_order != []
     if rotation_order[0] == 'Xrotation':
@@ -814,27 +816,33 @@ def retarget_motion(joint_name, targets, target_skeleton, ref_euler_frame, joint
     # pre_angles = ref_euler_frame[LEN_ROOT + LEN_EULER * euler_index + indices]
     # assert len(pre_angles) == len(joint_dofs)
     initial_guess = np.zeros(len(joint_dofs))
+    # if joint_name == "RightShoulder":
+    #     print("length of initial guess: {}".format(len(initial_guess)))
+    #     print("degree of freedom: {}".format(joint_dofs))
     params = [targets[joint_name], joint_name, target_skeleton, ref_euler_frame, joint_dofs, rotation_axes]
-
-    # res = minimize(object_bone_dir_multi_joints, pre_angles, args=params, method='L-BFGS-B',
-    #                jac=object_bone_dir_mult_joints_jac)
-    # # print('optimal angles: ', res.x)
-    # ref_euler_frame[LEN_ROOT + LEN_EULER * euler_index + indices] = res.x
-
+    
     res = minimize(object_bone_rotation_multi_targets, initial_guess, args=params, method='L-BFGS-B',
                    jac=object_bone_rotation_multi_targets_jac)
     rotation_angles = np.zeros(LEN_EULER)
     rotation_angles[indices] = res.x
+    delta_angles[joint_name] = rotation_angles.tolist()
+    # if joint_name == "RightShoulder":
+    #     print("optimization results: {}".format(res.x))
+
     joint_angles = ref_euler_frame[LEN_ROOT + LEN_EULER * euler_index: LEN_ROOT + (euler_index + 1) * LEN_EULER]
+    # if joint_name == 'RightShoulder':
+    #     print("previous joitn angles: {}".format(joint_angles))
 
     rotmat1 = euler_matrix(*np.deg2rad(joint_angles), axes=rotation_axes)
     rotmat2 = euler_matrix(*np.deg2rad(rotation_angles), axes=rotation_axes)
     rotmat = np.dot(rotmat1, rotmat2)
     new_angles = euler_from_matrix(rotmat, axes=rotation_axes)
+    # if joint_name == "RightShoulder":
+    #     print("new angles: {}".format(np.rad2deg(new_angles)))
     ref_euler_frame[LEN_ROOT + LEN_EULER * euler_index: LEN_ROOT + (euler_index + 1) * LEN_EULER] = np.rad2deg(new_angles)
     for child in targets[joint_name].keys():
         if child in targets.keys():
-            retarget_motion(child, targets, target_skeleton, ref_euler_frame, joints_dofs)
+            retarget_motion(child, targets, target_skeleton, ref_euler_frame, joints_dofs, delta_angles)
 
 
 def create_direction_constraints(joint_map, src_skeleton, euler_frame, body_plane=None, constrained_joints=None,
@@ -978,14 +986,14 @@ def get_game_engine_skeleton_pose_dir(euler_frame, skeleton):
 
 
 def retarget_folder(src_folder, ref_file, save_folder, joint_mapping, joints_dofs=None,
-                    root_joint=None, src_body_plane=None, target_body_plane=None, src_rest_pose=None):
+                    root_joint=None, src_body_plane=None, target_body_plane=None, src_skeleton_file=None):
     '''
     apply directional retargeting to a folder consisting of bvh files
     :param src_folder:
     :param ref_file:
     :param save_folder:
     :param joint_mapping:
-    :param root_joint:
+    :param root_joint: 
     :param src_rest_pose:
     :return:
     '''
@@ -997,9 +1005,9 @@ def retarget_folder(src_folder, ref_file, save_folder, joint_mapping, joints_dof
     bvhfiles = glob.glob(os.path.join(src_folder, '*.bvh'))
     if bvhfiles == []:
         return
-    if src_rest_pose is None: ## if there is no rest pose file, randomly take one from input files
-        src_rest_pose = bvhfiles[0]
-    skeleton_scale_factor = estimate_scale_factor(src_rest_pose, root_joint, ref_file, joint_mapping)
+    if src_skeleton_file is None: ## if there is no rest pose file, randomly take one from input files
+        src_skeleton_file = bvhfiles[0]
+    skeleton_scale_factor = estimate_scale_factor(src_skeleton_file, root_joint, ref_file, joint_mapping)
     for bvhfile in bvhfiles:
         bvhreader = BVHReader(bvhfile)
         skeleton = SkeletonBuilder().load_from_bvh(bvhreader)
@@ -1034,8 +1042,9 @@ def retarget_folder(src_folder, ref_file, save_folder, joint_mapping, joints_dof
                   is_quaternion=False)
 
 
-def retarget_single_motion(input_file, ref_file, rest_pose, save_dir, root_joint, src_body_plane, target_body_plane,
-                           joint_mapping, n_frames=None, skeleton_scale_factor=None, joints_dofs=None, constrained_joints=None):
+def retarget_single_motion(input_file, ref_file, save_dir, root_joint, src_body_plane, target_body_plane, joint_mapping, scale=True,
+                           rest_pose=None, n_frames=None, skeleton_scale_factor=None, joints_dofs=None, constrained_joints=None,
+                           angle_speeds=[]):
     '''
 
     :param input_file: contains source motion
@@ -1047,9 +1056,14 @@ def retarget_single_motion(input_file, ref_file, rest_pose, save_dir, root_joint
     ref_skeleton = SkeletonBuilder().load_from_bvh(ref_bvhreader)
     bvhreader = BVHReader(input_file)
     skeleton = SkeletonBuilder().load_from_bvh(bvhreader)
-    if skeleton_scale_factor is None:
-        skeleton_scale_factor = estimate_scale_factor(rest_pose, root_joint, ref_file, joint_mapping)
-        print('skeleton scale factor: ', skeleton_scale_factor)
+    if scale:
+        if rest_pose is None:
+            rest_pose = input_file
+        if skeleton_scale_factor is None:
+            skeleton_scale_factor = estimate_scale_factor(rest_pose, root_joint, ref_file, joint_mapping)
+            print('skeleton scale factor: ', skeleton_scale_factor)
+    else:
+        skeleton_scale_factor = 1
     out_frames = []
     targets = []
     if n_frames is None:
@@ -1074,8 +1088,11 @@ def retarget_single_motion(input_file, ref_file, rest_pose, save_dir, root_joint
             new_frame = copy.deepcopy(out_frames[i-1])
             ref_frame = align_ref_frame(new_frame, pose_dir, ref_skeleton, target_body_plane)
             ref_frame[:3] = (bvhreader.frames[i][:3] - bvhreader.frames[i-1][:3]) * skeleton_scale_factor + out_frames[i-1][:3]
-        retarget_motion(root_joint, targets[i], ref_skeleton, ref_frame, joints_dofs)
+        delta_angles = {}
+        retarget_motion(root_joint, targets[i], ref_skeleton, ref_frame, joints_dofs, delta_angles)
         out_frames.append(ref_frame)
+        angle_speeds.append(delta_angles)
+
     ## apply foot IK
     # skeleton_model = GAME_ENGINE_SKELETON_MODEL
     # ik_chain = skeleton_model['ik_chains']

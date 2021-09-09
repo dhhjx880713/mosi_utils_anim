@@ -70,6 +70,11 @@ class SkeletonNodeBase(object):
         point = np.dot(global_matrix, ORIGIN)
         return point[:3]
 
+    def get_local_position_from_euler(self, euler_frame):
+        local_matrix = self.get_local_matrix_from_euler(euler_frame)
+        point = np.dot(local_matrix, ORIGIN)
+        return point[:3]
+
     def get_global_orientation_quaternion(self, quaternion_frame, use_cache=False):
         global_matrix = self.get_global_matrix(quaternion_frame, use_cache)
         return quaternion_from_matrix(global_matrix)
