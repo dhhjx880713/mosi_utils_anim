@@ -206,7 +206,7 @@ class MotionVector(object):
 
         return frame
 
-    def to_unity_format(self, scale=1.0):
+    def to_unity_format(self, scale=1.0, n_frames=None):
         """ Converts the frames into a custom json format for use in a Unity client"""
         animated_joints = [j for j, n in list(self.skeleton.nodes.items()) if
                            "EndSite" not in j and len(n.children) > 0]  # self.animated_joints
@@ -214,10 +214,14 @@ class MotionVector(object):
 
         for node in list(self.skeleton.nodes.values()):
             node.quaternion_index = node.index
-
-        for frame in self.frames:
-            unity_frame = self._convert_frame_to_unity_format(frame, animated_joints, scale)
-            unity_frames.append(unity_frame)
+        if n_frames is not None:
+            for i in range(n_frames):
+                unity_frame = self._convert_frame_to_unity_format(self.frames[i], animated_joints, scale)
+                unity_frames.append(unity_frame)
+        else:
+            for frame in self.frames:
+                unity_frame = self._convert_frame_to_unity_format(frame, animated_joints, scale)
+                unity_frames.append(unity_frame)
 
         result_object = dict()
         result_object["frames"] = unity_frames

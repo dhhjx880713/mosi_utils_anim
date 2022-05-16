@@ -9,9 +9,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.absolute()) + r'/../..')
 from transformations import euler_matrix, euler_from_matrix        
 from mosi_utils_anim.utilities.custom_math import euler_matrix_jac
-from mosi_utils_anim.animation_data.utils import get_rotation_angle, transform_euler_frame, pose_orientation_general, \
+from mosi_utils_anim.animation_data.utils import convert_euler_frame_to_cartesian_frame, get_rotation_angle, transform_euler_frame, pose_orientation_general, \
     convert_euler_frames_to_quaternion_frames, pose_orientation_from_point_cloud
 from mosi_utils_anim.animation_data import LEN_ROOT, LEN_EULER, BVHReader, BVHWriter, SkeletonBuilder
+from tqdm import tqdm
 
 
 def get_kinematic_chain(start_joint, end_joint, skeleton):
@@ -931,7 +932,7 @@ def create_direction_constraints_recursively(joint, targets, src_skeleton, euler
     for all the joint's children, if the child is in JOINT_MAP table, create a direction target from
 
     recursively search the predecessors until one of the predecessor is in MAP_joint
-    :param joint:
+    :param joint: joint in source skeleton
     :param targets:
     :param src_skeleton:
     :return:
@@ -1077,9 +1078,8 @@ def retarget_single_motion(input_file, ref_file, save_dir, root_joint, src_body_
             targets.append(
                 create_direction_constraints(joint_mapping, skeleton, bvhreader.frames[i], src_body_plane,
                                              constrained_joints))
-    for i in range(n_frames):
+    for i in tqdm(range(n_frames)):
         pose_dir = targets[i]['pose_dir']
-        print(i)
         if i == 0:
             new_frame = ref_bvhreader.frames[0]
             ref_frame = align_ref_frame(new_frame, pose_dir, ref_skeleton, target_body_plane)
@@ -1122,3 +1122,119 @@ def retarget_single_motion(input_file, ref_file, save_dir, root_joint, src_body_
     filename = os.path.split(input_file)[-1]
     BVHWriter(os.path.join(save_dir, filename), ref_skeleton, out_frames, skeleton.frame_time,
               is_quaternion=False)
+
+
+def create_direction_constraints_from_target_skeleton(joint_map, src_joint_dict, point_cloud, body_plane):
+    """assume the point cloud does not have articulated skeleton, but only a joint list with parent information
+
+    Args:
+        joint_map (dictonary): define the joint mapping from source skeleton to the target skeleton
+        src_joint_dict (dictionary): a dictionary contains skeleton topology and parent information
+        point_cloud (numpy array): n_joint * n_dims
+        body_plane (list): a joint list to define the body plane for deciding the facing direction of source motion
+    The output is a target dictionary
+    """ 
+    targets = { }
+    if body_plane is None:
+        pose_dir = None
+    else:
+        body_plane_indices = [src_joint_dict[joint]["index"] for joint in body_plane]
+        pose_dir = pose_orientation_from_point_cloud(point_cloud, body_plane_indices)
+    targets['pose_dir'] = pose_dir
+    for joint_name in joint_map.keys():
+        create_direction_constraints_from_target_skeleton_recursively(joint_name, targets, src_joint_dict, point_cloud, joint_map)
+    return targets
+    
+
+def create_direction_constraints_from_target_skeleton_recursively(joint_name, targets, src_joint_dict, point_cloud, joint_map):
+    """for given joint, the algorithm search the kinematic chain from current joint to root to find the closest
+       ancestor
+    Args:
+        joint_name (string): joint in src skeleton
+        targets (dictionary): save generated directional targets
+        src_joint_dict (dict): _description_
+        point_cloud (numpy array):2D array n_joints * n_dims
+        joint_map (dictionary): a dictionary defining joint mapping from source to target
+    """
+    ### look for the parent joint in the source skeleton
+    assert len(point_cloud.shape) == 2
+    src_joint_name = src_joint_dict[joint_name]['parent']
+    while src_joint_name is not None:
+        if src_joint_name in joint_map.keys():
+            joint_index = src_joint_dict[src_joint_name]['index']
+            src_pos = point_cloud[joint_index]
+            target_pos = point_cloud[src_joint_dict[joint_name]['index']]
+            assert np.linalg.norm(target_pos - src_pos)> 1e-6, ('Bone direction should not be zero!')
+            bone_dir = (target_pos - src_pos)/np.linalg.norm(target_pos - src_pos)
+            if joint_map[src_joint_name] not in targets.keys():
+                targets[joint_map[src_joint_name]] = {joint_map[joint_name]: bone_dir}
+            else:
+                targets[joint_map[src_joint_name]][joint_map[joint_name]] = bone_dir
+            break
+        src_joint_name = src_joint_dict[src_joint_name]['parent']
+
+
+def estimate_scale_factor_for_point_cloud(src_pose, target_pose):
+    """find the scale difference for src pose and target pose for retargeting root translation. Assume that the two point clouds
+       are in similar poses
+
+    Args:
+        src_pose (numpy array): 2D array n_joints * n_dims
+        target_pose (numpy array): 2D array n_joints * n_dims
+    """ 
+    src_highest = np.max(src_pose, axis=0)
+    src_lowest = np.min(src_pose, axis=0)
+    target_highest = np.max(target_pose, axis=0)
+    target_lowest = np.min(target_pose, axis=0)
+    src_max_diff = np.max(src_highest - src_lowest)
+    target_max_diff = np.max(target_highest - target_lowest)
+    scale = target_max_diff / src_max_diff
+    return scale
+
+
+def retarget_point_cloud_data(point_cloud, skeleton_def, root_joint, torso_def, ref_bvhfile, save_filename, \
+                              joint_map, scale_factor=None, n_frames=None, joints_dofs=None, constrained_joints=None):
+    """_summary_
+
+    Args:
+        point_cloud (_type_): _description_
+        skeleton_def (_type_): _description_
+        root_joint (string): root joint defined in source skeleton
+        torso_def (_type_): _description_
+        ref_bvhfile (_type_): _description_
+        ref_frame (_type_): _description_
+        joint_map (_type_): _description_
+        scale_factor (_type_, optional): _description_. Defaults to None.
+        n_frames (_type_, optional): _description_. Defaults to None.
+        joints_dofs (_type_, optional): _description_. Defaults to None.
+        constrained_joints (_type_, optional): _description_. Defaults to None.
+    """
+    ref_bvhreader = BVHReader(ref_bvhfile)
+    ref_skeleton = SkeletonBuilder().load_from_bvh(ref_bvhreader)
+    cartesian_frame = convert_euler_frame_to_cartesian_frame(ref_skeleton, ref_bvhreader.frames[0])
+    if scale_factor is None:
+        scale_factor = estimate_scale_factor_for_point_cloud(point_cloud[0], cartesian_frame)
+    out_frames = []
+    targets = []
+    target_torso_def = [joint_map[joint] for joint in torso_def]
+    if n_frames is None:
+        n_frames = len(point_cloud)
+    ## compute directional constraints
+    for i in range(n_frames):
+        targets.append(
+            create_direction_constraints_from_target_skeleton(joint_map, skeleton_def, point_cloud[i], torso_def)
+        )
+    for i in tqdm(range(n_frames)):
+        pose_dir = targets[i]['pose_dir']
+        if i == 0:
+            new_frame = ref_bvhreader.frames[0]
+            ref_frame = align_ref_frame(new_frame, pose_dir, ref_skeleton, target_torso_def)
+        else:
+            new_frame = copy.deepcopy(out_frames[i-1])
+            ref_frame = align_ref_frame(new_frame, pose_dir, ref_skeleton, target_torso_def)
+            ## set global root translation
+            ref_frame[:3] =  (point_cloud[i][skeleton_def[root_joint]['index']] - point_cloud[i-1][skeleton_def[root_joint]['index']]) * scale_factor + out_frames[i-1][:3]
+        delta_angles = {}
+        retarget_motion(joint_map[root_joint], targets[i], ref_skeleton, ref_frame, joints_dofs, delta_angles)
+        out_frames.append(ref_frame)
+    BVHWriter(save_filename, ref_skeleton, out_frames, ref_skeleton.frame_time)
