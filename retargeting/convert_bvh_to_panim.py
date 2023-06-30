@@ -7,7 +7,7 @@ from mosi_utils_anim.utilities import load_json_file, write_to_json_file
 import numpy as np
 import collections
 from mosi_utils_anim.animation_data import BVHReader, BVHWriter, SkeletonBuilder
-from skeleton_definition import Edinburgh_skeleton, Edinburgh_ANIMATED_JOINTS, GAME_ENGINE_ANIMATED_JOINTS_without_game_engine
+from mosi_utils_anim.retargeting.skeleton_definition import Edinburgh_skeleton, Edinburgh_ANIMATED_JOINTS, GAME_ENGINE_ANIMATED_JOINTS_without_game_engine
 from mosi_utils_anim.animation_data.quaternion import Quaternion
 to_meters = 1.0
 
@@ -87,7 +87,7 @@ def test():
 
     # skeleton_bvhfile = r'E:\gits\motionsynth_code\data\processed\edin_locomotion\locomotion_jog_000_000.bvh'
     # convert_motions_to_point_cloud(skeleton, input_folder, output_folder, animated_joints=None)
-    panim_data = load_json_file(r'E:\workspace\projects\retargeting_experiments\panim_from_mk_retargeting\LocomotionFlat04_000.panim')
+    _data = load_json_file(r'E:\workspace\projects\retargeting_experiments\panim_from_mk_retargeting\LocomotionFlat04_000.panim')
     print(panim_data.keys())
 
 

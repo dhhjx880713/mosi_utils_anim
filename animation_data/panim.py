@@ -28,10 +28,15 @@ class Panim(object):
         Arguments:
             saveFilename {str} -- save path
         """
-        output_data = {'motion_data': self.motion_data,
-                       'has_skeleton': self.has_skeleton,
-                       'skeleton': self.skeleton
-        }
+        if self.has_skeleton:
+            output_data = {'motion_data': self.motion_data.tolist(),
+                           'has_skeleton': self.has_skeleton,
+                           'skeleton': self.skeleton
+                           }
+        else:
+            output_data = {'motion_data': self.motion_data.tolist(),
+                           'has_skeleton': self.has_skeleton
+                          }
         write_to_json_file(saveFilename, output_data)
     
     def setSkeleton(self, ske_description):
@@ -49,7 +54,11 @@ class Panim(object):
         Arguments:
             motion_data {numpy.array3d} -- n_frames * n_joints * 3
         """
-        self.motion_data = np.asarray(motion_data).tolist()
+        self.motion_data = motion_data
+    
+    def scale_motion(self, scale_factor):
+        if self.motion_data is not None:
+            self.motion_data = np.asarray(self.motion_data) * scale_factor
 
     def convert_to_unity_format(self, scale=1.0):
         """ 
