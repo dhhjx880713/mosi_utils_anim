@@ -550,5 +550,3 @@ class Skeleton(object):
                 index += 1
                 bones.append(bone_desc)
         return bones
-
-    

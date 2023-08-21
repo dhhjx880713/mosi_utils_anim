@@ -105,7 +105,7 @@ class FABRIKBone(object):
         self.is_leaf = False
 
 
-ROOT_OFFSET = np.array([0,0,0], np.float)
+ROOT_OFFSET = np.array([0,0,0], np.float32)
 
 class FABRIKChain(object):
     def __init__(self, skeleton, bones, node_order, tolerance=0.01, delta_tolerance=0.0001, max_iter=500, frame_offset=3, root_offset=ROOT_OFFSET, activate_constraints=False, visualize=False):

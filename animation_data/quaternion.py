@@ -232,16 +232,16 @@ class Quaternion(object):
         vec1 = vec1 / np.linalg.norm(vec1)
         vec2 = vec2 / np.linalg.norm(vec2)
         axis = np.cross(vec1, vec2)
-        if np.isclose(np.linalg.norm(axis), 0.0):
-            if np.allclose(vec1, vec2):
+        if np.linalg.norm(axis) < 1e-5:
+            if np.allclose(vec1, vec2, atol=1e-5):
                 angle = 0
                 return Quaternion.fromAngleAxis(angle, axis)
-            elif np.allclose(vec1, -vec2):
+            elif np.allclose(vec1, -vec2, atol=1e-5):
                 angle = np.deg2rad(180)
                 axis = np.array([0, 1, 0])
                 return Quaternion.fromAngleAxis(angle, axis)
             else:
-                print("exception")
+                print("Except")
                 print(vec1)
                 print(vec2)
                 raise NotImplementedError

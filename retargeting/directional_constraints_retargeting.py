@@ -1069,6 +1069,8 @@ def retarget_single_motion(input_file, ref_file, save_dir, root_joint, src_body_
     targets = []
     if n_frames is None:
         n_frames = len(bvhreader.frames)
+    else:
+        n_frames = min(n_frames, len(bvhreader.frames))
     for i in range(n_frames):
         if i > 0:
             targets.append(

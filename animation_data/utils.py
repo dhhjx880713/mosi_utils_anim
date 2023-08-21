@@ -28,8 +28,6 @@ from transformations import quaternion_matrix, euler_from_matrix, \
     quaternion_conjugate,  quaternion_inverse, rotation_from_matrix
 
 
-
-
 def rotation_order_to_string(rotation_order):
     r_order_string = "r"
     for c in rotation_order:
@@ -1910,14 +1908,12 @@ def rotate_cartesian_frames_to_ref_dir(cartesian_frames, ref_dir, body_plane_ind
 
 
 def cartesian_pose_orientation(cartesian_pose, body_plane_index, up_axis):
-    print("Deprecation Warning: Function marked as Deprecated!")
-    pass
-    # assert len(cartesian_pose.shape) == 2
-    # points = cartesian_pose[body_plane_index, :]
-    # body_plane = BodyPlane(points)
-    # normal_vec = body_plane.normal_vector
-    # normal_vec[np.where(up_axis == 1)] = 0  ### only consider forward direction on the ground
-    # return normal_vec/np.linalg.norm(normal_vec)
+    assert len(cartesian_pose.shape) == 2
+    points = cartesian_pose[body_plane_index, :]
+    body_plane = BodyPlane(points)
+    normal_vec = body_plane.normal_vector
+    normal_vec[np.where(up_axis == 1)] = 0  ### only consider forward direction on the ground
+    return normal_vec/np.linalg.norm(normal_vec)
 
 
 def get_rotation_angles_for_vectors(dir_vecs, ref_dir, up_axis):
