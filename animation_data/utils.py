@@ -1186,6 +1186,18 @@ def calculate_frame_distance(skeleton,
                              euler_frame_b,
                              weights=None,
                              return_transform=False):
+    """calculates the translation and rotaiton invariant distance between two euler frames
+
+    Args:
+        skeleton (_type_): _description_
+        euler_frame_a (_type_): _description_
+        euler_frame_b (_type_): _description_
+        weights (_type_, optional): _description_. Defaults to None.
+        return_transform (bool, optional): _description_. Defaults to False.
+
+    Returns:
+        _type_: _description_
+    """
     point_cloud_a = convert_euler_frame_to_cartesian_frame(skeleton,
                                                            euler_frame_a)
     point_cloud_b = convert_euler_frame_to_cartesian_frame(skeleton,

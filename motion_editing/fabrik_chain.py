@@ -99,7 +99,7 @@ class FABRIKBone(object):
     def __init__(self, name, child):
         self.name = name
         self.child = child
-        self.position = np.array([0, 0, 0], np.float) # position of joint
+        self.position = np.array([0, 0, 0], np.float32) # position of joint
         self.length = 0
         self.is_root = False
         self.is_leaf = False
@@ -514,7 +514,7 @@ class FABRIKChain(object):
     def get_child_offset(self, node, child_node):
         """
         """
-        actual_offset = np.array([0, 0, 0], np.float)
+        actual_offset = np.array([0, 0, 0], np.float32)
         while node is not None and self.skeleton.nodes[node].children[0].node_name != child_node:
             local_offset = np.array(self.skeleton.nodes[node].children[0].offset)
             local_offset /= np.linalg.norm(local_offset)

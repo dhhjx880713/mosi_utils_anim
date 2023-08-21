@@ -3,7 +3,7 @@ from .fabrik_chain import FABRIKChain, to_local_cos, quaternion_from_vector_to_v
 
 
 def get_child_offset(skeleton, node, child_node):
-    actual_offset = np.array([0, 0, 0], np.float)
+    actual_offset = np.array([0, 0, 0])
     while node is not None and skeleton.nodes[node].children[0].node_name != child_node:
         local_offset = np.array(skeleton.nodes[node].children[0].offset)
         local_offset_len = np.linalg.norm(local_offset)
@@ -66,7 +66,7 @@ def global_to_local_frame(skeleton, global_frame):
 
 class FABRIKNode(object):
     def __init__(self, skeleton, root, parent_chain=None, tolerance=0.01, max_iter=100, root_offset=ROOT_OFFSET):
-        self.root_pos = np.array([0,0,0], dtype=np.float)
+        self.root_pos = np.array([0,0,0], dtype=np.float32)
         self.skeleton = skeleton
         self.n_parameters = len(self.skeleton.animated_joints)*4+3
         self.tolerance = tolerance
